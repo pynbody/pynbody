@@ -1,4 +1,5 @@
-import snapshot, array, util
+from . import snapshot, array, util
+from . import decorate, family
 
 import struct
 import numpy as np
@@ -16,19 +17,29 @@ class TipsySnap(snapshot.SimSnap) :
 
 	t, n, ndim, ng, nd, ns = struct.unpack(">dlllll", f.read(28))
 
+        # In non-cosmological simulations, what is t? Is it physical
+        # time?  In which case, we need some way of telling what we
+        # are dealing with and setting properties accordingly.
+        self.properties['a'] = t
+        self.properties['z'] = 1.0/t - 1.0
+
 	assert ndim==3
 	
 	self._num_particles = ng+nd+ns
 	f.read(4)
 
-	self._create_arrays(["pos","vel"],3)
-	self._create_arrays(["mass","rho","temp","eps","metals","phi","tform"])
+	# Store slices corresponding to different particle types
+	self._family_slice[family.gas] = slice(0,ng)
+	self._family_slice[family.dm] = slice(ng, nd+ng)
+	self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
-	# These are stored as hack-arounds until the actual particle
-	# family system is implemented
-	self._gas_slice = slice(0,ng)
-	self._dm_slice = slice(ng, nd+ng)
-	self._star_slice = slice(nd+ng, ng+nd+ns)	
+	self._create_arrays(["pos","vel"],3)
+	self._create_arrays(["mass","eps","phi"])
+	self.gas._create_arrays(["rho","temp","metals"])
+	self.star._create_arrays(["metals","tform"])
+	
+	# ["rho","temp","eps","metals","phi","tform"])
+
 	
 
 	# Load in the tipsy file in blocks.  This is the most
@@ -39,29 +50,33 @@ class TipsySnap(snapshot.SimSnap) :
 	max_block_size = 1024 # particles
 
 	# describe the file structure as list of (num_parts, [list_of_properties]) 
-	file_structure = ((ng,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
-			  (nd,["mass","x","y","z","vx","vy","vz","eps","phi"]),
-			  (ns,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+	file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
+			  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
+			  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
 	
 
-	n_tot = 0 # total read in so far
+	decorate.decorate_top_snap(self)
 	
-	for n_this, st in file_structure :
-	    
-	    while n_this>0 :
-		n_block = max(n_this,max_block_size)
+
+	for n_left, type, st in file_structure :
+	    n_done = 0
+	    self_type = self[type]
+	    while n_left>0 :
+		n_block = max(n_left,max_block_size)
 
 		# Read in the block
 		g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
 
 		# Copy into the correct arrays
 		for i, name in enumerate(st) :
-		    self[name][n_tot:n_tot+n_block] = g[:,i]
+		    self_type[name][n_done:n_done+n_block] = g[:,i]
 
 		# Increment total ptcls read in, decrement ptcls left of this type
-		n_this-=n_block
-		n_tot+=n_block
-		
+		n_left-=n_block
+		n_done+=n_block
+
+
+	
 
 		
 	
