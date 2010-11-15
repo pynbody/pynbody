@@ -329,4 +329,6 @@ class FamilySubSnap(SubSnap) :
 	self.base._create_family_array(array_name, self._unifamily, ndim, dtype)
 
 
+    def _create_family_array(self, array_name, family, ndim, dtype) :
+	self.base._create_family_array(array_name, family, ndim, dtype)
 	
