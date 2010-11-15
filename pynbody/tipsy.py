@@ -81,7 +81,16 @@ class TipsySnap(snapshot.SimSnap) :
 		
 	
 
-    def _read_array(self, array_name) :
+    def _read_array(self, array_name, fam=None) :
+	"""Read a TIPSY-ASCII file with the specified name. If fam is not None,
+	read only the particles of the specified family."""
+	
+	# N.B. this code is a bit inefficient for loading
+	# family-specific arrays, because it reads in the whole array
+	# then slices it.  But of course the memory is only wasted
+	# while still inside this routine, so it's only really the
+	# wasted time that's a problem.
+	
 	filename = self._filename+"."+array_name  # could do some cleverer mapping here
 	
 	f = util.open_(filename)
@@ -116,10 +125,12 @@ class TipsySnap(snapshot.SimSnap) :
 	    dims = (len(data),ndim)
 	else :
 	    dims = len(data)
-	    
-	self._arrays[array_name] = data.reshape(dims).view(array.SimArray)
 
-	return self[array_name]
+	if fam is None :
+	    self._arrays[array_name] = data.reshape(dims).view(array.SimArray)
+	else :
+	    self._create_family_array(array_name, fam, ndim, data.dtype)
+	    self._get_family_array(array_name, fam)[:] = data[self._get_slice_for_family(fam)]
 	
 	
     @staticmethod

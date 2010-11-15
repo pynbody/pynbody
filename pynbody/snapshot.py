@@ -27,7 +27,7 @@ class SimSnap(object) :
 	self.filename=""
         self.properties = {}
     
-    def __getitem__(self, i) :
+    def __getitem__(self, i, lazyload=True) :
 	"""Given a SimSnap object s, the following should be implemented:
 
 	s[string] -> return array of name string
@@ -47,10 +47,13 @@ class SimSnap(object) :
 	    try:
 		return self._arrays[i]
 	    except KeyError :
-		try:
-		    return self._read_array(i)
-		except IOError :
-		    raise KeyError(i)
+		if lazyload :
+		    try:
+			return self._read_array(i)
+		    except IOError :
+			raise KeyError(i)
+		else :
+		    raise
 	elif isinstance(i,slice) :
 	    return SubSnap(self, i)
 	elif isinstance(i, family.Family) :
@@ -235,11 +238,11 @@ class SubSnap(SimSnap) :
 	self._descriptor = descriptor
         self.properties = base.properties
 	
-    def __getitem__(self, i) :
+    def __getitem__(self, i, lazyload=True) :
 	if isinstance(i, str) :
-	    return self.base[i][self._slice]
+	    return self.base.__getitem__( i, lazyload)[self._slice]
 	else :
-	    return SimSnap.__getitem__(self,i)
+	    return SimSnap.__getitem__(self,i, lazyload)
 
 
 
@@ -261,6 +264,9 @@ class SubSnap(SimSnap) :
 				 util.intersect_slices(self._slice, base_family_slice, len(self.base)))
 	return self.base._get_family_array(name, fam)[sl]
 
+    def _read_array(self, array_name, fam=None) :
+	self.base._read_array(array_name, fam)
+
     def family_keys(self, fam=None) :
 	return self.base.family_keys(fam)
 
@@ -275,15 +281,25 @@ class FamilySubSnap(SubSnap) :
 	self._descriptor = ":"+fam.name
 	self._num_particles = len(self["pos"])
 
-    def __getitem__(self, i) :
+    def __getitem__(self, i, lazyload=True) :
 	try:
 	    if isinstance(i, str) :
 		return self.base._get_family_array(i, self._unifamily)   
 	except KeyError :
 	    pass
 
-	return SubSnap.__getitem__(self,i)
-
+	try:
+	    # FamilySubSnap acts as a barrier to lazy-loading, because we want
+	    # to do the lazy-loading ourselves
+	    return SubSnap.__getitem__(self,i,False)
+	except KeyError :
+	    if isinstance(i,str) :
+		try:
+		    self.base._read_array(i, self._unifamily)
+		except IOError :
+		    raise KeyError(i)
+		return self.base._get_family_array(i, self._unifamily)
+	    raise
     """
     def __setitem__(self, name, contents) :
 	if name in self.base.keys() :
