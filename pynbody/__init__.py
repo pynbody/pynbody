@@ -4,7 +4,7 @@ import util, array, decorate, family, snapshot,  tipsy, gadget
 reload(array)
 reload(util)
 reload(decorate)
-reload(family)
+# reload(family) # reloading this causes problems for active snapshots
 reload(snapshot)
 reload(tipsy)
 reload(gadget)
