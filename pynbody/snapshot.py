@@ -27,7 +27,7 @@ class SimSnap(object) :
 	self.filename=""
         self.properties = {}
     
-    def __getitem__(self, i, lazyload=True) :
+    def __getitem__(self, i) :
 	"""Given a SimSnap object s, the following should be implemented:
 
 	s[string] -> return array of name string
@@ -45,15 +45,13 @@ class SimSnap(object) :
 	if isinstance(i, str) :
 	    self._assert_not_family_array(i)
 	    try:
-		return self._arrays[i]
+		return self._get_array(i)
 	    except KeyError :
-		if lazyload :
-		    try:
-			return self._read_array(i)
-		    except IOError :
-			raise KeyError(i)
-		else :
-		    raise
+		try:
+		    return self._read_array(i)
+		except IOError :
+		    raise KeyError(i)
+	
 	elif isinstance(i,slice) :
 	    return SubSnap(self, i)
 	elif isinstance(i, family.Family) :
@@ -124,7 +122,7 @@ class SimSnap(object) :
 	try:
 	    self._family_arrays[array_name][family] = new_ar
 	except KeyError :
-	    self._family_arrays[array_name] = dict({family : new_ar}) 
+	    self._family_arrays[array_name] = dict({family : new_ar})
 
     def _del_family_array(self, array_name, family) :
 	del self._family_arrays[array_name][family]
@@ -140,7 +138,9 @@ class SimSnap(object) :
 	    dims = (self._num_particles, ndim)
 	    
 	self._arrays[array_name] = np.zeros(dims,dtype=dtype).view(array.SimArray)
-	
+
+    def _get_array(self, name) :
+	return self._arrays[name]
     
     def _create_arrays(self, array_list, ndim=1, dtype=None) :
 	"""Create a set of arrays of dimension len(self) x ndim, with
@@ -154,7 +154,7 @@ class SimSnap(object) :
 	for array_name in self.keys() :
 	    assert len(self[array_name]) == len(self)
 
-    def _get_slice_for_family(self, fam) :
+    def _get_family_slice(self, fam) :
 	"""Turn a specified Family object into a concrete slice which describes
 	which particles in this SimSnap belong to that family."""
 	try :
@@ -238,13 +238,9 @@ class SubSnap(SimSnap) :
 	self._descriptor = descriptor
         self.properties = base.properties
 	
-    def __getitem__(self, i, lazyload=True) :
-	if isinstance(i, str) :
-	    return self.base.__getitem__( i, lazyload)[self._slice]
-	else :
-	    return SimSnap.__getitem__(self,i, lazyload)
 
-
+    def _get_array(self, name) :
+	return self.base._get_array(name)[self._slice]
 
     @property
     def _filename(self) :
@@ -253,13 +249,13 @@ class SubSnap(SimSnap) :
     def keys(self) :
 	return self.base.keys()
 
-    def _get_slice_for_family(self, fam) :
+    def _get_family_slice(self, fam) :
 	sl= util.relative_slice(self._slice,
-	    util.intersect_slices(self._slice,self.base._get_slice_for_family(fam),len(self.base)))
+	    util.intersect_slices(self._slice,self.base._get_family_slice(fam),len(self.base)))
 	return sl
 
     def _get_family_array(self, name, fam) :
-	base_family_slice = self.base._get_slice_for_family(fam)
+	base_family_slice = self.base._get_family_slice(fam)
 	sl = util.relative_slice(base_family_slice,
 				 util.intersect_slices(self._slice, base_family_slice, len(self.base)))
 	return self.base._get_family_array(name, fam)[sl]
@@ -276,45 +272,11 @@ class FamilySubSnap(SubSnap) :
     def __init__(self, base, fam) :
 	self.base = base
 	self.properties = base.properties
-	self._slice = base._get_slice_for_family(fam)
+	self._slice = base._get_family_slice(fam)
 	self._unifamily = fam
 	self._descriptor = ":"+fam.name
 	self._num_particles = len(self["pos"])
 
-    def __getitem__(self, i, lazyload=True) :
-	try:
-	    if isinstance(i, str) :
-		return self.base._get_family_array(i, self._unifamily)   
-	except KeyError :
-	    pass
-
-	try:
-	    # FamilySubSnap acts as a barrier to lazy-loading, because we want
-	    # to do the lazy-loading ourselves
-	    return SubSnap.__getitem__(self,i,False)
-	except KeyError :
-	    if isinstance(i,str) :
-		try:
-		    self.base._read_array(i, self._unifamily)
-		except IOError :
-		    raise KeyError(i)
-		return self.base._get_family_array(i, self._unifamily)
-	    raise
-    """
-    def __setitem__(self, name, contents) :
-	if name in self.base.keys() :
-	    self.base[name][self._slice] = contents
-	else :
-	    if not (name in self.base.family_keys(self._unifamily)) :
-		try:
-		    ndim = len(contents[0])
-		except TypeError :
-		    ndim = 1
-		self.base._create_family_array(name, self._unifamily, ndim)
-		
-	    target_array = self.base._get_family_array(name, self._unifamily)
-	    util.set_array_if_not_same(target_array, contents)
-    """
 
     def __delitem__(self, name) :
 	if name in self.base.keys() :
@@ -333,12 +295,17 @@ class FamilySubSnap(SubSnap) :
 	# __setitem__, __getitem__ methods
 	return []
 
-    def _get_slice_for_family(self, fam) :
+    def _get_family_slice(self, fam) :
 	if fam is self._unifamily :
 	    return slice(0,len(self))
 	else :
 	    return slice(0,0)
 
+    def _get_array(self, name) :
+	try:
+	    return self.base._get_array(name)[self._slice]
+	except KeyError :
+	    return self.base._get_family_array(name, self._unifamily)
 
     def _create_array(self, array_name, ndim=1, dtype=None) :
 	# Array creation now maps into family-array creation in the parent
@@ -348,3 +315,6 @@ class FamilySubSnap(SubSnap) :
     def _create_family_array(self, array_name, family, ndim, dtype) :
 	self.base._create_family_array(array_name, family, ndim, dtype)
 	
+    def _read_array(self, array_name, fam=None) :
+	if fam is self._unifamily or fam is None :
+	    self.base._read_array(array_name, self._unifamily)
