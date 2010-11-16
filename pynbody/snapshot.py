@@ -292,7 +292,6 @@ class IndexedSubSnap(SubSnap) :
 	# Find the locations of the family slices
 	for fam in family._registry :
 	    base_slice = base._get_family_slice(fam)
-	    print fam,base_slice
 	    start = util.index_of_first(index_array,base_slice.start)
 	    stop = util.index_of_first(index_array, base_slice.stop)
 	    new_slice=slice(start,stop)
