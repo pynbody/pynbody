@@ -56,6 +56,8 @@ class SimSnap(object) :
 	    return SubSnap(self, i)
 	elif isinstance(i, family.Family) :
 	    return FamilySubSnap(self, i)
+	elif isinstance(i, tuple) or isinstance(i,np.ndarray) :
+	    return IndexedSubSnap(self, i)
 	
 
 	raise TypeError
@@ -166,7 +168,7 @@ class SimSnap(object) :
 	"""Raises a ValueError if the specified array name is connected to
 	a family-specific array"""
 	if name in self.family_keys() :
-	    raise KeyError, "Array "+name+" is a family-level property for "+str(self._family_arrays[name].keys())
+	    raise KeyError, "Array "+name+" is a family-level property"
 	
     def _get_family_array(self, name, fam) :
 	"""Retrieve the array with specified name for the given particle family
@@ -266,6 +268,48 @@ class SubSnap(SimSnap) :
     def family_keys(self, fam=None) :
 	return self.base.family_keys(fam)
 
+class IndexedSubSnap(SubSnap) :
+    """Represents a subset of the simulation particles according
+    to an index array."""
+    def __init__(self, base, index_array) :
+	if isinstance(index_array, tuple) :
+	    if isinstance(index_array[0], np.ndarray) :
+		index_array = index_array[0]
+
+	# Check the index array is monotonically increasing
+	# If not, the family slices cannot be implemented
+	if not all(np.diff(index_array)>0) :
+	    raise ValueError, "Index array must be monotonically increasing"
+
+	self._slice = index_array
+	self._descriptor = "indexed"
+	self.properties = base.properties
+	self._family_slice = {}
+	self._family_indices = {}
+	self._num_particles = len(index_array)
+	self.base = base
+	
+	# Find the locations of the family slices
+	for fam in family._registry :
+	    base_slice = base._get_family_slice(fam)
+	    print fam,base_slice
+	    start = util.index_of_first(index_array,base_slice.start)
+	    stop = util.index_of_first(index_array, base_slice.stop)
+	    new_slice=slice(start,stop)
+	    self._family_slice[fam] = new_slice
+	    self._family_indices[fam] = np.asarray(index_array[new_slice])-base_slice.start
+
+    def _get_family_slice(self, fam) :
+	# A bit messy: jump out the SubSnap inheritance chain
+	# and call SimSnap method directly...
+	return SimSnap._get_family_slice(self, fam)
+
+    def _get_family_array(self, name, fam) :
+	return self.base._get_family_array(name, fam)[self._family_indices[fam]]
+    
+    
+
+	    
 
 class FamilySubSnap(SubSnap) :
     """Represents a one-family portion of a parent snap object"""
