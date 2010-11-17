@@ -92,9 +92,10 @@ class SimSnap(object) :
     def __getattribute__(self, name) :
 	"""Implements getting particles of a specified family name"""
 
-	for c in family._registry :
-	    if c.name==name :
-		return self[c]
+	try:
+	    return self[family.get_family(name)]
+	except ValueError :
+	    pass
 
 	return object.__getattribute__(self, name)
 

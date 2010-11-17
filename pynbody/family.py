@@ -13,31 +13,41 @@ handling particles from different families in customizable ways."""
 
 _registry = []
 
-def family_names() :
+def family_names(with_aliases=False) :
     global _registry
     l = []
     for o in _registry :
 	l.append(o.name)
+	if with_aliases :
+	    for a in o.aliases : l.append(a)
     return l
 
-def get_family(name) :
+def get_family(name, create=False) :
     if isinstance(name, Family) :
 	return name
     
     name = name.lower() # or should it check and raise rather than just convert? Not sure.
     for n in _registry :
-	if n.name==name :
+	if n.name==name or name in n.aliases :
 	    return n
-    
-    return Family(name)
+
+    if create :
+	return Family(name)
+    else :
+	raise ValueError, name+" not a family" # is ValueError the right thing here?
     
 class Family(object) :
-    def __init__(self, name) :
+    def __init__(self, name, aliases=[]) :
 	if name!=name.lower() :
-	    raise RuntimeError, "Family names must be lower case"
-	if name in family_names() :
-	    raise RuntimeError, "Family name "+name+" is not unique"
+	    raise ValueError, "Family names must be lower case"
+	if name in family_names(with_aliases=True) :
+	    raise ValueError, "Family name "+name+" is not unique"
+	for a in aliases :
+	    if a!=a.lower() :
+		raise ValueError, "Aliases must be lower case"
+	    
 	self.name = name
+	self.aliases = aliases
 	_registry.append(self)
 
     def __repr__(self) :
@@ -45,7 +55,7 @@ class Family(object) :
 
 
 
-dm = Family("dm")
-star = Family("star")
-gas = Family("gas")
+dm = Family("dm",["d","dark"])
+star = Family("star",["stars","st","s"])
+gas = Family("gas",["g"])
 
