@@ -21,10 +21,12 @@ def family_names() :
     return l
 
 def get_family(name) :
-    try:
-	return _registry[name]
-    except KeyError:
-	return Family(name)
+    name = name.lower() # or should it check and raise rather than just convert? Not sure.
+    for n in _registry :
+	if n.name==name :
+	    return n
+    
+    return Family(name)
     
 class Family(object) :
     def __init__(self, name) :
