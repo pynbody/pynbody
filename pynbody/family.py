@@ -21,6 +21,9 @@ def family_names() :
     return l
 
 def get_family(name) :
+    if isinstance(name, Family) :
+	return name
+    
     name = name.lower() # or should it check and raise rather than just convert? Not sure.
     for n in _registry :
 	if n.name==name :
