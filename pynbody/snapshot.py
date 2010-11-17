@@ -108,6 +108,15 @@ class SimSnap(object) :
 	"""Return the directly accessible array names (in memory)"""
 	return self._arrays.keys()
 
+    def families(self) :
+	"""Return the particle families which have representitives in this SimSnap."""
+	out = []
+	for fam in family._registry :
+	    sl = self._get_family_slice(fam)
+	    if sl.start!=sl.stop :
+		out.append(fam)
+	return out
+    
     def __len__(self) :
 	return self._num_particles
 
