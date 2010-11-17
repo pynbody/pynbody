@@ -137,3 +137,28 @@ def set_array_if_not_same(a_store, a_in) :
     if not arrays_are_same(a_store, a_in) :
 	a_store[:] = a_in
 	
+
+def index_of_first(array, find) :
+    """Returns the index to the first element in array
+    which satisfies array[index]>=find. The array must
+    be sorted in ascending order."""
+
+    
+    left = 0
+    right = len(array)-1
+
+    if array[left]>=find :
+	return 0
+    
+    if array[right]<find :
+	return len(array)
+
+    while right-left>1 :
+	mid = (left+right)/2
+	if array[mid]>=find :
+	    right = mid
+	else :
+	    left = mid
+
+    
+    return right
