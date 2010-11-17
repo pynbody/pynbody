@@ -1,6 +1,7 @@
 from . import array
 from . import family, util
 from . import decorate
+from . import filt
 import numpy as np
 import copy
 
@@ -56,9 +57,8 @@ class SimSnap(object) :
 	    return SubSnap(self, i)
 	elif isinstance(i, family.Family) :
 	    return FamilySubSnap(self, i)
-	elif isinstance(i, tuple) or isinstance(i,np.ndarray) :
+	elif isinstance(i, tuple) or isinstance(i,np.ndarray) or isinstance(i,filt.Filter) :
 	    return IndexedSubSnap(self, i)
-	
 
 	raise TypeError
 
@@ -272,9 +272,18 @@ class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
     to an index array."""
     def __init__(self, base, index_array) :
+
+	self._descriptor = "indexed"
+	
+	if isinstance(index_array, filt.Filter) :
+	    self._descriptor = index_array._descriptor
+	    index_array = index_array.where(base)
+	    
+
 	if isinstance(index_array, tuple) :
 	    if isinstance(index_array[0], np.ndarray) :
 		index_array = index_array[0]
+
 
 	# Check the index array is monotonically increasing
 	# If not, the family slices cannot be implemented
@@ -282,7 +291,7 @@ class IndexedSubSnap(SubSnap) :
 	    raise ValueError, "Index array must be monotonically increasing"
 
 	self._slice = index_array
-	self._descriptor = "indexed"
+	
 	self.properties = base.properties
 	self._family_slice = {}
 	self._family_indices = {}
