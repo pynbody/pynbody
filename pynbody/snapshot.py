@@ -298,6 +298,14 @@ class IndexedSubSnap(SubSnap) :
 	    self._family_slice[fam] = new_slice
 	    self._family_indices[fam] = np.asarray(index_array[new_slice])-base_slice.start
 
+    def __setitem__(self, name, item) :
+	# This is required because numpy indexing creates a new array
+	# rather than a view on the old one. I.e. the data
+	# returned from SubSnap._get_array will be a copy, and
+	# so this provides a mechaism for mirroring changes back
+	# into the main simulation data arrays.
+	self.base._get_array(name)[self._slice] = item
+	
     def _get_family_slice(self, fam) :
 	# A bit messy: jump out the SubSnap inheritance chain
 	# and call SimSnap method directly...
