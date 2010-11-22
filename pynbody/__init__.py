@@ -1,4 +1,4 @@
-import util, filt, array, decorate, family, snapshot,  tipsy, gadget
+import util, filt, array, decorate, family, snapshot,  tipsy, gadget, profile
 
 # The following code resolves inter-dependencies when reloading
 reload(array)
