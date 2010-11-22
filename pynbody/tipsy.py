@@ -78,9 +78,20 @@ class TipsySnap(snapshot.SimSnap) :
 
 	
 
-		
-	
+    def loadable_keys(self) :
+	"""Produce and return a list of loadable arrays for this TIPSY file."""
 
+	def is_readable_array(x) :
+	    try:
+		f = util.open_(x)
+		return int(f.readline()) == len(self)
+	    except (IOError, ValueError) :
+		return False
+	    
+	import glob
+	fs = glob.glob(self._filename+".*")
+	return map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
+	
     def _read_array(self, array_name, fam=None) :
 	"""Read a TIPSY-ASCII file with the specified name. If fam is not None,
 	read only the particles of the specified family."""

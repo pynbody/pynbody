@@ -205,6 +205,10 @@ class SimSnap(object) :
 	    return "<SimSnap len="+str(len(self))+">"
 
 
+    def loadable_keys(self) :
+	"""Returns a list of arrays which can be lazy-loaded from the underlying file."""
+	raise RuntimeError, "Not implemented"
+
 @decorate.sim_decorator
 def put_1d_slices(sim) :
     for i, a in enumerate(["x","y","z"]) :
@@ -277,6 +281,9 @@ class SubSnap(SimSnap) :
 
     def family_keys(self, fam=None) :
 	return self.base.family_keys(fam)
+
+    def loadable_keys(self) :
+	return self.base.loadable_keys()
 
 class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
