@@ -11,7 +11,7 @@ class SimSnap(object) :
     should implement
 
     __init__(self, filename) -> sets up object. May or may not load any actual data. 
-    _read_array(self, arrayname) -> attempts to load the named array into self._arrays, and returns it
+    _read_array(self, arrayname) -> attempts to load the named array into self._arrays
     @staticmethod _can_load(filename) -> determines whether the specified file can be loaded
     ...
     """
@@ -49,7 +49,8 @@ class SimSnap(object) :
 		return self._get_array(i)
 	    except KeyError :
 		try:
-		    return self._read_array(i)
+		    self._read_array(i)
+		    return self._get_array(i)
 		except IOError :
 		    raise KeyError(i)
 	
