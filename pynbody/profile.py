@@ -1,5 +1,5 @@
 import numpy as np
-from . import family, snapshot
+from . import family, snapshot, fourier_decomp
 
 #
 # A module for making profiles of particle properties
@@ -171,7 +171,7 @@ class Profile:
         return ("<Profile: " +
                 str(self.families()) + " ; " +
                 str(self._dim) + "D ; " + 
-                self._type) + ">"
+                self._type) + " ; " + str(self.keys())+ ">"
 
     def keys(self):
         """Returns a listing of available profile types"""
@@ -209,22 +209,67 @@ class Profile:
 
             obj.__dict__[self.__name__] = obj._profiles[self.__name__] = self._func(obj)
             return obj.__dict__[self.__name__]
+
+        def __delete__(self, obj):
+            ###############################
+            #THIS DOESN'T WORK!!!
+            #
+            # >>> p.mass
+            # >>> del(p.mass)
+            # >>> p.keys()
+            # ['mass', 'ninbin']
+            #
+            # should've deleted the 'mass'
+            ###############################
             
+            print 'deleting'
+            if self.__name__ in obj.__dict__:
+                del obj.__dict__[self.__name__]
+            if self.__name__ in self._profiles:
+                del obj._profiles[self.__name__]
+
+
+    @profile_property
+    def mass(self):
+        """
+        Calculate mass in each bin
+        """
+
+        print '[calculating mass]'
+        mass = np.zeros(self.nbins)
+        for i in range(self.nbins):
+            mass[i] = np.sum(self._sim['mass'][self.binind[i]])
+        return mass
+           
     @profile_property
     def rho(self):
         """
         Generate a radial density profile for the current type of profile
         """
+        
         print '[calculating rho]'
-        mass = np.zeros(self.nbins)
+        return self.mass/self._binarea
+
+    @profile_property
+    def fourier(self):
+        """
+        Generate a profile of fourier coefficients, amplitudes and phases
+        """
+        print '[calculating fourier decomposition]'
+
+        f = {'c': np.zeros((7, self.nbins),dtype=complex),
+             'amp': np.zeros((7, self.nbins)),
+             'phi': np.zeros((7, self.nbins))}
 
         for i in range(self.nbins):
-            mass[i] = np.sum(self._sim['mass'][self.binind[i]])
+            if self.ninbin[i] > 100:
+                f['c'][:,i] = fourier_decomp.fourier(self._sim['x'][self.binind[i]],
+                                                     self._sim['y'][self.binind[i]],
+                                                     self._sim['mass'][self.binind[i]])
 
-        rho = mass/self._binarea
 
-        # bad style? add the mass per bin to the available _profiles here
+        f['c'][:,self.mass>0] /= self.mass[self.mass>0]
+        f['amp'] = np.sqrt(np.imag(f['c'])**2 + np.real(f['c'])**2)
+        f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
 
-        self._profiles['mass'] = mass
-
-        return rho
+        return f

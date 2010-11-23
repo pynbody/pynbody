@@ -1,8 +1,10 @@
 import numpy as np
-from . import profile
 
 #
 # A module for doing Fourier analysis on a set of particles
+#
+# Mostly empty now, but will add functions to decompose and reform
+# images of fourier components from particle data... 
 #
 
 """
@@ -39,59 +41,59 @@ def fourier(px, py, pm):
     return c
 
 
-def fourier_prof(prof, px, py, pm):
-    """
+## def fourier_prof(prof, px, py, pm):
+##     """
 
-    Produce a profile of fourier decomposition of particle positions.
-    Appends the decomposition quantities to the existing instance of
-    Profile that is passed as the first argument.
+##     Produce a profile of fourier decomposition of particle positions.
+##     Appends the decomposition quantities to the existing instance of
+##     Profile that is passed as the first argument.
 
-    The function assumes that the particles belong to a disk and they
-    have been centered and aligned previously.
+##     The function assumes that the particles belong to a disk and they
+##     have been centered and aligned previously.
 
-    Appends the arrays c, amp, and phi to the Profile object.
+##     Appends the arrays c, amp, and phi to the Profile object.
 
-    To get the m=2 amplitude, the amp array is accessed as
+##     To get the m=2 amplitude, the amp array is accessed as
 
-    m2 = amp[2,:]
+##     m2 = amp[2,:]
 
-    Usage:
+##     Usage:
 
-    >>> prof = Profile(sqrt(x**2 + y**2), nbins = 50, max = 20)
-    >>> fourier_prof(prof, x, y, m)
-    >>> plot(prof.midbins, prof.amp[2,:]
+##     >>> prof = Profile(sqrt(x**2 + y**2), nbins = 50, max = 20)
+##     >>> fourier_prof(prof, x, y, m)
+##     >>> plot(prof.midbins, prof.amp[2,:]
 
-    """
+##     """
     
     
-    assert isinstance(prof, profile.Profile)
+##     assert isinstance(prof, profile.Profile)
 
-    # make sure the profile has a mass profile
+##     # make sure the profile has a mass profile
 
-    if not 'mass' in dir(prof):
-        prof.massprof(pm)
+##     if not 'mass' in dir(prof):
+##         prof.massprof(pm)
     
-    prof.phi = np.zeros((7,prof.nbins))
-    prof.amp = np.zeros((7,prof.nbins))
-    prof.c = np.zeros((7,prof.nbins), dtype=complex)
+##     prof.phi = np.zeros((7,prof.nbins))
+##     prof.amp = np.zeros((7,prof.nbins))
+##     prof.c = np.zeros((7,prof.nbins), dtype=complex)
 
-#    nonzero = prof.ninbin > 100
+## #    nonzero = prof.ninbin > 100
     
-    for i, bin in enumerate(prof.bins[:-1]):
+##     for i, bin in enumerate(prof.bins[:-1]):
         
-        if prof.ninbin[i] > 100:
-            prof.c[:,i] = fourier(px[prof.binind[i]],
-                                  py[prof.binind[i]],
-                                  pm[prof.binind[i]], bins)
+##         if prof.ninbin[i] > 100:
+##             prof.c[:,i] = fourier(px[prof.binind[i]],
+##                                   py[prof.binind[i]],
+##                                   pm[prof.binind[i]], bins)
      
 
-    im = np.imag(prof.c)
-    re = np.real(prof.c)
+##     im = np.imag(prof.c)
+##     re = np.real(prof.c)
     
-    prof.c /= prof.mass
+##     prof.c /= prof.mass
 
-    prof.amp = np.sqrt(im**2 + re**2)
-    prof.phi = np.arctan2(im,re)
+##     prof.amp = np.sqrt(im**2 + re**2)
+##     prof.phi = np.arctan2(im,re)
         
 
         
