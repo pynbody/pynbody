@@ -21,10 +21,12 @@ class Profile:
 
     Optional Keywords:
 
-    dim (default = 2): specifies whether it's a 2D or 3D profile - in the
+    ndim (default = 2): specifies whether it's a 2D or 3D profile - in the
                        2D case, the bins are generated in the xy plane
 
-    log (default = False): log spaced or not
+    type (default = 'lin'): specifies whether bins should be spaced linearly ('lin'),
+                            logarithmically ('log') or contain equal numbers of
+                            particles ('equaln')
 
     min (default = min(x)): minimum value to consider
     max (default = max(x)): maximum value to consider
@@ -41,14 +43,19 @@ class Profile:
 
     Implemented profile functions:
 
-    rho
+    den: density
+    fourier: provides fourier coefficients, amplitude and phase for m=0 to m=6.
+             To access the amplitude profile of m=2 mode, do
+             >>> p.fourier['amp'][2,:]
+             
+
 
     Additional functions should use the profile_property to
     yield the desired profile. For example, to generate the density
     profile, all that is required is
 
     >>> p = profile(sim)
-    >>> p.rho
+    >>> p.den
     
 
     Examples:
@@ -58,34 +65,34 @@ class Profile:
     >>> p = profile.Profile(s) # 2D profile of the whole simulation - note
                                # that this only makes the bins etc. but
                                # doesn't generate the density
-    >>> p.rho # now we have a density profile
+    >>> p.den # now we have a density profile
     >>> p.keys()
-    ['mass', 'ninbin', 'rho']
+    ['mass', 'n', 'den']
     >>> p.families()
     [<Family dm>, <Family star>, <Family gas>]
     
     >>> ps = profile.Profile(s.s) # xy profile of the stars
-    >>> ps = profile.Profile(s.s, log=True) # same, but with log bins
+    >>> ps = profile.Profile(s.s, type='log') # same, but with log bins
     >>> ps.families()
     [<Family star>]
     >>> import matplotlib.pyplot as plt
-    >>> plt.plot(ps.midbins, ps.rho, 'o')
+    >>> plt.plot(ps.r, ps.den, 'o')
     >>> plt.semilogy()
 
 
     """
 
     
-    def __init__(self, sim, dim = 2, type = 'lin', **kwargs):
+    def __init__(self, sim, ndim = 2, type = 'lin', **kwargs):
 
 
-        self._dim = dim
+        self._ndim = ndim
         self._type = type
 
         assert isinstance(sim, snapshot.SimSnap)
         self._sim = sim
 
-        x = np.sqrt(np.sum(sim['pos'][:,0:dim]**2, axis = 1))
+        x = np.sqrt(np.sum(sim['pos'][:,0:ndim]**2, axis = 1))
         self._x = x
 
         # The profile object is initialized given some array of values
@@ -115,32 +122,29 @@ class Profile:
             raise RuntimeError, "Bin type must be one of: lin, log, equaln"
             
 
-        self.ninbin, bins = np.histogram(self._x, self.bins)
+        self.n, bins = np.histogram(self._x, self.bins)
 
         # middle of the bins for convenience
         
-        self.midbins = 0.5*(self.bins[:-1]+self.bins[1:])
+        self.r = 0.5*(self.bins[:-1]+self.bins[1:])
 
         self.binind = []
 
         self.partbin = np.digitize(self._x, self.bins)
         
         
-        assert dim in [2,3]
-        if dim == 2:
-            self._binarea = np.pi*(self.bins[1:]**2 - self.bins[:-1]**2)
+        assert ndim in [2,3]
+        if ndim == 2:
+            self._binsize = np.pi*(self.bins[1:]**2 - self.bins[:-1]**2)
         else:
-            self._binarea  = 4./3.*np.pi*(self.bins[1:]**3 - self.bins[:-1]**3)
+            self._binsize  = 4./3.*np.pi*(self.bins[1:]**3 - self.bins[:-1]**3)
             
         for i in np.arange(self.nbins)+1:
             ind = np.where(self.partbin == i)
             self.binind.append(ind)
             
         # set up the empty list of profiles
-        self._profiles = {'ninbin':self.ninbin}
-
-        # set up a list of possible profiles
-        #self._available_profiles = {'rho'}
+        self._profiles = {'n':self.n}
 
 
     def __len__(self):
@@ -170,7 +174,7 @@ class Profile:
     def __repr__(self):
         return ("<Profile: " +
                 str(self.families()) + " ; " +
-                str(self._dim) + "D ; " + 
+                str(self._ndim) + "D ; " + 
                 self._type) + " ; " + str(self.keys())+ ">"
 
     def keys(self):
@@ -217,7 +221,7 @@ class Profile:
             # >>> p.mass
             # >>> del(p.mass)
             # >>> p.keys()
-            # ['mass', 'ninbin']
+            # ['mass', 'n']
             #
             # should've deleted the 'mass'
             ###############################
@@ -242,13 +246,13 @@ class Profile:
         return mass
            
     @profile_property
-    def rho(self):
+    def den(self):
         """
         Generate a radial density profile for the current type of profile
         """
         
-        print '[calculating rho]'
-        return self.mass/self._binarea
+        print '[calculating density]'
+        return self.mass/self._binsize
 
     @profile_property
     def fourier(self):
@@ -262,7 +266,7 @@ class Profile:
              'phi': np.zeros((7, self.nbins))}
 
         for i in range(self.nbins):
-            if self.ninbin[i] > 100:
+            if self.n[i] > 100:
                 f['c'][:,i] = fourier_decomp.fourier(self._sim['x'][self.binind[i]],
                                                      self._sim['y'][self.binind[i]],
                                                      self._sim['mass'][self.binind[i]])
