@@ -1,7 +1,6 @@
 import numpy as np
 from . import family, snapshot
 
-
 #
 # A module for making profiles of particle properties
 #
@@ -13,8 +12,8 @@ class Profile:
     A basic profile class for arbitrary profiles. Stores information about bins etc.
 
     Made to work with the pynbody SimSnap instances. The constructor only
-    generates the bins and figures out which particles belong in which bin. All
-    other profiles are generated with other functions.
+    generates the bins and figures out which particles belong in which bin. 
+    Profiles are generated lazy-loaded when a given property is requested.
 
     Input:
 
@@ -32,13 +31,24 @@ class Profile:
     nbins (default = 100): number of bins
 
 
+    Output:
+
+    a Profile object. To find out which profiles are available, use keys().
+    The class defines  __get__ and __getitem__ methods so that
+    these are equivalent:
+
+    p.mass == p['mass']
+
     Implemented profile functions:
 
-    density_profile
+    rho
 
-    Additional functions should call a _gen_x_profile function in the Profile
-    class and define a "x_profile" function that can be called to return
-    a Profile object. 
+    Additional functions should use the profile_property to
+    yield the desired profile. For example, to generate the density
+    profile, all that is required is
+
+    >>> p = profile(sim)
+    >>> p.rho
     
 
     Examples:
@@ -48,25 +58,29 @@ class Profile:
     >>> p = profile.Profile(s) # 2D profile of the whole simulation - note
                                # that this only makes the bins etc. but
                                # doesn't generate the density
-    >>> p.density_profile(s, prof=p) # now we have a density profile
+    >>> p.rho # now we have a density profile
     >>> p.keys()
     ['mass', 'ninbin', 'rho']
     >>> p.families()
     [<Family dm>, <Family star>, <Family gas>]
     
-    >>> ps = profile.density_profile(s.s) # xy profile of the stars
-    >>> ps = profile.density_profile(s.s, log=True # same, but with log bins
+    >>> ps = profile.Profile(s.s) # xy profile of the stars
+    >>> ps = profile.Profile(s.s, log=True) # same, but with log bins
     >>> ps.families()
     [<Family star>]
     >>> import matplotlib.pyplot as plt
     >>> plt.plot(ps.midbins, ps.rho, 'o')
-    >>> plt.show()
     >>> plt.semilogy()
 
 
     """
 
-    def __init__(self, sim, dim = 2, log = False, **kwargs):
+    
+    def __init__(self, sim, dim = 2, type = 'lin', **kwargs):
+
+
+        self._dim = dim
+        self._type = type
 
         assert isinstance(sim, snapshot.SimSnap)
         self._sim = sim
@@ -91,10 +105,15 @@ class Profile:
         else:
             self.min = np.min(x[x>0])
 
-        if log:
+        if type == 'log':
             self.bins = np.power(10,np.linspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1))
-        else:
+        elif type == 'lin':
             self.bins = np.linspace(self.min, self.max, num = self.nbins+1)
+        elif type == 'equaln':
+            raise RuntimeError, "Equal-N bins not implemented yet"
+        else:
+            raise RuntimeError, "Bin type must be one of: lin, log, equaln"
+            
 
         self.ninbin, bins = np.histogram(self._x, self.bins)
 
@@ -107,7 +126,7 @@ class Profile:
         self.partbin = np.digitize(self._x, self.bins)
         
         
-
+        assert dim in [2,3]
         if dim == 2:
             self._binarea = np.pi*(self.bins[1:]**2 - self.bins[:-1]**2)
         else:
@@ -119,6 +138,9 @@ class Profile:
             
         # set up the empty list of profiles
         self._profiles = {'ninbin':self.ninbin}
+
+        # set up a list of possible profiles
+        #self._available_profiles = {'rho'}
 
 
     def __len__(self):
@@ -132,17 +154,24 @@ class Profile:
         if name in self._profiles:
             return self._profiles[name]
         else:
-            return object.__getattribute__(self,name)
+            raise KeyError, name + " is not a valid profile"
 
         
-    def __getattribute__(self, name):
+    def __get__(self, name):
         """Return the profile of a given kind"""
+
+        print 'in the get'
 
         if name in self._profiles:
             return self._profiles[name]
         else:
-            return object.__getattribute__(self,name)
+            return object.__get__(self,name)
 
+    def __repr__(self):
+        return ("<Profile: " +
+                str(self.families()) + " ; " +
+                str(self._dim) + "D ; " + 
+                self._type) + ">"
 
     def keys(self):
         """Returns a listing of available profile types"""
@@ -154,35 +183,48 @@ class Profile:
         return self._sim.families()
 
 
-    def _gen_density_profile(self):
-        
-        self.mass = np.zeros(self.nbins)
+    class profile_property(object):
+        """
+        Lazy-load the required profiles.
+        """
+
+        def __init__(self, func):
+
+            self._func = func
+            self.__name__ = func.__name__
+            self.__doc__ = func.__doc__
+
+        def __get__(self, obj, obj_class):
+            if obj is None:
+                return obj
+
+            # potentially bad style here? adding to the object's dictionary
+            # so that it's calculated only once... but also want it in the
+            # _profiles dictionary so that we can get a listing of available
+            # profiles with p.keys()
+
+            # Also - using the cached property like this seems to bypass the
+            # __get__ method defined above - is there a way to chenge this?
+
+
+            obj.__dict__[self.__name__] = obj._profiles[self.__name__] = self._func(obj)
+            return obj.__dict__[self.__name__]
+            
+    @profile_property
+    def rho(self):
+        """
+        Generate a radial density profile for the current type of profile
+        """
+        print '[calculating rho]'
+        mass = np.zeros(self.nbins)
 
         for i in range(self.nbins):
-            self.mass[i] = np.sum(self._sim['mass'][self.binind[i]])
+            mass[i] = np.sum(self._sim['mass'][self.binind[i]])
 
-        self.rho = self.mass/self._binarea
-        
-        self._profiles['mass'] = self.mass
-        self._profiles['rho'] = self.rho
+        rho = mass/self._binarea
 
-    
-def density_profile(sim, prof=None, dim = 2, **kwargs):
-    """Returns a Profile instance with a mass density profile.
-    If the profile object already exists, append the mass profile
-    to the existing profiles, otherwise create a new Profile instance.
+        # bad style? add the mass per bin to the available _profiles here
 
-    """
+        self._profiles['mass'] = mass
 
-    if prof == None:
-        prof = Profile(sim, dim, **kwargs)
-        prof._gen_density_profile()
-        return prof
-
-    else:
-        prof._gen_density_profile()
-
-        
-        
-    
-
+        return rho

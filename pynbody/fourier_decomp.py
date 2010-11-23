@@ -1,6 +1,5 @@
 import numpy as np
-import tipsyio as tio
-import profile
+from . import profile
 
 #
 # A module for doing Fourier analysis on a set of particles
