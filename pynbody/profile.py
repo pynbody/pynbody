@@ -113,7 +113,7 @@ class Profile:
             self.min = np.min(x[x>0])
 
         if type == 'log':
-            self.bins = np.power(10,np.linspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1))
+            self.bins = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
         elif type == 'lin':
             self.bins = np.linspace(self.min, self.max, num = self.nbins+1)
         elif type == 'equaln':
@@ -164,7 +164,12 @@ class Profile:
     def __get__(self, name):
         """Return the profile of a given kind"""
 
-        print 'in the get'
+        ############################
+        # as far as I can tell
+        # this never gets called
+        # with the profile_property
+        # defined
+        #############################
 
         if name in self._profiles:
             return self._profiles[name]
