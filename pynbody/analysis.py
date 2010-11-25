@@ -73,16 +73,17 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     
     if log:
         levels = np.logspace(np.log10(np.min(hist[hist>0])),       # there must be an
-                             np.log10(np.max(hist)),nlevels),      # easier way to do this...
+                             np.log10(np.max(hist)),nlevels)      # easier way to do this...
         cont_color=colors.LogNorm()
     else:
         levels = np.linspace(np.min(hist[hist>0]),
                              np.max(hist), nlevels)
         cont_color=None
-        
-    cs = plt.contour(.5*(y[:-1]+y[1:]),.5*(x[:-1]+x[1:]), # note that hist is strange and x/y values
+
+    cs = plt.contourf(.5*(y[:-1]+y[1:]),.5*(x[:-1]+x[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)
+
                                                    
     plt.xlabel('$log(\rho)$')
     plt.ylabel('$log(T)$')
