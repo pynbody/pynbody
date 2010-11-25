@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import ticker, colors
 
 def centre_of_mass(sim) : # shared-code names should be explicit, not short
     """Return the centre of mass of the SimSnap"""
@@ -36,13 +34,13 @@ def centre(sim, mode='pot') :
     cen = fn(sim)
     sim["pos"]-=cen
     
-def phaseplot(sim, nbins=100, nlevels = 20, log=True, **kwargs):
+def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
     Optional keyword arguments:
 
-       *t_range*: tuple
+       *t_range*: list, array, or tuple
          size(t_range) must be 2. Specifies the temperature range.
 
        *rho_range*: tuple
@@ -57,13 +55,15 @@ def phaseplot(sim, nbins=100, nlevels = 20, log=True, **kwargs):
        *log*: boolean
          whether to use log or linear spaced contours
     """
+    import matplotlib.pyplot as plt
+    from matplotlib import ticker, colors
+    
+
     if kwargs.has_key('t_range'):
-        assert isinstance(t_range,tuple)
         assert len(t) == 2
     else:
         t_range = (np.min(sim.gas['temp']),np.max(sim.gas['temp']))
     if kwargs.has_key('rho_range'):
-        assert isinstance(rho_range,tuple)
         assert len(rho_range) == 2
     else:
         rho_range = (np.min(sim.gas['rho']), np.max(sim.gas['rho']))
@@ -83,9 +83,7 @@ def phaseplot(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     cs = plt.contour(.5*(y[:-1]+y[1:]),.5*(x[:-1]+x[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)
-                     
-                                  
+                                                   
     plt.xlabel('$log(\rho)$')
     plt.ylabel('$log(T)$')
     
-    plt.show()
