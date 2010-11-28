@@ -1,5 +1,6 @@
 import numpy as np
-from . import family, snapshot, fourier_decomp
+from .. import family, snapshot
+
 
 #
 # A module for making profiles of particle properties
@@ -232,6 +233,7 @@ def fourier(self):
     Generate a profile of fourier coefficients, amplitudes and phases
     """
     #print '[calculating fourier decomposition]'
+    from . import fourier_decomp
     
     f = {'c': np.zeros((7, self.nbins),dtype=complex),
 	 'amp': np.zeros((7, self.nbins)),

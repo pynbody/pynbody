@@ -1,4 +1,4 @@
-import util, filt, array, decorate, family, snapshot,  tipsy, gadget, profile, analysis
+import util, filt, array, decorate, family, snapshot,  tipsy, gadget, analysis
 
 # The following code resolves inter-dependencies when reloading
 reload(array)
@@ -9,6 +9,9 @@ reload(snapshot)
 reload(tipsy)
 reload(gadget)
 reload(filt)
+reload(analysis)
+
+from analysis import profile
 
 _snap_classes = [gadget.GadgetSnap, tipsy.TipsySnap]
 

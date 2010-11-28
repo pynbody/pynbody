@@ -1,3 +1,8 @@
+from . import profile, fourier_decomp
+
+reload(profile)
+reload(fourier_decomp)
+
 import numpy as np
 
 def centre_of_mass(sim) : # shared-code names should be explicit, not short
@@ -85,6 +90,6 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
                      hist, levels, norm=cont_color)
 
                                                    
-    plt.xlabel('$log(\rho)$')
-    plt.ylabel('$log(T)$')
+    plt.xlabel(r'$log(\rho)$')
+    plt.ylabel(r'$log(T)$')
     
