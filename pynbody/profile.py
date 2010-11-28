@@ -39,7 +39,7 @@ class Profile:
     The class defines  __get__ and __getitem__ methods so that
     these are equivalent:
 
-    p.mass == p['mass']
+    p.mass == p['mass'] # AP - *Must* we have this? p['mass'] seems quite sufficient to me
 
     Implemented profile functions:
 
@@ -82,14 +82,13 @@ class Profile:
 
     """
 
+    _profile_registry = {}
     
     def __init__(self, sim, ndim = 2, type = 'lin', **kwargs):
 
 
         self._ndim = ndim
         self._type = type
-
-        assert isinstance(sim, snapshot.SimSnap)
         self._sim = sim
 
         x = np.sqrt(np.sum(sim['pos'][:,0:ndim]**2, axis = 1))
@@ -152,29 +151,36 @@ class Profile:
         return self.nbins
     
 
+    def _get_profile(self, name) :
+	"""Return the profile of a given kind"""
+	if name in self._profiles :
+	    return self._profiles[name]
+	elif name in Profile._profile_registry :
+	    self._profiles[name] = Profile._profile_registry[name](self)
+	    return self._profiles[name]
+	else :
+	    raise KeyError, name+" is not a valid profile"
+	
     def __getitem__(self, name):
         """Return the profile of a given kind"""
+        return self._get_profile(name)
 
-        if name in self._profiles:
-            return self._profiles[name]
-        else:
-            raise KeyError, name + " is not a valid profile"
+    def __delitem__(self, name) :
+	del self._profiles[name]
 
-        
-    def __get__(self, name):
-        """Return the profile of a given kind"""
+	
+	
+    def __getattr__(self, name) :
+	# AP - I don't like this, implementing for consistency with Rok's ideas only.
+	try:
+	    return self._get_profile(name)
+	except KeyError :
+	    raise AttributeError(name)
 
-        ############################
-        # as far as I can tell
-        # this never gets called
-        # with the profile_property
-        # defined
-        #############################
+    def __delattr__(self, name) :
+	# AP - I don't like this, implementing for consistency with Rok's ideas only.
+	del self._profiles[name]
 
-        if name in self._profiles:
-            return self._profiles[name]
-        else:
-            return object.__get__(self,name)
 
     def __repr__(self):
         return ("<Profile: " +
@@ -192,93 +198,54 @@ class Profile:
         return self._sim.families()
 
 
-    class profile_property(object):
-        """
-        Lazy-load the required profiles.
-        """
 
-        def __init__(self, func):
+    @staticmethod
+    def profile_property(fn) :
+	Profile._profile_registry[fn.__name__]=fn
+	return fn
+    
 
-            self._func = func
-            self.__name__ = func.__name__
-            self.__doc__ = func.__doc__
+@Profile.profile_property
+def mass(self):
+    """
+    Calculate mass in each bin
+    """
 
-        def __get__(self, obj, obj_class):
-            if obj is None:
-                return obj
+    #print '[calculating mass]'
+    mass = np.zeros(self.nbins)
+    for i in range(self.nbins):
+	mass[i] = np.sum(self._sim['mass'][self.binind[i]])
+    return mass
 
-            # potentially bad style here? adding to the object's dictionary
-            # so that it's calculated only once... but also want it in the
-            # _profiles dictionary so that we can get a listing of available
-            # profiles with p.keys()
+@Profile.profile_property
+def den(self):
+    """
+    Generate a radial density profile for the current type of profile
+    """
 
-            # Also - using the cached property like this seems to bypass the
-            # __get__ method defined above - is there a way to chenge this?
+    #print '[calculating density]'
+    return self.mass/self._binsize
 
+@Profile.profile_property
+def fourier(self):
+    """
+    Generate a profile of fourier coefficients, amplitudes and phases
+    """
+    #print '[calculating fourier decomposition]'
+    
+    f = {'c': np.zeros((7, self.nbins),dtype=complex),
+	 'amp': np.zeros((7, self.nbins)),
+	 'phi': np.zeros((7, self.nbins))}
 
-            obj.__dict__[self.__name__] = obj._profiles[self.__name__] = self._func(obj)
-            return obj.__dict__[self.__name__]
-
-        def __delete__(self, obj):
-            ###############################
-            #THIS DOESN'T WORK!!!
-            #
-            # >>> p.mass
-            # >>> del(p.mass)
-            # >>> p.keys()
-            # ['mass', 'n']
-            #
-            # should've deleted the 'mass'
-            ###############################
-            
-            print 'deleting'
-            if self.__name__ in obj.__dict__:
-                del obj.__dict__[self.__name__]
-            if self.__name__ in self._profiles:
-                del obj._profiles[self.__name__]
-
-
-    @profile_property
-    def mass(self):
-        """
-        Calculate mass in each bin
-        """
-
-        print '[calculating mass]'
-        mass = np.zeros(self.nbins)
-        for i in range(self.nbins):
-            mass[i] = np.sum(self._sim['mass'][self.binind[i]])
-        return mass
-           
-    @profile_property
-    def den(self):
-        """
-        Generate a radial density profile for the current type of profile
-        """
-        
-        print '[calculating density]'
-        return self.mass/self._binsize
-
-    @profile_property
-    def fourier(self):
-        """
-        Generate a profile of fourier coefficients, amplitudes and phases
-        """
-        print '[calculating fourier decomposition]'
-
-        f = {'c': np.zeros((7, self.nbins),dtype=complex),
-             'amp': np.zeros((7, self.nbins)),
-             'phi': np.zeros((7, self.nbins))}
-
-        for i in range(self.nbins):
-            if self.n[i] > 100:
-                f['c'][:,i] = fourier_decomp.fourier(self._sim['x'][self.binind[i]],
-                                                     self._sim['y'][self.binind[i]],
-                                                     self._sim['mass'][self.binind[i]])
+    for i in range(self.nbins):
+	if self.n[i] > 100:
+	    f['c'][:,i] = fourier_decomp.fourier(self._sim['x'][self.binind[i]],
+						 self._sim['y'][self.binind[i]],
+						 self._sim['mass'][self.binind[i]])
 
 
-        f['c'][:,self.mass>0] /= self.mass[self.mass>0]
-        f['amp'] = np.sqrt(np.imag(f['c'])**2 + np.real(f['c'])**2)
-        f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
+    f['c'][:,self.mass>0] /= self.mass[self.mass>0]
+    f['amp'] = np.sqrt(np.imag(f['c'])**2 + np.real(f['c'])**2)
+    f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
 
-        return f
+    return f
