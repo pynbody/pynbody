@@ -221,7 +221,7 @@ def param2units(sim) :
 	    sim["mass"].units = munit_st
 
 
-	    sim.properties['h'] = hubunit
+	    sim.properties['h'] = hubunit*hub
 	    sim.properties['omegaM0'] = om_m0
 	    sim.properties['omegaL0'] = om_lam0
 
