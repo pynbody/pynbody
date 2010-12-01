@@ -144,6 +144,9 @@ class UnitBase(object) :
 	    raise UnitsException, "Not convertible"
 	
     def irrep(self) :
+	"""Return a unit equivalent to this one (may be identical) but
+	expressed in terms of the currently defined IrreducibleUnit
+	instances."""
 	return self
 
     def _register_unit(self, st) :
@@ -213,6 +216,12 @@ class CompositeUnit(UnitBase) :
 	return s
 
     def _expand(self, expand_to_irrep=False) :
+	"""Internal routine to expand any pointers to composite units
+	into direct pointers to the base units. If expand_to_irrep is
+	True, everything is expressed in irreducible units.
+	A _gather will normally be necessary to sanitize the unit
+	after an _expand."""
+	
 	trash = []
 
 	
@@ -222,6 +231,9 @@ class CompositeUnit(UnitBase) :
 		b = b._represents.irrep()		
 		
 	    if isinstance(b,CompositeUnit) :
+		if expand_to_irrep :
+		    b = b.irrep()
+		    
 		trash.append(i)
 		self._scale*=b._scale**p
 		for b_sub, p_sub in zip(b._bases, b._powers) :
@@ -235,6 +247,9 @@ class CompositeUnit(UnitBase) :
 
 
     def _gather(self) :
+	"""Internal routine to gather together powers of the same base
+	units, then order the base units by their power (descending)"""
+	
 	trash = []
 	bases = list(set(self._bases))
 	powers = [sum([p for bi,p in zip(self._bases, self._powers)
@@ -250,6 +265,17 @@ class CompositeUnit(UnitBase) :
 	    self._powers, self._bases = [],[]
 
 
+
+
+    def copy(self) :
+	"""Create a copy which is 'shallow' in the sense that it
+	references exactly the same underlying base units, but where
+	the list of those units can be manipulated separately."""
+	return CompositeUnit(self._scale, self._bases[:], self._powers[:])
+
+    def __copy__(self) :
+	"""For compatibility with python copy module"""
+	return self.copy()
     
     def simplify(self) :
 	self._expand()
@@ -257,8 +283,7 @@ class CompositeUnit(UnitBase) :
 	return self
 
     def irrep(self) :
-	import copy
-	x = copy.copy(self)
+	x = self.copy()
 	x._expand(True)
 	x._gather()
 	return x
