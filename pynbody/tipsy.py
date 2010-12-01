@@ -37,9 +37,9 @@ class TipsySnap(snapshot.SimSnap) :
 	self._create_arrays(["mass","eps","phi"])
 	self.gas._create_arrays(["rho","temp","metals"])
 	self.star._create_arrays(["metals","tform"])
-	
-	# ["rho","temp","eps","metals","phi","tform"])
 
+	self.gas["temp"].units = "K" # we know the temperature is always in K
+	# Other units will be set by the decorators later
 	
 
 	# Load in the tipsy file in blocks.  This is the most
