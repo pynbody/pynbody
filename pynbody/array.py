@@ -36,7 +36,6 @@ tracking.  Powers to float or other powers will not be able to do so.
    SimArray([1.,2], "Msol Mpc**-3")**0.333 # -> SimArray([ 1.,1.26])
    # Lost track of units
 
-* Taking a view of a 
 
 
 Getting the array in specified units
