@@ -15,7 +15,7 @@ dimensions
 
    SimArray([1,2], "Mpc") + SimArray([1,2], "kpc") 
 
-yields ``SimArray([1001, 1002], "Mpc")``
+yields ``SimArray([1.001, 1.002], "Mpc")``
 
 * Note that in this context the left value takes precedence in
 specifying the return units, so that reversing the order of the
