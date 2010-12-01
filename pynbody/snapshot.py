@@ -131,6 +131,7 @@ class SimSnap(object) :
 	    dims = (self[family]._num_particles, ndim)
 
 	new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
+	new_ar._sim_properties = self.properties
 	
 	try:
 	    self._family_arrays[array_name][family] = new_ar
@@ -149,9 +150,12 @@ class SimSnap(object) :
 	    dims = self._num_particles
 	else :
 	    dims = (self._num_particles, ndim)
-	    
-	self._arrays[array_name] = np.zeros(dims,dtype=dtype).view(array.SimArray)
 
+	new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
+	new_array._sim_properties = self.properties
+	
+	self._arrays[array_name] = new_array
+	
     def _get_array(self, name) :
 	return self._arrays[name]
     
