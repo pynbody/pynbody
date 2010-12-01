@@ -23,14 +23,14 @@ acceptable.
 Getting conversion ratios
 =========================
 
-To convert one unit to another, use the convert member function:
+To convert one unit to another, use the ``ratio`` member function:
 
-   units.Msol.convert(units.kg)  # ->  1.99e30
-   (units.Msol / units.kpc**3).convert(units.m_p/units.cm**3) # -> 4.04e-8
+   units.Msol.ratio(units.kg)  # ->  1.99e30
+   (units.Msol / units.kpc**3).ratio(units.m_p/units.cm**3) # -> 4.04e-8
 
 If the units cannot be converted, a UnitsException is raised:
 
-   units.Msol.convert(units.kpc)  # ->UnitsException
+   units.Msol.ratio(units.kpc)  # ->UnitsException
 
 Specifying numerical values
 ===========================
@@ -44,12 +44,12 @@ can be specified in pynbody units as follows:
 where units.a represents the scalefactor. We can attempt to convert
 this to a physical distance as follows
 
-   comoving_kpc.convert(units.kpc)
+   comoving_kpc.ratio(units.kpc)
 
 but this fails, throwing a UnitsException. On the other hand we
 can specify a value for the scalefactor when we request the conversion
 
-   comoving_kpc.convert(units.kpc, a=0.5)  # -> 0.5
+   comoving_kpc.ratio(units.kpc, a=0.5)  # -> 0.5
 
 and the conversion completes with the expected result. The units
 module also defines units.h for the dimensionless hubble constant,
@@ -68,8 +68,8 @@ units which then integrate with all the standard functions.
 
    litre = units.NamedUnit("litre",0.001*units.m**3)
    gallon = units.NamedUnit("gallon",0.004546*units.m**3)
-   gallon.convert(litre) # 4.546
-   (units.pc**3).convert(litre) # 2.94e52
+   gallon.ratio(litre) # 4.546
+   (units.pc**3).ratio(litre) # 2.94e52
 
 You can even define completely new dimensions.
 
@@ -79,8 +79,8 @@ You can even define completely new dimensions.
     F = units.NamedUnit("F", C/V) # Farad
     epsilon0 = 8.85418e-12 *F/units.m
 
-    (q*V).convert("eV") # -> 1.000...
-    ((q**2)/(4*math.pi*epsilon0*units.m**2)).convert("N") # -> 2.31e-28
+    (q*V).ratio("eV") # -> 1.000...
+    ((q**2)/(4*math.pi*epsilon0*units.m**2)).ratio("N") # -> 2.31e-28
     
 
 """
@@ -131,7 +131,7 @@ class UnitBase(object) :
     def is_dimensionless(self) :
 	return False
 
-    def convert(self, other, **substitutions) :
+    def ratio(self, other, **substitutions) :
 	"""Get the conversion ratio between this Unit and another
 	specified unit"""
 

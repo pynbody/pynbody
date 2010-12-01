@@ -151,7 +151,7 @@ class SimArray(np.ndarray) :
 	if isinstance(x, SimArray) and self.units is not None and x.units is not None :
 	    # Check unit compatibility
 	    try:
-		cr = x.units.convert(self.units,
+		cr = x.units.ratio(self.units,
 				     **self.conversion_context())
 	    except units.UnitsException :
 		raise ValueError, "Incompatible physical dimensions"
@@ -249,7 +249,7 @@ class SimArray(np.ndarray) :
 	unit."""
 
 	if self.units is not None :
-	    r = self * self.units.convert(new_unit,
+	    r = self * self.units.ratio(new_unit,
 					  **(self.conversion_context()))
 	    r.units = new_unit
 	    return r
@@ -263,6 +263,6 @@ class SimArray(np.ndarray) :
 	if self.base is not None and isinstance(self.base, SimArray) :
 	    self.base.convert_units(new_unit)
 	else :
-	    self*=self.units.convert(new_unit,
+	    self*=self.units.ratio(new_unit,
 				     **(self.conversion_context()))
 	    self.units = new_unit
