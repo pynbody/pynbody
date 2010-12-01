@@ -159,73 +159,70 @@ def param2units(sim) :
     filename=None
     for i in xrange(2) :
 	l = glob.glob(os.path.join(x,"*.param"))
-	if len(l)==1 :
-	    filename = l[0]
-	    break
+	x = os.path.dirname(x) # prepare for next iterations
 
-	x = os.path.dirname(x)
-	
-    print "Using .param file ",filename
-
-    if filename==None :
-	return
-    
-
-    if filename!=None  :
-	f = file(filename)
-	munit = dunit = hub = None
-	for line in f :
+	for filename in l :
+	    # Attempt the loading of information
 	    try :
-		s = line.split()
-		if s[0]=="dMsolUnit" :
-		    munit_st = s[2]+" Msol"
-		    munit = float(s[2])
-		elif s[0]=="dKpcUnit" :
-		    dunit_st = s[2]+" kpc a"
-		    dunit = float(s[2])
-		elif s[0]=="dHubble0" :
-		    hub = float(s[2])
-		elif s[0]=="dOmega0" :
-		    om_m0 = s[2]
-		elif s[0]=="dLambda" :
-		    om_lam0 = s[2]
+		f = file(filename)
+	    except IOError :
+		break
+	    munit = dunit = hub = None
+	    for line in f :
+		try :
+		    s = line.split()
+		    if s[0]=="dMsolUnit" :
+			munit_st = s[2]+" Msol"
+			munit = float(s[2])
+		    elif s[0]=="dKpcUnit" :
+			dunit_st = s[2]+" kpc a"
+			dunit = float(s[2])
+		    elif s[0]=="dHubble0" :
+			hub = float(s[2])
+		    elif s[0]=="dOmega0" :
+			om_m0 = s[2]
+		    elif s[0]=="dLambda" :
+			om_lam0 = s[2]
 
-	    except IndexError, ValueError :
-		pass
+		except IndexError, ValueError :
+		    pass
 
-	if munit==None or dunit==None or hub==None :
-	    raise RuntimeError("Can't find all parameters required in .param file")
+	    if munit==None or dunit==None or hub==None :
+		break
 
-	denunit = munit/dunit**3
-	denunit_st = str(denunit)+" Msol kpc^-3 a^-3"
+	    print "Using .param file ",filename
 
-	#
-	# the obvious way:
-	#
-	#denunit_cgs = denunit * 6.7696e-32
-	#kpc_in_km = 3.0857e16
-	#secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
-	#velunit = dunit*kpc_in_km/secunit
+	    denunit = munit/dunit**3
+	    denunit_st = str(denunit)+" Msol kpc^-3 a^-3"
 
-	# the sensible way:
-	# avoid numerical accuracy problems by concatinating factors:
-	velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
-	velunit_st = ("%.5g"%velunit)+" km s^-1 a"
+	    #
+	    # the obvious way:
+	    #
+	    #denunit_cgs = denunit * 6.7696e-32
+	    #kpc_in_km = 3.0857e16
+	    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
+	    #velunit = dunit*kpc_in_km/secunit
 
-	enunit_st = "%.5g km^2 s^-2"%(velunit**2)
+	    # the sensible way:
+	    # avoid numerical accuracy problems by concatinating factors:
+	    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
+	    velunit_st = ("%.5g"%velunit)+" km s^-1 a"
+
+	    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
 
 
-	hubunit = 10. * velunit / dunit
-	hubunit_st = ("%.3f"%(hubunit*hub))
+	    hubunit = 10. * velunit / dunit
+	    hubunit_st = ("%.3f"%(hubunit*hub))
 
-	sim["vel"].units = velunit_st
-	sim["eps"].units = dunit_st
-	sim["pos"].units = dunit_st
-	sim.gas["rho"].units = denunit_st
-	sim["mass"].units = munit_st
-	
-	
-	sim.properties['h'] = hubunit
-	sim.properties['omegaM0'] = om_m0
-	sim.properties['omegaL0'] = om_lam0
-	
+	    sim["vel"].units = velunit_st
+	    sim["eps"].units = dunit_st
+	    sim["pos"].units = dunit_st
+	    sim.gas["rho"].units = denunit_st
+	    sim["mass"].units = munit_st
+
+
+	    sim.properties['h'] = hubunit
+	    sim.properties['omegaM0'] = om_m0
+	    sim.properties['omegaL0'] = om_lam0
+
+	    break
