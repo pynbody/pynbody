@@ -298,6 +298,12 @@ class SubSnap(SimSnap) :
     def loadable_keys(self) :
 	return self.base.loadable_keys()
 
+    def _create_array(self, *args) :
+	self.base._create_array(*args)
+
+    def _create_family_array(self, *args) :
+	self.base._create_family_array(*args)
+
 class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
     to an index array."""
@@ -354,7 +360,8 @@ class IndexedSubSnap(SubSnap) :
 	return self.base._get_family_array(name, fam)[self._family_indices[fam]]
     
     
-
+    def _create_array(self, *args) :
+	self.base._create_array
 	    
 
 class FamilySubSnap(SubSnap) :
