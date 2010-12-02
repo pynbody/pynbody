@@ -1,4 +1,4 @@
-import util, filt, array, decorate, family, snapshot,  tipsy, gadget, analysis
+import util, filt, array, decorate, family, snapshot,  tipsy, gadget, analysis, halo
 
 # The following code resolves inter-dependencies when reloading
 reload(array)
@@ -10,6 +10,7 @@ reload(tipsy)
 reload(gadget)
 reload(filt)
 reload(analysis)
+reload(halo)
 
 from analysis import profile
 
@@ -23,5 +24,4 @@ def load(filename, *args) :
 	
     raise RuntimeError("File format not understood")
 
-
-
+   
