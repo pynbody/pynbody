@@ -15,7 +15,11 @@ class TipsySnap(snapshot.SimSnap) :
 	# or other more advanced filename -> file object mapping later,
 	# carrying this across the suite
 
-	t, n, ndim, ng, nd, ns = struct.unpack(">dlllll", f.read(28))
+	t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
+        if (ndim > 3 or ndim < 1):
+            byteswap=True
+            f.seek(0)
+            t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
 
         # In non-cosmological simulations, what is t? Is it physical
         # time?  In which case, we need some way of telling what we
@@ -65,8 +69,11 @@ class TipsySnap(snapshot.SimSnap) :
 		n_block = max(n_left,max_block_size)
 
 		# Read in the block
-		g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
-
+                if(byteswap):
+                    g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
+                else:
+                    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
+                    
 		# Copy into the correct arrays
 		for i, name in enumerate(st) :
 		    self_type[name][n_done:n_done+n_block] = g[:,i]
@@ -153,7 +160,6 @@ class TipsySnap(snapshot.SimSnap) :
 @decorate.sim_decorator
 def param2units(sim) :
     import sys, math, os, glob
-
     x = os.path.abspath(sim.filename)
 
     filename=None
@@ -187,10 +193,10 @@ def param2units(sim) :
 		except IndexError, ValueError :
 		    pass
 
-	    if munit==None or dunit==None or hub==None :
+	    if munit==None or dunit==None :
 		break
 
-	    print "Using .param file ",filename
+	    print "Loading units from ",filename
 
 	    denunit = munit/dunit**3
 	    denunit_st = str(denunit)+" Msol kpc^-3 a^-3"
@@ -208,21 +214,28 @@ def param2units(sim) :
 	    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
 	    velunit_st = ("%.5g"%velunit)+" km s^-1 a"
 
+            #You have: kpc s / km
+            #You want: Gyr
+            #* 0.97781311
+            timeunit = dunit / velunit * 0.97781311
+            timeunit_st = ("%.5g"%timeunit)+" Gyr"
+
 	    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
 
-
-	    hubunit = 10. * velunit / dunit
-	    hubunit_st = ("%.3f"%(hubunit*hub))
+            if hub!=None:
+                hubunit = 10. * velunit / dunit
+                hubunit_st = ("%.3f"%(hubunit*hub))
 
 	    sim["vel"].units = velunit_st
 	    sim["eps"].units = dunit_st
 	    sim["pos"].units = dunit_st
 	    sim.gas["rho"].units = denunit_st
 	    sim["mass"].units = munit_st
+            sim.star["tform"].units = timeunit_st
 
-
-	    sim.properties['h'] = hubunit*hub
-	    sim.properties['omegaM0'] = om_m0
-	    sim.properties['omegaL0'] = om_lam0
-
+            if hub!=None:
+                sim.properties['h'] = hubunit*hub
+                sim.properties['omegaM0'] = om_m0
+                sim.properties['omegaL0'] = om_lam0
+            
 	    break
