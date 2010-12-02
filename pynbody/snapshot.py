@@ -2,6 +2,7 @@ from . import array
 from . import family, util
 from . import decorate
 from . import filt
+from . import halo
 import numpy as np
 import copy
 
@@ -84,7 +85,14 @@ class SimSnap(object) :
 	# += etc, since these call __setitem__).
 	util.set_array_if_not_same(self[name], ax)
 	
-
+    def halos(self, *args) :
+	 """Tries to instantiate a halo catalogue object for the given
+	 snapshot, using the first available method."""
+	 
+	 for c in halo._halo_classes :
+	     if c._can_load(self) : return c(self, *args)
+	     
+	 raise RuntimeError("No halo catalogue found")
 
     def __delitem__(self, name) :
 	self._assert_not_family_array(name)
