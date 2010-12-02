@@ -243,7 +243,20 @@ class SimArray(np.ndarray) :
 	    return x[:-1]+", '"+str(self.units)+"')"
 	else :
 	    return x
-	
+
+    def prod(self, axis=None, **kwargs) :
+	x = np.ndarray.prod(self, axis=axis, **kwargs)
+	if isinstance(x, SimArray) and  self.units is not None :
+	    x.units = self.units**self.shape[axis]
+	return x
+
+    def sum(self, axis=None, **kwargs) :
+	x = np.ndarray.sum(self, axis=axis, **kwargs)
+	if isinstance(x, SimArray) and self.units is not None :
+	    x.units = self.units
+	return x
+
+    
     def in_units(self, new_unit) :
 	"""Return a copy of this array expressed relative to an alternative
 	unit."""
