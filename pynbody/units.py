@@ -376,6 +376,7 @@ Gpc = NamedUnit("Gpc", 1000*Mpc)
 
 # Masses
 Msol = NamedUnit("Msol", 1.98892e30*kg)
+g = NamedUnit("g", 1.e-3*kg)
 m_p = NamedUnit("m_p", 1.67262158e-27*kg)
 m_e = NamedUnit("m_e", 9.10938188e-31*kg)
 
