@@ -121,7 +121,68 @@ def relative_slice(s_relative_to, s) :
     
     return slice(start,stop,step)
 
+def chained_slice(s1,s2) :
+    """Return a slice s3 with the property that
+    ar[s1][s2] == ar[s3] """
+    
+    assert (s1.start>=0 and s2.start>=0 and s1.stop>=0 and s2.stop>=0)
+    s1_start = s1.start or 0
+    s2_start = s2.start or 0
+    s1_step = s1.step or 1
+    s2_step = s2.step or 1
+    
+    start =s1_start+s2_start*s1_step
+    step = s1_step*s2_step
+    if s1.stop is None and s2.stop is None :
+	stop = None
+    elif s1.stop is None :
+	stop = start+step*(s2.stop-s2_start)/s2_step
+    elif s2.stop is None :
+	stop = s1.stop
+    else :
+	stop_s2 = start+step*(s2.stop-s2_start)/s2_step
+	stop_s1 = s1.stop
+	stop = stop_s2 if stop_s2<stop_s1 else stop_s1
+    return slice(start, stop, step)
 
+def index_before_slice(s, index) :
+    """Return an index array new_index with the property that, for a
+    slice s (start, stop and step all positive), ar[s][index] ==
+    ar[new_index]."""
+
+    start = s.start or 0
+    step = s.step or 1
+
+    assert start>=0
+    assert step>=0
+    assert s.stop is None or s.stop>=0
+    
+    new_index = start + index*step
+    if s.stop is not None :
+	new_index = new_index[np.where(new_index<s.stop)]
+
+    return new_index
+
+def concatenate_indexing(i1, i2) :
+    """Given either a numpy array or slice for both i1 and i2,
+    return either a numpy array or slice i3 with the property that
+
+    ar[i3] == ar[i1][i2].
+
+    As a convenience, if i2 is None, i1 is returned
+    """
+
+    if i2 is None :
+	return i1
+    if isinstance(i1, slice) and isinstance(i2, slice) :
+	return chained_slice(i1,i2)
+    elif isinstance(i1, slice) and isinstance(i2, np.array) :
+	return index_before_slice(i1, i2)
+    elif isinstance(i1, np.array) and (isinstance(i2, slice) or isinstance(i2,np.array)) :
+	return i1[i2]
+    else :
+	raise TypeError, "Don't know how to chain these index types"
+    
 def arrays_are_same(a1, a2) :
     """Returns True if a1 and a2 are numpy views pointing to the exact
     same underlying data; False otherwise."""
@@ -131,11 +192,14 @@ def arrays_are_same(a1, a2) :
     except AttributeError :
 	return False
 
-def set_array_if_not_same(a_store, a_in) :
+def set_array_if_not_same(a_store, a_in, index=None) :
     """This routine checks whether a_store and a_in ultimately point to the
     same buffer; if not, the contents of a_in are copied into a_store."""
-    if not arrays_are_same(a_store, a_in) :
-	a_store[:] = a_in
+    if index is None : index = slice(None)
+    
+    if not arrays_are_same(a_store[index], a_in) :
+	a_store[index] = a_in
+	a_store.units = a_in.units
 	
 
 def index_of_first(array, find) :

@@ -83,7 +83,7 @@ class SimSnap(object) :
 	# Copy in contents if the contents isn't actually pointing to
 	# the same data (which will be the case following operations like
 	# += etc, since these call __setitem__).
-	util.set_array_if_not_same(self[name], ax)
+	self._set_array(name, ax)
 	
     def halos(self, *args) :
 	 """Tries to instantiate a halo catalogue object for the given
@@ -150,6 +150,10 @@ class SimSnap(object) :
 	del self._family_arrays[array_name][family]
 	if len(self._family_arrays[array_name])==0 :
 	    del self._family_arrays[array_name]
+
+    def _set_family_array(self, name, family, value, index=None) :
+	util.set_array_if_not_same(self._family_arrays[name][family],
+				   value, index)
 	    
     def _create_array(self, array_name, ndim=1, dtype=None) :
 	"""Create a single array of dimension len(self) x ndim, with
@@ -166,7 +170,10 @@ class SimSnap(object) :
 	
     def _get_array(self, name) :
 	return self._arrays[name]
-    
+
+    def _set_array(self, name, value, index=None) :
+	util.set_array_if_not_same(self._arrays[name], value, index)
+
     def _create_arrays(self, array_list, ndim=1, dtype=None) :
 	"""Create a set of arrays of dimension len(self) x ndim, with
 	a given numpy dtype."""
@@ -271,6 +278,15 @@ class SubSnap(SimSnap) :
     def _get_array(self, name) :
 	return self.base._get_array(name)[self._slice]
 
+    def _set_array(self, name, value, index=None) :
+	self.base._set_array(name,value,util.concatenate_indexing(self._slice, index))
+
+    def _set_family_array(self, name, family, value, index=None) :
+	fslice = self._get_family_slice(family)
+	self.base._set_family_array(name, family, value, util.concatenate_indexing(fslice, index))
+	    
+	    
+
     @property
     def _filename(self) :
 	return self.base._filename+":"+self._descriptor
@@ -319,7 +335,8 @@ class IndexedSubSnap(SubSnap) :
 	if isinstance(index_array, tuple) :
 	    if isinstance(index_array[0], np.ndarray) :
 		index_array = index_array[0]
-
+	    else :
+		index_array = np.array(index_array)
 
 	# Check the index array is monotonically increasing
 	# If not, the family slices cannot be implemented
@@ -343,13 +360,13 @@ class IndexedSubSnap(SubSnap) :
 	    self._family_slice[fam] = new_slice
 	    self._family_indices[fam] = np.asarray(index_array[new_slice])-base_slice.start
 
-    def __setitem__(self, name, item) :
+    """def __setitem__(self, name, item) :
 	# This is required because numpy indexing creates a new array
 	# rather than a view on the old one. I.e. the data
 	# returned from SubSnap._get_array will be a copy, and
 	# so this provides a mechaism for mirroring changes back
 	# into the main simulation data arrays.
-	self.base._get_array(name)[self._slice] = item
+	self.base._get_array(name)[self._slice] = item"""
 	
     def _get_family_slice(self, fam) :
 	# A bit messy: jump out the SubSnap inheritance chain
@@ -407,6 +424,13 @@ class FamilySubSnap(SubSnap) :
     def _create_array(self, array_name, ndim=1, dtype=None) :
 	# Array creation now maps into family-array creation in the parent
 	self.base._create_family_array(array_name, self._unifamily, ndim, dtype)
+
+    def _set_array(self, name, value, index=None) :
+	if name in self.base.keys() :
+	    self.base._set_array(name, value, util.concatenate_indexing(self._slice, index))
+	else :
+	    self.base._set_family_array(name, self._unifamily, value, index)
+
 
 
     def _create_family_array(self, array_name, family, ndim, dtype) :
