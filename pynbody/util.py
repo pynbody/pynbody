@@ -171,14 +171,13 @@ def concatenate_indexing(i1, i2) :
 
     As a convenience, if i2 is None, i1 is returned
     """
-
     if i2 is None :
 	return i1
     if isinstance(i1, slice) and isinstance(i2, slice) :
 	return chained_slice(i1,i2)
-    elif isinstance(i1, slice) and isinstance(i2, np.array) :
+    elif isinstance(i1, slice) and isinstance(i2, np.ndarray) :
 	return index_before_slice(i1, i2)
-    elif isinstance(i1, np.array) and (isinstance(i2, slice) or isinstance(i2,np.array)) :
+    elif isinstance(i1, np.ndarray) and (isinstance(i2, slice) or isinstance(i2,np.ndarray)) :
 	return i1[i2]
     else :
 	raise TypeError, "Don't know how to chain these index types"
@@ -196,7 +195,6 @@ def set_array_if_not_same(a_store, a_in, index=None) :
     """This routine checks whether a_store and a_in ultimately point to the
     same buffer; if not, the contents of a_in are copied into a_store."""
     if index is None : index = slice(None)
-    
     if not arrays_are_same(a_store[index], a_in) :
 	a_store[index] = a_in
 	a_store.units = a_in.units

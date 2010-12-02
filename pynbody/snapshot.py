@@ -67,7 +67,11 @@ class SimSnap(object) :
    
     def __setitem__(self, name, item) :
 	self._assert_not_family_array(name)
-	ax = np.asarray(item).view(array.SimArray)
+	
+	if isinstance(item, array.SimArray) :
+	    ax = item
+	else :
+	    ax = np.asarray(item).view(array.SimArray)
 	    
 	if name not in self.keys() :
 	    # Array needs to be created. We do this through the
@@ -375,7 +379,10 @@ class IndexedSubSnap(SubSnap) :
 
     def _get_family_array(self, name, fam) :
 	return self.base._get_family_array(name, fam)[self._family_indices[fam]]
-    
+
+    def _set_family_array(self, name, family, value, index=None) :
+	self.base._set_family_array(name, family, value,
+				    util.concatenate_indexing(self._family_indices[family], index)) 
     
     def _create_array(self, *args) :
 	self.base._create_array
