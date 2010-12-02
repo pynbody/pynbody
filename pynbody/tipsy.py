@@ -196,7 +196,7 @@ def param2units(sim) :
 	    if munit==None or dunit==None :
 		break
 
-	    print "Using .param file ",filename
+	    print "Loading units from ",filename
 
 	    denunit = munit/dunit**3
 	    denunit_st = str(denunit)+" Msol kpc^-3 a^-3"
