@@ -23,7 +23,6 @@ class Kernel(object) :
 	# which the kernel is non-zero
 
     def get_c_code(self) :
-	# placeholder square kernel!
 	code =""
 	
 	sample_pts = np.arange(0,2.01,0.01)
