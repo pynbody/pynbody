@@ -197,7 +197,8 @@ def set_array_if_not_same(a_store, a_in, index=None) :
     if index is None : index = slice(None)
     if not arrays_are_same(a_store[index], a_in) :
 	a_store[index] = a_in
-	a_store.units = a_in.units
+	if a_in.units is not None :
+	    a_store.units = a_in.units
 	
 
 def index_of_first(array, find) :
