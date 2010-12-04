@@ -45,16 +45,14 @@ for(int i=0; i<n_part; i++) {
 	for( int y_pos =y_pix_start ; y_pos<=y_pix_stop; y_pos++) {
 	  
 	  float y_pixel = dy*y_pos + y_start; 
-	  
-	  float d = sqrt((x_i-x_pixel)*(x_i-x_pixel)+(y_i-y_pixel)*(y_i-y_pixel)
-			 +(z_i-z_pixel)*(z_i-z_pixel));
+
 	  /* Debug help
 	  if(nn<100) 
 	    printf("%d %d %f %f %f\n", int((y_i-y1)/dy), y_pos, y_pixel, y_i, sm_i);
 	  nn++;
 	  */
 
-	  RESULT2(x_pos,y_pos)+=qty_i*(KERNEL1(d ,sm_i));
+	  RESULT2(x_pos,y_pos)+=qty_i*(KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
 	}
       }
     }
