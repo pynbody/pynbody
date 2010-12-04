@@ -130,10 +130,8 @@ class TipsySnap(snapshot.SimSnap) :
 	del f
 	f = util.open_(filename)
 
-	# N.B. np.loadtxt seems to be quite slow, and we might be
-	# forced to implement something faster in C? Or does an
-	# alternative already exist?
-	data = np.loadtxt(f, skiprows=1, dtype=tp)
+	f.readline()
+	data = np.fromfile(f, dtype=tp, sep="\n")
 	ndim = len(data)/len(self)
 
 	if ndim*len(self)!=len(data) :
