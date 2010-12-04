@@ -1,4 +1,5 @@
 import numpy as np
+from . import units
 
 class Filter(object) :
     def __init__(self) :
@@ -70,16 +71,26 @@ class Sphere(Filter) :
 	self.cen = np.asarray(cen)
 	if self.cen.shape!=(3,) :
 	    raise ValueError, "Centre must be length 3 array"
-	
+
+	if isinstance(radius, str) :
+	    radius = units.Unit(radius)
+	    
 	self.radius = radius
 
     def __call__(self, sim) :
+	radius = self.radius
+	if isinstance(radius, units.UnitBase) :
+	    radius = radius.ratio(sim["pos"].units,
+				  **sim["pos"].conversion_context())
 	distance = ((sim["pos"]-self.cen)**2).sum(axis=1)
-	return distance<self.radius**2
+	return distance<radius**2
 
     def __repr__(self) :
-	return "Sphere(%.2e, %s)"%(self.radius, repr(self.cen))
-
+	if isinstance(radius, units.UnitBase) :
+	    
+	    return "Sphere('%s', %s)"%(str(self.radius), repr(self.cen))
+	else :
+	    return "Sphere(%.2e, %s)"%(self.radius, repr(self.cen))
 
 def Annulus(r1, r2, cen=(0,0,0)) :
     x = Sphere(max(r1,r2),cen) & ~Sphere(min(r1,r2),cen)
