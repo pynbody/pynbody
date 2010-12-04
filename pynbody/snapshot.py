@@ -130,7 +130,19 @@ class SimSnap(object) :
 	    if sl.start!=sl.stop :
 		out.append(fam)
 	return out
-    
+
+    def transform(self, matrix) :
+	"""Transforms the snapshot according to the 3x3 matrix given."""
+
+	pos = self['pos']
+	vel = self['vel']
+	
+	self['pos'] = np.dot(matrix, pos.transpose()).transpose().view(array.SimArray)
+	self['vel'] = np.dot(matrix, vel.transpose()).transpose().view(array.SimArray)
+	
+	# could search for other 3D arrays here too?
+	
+	
     def __len__(self) :
 	return self._num_particles
 
