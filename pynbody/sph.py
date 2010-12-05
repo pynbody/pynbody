@@ -138,7 +138,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     if out_units is not None :
 	# Calculate the ratio now so we don't waste time calculating
 	# the image only to throw a UnitsException later
-	conv_ratio = (qty.units*mass.units/(rho.units*x.units**kernel.h_power)).ratio(out_units,
+	conv_ratio = (qty.units*mass.units/(rho.units*sm.units**kernel.h_power)).ratio(out_units,
 										      **x.conversion_context())
     
     code = kernel.get_c_code()
@@ -161,8 +161,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     # where M-u, rho_u and h_u are mass, density and smoothing units
     # respectively. This is dimensionless, but may not be 1 if the units
     # have been changed since load-time.
-
-    result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+    if out_units is None :
+	result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
     
     if out_units is not None :
 	result*=conv_ratio
