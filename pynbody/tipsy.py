@@ -159,7 +159,8 @@ class TipsySnap(snapshot.SimSnap) :
 def param2units(sim) :
     import sys, math, os, glob
     x = os.path.abspath(sim.filename)
-
+    done = False
+    
     filename=None
     for i in xrange(2) :
 	l = glob.glob(os.path.join(x,"*.param"))
@@ -170,7 +171,7 @@ def param2units(sim) :
 	    try :
 		f = file(filename)
 	    except IOError :
-		break
+		continue
 	    munit = dunit = hub = None
 	    for line in f :
 		try :
@@ -192,7 +193,7 @@ def param2units(sim) :
 		    pass
 
 	    if munit==None or dunit==None :
-		break
+		continue
 
 	    print "Loading units from ",filename
 
@@ -235,5 +236,7 @@ def param2units(sim) :
                 sim.properties['h'] = hubunit*hub
                 sim.properties['omegaM0'] = om_m0
                 sim.properties['omegaL0'] = om_lam0
-            
+
+	    done = True
 	    break
+	if done : break
