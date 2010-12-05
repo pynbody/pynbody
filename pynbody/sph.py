@@ -157,6 +157,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
     		  'x1', 'x2', 'y1', 'y2', 'z1',  'qty', 'mass', 'rho'])
 
+    # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
+    # where M-u, rho_u and h_u are mass, density and smoothing units
+    # respectively. This is dimensionless, but may not be 1 if the units
+    # have been changed since load-time.
+
+    result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+    
     if out_units is not None :
 	result*=conv_ratio
 
