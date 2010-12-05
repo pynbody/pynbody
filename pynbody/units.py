@@ -166,6 +166,9 @@ class IrreducibleUnit(UnitBase) :
     def __str__(self) :
 	return self._st_rep
 
+    def latex(self) :
+	return r"\mathrm{"+self._st_rep+"}"
+
     def named_base_units(self) :
 	return set([self])
 
@@ -181,6 +184,9 @@ class NamedUnit(UnitBase) :
     def __str__(self) :
 	return self._st_rep
 
+    def latex(self) :
+	return r"\mathrm{"+self._st_rep+"}"
+
     def irrep(self) :
 	return self._represents.irrep()
 
@@ -192,6 +198,27 @@ class CompositeUnit(UnitBase) :
 	self._scale = scale
 	self._bases = bases
 	self._powers = powers
+
+    def latex(self) :
+	
+	if self._scale!=1 :
+	    x = ("%.2e"%self._scale).split('e')
+	    s = x[0]+r"\times 10^{"+x[1]+"}"
+	else :
+	    s = ""
+	    
+	for b,p in zip(self._bases, self._powers) :
+	    if s is not None :
+		s+=r"\,"+b.latex()
+	    else :
+		s = b.latex()
+		
+	    if p!=1 :
+		s+="^{"
+		s+=str(p)
+		s+="}"
+	return s
+    
 
     def __str__(self) :
 	s=None
