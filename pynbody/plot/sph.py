@@ -39,15 +39,15 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True) :
     p.imshow(im,extent=(-width/2,width/2,-width/2,width/2))
 
     u_st = sim['pos'].units.latex()
-    p.xlabel("$x/%s$"%u_st)
-    p.ylabel("$y/%s$"%u_st)
+    p.xlabel("$x/%s"%u_st[1:])
+    p.ylabel("$y/%s"%u_st[1:])
 
     if units is None :
 	units = sim[qty].units
 
    
     if log :
-	units = r"$\log_{10}\,"+units.latex()+"$"
+	units = r"$\log_{10}\,"+units.latex()[1:]
     else :
-	units = "$"+units.latex()+"$"
+	units = units.latex()
     p.colorbar().set_label(units)
