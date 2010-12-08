@@ -31,12 +31,12 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True) :
 	    kernel = sph.Kernel2D() # if we get to this point, we want a projected image
 
    
-    im = sph.render_image(sim,qty,width,resolution,out_units=units, kernel = kernel)
+    im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel)
 
     if log :
 	im = np.log10(im)
     
-    p.imshow(im,extent=(-width/2,width/2,-width/2,width/2))
+    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2))
 
     u_st = sim['pos'].units.latex()
     p.xlabel("$x/%s"%u_st[1:])

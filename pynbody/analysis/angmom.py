@@ -15,7 +15,7 @@ def calc_sideon_matrix(angmom_vec) :
     vec_p1 = vec_p1/np.sum(vec_p1**2).sum()**0.5
     vec_p2 = np.cross(vec_in,vec_p1)
 
-    matr = np.concatenate((vec_in,vec_p1,vec_p2)).reshape((3,3))
+    matr = np.concatenate((vec_p2,vec_in,vec_p1)).reshape((3,3))
   
     return matr
 
