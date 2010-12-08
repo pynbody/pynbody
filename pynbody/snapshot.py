@@ -143,8 +143,8 @@ class SimSnap(object) :
 	# could search for other 3D arrays here too?
 
 
-    def rotateup(self, angle):
-        """Rotates the snapshot along the current x-axis by 'angle' degrees."""
+    def rotate_x(self, angle):
+        """Rotates the snapshot about the current x-axis by 'angle' degrees."""
         angle *= np.pi/180
         self.transform(np.matrix([[1,      0,             0],
                                   [0, np.cos(angle), -np.sin(angle)],
