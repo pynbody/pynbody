@@ -26,7 +26,7 @@ for(int i=0; i<n_part; i++) {
       float x_pixel = dx*x_pos + x_start;
       float y_pixel = dy*y_pos + y_start;
       if(x_pos>=0 && x_pos<nx && y_pos>=0 && y_pos<ny)
-	RESULT2(x_pos,y_pos)+=qty_i * (KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
+	RESULT2(y_pos,x_pos)+=qty_i * (KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
       
     } else {
       int x_pix_start = (x_i-x1-MAX_D_OVER_H*sm_i)/dx;
@@ -52,7 +52,7 @@ for(int i=0; i<n_part; i++) {
 	  nn++;
 	  */
 
-	  RESULT2(x_pos,y_pos)+=qty_i*(KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
+	  RESULT2(y_pos,x_pos)+=qty_i*(KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
 	}
       }
     }
