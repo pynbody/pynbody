@@ -173,22 +173,23 @@ def param2units(sim) :
 	    except IOError :
 		continue
 	    munit = dunit = hub = None
-	    for line in f :
+            
+            for line in f :
 		try :
 		    s = line.split()
 		    if s[0]=="dMsolUnit" :
 			munit_st = s[2]+" Msol"
 			munit = float(s[2])
 		    elif s[0]=="dKpcUnit" :
-			dunit_st = s[2]+" kpc a"
-			dunit = float(s[2])
+                        dunit_st = s[2]+" kpc"
+                        dunit = float(s[2])
 		    elif s[0]=="dHubble0" :
 			hub = float(s[2])
-		    elif s[0]=="dOmega0" :
+                    elif s[0]=="dOmega0" :
 			om_m0 = s[2]
-		    elif s[0]=="dLambda" :
+                    elif s[0]=="dLambda" :
 			om_lam0 = s[2]
-
+                        
 		except IndexError, ValueError :
 		    pass
 
@@ -198,7 +199,7 @@ def param2units(sim) :
 	    print "Loading units from ",filename
 
 	    denunit = munit/dunit**3
-	    denunit_st = str(denunit)+" Msol kpc^-3 a^-3"
+            denunit_st = str(denunit)+" Msol kpc^-3"
 
 	    #
 	    # the obvious way:
@@ -211,7 +212,7 @@ def param2units(sim) :
 	    # the sensible way:
 	    # avoid numerical accuracy problems by concatinating factors:
 	    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
-	    velunit_st = ("%.5g"%velunit)+" km s^-1 a"
+	    velunit_st = ("%.5g"%velunit)+" km s^-1"
 
             #You have: kpc s / km
             #You want: Gyr
@@ -225,6 +226,13 @@ def param2units(sim) :
                 hubunit = 10. * velunit / dunit
                 hubunit_st = ("%.3f"%(hubunit*hub))
 
+                # append dependence on 'a' for cosmological runs
+                dunit_st += " a"
+                denunit_st += " a^-3"
+                velunit_st += " a"
+
+
+
 	    sim["vel"].units = velunit_st
 	    sim["eps"].units = dunit_st
 	    sim["pos"].units = dunit_st
@@ -236,7 +244,7 @@ def param2units(sim) :
                 sim.properties['h'] = hubunit*hub
                 sim.properties['omegaM0'] = om_m0
                 sim.properties['omegaL0'] = om_lam0
-
+                
 	    done = True
 	    break
 	if done : break
