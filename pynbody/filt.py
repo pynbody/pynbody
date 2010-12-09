@@ -86,7 +86,7 @@ class Sphere(Filter) :
 	return distance<radius**2
 
     def __repr__(self) :
-	if isinstance(this.radius, units.UnitBase) :
+	if isinstance(self.radius, units.UnitBase) :
 	    
 	    return "Sphere('%s', %s)"%(str(self.radius), repr(self.cen))
 	else :
