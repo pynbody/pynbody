@@ -125,6 +125,27 @@ class UnitBase(object) :
     def __repr__(self) :
 	return 'Unit("'+str(self)+'")'
 
+    def __eq__(self, other) :
+	try:
+	    return self.ratio(other)==1.
+	except UnitsException :
+	    return False
+
+    def __ne__(self, other) :
+	return not (self==other)
+
+    def __lt__(self, other) :
+	return self.ratio(other)<1.
+	
+    def __gt__(self, other) :
+	return self.ratio(other)>1.
+
+    def __le__(self, other) :
+	return self.ratio(other)<=1.
+
+    def __ge__(self, other) :
+	return self.ratio(other)>=1.
+
     def simplify(self) :	
 	return self
 
@@ -290,7 +311,8 @@ class CompositeUnit(UnitBase) :
 		  for b in bases]
 
 	bp = sorted(filter(lambda x : x[0]!=0,
-			   zip(powers, bases)),reverse=True)
+			   zip(powers, bases)),reverse=True,
+		    cmp=lambda x, y: cmp(x[0], y[0]))
 
 	if len(bp)!=0 :
 	    self._powers, self._bases = map(list,zip(*bp))
