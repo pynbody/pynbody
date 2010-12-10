@@ -188,7 +188,7 @@ class IrreducibleUnit(UnitBase) :
 	return self._st_rep
 
     def latex(self) :
-	return r"$\mathrm{"+self._st_rep+"}$"
+	return r"\mathrm{"+self._st_rep+"}"
 
     def named_base_units(self) :
 	return set([self])
@@ -208,7 +208,7 @@ class NamedUnit(UnitBase) :
     def latex(self) :
 	if hasattr(self,'_latex') :
 	    return self._latex
-	return r"$\mathrm{"+self._st_rep+"}$"
+	return r"\mathrm{"+self._st_rep+"}"
 
     def irrep(self) :
 	return self._represents.irrep()
@@ -236,15 +236,15 @@ class CompositeUnit(UnitBase) :
 	    
 	for b,p in zip(self._bases, self._powers) :
 	    if s!="" :
-		s+=r"\,"+b.latex()[1:-1]
+		s+=r"\,"+b.latex()
 	    else :
-		s = b.latex()[1:-1]
+		s = b.latex()
 		
 	    if p!=1 :
 		s+="^{"
 		s+=str(p)
 		s+="}"
-	return "$"+s+"$"
+	return s
     
 
     def __str__(self) :
@@ -431,12 +431,12 @@ Gpc = NamedUnit("Gpc", 1000*Mpc)
 
 # Masses
 Msol = NamedUnit("Msol", 1.98892e30*kg)
-Msol._latex = "$M_{\\odot}$"
+Msol._latex = "M_{\\odot}"
 g = NamedUnit("g", 1.e-3*kg)
 m_p = NamedUnit("m_p", 1.67262158e-27*kg)
-m_p._latex = "$m_p$"
+m_p._latex = "m_p"
 m_e = NamedUnit("m_e", 9.10938188e-31*kg)
-m_e._latex = "$m_e$"
+m_e._latex = "m_e"
 
 # Forces
 N = NamedUnit("N", kg * m * s**-2)
