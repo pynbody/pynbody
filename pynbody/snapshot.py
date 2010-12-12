@@ -53,7 +53,11 @@ class SimSnap(object) :
 		    self._read_array(i)
 		    return self._get_array(i)
 		except IOError :
-		    raise KeyError(i)
+                    if i == 'hs':
+                        self.calculate_smoothing()
+                        return self._get_array(i)
+                    else:
+                        raise KeyError(i)
 	
 	elif isinstance(i,slice) :
 	    return SubSnap(self, i)
@@ -151,7 +155,21 @@ class SimSnap(object) :
                                   [0, np.cos(angle), -np.sin(angle)],
                                   [0, np.sin(angle),  np.cos(angle)]]))
 
-	
+    def rotate_y(self, angle):
+        """Rotates the snapshot about the current x-axis by 'angle' degrees."""
+        angle *= np.pi/180
+        self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
+                                  [0,                1,        0       ],
+                                  [-np.sin(angle),   0,   np.cos(angle)]]))
+
+    def rotate_z(self, angle):
+        """Rotates the snapshot about the current x-axis by 'angle' degrees."""
+        angle *= np.pi/180
+        self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
+                                  [np.sin(angle),  np.cos(angle), 0],
+                                  [      0,             0,        1]]))
+    
+    
     def __len__(self) :
 	return self._num_particles
 
@@ -253,6 +271,38 @@ class SimSnap(object) :
     def loadable_keys(self) :
 	"""Returns a list of arrays which can be lazy-loaded from the underlying file."""
 	raise RuntimeError, "Not implemented"
+
+    def calculate_smoothing(self, nleaf=10, nn=16, timing=False):
+        """
+        Construct a KDTree using the scipy.spatial.KDTree class and determine
+        the smoothing lenghts for all particles in the sim snapshot.
+        The smoothing length is defined as hs = 0.5*d, where d is the distance
+        of the most distant nearest neighbor.
+
+        The kd tree is saved in the snapshot and the smoothing values are
+        saved as a new array. 
+        """
+
+        import scipy.spatial.ckdtree as kdtree
+        from time import time
+
+        t1 = time()
+        self.kdt = kdtree.cKDTree(self['pos'], leafsize=nleaf)
+        t2 = time()
+        if timing:
+            print 'tree built in ' + str(t2-t1) + ' seconds'
+        
+        t3 = time()
+        nd,ni = self.kdt.query(self['pos'],k=nn)
+        t4 = time()
+        if timing:
+            print 'nn search in ' + str(t4-t3) + ' seconds'
+
+        # add the smoothing length as an array
+        self['hs'] = 0.5*nd[:,nn-1] # nd is sorted, so only need the last one
+
+        # keep the list of nearest-neighbor indices
+        self['nn_index'] = ni
 
 @decorate.sim_decorator
 def put_1d_slices(sim) :
