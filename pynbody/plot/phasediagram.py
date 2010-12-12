@@ -51,6 +51,6 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
                      hist, levels, norm=cont_color)
 
                                                    
-    plt.xlabel(r'$log(\rho)$')
-    plt.ylabel(r'$log(T)$')
+    plt.xlabel(r'$log_{10}(\rho/'+sim.gas['rho'].units.latex()+')$')
+    plt.ylabel(r'$log_{10}(T/'+sim.gas['temp'].units.latex()+')$')
     
