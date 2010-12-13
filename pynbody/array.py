@@ -158,7 +158,7 @@ class SimArray(np.ndarray) :
     def __array_finalize__(self, obj) :
 	if obj is None :
 	    return
-	elif obj is not self and isinstance(obj, SimArray) :
+	elif obj is not self and hasattr(obj, 'units') :
 	    self._units = obj.units
 	    self._sim_properties = obj._sim_properties
 	else :
@@ -192,7 +192,7 @@ class SimArray(np.ndarray) :
 
     @property
     def units(self) :
-	if isinstance(self.base, SimArray) :
+	if hasattr(self.base, 'units') :
 	    return self.base.units
 	else :
 	    return self._units
@@ -202,7 +202,7 @@ class SimArray(np.ndarray) :
 	if isinstance(u, str):
 	    u = units.Unit(u)
 	    
-	if isinstance(self.base, SimArray) :
+	if hasattr(self.base, 'units') :
 	    self.base.units = u
 	else :
 	    self._units = u
@@ -220,7 +220,7 @@ class SimArray(np.ndarray) :
 	    return {}
 	
     def _generic_add(self, x, add_op=np.add) :
-	if isinstance(x, SimArray) and self.units is not None and x.units is not None :
+	if hasattr(x, 'units') and self.units is not None and x.units is not None :
 	    # Check unit compatibility
 	    try:
 		cr = x.units.ratio(self.units,
@@ -284,13 +284,13 @@ class SimArray(np.ndarray) :
 
     def prod(self, axis=None, dtype=None, out=None) :
 	x = np.ndarray.prod(self, axis, dtype, out)
-	if isinstance(x, SimArray) and axis is not None and self.units is not None :
+	if hasattr(x, 'units') and axis is not None and self.units is not None :
 	    x.units = self.units**self.shape[axis]
 	return x
 
     def sum(self, *args, **kwargs) :
 	x = np.ndarray.sum(self, *args, **kwargs)
-	if isinstance(x, SimArray) and self.units is not None :
+	if hasattr(x, 'units') and self.units is not None :
 	    x.units = self.units
 	return x
 
@@ -311,7 +311,7 @@ class SimArray(np.ndarray) :
 	"""Convert units of this array in-place. Note that if
 	this is a sub-view, the entire base array will be converted."""
 
-	if self.base is not None and isinstance(self.base, SimArray) :
+	if self.base is not None and hasattr(self.base, 'units') :
 	    self.base.convert_units(new_unit)
 	else :
 	    self*=self.units.ratio(new_unit,
