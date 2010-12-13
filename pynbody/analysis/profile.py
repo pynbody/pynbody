@@ -1,5 +1,5 @@
 import numpy as np
-from .. import family, snapshot
+from .. import family, snapshot, units, array
 
 
 #
@@ -92,7 +92,7 @@ class Profile:
         self._type = type
         self._sim = sim
 
-        x = np.sqrt(np.sum(sim['pos'][:,0:ndim]**2, axis = 1))
+        x = ((sim['pos'][:,0:ndim]**2).sum(axis = 1))**(1,2)
         self._x = x
 
         # The profile object is initialized given some array of values
@@ -121,6 +121,8 @@ class Profile:
         else:
             raise RuntimeError, "Bin type must be one of: lin, log, equaln"
             
+
+        self.bins = array.SimArray(self.bins, x.units)
 
         self.n, bins = np.histogram(self._x, self.bins)
 
@@ -215,7 +217,7 @@ def mass(self):
     #print '[calculating mass]'
     mass = np.zeros(self.nbins)
     for i in range(self.nbins):
-	mass[i] = np.sum(self._sim['mass'][self.binind[i]])
+	mass[i] = (self._sim['mass'][self.binind[i]]).sum()
     return mass
 
 @Profile.profile_property
@@ -251,3 +253,50 @@ def fourier(self):
     f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
 
     return f
+
+@Profile.profile_property
+def mass_enc(self):
+    """
+    Generate the enclosed mass profile
+    """
+    m_enc = array.SimArray(np.zeros(self.nbins), 'Msol')
+    for i in range(self.nbins):
+        m_enc[i] = self.mass[:i].sum()
+    return m_enc
+
+@Profile.profile_property
+def rotation_curve(self):
+    """
+    Generate a simple rotation curve: vc = sqrt(G M_enc/r)
+    """
+
+    print 'THIS GIVES WRONG VALUES'
+
+    G = array.SimArray(1.0,units.G,dtype=float)
+    return ((G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
+
+@Profile.profile_property
+def vr(self):
+    """
+    Generate a mean radial velocity profile, where the vr vector
+    is taken to be in three dimensions - for in-plane radial velocity
+    use the vr_xy array.
+    """
+    vr = np.zeros(self.nbins)
+    for i in range(self.nbins):
+        vr[i] = (self._sim['vr'][self.binind[i]]*self._sim['mass'][self.binind[i]]).sum()
+    vr /= self['mass']
+    return vr
+
+@Profile.profile_property
+def vrxy(self):
+    """
+    Generate a mean radial velocity profile, where the vr vector
+    is taken to be in three dimensions - for in-plane radial velocity
+    use the vr_xy array.
+    """
+    vrxy = np.zeros(self.nbins)
+    for i in range(self.nbins):
+        vrxy[i] = (self._sim['vrxy'][self.binind[i]]*self._sim['mass'][self.binind[i]]).sum()
+    vrxy /= self['mass']
+    return vrxy
