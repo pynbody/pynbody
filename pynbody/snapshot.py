@@ -280,7 +280,7 @@ class SimSnap(object) :
         """
         Construct a KDTree using the scipy.spatial.KDTree class and determine
         the smoothing lenghts for all particles in the sim snapshot.
-        The smoothing length is defined as hs = 0.5*d, where d is the distance
+        The smoothing length is defined as smooth = 0.5*d, where d is the distance
         of the most distant nearest neighbor.
 
         The kd tree is saved in the snapshot and the smoothing values are
@@ -303,10 +303,14 @@ class SimSnap(object) :
             print 'nn search in ' + str(t4-t3) + ' seconds'
 
         # add the smoothing length as an array
-        self['hs'] = 0.5*nd[:,nn-1] # nd is sorted, so only need the last one
+        # nd is sorted, so only need the last item
+        # also set the units to be the same as the current distance
+        self['smooth'] = array.SimArray(0.5*nd[:,nn-1], self['pos'].units)  
 
         # keep the list of nearest-neighbor indices
+        del self['nn_index']
         self['nn_index'] = ni
+        
 
     @staticmethod
     def derived_quantity(fn):
@@ -318,7 +322,7 @@ def r(self):
     return ((self['pos']**2).sum(axis = 1))**(1,2)
 
 @SimSnap.derived_quantity
-def hs(self):
+def smooth(self):
     self.calculate_smoothing()
 
 @SimSnap.derived_quantity
@@ -333,6 +337,10 @@ def vr(self):
 def vrxy(self):
     return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['r']
            
+@SimSnap.derived_quantity
+def rho(self):
+    return self['mass']/self['smooth']**3
+
 
 @decorate.sim_decorator
 def put_1d_slices(sim) :
