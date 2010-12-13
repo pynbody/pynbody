@@ -14,8 +14,12 @@ class SimSnap(object) :
     __init__(self, filename) -> sets up object. May or may not load any actual data. 
     _read_array(self, arrayname) -> attempts to load the named array into self._arrays
     @staticmethod _can_load(filename) -> determines whether the specified file can be loaded
+
+    @staticmethod derived_quantity(qty) -> calculates a derived quantity, i.e. radius 'r'
     ...
     """
+
+    _derived_quantity_registry = {}
     
     def __init__(self) :
 	"""Initialize an empty, zero-length SimSnap."""
@@ -53,8 +57,8 @@ class SimSnap(object) :
 		    self._read_array(i)
 		    return self._get_array(i)
 		except IOError :
-                    if i == 'hs':
-                        self.calculate_smoothing()
+                    if i in SimSnap._derived_quantity_registry:
+                        self[i] = SimSnap._derived_quantity_registry[i](self)
                         return self._get_array(i)
                     else:
                         raise KeyError(i)
@@ -156,14 +160,14 @@ class SimSnap(object) :
                                   [0, np.sin(angle),  np.cos(angle)]]))
 
     def rotate_y(self, angle):
-        """Rotates the snapshot about the current x-axis by 'angle' degrees."""
+        """Rotates the snapshot about the current y-axis by 'angle' degrees."""
         angle *= np.pi/180
         self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
                                   [0,                1,        0       ],
                                   [-np.sin(angle),   0,   np.cos(angle)]]))
 
     def rotate_z(self, angle):
-        """Rotates the snapshot about the current x-axis by 'angle' degrees."""
+        """Rotates the snapshot about the current z-axis by 'angle' degrees."""
         angle *= np.pi/180
         self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
                                   [np.sin(angle),  np.cos(angle), 0],
@@ -303,6 +307,32 @@ class SimSnap(object) :
 
         # keep the list of nearest-neighbor indices
         self['nn_index'] = ni
+
+    @staticmethod
+    def derived_quantity(fn):
+        SimSnap._derived_quantity_registry[fn.__name__]=fn
+        return fn
+
+@SimSnap.derived_quantity
+def r(self):
+    return ((self['pos']**2).sum(axis = 1))**(1,2)
+
+@SimSnap.derived_quantity
+def hs(self):
+    self.calculate_smoothing()
+
+@SimSnap.derived_quantity
+def rxy(self):
+    return ((self['pos'][:,0:2]**2).sum(axis = 1))**(1,2)
+           
+@SimSnap.derived_quantity
+def vr(self):
+    return (self['pos']*self['vel']).sum(axis=1)/self['r']
+
+@SimSnap.derived_quantity
+def vrxy(self):
+    return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['r']
+           
 
 @decorate.sim_decorator
 def put_1d_slices(sim) :
