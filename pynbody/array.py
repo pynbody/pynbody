@@ -165,8 +165,6 @@ class SimArray(np.ndarray) :
 	    self._units = None
 	    self._sim_properties = None
 
-    def __array_prepare__(self, array, context=None) :
-	return array
 
     def __array_wrap__(self, array, context=None) :
 	if context is None :
@@ -234,7 +232,9 @@ class SimArray(np.ndarray) :
 		
 	    else :
 		b = np.multiply(x,cr)
-		b.units=None
+		if hasattr(b,'units') :
+		    b.units=None
+		
 		r = add_op(self, b)
 
 	    return r
@@ -328,8 +328,14 @@ def _get_units_or_none(*a) :
     if len(a)==1 :
 	return a[0].units
     else :
-	return [x.units for x in a]
+	r = []
+	for x in a :
+	    if hasattr(x,"units") :
+		r.append(x.units)
+	    else :
+		r.append(None)
 
+	return r
 
 #
 # Now we have the rules for unit outputs after numpy built-in ufuncs
