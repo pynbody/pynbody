@@ -82,7 +82,52 @@ conversions are correctly achieved:
        [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
 
 
+Specifying rules for ufunc's
+============================
 
+In general, it's not possible to infer what the output units from a given
+ufunc should be. While numpy built-in ufuncs should be handled OK, other
+ufuncs will need their output units defined (otherwise a numpy.ndarray
+will be returned instead of our custom type.)
+
+To do this, decorate a function with SimArray.ufunc_rule(ufunc). The function
+you define should take the same number of parameters as the ufunc. These will
+be the input parameters of the ufunc. You should return the correct units for
+the output, or raise units.UnitsException (in the latter case, the return
+array will be made into a numpy.ndarray.)
+
+For example, here is the code for the correct addition/subtraction
+handler:
+
+
+    @SimArray.ufunc_rule(np.add)
+    @SimArray.ufunc_rule(np.subtract)
+    def _consistent_units(a,b) :
+
+	# This will be called whenever the standard numpy ufuncs np.add
+	# or np.subtract are called with parameters a,b.
+	
+	# You should always be ready for the inputs to have no units.
+
+	a_units = a.units if hasattr(a, 'units') else None
+	b_units = b.units if hasattr(b, 'units') else None
+
+	# Now do the logic. If we're adding incompatible units,
+	# we want just to get a plain numpy array out. If we only
+	# know the units of one of the arrays, we assume the output
+	# is in those units.
+
+	if a_units is not None and b_units is not None :
+	    if a_units==b_units :
+		return a_units
+	    else :
+		raise units.UnitsException("Incompatible units")
+
+	elif a_units is not None :
+	    return a_units
+	else :
+	    return b_units
+    
 """
 
 import numpy as np
@@ -93,6 +138,8 @@ import fractions
 
 
 class SimArray(np.ndarray) :
+    _ufunc_registry = {}
+    
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
 	new = np.array(data, **kwargs).view(subtype)
 	
@@ -117,6 +164,31 @@ class SimArray(np.ndarray) :
 	else :
 	    self._units = None
 	    self._sim_properties = None
+
+    def __array_prepare__(self, array, context=None) :
+	return array
+
+    def __array_wrap__(self, array, context=None) :
+	if context is None :
+	    return array
+	
+	try:
+	    ufunc = context[0]
+	    output_units = SimArray._ufunc_registry[ufunc](*context[1])
+	    n_array = array.view(SimArray)
+	    n_array.units = output_units
+	    return n_array
+	except (KeyError, units.UnitsException) :
+	    return array
+
+    @staticmethod
+    def ufunc_rule(for_ufunc) :
+	def x(fn) :
+	    SimArray._ufunc_registry[for_ufunc] = fn
+	    return fn
+	    
+	return x
+	    
 
     @property
     def units(self) :
@@ -147,7 +219,7 @@ class SimArray(np.ndarray) :
 	else :
 	    return {}
 	
-    def _generic_add(self, x, add_op=np.ndarray.__add__) :
+    def _generic_add(self, x, add_op=np.add) :
 	if isinstance(x, SimArray) and self.units is not None and x.units is not None :
 	    # Check unit compatibility
 	    try:
@@ -156,50 +228,27 @@ class SimArray(np.ndarray) :
 	    except units.UnitsException :
 		raise ValueError, "Incompatible physical dimensions"
 
+	    
 	    if cr==1.0 :
 		r =  add_op(self, x)
 		
 	    else :
-		r = add_op(self, np.ndarray.__mul__(x, cr))
+		b = np.multiply(x,cr)
+		b.units=None
+		r = add_op(self, b)
 
-	    r.units = self.units
 	    return r
 	
 	else :
 	    r = add_op(self, x)
-	    if self.units is not None :
-		r.units = self.units
-	    elif isinstance(x, SimArray) and x.units is not None :
-		r.units = x.units
-	    else :
-		r.units = None
 	    return r
-	
+
+    
     def __add__(self,x) :
 	return self._generic_add(x)
 
     def __sub__(self, x) :
-	return self._generic_add(x, np.ndarray.__sub__)
-
-    def __radd__(self, x) :
-	r = np.ndarray.__radd__(self, x)
-	r.units = self.units
-	return r
-
-    def __rsub__(self, x) :
-	r = np.ndarray.__rsub__(self, x)
-	r.units = self.units
-	return r
-
-    def __rdiv__(self, x) :
-	r = np.ndarray.__rdiv__(self, x)
-	r.units = self.units
-	return r
-
-    def __rmul__(self, x) :
-	r = np.ndarray.__rmul__(self, x)
-	r.units = self.units
-	return r
+	return self._generic_add(x, np.subtract)
 
     def __pow__(self, x) :
 	numerical_x = x
@@ -207,8 +256,14 @@ class SimArray(np.ndarray) :
 	if isinstance(x, tuple) :
 	    x = fractions.Fraction(x[0],x[1])
 	    numerical_x = float(x)
+	elif isinstance(x, fractions.Fraction) :
+	    numerical_x = float(x)
 	    
-	r = np.ndarray.__pow__(self, numerical_x)
+	# The following magic circumvents our normal unit-assignment
+	# code which couldn't cope with the numerical version of x
+	# in the case of fractions. All this is necessary to make the
+	# magic tuple->fraction conversions work seamlessly.
+	r = np.power(self.view(np.ndarray), numerical_x).view(SimArray)
 
 	if self.units is not None and (
 	    isinstance(x, fractions.Fraction) or
@@ -219,23 +274,6 @@ class SimArray(np.ndarray) :
 	    r.units = None
 	return r
     
-    def __mul__(self, x) :
-	r = np.ndarray.__mul__(self, x)
-	if isinstance(x, SimArray) and self.units is not None and x.units is not None :
-	    r.units = self.units*x.units
-	else :
-	    r.units = self.units
-	return r
-    
-
-    def __div__(self, x) :
-	r = np.ndarray.__div__(self, x)
-	if isinstance(x, SimArray) and self.units is not None and x.units is not None :
-	    r.units = self.units/x.units
-	else :
-	    r.units = self.units
-	    
-	return r
 
     def __repr__(self) :
 	x = np.ndarray.__repr__(self)
@@ -244,14 +282,14 @@ class SimArray(np.ndarray) :
 	else :
 	    return x
 
-    def prod(self, axis=None, **kwargs) :
-	x = np.ndarray.prod(self, axis=axis, **kwargs)
-	if isinstance(x, SimArray) and  self.units is not None :
+    def prod(self, axis=None, dtype=None, out=None) :
+	x = np.ndarray.prod(self, axis, dtype, out)
+	if isinstance(x, SimArray) and axis is not None and self.units is not None :
 	    x.units = self.units**self.shape[axis]
 	return x
 
-    def sum(self, axis=None, **kwargs) :
-	x = np.ndarray.sum(self, axis=axis, **kwargs)
+    def sum(self, *args, **kwargs) :
+	x = np.ndarray.sum(self, *args, **kwargs)
 	if isinstance(x, SimArray) and self.units is not None :
 	    x.units = self.units
 	return x
@@ -279,3 +317,77 @@ class SimArray(np.ndarray) :
 	    self*=self.units.ratio(new_unit,
 				     **(self.conversion_context()))
 	    self.units = new_unit
+
+
+
+
+
+_u = SimArray.ufunc_rule
+
+def _get_units_or_none(*a) :
+    if len(a)==1 :
+	return a[0].units
+    else :
+	return [x.units for x in a]
+
+
+#
+# Now we have the rules for unit outputs after numpy built-in ufuncs
+#
+# Note if these raise UnitsException, a standard numpy array is returned
+# from the ufunc to indicate the units can't be calculated. That means
+# ufuncs can do 'non-physical' things, but then return ndarrays instead
+# of SimArrays.
+
+@_u(np.sqrt)
+def _sqrt_units(a) :
+    if a.units is not None :
+	return a.units**(1,2)
+    else :
+	return None
+    
+@_u(np.multiply)
+def _mul_units(a,b) :
+    a_units, b_units = _get_units_or_none(a,b)
+    if a_units is not None and b_units is not None :
+	return a_units * b_units
+    elif a_units is not None :
+	return a_units
+    else :
+	return b_units
+
+@_u(np.divide)
+def _div_units(a,b) :
+    a_units, b_units = _get_units_or_none(a,b)
+    if a_units is not None and b_units is not None :
+	return a_units/b_units
+    elif a_units is not None :
+	return a_units
+    else :
+	return 1/b_units
+
+@_u(np.add)
+@_u(np.subtract)
+def _consistent_units(a,b) :
+    a_units, b_units = _get_units_or_none(a,b)
+    if a_units is not None and b_units is not None :
+	if a_units==b_units :
+	    return a_units
+	else :
+	    raise units.UnitsException("Incompatible units")
+    
+    elif a_units is not None :
+	return a_units
+    else :
+	return b_units
+
+@_u(np.power)
+def _pow_units(a,b) :
+    a_units = _get_units_or_none(a)
+    if a_units is not None :
+	if not isinstance(b, int) and not isinstance(b, units.Fraction) :
+	    raise units.UnitsException("Can't track units")
+	return a_units**b
+    else :
+	return None
+
