@@ -97,7 +97,7 @@ class TipsySnap(snapshot.SimSnap) :
 	    
 	import glob
 	fs = glob.glob(self._filename+".*")
-	return map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
+	return map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs)) + snapshot.SimSnap._derived_quantity_registry.keys()
 	
     def _read_array(self, array_name, fam=None) :
 	"""Read a TIPSY-ASCII file with the specified name. If fam is not None,
