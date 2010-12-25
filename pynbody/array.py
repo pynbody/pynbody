@@ -131,6 +131,7 @@ handler:
 """
 
 import numpy as np
+import weakref
 from . import units as units
 _units = units
 from .backcompat import property
@@ -149,10 +150,12 @@ class SimArray(np.ndarray) :
 	new._units = units
 
 	if sim is not None :
-	    new._sim_properties = sim.properties
+	    new._sim = weakref.ref(sim)
 	else :
-	    new._sim_properties = None
+	    new._sim = lambda : None
 
+	new._name = None
+	
 	return new
 
     def __array_finalize__(self, obj) :
@@ -160,10 +163,10 @@ class SimArray(np.ndarray) :
 	    return
 	elif obj is not self and hasattr(obj, 'units') :
 	    self._units = obj.units
-	    self._sim_properties = obj._sim_properties
+	    self._sim = obj._sim
 	else :
 	    self._units = None
-	    self._sim_properties = None
+	    self._sim = lambda : None
 
 
     def __array_wrap__(self, array, context=None) :
@@ -206,12 +209,12 @@ class SimArray(np.ndarray) :
 	    self._units = u
 
     def conversion_context(self) :
-	if self._sim_properties is not None :
+	if self._sim() is not None :
 	    d = {}
 	    wanted = ['a','h']
 	    for x in wanted :
-		if self._sim_properties.has_key(x) :
-		    d[x] = self._sim_properties[x]
+		if self._sim().properties.has_key(x) :
+		    d[x] = self._sim().properties[x]
 	    return d
 	
 	else :
@@ -319,9 +322,24 @@ class SimArray(np.ndarray) :
 	    self.units = new_unit
 
 
+    def recalculate(self) :
+	"""If this array is derived, recalculate it using the original
+	procedure.
 
+	For instance, when one first accesses array f['r'] of a given
+	snapshot f, the radius is calculated (see module derived). If
+	one recentres, the radius is not automatically recalculated,
+	so one needs to issue
 
+	f['r'].recalculate()
 
+	to recalculate the updated radius"""
+
+	if self._sim() and self._name :
+	    self._sim()._derive_array(self._name)
+	else :
+	    raise RuntimeError, "No link to SimSnap"
+	
 _u = SimArray.ufunc_rule
 
 def _get_units_or_none(*a) :

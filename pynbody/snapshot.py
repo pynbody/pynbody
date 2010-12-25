@@ -4,6 +4,7 @@ from . import filt
 from . import halo
 import numpy as np
 import copy
+import weakref
 
 
 class SimSnap(object) :
@@ -190,7 +191,8 @@ class SimSnap(object) :
 	    dims = (self[family]._num_particles, ndim)
 
 	new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
-	new_ar._sim_properties = self.properties
+	new_ar._sim = weakref.ref(self)
+	new_ar._name = array_name
 	
 	try:
 	    self._family_arrays[array_name][family] = new_ar
@@ -215,7 +217,8 @@ class SimSnap(object) :
 	    dims = (self._num_particles, ndim)
 
 	new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
-	new_array._sim_properties = self.properties
+	new_array._sim = weakref.ref(self)
+	new_array._name = array_name
 	
 	self._arrays[array_name] = new_array
 	
@@ -339,7 +342,9 @@ def put_1d_slices(sim) :
 	return
     for i, a in enumerate(["x","y","z"]) :
 	sim._arrays[a] = sim._arrays["pos"][:,i]
+	sim._arrays[a]._name = a
 	sim._arrays["v"+a] = sim._arrays["vel"][:,i]
+	sim._arrays["v"+a]._name = "v"+a
 
 class SubSnap(SimSnap) :
     """Represent a sub-view of a SimSnap, initialized by specifying a
