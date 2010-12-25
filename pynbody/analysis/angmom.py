@@ -31,7 +31,7 @@ def calc_faceon_matrix(angmom_vec) :
     return matr
 
 
-def sideon(h, vec_to_xform=calc_sideon_matrix) :
+def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "5 kpc") :
     """Reposition and rotate the simulation containing the halo h to
     see h's disk edge on.
 
@@ -50,14 +50,13 @@ def sideon(h, vec_to_xform=calc_sideon_matrix) :
     top['pos']-=cen
 
     # Use gas from inner 1kpc to calculate centre of velocity
-    cen = h.gas[filt.Sphere("1 kpc")]
+    cen = h.gas[filt.Sphere(cen_size)]
     top['vel']-=cen['vel'].mean(axis=0)
     
     # Use gas from inner 10kpc to calculate angular momentum vector
-    cen = h.gas[filt.Sphere("10 kpc")]
+    cen = h.gas[filt.Sphere(disk_size)]
 
     trans = vec_to_xform(ang_mom_vec(cen))
-    print trans
     
     top.transform(trans)
     
@@ -68,7 +67,7 @@ def faceon(h) :
 
     Given a simulation and a subview of that simulation (probably
     the halo of interest), this routine centres the simulation and
-    rotates it so that the disk lies in the x-z plane. This gives
+    rotates it so that the disk lies in the x-y plane. This gives
     a face-on view for SPH images, for instance."""
 
     sideon(h, calc_faceon_matrix)
