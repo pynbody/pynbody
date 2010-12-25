@@ -136,6 +136,10 @@ class SimSnap(object) :
 	"""Return the directly accessible array names (in memory)"""
 	return self._arrays.keys()
 
+    def has_key(self, name) :
+	"""Returns True if the array name is accessible (in memory)"""
+	return name in self.keys()
+    
     def families(self) :
 	"""Return the particle families which have representitives in this SimSnap."""
 	out = []
