@@ -1,6 +1,5 @@
 from . import array
 from . import family, util
-from . import decorate
 from . import filt
 from . import halo
 import numpy as np
@@ -20,6 +19,10 @@ class SimSnap(object) :
     """
 
     _derived_quantity_registry = {}
+    _calculating = [] # maintains a list of currently-being-calculated lazy evaluations
+                      # to prevent circular references
+
+    _decorator_registry = {}
     
     def __init__(self) :
 	"""Initialize an empty, zero-length SimSnap."""
@@ -57,12 +60,13 @@ class SimSnap(object) :
 		    self._read_array(i)
 		    return self._get_array(i)
 		except IOError :
-                    if i in SimSnap._derived_quantity_registry:
-                        self[i] = SimSnap._derived_quantity_registry[i](self)
-                        return self._get_array(i)
-                    else:
-                        raise KeyError(i)
-	
+		    try :
+			self._derive_array(i)
+			return self._get_array(i)
+		    except (ValueError, KeyError) :
+			raise KeyError(i)
+		    
+                    
 	elif isinstance(i,slice) :
 	    return SubSnap(self, i)
 	elif isinstance(i, family.Family) :
@@ -274,76 +278,61 @@ class SimSnap(object) :
 
     def loadable_keys(self) :
 	"""Returns a list of arrays which can be lazy-loaded from the underlying file."""
-	raise RuntimeError, "Not implemented"
+	raise RuntimeError, "Not implemented"        
 
-    def calculate_smoothing(self, nleaf=10, nn=16, timing=False):
-        """
-        Construct a KDTree using the scipy.spatial.KDTree class and determine
-        the smoothing lenghts for all particles in the sim snapshot.
-        The smoothing length is defined as smooth = 0.5*d, where d is the distance
-        of the most distant nearest neighbor.
-
-        The kd tree is saved in the snapshot and the smoothing values are
-        saved as a new array. 
-        """
-
-        import scipy.spatial.ckdtree as kdtree
-        from time import time
-
-        t1 = time()
-        self.kdt = kdtree.cKDTree(self['pos'], leafsize=nleaf)
-        t2 = time()
-        if timing:
-            print 'tree built in ' + str(t2-t1) + ' seconds'
-        
-        t3 = time()
-        nd,ni = self.kdt.query(self['pos'],k=nn)
-        t4 = time()
-        if timing:
-            print 'nn search in ' + str(t4-t3) + ' seconds'
-
-        # add the smoothing length as an array
-        # nd is sorted, so only need the last item
-        # also set the units to be the same as the current distance
-        self['smooth'] = array.SimArray(0.5*nd[:,nn-1], self['pos'].units)  
-
-        # keep the list of nearest-neighbor indices
-        del self['nn_index']
-        self['nn_index'] = ni
-        
-
+    
+    # Methods for derived arrays
+    
     @staticmethod
     def derived_quantity(fn):
-        SimSnap._derived_quantity_registry[fn.__name__]=fn
+	if not SimSnap._derived_quantity_registry.has_key(cl) :
+	    SimSnap._derived_quantity_registry[cl] = []
+	SimSnap._derived_quantity_registry[fn.__name__]=fn	   
         return fn
 
-@SimSnap.derived_quantity
-def r(self):
-    return ((self['pos']**2).sum(axis = 1))**(1,2)
+    def _derive_array(self, name) :
+	"""Calculate and store, for this SnapShot, the derivable array 'name'.
 
-@SimSnap.derived_quantity
-def smooth(self):
-    self.calculate_smoothing()
-
-@SimSnap.derived_quantity
-def rxy(self):
-    return ((self['pos'][:,0:2]**2).sum(axis = 1))**(1,2)
-           
-@SimSnap.derived_quantity
-def vr(self):
-    return (self['pos']*self['vel']).sum(axis=1)/self['r']
-
-@SimSnap.derived_quantity
-def vrxy(self):
-    return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['r']
-           
-@SimSnap.derived_quantity
-def rho(self):
-    return self['mass']/self['smooth']**3
+	This searches the registry of @X.derived_quantity functions
+	for all X in the inheritance path of the current class. The first
+	"""
+	
+	if name in SimSnap._calculating :
+	    raise ValueError, "Circular reference in derived quantity"
+	else :
+	    try:
+		SimSnap._calculating.append(name)
+		for cl in type(self).__mro__ :
+		    if self._derived_quantity_registry.has_key(cl) \
+			   and self._derived_quantity_registry[cl].has_key(name) :
+			self[name] = SimSnap._derived_quantity_registry[cl][name](self)
+			break
+	    finally:
+		assert SimSnap._calculating[-1]==name
+		del SimSnap._calculating[-1]
 
 
-@decorate.sim_decorator
+    # Methods for snapshot decoration
+    
+    @classmethod
+    def decorator(cl, fn) :
+	if not SimSnap._decorator_registry.has_key(cl) :
+	    SimSnap._decorator_registry[cl]=[]
+	SimSnap._decorator_registry[cl].append(fn)
+	return fn
+
+
+    def _decorate(self) :
+	for cl in type(self).__mro__ :
+	    if self._decorator_registry.has_key(cl) :
+		for fn in self._decorator_registry[cl] :
+		    fn(self)
+		    
+		
+@SimSnap.decorator
 def put_1d_slices(sim) :
+    if not hasattr(sim, '_arrays') :
+	return
     for i, a in enumerate(["x","y","z"]) :
 	sim._arrays[a] = sim._arrays["pos"][:,i]
 	sim._arrays["v"+a] = sim._arrays["vel"][:,i]

@@ -59,7 +59,7 @@ class TipsySnap(snapshot.SimSnap) :
 			  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
 	
 
-	decorate.decorate_top_snap(self)
+	self._decorate()
 	
 
 	for n_left, type, st in file_structure :
@@ -155,7 +155,7 @@ class TipsySnap(snapshot.SimSnap) :
 	return True
 
 
-@decorate.sim_decorator
+@TipsySnap.decorator
 def param2units(sim) :
     import sys, math, os, glob
     x = os.path.abspath(sim.filename)
