@@ -277,17 +277,21 @@ class SimSnap(object) :
 
 
     def loadable_keys(self) :
-	"""Returns a list of arrays which can be lazy-loaded from the underlying file."""
-	raise RuntimeError, "Not implemented"        
-
+	"""Returns a list of arrays which can be lazy-evaluated or
+	lazy-loaded from the underlying file."""
+	res = []
+	for cl in type(self).__mro__ :
+	    if self._derived_quantity_registry.has_key(cl) :
+		res+=self._derived_quantity_registry[cl].keys()
+	return res
     
     # Methods for derived arrays
     
-    @staticmethod
-    def derived_quantity(fn):
+    @classmethod
+    def derived_quantity(cl,fn):
 	if not SimSnap._derived_quantity_registry.has_key(cl) :
-	    SimSnap._derived_quantity_registry[cl] = []
-	SimSnap._derived_quantity_registry[fn.__name__]=fn	   
+	    SimSnap._derived_quantity_registry[cl] = {}
+	SimSnap._derived_quantity_registry[cl][fn.__name__]=fn	   
         return fn
 
     def _derive_array(self, name) :
