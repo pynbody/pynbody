@@ -90,7 +90,7 @@ class Profile:
 
         self._ndim = ndim
         self._type = type
-        self._sim = sim
+        self.sim = sim
 
         x = ((sim['pos'][:,0:ndim]**2).sum(axis = 1))**(1,2)
         self._x = x
@@ -198,7 +198,7 @@ class Profile:
 
     def families(self):
         """Returns the family of particles used"""
-        return self._sim.families()
+        return self.sim.families()
 
 
 
@@ -217,7 +217,7 @@ def mass(self):
     #print '[calculating mass]'
     mass = np.zeros(self.nbins)
     for i in range(self.nbins):
-	mass[i] = (self._sim['mass'][self.binind[i]]).sum()
+	mass[i] = (self.sim['mass'][self.binind[i]]).sum()
     return mass
 
 @Profile.profile_property
@@ -243,9 +243,9 @@ def fourier(self):
 
     for i in range(self.nbins):
 	if self.n[i] > 100:
-	    f['c'][:,i] = fourier_decomp.fourier(self._sim['x'][self.binind[i]],
-						 self._sim['y'][self.binind[i]],
-						 self._sim['mass'][self.binind[i]])
+	    f['c'][:,i] = fourier_decomp.fourier(self.sim['x'][self.binind[i]],
+						 self.sim['y'][self.binind[i]],
+						 self.sim['mass'][self.binind[i]])
 
 
     f['c'][:,self.mass>0] /= self.mass[self.mass>0]
@@ -285,7 +285,7 @@ def vr(self):
     """
     vr = np.zeros(self.nbins)
     for i in range(self.nbins):
-        vr[i] = (self._sim['vr'][self.binind[i]]*self._sim['mass'][self.binind[i]]).sum()
+        vr[i] = (self.sim['vr'][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
     vr /= self['mass']
     return vr
 
@@ -298,7 +298,7 @@ def v_c_xy(self) :
     v = np.zeros(self.nbins)
     for i in range(self.nbins) :
 	bi = self.binind[i]
-	v[i] = (self._sim['mass'][bi] * np.sqrt(self._sim['vx'][bi]**2+self._sim['vy'][bi]**2)).sum()
+	v[i] = (self.sim['mass'][bi] * np.sqrt(self.sim['vx'][bi]**2+self.sim['vy'][bi]**2)).sum()
     v/=self['mass']
     return v
 
@@ -312,6 +312,6 @@ def vrxy(self):
     """
     vrxy = np.zeros(self.nbins)
     for i in range(self.nbins):
-        vrxy[i] = (self._sim['vrxy'][self.binind[i]]*self._sim['mass'][self.binind[i]]).sum()
+        vrxy[i] = (self.sim['vrxy'][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
     vrxy /= self['mass']
     return vrxy
