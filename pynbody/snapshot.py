@@ -322,7 +322,15 @@ class SimSnap(object) :
 		assert SimSnap._calculating[-1]==name
 		del SimSnap._calculating[-1]
 
+    def derive(self, name) :
+	"""Force a calculation of the derived_quantity specified by name.
 
+	Unlike calling sim[name], which just gets the array, even if
+	the array already exists, it is recalculated and re-stored."""
+
+	self._derive_array(name)
+	return self[name]
+    
     # Methods for snapshot decoration
     
     @classmethod
