@@ -274,7 +274,8 @@ def rotation_curve(self):
 
     G = array.SimArray(1.0,units.G,dtype=float)
     return ((G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
-
+    
+    
 @Profile.profile_property
 def vr(self):
     """
@@ -288,6 +289,20 @@ def vr(self):
     vr /= self['mass']
     return vr
 
+@Profile.profile_property
+def v_c_xy(self) :
+    """
+    Generate a circular velocity profile assuming the disk is aligned in the
+    x-y plane (which can be achieved in a single line using the faceon
+    function in module angmom)"""
+    v = np.zeros(self.nbins)
+    for i in range(self.nbins) :
+	bi = self.binind[i]
+	v[i] = (self._sim['mass'][bi] * np.sqrt(self._sim['vx'][bi]**2+self._sim['vy'][bi]**2)).sum()
+    v/=self['mass']
+    return v
+
+	
 @Profile.profile_property
 def vrxy(self):
     """
