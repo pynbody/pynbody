@@ -504,7 +504,7 @@ class IndexedSubSnap(SubSnap) :
 				    util.concatenate_indexing(self._family_indices[family], index)) 
     
     def _create_array(self, *args) :
-	self.base._create_array
+	self.base._create_array(*args)
 	    
 
 class FamilySubSnap(SubSnap) :
