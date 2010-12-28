@@ -1,5 +1,5 @@
 import numpy as np
-from .. import family, snapshot, units, array
+from .. import family, snapshot, units, array, util
 
 
 #
@@ -117,7 +117,7 @@ class Profile:
         elif type == 'lin':
             self.bins = np.linspace(self.min, self.max, num = self.nbins+1)
         elif type == 'equaln':
-            raise RuntimeError, "Equal-N bins not implemented yet"
+	    self.bins = util.equipartition(x, self.nbins, self.min, self.max)
         else:
             raise RuntimeError, "Bin type must be one of: lin, log, equaln"
             

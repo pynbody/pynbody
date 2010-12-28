@@ -225,3 +225,17 @@ def index_of_first(array, find) :
 
     
     return right
+
+
+def equipartition(ar, nbins, min = None, max = None) :
+    """Given an array ar, return nbins+1 monotonically increasing bin edges
+    such that the number of items in each bin is approximately equal"""
+
+    a_s = np.sort(ar)
+
+    if max is not None :
+	a_s = a_s[a_s<=max]
+    if min is not None :
+	a_s = a_s[a_s>min]
+
+    return a_s[np.array(np.linspace(0,len(a_s)-1,nbins+1),dtype='int')]
