@@ -160,14 +160,14 @@ class TipsySnap(snapshot.SimSnap) :
 @TipsySnap.decorator
 def param2units(sim) :
     import sys, math, os, glob
-    x = os.path.abspath(sim.filename)
+    x = os.path.abspath(sim._filename)
     done = False
     
     filename=None
     for i in xrange(2) :
 	l = glob.glob(os.path.join(x,"*.param"))
 	x = os.path.dirname(x) # prepare for next iterations
-
+	
 	for filename in l :
 	    # Attempt the loading of information
 	    try :
@@ -236,6 +236,7 @@ def param2units(sim) :
 
 
 	    sim["vel"].units = velunit_st
+	    sim["phi"].units = sim["vel"].units**2
 	    sim["eps"].units = dunit_st
 	    sim["pos"].units = dunit_st
 	    sim.gas["rho"].units = denunit_st

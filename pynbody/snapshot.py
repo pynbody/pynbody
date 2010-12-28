@@ -80,6 +80,12 @@ class SimSnap(object) :
 
    
     def __setitem__(self, name, item) :
+	if isinstance(name, tuple) or isinstance(name, list) :
+	    index = name[1]
+	    name = name[0]
+	else :
+	    index = None
+	    
 	self._assert_not_family_array(name)
 	
 	if isinstance(item, array.SimArray) :
@@ -101,7 +107,7 @@ class SimSnap(object) :
 	# Copy in contents if the contents isn't actually pointing to
 	# the same data (which will be the case following operations like
 	# += etc, since these call __setitem__).
-	self._set_array(name, ax)
+	self._set_array(name, ax, index)
 	
     def halos(self, *args) :
 	 """Tries to instantiate a halo catalogue object for the given

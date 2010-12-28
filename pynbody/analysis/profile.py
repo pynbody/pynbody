@@ -125,18 +125,26 @@ class Profile:
         self.bins = array.SimArray(self.bins, x.units)
 
         self.n, bins = np.histogram(self._x, self.bins)
+	self._setup_bins()
 
-        # middle of the bins for convenience
+	# set up the empty list of profiles
+        self._profiles = {'n':self.n}
+	
+
+    def _setup_bins(self) :
+	# middle of the bins for convenience
         
         self.r = 0.5*(self.bins[:-1]+self.bins[1:])
 
-        self.binind = []
-
+	# Width of the bins
+	self.dr = np.diff(self.r)
+	
+	self.binind = []
         self.partbin = np.digitize(self._x, self.bins)
         
         
-        assert ndim in [2,3]
-        if ndim == 2:
+        assert self._ndim in [2,3]
+        if self._ndim == 2:
             self._binsize = np.pi*(self.bins[1:]**2 - self.bins[:-1]**2)
         else:
             self._binsize  = 4./3.*np.pi*(self.bins[1:]**3 - self.bins[:-1]**3)
@@ -145,10 +153,19 @@ class Profile:
             ind = np.where(self.partbin == i)
             self.binind.append(ind)
             
-        # set up the empty list of profiles
-        self._profiles = {'n':self.n}
+        
 
 
+    def D(self) :
+	"""Return a new profile object which can return derivatives of
+	the profiles in this object.
+
+	For example, p.D()["phi"] gives the first derivative of the "phi" p["phi"]. For an example
+	use see module analysis.decomp"""
+	
+	return DerivativeProfile(self)
+    
+	
     def __len__(self):
         """Returns the number of bins used in this profile object"""
         return self.nbins
@@ -206,6 +223,33 @@ class Profile:
     def profile_property(fn) :
 	Profile._profile_registry[fn.__name__]=fn
 	return fn
+
+    
+class DerivativeProfile(Profile) :
+    def __init__(self, base) :
+	self.base = base
+	self.sim = base.sim
+	self._ndim = base._ndim
+	self._x = base._x
+	self._type = base._type
+	self.max = base.bins.max()
+	self.min = base.bins.min()
+	self.nbins = base.nbins-1
+	self.bins = base.r
+	self.n, bins = np.histogram(self._x, self.bins)
+	self._setup_bins()
+	self._profiles = {'n': self.n}
+
+    def _get_profile(self, name) :
+	if name[-1]=="'" :
+	    # Calculate derivative. This simple differencing algorithm
+	    # could be made more sophisticated.
+	    return np.diff(self.base[name[:-1]])/self.base.dr
+	else :
+	    return Profile._get_profile(self, name)
+	
+	
+	
     
 
 @Profile.profile_property
@@ -302,7 +346,15 @@ def v_c_xy(self) :
     v/=self['mass']
     return v
 
-	
+@Profile.profile_property
+def phi(self) :
+    v = np.zeros(self.nbins)
+    for i in range(self.nbins) :
+	bi = self.binind[i]
+	v[i] = (self.sim['mass'][bi]*self.sim['phi'][bi]).sum()
+    v/=self['mass']
+    return v
+    
 @Profile.profile_property
 def vrxy(self):
     """

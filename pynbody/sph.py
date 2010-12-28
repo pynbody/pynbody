@@ -10,6 +10,7 @@ import numpy as np
 import scipy, scipy.weave
 from scipy.weave import inline
 import math
+from . import snapshot, array
 
 class Kernel(object) :
     def __init__(self) :
@@ -207,6 +208,6 @@ def calculate_smoothing(snap, nleaf=10, nn=16, timing=False):
         snap['nn_index'] = ni
 
 
-@snapshot.SimSnap.derived_quantity
-def smooth(sim):
-    calculate_smoothing(sim)
+#@snapshot.SimSnap.derived_quantity
+#def smooth(sim):
+#    calculate_smoothing(sim)

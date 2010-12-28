@@ -92,6 +92,44 @@ class Sphere(Filter) :
 	else :
 	    return "Sphere(%.2e, %s)"%(self.radius, repr(self.cen))
 
+class Disc(Filter) :
+    def __init__(self, radius, height, cen=(0,0,0)) :
+	self._descriptor = "disc"
+	self.cen = np.asarray(cen)
+	if self.cen.shape!=(3,) :
+	    raise ValueError, "Centre must be length 3 array"
+
+	if isinstance(radius, str) :
+	    radius = units.Unit(radius)
+
+	if isinstance(height, str):
+	    height = units.Unit(height)
+
+	self.radius = radius
+	self.height = height
+
+    def __call__(self, sim) :
+	radius = self.radius
+	height = self.height
+
+	if isinstance(radius, units.UnitBase) :
+	    radius = radius.ratio(sim["pos"].units, **sim["pos"].conversion_context())
+	if isinstance(height, units.UnitBase) :
+	    height = height.ratio(sim["pos"].units, **sim["pos"].conversion_context())
+
+	distance = (((sim["pos"]-self.cen)[:,:2])**2).sum(axis=1)
+	return (distance<radius**2) * (np.abs(sim["z"]-self.cen[2])<height)
+    
+    def __repr__(self) :
+	radius = self.radius
+	height = self.height
+
+	radius,height = [("'%s'"%str(x) if isinstance(x, units.UnitBase) else '%.2e'%x) for x in radius,height]
+	
+	return "Disc(%s, %s, %s)"%(radius, height, repr(self.cen))
+	
+    
+	
 def Annulus(r1, r2, cen=(0,0,0)) :
     x = Sphere(max(r1,r2),cen) & ~Sphere(min(r1,r2),cen)
     x._descriptor = "annulus"
