@@ -2,15 +2,25 @@ import numpy as np
 import weakref
 
 class HaloCatalogue(object) :
-    pass
+    def __init__(self) :
+	self._halos = {}
+	
+    def __getitem__(self, i) :
+	if self._halos.has_key(i) and self._halos[i]() is not None :
+	    return self._halos[i]()
+	else :
+	    h = self._get_halo(i)
+	    self._halos[i] = weakref.ref(h)
+	    return h
 
 
 class AmigaGrpCatalogue(HaloCatalogue) :
     def __init__(self, f) :
 	f['amiga.grp'] # trigger lazy-loading and/or kick up a fuss if unavailable
 	self._base = weakref.ref(f)
+	HaloCatalogue.__init__(self)
 	
-    def __getitem__(self, i) :
+    def _get_halo(self, i) :
 	if self.base is None :
 	    raise RuntimeError, "Parent SimSnap has been deleted"
 	
