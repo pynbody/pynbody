@@ -84,17 +84,19 @@ class Profile:
     """
 
     _profile_registry = {}
-    
+
+    def _calculate_x(self, sim) :
+	return ((sim['pos'][:,0:self._ndim]**2).sum(axis = 1))**(1,2)
+	
     def __init__(self, sim, ndim = 2, type = 'lin', **kwargs):
 
 
         self._ndim = ndim
         self._type = type
         self.sim = sim
-
-        x = ((sim['pos'][:,0:ndim]**2).sum(axis = 1))**(1,2)
-        self._x = x
-
+        self._x = self._calculate_x(sim)
+	x = self._x
+	
         # The profile object is initialized given some array of values
         # and optional keyword parameters
 
@@ -178,9 +180,20 @@ class Profile:
 	elif name in Profile._profile_registry :
 	    self._profiles[name] = Profile._profile_registry[name](self)
 	    return self._profiles[name]
+	elif name in self.sim.keys() or name in self.sim.loadable_keys() :
+	    self._profiles[name] = self._auto_profile(name)
+	    return self._profiles[name]
 	else :
 	    raise KeyError, name+" is not a valid profile"
-	
+
+    def _auto_profile(self, name) :
+	 result = np.zeros(self.nbins).view(array.SimArray)
+	 for i in range(self.nbins):
+	     result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
+	 result/= self['mass']
+	 result.units = self.sim[name].units
+	 return result
+
     def __getitem__(self, name):
         """Return the profile of a given kind"""
         return self._get_profile(name)
@@ -217,8 +230,50 @@ class Profile:
         """Returns the family of particles used"""
         return self.sim.families()
 
+    def create_particle_array(self, profile_name, particle_name = None, out_sim = None) :
+	"""Create a particle array with the results of the profile
+	calculation.
 
+	After calling this function, sim[particle_name][i] ==
+	profile[profile_name][bin_in_which_particle_i_sits]
 
+	If particle_name is not specified, it defaults to the same as
+	profile_name.
+	"""
+	import scipy, scipy.interpolate
+	
+	if particle_name is None :
+	    particle_name = profile_name
+
+	if out_sim is None :
+	    out_sim = self.sim
+	    out_x = self._x
+	else :
+	    out_x = self._calculate_x(out_sim)
+
+	# nearest-neighbour version if interpolation unavailable
+	#px = np.digitize(out_x, self.bins)-1
+	#ok = np.where((px>=0) * (px<len(self)))
+	#out_sim[particle_name, ok[0]] = self[profile_name][px[ok]]
+
+	in_y = self[profile_name]
+
+	if in_y.min()>0 :
+	    use_log = True
+	    in_y = np.log(in_y)
+	else :
+	    use_log = False
+	    
+	interp = scipy.interpolate.interp1d(np.log10(self.r), in_y, 'linear', copy=False,
+					    bounds_error = False)
+	rep = interp(np.log10(out_x))
+	rep[np.where(out_x>self.r.max())] = self[profile_name][-1]
+	rep[np.where(out_x<self.r.min())] = self[profile_name][0]
+	if use_log :
+	    out_sim[particle_name] = np.exp(rep)
+	else :
+	    out_sim[particle_name] = rep
+	
     @staticmethod
     def profile_property(fn) :
 	Profile._profile_registry[fn.__name__]=fn
@@ -319,14 +374,16 @@ def rotation_curve(self):
     G = array.SimArray(1.0,units.G,dtype=float)
     return ((G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
     
-    
+
+"""
+
 @Profile.profile_property
 def vr(self):
-    """
+
     Generate a mean radial velocity profile, where the vr vector
     is taken to be in three dimensions - for in-plane radial velocity
     use the vr_xy array.
-    """
+
     vr = np.zeros(self.nbins)
     for i in range(self.nbins):
         vr[i] = (self.sim['vr'][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
@@ -335,35 +392,40 @@ def vr(self):
 
 @Profile.profile_property
 def v_c_xy(self) :
-    """
+
     Generate a circular velocity profile assuming the disk is aligned in the
     x-y plane (which can be achieved in a single line using the faceon
-    function in module angmom)"""
-    v = np.zeros(self.nbins)
+    function in module angmom)
+    
+    v = np.zeros(self.nbins).view(array.SimArray)
     for i in range(self.nbins) :
 	bi = self.binind[i]
 	v[i] = (self.sim['mass'][bi] * np.sqrt(self.sim['vx'][bi]**2+self.sim['vy'][bi]**2)).sum()
     v/=self['mass']
+    v.units = self.sim['vx'].units
     return v
 
 @Profile.profile_property
 def phi(self) :
-    v = np.zeros(self.nbins)
+    v = np.zeros(self.nbins).view(array.SimArray)
     for i in range(self.nbins) :
 	bi = self.binind[i]
 	v[i] = (self.sim['mass'][bi]*self.sim['phi'][bi]).sum()
     v/=self['mass']
+    v.units = self.sim['phi'].units
     return v
     
 @Profile.profile_property
 def vrxy(self):
-    """
+   
     Generate a mean radial velocity profile, where the vr vector
     is taken to be in three dimensions - for in-plane radial velocity
     use the vr_xy array.
-    """
+
     vrxy = np.zeros(self.nbins)
     for i in range(self.nbins):
         vrxy[i] = (self.sim['vrxy'][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
     vrxy /= self['mass']
     return vrxy
+
+"""
