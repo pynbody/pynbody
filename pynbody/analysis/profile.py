@@ -1,6 +1,6 @@
 import numpy as np
 from .. import family, snapshot, units, array, util
-
+import math
 
 #
 # A module for making profiles of particle properties
@@ -267,12 +267,16 @@ class Profile:
 	interp = scipy.interpolate.interp1d(np.log10(self.r), in_y, 'linear', copy=False,
 					    bounds_error = False)
 	rep = interp(np.log10(out_x))
-	rep[np.where(out_x>self.r.max())] = self[profile_name][-1]
-	rep[np.where(out_x<self.r.min())] = self[profile_name][0]
+
 	if use_log :
 	    out_sim[particle_name] = np.exp(rep)
 	else :
 	    out_sim[particle_name] = rep
+
+	rep[np.where(out_x>math.log10(self.r.max()))] = self[profile_name][-1]
+	rep[np.where(out_x<math.log10(self.r.min()))] = self[profile_name][0]
+
+	out_sim[particle_name].units = self[profile_name].units
 	
     @staticmethod
     def profile_property(fn) :
