@@ -35,8 +35,14 @@ def j(self) :
         
 @SimSnap.derived_quantity
 def vrxy(self):
-    return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['r']
-           
+    return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['rxy']
+
+@SimSnap.derived_quantity
+def vcxy(self) :
+    f = (self['x']*self['vy']-self['y']*self['vx'])/self['rxy']
+    f[np.where(f!=f)]=0
+    return f
+
 @SimSnap.derived_quantity
 def rho(self):
     return self['mass']/self['smooth']**3
