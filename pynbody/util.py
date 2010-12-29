@@ -239,3 +239,24 @@ def equipartition(ar, nbins, min = None, max = None) :
 	a_s = a_s[a_s>min]
 
     return a_s[np.array(np.linspace(0,len(a_s)-1,nbins+1),dtype='int')]
+
+def bisect(left, right, f, epsilon=None, verbose=False) :
+    """Finds the value x such that f(x)=0 for a monotonically
+    increasing function f, using a binary search."""
+
+    if epsilon is None :
+	epsilon = (right-left)*1.e-7
+
+    if (right-left)< epsilon :
+	return (right+left)/2
+    
+    mid = (left+right)/2
+    z = f(mid)
+
+    if verbose :
+	print left, mid, right, z
+	
+    if(z<0) :
+	return bisect(mid, right, f, epsilon, verbose)
+    else :
+	return bisect(left, mid, f, epsilon, verbose)
