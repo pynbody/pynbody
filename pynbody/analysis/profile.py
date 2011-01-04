@@ -125,7 +125,8 @@ class Profile:
             
 
         self.bins = array.SimArray(self.bins, x.units)
-
+	self.bins.sim = self.sim
+	
         self.n, bins = np.histogram(self._x, self.bins)
 	self._setup_bins()
 
@@ -137,7 +138,8 @@ class Profile:
 	# middle of the bins for convenience
         
         self.r = 0.5*(self.bins[:-1]+self.bins[1:])
-
+	self.r.sim = self.sim
+	
 	# Width of the bins
 	self.dr = np.diff(self.r)
 	
@@ -154,6 +156,7 @@ class Profile:
         for i in np.arange(self.nbins)+1:
             ind = np.where(self.partbin == i)
             self.binind.append(ind)
+
             
         
 
@@ -192,6 +195,7 @@ class Profile:
 	     result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
 	 result/= self['mass']
 	 result.units = self.sim[name].units
+	 result.sim = self.sim
 	 return result
 
     def __getitem__(self, name):
@@ -363,6 +367,7 @@ def mass_enc(self):
     Generate the enclosed mass profile
     """
     m_enc = array.SimArray(np.zeros(self.nbins), 'Msol')
+    m_enc.sim = self.sim
     for i in range(self.nbins):
         m_enc[i] = self.mass[:i].sum()
     return m_enc
@@ -377,7 +382,20 @@ def rotation_curve(self):
 
     G = array.SimArray(1.0,units.G,dtype=float)
     return ((G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
+
+@Profile.profile_property
+def j_circ(p) :
+    return p["v_circ"] * p.r
+
+@Profile.profile_property
+def v_circ(p) :
+    return np.sqrt(p["phi'"]*p.r)
+
+@Profile.profile_property
+def E_circ(p) :
+    return 0.5*p["phi"] + 0.5*(p["phi'"]*p.r)
     
+
 
 """
 
