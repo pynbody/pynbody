@@ -1,6 +1,10 @@
 import sys, __builtin__
 
+
 if sys.version_info[:2] <= (2, 5) :
+
+    import bc_modules.fractions as fractions
+    
     # emulation of python 2.6 property class from
     # http://blog.yjl.im/2009/02/propery-setter-and-deleter-in-python-25.html
     
@@ -32,6 +36,9 @@ if sys.version_info[:2] <= (2, 5) :
           cls_ns[propname] = property(self.fget, self.fset,
                                       fdel, self.__doc__)
           return cls_ns[propname]
+
+    
+      
 else :
     property = __builtin__.property
-    
+    import fractions

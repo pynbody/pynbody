@@ -135,7 +135,7 @@ import weakref
 from . import units as units
 _units = units
 from .backcompat import property
-import fractions
+from .backcompat import fractions
 
 
 class SimArray(np.ndarray) :

@@ -86,7 +86,9 @@ You can even define completely new dimensions.
 """
 
 
-from fractions import Fraction
+from . import backcompat
+from .backcompat import fractions
+Fraction = fractions.Fraction
 
 _registry = {}
 
