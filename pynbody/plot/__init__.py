@@ -4,6 +4,6 @@ from . import sfh, phasediagram, profile
 
 reload(profile)
 
-from .sfh import *
+from .sfh import sfh
 from .profile import rotation_curve
 
