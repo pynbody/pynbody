@@ -126,10 +126,10 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     x = snap['x']
     y = snap['y']
     z = snap['z']
-    try:
-	sm = snap['smooth']
-    except KeyError :
-	sm = ((snap['mass']/snap['rho'])**(1,3))
+   
+    sm = snap['smooth']
+
+    if sm.units!=x.units :
 	sm.convert_units(x.units)
 
     qty = snap[qty]
