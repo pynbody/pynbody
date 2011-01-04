@@ -171,6 +171,11 @@ def concatenate_indexing(i1, i2) :
 
     As a convenience, if i2 is None, i1 is returned
     """
+    if isinstance(i1, tuple) and len(i1)==1 :
+	i1 = i1[0]
+    if isinstance(i2, tuple) and len(i2)==1 :
+	i2 = i2[0]
+	
     if i2 is None :
 	return i1
     if isinstance(i1, slice) and isinstance(i2, slice) :
