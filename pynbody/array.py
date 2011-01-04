@@ -208,6 +208,16 @@ class SimArray(np.ndarray) :
 	else :
 	    self._units = u
 
+
+    @property
+    def sim(self) :
+	if self._sim() is not None :
+	    return self._sim()
+
+    @sim.setter
+    def sim(self, s) :
+	self._sim = weakref.ref(s)
+
     def conversion_context(self) :
 	if self._sim() is not None :
 	    return self._sim().conversion_context()
