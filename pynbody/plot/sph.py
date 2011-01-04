@@ -3,7 +3,26 @@ import numpy as np
 from .. import sph
 from .. import units as _units
 
+def sideon_image(sim, *args, **kwargs) :
+    """Rotate the simulation so that the disc of the passed halo is
+    side-on, then make an SPH image by passing the parameters into
+    the function image"""
 
+    from ..analysis import angmom
+    angmom.sideon(sim)
+    image(sim, *args, **kwargs)
+
+def faceon_image(sim, *args, **kwargs) :
+    """Rotate the simulation so that the disc of the passed halo is
+    side-on, then make an SPH image by passing the parameters into
+    the function image"""
+
+    from ..analysis import angmom
+    angmom.faceon(sim)
+    image(sim, *args, **kwargs)
+
+    
+	
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True) :
     """Make an SPH image of the given simulation.
 
