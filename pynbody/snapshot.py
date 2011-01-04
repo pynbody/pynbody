@@ -54,6 +54,8 @@ class SimSnap(object) :
 
 	if isinstance(i, str) :
 	    self._assert_not_family_array(i)
+            return self._get_array(i)
+        
 	    try:
 		return self._get_array(i)
 	    except KeyError :
@@ -238,13 +240,13 @@ class SimSnap(object) :
 
 	new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
 	new_array._sim = weakref.ref(self)
-	new_array._name = array_name
-	
+	new_array._name = array_name	
 	self._arrays[array_name] = new_array
 	
     def _get_array(self, name) :
-	return self._arrays[name]
-
+        return self._arrays[name]
+        
+                
     def _set_array(self, name, value, index=None) :
 	util.set_array_if_not_same(self._arrays[name], value, index)
 
@@ -424,8 +426,15 @@ class SubSnap(SimSnap) :
 	fslice = self._get_family_slice(family)
 	self.base._set_family_array(name, family, value, util.concatenate_indexing(fslice, index))
 	    
-	    
 
+    def __delitem__(self, name) :
+        # is this the right behaviour?
+        raise RuntimeError, "Arrays can only be deleted from the base snapshot"
+
+    def _del_family_array(self, name, family) :
+        # is this the right behaviour?
+        raise RuntimeError, "Arrays can only be deleted from the base snapshot"
+    
     @property
     def _filename(self) :
 	return self.base._filename+":"+self._descriptor
