@@ -35,7 +35,7 @@ class Kernel(object) :
 	    code+="#define Z_CONDITION(dz,h) true\n"
 	else :
 	    code+="#define Z_CONDITION(dz,h) abs(dz)<MAX_D_OVER_H*(h)\n"
-
+ 
 	if self.h_power==2 :
 	    code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy))"
 	else :
@@ -80,10 +80,10 @@ class TopHatKernel(object) :
 	self.max_d = 2
 	
     def get_c_code(self) :
-	code = """#define KERNEL1(d,h) (d<2*h)?%.5e/(h*h*h):0
+	code = """#define KERNEL1(d,h) (d<%d *h)?%.5e/(h*h*h):0
 	#define KERNEL(dx,dy,dz,h) KERNEL1(sqrt((dx)*(dx)+(dy)*(dy)+(dz)*(dz)),h)
-	#define Z_CONDITION(dz,h) abs(dz)<(2*h)
-	#define MAX_D_OVER_H %d"""%(3./(math.pi*4),self.max_d)
+	#define Z_CONDITION(dz,h) abs(dz)<(%d*h)
+	#define MAX_D_OVER_H %d"""%(self.max_d,3./(math.pi*4*self.max_d**self.h_power),self.max_d, self.max_d)
 	return code
 	
 
@@ -153,6 +153,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     # before inlining, the views on the arrays must be standard np.ndarray
     # otherwise the normal numpy macros are not generated
     x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
+
 
     
     inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
