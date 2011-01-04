@@ -1,5 +1,5 @@
 from . import snapshot, array, util
-from . import decorate, family
+from . import family
 
 import struct
 import numpy as np
