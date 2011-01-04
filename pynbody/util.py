@@ -211,6 +211,8 @@ def index_of_first(array, find) :
     which satisfies array[index]>=find. The array must
     be sorted in ascending order."""
 
+    if len(array)==0 :
+        return 0
     
     left = 0
     right = len(array)-1
