@@ -297,7 +297,8 @@ class Fraction(Rational):
         """
         def forward(a, b):
             if isinstance(b, (int, long, Fraction)):
-                return monomorphic_operator(a, b)
+                # update by AP for python 2.5
+                return monomorphic_operator(a, Fraction(b))
             elif isinstance(b, float):
                 return fallback_operator(float(a), b)
             elif isinstance(b, complex):
@@ -308,9 +309,9 @@ class Fraction(Rational):
         forward.__doc__ = monomorphic_operator.__doc__
 
         def reverse(b, a):
-            if isinstance(a, Rational):
-                # Includes ints.
-                return monomorphic_operator(a, b)
+            if isinstance(a, (int, long, Fraction)):
+                # update by AP for python 2.5
+                return monomorphic_operator(Fraction(a), b)
             elif isinstance(a, numbers.Real):
                 return fallback_operator(float(a), float(b))
             elif isinstance(a, numbers.Complex):
