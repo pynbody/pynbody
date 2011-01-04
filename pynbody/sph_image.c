@@ -15,10 +15,15 @@ float y_start = y1+dy/2;
 int n_part = x_array->dimensions[0];
 int nn=0;
 
+using std::abs;
+using std::sqrt;
+
+
 for(int i=0; i<n_part; i++) {
   float x_i=X1(i), y_i=Y1(i), z_i=Z1(i), sm_i=SM1(i), qty_i=QTY1(i)*MASS1(i)/RHO1(i);
-
-  if(  Z_CONDITION(z_i-z1, sm_i) && x_i>x1-2*sm_i && x_i<x2+2*sm_i && y_i>y1-2*sm_i && y_i<y2+2*sm_i) {
+  
+  if(  (Z_CONDITION(z_i-z1, sm_i)) && x_i>x1-2*sm_i && x_i<x2+2*sm_i && y_i>y1-2*sm_i && y_i<y2+2*sm_i) {
+ 
     if(sm_i/dx<1 && sm_i/dy<1) {
       int x_pos = int((x_i-x1)/dx);
       int y_pos = int((y_i-y1)/dy);
@@ -45,12 +50,6 @@ for(int i=0; i<n_part; i++) {
 	for( int y_pos =y_pix_start ; y_pos<=y_pix_stop; y_pos++) {
 	  
 	  float y_pixel = dy*y_pos + y_start; 
-
-	  /* Debug help
-	  if(nn<100) 
-	    printf("%d %d %f %f %f\n", int((y_i-y1)/dy), y_pos, y_pixel, y_i, sm_i);
-	  nn++;
-	  */
 
 	  RESULT2(y_pos,x_pos)+=qty_i*(KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
 	}
