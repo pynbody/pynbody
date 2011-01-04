@@ -165,9 +165,9 @@ def param2units(sim) :
     
     filename=None
     for i in xrange(2) :
+        x = os.path.dirname(x)
 	l = glob.glob(os.path.join(x,"*.param"))
-	x = os.path.dirname(x) # prepare for next iterations
-	
+
 	for filename in l :
 	    # Attempt the loading of information
 	    try :
