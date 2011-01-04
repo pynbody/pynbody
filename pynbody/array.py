@@ -210,13 +210,7 @@ class SimArray(np.ndarray) :
 
     def conversion_context(self) :
 	if self._sim() is not None :
-	    d = {}
-	    wanted = ['a','h']
-	    for x in wanted :
-		if self._sim().properties.has_key(x) :
-		    d[x] = self._sim().properties[x]
-	    return d
-	
+	    return self._sim().conversion_context()
 	else :
 	    return {}
 	

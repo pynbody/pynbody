@@ -118,6 +118,16 @@ class SimSnap(object) :
 	     
 	 raise RuntimeError("No halo catalogue found")
 
+    def conversion_context(self) :	
+	d = {}
+	wanted = ['a','h']
+	for x in wanted :
+	    if self.properties.has_key(x) :
+		d[x] = self.properties[x]
+	return d
+	
+	
+
     def __delitem__(self, name) :
 	self._assert_not_family_array(name)
 	del self._arrays[name]
