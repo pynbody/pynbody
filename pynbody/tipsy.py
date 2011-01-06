@@ -140,9 +140,9 @@ class TipsySnap(snapshot.SimSnap) :
 	    raise IOError, "Incorrect file format"
 	
 	if ndim>1 :
-	    dims = (len(data),ndim)
+	    dims = (len(self),ndim)
 	else :
-	    dims = len(data)
+	    dims = len(self)
 
 	if fam is None :
 	    self._arrays[array_name] = data.reshape(dims).view(array.SimArray)
