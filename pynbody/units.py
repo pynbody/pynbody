@@ -370,10 +370,7 @@ class CompositeUnit(UnitBase) :
 
     def dimensional_project(self, basis_units) :
         """Work out how to express the dimensions of this unit relative to the
-        specified list of basis units.
-
-        If allow_degeneracy is False, an exception
-        is raised if the list of """
+        specified list of basis units."""
         
         vec_irrep = [Unit(x).irrep() for x in basis_units]
         me_irrep = self.irrep()
