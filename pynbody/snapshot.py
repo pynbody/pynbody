@@ -2,6 +2,7 @@ from . import array
 from . import family, util
 from . import filt
 from . import halo
+from . import units
 import numpy as np
 import copy
 import weakref
@@ -24,6 +25,8 @@ class SimSnap(object) :
                       # to prevent circular references
 
     _decorator_registry = {}
+
+    
     
     def __init__(self) :
 	"""Initialize an empty, zero-length SimSnap."""
@@ -36,7 +39,8 @@ class SimSnap(object) :
 	self._unifamily = None
 	self.filename=""
         self.properties = {}
-    
+        self._file_units_system = []
+        
     def __getitem__(self, i) :
 	"""Given a SimSnap object s, the following should be implemented:
 
@@ -126,8 +130,33 @@ class SimSnap(object) :
 	    if self.properties.has_key(x) :
 		d[x] = self.properties[x]
 	return d
-	
-	
+
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', verbose=False) :
+        dims = [units.Unit(x) for x in distance, velocity, mass, 'a', 'h']
+        
+        all = self._arrays.values()
+        for x in self._family_arrays :
+            all+=self._family_arrays[x].values()
+            
+        for ar in all :
+            while isinstance(ar.base, array.SimArray) : ar = ar.base
+            if ar.units is not None :
+                try :
+                    d = ar.units.dimensional_project(dims)
+                except units.UnitsException :
+                    continue
+                
+                new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, d[:3])])
+                if new_unit!=ar.units :
+                    if verbose :
+                        print ar._name,ar.units,"->",new_unit
+                    ar.convert_units(new_unit)
+
+    def infer_original_units(self, dimensions) :
+        dimensions = units.Unit(dimensions)
+        d = dimensions.dimensional_project(self._file_units_system+["a","h"])
+        new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(self._file_units_system, d)])
+        return new_unit
 
     def __delitem__(self, name) :
 	self._assert_not_family_array(name)
@@ -366,6 +395,8 @@ class SimSnap(object) :
 		    fn(self)
 		    
 		
+
+
 @SimSnap.decorator
 def put_1d_slices(sim) :
     if not hasattr(sim, '_arrays') :
@@ -375,7 +406,7 @@ def put_1d_slices(sim) :
 	sim._arrays[a]._name = a
 	sim._arrays["v"+a] = sim._arrays["vel"][:,i]
 	sim._arrays["v"+a]._name = "v"+a
-
+            
 class SubSnap(SimSnap) :
     """Represent a sub-view of a SimSnap, initialized by specifying a
     slice.  Arrays accessed through __getitem__ are automatically

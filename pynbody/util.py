@@ -1,4 +1,5 @@
 import numpy as np
+from .backcompat import fractions
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
@@ -267,3 +268,62 @@ def bisect(left, right, f, epsilon=None, verbose=False) :
 	return bisect(mid, right, f, epsilon, verbose)
     else :
 	return bisect(left, mid, f, epsilon, verbose)
+
+def gauss_jordan(out) :
+    """A simple Gauss-Jordan matrix inverter. This is provided so that
+    matrices of fractions can be inverted (numpy linalg converts
+    everything to floats first.)
+
+    Don't use on large matrices -- it's slow!
+
+    Based on public domain code by Jarno Elonen."""
+
+    import numpy.linalg
+    
+    h, w = out.shape
+
+    assert w>h
+    
+    for y in range(0,h):
+
+        maxrow = out[y:,y].argmax()+y
+
+        (out[y], out[maxrow]) = (out[maxrow], out[y].copy())
+        
+        if out[y][y]==0:
+          raise np.linalg.linalg.LinAlgError, "Singular matrix"
+
+        for y2 in range(y+1, h):    # Eliminate column y
+          c = out[y2][y] / out[y][y]
+          out[y2] -= out[y]*c
+        
+    for y in range(h-1, 0-1, -1): # Backsubstitute
+        c  = out[y][y]
+        for y2 in range(0,y):
+          for x in range(w-1, y-1, -1):
+            out[y2][x] -=  out[y][x] * out[y2][y] / c
+        out[y][y] /= c
+        for x in range(h, w):       # Normalize row y
+          out[y][x] /= c
+
+    return out
+
+def rational_matrix_inv(matrix) :
+    """A simple replacement for numpy linalg matrix inverse
+    which handles fractions exactly. Not suitable for large
+    matrices!"""
+    
+    assert len(matrix) == len(matrix[0])
+    x = np.ndarray(shape=(len(matrix), len(matrix[0])+len(matrix)), dtype=fractions.Fraction)
+    x[:,:]=fractions.Fraction(0)
+    for i in xrange(len(x)) :
+        x[i, len(x)+i] = fractions.Fraction(1)
+
+
+    for i in xrange(len(x)) :
+        for j in xrange(len(x)) :
+            x[i,j] = fractions.Fraction(matrix[i][j])
+
+
+    
+    return gauss_jordan(x)[:, len(x):]

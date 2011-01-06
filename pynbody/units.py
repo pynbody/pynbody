@@ -85,9 +85,11 @@ You can even define completely new dimensions.
 
 """
 
-
+import numpy as np
 from . import backcompat
 from .backcompat import fractions
+from . import util
+
 Fraction = fractions.Fraction
 
 _registry = {}
@@ -192,6 +194,8 @@ class IrreducibleUnit(UnitBase) :
     def latex(self) :
 	return r"\mathrm{"+self._st_rep+"}"
 
+    def irrep(self) :
+        return CompositeUnit(1, [self], [1])
 
     
 class NamedUnit(UnitBase) :
@@ -210,6 +214,7 @@ class NamedUnit(UnitBase) :
 
     def irrep(self) :
 	return self._represents.irrep()
+    
 
 class CompositeUnit(UnitBase) :
     def __init__(self, scale, bases, powers) :
@@ -357,7 +362,75 @@ class CompositeUnit(UnitBase) :
 	
 	return c
 
+    def _power_of(self, base) :
+        if base in self._bases :
+            return self._powers[self._bases.index(base)]
+        else :
+            return 0
 
+    def dimensional_project(self, basis_units) :
+        """Work out how to express the dimensions of this unit relative to the
+        specified list of basis units.
+
+        If allow_degeneracy is False, an exception
+        is raised if the list of """
+        
+        vec_irrep = [Unit(x).irrep() for x in basis_units]
+        me_irrep = self.irrep()
+        bases = set(me_irrep._bases)
+        for vec in vec_irrep :
+            bases.update(vec._bases)
+
+        bases = list(bases)
+        
+        matrix = np.zeros((len(bases),len(vec_irrep)),dtype=Fraction)
+        
+        for base_i, base in enumerate(bases) :
+            for vec_i, vec in enumerate(vec_irrep) :
+                matrix[base_i,vec_i] = vec._power_of(base)
+            
+  
+        # The matrix calculated above describes the transformation M
+        # such that v = M.d where d is the sought-after powers of the
+        # specified base vectors, and v is the powers in terms of the
+        # base units in the list bases.
+        #
+        # To invert, since M is possibly rectangular, we use the
+        # solution to the least-squares problem [minimize (v-M.d)^2]
+        # which is d = (M^T M)^(-1) M^T v.
+        #
+        # If the solution to that does not solve v = M.d, there is no
+        # admissable solution to v=M.d, i.e. the supplied base vectors do not span
+        # the requires space.
+        #
+        # If (M^T M) is singular, the vectors are not linearly independent, so any
+        # solution would not be unique.
+
+
+      
+        M_T_M = np.dot(matrix.transpose(),matrix)
+            
+        try :
+            M_T_M_inv = util.rational_matrix_inv(M_T_M)
+        except np.linalg.linalg.LinAlgError :
+            raise UnitsException, "Basis units are not linearly independent"
+
+        my_powers = [me_irrep._power_of(base) for base in bases]
+
+       
+        candidate= np.dot(M_T_M_inv, np.dot(matrix.transpose(), my_powers))
+
+        # Because our method involves a loss of information (multiplying
+        # by M^T), we could get a spurious solution. Check this is not the case...
+
+        
+        if any(np.dot(matrix, candidate)!=my_powers) : 
+            # Spurious solution, meaning the base vectors did not span the
+            # units required in the first place.
+            raise UnitsException, "Basis units do not span dimensions of specified unit"
+
+        return candidate
+            
 def Unit(s) :
     """Class factory for units. Given a string s, creates
     a Unit object.
@@ -370,6 +443,9 @@ def Unit(s) :
       "kpc**2"
       "26.2 m s**-1"
     """
+
+    if isinstance(s, UnitBase):
+        return s
 
     x = s.split()
     try :

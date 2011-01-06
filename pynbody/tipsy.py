@@ -146,10 +146,12 @@ class TipsySnap(snapshot.SimSnap) :
 
 	if fam is None :
 	    self._arrays[array_name] = data.reshape(dims).view(array.SimArray)
+            self._arrays[array_name].sim = self
 	else :
 	    self._create_family_array(array_name, fam, ndim, data.dtype)
 	    self._get_family_array(array_name, fam)[:] = data[self._get_slice_for_family(fam)]
-	
+            self._get_family_array(array_name, fam).sim = self
+            
 	
     @staticmethod
     def _can_load(f) :
@@ -242,6 +244,8 @@ def param2units(sim) :
 	    sim.gas["rho"].units = denunit_st
 	    sim["mass"].units = munit_st
             sim.star["tform"].units = timeunit_st
+
+            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
 
             if hub!=None:
                 sim.properties['h'] = hubunit*hub

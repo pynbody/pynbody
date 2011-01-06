@@ -302,6 +302,15 @@ class SimArray(np.ndarray) :
 	    x.units = self.units
 	return x
 
+    def units_like(self, new_unit) :
+        """Set the units for this array by performing dimensional analysis
+        on the supplied unit and referring to the units of the original
+        file"""
+
+        if self.sim is not None :
+            self.units = self.sim.infer_original_units(new_unit)
+        else :
+            raise RuntimeError, "No link to SimSnap"
     
     def in_units(self, new_unit) :
 	"""Return a copy of this array expressed relative to an alternative
