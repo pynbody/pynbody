@@ -302,7 +302,7 @@ class SimArray(np.ndarray) :
 	    x.units = self.units
 	return x
 
-    def units_like(self, new_unit) :
+    def set_units_like(self, new_unit) :
         """Set the units for this array by performing dimensional analysis
         on the supplied unit and referring to the units of the original
         file"""
