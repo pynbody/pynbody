@@ -245,8 +245,8 @@ def param2units(sim) :
 
             if hub!=None:
                 sim.properties['h'] = hubunit*hub
-                sim.properties['omegaM0'] = om_m0
-                sim.properties['omegaL0'] = om_lam0
+                sim.properties['omegaM0'] = float(om_m0)
+                sim.properties['omegaL0'] = float(om_lam0)
                 
 	    done = True
 	    break
