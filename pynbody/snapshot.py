@@ -54,7 +54,6 @@ class SimSnap(object) :
 
 	if isinstance(i, str) :
 	    self._assert_not_family_array(i)
-            return self._get_array(i)
         
 	    try:
 		return self._get_array(i)
@@ -172,11 +171,12 @@ class SimSnap(object) :
 
 	pos = self['pos']
 	vel = self['vel']
-	
-	self['pos'] = np.dot(matrix, pos.transpose()).transpose().view(array.SimArray)
-	self['vel'] = np.dot(matrix, vel.transpose()).transpose().view(array.SimArray)
-	
-	# could search for other 3D arrays here too?
+
+        for x in self.keys() :
+            ar = self[x]
+            if len(ar.shape)==2 and ar.shape[1]==3 :
+                self[x] = np.dot(matrix, ar.transpose()).transpose()
+                
 
 
     def rotate_x(self, angle):
