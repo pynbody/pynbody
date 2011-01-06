@@ -1,12 +1,8 @@
 from . import profile, fourier_decomp
-from . import virialradius
-
 
 reload(profile)
 reload(fourier_decomp)
-reload(virialradius)
 
-from .virialradius import *
 import numpy as np
 
 def centre_of_mass(sim) : # shared-code names should be explicit, not short
