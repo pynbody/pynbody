@@ -192,11 +192,7 @@ class IrreducibleUnit(UnitBase) :
     def latex(self) :
 	return r"\mathrm{"+self._st_rep+"}"
 
-    def named_base_units(self) :
-	return set([self])
 
-    def irreducible_base_units(self) :
-	return set([self])
     
 class NamedUnit(UnitBase) :
     def __init__(self, st, represents) :
