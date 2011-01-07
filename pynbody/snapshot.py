@@ -414,6 +414,7 @@ class SubSnap(SimSnap) :
     
     def __init__(self, base, _slice) :
 	self.base = base
+	self._file_units_system = base._file_units_system
 	self._unifamily = base._unifamily
 	
 	if isinstance(_slice,slice) :
@@ -445,7 +446,7 @@ class SubSnap(SimSnap) :
 	self._num_particles = len(self["pos"])
 	self._descriptor = descriptor
         self.properties = base.properties
-	
+
 
     def _get_array(self, name) :
 	return self.base._get_array(name)[self._slice]
@@ -498,6 +499,9 @@ class SubSnap(SimSnap) :
 
     def _create_family_array(self, *args) :
 	self.base._create_family_array(*args)
+
+    def physical_units(self, *args, **kwargs) :
+	self.base.physical_units(*args, **kwargs)
 
 class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
