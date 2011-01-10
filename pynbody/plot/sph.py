@@ -56,7 +56,9 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
     im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel)
 
     if log :
+        im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
 	im = np.log10(im)
+        
     
     p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax)
 
