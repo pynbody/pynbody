@@ -122,7 +122,8 @@ class TipsySnap(snapshot.SimSnap) :
 	    raise IOError, "Incorrect file format"
 	
 	# Inspect the first line to see whether it's float or int
-	l = f.readline()
+        l = "0\n"
+        while l=="0\n" : l = f.readline()
 	if "." in l :
 	    tp = float
 	else :
@@ -149,7 +150,7 @@ class TipsySnap(snapshot.SimSnap) :
             self._arrays[array_name].sim = self
 	else :
 	    self._create_family_array(array_name, fam, ndim, data.dtype)
-	    self._get_family_array(array_name, fam)[:] = data[self._get_slice_for_family(fam)]
+	    self._get_family_array(array_name, fam)[:] = data[self._get_family_slice(fam)]
             self._get_family_array(array_name, fam).sim = self
             
 	
