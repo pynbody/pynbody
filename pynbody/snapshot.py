@@ -185,7 +185,45 @@ class SimSnap(object) :
     def has_key(self, name) :
 	"""Returns True if the array name is accessible (in memory)"""
 	return name in self.keys()
-    
+
+    def values(self) :
+        """Returns a list of the actual arrays in memory"""
+        x = []
+        for k in self.keys() :
+            x.append(self[k])
+        return x
+
+    def items(self) :
+        """Returns a list of tuples describing the array
+        names and their contents in memory"""
+        x = []
+        for k in self.keys() :
+            x.append((k,self[k]))
+        return x
+
+    def get(self, key, alternative=None) :
+        """Standard python get method, returns self[key] if
+        key in self else alternative"""
+        try:
+            return self[key]
+        except KeyError :
+            return alternative
+
+    def iterkeys(self) :
+        for k in self.keys() :
+            yield k
+
+    __iter__ = iterkeys
+
+    def itervalues(self) :
+        for k in self :
+            yield self[k]
+
+    def iteritems(self) :
+        for k in self : 
+            yield (k, self[k])
+            
+        
     def families(self) :
 	"""Return the particle families which have representitives in this SimSnap."""
 	out = []
