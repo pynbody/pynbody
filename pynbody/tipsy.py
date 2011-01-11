@@ -5,7 +5,7 @@ import struct
 import numpy as np
 
 class TipsySnap(snapshot.SimSnap) :
-    def __init__(self, filename) :
+    def __init__(self, filename, only_header=False) :
 	super(TipsySnap,self).__init__()
 	
 	self._filename = filename
@@ -37,6 +37,7 @@ class TipsySnap(snapshot.SimSnap) :
 	self._family_slice[family.dm] = slice(ng, nd+ng)
 	self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
+        
 	self._create_arrays(["pos","vel"],3)
 	self._create_arrays(["mass","eps","phi"])
 	self.gas._create_arrays(["rho","temp","metals"])
@@ -61,6 +62,8 @@ class TipsySnap(snapshot.SimSnap) :
 
 	self._decorate()
 	
+        if only_header == True :
+            return 
 
 	for n_left, type, st in file_structure :
 	    n_done = 0
