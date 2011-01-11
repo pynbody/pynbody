@@ -487,11 +487,23 @@ class SubSnap(SimSnap) :
 
 
     def _get_array(self, name) :
-	return self.base._get_array(name)[self._slice]
-
+        if isinstance(self._slice, slice) :
+            return self.base._get_array(name)[self._slice]
+        else :
+            return array.IndexedSimArray(self.base._get_array(name), self._slice)
+        
     def _set_array(self, name, value, index=None) :
 	self.base._set_array(name,value,util.concatenate_indexing(self._slice, index))
 
+    def _get_family_array(self, name, fam) :
+	base_family_slice = self.base._get_family_slice(fam)
+	sl = util.relative_slice(base_family_slice,
+				 util.intersect_slices(self._slice, base_family_slice, len(self.base)))
+        if isinstance(sl, slice) :
+            return self.base._get_family_array(name, fam)[sl]
+        else :
+            return array.IndexedSimArray(self.base._get_family_array(name, fam), sl)
+                                         
     def _set_family_array(self, name, family, value, index=None) :
 	fslice = self._get_family_slice(family)
 	self.base._set_family_array(name, family, value, util.concatenate_indexing(fslice, index))
@@ -517,11 +529,7 @@ class SubSnap(SimSnap) :
 	    util.intersect_slices(self._slice,self.base._get_family_slice(fam),len(self.base)))
 	return sl
 
-    def _get_family_array(self, name, fam) :
-	base_family_slice = self.base._get_family_slice(fam)
-	sl = util.relative_slice(base_family_slice,
-				 util.intersect_slices(self._slice, base_family_slice, len(self.base)))
-	return self.base._get_family_array(name, fam)[sl]
+    
 
     def _read_array(self, array_name, fam=None) :
 	self.base._read_array(array_name, fam)
@@ -581,13 +589,6 @@ class IndexedSubSnap(SubSnap) :
 	    self._family_slice[fam] = new_slice
 	    self._family_indices[fam] = np.asarray(index_array[new_slice])-base_slice.start
 
-    """def __setitem__(self, name, item) :
-	# This is required because numpy indexing creates a new array
-	# rather than a view on the old one. I.e. the data
-	# returned from SubSnap._get_array will be a copy, and
-	# so this provides a mechaism for mirroring changes back
-	# into the main simulation data arrays.
-	self.base._get_array(name)[self._slice] = item"""
 	
     def _get_family_slice(self, fam) :
 	# A bit messy: jump out the SubSnap inheritance chain

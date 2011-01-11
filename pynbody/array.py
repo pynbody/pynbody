@@ -143,16 +143,16 @@ class SimArray(np.ndarray) :
     
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
 	new = np.array(data, **kwargs).view(subtype)
-	
+
+        if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None :
+            units = data.units
+            sim = data.sim
+            
 	if isinstance(units, str) :
 	    units = _units.Unit(units)
 
 	new._units = units
-
-	if sim is not None :
-	    new._sim = weakref.ref(sim)
-	else :
-	    new._sim = lambda : None
+        new.sim = sim # will generate a weakref automatically
 
 	new._name = None
 	
@@ -217,8 +217,11 @@ class SimArray(np.ndarray) :
 
     @sim.setter
     def sim(self, s) :
-	self._sim = weakref.ref(s)
-
+        if s is not None :
+            self._sim = weakref.ref(s)
+        else :
+            self._sim = lambda : None
+            
     def conversion_context(self) :
 	if self._sim() is not None :
 	    return self._sim().conversion_context()
@@ -429,3 +432,82 @@ def _pow_units(a,b) :
     else :
 	return None
 
+
+
+class IndexedSimArray(object) :
+    def __init__(self, array, ptr) :
+        self.base = array
+        self._ptr = ptr
+
+    def __array__(self) :
+        return self.base[self._ptr]
+
+    def __getitem__(self, item) :
+        return self.base[self._ptr[item]]
+
+    def __setitem__(self, item, to) :
+        self.base[self._ptr[item]] = to
+
+    def __getslice__(self, a, b) :
+        return self.__getitem__(slice(a,b), to)
+        
+    def __setslice__(self, a, b, to) :
+        self.__setitem__(slice(a,b), to)
+
+    def __repr__(self) :
+        return self.__array__().__repr__() # Could be optimized
+
+    def __str__(self) :
+        return self.__array__().__str__() # Could be optimized
+
+    @property
+    def units(self) :
+        return self.base.units
+
+    @units.setter
+    def units(self, u) :
+        self.base.units = u
+
+    @property
+    def sim(self) :
+        return self.base.sim
+
+    @sim.setter
+    def sim(self, s) :
+        self.base.sim = s
+
+    def conversion_context(self) :
+        return self.base.conversion_context()
+
+    def set_units_like(self, new_unit) :
+        self.base.set_units_like(new_unit)
+
+    def in_units(self, new_unit) :
+        return IndexedSimArray(self.base.in_units(new_unit), self._ptr)
+
+    def convert_units(self, new_unit) :
+        self.base.convert_units(new_unit)
+
+    def recalculate(self) :
+        self.base.recalculate()
+
+    def prod(self) :
+        return np.array(self).prod()
+
+
+# The IndexedSimArray class is now supplemented by wrapping all the
+# standard numpy methods with a generated function which extracts an
+# array realization of the subview before calling the underlying
+# method.
+
+def _wrap_fn(w) :
+     def q(s, *y,  **kw) :
+         return w(SimArray(s), *y, **kw)
+     q.__name__ = w.__name__
+     return q
+        
+for x in np.ndarray.__dict__ :
+    w = getattr(SimArray, x)
+    if 'array' not in x and (not hasattr(IndexedSimArray, x)) and callable(w) :
+        setattr(IndexedSimArray, x, _wrap_fn(w))
+    
