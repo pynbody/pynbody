@@ -123,6 +123,46 @@ class SimSnap(object) :
 	     
 	 raise RuntimeError("No halo catalogue found")
 
+    def is_ancestor(self, other) :
+        """Returns true if other is a subview of self"""
+
+        if other is self :
+            return True
+        elif hasattr(other,'base') :
+            return self.is_ancestor(other.base)
+        else :
+            return False
+
+    def is_descendant(self, other) :
+        """Returns true if self is a subview of other"""
+        return other.is_ancestor(self)
+
+    def ancestor(self) :
+        if hasattr(self, 'base') :
+            return self.base.ancestor()
+        else :
+            return self
+            
+    def intersect(self, other) :
+        """Returns the set intersection of this simulation view with another view
+        of the same simulation"""
+
+        anc = self.ancestor()
+        if not anc.is_ancestor(other) :
+            raise RuntimeError, "Parentage is not suitable"
+        
+        a = self.get_index_list(anc)
+        b = other.get_index_list(anc)
+        return anc[np.intersect1d(a,b)]
+
+    def get_index_list(self, relative_to, of_particles=None ) :
+        if self is not relative_to :
+            raise RuntimeError, "Not a descendant of the specified simulation"
+        if of_particles is None :
+            of_particles = np.arange(len(self))
+            
+        return of_particles
+    
     def conversion_context(self) :	
 	d = {}
 	wanted = ['a','h']
@@ -548,6 +588,19 @@ class SubSnap(SimSnap) :
 
     def physical_units(self, *args, **kwargs) :
 	self.base.physical_units(*args, **kwargs)
+
+
+    def get_index_list(self, relative_to, of_particles=None) :
+        if of_particles is None :
+            of_particles = np.arange(len(self))
+
+        if relative_to is self :
+            return of_particles
+        
+        return self.base.get_index_list(relative_to, util.concatenate_indexing(self._slice,of_particles))
+
+   
+        
 
 class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
