@@ -20,7 +20,6 @@ def faceon_image(sim, *args, **kwargs) :
     from ..analysis import angmom
     angmom.faceon(sim)
     image(sim, *args, **kwargs)
-
     
 	
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None) :
