@@ -1,7 +1,8 @@
-from . import profile, fourier_decomp
+from . import profile, fourier_decomp, cosmology
 
 reload(profile)
 reload(fourier_decomp)
+reload(cosmology)
 
 import numpy as np
 
