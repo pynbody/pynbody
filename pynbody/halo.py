@@ -6,11 +6,11 @@ class HaloCatalogue(object) :
 	self._halos = {}
 	
     def __getitem__(self, i) :
-	if self._halos.has_key(i) and self._halos[i]() is not None :
-	    return self._halos[i]()
+        if self._halos.has_key(i) :  # and self._halos[i]() is not None :
+	    return self._halos[i] # ()
 	else :
 	    h = self._get_halo(i)
-	    self._halos[i] = weakref.ref(h)
+	    self._halos[i] = h # weakref.ref(h)
 	    return h
 
 
