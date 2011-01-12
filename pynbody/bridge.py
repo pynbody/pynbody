@@ -52,7 +52,7 @@ Snapshot formats where the particle ordering can change are not currently suppor
 """
 
 
-import weakref, numpy as np
+import weakref, numpy as np, math
 
 class Bridge(object) :
     def __init__(self, start, end) :
@@ -120,7 +120,8 @@ class Bridge(object) :
 
             if tot_mass!=0 :
                 for j in xrange(min_index,max_index+1) :
-                    mass[i-min_index,j-min_index] = float(len(self(groups_1[i]).intersect(groups_2[j])))/tot_mass
+                    if len(groups_2[j])!=0 :
+                        mass[i-min_index,j-min_index] = float(len(self(groups_1[i]).intersect(groups_2[j])))/math.sqrt(tot_mass*len(groups_2[j]))
 
         identification = np.argmax(mass,axis=1)+min_index
         identification[np.where(np.sum(mass,axis=1)==0)[0]]=-1
