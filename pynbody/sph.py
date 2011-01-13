@@ -132,6 +132,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     if sm.units!=x.units :
 	sm.convert_units(x.units)
 
+    qty_s = qty
     qty = snap[qty]
     mass = snap['mass']
     rho = snap['rho']
@@ -141,7 +142,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
 	# the image only to throw a UnitsException later
 	conv_ratio = (qty.units*mass.units/(rho.units*sm.units**kernel.h_power)).ratio(out_units,
 										      **x.conversion_context())
-    
+
+        
+        
     code = kernel.get_c_code()
   
     
@@ -159,17 +162,22 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
     		  'x1', 'x2', 'y1', 'y2', 'z1',  'qty', 'mass', 'rho'])
 
+    result = result.view(array.SimArray)
+    
     # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
     # where M-u, rho_u and h_u are mass, density and smoothing units
     # respectively. This is dimensionless, but may not be 1 if the units
     # have been changed since load-time.
     if out_units is None :
 	result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
-    
-    if out_units is not None :
-	result*=conv_ratio
 
- 
+        # The following will be the units of outputs after the above conversion is applied
+        result.units = snap[qty_s].units/snap['x'].units**kernel.h_power
+    else:
+	result*=conv_ratio
+        result.units = out_units
+    
+    result.sim = snap
     return result
 
 
