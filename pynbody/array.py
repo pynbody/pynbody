@@ -439,15 +439,21 @@ class IndexedSimArray(object) :
         self.base = array
         self._ptr = ptr
 
-    def __array__(self) :
-        return self.base[self._ptr]
+    def __array__(self, *args, **kwargs) :
+        return self.base[self._ptr].__array__(*args, **kwargs)
 
+    def _reexpress_index(self, index) :
+        if isinstance(index, tuple) or (isinstance(index,list) and len(index)>0 and hasattr(index[0], len)) :
+            return [self._ptr[index[0]]]+list(index[1:])
+        else :
+            return self._ptr[index]
+        
     def __getitem__(self, item) :
-        return self.base[self._ptr[item]]
+        return self.base[self._reexpress_index(item)]
 
     def __setitem__(self, item, to) :
-        self.base[self._ptr[item]] = to
-
+        self.base[self._reexpress_index(item)] = to
+    
     def __getslice__(self, a, b) :
         return self.__getitem__(slice(a,b), to)
         
@@ -495,6 +501,7 @@ class IndexedSimArray(object) :
         return np.array(self).prod()
 
 
+
 # The IndexedSimArray class is now supplemented by wrapping all the
 # standard numpy methods with a generated function which extracts an
 # array realization of the subview before calling the underlying
@@ -505,9 +512,13 @@ def _wrap_fn(w) :
          return w(SimArray(s), *y, **kw)
      q.__name__ = w.__name__
      return q
-        
+
+# functions we definitely want to wrap, even though there's an existing
+# implementatin
+_override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
+
 for x in np.ndarray.__dict__ :
     w = getattr(SimArray, x)
-    if 'array' not in x and (not hasattr(IndexedSimArray, x)) and callable(w) :
+    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and callable(w) :
         setattr(IndexedSimArray, x, _wrap_fn(w))
     
