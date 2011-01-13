@@ -127,10 +127,100 @@ class Disc(Filter) :
 	radius,height = [("'%s'"%str(x) if isinstance(x, units.UnitBase) else '%.2e'%x) for x in radius,height]
 	
 	return "Disc(%s, %s, %s)"%(radius, height, repr(self.cen))
-	
+
+class BandPass(Filter) :
+    def __init__(self, prop, min, max) :
+        self._descriptor = "bandpass_"+prop
+
+        if isinstance(min, str):
+            min = units.Unit(min)
+
+        if isinstance(max, str) :
+            max = units.Unit(max)
+            
+        self._prop = prop
+        self._min = min
+        self._max = max
+
+    def __call__(self, sim) :
+        min = self._min
+        max = self._max
+        prop = self._prop
+        
+
+        if isinstance(min, units.UnitBase) :
+            min = min.ratio(sim[prop].units, **sim.conversion_context())
+        if isinstance(max, units.UnitBase) : 
+            max = max.ratio(sim[prop].units, **sim.conversion_context())
+
+        return ((sim[prop]>min)*(sim[prop]<max))
+
+    def __repr__(self) :
+        min, max = [("'%s'"%str(x) if isinstance(x, units.UnitBase) else '%.2e'%x) for x in self._min, self._max]
+        return "BandPass('%s', %s, %s)"%(self._prop, min, max)
+
+class HighPass(Filter) :
+    def __init__(self, prop, min) :
+        self._descriptor = "highpass_"+prop
+
+        if isinstance(min, str):
+            min = units.Unit(min)
+
+  
+        self._prop = prop
+        self._min = min
+  
+
+    def __call__(self, sim) :
+        min = self._min
+      
+        prop = self._prop
+        
+
+        if isinstance(min, units.UnitBase) :
+            min = min.ratio(sim[prop].units, **sim.conversion_context())
+      
+
+        return (sim[prop]>min)
+
+    def __repr__(self) :
+        min = ("'%s'"%str(self._min) if isinstance(self._min, units.UnitBase) else '%.2e'%self._min)
+        return "HighPass('%s', %s)"%(self._prop, min)
+
     
-	
+class LowPass(Filter) :
+    def __init__(self, prop, max) :
+        self._descriptor = "lowpass_"+prop
+
+        if isinstance(max, str):
+            max = units.Unit(max)
+
+  
+        self._prop = prop
+        self._max = max
+  
+
+    def __call__(self, sim) :
+        max = self._max
+      
+        prop = self._prop
+        
+
+        if isinstance(max, units.UnitBase) :
+            max = max.ratio(sim[prop].units, **sim.conversion_context())
+      
+
+        return (sim[prop]<max)
+
+    def __repr__(self) :
+        max = ("'%s'"%str(self._max) if isinstance(self._max, units.UnitBase) else '%.2e'%self._max)
+        return "LowPass('%s', %s)"%(self._prop, max)
+
+    
+    
 def Annulus(r1, r2, cen=(0,0,0)) :
     x = Sphere(max(r1,r2),cen) & ~Sphere(min(r1,r2),cen)
     x._descriptor = "annulus"
     return x
+
+
