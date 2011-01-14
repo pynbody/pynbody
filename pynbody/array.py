@@ -197,7 +197,10 @@ class SimArray(np.ndarray) :
 	if hasattr(self.base, 'units') :
 	    return self.base.units
 	else :
-	    return self._units
+            if self._units is None :
+                return _units.no_unit
+            else :
+                return self._units
 
     @units.setter
     def units(self, u) :
@@ -207,7 +210,10 @@ class SimArray(np.ndarray) :
 	if hasattr(self.base, 'units') :
 	    self.base.units = u
 	else :
-	    self._units = u
+            if hasattr(u, "_no_unit") :
+                self._units = None
+            else :
+                self._units = u
 
 
     @property
@@ -288,7 +294,7 @@ class SimArray(np.ndarray) :
 
     def __repr__(self) :
 	x = np.ndarray.__repr__(self)
-	if self.units is not None :
+	if not hasattr(self.units, "_no_unit") :
 	    return x[:-1]+", '"+str(self.units)+"')"
 	else :
 	    return x

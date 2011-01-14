@@ -109,6 +109,9 @@ class UnitBase(object) :
 	return CompositeUnit(1, [self], [p]).simplify()
 
     def __div__(self, m) :
+        if hasattr(m, "_no_unit") :
+            return NoUnit()
+        
 	if isinstance(m, UnitBase) :
 	    return CompositeUnit(1, [self, m], [1, -1]).simplify()
 	else :
@@ -118,6 +121,9 @@ class UnitBase(object) :
 	return CompositeUnit(m, [self], [-1]).simplify()
 
     def __mul__(self, m) :
+        if hasattr(m, "_no_unit") :
+            return NoUnit()
+        
 	if isinstance(m, UnitBase) :
 	    return CompositeUnit(1, [self, m], [1,1]).simplify()
 	else :
@@ -181,7 +187,51 @@ class UnitBase(object) :
 	    # will cause problems for simple string parser in Unit() factory
 	    raise UnitsException, "Unit names cannot contain '**' or '^' or spaces"
 	_registry[st]=self
-	
+
+
+class NoUnit(UnitBase) :
+
+    def __init__(self) :
+        self._no_unit = True
+
+    def ratio(self, other, **substitutions) :
+        if isinstance(other, NoUnit) :
+            return 1
+        else :
+            raise UnitsException, "Unknown units"
+
+    def is_dimensionless(self) :
+        return True
+
+    def simplify(self) :
+        return self
+    
+    def __pow__(self, a) :
+        return self
+
+    def __div__(self, a) :
+        return self
+
+    def __rdiv__(self, a) :
+        return self
+
+    def __mul__(self, a) :
+        return self
+
+    def __rmul__(self, a) :
+        return self
+
+    def __repr__(self) :
+        return "NoUnit()"
+
+    def latex(self) :
+        return ""
+
+    def irrep(self) :
+        return self
+
+no_unit = NoUnit()
+
 class IrreducibleUnit(UnitBase) :
     def __init__(self, st) :
 	self._st_rep = st
@@ -445,10 +495,10 @@ def Unit(s) :
         return s
 
     x = s.split()
-    try :
+    try:
 	scale = float(x[0])
 	del x[0]
-    except ValueError :
+    except (ValueError, IndexError) :
 	scale = 1.0
 
     units = []
