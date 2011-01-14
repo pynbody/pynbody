@@ -168,6 +168,9 @@ class UnitBase(object) :
 
 	if isinstance(other, str) :
 	    other = Unit(other)
+
+        if hasattr(other, "_no_unit") :
+            raise UnitsException, "Unknown units"
 	    
 	try :
 	    return (self/other).dimensionless_constant(**substitutions)
@@ -200,6 +203,9 @@ class NoUnit(UnitBase) :
         else :
             raise UnitsException, "Unknown units"
 
+    def dimensional_project(self, *args) :
+        raise UnitsException, "Unknown units"
+    
     def is_dimensionless(self) :
         return True
 

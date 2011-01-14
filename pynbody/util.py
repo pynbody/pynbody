@@ -203,7 +203,7 @@ def set_array_if_not_same(a_store, a_in, index=None) :
     if index is None : index = slice(None)
     if not arrays_are_same(a_store[index], a_in) :
 	a_store[index] = a_in
-	if a_in.units is not None :
+	if not hasattr(a_in.units, "_no_unit")  :
 	    a_store.units = a_in.units
 	
 
