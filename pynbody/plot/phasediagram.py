@@ -27,7 +27,7 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
 
     if kwargs.has_key('t_range'):
         t_range = kwargs['t_range']
-        assert len(t) == 2
+        assert len(t_range) == 2
     else:
         t_range = (np.min(sim.gas['temp']),np.max(sim.gas['temp']))
     if kwargs.has_key('rho_range'):
