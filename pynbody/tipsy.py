@@ -249,6 +249,9 @@ def param2units(sim) :
 	    sim["mass"].units = munit_st
             sim.star["tform"].units = timeunit_st
 
+            sim.gas["metals"].units = ""
+            sim.star["metals"].units = ""
+
             sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
 
             if hub!=None:
