@@ -192,21 +192,12 @@ class TipsySnap(snapshot.SimSnap) :
                 # default bPackedVector = 0, so must use column-major format when reshaping
                 v_order = 'F'
                 if self._paramfile != "" :
-                    try :
-                        f = file(self._paramfile)
-                    except IOError :
-                        # bad param file, use defaults
-                        v_order = 'F'
-                    else :
-                        for line in f:
-                            s = line.split()
-                            try:
-                                if (s[0] == "bPackedVector") :
-                                    if int(s[2]) :
-                                        v_order = 'C'
-                            except IndexError :
-                                pass
-
+                    try:
+                        if int(self._paramfile.get("bPackedVector",0)) :
+                            v_order="C"
+                    except ValueError :
+                        pass
+                    
             elif (packed_vector is True) or (binary is False) :
                 v_order = 'C'
             else :
@@ -232,13 +223,12 @@ class TipsySnap(snapshot.SimSnap) :
 	# to implement!
 	return True
 
-
 @TipsySnap.decorator
-def param2units(sim) :
-    import sys, math, os, glob
+def load_paramfile(sim) :
+    import sys, os, glob
     x = os.path.abspath(sim._filename)
     done = False
-    
+    sim._paramfile = {}
     filename=None
     for i in xrange(2) :
         x = os.path.dirname(x)
@@ -254,83 +244,94 @@ def param2units(sim) :
             
             for line in f :
 		try :
-		    s = line.split()
-		    if s[0]=="dMsolUnit" :
-			munit_st = s[2]+" Msol"
-			munit = float(s[2])
-		    elif s[0]=="dKpcUnit" :
-                        dunit_st = s[2]+" kpc"
-                        dunit = float(s[2])
-		    elif s[0]=="dHubble0" :
-			hub = float(s[2])
-                    elif s[0]=="dOmega0" :
-			om_m0 = s[2]
-                    elif s[0]=="dLambda" :
-			om_lam0 = s[2]
-                        
+                    if line[0]!="#" :
+                        s = line.split()
+                        sim._paramfile[s[0]] = " ".join(s[2:])
+                                
 		except IndexError, ValueError :
 		    pass
 
-	    if munit==None or dunit==None :
-		continue
-
-	    print "Loading units from ",filename
-
-            sim._paramfile = filename
-
-	    denunit = munit/dunit**3
-            denunit_st = str(denunit)+" Msol kpc^-3"
-
-	    #
-	    # the obvious way:
-	    #
-	    #denunit_cgs = denunit * 6.7696e-32
-	    #kpc_in_km = 3.0857e16
-	    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
-	    #velunit = dunit*kpc_in_km/secunit
-
-	    # the sensible way:
-	    # avoid numerical accuracy problems by concatinating factors:
-	    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
-	    velunit_st = ("%.5g"%velunit)+" km s^-1"
-
-            #You have: kpc s / km
-            #You want: Gyr
-            #* 0.97781311
-            timeunit = dunit / velunit * 0.97781311
-            timeunit_st = ("%.5g"%timeunit)+" Gyr"
-
-	    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
-
-            if hub!=None:
-                hubunit = 10. * velunit / dunit
-                hubunit_st = ("%.3f"%(hubunit*hub))
-
-                # append dependence on 'a' for cosmological runs
-                dunit_st += " a"
-                denunit_st += " a^-3"
-                velunit_st += " a"
-
-
-
-	    sim["vel"].units = velunit_st
-	    sim["phi"].units = sim["vel"].units**2
-	    sim["eps"].units = dunit_st
-	    sim["pos"].units = dunit_st
-	    sim.gas["rho"].units = denunit_st
-	    sim["mass"].units = munit_st
-            sim.star["tform"].units = timeunit_st
-
-            sim.gas["metals"].units = ""
-            sim.star["metals"].units = ""
-
-            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
-
-            if hub!=None:
-                sim.properties['h'] = hubunit*hub
-                sim.properties['omegaM0'] = float(om_m0)
-                sim.properties['omegaL0'] = float(om_lam0)
+            if len(sim._paramfile)>1 :
+                sim._paramfile["filename"] = filename
+                done = True
                 
-	    done = True
-	    break
-	if done : break
+        if done : break
+
+            
+
+@TipsySnap.decorator
+def param2units(sim) :
+    import sys, math, os, glob
+    
+
+    
+    try :
+        munit_st = sim._paramfile["dMsolUnit"]
+        munit = float(sim._paramfile["dMsolUnit"])
+        dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
+        dunit = float(sim._paramfile["dKpcUnit"])
+        hub = float(sim._paramfile["dHubble0"])
+        om_m0 = float(sim._paramfile["dOmega0"])
+        om_lam0 = float(sim._paramfile["dLambda"])
+
+    except KeyError :
+        pass
+
+    if munit==None or dunit==None :
+        return
+
+
+    denunit = munit/dunit**3
+    denunit_st = str(denunit)+" Msol kpc^-3"
+
+    #
+    # the obvious way:
+    #
+    #denunit_cgs = denunit * 6.7696e-32
+    #kpc_in_km = 3.0857e16
+    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
+    #velunit = dunit*kpc_in_km/secunit
+
+    # the sensible way:
+    # avoid numerical accuracy problems by concatinating factors:
+    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
+    velunit_st = ("%.5g"%velunit)+" km s^-1"
+
+    #You have: kpc s / km
+    #You want: Gyr
+    #* 0.97781311
+    timeunit = dunit / velunit * 0.97781311
+    timeunit_st = ("%.5g"%timeunit)+" Gyr"
+
+    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
+
+    if hub!=None:
+        hubunit = 10. * velunit / dunit
+        hubunit_st = ("%.3f"%(hubunit*hub))
+
+        # append dependence on 'a' for cosmological runs
+        dunit_st += " a"
+        denunit_st += " a^-3"
+        velunit_st += " a"
+
+
+
+    sim["vel"].units = velunit_st
+    sim["phi"].units = sim["vel"].units**2
+    sim["eps"].units = dunit_st
+    sim["pos"].units = dunit_st
+    sim.gas["rho"].units = denunit_st
+    sim["mass"].units = munit_st
+    sim.star["tform"].units = timeunit_st
+
+    sim.gas["metals"].units = ""
+    sim.star["metals"].units = ""
+
+    sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
+
+    if hub!=None:
+        sim.properties['h'] = hubunit*hub
+        sim.properties['omegaM0'] = float(om_m0)
+        sim.properties['omegaL0'] = float(om_lam0)
+
+
