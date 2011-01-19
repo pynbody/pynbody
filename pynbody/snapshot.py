@@ -66,7 +66,7 @@ class SimSnap(object) :
 		    self._read_array(i)
 		    return self._get_array(i)
 		except IOError :
-		    try :
+		    try:
 			self._derive_array(i)
 			return self._get_array(i)
 		    except (ValueError, KeyError) :
@@ -426,13 +426,12 @@ class SimSnap(object) :
 	SimSnap._derived_quantity_registry[cl][fn.__name__]=fn	   
         return fn
 
-    def _derive_array(self, name) :
+    def _derive_array(self, name, fam=None) :
 	"""Calculate and store, for this SnapShot, the derivable array 'name'.
 
 	This searches the registry of @X.derived_quantity functions
 	for all X in the inheritance path of the current class. The first
 	"""
-	
 	if name in SimSnap._calculating :
 	    raise ValueError, "Circular reference in derived quantity"
 	else :
@@ -441,7 +440,10 @@ class SimSnap(object) :
 		for cl in type(self).__mro__ :
 		    if self._derived_quantity_registry.has_key(cl) \
 			   and self._derived_quantity_registry[cl].has_key(name) :
-			self[name] = SimSnap._derived_quantity_registry[cl][name](self)
+                        if fam is None :
+                            self[name] = SimSnap._derived_quantity_registry[cl][name](self)
+                        else :
+                            self[fam][name] = SimSnap._derived_quantity_registry[cl][name](self[fam])
 			break
 	    finally:
 		assert SimSnap._calculating[-1]==name
@@ -574,6 +576,9 @@ class SubSnap(SimSnap) :
     def _read_array(self, array_name, fam=None) :
 	self.base._read_array(array_name, fam)
 
+    def _derive_array(self, array_name, fam=None) :
+        self.base._derive_array(array_name, fam)
+        
     def family_keys(self, fam=None) :
 	return self.base.family_keys(fam)
 
@@ -717,3 +722,7 @@ class FamilySubSnap(SubSnap) :
     def _read_array(self, array_name, fam=None) :
 	if fam is self._unifamily or fam is None :
 	    self.base._read_array(array_name, self._unifamily)
+
+    def _derive_array(self, array_name, fam=None) :
+        if fam is self._unifamily or fam is None :
+	    self.base._derive_array(array_name, self._unifamily)
