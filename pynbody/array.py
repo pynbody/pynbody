@@ -235,7 +235,15 @@ class SimArray(np.ndarray) :
             return x
         else :
             return np.ndarray.__mul__(self, rhs)
-            
+
+    def __div__(self, rhs) :
+        if isinstance(rhs, _units.UnitBase) :
+            x = self.copy()
+            x.units = x.units/rhs
+            return x
+        else :
+            return np.ndarray.__div__(self, rhs)
+
     def conversion_context(self) :
 	if self._sim() is not None :
 	    return self._sim().conversion_context()
@@ -243,7 +251,7 @@ class SimArray(np.ndarray) :
 	    return {}
 	
     def _generic_add(self, x, add_op=np.add) :
-	if hasattr(x, 'units') and self.units is not None and x.units is not None :
+        if hasattr(x, 'units') and not hasattr(self.units, "_no_unit") and not hasattr(x.units, "_no_unit") :
 	    # Check unit compatibility
 	    try:
 		cr = x.units.ratio(self.units,
