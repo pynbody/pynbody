@@ -577,8 +577,8 @@ keV = NamedUnit("keV", 1.e3*eV)
 MeV = NamedUnit("MeV", 1.e3*keV)
 
 # Pressures
-Pa = NamedUnit("Pa", J/m)
-dyn = NamedUnit("dyn", erg/cm)
+Pa = NamedUnit("Pa", J/m**3)
+dyn = NamedUnit("dyn", erg/cm**3)
 
 # Redshift
 one_plus_z = NamedUnit("(1+z)", 1/a)
