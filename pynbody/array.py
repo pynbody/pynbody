@@ -227,6 +227,14 @@ class SimArray(np.ndarray) :
             self._sim = weakref.ref(s)
         else :
             self._sim = lambda : None
+
+    def __mul__(self, rhs) :
+        if isinstance(rhs, _units.UnitBase) :
+            x = self.copy()
+            x.units = x.units*rhs
+            return x
+        else :
+            return np.ndarray.__mul__(self, rhs)
             
     def conversion_context(self) :
 	if self._sim() is not None :

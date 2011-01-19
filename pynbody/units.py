@@ -123,8 +123,9 @@ class UnitBase(object) :
     def __mul__(self, m) :
         if hasattr(m, "_no_unit") :
             return NoUnit()
-        
-	if isinstance(m, UnitBase) :
+        elif hasattr(m, "units") :
+            return m*self
+	elif isinstance(m, UnitBase) :
 	    return CompositeUnit(1, [self, m], [1,1]).simplify()
 	else :
 	    return CompositeUnit(m, [self], [1]).simplify()
