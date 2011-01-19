@@ -263,7 +263,7 @@ def load_paramfile(sim) :
 def param2units(sim) :
     import sys, math, os, glob
     
-
+    munit = dunit = hub = None
     
     try :
         munit_st = sim._paramfile["dMsolUnit"]
