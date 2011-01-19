@@ -1,5 +1,6 @@
 from . import snapshot, array, util
 from . import family
+from . import units
 
 import struct
 import numpy as np
@@ -240,7 +241,7 @@ def load_paramfile(sim) :
 		f = file(filename)
 	    except IOError :
 		continue
-	    munit = dunit = hub = None
+	    
             
             for line in f :
 		try :
@@ -264,9 +265,10 @@ def param2units(sim) :
     import sys, math, os, glob
     
 
+    munit = dunit = hub = None
     
     try :
-        munit_st = sim._paramfile["dMsolUnit"]
+        munit_st = sim._paramfile["dMsolUnit"]+" Msol"
         munit = float(sim._paramfile["dMsolUnit"])
         dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
         dunit = float(sim._paramfile["dKpcUnit"])
@@ -277,7 +279,7 @@ def param2units(sim) :
     except KeyError :
         pass
 
-    if munit==None or dunit==None :
+    if munit is None or dunit is None :
         return
 
 
@@ -335,3 +337,53 @@ def param2units(sim) :
         sim.properties['omegaL0'] = float(om_lam0)
 
 
+def _abundance_estimator(metal) :
+
+    Y_He = ((0.236+2.1*metal)/4.0)*(metal<=0.1)
+    Y_He+= ((-0.446*(metal-0.1)/0.9+0.446)/4.0)*(metal>0.1)
+    Y_H = 1.0-Y_He*4. - metal
+
+    return Y_H, Y_He
+
+@TipsySnap.derived_quantity
+def HII(sim) :
+    """Number of HII ions per proton mass"""
+    Y_H, Y_He = _abundance_estimator(sim["metals"])
+    return Y_H - sim["HI"]
+
+@TipsySnap.derived_quantity
+def HeIII(sim) :
+    """Number of HeIII ions per proton mass"""
+    Y_H, Y_He = _abundance_estimator(sim["metals"])
+    return Y_He-sim["HeII"]-sim["HeI"]
+
+@TipsySnap.derived_quantity
+def ne(sim) :
+    """Number of electrons per proton mass"""
+    return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
+    
+@TipsySnap.derived_quantity
+def mu(sim) :
+    """Relative atomic mass, i.e. number of particles per
+    proton mass, ignoring metals (since we generally only know the
+    mass fraction of metals, not their specific atomic numbers)"""
+    
+    x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
+    
+    x._units = 1/units.m_p
+    return x
+    
+@TipsySnap.derived_quantity
+def u(sim) :
+    """Specific Internal energy"""
+    u = (3./2) * units.k * sim["temp"] # per particle
+    u=u*sim["mu"] # per unit mass
+    u.convert_units("eV m_p^-1")
+    return u
+
+@TipsySnap.derived_quantity
+def p(sim) :
+    """Pressure"""
+    p = sim["u"]*sim["rho"]*(2./3)
+    p.convert_units("dyn")
+    return p
