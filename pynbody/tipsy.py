@@ -105,9 +105,11 @@ class TipsySnap(snapshot.SimSnap) :
 	return res
 	
     
-    def _read_array(self, array_name, fam=None, filename = "", packed_vector = None) :
-        """Read a TIPSY-BINARY auxiliary file with the specified name. If fam is not None,
-	read only the particles of the specified family."""
+    def _read_array(self, array_name, fam=None, filename = None,
+        packed_vector = None) :
+        """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
+        specified name. If fam is not None, read only the particles of
+        the specified family."""
 
         import sys, os
 	
@@ -120,110 +122,108 @@ class TipsySnap(snapshot.SimSnap) :
 
         # determine whether the array exists in a file
 
-        if filename == "":
-            if self._filename[-2:] == 'gz' :
-                filename = self._filename[:-3]+"."+array_name + ".gz"
+        if filename is None :
+            if self._filename[-3:] == '.gz' :
+                filename = self._filename[:-3]+"."+array_name
             else :
-                filename = self._filename+"."+array_name  # could do some cleverer mapping here
-
-        try: 
-            f = util.open_(filename)
-        except IOError :
-            if filename[-2:] == 'gz' :
-                f = util.open_(filename[:-3])
+                filename = self._filename+"."+array_name
                 
-        else:
+            if not os.path.isfile(filename) :
+                filename+=".gz"
+
         
-            # if we get here, we've got the file - try loading it
-            
-            try :
-                l = int(f.readline())
-                
-            except ValueError :
-                # this is probably a binary file
-                import xdrlib
-                binary = True
-            
-                f.seek(0)
-                up = xdrlib.Unpacker(f.read())
-                l = up.unpack_int()
+        f = util.open_(filename)
+        
 
-                buflen = len(up.get_buffer())
-                
-                if (buflen-4)/4/3. == l : # it's a float vector 
-                    data = np.array(up.unpack_farray(l*3,up.unpack_float))
-                    ndim = 3
-                elif (buflen-4)/4. == l : # it's a float array 
-                    data = np.array(up.unpack_farray(l,up.unpack_float))
-                    ndim = 1
-                else: # don't know what it is
-                    raise IOError, "Incorrect file format"
-            else:
-                binary = False
-                
-                if l!=len(self) :
-                    raise IOError, "Incorrect file format"
-	
-                # Inspect the first line to see whether it's float or int
-                l = "0\n"
-                while l=="0\n" : l = f.readline()
-                if "." in l :
-                    tp = float
-                else :
-                    tp = int
-                    
-                # Restart at head of file
-                del f
-                f = util.open_(filename)
-            
-                f.readline()
-                data = np.fromfile(f, dtype=tp, sep="\n")
-                ndim = len(data)/len(self)
-            
-                if ndim*len(self)!=len(data) :
-                    raise IOError, "Incorrect file format"
-    
-            if ndim>1 :
-                dims = (len(self),ndim)
-                
-                # check whether the vector format is specified in the param file
-                # this only matters for binary because ascii files use packed vectors by default
-                if (binary) and (packed_vector == None) :
-                    # default bPackedVector = 0, so must use column-major format when reshaping
-                    v_order = 'F'
-                    if self._paramfile != "" :
-                        try :
-                            f = file(self._paramfile)
-                        except IOError :
-                            # bad param file, use defaults
-                            v_order = 'F'
-                        else :
-                            for line in f:
-                                s = line.split()
-                                try:
-                                    if (s[0] == "bPackedVector") :
-                                        if int(s[2]) :
-                                            v_order = 'C'
-                                except IndexError :
-                                    pass
-                                
-                elif (packed_vector is True) or (binary is False) :
-                    v_order = 'C'
-                else :
-                    v_order = 'F'
+        # if we get here, we've got the file - try loading it
+
+        try :
+            l = int(f.readline())
+
+        except ValueError :
+            # this is probably a binary file
+            import xdrlib
+            binary = True
+
+            f.seek(0)
+            up = xdrlib.Unpacker(f.read())
+            l = up.unpack_int()
+
+            buflen = len(up.get_buffer())
+
+            if (buflen-4)/4/3. == l : # it's a float vector 
+                data = np.array(up.unpack_farray(l*3,up.unpack_float))
+                ndim = 3
+            elif (buflen-4)/4. == l : # it's a float array 
+                data = np.array(up.unpack_farray(l,up.unpack_float))
+                ndim = 1
+            else: # don't know what it is
+                raise IOError, "Incorrect file format"
+        else:
+            binary = False
+
+            if l!=len(self) :
+                raise IOError, "Incorrect file format"
+
+            # Inspect the first line to see whether it's float or int
+            l = "0\n"
+            while l=="0\n" : l = f.readline()
+            if "." in l :
+                tp = float
             else :
-                dims = len(self)
+                tp = int
+
+            # Restart at head of file
+            f.seek(0)
+
+            f.readline()
+            data = np.fromfile(f, dtype=tp, sep="\n")
+            ndim = len(data)/len(self)
+
+            if ndim*len(self)!=len(data) :
+                raise IOError, "Incorrect file format"
+
+        if ndim>1 :
+            dims = (len(self),ndim)
+
+            # check whether the vector format is specified in the param file
+            # this only matters for binary because ascii files use packed vectors by default
+            if (binary) and (packed_vector == None) :
+                # default bPackedVector = 0, so must use column-major format when reshaping
+                v_order = 'F'
+                if self._paramfile != "" :
+                    try :
+                        f = file(self._paramfile)
+                    except IOError :
+                        # bad param file, use defaults
+                        v_order = 'F'
+                    else :
+                        for line in f:
+                            s = line.split()
+                            try:
+                                if (s[0] == "bPackedVector") :
+                                    if int(s[2]) :
+                                        v_order = 'C'
+                            except IndexError :
+                                pass
+
+            elif (packed_vector is True) or (binary is False) :
                 v_order = 'C'
-
-            
-            if fam is None :
-                self._arrays[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
-                self._arrays[array_name].sim = self
             else :
-                self._create_family_array(array_name, fam, ndim, data.dtype)
-                self._get_family_array(array_name, fam)[:] = \
-                                               data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
-                self._get_family_array(array_name, fam).sim = self
+                v_order = 'F'
+        else :
+            dims = len(self)
+            v_order = 'C'
+
+
+        if fam is None :
+            self._arrays[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
+            self._arrays[array_name].sim = self
+        else :
+            self._create_family_array(array_name, fam, ndim, data.dtype)
+            self._get_family_array(array_name, fam)[:] = \
+                                           data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
+            self._get_family_array(array_name, fam).sim = self
             
 
 	
