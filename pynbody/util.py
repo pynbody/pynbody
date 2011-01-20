@@ -332,3 +332,21 @@ def cutgz(x) :
     """Strip the .gz ending off a string"""
     if x[-3:] == '.gz' : return x[:-3]
     else : return x
+
+class Registry(dict) :
+    """A simple extension of the dict class to make the
+    __repr__ more readable."""
+
+    def __repr__ (self) :
+        string = " "
+
+        if len(self.keys()) > 0 :
+            for type in self.keys() :
+                string += "\n" + type + ":\n"
+                string += str(self[type]) + "\n"
+        else :
+            string = "Empty registry"
+
+        return string
+
+          

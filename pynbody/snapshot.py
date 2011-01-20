@@ -26,7 +26,7 @@ class SimSnap(object) :
 
     _decorator_registry = {}
 
-    _loadable_keys_registry = [] 
+    _loadable_keys_registry = util.Registry()
     
     def __init__(self) :
 	"""Initialize an empty, zero-length SimSnap."""
@@ -416,6 +416,14 @@ class SimSnap(object) :
 	    if self._derived_quantity_registry.has_key(cl) :
 		res+=self._derived_quantity_registry[cl].keys()
 	return res
+
+    def _print_loadable_keys_registry(self):
+        """Method to make the contents of loadable_keys_registry more readable."""
+        print 'From file:'
+        print _loadable_keys_registry['files']
+        print 'To compute:'
+        print _loadable_keys_registry['compute']
+        
     
     # Methods for derived arrays
     
