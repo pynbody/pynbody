@@ -4,7 +4,7 @@ from .backcompat import fractions
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
     gzip decompression"""
-    
+
     if filename[-3:]==".gz" :
 	import gzip
 	return gzip.open(filename, *args)
@@ -327,3 +327,8 @@ def rational_matrix_inv(matrix) :
 
     
     return gauss_jordan(x)[:, len(x):]
+
+def cutgz(x) :
+    """Strip the .gz ending off a string"""
+    if x[-3:] == '.gz' : return x[:-3]
+    else : return x

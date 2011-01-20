@@ -96,12 +96,30 @@ class TipsySnap(snapshot.SimSnap) :
 		f = util.open_(x)
 		return int(f.readline()) == len(self)
 	    except (IOError, ValueError) :
-		return False
+                # could be a binary file
+                f.seek(0)
+                
+                buflen = len(f.read())
+                
+                if (buflen-4)/4/3. == len(self) : # it's a float vector 
+                    return True
+                elif (buflen-4)/4. == len(self) : # it's a float array 
+                    return True
+                else :
+                    return False
+
 	    
 	import glob
-	fs = glob.glob(self._filename+".*")
-	res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
-	res+=snapshot.SimSnap.loadable_keys(self)
+
+        name = util.cutgz(self._filename)
+            
+        fs = glob.glob(name+".*")
+
+        print fs
+
+        res =  map(lambda q: q[len(name)+1:], filter(is_readable_array, fs))
+        for i,n in enumerate(res): res[i] = util.cutgz(n)
+        res+=snapshot.SimSnap.loadable_keys(self)
 	return res
 	
     
