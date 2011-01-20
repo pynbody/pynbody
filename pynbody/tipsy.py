@@ -116,8 +116,6 @@ class TipsySnap(snapshot.SimSnap) :
             
         fs = glob.glob(name+".*")
 
-        print fs
-
         res =  map(lambda q: q[len(name)+1:], filter(is_readable_array, fs))
         for i,n in enumerate(res): res[i] = util.cutgz(n)
         res+=snapshot.SimSnap.loadable_keys(self)
