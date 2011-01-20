@@ -26,7 +26,7 @@ class SimSnap(object) :
 
     _decorator_registry = {}
 
-    
+    _loadable_keys_registry = [] 
     
     def __init__(self) :
 	"""Initialize an empty, zero-length SimSnap."""

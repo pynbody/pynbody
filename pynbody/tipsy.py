@@ -112,14 +112,18 @@ class TipsySnap(snapshot.SimSnap) :
 	    
 	import glob
 
-        name = util.cutgz(self._filename)
+        if len(self._loadable_keys_registry) == 0 :
             
-        fs = glob.glob(name+".*")
-
-        res =  map(lambda q: q[len(name)+1:], filter(is_readable_array, fs))
-        for i,n in enumerate(res): res[i] = util.cutgz(n)
-        res+=snapshot.SimSnap.loadable_keys(self)
-	return res
+            name = util.cutgz(self._filename)
+            
+            fs = glob.glob(name+".*")
+            
+            res =  map(lambda q: q[len(name)+1:], filter(is_readable_array, fs))
+            for i,n in enumerate(res): res[i] = util.cutgz(n)
+            res+=snapshot.SimSnap.loadable_keys(self) 
+            self._loadable_keys_registry = res
+            
+        return self._loadable_keys_registry
 	
     
     def _read_array(self, array_name, fam=None, filename = None,
