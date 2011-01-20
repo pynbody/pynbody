@@ -123,8 +123,9 @@ class UnitBase(object) :
     def __mul__(self, m) :
         if hasattr(m, "_no_unit") :
             return NoUnit()
-        
-	if isinstance(m, UnitBase) :
+        elif hasattr(m, "units") :
+            return m*self
+	elif isinstance(m, UnitBase) :
 	    return CompositeUnit(1, [self, m], [1,1]).simplify()
 	else :
 	    return CompositeUnit(m, [self], [1]).simplify()
@@ -576,8 +577,8 @@ keV = NamedUnit("keV", 1.e3*eV)
 MeV = NamedUnit("MeV", 1.e3*keV)
 
 # Pressures
-Pa = NamedUnit("Pa", J/m)
-dyn = NamedUnit("dyn", erg/cm)
+Pa = NamedUnit("Pa", J/m**3)
+dyn = NamedUnit("dyn", erg/cm**3)
 
 # Redshift
 one_plus_z = NamedUnit("(1+z)", 1/a)
