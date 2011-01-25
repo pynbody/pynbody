@@ -306,7 +306,25 @@ class SimSnap(object) :
         self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
                                   [np.sin(angle),  np.cos(angle), 0],
                                   [      0,             0,        1]]))
-    
+
+
+    def wrap(self, boxsize=None) :
+        """Wraps the positions of the particles in the box to lie between
+        [-boxsize/2, boxsize/2].
+
+        If no boxsize is specified, self.properties["boxsize"] is used."""
+
+        if boxsize is None :
+            boxsize = self.properties["boxsize"]
+
+        if isinstance(boxsize, units.UnitBase) :
+            boxsize = float(boxsize.ratio(self["pos"].units, **self.conversion_context()))
+        
+        for coord in "x", "y", "z" :
+            self[coord][np.where(self[coord]<-boxsize/2)]+=boxsize
+            self[coord][np.where(self[coord]>boxsize/2)]-=boxsize
+            
+        
     
     def __len__(self) :
 	return self._num_particles
