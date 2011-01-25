@@ -340,6 +340,8 @@ def param2units(sim) :
         denunit_st += " a^-3"
         velunit_st += " a"
 
+        # Assume the box size is equal to the length unit
+        sim.properties["boxsize"] = units.Unit(dunit_st)
 
 
     sim["vel"].units = velunit_st
