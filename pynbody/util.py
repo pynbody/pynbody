@@ -248,26 +248,34 @@ def equipartition(ar, nbins, min = None, max = None) :
 
     return a_s[np.array(np.linspace(0,len(a_s)-1,nbins+1),dtype='int')]
 
-def bisect(left, right, f, epsilon=None, verbose=False) :
+def bisect(left, right, f, epsilon=None, eta=0, verbose=False) :
     """Finds the value x such that f(x)=0 for a monotonically
-    increasing function f, using a binary search."""
+    increasing function f, using a binary search.
+
+    The search stops when either the bounding domain is
+    smaller than epsilon (by default 10^-7 times the original
+    region) OR a value f(x) is found such that |f(x)|<eta (by default
+    eta=0, so this criterion is never satisfied). """
 
     if epsilon is None :
 	epsilon = (right-left)*1.e-7
 
+
     if (right-left)< epsilon :
 	return (right+left)/2
-    
+
     mid = (left+right)/2
     z = f(mid)
 
     if verbose :
 	print left, mid, right, z
-	
-    if(z<0) :
-	return bisect(mid, right, f, epsilon, verbose)
+
+    if (abs(z)<eta) :
+        return mid
+    elif(z<0) :
+	return bisect(mid, right, f, epsilon, eta, verbose)
     else :
-	return bisect(left, mid, f, epsilon, verbose)
+	return bisect(left, mid, f, epsilon, eta, verbose)
 
 def gauss_jordan(out) :
     """A simple Gauss-Jordan matrix inverter. This is provided so that
