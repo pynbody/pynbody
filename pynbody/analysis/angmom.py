@@ -1,5 +1,6 @@
 import numpy as np
 from .. import filt
+from . import halo
 
 def ang_mom_vec(snap) :
     """Return the angular momentum vector of the specified snapshot.
@@ -46,11 +47,14 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     # Top is the top-level view of the simulation, which will be
     # transformed
 
-    cen = h['pos'][h['phi'].argmin()]
+    cen = halo.shrink_sphere_centre(h) # or h['pos'][h['phi'].argmin()]
     top['pos']-=cen
 
     # Use gas from inner 1kpc to calculate centre of velocity
     cen = h.gas[filt.Sphere(cen_size)]
+    if len(cen)<5 :
+        raise ValueError, "Insufficient gas around centre to get velocity"
+    
     top['vel']-=cen['vel'].mean(axis=0)
     
     # Use gas from inner 10kpc to calculate angular momentum vector
