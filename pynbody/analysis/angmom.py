@@ -6,7 +6,7 @@ def ang_mom_vec(snap) :
     """Return the angular momentum vector of the specified snapshot.
 
     The return units are [mass]*[dist]*[vel] as per the units of the snapshot."""
-    angmom = (snap['mass'].reshape(len(snap),1)*np.cross(snap['pos'], snap['vel'])).sum(axis=0).view(np.ndarray)
+    angmom = (snap['mass'].reshape((len(snap),1))*np.cross(snap['pos'], snap['vel'])).sum(axis=0).view(np.ndarray)
     return angmom
 
 def calc_sideon_matrix(angmom_vec) :
