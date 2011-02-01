@@ -454,6 +454,22 @@ def _pow_units(a,b) :
     else :
 	return None
 
+@_u(np.arctan)
+@_u(np.arctan2)
+@_u(np.arcsin)
+@_u(np.arccos)
+@_u(np.arcsinh)
+@_u(np.arccosh)
+@_u(np.arctanh)
+@_u(np.sin)
+@_u(np.tan)
+@_u(np.cos)
+@_u(np.sinh)
+@_u(np.tanh)
+@_u(np.cosh)
+def _trig_units(*a) :
+    return None
+
 
 
 class IndexedSimArray(object) :
