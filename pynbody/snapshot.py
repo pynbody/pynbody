@@ -273,12 +273,14 @@ class SimSnap(object) :
 		out.append(fam)
 	return out
 
-    def transform(self, matrix) :
+    def transform(self, matrix, ortho_tol=1.e-8) :
 	"""Transforms the snapshot according to the 3x3 matrix given."""
 
-	pos = self['pos']
-	vel = self['vel']
-
+        # Check that the matrix is orthogonal
+        resid = np.dot(matrix, np.asarray(matrix).T) - np.eye(3)
+        resid = (resid**2).sum()
+        if resid>ortho_tol or resid!=resid :
+            raise ValueError, "Transformation matrix is not orthogonal"
         for x in self.keys() :
             ar = self[x]
             if len(ar.shape)==2 and ar.shape[1]==3 :
