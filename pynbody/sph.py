@@ -87,6 +87,44 @@ class TopHatKernel(object) :
 	return code
 	
 
+
+def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel()) :
+    """Render an SPH image on a spherical surface. Note this is written in pure python and
+    could be optimized into C, but would then need linking with the healpix libraries.
+    Also currently uses a top-hat 3D kernel only."""
+    
+    import healpy as hp
+
+    try :
+        import healpy_f as hpf
+        query_disc = hpf.query_disc
+    except ImportError :
+        query_disc = lambda a, b, c : hp.query_disc(a,b,c,deg=False)
+    
+    ind = np.where(np.abs(snap["r"]-distance)<snap["smooth"]*kernel.max_d)
+
+    print "Spherical image from",len(ind[0]),"particles"
+    D = snap["r"]
+    h = snap["smooth"]
+
+    im = np.zeros(hp.nside2npix(nside))
+
+    for i in ind[0] :
+        # angular radius subtended by the intersection of the boundary
+        # of the SPH particle with the boundary surface of the calculation
+        rad = np.arctan(math.sqrt((h[i]*kernel.max_d)**2 - (D[i]-distance)**2)/distance)
+        try :
+            i2 = query_disc(nside, snap["pos"][i], rad)
+        except UnboundLocalError :
+            i2 = []
+
+        im[i2]+=((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))
+        
+    im = im.view(array.SimArray)
+    im.units = snap[qty].units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**3
+    im.sim = snap
+    
+    return im
     
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=None,
 		 z_plane = 0.0, out_units=None, kernel=Kernel()) :
