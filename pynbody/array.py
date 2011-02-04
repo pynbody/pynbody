@@ -551,6 +551,9 @@ def _wrap_fn(w) :
 	 # but it seems required on McMaster setup (Py 2.6.5, NP 1.4.1)
 	 if kw!={} :
 	     return w(SimArray(s), *y, **kw)
+	 else :
+	     return w(SimArray(s), *y)
+	 
      q.__name__ = w.__name__
      return q
 
