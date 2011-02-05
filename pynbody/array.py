@@ -481,7 +481,7 @@ class IndexedSimArray(object) :
         return self.base[self._ptr].__array__(*args, **kwargs)
 
     def _reexpress_index(self, index) :
-        if isinstance(index, tuple) or (isinstance(index,list) and len(index)>0 and hasattr(index[0], len)) :
+        if isinstance(index, tuple) or (isinstance(index,list) and len(index)>0 and hasattr(index[0], '__len__')) :
             return [self._ptr[index[0]]]+list(index[1:])
         else :
             return self._ptr[index]
