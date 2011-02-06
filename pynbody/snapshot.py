@@ -541,7 +541,18 @@ def put_1d_slices(sim) :
 	sim._arrays[a]._name = a
 	sim._arrays["v"+a] = sim._arrays["vel"][:,i]
 	sim._arrays["v"+a]._name = "v"+a
-            
+
+
+
+
+
+_subarray_immediate_mode = False
+# Set this to True to always get copies of data when indexing is
+# necessary. This is mainly a bug testing/efficiency checking mode --
+# shouldn't be necessary
+
+
+
 class SubSnap(SimSnap) :
     """Represent a sub-view of a SimSnap, initialized by specifying a
     slice.  Arrays accessed through __getitem__ are automatically
@@ -584,7 +595,7 @@ class SubSnap(SimSnap) :
 
 
     def _get_array(self, name) :
-        if isinstance(self._slice, slice) :
+        if isinstance(self._slice, slice) or _subarray_immediate_mode :
             return self.base._get_array(name)[self._slice]
         else :
             return array.IndexedSimArray(self.base._get_array(name), self._slice)
@@ -596,7 +607,7 @@ class SubSnap(SimSnap) :
 	base_family_slice = self.base._get_family_slice(fam)
 	sl = util.relative_slice(base_family_slice,
 				 util.intersect_slices(self._slice, base_family_slice, len(self.base)))
-        if isinstance(sl, slice) :
+        if isinstance(sl, slice) or _subarray_immediate_mode :
             return self.base._get_family_array(name, fam)[sl]
         else :
             return array.IndexedSimArray(self.base._get_family_array(name, fam), sl)
