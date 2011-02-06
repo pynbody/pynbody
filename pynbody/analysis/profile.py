@@ -373,15 +373,19 @@ def mass_enc(self):
     return m_enc
 
 @Profile.profile_property
-def rotation_curve(self):
+def g_spherical(self) :
+    """The naive gravitational acceleration assuming spherical
+    symmetry = GM_enc/r^2"""
+
+    return (units.G*self.mass_enc/self.r**2)
+
+@Profile.profile_property
+def rotation_curve_spherical(self):
     """
-    Generate a simple rotation curve: vc = sqrt(G M_enc/r)
+    The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
 
-    print 'THIS GIVES WRONG VALUES'
-
-    G = array.SimArray(1.0,units.G,dtype=float)
-    return ((G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
+    return ((units.G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
 
 @Profile.profile_property
 def j_circ(p) :
