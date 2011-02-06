@@ -32,7 +32,8 @@ def calc_faceon_matrix(angmom_vec) :
     return matr
 
 
-def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "5 kpc") :
+def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "5 kpc",
+	   cen = None, vcen=None, verbose=False ) :
     """Reposition and rotate the simulation containing the halo h to
     see h's disk edge on.
 
@@ -47,25 +48,42 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     # Top is the top-level view of the simulation, which will be
     # transformed
 
-    cen = halo.shrink_sphere_centre(h) # or h['pos'][h['phi'].argmin()]
+    if cen is None :
+	if verbose :
+	    print "Finding halo centre..."
+	cen = halo.shrink_sphere_centre(h) # or h['pos'][h['phi'].argmin()]
+	if verbose :
+	    print "cen=",cen
+	    
     top['pos']-=cen
 
-    # Use gas from inner 1kpc to calculate centre of velocity
-    cen = h.gas[filt.Sphere(cen_size)]
-    if len(cen)<5 :
-        raise ValueError, "Insufficient gas around centre to get velocity"
-    
-    top['vel']-=cen['vel'].mean(axis=0)
+    if vcen is None :
+	# Use stars from inner 1kpc to calculate centre of velocity
+	if verbose :
+	    print "Finding halo velocity centre..."
+	cen = h.star[filt.Sphere(cen_size)]
+	if len(cen)<5 :
+	    raise ValueError, "Insufficient stars around centre to get velocity"
+	
+	vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
+	if verbose :
+	    print "vcen=",vcen
+	
+    top['vel']-=vcen
     
     # Use gas from inner 10kpc to calculate angular momentum vector
     cen = h.gas[filt.Sphere(disk_size)]
 
+    if verbose :
+	print "Calculating angular momentum vector..."
     trans = vec_to_xform(ang_mom_vec(cen))
-    
+
+    if verbose :
+	print "Transforming simulation..."
     top.transform(trans)
     
     
-def faceon(h) :
+def faceon(h, **kwargs) :
     """Reposition and rotate the simulation containing the halo h to
     see h's disk face on.
 
@@ -74,4 +92,4 @@ def faceon(h) :
     rotates it so that the disk lies in the x-y plane. This gives
     a face-on view for SPH images, for instance."""
 
-    sideon(h, calc_faceon_matrix)
+    sideon(h, calc_faceon_matrix, **kwargs)
