@@ -194,7 +194,7 @@ class TipsySnap(snapshot.SimSnap) :
             # Inspect the first line to see whether it's float or int
             l = "0\n"
             while l=="0\n" : l = f.readline()
-            if "." in l :
+            if "." in l or "e" in l :
                 tp = float
             else :
                 tp = int
