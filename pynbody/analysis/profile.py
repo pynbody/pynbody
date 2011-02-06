@@ -393,7 +393,7 @@ def v_circ(p) :
 
 @Profile.profile_property
 def E_circ(p) :
-    return 0.5*p["phi"] + 0.5*(p["phi'"]*p.r)
+    return p["phi"] + 0.5*(p["phi'"]*p.r)
     
 
 
