@@ -143,7 +143,7 @@ class SimSnap(object) :
         else :
             return self
             
-    def intersect(self, other) :
+    def intersect(self, other, op=np.intersect1d) :
         """Returns the set intersection of this simulation view with another view
         of the same simulation"""
 
@@ -153,7 +153,19 @@ class SimSnap(object) :
         
         a = self.get_index_list(anc)
         b = other.get_index_list(anc)
-        return anc[np.intersect1d(a,b)]
+        return anc[op(a,b)]
+
+    def union(self, other) :
+	"""Returns the set union of this simulation view with another view
+	of the same simulation"""
+
+	return self.intersect(other, op=np.union1d)
+    
+    def setdiff(self, other) :
+	"""Returns the set difference of this simulation view with another view
+	of the same simulation"""
+
+	return self.intersect(other, op=np.setdiff1d)
 
     def get_index_list(self, relative_to, of_particles=None ) :
         if self is not relative_to :
@@ -171,7 +183,22 @@ class SimSnap(object) :
 		d[x] = self.properties[x]
 	return d
 
+    def original_units(self, verbose=False) :
+	"""Converts all array's units to be consistent with the units of
+	the original file.
+
+	If verbose is True, the conversions are printed."""
+	physical_units(self, distance=self.infer_original_units('km'),
+		             velocity=self.infer_original_units('km s^-1'),
+		             mass=self.infer_original_units('Msol'),
+		       verbose=verbose)
+	
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', verbose=False) :
+	"""Converts all array's units to be consistent with the
+	distance, velocity, mass basis units specified.
+
+	If verbose is True, the conversions are printed."""
+	
         dims = [units.Unit(x) for x in distance, velocity, mass, 'a', 'h']
         
         all = self._arrays.values()
@@ -594,6 +621,9 @@ class SubSnap(SimSnap) :
     def keys(self) :
 	return self.base.keys()
 
+    def infer_original_units(self, *args) :
+	return self.base.infer_original_units(*args)
+    
     def _get_family_slice(self, fam) :
 	sl= util.relative_slice(self._slice,
 	    util.intersect_slices(self._slice,self.base._get_family_slice(fam),len(self.base)))
