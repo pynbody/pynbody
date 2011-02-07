@@ -22,7 +22,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     This routine is based on an original IDL procedure by Chris Brook.
     
     
-    Paramters:
+    Parameters:
 
     h -- the halo to work on
     j_disk_min -- the minimum angular momentum as a proportion of the circular
@@ -30,7 +30,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     j_disk_max -- the maximum angular momentum as a proportion of the circular
                   angular momentum which a particle can have to be part of the 'disk'
     E_cut -- the energy boundary between bulge and spheroid. If None, this is taken
-             to be the median energy of the disk stars.
+             to be the median energy of the stars.
     aligned -- if False, the simulation is recentred and aligned so the disk is
                in the xy plane as required for the rest of the analysis.
     cen -- if not None, specifies the centre of the halo. Otherwise it is found.

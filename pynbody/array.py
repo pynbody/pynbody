@@ -378,6 +378,15 @@ class SimArray(np.ndarray) :
 	    self._sim()._derive_array(self._name)
 	else :
 	    raise RuntimeError, "No link to SimSnap"
+
+    def write(self) :
+        """Write this array to disk according to the standard method associated
+        with its base file"""
+
+        if self._sim() and self._name :
+            self._sim()._write_array(self._name)
+        else :
+            raise RuntimeError, "No link to SimSnap"
 	
 _u = SimArray.ufunc_rule
 
@@ -534,6 +543,9 @@ class IndexedSimArray(object) :
 
     def recalculate(self) :
         self.base.recalculate()
+
+    def write(self) :
+        self.base.write()
 
     def prod(self) :
         return np.array(self).prod()

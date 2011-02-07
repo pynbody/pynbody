@@ -8,6 +8,27 @@ import copy
 import weakref
 
 
+class LazySuppressor(object) :
+    def __init__(self) :
+        self.count = 0
+        self._lazy = True
+        
+    def __enter__(self) :
+        self.count+=1
+        self._lazy = False
+        
+    def __exit__(self, *excp) :
+        self.count-=1
+        assert self.count>=0
+        if self.count==0 :
+            self._lazy = True
+
+    # Make the publically visible lazy property read-only to prevent
+    # casual mis-use
+    @property
+    def lazy(self) :
+        return self._lazy
+
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
     should implement
@@ -37,6 +58,7 @@ class SimSnap(object) :
 	self._family_slice = {}
 	self._family_arrays = {}
 	self._unifamily = None
+        self.lazy_suppressor = LazySuppressor()
 	self.filename=""
         self.properties = {}
         self._file_units_system = []
@@ -62,16 +84,17 @@ class SimSnap(object) :
 	    try:
 		return self._get_array(i)
 	    except KeyError :
-		try:
-		    self._read_array(i)
-		    return self._get_array(i)
-		except IOError :
-		    try:
-			self._derive_array(i)
-			return self._get_array(i)
-		    except (ValueError, KeyError) :
-			raise KeyError(i)
-		    
+                if self.lazy_suppressor._lazy :
+                    try:
+                        self._read_array(i)
+                        return self._get_array(i)
+                    except IOError :
+                        try:
+                            self._derive_array(i)
+                            return self._get_array(i)
+                        except (ValueError, KeyError) :
+                            pass
+                raise		    
                     
 	elif isinstance(i,slice) :
 	    return SubSnap(self, i)
@@ -562,7 +585,8 @@ class SubSnap(SimSnap) :
 	self.base = base
 	self._file_units_system = base._file_units_system
 	self._unifamily = base._unifamily
-	
+	self.lazy_suppressor = self.base.lazy_suppressor
+        
 	if isinstance(_slice,slice) :
 	    # Various slice logic later (in particular taking
 	    # subsnaps-of-subsnaps) requires having positive
@@ -645,6 +669,9 @@ class SubSnap(SimSnap) :
     def _read_array(self, array_name, fam=None) :
 	self.base._read_array(array_name, fam)
 
+    def _write_array(self, array_name) :
+        self.base._write_array(array_name)
+        
     def _derive_array(self, array_name, fam=None) :
         self.base._derive_array(array_name, fam)
         
@@ -682,7 +709,8 @@ class IndexedSubSnap(SubSnap) :
     def __init__(self, base, index_array) :
 
 	self._descriptor = "indexed"
-	
+	self.lazy_suppressor = base.lazy_suppressor
+        
 	if isinstance(index_array, filt.Filter) :
 	    self._descriptor = index_array._descriptor
 	    index_array = index_array.where(base)
@@ -738,6 +766,7 @@ class FamilySubSnap(SubSnap) :
     def __init__(self, base, fam) :
 	self.base = base
 	self.properties = base.properties
+        self.lazy_suppressor = self.base.lazy_suppressor
 	self._slice = base._get_family_slice(fam)
 	self._unifamily = fam
 	self._descriptor = ":"+fam.name

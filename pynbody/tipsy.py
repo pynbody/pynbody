@@ -130,7 +130,42 @@ class TipsySnap(snapshot.SimSnap) :
             
         return self._loadable_keys_registry
 	
-    
+
+    def _write_array(self, array_name, filename=None) :
+        """Write a TIPSY-ASCII file."""
+
+        with self.lazy_suppressor : # prevent any lazy reading or evaluation
+            if filename is None :
+                if self._filename[-3:] == '.gz' :
+                    filename = self._filename[:-3]+"."+array_name+".gz"
+                else :
+                    filename = self._filename+"."+array_name
+
+            f = util.open_(filename, 'w')
+            print>>f, str(len(self))
+
+            if array_name in self.family_keys() :
+                for fam in [family.gas, family.dm, family.star] :
+                    try:
+                        ar = self[fam][array_name]
+                    except KeyError :
+                        ar = np.zeros(len(self[fam]), dtype=int)
+
+                    if ar.dtype==float :
+                        fmt = "%g"
+                    else :
+                        fmt = "%d"
+                    np.savetxt(f, ar, fmt=fmt)
+            else :
+                ar = self[array_name]
+                if ar.dtype==float :
+                    fmt = "%g"
+                else :
+                    fmt = "%d"
+                np.savetxt(f, ar, fmt=fmt)
+
+            f.close()
+        
     def _read_array(self, array_name, fam=None, filename = None,
         packed_vector = None) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
