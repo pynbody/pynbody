@@ -26,8 +26,11 @@ class TipsySnap(snapshot.SimSnap) :
         # time?  In which case, we need some way of telling what we
         # are dealing with and setting properties accordingly.
         self.properties['a'] = t
-        self.properties['z'] = 1.0/t - 1.0
-
+        try:
+            self.properties['z'] = 1.0/t - 1.0
+        except ZeroDivisionError:
+            self.properties['z'] = None
+            
 	assert ndim==3
 	
 	self._num_particles = ng+nd+ns
