@@ -535,6 +535,12 @@ class SimSnap(object) :
 
 	self._derive_array(name)
 	return self[name]
+
+    def mean_by_mass(self, name) :
+        """Calculate the mean by mass of the specified array"""
+
+        m = np.asarray(self["mass"])
+        return (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
     
     # Methods for snapshot decoration
     
