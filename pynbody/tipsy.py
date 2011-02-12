@@ -380,7 +380,13 @@ def param2units(sim) :
 
 
     sim["vel"].units = velunit_st
-    sim["phi"].units = sim["vel"].units**2
+
+    # Assuming G=1 in code units, phi is actually vel^2/a^3.
+    # See also gasoline's master.c:5511.
+    # Or should we be calculating phi as GM/R units (which
+    # is the same for G=1 runs)?
+    sim["phi"].units = sim["vel"].units**2/units.a**3
+
     sim["eps"].units = dunit_st
     sim["pos"].units = dunit_st
     sim.gas["rho"].units = denunit_st
