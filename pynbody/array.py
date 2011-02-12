@@ -387,6 +387,7 @@ class SimArray(np.ndarray) :
             self._sim()._write_array(self._name)
         else :
             raise RuntimeError, "No link to SimSnap"
+
 	
 _u = SimArray.ufunc_rule
 
@@ -573,7 +574,7 @@ def _wrap_fn(w) :
 # implementatin
 _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
 
-for x in np.ndarray.__dict__ :
+for x in set(np.ndarray.__dict__).union(SimArray.__dict__) :
     w = getattr(SimArray, x)
     if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and callable(w) :
         setattr(IndexedSimArray, x, _wrap_fn(w))
