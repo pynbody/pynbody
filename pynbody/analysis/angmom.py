@@ -63,7 +63,14 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
 	    print "Finding halo velocity centre..."
 	cen = h.star[filt.Sphere(cen_size)]
 	if len(cen)<5 :
-	    raise ValueError, "Insufficient stars around centre to get velocity"
+	    # fall-back to DM
+	    cen = h.dm[filt.Sphere(cen_size)]
+	if len(cen)<5 :
+	    # fall-back to gas
+	    cen = h.gas[filt.Sphere(cen_size)]
+	if len(cen)<5 :
+	    # very weird snapshot, or mis-centering!
+	    raise ValueError, "Insufficient particles around centre to get velocity"
 	
 	vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
 	if verbose :
