@@ -6,7 +6,7 @@ import struct
 import numpy as np
 
 class TipsySnap(snapshot.SimSnap) :
-    def __init__(self, filename, only_header=False) :
+    def __init__(self, filename, only_header=False, must_have_paramfile=False) :
 	super(TipsySnap,self).__init__()
 	
 	self._filename = filename
@@ -62,7 +62,10 @@ class TipsySnap(snapshot.SimSnap) :
 	
 
 	self._decorate()
-	
+
+        if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
+            raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+        
         if only_header == True :
             return 
 
