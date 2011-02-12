@@ -46,8 +46,6 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # Centre, eliminate proper motion, rotate so that
     # gas disk is in X-Y plane
     if not aligned :
-	if verbose :
-	    print "Centering and aligning disk..."
 	angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose)
 	
 	# Derive or rederive quantities of interest
@@ -61,17 +59,21 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     ke = h['ke']
     pe = h['phi']
 
+    h['phi'].convert_units(ke.units) # put PE and TE into same unit system
 
     te = ke+pe
+    h['te'] = te
+    te_star = h.star['te']
     
-    te_max = te.max()
+    te_max = te_star.max()
 
     # Add an arbitrary offset to the PE to reflect the idea that
     # the group is 'fully bound'.
     te-=te_max
     print "te_max = ",te_max
+
+    h['te']-=te_max
     
-    h['te'] = te
     
     
     print "Making disk rotation curve..."
@@ -80,7 +82,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # inside a vertical height of 100pc.
     
     d = h[filt.Disc('1 Mpc', '100 pc')]
-    pro_d = profile.Profile(d, nbins=100, type='log').D()
+    pro_d = profile.Profile(d, nbins=100, type='equaln').D()
     pro_phi = pro_d['phi']
 
     # offset the potential as for the te array
@@ -96,6 +98,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
 	j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'])[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
 	h['j_circ'] = 10**j_from_E(np.log10(-h['te']))
 
+        
 	# The next line forces everything close-to-unbound into the
 	# spheroid, as per CB's original script ('get rid of weird
 	# outputs', it says). 
