@@ -8,7 +8,7 @@ from . import profile
 import numpy as np
 
 def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_circ_from_r=False,
-	   cen=None, vcen=None, verbose=True) :
+	   cen=None, vcen=None, verbose=True, log_interp=False) :
     """
     Creates an array 'decomp' for star particles in the simulation, with an
     integer specifying a kinematic decomposition. The possible values are:
@@ -95,9 +95,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
 	pro_d.create_particle_array("E_circ", out_sim=h)
     else :
 	import scipy.interpolate as interp
-	j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'])[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
-	h['j_circ'] = 10**j_from_E(np.log10(-h['te']))
-
+        if log_interp :
+            j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'])[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
+            h['j_circ'] = 10**j_from_E(np.log10(-h['te']))
+        else :
+            j_from_E  = interp.interp1d(-pro_d['E_circ'][::-1], (pro_d['j_circ'])[::-1], bounds_error=False)
+            h['j_circ'] = j_from_E(-h['te'])
         
 	# The next line forces everything close-to-unbound into the
 	# spheroid, as per CB's original script ('get rid of weird
