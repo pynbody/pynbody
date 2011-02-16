@@ -52,6 +52,13 @@ def potential_minimum(sim) :
     i = sim["phi"].argmin()
     return sim["pos"][i].copy()
 
+def hybrid_centre(sim, r='3 kpc', **kwargs) :
+    """Determine the centre of the halo by finding the
+    shrink-sphere -centre inside the specified distance
+    of the potential minimum"""
+    
+    cen_a = potential_minimum(sim)
+    return shrink_sphere_centre(sim[filt.Sphere(r, cen_a)], **kwargs)
 
 def centre(sim, mode='pot') :
     """Determine the centre of mass using the specified mode
