@@ -144,8 +144,10 @@ class Profile:
 	self.dr = np.diff(self.r)
 	
 	self.binind = []
-        self.partbin = np.digitize(self._x, self.bins)
-        
+        if len(self._x) > 0:
+            self.partbin = np.digitize(self._x, self.bins)
+        else :
+            self.partbin = np.array([])
         
         assert self._ndim in [2,3]
         if self._ndim == 2:
