@@ -327,6 +327,8 @@ def mass(self):
     mass = np.zeros(self.nbins)
     for i in range(self.nbins):
 	mass[i] = (self.sim['mass'][self.binind[i]]).sum()
+    mass = array.SimArray(mass, self.sim['mass'].units)
+    mass.sim = self.sim
     return mass
 
 @Profile.profile_property
