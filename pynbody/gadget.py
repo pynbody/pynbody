@@ -319,7 +319,7 @@ class GadgetFile :
         if p_type == -1 :
             return cur_block.length/cur_block.partlen
         else :
-            return min(cur_block.length/cur_block.partlen, self.header.npart[p_type])
+            return self.header.npart[p_type]*cur_block.p_types[p_type]
 
     def get_start_part(self, name, p_type) :
         """Find particle to skip to before starting, if reading particular type"""
@@ -445,7 +445,7 @@ class GadgetSnap(snapshot.SimSnap):
     
     def _read_array(self, name, fam=None) :
         """Read in data from a Gadget file. 
-        If fam != None, loads only data for that particle family (not implemented)"""
+        If fam != None, loads only data for that particle family"""
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = (name.upper().ljust(4," "))[0:4]
         p_read = 0
@@ -463,14 +463,16 @@ class GadgetSnap(snapshot.SimSnap):
             p_read+=f_read
             data=np.append(data, f_data)
         if np.size(data) == 0:
-                raise KeyError, "Block "+name+" not found in snapshot"
+                raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
+        #TODO: Add some logic. If we have already got the data from a family, make
+        #the family array a pointer to the main array.
         if fam is None :
             self._arrays[name] = data.reshape(dims, order='C').view(array.SimArray)
             self._arrays[name].sim = self
         else :
             self._create_family_array(name, fam, ndim, data.dtype)
             self._get_family_array(name, fam)[:] = \
-                  data.reshape(dims,order='C').view(array.SimArray)[self._get_family_slice(fam)]
+                  data.reshape(dims,order='C').view(array.SimArray)
             self._get_family_array(name, fam).sim = self
 
 
