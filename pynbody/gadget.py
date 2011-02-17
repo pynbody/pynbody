@@ -337,7 +337,7 @@ class GadgetSnap(snapshot.SimSnap):
     of the blocks, which are then read by _read_array"""
     def __init__(self, filename, only_header=False, must_have_paramfile=False) : 
         super(GadgetSnap,self).__init__()
-        self.files = []
+        self._files = []
         self._filename=""
         self.npart = np.empty(N_TYPE)
         #Check whether the file exists, and get the ".0" right
@@ -356,22 +356,22 @@ class GadgetSnap(snapshot.SimSnap):
         self.filename = self._filename
         #Read the first file and use it to get an idea of how many files we are expecting.
         first_file = GadgetFile(filename)
-        self.files.append(first_file)
-        files_expected = self.files[0].header.num_files
-        self.npart = np.array(self.files[0].header.npart)
+        self._files.append(first_file)
+        files_expected = self._files[0].header.num_files
+        self.npart = np.array(self._files[0].header.npart)
         for i in np.arange(1, files_expected):
             filename = filename[:-1]+str(i)
             tmp_file=GadgetFile(filename)
-            if not self.check_headers(tmp_file.header, self.files[0].header) :
+            if not self.check_headers(tmp_file.header, self._files[0].header) :
                 print "WARNING: file "+str(i)+" is not part of this snapshot set!"
                 continue
-            self.files.append(tmp_file)
+            self._files.append(tmp_file)
             self.npart=self.npart+tmp_file.header.npart
         #Set up things from the parent class
         self._num_particles = self.npart.sum()
         #List the blocks in the snapshot
         b_list = [] 
-        for f in self.files:
+        for f in self._files:
             b_list = set(b_list) | set( f.blocks.keys() )
         #Make all array names lower-case and trin the trailing " "'s, to match the names 
         #used for tipsy snapshots
@@ -385,14 +385,14 @@ class GadgetSnap(snapshot.SimSnap):
 
     def GetHeader(self, i) :
         """Get a header from a file"""
-        if len(self.files) <= i:
+        if len(self._files) <= i:
             return GadgetHeader()
-        return self.files[i].header
+        return self._files[i].header
 
     def GetBlockParts(self, name, p_type) :
         """Get the number of particles present in a block, of a given type"""
         total=0
-        for f in self.files:
+        for f in self._files:
             total+=f.GetBlockParts(name, p_type)
         return total
 
@@ -428,9 +428,9 @@ class GadgetSnap(snapshot.SimSnap):
         data = array.SimArray([])
         #TODO Implement GadgetType
         p_type = GadgetType(fam)
-        ndim = self.files[0].GetBlockDims(g_name)
+        ndim = self._files[0].GetBlockDims(g_name)
         dims = (self.GetBlockParts(g_name, p_type), ndim)
-        for f in self.files:
+        for f in self._files:
             f_read = 0 
             f_parts = f.GetBlockParts(g_name, p_type)
             if f_parts == 0:
