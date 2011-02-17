@@ -1,5 +1,5 @@
 from . import snapshot,array
-
+from . import family
 import numpy as np
 #Needed to unpack things
 import struct
@@ -14,19 +14,19 @@ def gadget_type(fam) :
     if fam == None:
         return -1
     else :
-        return fam
-#    if BARYON_TYPE == 0 :
-#        return 0
-#    if DM_TYPE == 0 :
-#        return 1
-#    if DISK_TYPE == 0 or NEUTRINO_TYPE ==0 :
-#        return 2
-#    if BULGE_TYPE == 0 :
-#        return 3
-#    if STARS_TYPE == 0 :
-#        return 4
-#    if BNDRY_TYPE == 0 :
-#        return 5
+        if fam == family.gas :
+            return 0
+        if fam == family.dm:
+            return 1
+        if fam == family.disk or fam == family.neutrino:
+            return 2
+        if fam == family.bulge:
+            return 3
+        if fam == family.stars:
+            return 4
+        if fam == family.bndry:
+            return 5
+    raise KeyError, "No particle of type"+fam.name
 
 class GadgetBlock : 
     """Class to describe each block.
@@ -373,6 +373,10 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up global header
         self.header=copy.deepcopy(self._files[0].header)
         self.header.npart = npart
+        #Set up _family_slice
+        self._family_slice[family.gas] = slice(0,npart[0])
+        self._family_slice[family.dm] = slice(npart[0], npart[0:2].sum())
+        self._family_slice[family.star] = slice(npart[0:4].sum(),npart[0:5].sum() )
         #List the blocks in the snapshot
         b_list = [] 
         for f in self._files:
@@ -424,7 +428,6 @@ class GadgetSnap(snapshot.SimSnap):
         p_read = 0
         p_start = 0
         data = array.SimArray([])
-        #TODO Implement gadget_type
         p_type = gadget_type(fam)
         ndim = self._files[0].get_block_dims(g_name)
         dims = (self.get_block_parts(g_name, p_type), ndim)
@@ -442,7 +445,6 @@ class GadgetSnap(snapshot.SimSnap):
             self._arrays[name] = data.reshape(dims, order='C').view(array.SimArray)
             self._arrays[name].sim = self
         else :
-            #This does not work. Not sure what it's doing, so not sure why.
             self._create_family_array(name, fam, ndim, data.dtype)
             self._get_family_array(name, fam)[:] = \
                   data.reshape(dims,order='C').view(array.SimArray)[self._get_family_slice(fam)]
