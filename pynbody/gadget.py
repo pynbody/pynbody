@@ -383,7 +383,7 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up _family_slice
         self._family_slice[family.gas] = slice(npart[0:GAS_TYPE].sum(),npart[GAS_TYPE+1].sum())
         self._family_slice[family.dm] = slice(npart[0:DM_TYPE].sum(), npart[0:DM_TYPE+1].sum())
-        #self._family_slice[family.neutrino] = slice(npart[0:NEUTRINO_TYPE].sum(), npart[0:NEUTRINO_TYPE+1].sum())
+        self._family_slice[family.neutrino] = slice(npart[0:NEUTRINO_TYPE].sum(), npart[0:NEUTRINO_TYPE+1].sum())
         self._family_slice[family.star] = slice(npart[0:STAR_TYPE].sum(),npart[0:STAR_TYPE+1].sum() )
         #Delete any arrays the parent class may have made
         self._arrays = {}

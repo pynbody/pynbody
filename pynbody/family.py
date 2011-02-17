@@ -58,4 +58,5 @@ class Family(object) :
 dm = Family("dm",["d","dark"])
 star = Family("star",["stars","st","s"])
 gas = Family("gas",["g"])
+neutrino = Family("neutrino", ["n","neu"])
 
