@@ -5,6 +5,7 @@ import numpy as np
 import struct
 import sys
 import copy
+import os.path as path
 
 #Symbolic constants for the particle types
 GAS_TYPE=0
@@ -119,9 +120,11 @@ class GadgetHeader :
 class GadgetFile :
     """This is a helper class. 
     Should only be called by GadgetSnap.
-    Contains the block location dictionary for each file."""
-    def __init__(self, filename, BlockNames={}) :
-        """BlockNames is not used at the moment; it is intended for supporting Gadget-I format files"""
+    Contains the block location dictionary for each file.
+    To read Gadget 1 format files, put a text file called blocks.txt 
+    in the same directory as the snapshot containing a newline separated 
+    list of the blocks in each snapshot file."""
+    def __init__(self, filename) :
         self._filename=filename
         self.blocks = {}
         self.header=GadgetHeader('')
@@ -130,20 +133,20 @@ class GadgetFile :
         t_part = 0
         fd=open(filename, "rb")
         self.check_format(fd)
+        #If format 1, load the block definition file.
+        if not self.format2 :
+            try:
+               self.block_names=np.loadtxt(path.join(path.dirname(filename),"/blocks.txt"))
+               for n in self.block_names:
+                   n = (n.upper().ljust(4," "))[0:4]
+            #Sane defaults
+            except IOError:
+               self.block_names = np.array(["HEAD","POS ","VEL ","ID  ","MASS","U   ","RHO ","NE  ","NH  ","NHE ","HSML","SFR "])
         while True:
             block=GadgetBlock()
-            if self.format2 :
-                (name, block.length) = self.read_G2_block_head(fd)
-                if block.length == 0 :
-                    break
-                record_size = fd.read(4)
-                if len(record_size) != 4 :
-                    raise IOError, "Ran out of data in "+filename+" before block "+name+" started"
-                (record_size,)=struct.unpack(self.endian+'I', record_size)
-                if block.length != record_size :
-                    raise IOError, "Corrupt record in "+filename+" for block "+name+" ( "+str(block.length)+" vs "+str(record_size)
-            else :
-                raise Exception, "Reading Gadget 1 files not implemented"
+            (name, block.length) = self.read_block_head(fd)
+            if block.length == 0 :
+                break
             #Do special things for the HEAD block
             if name[0:4] == "HEAD" :
                 if block.length != 256:
@@ -279,18 +282,28 @@ class GadgetFile :
         return record_size
 
 
-    def read_G2_block_head(self, fd) :
+    def read_block_head(self, fd) :
         """Read the Gadget 2 "block header" record, ie, 8 name, length, 8.
            Takes an open file and returns a (name, length) tuple """
-        head=fd.read(4*4)
-        #If we have run out of file, we don't want an exception, we just want a zero length empty block
-        if len(head) != 4*4 :
-            return ("    ",0)
-        head=struct.unpack(self.endian+'I4sII',head)
-        if head[0] != 8 or head[3] != 8 :
-            raise IOError, "Corrupt header record. Possibly incorrect file format"
-        #Don't include the two "record_size" indicators in the total length count
-        return (head[1], head[2]-8)
+        if self.format2 :
+            head=fd.read(5*4)
+            #If we have run out of file, we don't want an exception, 
+            #we just want a zero length empty block
+            if len(head) != 5*4 :
+                return ("    ",0)
+            head=struct.unpack(self.endian+'I4sIII',head)
+            if head[0] != 8 or head[3] != 8 or head[4] != head[2]-8 :
+                raise IOError, "Corrupt header record. Possibly incorrect file format"
+            #Don't include the two "record_size" indicators in the total length count
+            return (head[1], head[2]-8)
+        else :
+            record_size = fd.read(4)
+            if len(record_size) != 4 :
+                raise IOError, "Ran out of data in "+filename+" before block "+name+" started"
+            (record_size,)=struct.unpack(self.endian+'I', record_size)
+            name = self.block_names[0]
+            self.block_names = self.block_names[1:]
+            return (name, record_size)
         
     def get_block(self, name, p_type, p_toread) :
         """Get a particle range from this file, starting at p_start, 
