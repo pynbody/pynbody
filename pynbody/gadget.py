@@ -6,23 +6,41 @@ import struct
 import sys
 
 #Symbolic constants for the particle types
-BARYON_TYPE = 0
-DM_TYPE = 1
-DISK_TYPE = 2
-NEUTRINO_TYPE = 2
-BULGE_TYPE = 3
-STARS_TYPE = 4
-BNDRY_TYPE = 5
 N_TYPE = 6
+
+def GadgetType(fam) :
+    #-1 is "all types"
+    if fam == None:
+        return -1
+    else :
+        return fam
+#    if BARYON_TYPE == 0 :
+#        return 0
+#    if DM_TYPE == 0 :
+#        return 1
+#    if DISK_TYPE == 0 or NEUTRINO_TYPE ==0 :
+#        return 2
+#    if BULGE_TYPE == 0 :
+#        return 3
+#    if STARS_TYPE == 0 :
+#        return 4
+#    if BNDRY_TYPE == 0 :
+#        return 5
 
 class GadgetBlock : 
     """Class to describe each block.
     Each block has a start, a length, and a length-per-particle"""
     def __init__(self) :
+        #Start of block in file
         self.start=0
+        #Length of block in file
         self.length=0
+        #Bytes per particle in file
         self.partlen=0
-        self.p_type = np.float32
+        #Data type of block
+        self.data_type = np.float32
+        #Types of particle this block contains
+        self.p_types = np.zeros(N_TYPE,bool)
 
 class GadgetHeader :
     """Describes the header of gadget class files; this is all our metadata, so we are going to store it inline"""
@@ -138,10 +156,10 @@ class GadgetFile :
                 #Heuristic for long (64-bit) IDs
                 if block.length == t_part * 4 :
                     block.partlen = 4
-                    block.p_type = np.int32
+                    block.data_type = np.int32
                 else :
                     block.partlen = 8
-                    block.p_type = np.int64
+                    block.data_type = np.int64
             else :
                 block.partlen = 4
             block.start = fd.tell()
@@ -159,11 +177,60 @@ class GadgetFile :
                 raise IOError, "Corrupt record in "+filename+" footer for block "+name
             if extra_len >= 2**32 : 
                 block.length = extra_len
+            # Set up the particle types in the block. This also is a heuristic,
+            # which assumes that blocks are either fully present or not for a given particle type
+            block.p_types = self.GetBlockTypes(block, self.header.npart)
             self.blocks[name[0:4]] = block
 
         #and we're done.
         fd.close()
         return
+
+    def GetBlockTypes(self,block, npart):
+        """ Set up the particle types in the block, with a heuristic,
+        which assumes that blocks are either fully present or not for a given particle type"""
+        #This function is horrible.
+        p_types = np.zeros(N_TYPE,bool)
+        if block.length == npart.sum()*block.partlen:
+            p_types= np.ones(N_TYPE, bool)
+            return p_types
+        #Blocks which contain a single particle type
+        for n in np.arange(0,N_TYPE) :
+            if block.length == npart[n]*block.partlen :
+                p_types[n] = True
+                return p_types
+        #Blocks which contain two particle types
+        for n in np.arange(0,N_TYPE) :
+            for m in np.arange(0,N_TYPE) :
+                if block.length == (npart[n]+npart[m])*block.partlen :
+                    p_types[n] = True
+                    p_types[m] = True
+                    return p_types
+        #Blocks which contain four particle types
+        for n in np.arange(0,N_TYPE) :
+            for m in np.arange(0,N_TYPE) :
+                if block.length == (npart.sum() - npart[n]+npart[m])*block.partlen :
+                    p_types = np.ones(N_TYPE, bool)
+                    p_types[n] = False
+                    p_types[m] = False
+                    return p_types
+        #Blocks which contain five particle type
+        for n in np.arange(0,N_TYPE) :
+            if block.length == npart[n]*block.partlen :
+                p_types = np.ones(N_TYPE, bool)
+                p_types[n] = False
+                return p_types
+        #Blocks which contain three particle types
+        for n in np.arange(0,N_TYPE) :
+            for m in np.arange(0,N_TYPE) :
+                for l in np.arange(0,N_TYPE) :
+                    if block.length == (npart[n]+npart[m]+npart[l])*block.partlen :
+                        p_types[n] = True
+                        p_types[m] = True
+                        return p_types
+        raise ValueError, "Could not determine particle types for block"
+
+
 
     def check_format(self, fd):
         """This function reads the first character of a file and, depending on its value, determines
@@ -217,39 +284,51 @@ class GadgetFile :
         #Don't include the two "record_size" indicators in the total length count
         return (head[1], head[2]-8)
         
-    def GetBlock(self, name, p_start, p_toread) :
+    def GetBlock(self, name, p_type, p_toread) :
         """Get a particle range from this file, starting at p_start, 
         and reading a maximum of p_toread particles"""
         p_read = 0
         cur_block = self.blocks[name]
-        parts = self.GetBlockParts(name)
-        if p_start >= parts :
-            return (p_start - parts, np.empty([]))
-        if p_start+p_toread > parts :
-            p_toread = parts - p_start
+        parts = self.GetBlockParts(name, p_type)
+        p_start = self.GetStartPart(name, p_type)
+        if p_toread > parts :
+            p_toread = parts
         fd=open(self._filename, 'rb')
         fd.seek(cur_block.start+cur_block.partlen*p_start,0)
         #This is just so that we can get a size for the type
-        dt = np.dtype(cur_block.p_type)
+        dt = np.dtype(cur_block.data_type)
         n_type = p_toread*cur_block.partlen/dt.itemsize
-        data=np.fromfile(fd, dtype=cur_block.p_type, count=n_type, sep = '')
+        data=np.fromfile(fd, dtype=cur_block.data_type, count=n_type, sep = '')
         if self.endian != '=' :
             data=data.byteswap(True)
         return (p_toread, data)
 
-    def GetBlockParts(self, name):
+    def GetBlockParts(self, name, p_type):
         """Get the number of particles present in a block in this file"""
         if not self.blocks.has_key(name) :
                 return 0
         cur_block = self.blocks[name]
-        return cur_block.length/cur_block.partlen
-    
+        if p_type == -1 :
+            return cur_block.length/cur_block.partlen
+        else :
+            return min(cur_block.length/cur_block.partlen, self.header.npart[p_type])
+
+    def GetStartPart(self, name, p_type) :
+        """Find particle to skip to before starting, if reading particular type"""
+        if p_type == -1:
+            return 0
+        else :
+            if not self.blocks.has_key(name) :
+                    return 0
+            cur_block = self.blocks[name]
+            return (cur_block.p_types*self.header.npart)[0:p_type].sum()
+
     def GetBlockDims(self, name):
         """Get the dimensionality of the block, eg, 3 for POS, 1 for most other things"""
         if not self.blocks.has_key(name) :
                 return 0
         cur_block = self.blocks[name]
-        dt = np.dtype(cur_block.p_type)
+        dt = np.dtype(cur_block.data_type)
         return cur_block.partlen/dt.itemsize
 
 
@@ -296,10 +375,11 @@ class GadgetSnap(snapshot.SimSnap):
             b_list = set(b_list) | set( f.blocks.keys() )
         #Make all array names lower-case and trin the trailing " "'s, to match the names 
         #used for tipsy snapshots
-        b_list = [b.lower().rstrip() for b in b_list]
+        #Don't entirely understand why this doesn't work, and why tipsy.py is using it.
+#        b_list = [b.lower().rstrip() for b in b_list]
         self._arrays = {}
-        for k in b_list :
-            self._arrays[k] = array.SimArray([])
+#        for k in b_list :
+#            self._arrays[k] = array.SimArray([])
         #TODO: Set up file_units_system
         return
 
@@ -309,11 +389,11 @@ class GadgetSnap(snapshot.SimSnap):
             return GadgetHeader()
         return self.files[i].header
 
-    def GetBlockParts(self, name) :
-        """Get the number of particles present in a block"""
+    def GetBlockParts(self, name, p_type) :
+        """Get the number of particles present in a block, of a given type"""
         total=0
         for f in self.files:
-            total+=f.GetBlockParts(name)
+            total+=f.GetBlockParts(name, p_type)
         return total
 
     def check_headers(self, head1, head2) :
@@ -346,23 +426,30 @@ class GadgetSnap(snapshot.SimSnap):
         p_read = 0
         p_start = 0
         data = array.SimArray([])
-        dims = (self.GetBlockParts(g_name), self.files[0].GetBlockDims(g_name))
-        #TODO Need some mapping between fam and integers. 
-        if fam != None :
-            #Do something
-            pass
+        #TODO Implement GadgetType
+        p_type = GadgetType(fam)
+        ndim = self.files[0].GetBlockDims(g_name)
+        dims = (self.GetBlockParts(g_name, p_type), ndim)
         for f in self.files:
             f_read = 0 
-            f_parts = f.GetBlockParts(g_name)
+            f_parts = f.GetBlockParts(g_name, p_type)
             if f_parts == 0:
                 continue
-            (f_read, f_data) = f.GetBlock(g_name, 0, f_parts)
+            (f_read, f_data) = f.GetBlock(g_name, p_type, f_parts)
             p_read+=f_read
             data=np.append(data, f_data)
         if np.size(data) == 0:
                 raise KeyError, "Block "+name+" not found in snapshot"
-        self._arrays[name] = data.reshape(dims, order='C').view(array.SimArray)
-        self._arrays[name].sim = self
+        if fam is None :
+            self._arrays[name] = data.reshape(dims, order='C').view(array.SimArray)
+            self._arrays[name].sim = self
+        else :
+            #This does not work. Not sure what it's doing, so not sure why.
+            self._create_family_array(name, fam, ndim, data.dtype)
+            self._get_family_array(name, fam)[:] = \
+                  data.reshape(dims,order='C').view(array.SimArray)[self._get_family_slice(fam)]
+            self._get_family_array(name, fam).sim = self
+
 
     def _write_array(self, name, p_toread,p_start, p_type) :
         raise Exception, "Not yet implemented"
