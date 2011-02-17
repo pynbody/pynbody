@@ -8,7 +8,7 @@ import sys
 #Symbolic constants for the particle types
 N_TYPE = 6
 
-def GadgetType(fam) :
+def gadget_type(fam) :
     #-1 is "all types"
     if fam == None:
         return -1
@@ -179,14 +179,14 @@ class GadgetFile :
                 block.length = extra_len
             # Set up the particle types in the block. This also is a heuristic,
             # which assumes that blocks are either fully present or not for a given particle type
-            block.p_types = self.GetBlockTypes(block, self.header.npart)
+            block.p_types = self.get_block_types(block, self.header.npart)
             self.blocks[name[0:4]] = block
 
         #and we're done.
         fd.close()
         return
 
-    def GetBlockTypes(self,block, npart):
+    def get_block_types(self,block, npart):
         """ Set up the particle types in the block, with a heuristic,
         which assumes that blocks are either fully present or not for a given particle type"""
         #This function is horrible.
@@ -284,13 +284,13 @@ class GadgetFile :
         #Don't include the two "record_size" indicators in the total length count
         return (head[1], head[2]-8)
         
-    def GetBlock(self, name, p_type, p_toread) :
+    def get_block(self, name, p_type, p_toread) :
         """Get a particle range from this file, starting at p_start, 
         and reading a maximum of p_toread particles"""
         p_read = 0
         cur_block = self.blocks[name]
-        parts = self.GetBlockParts(name, p_type)
-        p_start = self.GetStartPart(name, p_type)
+        parts = self.get_block_parts(name, p_type)
+        p_start = self.get_start_part(name, p_type)
         if p_toread > parts :
             p_toread = parts
         fd=open(self._filename, 'rb')
@@ -303,7 +303,7 @@ class GadgetFile :
             data=data.byteswap(True)
         return (p_toread, data)
 
-    def GetBlockParts(self, name, p_type):
+    def get_block_parts(self, name, p_type):
         """Get the number of particles present in a block in this file"""
         if not self.blocks.has_key(name) :
                 return 0
@@ -313,7 +313,7 @@ class GadgetFile :
         else :
             return min(cur_block.length/cur_block.partlen, self.header.npart[p_type])
 
-    def GetStartPart(self, name, p_type) :
+    def get_start_part(self, name, p_type) :
         """Find particle to skip to before starting, if reading particular type"""
         if p_type == -1:
             return 0
@@ -323,7 +323,7 @@ class GadgetFile :
             cur_block = self.blocks[name]
             return (cur_block.p_types*self.header.npart)[0:p_type].sum()
 
-    def GetBlockDims(self, name):
+    def get_block_dims(self, name):
         """Get the dimensionality of the block, eg, 3 for POS, 1 for most other things"""
         if not self.blocks.has_key(name) :
                 return 0
@@ -386,17 +386,11 @@ class GadgetSnap(snapshot.SimSnap):
         #TODO: Set up file_units_system
         return
 
-    def GetHeader(self, i) :
-        """Get a header from a file"""
-        if len(self._files) <= i:
-            return GadgetHeader()
-        return self._files[i].header
-
-    def GetBlockParts(self, name, p_type) :
+    def get_block_parts(self, name, p_type) :
         """Get the number of particles present in a block, of a given type"""
         total=0
         for f in self._files:
-            total+=f.GetBlockParts(name, p_type)
+            total+=f.get_block_parts(name, p_type)
         return total
 
     def check_headers(self, head1, head2) :
@@ -429,16 +423,16 @@ class GadgetSnap(snapshot.SimSnap):
         p_read = 0
         p_start = 0
         data = array.SimArray([])
-        #TODO Implement GadgetType
-        p_type = GadgetType(fam)
-        ndim = self._files[0].GetBlockDims(g_name)
-        dims = (self.GetBlockParts(g_name, p_type), ndim)
+        #TODO Implement gadget_type
+        p_type = gadget_type(fam)
+        ndim = self._files[0].get_block_dims(g_name)
+        dims = (self.get_block_parts(g_name, p_type), ndim)
         for f in self._files:
             f_read = 0 
-            f_parts = f.GetBlockParts(g_name, p_type)
+            f_parts = f.get_block_parts(g_name, p_type)
             if f_parts == 0:
                 continue
-            (f_read, f_data) = f.GetBlock(g_name, p_type, f_parts)
+            (f_read, f_data) = f.get_block(g_name, p_type, f_parts)
             p_read+=f_read
             data=np.append(data, f_data)
         if np.size(data) == 0:
