@@ -776,7 +776,8 @@ class FamilySubSnap(SubSnap) :
 	self._slice = base._get_family_slice(fam)
 	self._unifamily = fam
 	self._descriptor = ":"+fam.name
-	self._num_particles = len(self["pos"])
+        # Use the slice attributes to find sub array length
+	self._num_particles = self._slice.stop-self._slice.start
 
 
     def __delitem__(self, name) :
