@@ -4,6 +4,7 @@ import numpy as np
 #Needed to unpack things
 import struct
 import sys
+import copy
 
 #Symbolic constants for the particle types
 N_TYPE = 6
@@ -370,7 +371,7 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up things from the parent class
         self._num_particles = npart.sum()
         #Set up global header
-        self.header=self._files[0].header
+        self.header=copy.deepcopy(self._files[0].header)
         self.header.npart = npart
         #List the blocks in the snapshot
         b_list = [] 
