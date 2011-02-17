@@ -229,13 +229,6 @@ class GadgetFile :
             p_toread = parts - p_start
         fd=open(self._filename, 'rb')
         fd.seek(cur_block.start+cur_block.partlen*p_start,0)
-        # This does not allow us to change the endianness of our data. 
-        # The only standard library way I can see to do that 
-        # (and hand-rolling a class is probably not an option here) 
-        # is SciPy.io.npfile.npfile which apparently is deprecated, and
-        # would bring in scipy dependencies. 
-        # There are no major big-endian architectures around any more, 
-        # so for now just raise an exception
         #This is just so that we can get a size for the type
         dt = np.dtype(cur_block.p_type)
         n_type = p_toread*cur_block.partlen/dt.itemsize
