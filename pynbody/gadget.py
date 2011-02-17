@@ -7,6 +7,13 @@ import sys
 import copy
 
 #Symbolic constants for the particle types
+GAS_TYPE=0
+DM_TYPE = 1
+NEUTRINO_TYPE = 2
+DISK_TYPE = 2
+BULGE_TYPE = 3
+STAR_TYPE = 4
+BNDRY_TYPE = 5
 N_TYPE = 6
 
 def gadget_type(fam) :
@@ -15,17 +22,17 @@ def gadget_type(fam) :
         return -1
     else :
         if fam == family.gas :
-            return 0
+            return GAS_TYPE
         if fam == family.dm:
-            return 1
+            return DM_TYPE
         if fam == family.disk or fam == family.neutrino:
-            return 2
+            return NEUTRINO_TYPE
         if fam == family.bulge:
-            return 3
+            return BULGE_TYPE
         if fam == family.stars:
-            return 4
+            return STAR_TYPE
         if fam == family.bndry:
-            return 5
+            return BNDRY_TYPE
     raise KeyError, "No particle of type"+fam.name
 
 class GadgetBlock : 
@@ -374,22 +381,38 @@ class GadgetSnap(snapshot.SimSnap):
         self.header=copy.deepcopy(self._files[0].header)
         self.header.npart = npart
         #Set up _family_slice
-        self._family_slice[family.gas] = slice(0,npart[0])
-        self._family_slice[family.dm] = slice(npart[0], npart[0:2].sum())
-        self._family_slice[family.star] = slice(npart[0:4].sum(),npart[0:5].sum() )
-        #List the blocks in the snapshot
-        b_list = [] 
-        for f in self._files:
-            b_list = set(b_list) | set( f.blocks.keys() )
-        #Make all array names lower-case and trin the trailing " "'s, to match the names 
-        #used for tipsy snapshots
-        #Don't entirely understand why this doesn't work, and why tipsy.py is using it.
-#        b_list = [b.lower().rstrip() for b in b_list]
+        self._family_slice[family.gas] = slice(npart[0:GAS_TYPE].sum(),npart[GAS_TYPE+1].sum())
+        self._family_slice[family.dm] = slice(npart[0:DM_TYPE].sum(), npart[0:DM_TYPE+1].sum())
+        #self._family_slice[family.neutrino] = slice(npart[0:NEUTRINO_TYPE].sum(), npart[0:NEUTRINO_TYPE+1].sum())
+        self._family_slice[family.star] = slice(npart[0:STAR_TYPE].sum(),npart[0:STAR_TYPE+1].sum() )
+        #Delete any arrays the parent class may have made
         self._arrays = {}
-#        for k in b_list :
-#            self._arrays[k] = array.SimArray([])
         #TODO: Set up file_units_system
         return
+
+    def get_block_list():
+        """Get list of unique blocks in snapshot (most of the time these should be the same 
+        in each file), with the types they refer to"""
+        b_list = {}
+        for f in self._files:
+            b_list.update(f.blocks)
+        #Setup array references
+        #Make all array names lower-case and trim trailing spaces, to match the names 
+        #used for tipsy snapshots
+        out_list={}
+        for k,b in b_list.iteritems() :
+            b_name = k.lower().rstrip()
+            b_types = ()
+            if b.p_types[GAS_TYPE]:
+                b_types.append(family.gas)
+            if b.p_types[DM_TYPE]:
+                b_types.append(family.dm)
+            if b.p_types[NEUTRINO_TYPE]:
+                b_types.append(family.neutrino)
+            if b.p_types[STAR_TYPE]:
+                b_types.append(family.star)
+            out_list[b_name] = b_types
+        return out_list
 
     def get_block_parts(self, name, p_type) :
         """Get the number of particles present in a block, of a given type"""
