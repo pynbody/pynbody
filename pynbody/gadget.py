@@ -369,5 +369,20 @@ class GadgetSnap(snapshot.SimSnap):
 
     @staticmethod
     def _can_load(f) :
-	# to implement!
-        return True
+	"""Check whether we can load the file as Gadget format by reading 
+        the first 4 bytes"""
+        try:
+            fd=open(f)
+        except IOError:
+            try:
+                fd=open(f+".0")
+            except:
+                return False
+                #If we can't open the file, we certainly can't load it...
+        (r,) = struct.unpack('=I',fd.read(4))
+        fd.close()
+        #First int32 is 8 for a Gadget 2 file, or 256 for Gadget 1, or the byte swapped equivalent.
+        if r == 8 or r == 134217728 or r == 65536 or r == 256 :
+            return True
+        else :
+            return False
