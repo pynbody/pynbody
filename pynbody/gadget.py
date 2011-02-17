@@ -339,7 +339,7 @@ class GadgetSnap(snapshot.SimSnap):
         super(GadgetSnap,self).__init__()
         self._files = []
         self._filename=""
-        self.npart = np.empty(N_TYPE)
+        npart = np.empty(N_TYPE)
         #Check whether the file exists, and get the ".0" right
         try:
             fd=open(filename)
@@ -358,7 +358,7 @@ class GadgetSnap(snapshot.SimSnap):
         first_file = GadgetFile(filename)
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
-        self.npart = np.array(self._files[0].header.npart)
+        npart = np.array(self._files[0].header.npart)
         for i in np.arange(1, files_expected):
             filename = filename[:-1]+str(i)
             tmp_file=GadgetFile(filename)
@@ -366,9 +366,12 @@ class GadgetSnap(snapshot.SimSnap):
                 print "WARNING: file "+str(i)+" is not part of this snapshot set!"
                 continue
             self._files.append(tmp_file)
-            self.npart=self.npart+tmp_file.header.npart
+            npart=npart+tmp_file.header.npart
         #Set up things from the parent class
-        self._num_particles = self.npart.sum()
+        self._num_particles = npart.sum()
+        #Set up global header
+        self.header=self._files[0].header
+        self.header.npart = npart
         #List the blocks in the snapshot
         b_list = [] 
         for f in self._files:
