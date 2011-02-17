@@ -236,12 +236,13 @@ class GadgetFile :
         # would bring in scipy dependencies. 
         # There are no major big-endian architectures around any more, 
         # so for now just raise an exception
-        if self.endian != '=' :
-            raise ValueError, "Reading endian swapped particle data is not implemented"
         #This is just so that we can get a size for the type
         dt = np.dtype(cur_block.p_type)
         n_type = p_toread*cur_block.partlen/dt.itemsize
-        return (p_toread, np.fromfile(fd, dtype=cur_block.p_type, count=n_type, sep = ''))
+        data=np.fromfile(fd, dtype=cur_block.p_type, count=n_type, sep = '')
+        if self.endian != '=' :
+            data=data.byteswap(True)
+        return (p_toread, data)
 
     def GetBlockParts(self, name):
         """Get the number of particles present in a block in this file"""
