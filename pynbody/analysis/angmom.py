@@ -51,7 +51,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     if cen is None :
 	if verbose :
 	    print "Finding halo centre..."
-	cen = halo.shrink_sphere_centre(h) # or h['pos'][h['phi'].argmin()]
+	cen = halo.hybrid_centre(h) # or h['pos'][h['phi'].argmin()]
 	if verbose :
 	    print "cen=",cen
 	    
