@@ -2,11 +2,11 @@ from . import snapshot, array, util
 from . import family
 from . import units
 
-import struct
+import struct #, os
 import numpy as np
 
 class TipsySnap(snapshot.SimSnap) :
-    def __init__(self, filename, only_header=False, must_have_paramfile=False) :
+    def __init__(self, filename, only_header=False) :
 	super(TipsySnap,self).__init__()
 	
 	self._filename = filename
@@ -38,7 +38,6 @@ class TipsySnap(snapshot.SimSnap) :
 	self._family_slice[family.dm] = slice(ng, nd+ng)
 	self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
-        
 	self._create_arrays(["pos","vel"],3)
 	self._create_arrays(["mass","eps","phi"])
 	self.gas._create_arrays(["rho","temp","metals"])
@@ -63,12 +62,9 @@ class TipsySnap(snapshot.SimSnap) :
 
 	self._decorate()
 
-        if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
-            raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
-        
-        if only_header == True :
-            return 
-
+        if only_header == True:
+            return
+	
 	for n_left, type, st in file_structure :
 	    n_done = 0
 	    self_type = self[type]
@@ -100,81 +96,20 @@ class TipsySnap(snapshot.SimSnap) :
 		f = util.open_(x)
 		return int(f.readline()) == len(self)
 	    except (IOError, ValueError) :
-                # could be a binary file
-                f.seek(0)
-                
-                buflen = len(f.read())
-                
-                if (buflen-4)/4/3. == len(self) : # it's a float vector 
-                    return True
-                elif (buflen-4)/4. == len(self) : # it's a float array 
-                    return True
-                else :
-                    return False
-
+		return False
 	    
 	import glob
-
-        if len(self._loadable_keys_registry) == 0 :
-            
-            name = util.cutgz(self._filename)
-            
-            fs = glob.glob(name+".*")
-            
-            res =  map(lambda q: q[len(name)+1:], filter(is_readable_array, fs))
-            for i,n in enumerate(res): res[i] = util.cutgz(n)
-
-            self._loadable_keys_registry['From files'] = res
-            self._loadable_keys_registry['To compute'] = snapshot.SimSnap.loadable_keys(self)
-
-            for type in self._loadable_keys_registry: self._loadable_keys_registry[type].sort(key=str.lower)
-            
-            self._loadable_keys_registry.__repr__ = self._print_loadable_keys_registry
-            
-        return self._loadable_keys_registry
+	fs = glob.glob(self._filename+".*")
+        res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
+        res+=snapshot.SimSnap.loadable_keys(self)
+        return res
 	
-
-    def _write_array(self, array_name, filename=None) :
-        """Write a TIPSY-ASCII file."""
-
-        with self.lazy_suppressor : # prevent any lazy reading or evaluation
-            if filename is None :
-                if self._filename[-3:] == '.gz' :
-                    filename = self._filename[:-3]+"."+array_name+".gz"
-                else :
-                    filename = self._filename+"."+array_name
-
-            f = util.open_(filename, 'w')
-            print>>f, str(len(self))
-
-            if array_name in self.family_keys() :
-                for fam in [family.gas, family.dm, family.star] :
-                    try:
-                        ar = self[fam][array_name]
-                    except KeyError :
-                        ar = np.zeros(len(self[fam]), dtype=int)
-
-                    if ar.dtype==float :
-                        fmt = "%g"
-                    else :
-                        fmt = "%d"
-                    np.savetxt(f, ar, fmt=fmt)
-            else :
-                ar = self[array_name]
-                if ar.dtype==float :
-                    fmt = "%g"
-                else :
-                    fmt = "%d"
-                np.savetxt(f, ar, fmt=fmt)
-
-            f.close()
-        
     def _read_array(self, array_name, fam=None, filename = None,
-        packed_vector = None) :
+                    packed_vector = None) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
         specified name. If fam is not None, read only the particles of
         the specified family."""
-
+        
         import sys, os
 	
 	# N.B. this code is a bit inefficient for loading
@@ -182,10 +117,9 @@ class TipsySnap(snapshot.SimSnap) :
 	# then slices it.  But of course the memory is only wasted
 	# while still inside this routine, so it's only really the
 	# wasted time that's a problem.
-
-
+	
         # determine whether the array exists in a file
-
+        
         if filename is None :
             if self._filename[-3:] == '.gz' :
                 filename = self._filename[:-3]+"."+array_name
@@ -194,17 +128,14 @@ class TipsySnap(snapshot.SimSnap) :
                 
             if not os.path.isfile(filename) :
                 filename+=".gz"
-
-        
+          
         f = util.open_(filename)
-        
-
+ 
         # if we get here, we've got the file - try loading it
-
-        try :
-            l = int(f.readline())
-
-        except ValueError :
+  
+	try :
+	    l = int(f.readline())
+	except ValueError :
             # this is probably a binary file
             import xdrlib
             binary = True
@@ -225,14 +156,13 @@ class TipsySnap(snapshot.SimSnap) :
                 raise IOError, "Incorrect file format"
         else:
             binary = False
-
             if l!=len(self) :
                 raise IOError, "Incorrect file format"
-
+	
             # Inspect the first line to see whether it's float or int
             l = "0\n"
             while l=="0\n" : l = f.readline()
-            if "." in l or "e" in l :
+            if "." in l :
                 tp = float
             else :
                 tp = int
@@ -246,10 +176,9 @@ class TipsySnap(snapshot.SimSnap) :
 
             if ndim*len(self)!=len(data) :
                 raise IOError, "Incorrect file format"
-
+	
         if ndim>1 :
-            dims = (len(self),ndim)
-
+            dims = (len(data),ndim)
             # check whether the vector format is specified in the param file
             # this only matters for binary because ascii files use packed vectors by default
             if (binary) and (packed_vector == None) :
@@ -266,21 +195,81 @@ class TipsySnap(snapshot.SimSnap) :
                 v_order = 'C'
             else :
                 v_order = 'F'
-        else :
-            dims = len(self)
+	else :
+	    dims = len(self)
             v_order = 'C'
 
-
-        if fam is None :
+	if fam is None :
             self._arrays[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
             self._arrays[array_name].sim = self
-        else :
+	else :
             self._create_family_array(array_name, fam, ndim, data.dtype)
             self._get_family_array(array_name, fam)[:] = \
                                            data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
             self._get_family_array(array_name, fam).sim = self
+	
+    def load_starlog(self, fam=None) :
+	"""Read a TIPSY-starlog file."""
+ 	file_structure = {'names': ("iorderStar","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
+	
+        import sys, os, glob
+        x = os.path.abspath(sim._filename)
+        done = False
+        filename=None
+        for i in xrange(2) :
+            x = os.path.dirname(x)
+            l = glob.glob(os.path.join(x,"*.starlog"))
+            for filename in l :
+                # Attempt the loading of information
+                try :
+                    f = file(filename)
+                except IOError :
+                    l = glob.glob(os.path.join(x,"../*.starlog"))
+                    try : 
+                        for filename in l:
+                            f = file(filename)
+                    except IOError:
+                        continue
+	
+                    size = struct.unpack("i", f.read(4))
+                    iSize = size[0]
+                    if (iSize>  1000 or iSize<  10):
+                        byteswap=True
+                        f.seek(0)
+                        size = struct.unpack(">i", f.read(4))
+                        iSize = size[0]
             
+                        n = (os.path.getsize(filename)-f.tell())/iSize
 
+                        self.star._create_arrays(["posform","velform"],3)
+                        self.star._create_arrays(["iorderStar","iorderGas","massform","rhoform","tempform","metals","tform"])
+        
+                        if(byteswap):
+                            g = np.fromstring(f.read(n*iSize),dtype=file_structure).byteswap()
+                        else:
+                            g = np.fromstring(f.read(n*iSize),dtype=file_structure)
+
+                        try: self.star["velform"].units = self["vel"].units
+                        except AttributeError:   pass
+                        try: self.star["posform"].units = self["pos"].units
+                        except AttributeError:   pass
+                        try: self.star["rhoform"].units = self.gas["rho"].units
+                        except AttributeError:   pass
+                        try: self.star["massform"].units = self["mass"].units
+                        except AttributeError:   pass
+                        try: self.star["tempform"].units = self.gas["temp"].units
+                        except AttributeError:   pass
+                        
+                        for name in file_structure['names'] :
+                            self.star[name][:] = g[name][:len(self.star)-1]
+#        This is in the numpy documentation, but doesn't work in 
+#        my version.  to eliminate duplicate stars which happen when you
+#        restart from checkpoint.
+#        g, indices = np.unique(g['iorderStar'], return_index=True)
+#        for key in file_structure['names']:
+#            if (key != 'iorderStar'):
+#                g[key] = g[key][indices]
+	
 	
     @staticmethod
     def _can_load(f) :
@@ -303,7 +292,12 @@ def load_paramfile(sim) :
 	    try :
 		f = file(filename)
 	    except IOError :
-		continue
+                l = glob.glob(os.path.join(x,"../*.param"))
+                try : 
+                    for filename in l:
+                        f = file(filename)
+                except IOError:
+                    continue
 	    
             
             for line in f :
@@ -322,10 +316,10 @@ def load_paramfile(sim) :
         if done : break
 
             
-
 @TipsySnap.decorator
 def param2units(sim) :
     import sys, math, os, glob
+    
 
     munit = dunit = hub = None
     
@@ -378,18 +372,10 @@ def param2units(sim) :
         denunit_st += " a^-3"
         velunit_st += " a"
 
-        # Assume the box size is equal to the length unit
-        sim.properties["boxsize"] = units.Unit(dunit_st)
 
 
     sim["vel"].units = velunit_st
-
-    # Assuming G=1 in code units, phi is actually vel^2/a^3.
-    # See also gasoline's master.c:5511.
-    # Or should we be calculating phi as GM/R units (which
-    # is the same for G=1 runs)?
-    sim["phi"].units = sim["vel"].units**2/units.a**3
-
+    sim["phi"].units = sim["vel"].units**2
     sim["eps"].units = dunit_st
     sim["pos"].units = dunit_st
     sim.gas["rho"].units = denunit_st
@@ -406,7 +392,7 @@ def param2units(sim) :
         sim.properties['omegaM0'] = float(om_m0)
         sim.properties['omegaL0'] = float(om_lam0)
 
-
+        
 def _abundance_estimator(metal) :
 
     Y_He = ((0.236+2.1*metal)/4.0)*(metal<=0.1)
@@ -457,3 +443,48 @@ def p(sim) :
     p = sim["u"]*sim["rho"]*(2./3)
     p.convert_units("dyn")
     return p
+
+
+class StarLog(snapshot.SimSnap):
+    def __init__(self, filename):
+        import os
+	super(StarLog,self).__init__()
+        self._filename = filename
+
+ 	f = util.open_(filename)
+        self.properties = {}
+        
+ 	file_structure = {'names': ("iorderStar","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
+
+ 	size = struct.unpack("i", f.read(4))
+        iSize = size[0]
+        if (iSize>  1000 or iSize<  10):
+            byteswap=True
+            f.seek(0)
+            size = struct.unpack(">i", f.read(4))
+        iSize = size[0]
+            
+        n = (os.path.getsize(filename)-f.tell())/iSize
+	self._num_particles = n
+
+	self._family_slice[family.star] = slice(0, n)
+        
+        self._create_arrays(["pos","vel"],3)
+ 	self.star._create_arrays(["iorderStar","iorderGas","massform","rhoform","tempform","metals","tform"])
+        
+        if(byteswap):
+            g = np.fromstring(f.read(n*iSize),dtype=file_structure).byteswap()
+        else:
+            g = np.fromstring(f.read(n*iSize),dtype=file_structure)
+
+	self._decorate()
+ 
+        for name in file_structure['names'] :
+            self.star[name][:] = g[name]
+            
+#        self.star['iorderStar'][:], indices = np.unique(self.star['iorderStar'],
+#                                                        return_index=True)
+#        for key in self.star.keys():
+#            if (key != 'iorderStar'):
+#                self.star[key] = self.star[key][indices]
+
