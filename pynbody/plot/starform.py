@@ -12,4 +12,4 @@ def sfh(t,filename=None,**kwargs):
 
 
 def schmidtlaw(t,filename=None,pretime=50,**kwargs):
-    starmass, bins = np.histogram(t.star['r'].[np.where(t.star['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)]
+    starmass, bins = np.histogram(t.star['r'].[np.where(t.star['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)])

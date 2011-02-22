@@ -6,4 +6,3 @@ reload(profile)
 
 from .starform import sfh
 from .profile import rotation_curve
-

@@ -1,5 +1,5 @@
 import numpy as np
-    
+
 def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
@@ -23,7 +23,7 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     """
     import matplotlib.pyplot as plt
     from matplotlib import ticker, colors
-    
+
 
     if kwargs.has_key('t_range'):
         t_range = kwargs['t_range']
@@ -35,10 +35,10 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
         assert len(rho_range) == 2
     else:
         rho_range = (np.min(sim.gas['rho']), np.max(sim.gas['rho']))
-    
+
     hist, x, y = np.histogram2d(np.log10(sim.gas['temp']), np.log10(sim.gas['rho']),bins=nbins,range=[t_range,rho_range])
 
-    
+
     if log:
         levels = np.logspace(np.log10(np.min(hist[hist>0])),       # there must be an
                              np.log10(np.max(hist)),nlevels)      # easier way to do this...
@@ -52,10 +52,6 @@ def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
                                                           # are swapped
                      hist, levels, norm=cont_color)
 
-                                                   
+
     plt.xlabel(r'$log_{10}(\rho/'+sim.gas['rho'].units.latex()+')$')
     plt.ylabel(r'$log_{10}(T/'+sim.gas['temp'].units.latex()+')$')
-    
-
-
-

@@ -36,7 +36,7 @@ def gadget_type(fam) :
             return BNDRY_TYPE
     raise KeyError, "No particle of type"+fam.name
 
-class GadgetBlock : 
+class GadgetBlock :
     """Class to describe each block.
     Each block has a start, a length, and a length-per-particle"""
     def __init__(self) :
@@ -57,7 +57,7 @@ class GadgetHeader :
         """Takes a byte range, read from a file, creates a header"""
         #Number of particles
         self.npart = np.zeros(N_TYPE, dtype=np.uint32)
-        # Mass of each particle type in this file. If zero, 
+        # Mass of each particle type in this file. If zero,
         # particle mass stored in snapshot.
         self.mass = np.zeros(N_TYPE)
         # Time of snapshot
@@ -70,7 +70,7 @@ class GadgetHeader :
         self.flag_feedback=False
         # First 32-bits of total number of particles in the simulation
         self.npartTotal=np.zeros(N_TYPE,dtype=np.int32)
-        # Boolean to test the presence of cooling 
+        # Boolean to test the presence of cooling
         self.flag_cooling=False
         # Number of files expected in this snapshot
         self.num_files=0
@@ -80,19 +80,19 @@ class GadgetHeader :
         self.Omega0=0.
         # Dark energy density
         self.OmegaLambda=0.
-        # Hubble parameter, in units where it is around 70. 
+        # Hubble parameter, in units where it is around 70.
         self.HubbleParam=0.
         # Boolean to test whether stars have an age
         self.flag_stellarage=False
         # Boolean to test the presence of metals
         self.flag_metals=False
-        # Long word of the total number of particles in the simulation. 
-        # At least one version of N-GenICs sets this to something entirely different. 
+        # Long word of the total number of particles in the simulation.
+        # At least one version of N-GenICs sets this to something entirely different.
         self.NallHW=np.zeros(N_TYPE,dtype=np.int32)
-        self.flag_entropy_instead_u=False	# flags that IC-file contains entropy instead of u 
-        self.flag_doubleprecision=False	 # flags that snapshot contains double-precision instead of single precision 
+        self.flag_entropy_instead_u=False       # flags that IC-file contains entropy instead of u
+        self.flag_doubleprecision=False  # flags that snapshot contains double-precision instead of single precision
 
-        self.flag_ic_info=False 
+        self.flag_ic_info=False
         # flag to inform whether IC files are generated with Zeldovich approximation,
         # or whether they contain 2nd order lagrangian perturbation theory ICs.
         #    FLAG_ZELDOVICH_ICS     (1)   - IC file based on Zeldovich
@@ -101,8 +101,8 @@ class GadgetHeader :
         #    FLAG_EVOLVED_2LPT      (4)   - snapshot evolved from 2lpt ICs
         #    FLAG_NORMALICS_2LPT    (5)   - standard gadget file format with 2lpt ICs
         # All other values, including 0 are interpreted as "don't know" for backwards compatability.
-        self.lpt_scalingfactor=0.      # scaling factor for 2lpt initial conditions 
-    
+        self.lpt_scalingfactor=0.      # scaling factor for 2lpt initial conditions
+
         if data == '':
             return
         fmt= endian+"IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif48s"
@@ -110,19 +110,19 @@ class GadgetHeader :
             raise Exception, "There is a bug in gadget.py; the header format string is not 256 bytes"
         (self.npart[0], self.npart[1],self.npart[2],self.npart[3],self.npart[4],self.npart[5],
         self.mass[0], self.mass[1],self.mass[2],self.mass[3],self.mass[4],self.mass[5],
-        self.time, self.redshift,  self.flag_sfr, self.flag_feedback, 
+        self.time, self.redshift,  self.flag_sfr, self.flag_feedback,
         self.npartTotal[0], self.npartTotal[1],self.npartTotal[2],self.npartTotal[3],self.npartTotal[4],self.npartTotal[5],
-        self.flag_cooling, self.num_files, self.BoxSize, self.Omega0, self.OmegaLambda, self.HubbleParam,self.flag_stellarage, self.flag_metals, 
+        self.flag_cooling, self.num_files, self.BoxSize, self.Omega0, self.OmegaLambda, self.HubbleParam,self.flag_stellarage, self.flag_metals,
         self.NallHW[0], self.NallHW[1],self.NallHW[2],self.NallHW[3],self.NallHW[4],self.NallHW[5],
-        self.flag_entropy_instead_u, self.flag_doubleprecision, self.flag_ic_info, self.lpt_scalingfactor,fill) = struct.unpack(fmt, data) 
+        self.flag_entropy_instead_u, self.flag_doubleprecision, self.flag_ic_info, self.lpt_scalingfactor,fill) = struct.unpack(fmt, data)
         return
 
 class GadgetFile :
-    """This is a helper class. 
+    """This is a helper class.
     Should only be called by GadgetSnap.
     Contains the block location dictionary for each file.
-    To read Gadget 1 format files, put a text file called blocks.txt 
-    in the same directory as the snapshot containing a newline separated 
+    To read Gadget 1 format files, put a text file called blocks.txt
+    in the same directory as the snapshot containing a newline separated
     list of the blocks in each snapshot file."""
     def __init__(self, filename) :
         self._filename=filename
@@ -136,12 +136,12 @@ class GadgetFile :
         #If format 1, load the block definition file.
         if not self.format2 :
             try:
-               self.block_names=np.loadtxt(path.join(path.dirname(filename),"/blocks.txt"))
-               for n in self.block_names:
-                   n = (n.upper().ljust(4," "))[0:4]
+                self.block_names=np.loadtxt(path.join(path.dirname(filename),"/blocks.txt"))
+                for n in self.block_names:
+                    n = (n.upper().ljust(4," "))[0:4]
             #Sane defaults
             except IOError:
-               self.block_names = np.array(["HEAD","POS ","VEL ","ID  ","MASS","U   ","RHO ","NE  ","NH  ","NHE ","HSML","SFR "])
+                self.block_names = np.array(["HEAD","POS ","VEL ","ID  ","MASS","U   ","RHO ","NE  ","NH  ","NHE ","HSML","SFR "])
         while True:
             block=GadgetBlock()
             (name, block.length) = self.read_block_head(fd)
@@ -176,17 +176,17 @@ class GadgetFile :
             block.start = fd.tell()
             # Check for the case where the record size overflows an int.
             # If this is true, we can't get record size from the length and we just have to guess
-            # At least the record sizes at either end should be consistently wrong. 
+            # At least the record sizes at either end should be consistently wrong.
             # Better hope this only happens for blocks where all particles are present.
             extra_len = t_part *block.partlen
-            if extra_len >= 2**32 : 
+            if extra_len >= 2**32 :
                 fd.seek(extra_len,1)
             else :
                 fd.seek(block.length,1)
             record_size = self.read_block_foot(fd)
             if record_size != block.length :
                 raise IOError, "Corrupt record in "+filename+" footer for block "+name
-            if extra_len >= 2**32 : 
+            if extra_len >= 2**32 :
                 block.length = extra_len
             # Set up the particle types in the block. This also is a heuristic,
             # which assumes that blocks are either fully present or not for a given particle type
@@ -246,7 +246,7 @@ class GadgetFile :
 
     def check_format(self, fd):
         """This function reads the first character of a file and, depending on its value, determines
-        whether we have a format 1 or 2 file, and whether the endianness is swapped. For the endianness, 
+        whether we have a format 1 or 2 file, and whether the endianness is swapped. For the endianness,
         it then determines the correct byteorder string to pass to struct.unpack. There is not string
         for 'not native', so this is more complex than it needs to be"""
         fd.seek(0,0)
@@ -254,7 +254,7 @@ class GadgetFile :
         if r == 8 :
             self.endian = '='
             self.format2 = True
-        elif r == 134217728 : 
+        elif r == 134217728 :
             if sys.byteorder == 'little':
                 self.endian = '>'
             else :
@@ -272,7 +272,7 @@ class GadgetFile :
         else :
             raise IOError, "File corrupt. First integer is: "+str(r)
         fd.seek(0,0)
-        return 
+        return
 
     def read_block_foot(self, fd):
         """Unpacks the block footer, into a single integer"""
@@ -288,7 +288,7 @@ class GadgetFile :
            Takes an open file and returns a (name, length) tuple """
         if self.format2 :
             head=fd.read(5*4)
-            #If we have run out of file, we don't want an exception, 
+            #If we have run out of file, we don't want an exception,
             #we just want a zero length empty block
             if len(head) != 5*4 :
                 return ("    ",0)
@@ -305,9 +305,9 @@ class GadgetFile :
             name = self.block_names[0]
             self.block_names = self.block_names[1:]
             return (name, record_size)
-        
+
     def get_block(self, name, p_type, p_toread) :
-        """Get a particle range from this file, starting at p_start, 
+        """Get a particle range from this file, starting at p_start,
         and reading a maximum of p_toread particles"""
         p_read = 0
         cur_block = self.blocks[name]
@@ -328,7 +328,7 @@ class GadgetFile :
     def get_block_parts(self, name, p_type):
         """Get the number of particles present in a block in this file"""
         if not self.blocks.has_key(name) :
-                return 0
+            return 0
         cur_block = self.blocks[name]
         if p_type == -1 :
             return cur_block.length/cur_block.partlen
@@ -341,23 +341,23 @@ class GadgetFile :
             return 0
         else :
             if not self.blocks.has_key(name) :
-                    return 0
+                return 0
             cur_block = self.blocks[name]
             return (cur_block.p_types*self.header.npart)[0:p_type].sum()
 
     def get_block_dims(self, name):
         """Get the dimensionality of the block, eg, 3 for POS, 1 for most other things"""
         if not self.blocks.has_key(name) :
-                return 0
+            return 0
         cur_block = self.blocks[name]
         dt = np.dtype(cur_block.data_type)
         return cur_block.partlen/dt.itemsize
 
 
 class GadgetSnap(snapshot.SimSnap):
-    """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations 
+    """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
     of the blocks, which are then read by _read_array"""
-    def __init__(self, filename, only_header=False, must_have_paramfile=False) : 
+    def __init__(self, filename, only_header=False, must_have_paramfile=False) :
         super(GadgetSnap,self).__init__()
         self._files = []
         self._filename=""
@@ -371,7 +371,7 @@ class GadgetSnap(snapshot.SimSnap):
             filename = filename+".0"
         fd.close()
         if filename[-2:] == ".0" :
-                self._filename = filename [:-2]
+            self._filename = filename [:-2]
         else:
             self._filename=filename
         #Not sure why the class has self.filename, but everything seems to manipulate self._filename?
@@ -405,13 +405,13 @@ class GadgetSnap(snapshot.SimSnap):
         return
 
     def get_block_list():
-        """Get list of unique blocks in snapshot (most of the time these should be the same 
+        """Get list of unique blocks in snapshot (most of the time these should be the same
         in each file), with the types they refer to"""
         b_list = {}
         for f in self._files:
             b_list.update(f.blocks)
         #Setup array references
-        #Make all array names lower-case and trim trailing spaces, to match the names 
+        #Make all array names lower-case and trim trailing spaces, to match the names
         #used for tipsy snapshots
         out_list={}
         for k,b in b_list.iteritems() :
@@ -437,14 +437,14 @@ class GadgetSnap(snapshot.SimSnap):
 
     def check_headers(self, head1, head2) :
         """Check two headers for consistency"""
-        if ( head1.time != head2.time or head1.redshift!= head2.redshift or 
+        if ( head1.time != head2.time or head1.redshift!= head2.redshift or
            head1.flag_sfr != head2.flag_sfr or
            head1.flag_feedback != head2.flag_feedback or
            head1.num_files != head2.num_files or
            head1.BoxSize != head2.BoxSize or
            head1.Omega0 != head2.Omega0 or
            head1.OmegaLambda != head2.OmegaLambda or
-           head1.HubbleParam != head2.HubbleParam  or 
+           head1.HubbleParam != head2.HubbleParam  or
            head1.flag_stellarage != head2.flag_stellarage or
            head1.flag_metals != head2.flag_metals) :
             return False;
@@ -452,13 +452,13 @@ class GadgetSnap(snapshot.SimSnap):
         if((head1.mass != head2.mass).any() or  (head1.npartTotal != head2.npartTotal).any()) :
         #        or head1.NallHW != head2.NallHW)
             return False;
-        #  At least one version of N-GenICs writes a header file which 
-        #  ignores everything past flag_metals (!), leaving it uninitialised. 
+        #  At least one version of N-GenICs writes a header file which
+        #  ignores everything past flag_metals (!), leaving it uninitialised.
         #  Therefore, we can't check them.
         return True
-    
+
     def _read_array(self, name, fam=None) :
-        """Read in data from a Gadget file. 
+        """Read in data from a Gadget file.
         If fam != None, loads only data for that particle family"""
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = (name.upper().ljust(4," "))[0:4]
@@ -469,7 +469,7 @@ class GadgetSnap(snapshot.SimSnap):
         ndim = self._files[0].get_block_dims(g_name)
         dims = (self.get_block_parts(g_name, p_type), ndim)
         for f in self._files:
-            f_read = 0 
+            f_read = 0
             f_parts = f.get_block_parts(g_name, p_type)
             if f_parts == 0:
                 continue
@@ -477,7 +477,7 @@ class GadgetSnap(snapshot.SimSnap):
             p_read+=f_read
             data=np.append(data, f_data)
         if np.size(data) == 0:
-                raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
+            raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
         #TODO: Add some logic. If we have already got the data from a family, make
         #the family array a pointer to the main array so we don't load things twice.
         if fam is None :
@@ -495,7 +495,7 @@ class GadgetSnap(snapshot.SimSnap):
 
     @staticmethod
     def _can_load(f) :
-	"""Check whether we can load the file as Gadget format by reading 
+        """Check whether we can load the file as Gadget format by reading
         the first 4 bytes"""
         try:
             fd=open(f)
