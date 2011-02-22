@@ -217,20 +217,6 @@ class GadgetFile :
                     p_types[n] = True
                     p_types[m] = True
                     return p_types
-        #Blocks which contain four particle types
-        for n in np.arange(0,N_TYPE) :
-            for m in np.arange(0,N_TYPE) :
-                if block.length == (npart.sum() - npart[n]+npart[m])*block.partlen :
-                    p_types = np.ones(N_TYPE, bool)
-                    p_types[n] = False
-                    p_types[m] = False
-                    return p_types
-        #Blocks which contain five particle type
-        for n in np.arange(0,N_TYPE) :
-            if block.length == npart[n]*block.partlen :
-                p_types = np.ones(N_TYPE, bool)
-                p_types[n] = False
-                return p_types
         #Blocks which contain three particle types
         for n in np.arange(0,N_TYPE) :
             for m in np.arange(0,N_TYPE) :
@@ -238,7 +224,22 @@ class GadgetFile :
                     if block.length == (npart[n]+npart[m]+npart[l])*block.partlen :
                         p_types[n] = True
                         p_types[m] = True
+                        p_types[l] = True
                         return p_types
+        #Blocks which contain four particle types
+        for n in np.arange(0,N_TYPE) :
+            for m in np.arange(0,N_TYPE) :
+                if block.length == (npart.sum() - npart[n]-npart[m])*block.partlen :
+                    p_types = np.ones(N_TYPE, bool)
+                    p_types[n] = False
+                    p_types[m] = False
+                    return p_types
+        #Blocks which contain five particle type
+        for n in np.arange(0,N_TYPE) :
+            if block.length == (npart.sum() -npart[n])*block.partlen :
+                p_types = np.ones(N_TYPE, bool)
+                p_types[n] = False
+                return p_types
         raise ValueError, "Could not determine particle types for block"
 
 
@@ -478,7 +479,7 @@ class GadgetSnap(snapshot.SimSnap):
         if np.size(data) == 0:
                 raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
         #TODO: Add some logic. If we have already got the data from a family, make
-        #the family array a pointer to the main array.
+        #the family array a pointer to the main array so we don't load things twice.
         if fam is None :
             self._arrays[name] = data.reshape(dims, order='C').view(array.SimArray)
             self._arrays[name].sim = self
