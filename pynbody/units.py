@@ -177,7 +177,10 @@ class UnitBase(object) :
 	    return (self/other).dimensionless_constant(**substitutions)
 	except UnitsException :
 	    raise UnitsException, "Not convertible"
-	
+
+    def in_units(self, *a, **k) :
+	return self.ratio(*a, **k)
+    
     def irrep(self) :
 	"""Return a unit equivalent to this one (may be identical) but
 	expressed in terms of the currently defined IrreducibleUnit
