@@ -2,11 +2,11 @@ from . import snapshot, array, util
 from . import family
 from . import units
 
-import struct #, os
+import struct
 import numpy as np
 
 class TipsySnap(snapshot.SimSnap) :
-    def __init__(self, filename, only_header=False) :
+    def __init__(self, filename, only_header=False, must_have_paramfile=False) :
 	super(TipsySnap,self).__init__()
 	
 	self._filename = filename
@@ -62,6 +62,9 @@ class TipsySnap(snapshot.SimSnap) :
 
 	self._decorate()
 
+        if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
+            raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+
         if only_header == True:
             return
 	
@@ -96,14 +99,62 @@ class TipsySnap(snapshot.SimSnap) :
 		f = util.open_(x)
 		return int(f.readline()) == len(self)
 	    except (IOError, ValueError) :
-		return False
+		# could be a binary file
+                f.seek(0)
+                buflen = len(f.read())
+                if (buflen-4)/4/3. == len(self) : # it's a float vector
+                    return True
+                elif (buflen-4)/4. == len(self) : # it's a float array
+                    return True
+                else :
+                    return False
 	    
 	import glob
-	fs = glob.glob(self._filename+".*")
-        res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
-        res+=snapshot.SimSnap.loadable_keys(self)
-        return res
-	
+	if len(self._loadable_keys_registry) == 0 :
+            name = util.cutgz(self._filename)
+            fs = glob.glob(self._filename+".*")
+            res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
+            for i,n in enumerate(res): res[i] = util.cutgz(n)
+            self._loadable_keys_registry['From files'] = res
+            self._loadable_keys_registry['To compute'] = snapshot.SimSnap.loadable_keys(self)
+            for type in self._loadable_keys_registry: self._loadable_keys_registry[type].sort(key=str.lower)
+            self._loadable_keys_registry.__repr__ = self._print_loadable_keys_registry
+        return self._loadable_keys_registry
+    
+    def _write_array(self, array_name, filename=None) :		
+        """Write a TIPSY-ASCII file."""		
+        
+        with self.lazy_suppressor : # prevent any lazy reading or evaluation		
+            if filename is None :		
+                if self._filename[-3:] == '.gz' :		
+                    filename = self._filename[:-3]+"."+array_name+".gz"		
+                else :		
+                    filename = self._filename+"."+array_name			
+            f = util.open_(filename, 'w')		
+            print>>f, str(len(self))		
+			
+            if array_name in self.family_keys() :		
+                for fam in [family.gas, family.dm, family.star] :		
+                    try:		
+                        ar = self[fam][array_name]		
+                    except KeyError :		
+                        ar = np.zeros(len(self[fam]), dtype=int)		
+			
+                    if ar.dtype==float :		
+                        fmt = "%g"		
+                    else :		
+                        fmt = "%d"		
+                    np.savetxt(f, ar, fmt=fmt)		
+            else :		
+                ar = self[array_name]		
+                if ar.dtype==float :		
+                    fmt = "%g"		
+                else :		
+                    fmt = "%d"		
+                np.savetxt(f, ar, fmt=fmt)		
+			
+        f.close()
+        
     def _read_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
@@ -162,7 +213,7 @@ class TipsySnap(snapshot.SimSnap) :
             # Inspect the first line to see whether it's float or int
             l = "0\n"
             while l=="0\n" : l = f.readline()
-            if "." in l :
+            if "." in l or "e" in l :
                 tp = float
             else :
                 tp = int
@@ -178,7 +229,7 @@ class TipsySnap(snapshot.SimSnap) :
                 raise IOError, "Incorrect file format"
 	
         if ndim>1 :
-            dims = (len(data),ndim)
+            dims = (len(self),ndim)
             # check whether the vector format is specified in the param file
             # this only matters for binary because ascii files use packed vectors by default
             if (binary) and (packed_vector == None) :
@@ -375,7 +426,11 @@ def param2units(sim) :
 
 
     sim["vel"].units = velunit_st
-    sim["phi"].units = sim["vel"].units**2
+    #  Assuming G=1 in code units, phi is actually vel^2/a^3.		
+    # See also gasoline's master.c:5511.		
+    # Or should we be calculating phi as GM/R units (which		
+    # is the same for G=1 runs)?
+    sim["phi"].units = sim["vel"].units**2 / units.a**3
     sim["eps"].units = dunit_st
     sim["pos"].units = dunit_st
     sim.gas["rho"].units = denunit_st
