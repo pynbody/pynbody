@@ -70,13 +70,14 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # Add an arbitrary offset to the PE to reflect the idea that
     # the group is 'fully bound'.
     te-=te_max
-    print "te_max = ",te_max
+    if verbose :
+	print "te_max = ",te_max
 
     h['te']-=te_max
     
     
-    
-    print "Making disk rotation curve..."
+    if verbose :
+	print "Making disk rotation curve..."
     
     # Now make a rotation curve for the disk. We'll take everything
     # inside a vertical height of 100pc.
