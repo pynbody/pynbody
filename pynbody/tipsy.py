@@ -259,7 +259,7 @@ class TipsySnap(snapshot.SimSnap) :
                                            data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
             self._get_family_array(array_name, fam).sim = self
 	
-    def load_starlog(self, fam=None) :
+    def read_starlog(self, fam=None) :
 	"""Read a TIPSY-starlog file."""
  	file_structure = {'names': ("iorderStar","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
 	
@@ -326,126 +326,6 @@ class TipsySnap(snapshot.SimSnap) :
     def _can_load(f) :
 	# to implement!
 	return True
-
-@TipsySnap.decorator
-def load_paramfile(sim) :
-    import sys, os, glob
-    x = os.path.abspath(sim._filename)
-    done = False
-    sim._paramfile = {}
-    filename=None
-    for i in xrange(2) :
-        x = os.path.dirname(x)
-	l = glob.glob(os.path.join(x,"*.param"))
-
-	for filename in l :
-	    # Attempt the loading of information
-	    try :
-		f = file(filename)
-	    except IOError :
-                l = glob.glob(os.path.join(x,"../*.param"))
-                try : 
-                    for filename in l:
-                        f = file(filename)
-                except IOError:
-                    continue
-	    
-            
-            for line in f :
-		try :
-                    if line[0]!="#" :
-                        s = line.split()
-                        sim._paramfile[s[0]] = " ".join(s[2:])
-                                
-		except IndexError, ValueError :
-		    pass
-
-            if len(sim._paramfile)>1 :
-                sim._paramfile["filename"] = filename
-                done = True
-                
-        if done : break
-
-            
-@TipsySnap.decorator
-def param2units(sim) :
-    import sys, math, os, glob
-    
-
-    munit = dunit = hub = None
-    
-    try :
-        munit_st = sim._paramfile["dMsolUnit"]+" Msol"
-        munit = float(sim._paramfile["dMsolUnit"])
-        dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
-        dunit = float(sim._paramfile["dKpcUnit"])
-        hub = float(sim._paramfile["dHubble0"])
-        om_m0 = float(sim._paramfile["dOmega0"])
-        om_lam0 = float(sim._paramfile["dLambda"])
-
-    except KeyError :
-        pass
-
-    if munit is None or dunit is None :
-        return
-
-
-    denunit = munit/dunit**3
-    denunit_st = str(denunit)+" Msol kpc^-3"
-
-    #
-    # the obvious way:
-    #
-    #denunit_cgs = denunit * 6.7696e-32
-    #kpc_in_km = 3.0857e16
-    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
-    #velunit = dunit*kpc_in_km/secunit
-
-    # the sensible way:
-    # avoid numerical accuracy problems by concatinating factors:
-    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
-    velunit_st = ("%.5g"%velunit)+" km s^-1"
-
-    #You have: kpc s / km
-    #You want: Gyr
-    #* 0.97781311
-    timeunit = dunit / velunit * 0.97781311
-    timeunit_st = ("%.5g"%timeunit)+" Gyr"
-
-    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
-
-    if hub!=None:
-        hubunit = 10. * velunit / dunit
-        hubunit_st = ("%.3f"%(hubunit*hub))
-
-        # append dependence on 'a' for cosmological runs
-        dunit_st += " a"
-        denunit_st += " a^-3"
-        velunit_st += " a"
-
-
-
-    sim["vel"].units = velunit_st
-    #  Assuming G=1 in code units, phi is actually vel^2/a^3.		
-    # See also gasoline's master.c:5511.		
-    # Or should we be calculating phi as GM/R units (which		
-    # is the same for G=1 runs)?
-    sim["phi"].units = sim["vel"].units**2 / units.a**3
-    sim["eps"].units = dunit_st
-    sim["pos"].units = dunit_st
-    sim.gas["rho"].units = denunit_st
-    sim["mass"].units = munit_st
-    sim.star["tform"].units = timeunit_st
-
-    sim.gas["metals"].units = ""
-    sim.star["metals"].units = ""
-
-    sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
-
-    if hub!=None:
-        sim.properties['h'] = hubunit*hub
-        sim.properties['omegaM0'] = float(om_m0)
-        sim.properties['omegaL0'] = float(om_lam0)
 
         
 def _abundance_estimator(metal) :
@@ -520,26 +400,178 @@ class StarLog(snapshot.SimSnap):
         iSize = size[0]
             
         n = (os.path.getsize(filename)-f.tell())/iSize
-	self._num_particles = n
 
-	self._family_slice[family.star] = slice(0, n)
-        
-        self._create_arrays(["pos","vel"],3)
- 	self.star._create_arrays(["iorderStar","iorderGas","massform","rhoform","tempform","metals","tform"])
-        
         if(byteswap):
             g = np.fromstring(f.read(n*iSize),dtype=file_structure).byteswap()
         else:
             g = np.fromstring(f.read(n*iSize),dtype=file_structure)
 
+        iord, indices = np.unique(g['iorderStar'],return_index=True)
+
+	self._num_particles = indices.size
+
+	self._family_slice[family.star] = slice(0, n)
+        
+        self._create_arrays(["pos","vel"],3)
+ 	self.star._create_arrays(["iorderStar","iorderGas","massform","rhoform","tempform","metals","tform"])
+
 	self._decorate()
- 
+
         for name in file_structure['names'] :
-            self.star[name][:] = g[name]
+            self.star[name][:] = g[name][indices]
+
+
+
+@TipsySnap.decorator
+@StarLog.decorator
+def load_paramfile(sim) :
+    import sys, os, glob
+    x = os.path.abspath(sim._filename)
+    done = False
+    sim._paramfile = {}
+    filename=None
+    for i in xrange(2) :
+        x = os.path.dirname(x)
+	l = glob.glob(os.path.join(x,"*.param"))
+
+	for filename in l :
+	    # Attempt the loading of information
+	    try :
+		f = file(filename)
+	    except IOError :
+                l = glob.glob(os.path.join(x,"../*.param"))
+                try : 
+                    for filename in l:
+                        f = file(filename)
+                except IOError:
+                    continue
+	    
             
-#        self.star['iorderStar'][:], indices = np.unique(self.star['iorderStar'],
-#                                                        return_index=True)
-#        for key in self.star.keys():
-#            if (key != 'iorderStar'):
-#                self.star[key] = self.star[key][indices]
+            for line in f :
+		try :
+                    if line[0]!="#" :
+                        s = line.split()
+                        sim._paramfile[s[0]] = " ".join(s[2:])
+                                
+		except IndexError, ValueError :
+		    pass
+
+            if len(sim._paramfile)>1 :
+                sim._paramfile["filename"] = filename
+                done = True
+                
+        if done : break
+
+            
+@TipsySnap.decorator
+@StarLog.decorator
+def param2units(sim) :
+    import sys, math, os, glob
+    
+
+    munit = dunit = hub = None
+    
+    try :
+        munit_st = sim._paramfile["dMsolUnit"]+" Msol"
+        munit = float(sim._paramfile["dMsolUnit"])
+        dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
+        dunit = float(sim._paramfile["dKpcUnit"])
+        hub = float(sim._paramfile["dHubble0"])
+        om_m0 = float(sim._paramfile["dOmega0"])
+        om_lam0 = float(sim._paramfile["dLambda"])
+
+    except KeyError :
+        pass
+
+    if munit is None or dunit is None :
+        return
+
+
+    denunit = munit/dunit**3
+    denunit_st = str(denunit)+" Msol kpc^-3"
+
+    #
+    # the obvious way:
+    #
+    #denunit_cgs = denunit * 6.7696e-32
+    #kpc_in_km = 3.0857e16
+    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
+    #velunit = dunit*kpc_in_km/secunit
+
+    # the sensible way:
+    # avoid numerical accuracy problems by concatinating factors:
+    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
+    velunit_st = ("%.5g"%velunit)+" km s^-1"
+
+    #You have: kpc s / km
+    #You want: Gyr
+    #* 0.97781311
+    timeunit = dunit / velunit * 0.97781311
+    timeunit_st = ("%.5g"%timeunit)+" Gyr"
+
+    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
+
+    if hub!=None:
+        hubunit = 10. * velunit / dunit
+        hubunit_st = ("%.3f"%(hubunit*hub))
+
+        # append dependence on 'a' for cosmological runs
+        dunit_st += " a"
+        denunit_st += " a^-3"
+        velunit_st += " a"
+
+
+
+    sim["vel"].units = velunit_st
+    #  Assuming G=1 in code units, phi is actually vel^2/a^3.		
+    # See also gasoline's master.c:5511.		
+    # Or should we be calculating phi as GM/R units (which		
+    # is the same for G=1 runs)?
+    try :
+        sim["phi"].units = sim["vel"].units**2 / units.a**3
+        sim["eps"].units = dunit_st
+    except KeyError :
+        pass
+    
+    sim["pos"].units = dunit_st
+    try :
+        sim.gas["rho"].units = denunit_st
+    except KeyError :
+        pass
+
+    try :
+        sim.star["rhoform"].units = denunit_st
+    except KeyError :
+        pass
+
+    try:
+        sim.star["massform"].units = munit_st
+    except KeyError :
+        pass
+
+    try :
+        sim["mass"].units = munit_st
+    except KeyError :
+        pass
+
+    sim.star["tform"].units = timeunit_st
+
+    try :
+        sim.gas["metals"].units = ""
+    except KeyError :
+        pass
+    
+    sim.star["metals"].units = ""
+
+    try :
+        sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
+    except KeyError :
+        try :
+            sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units]
+        except : pass
+
+    if hub!=None:
+        sim.properties['h'] = hubunit*hub
+        sim.properties['omegaM0'] = float(om_m0)
+        sim.properties['omegaL0'] = float(om_lam0)
 

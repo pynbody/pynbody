@@ -9,6 +9,7 @@ For most users, the function of interest will be render_image."""
 import numpy as np
 import scipy, scipy.weave
 from scipy.weave import inline
+import snapshot, array
 import math
 from . import snapshot, array
 

@@ -313,7 +313,9 @@ class SimSnap(object) :
         for k in self : 
             yield (k, self[k])
             
-        
+    def _read_array(self, array_name, fam=None) :
+	raise IOError, "No lazy-loading implemented"
+
     def families(self) :
 	"""Return the particle families which have representitives in this SimSnap."""
 	out = []

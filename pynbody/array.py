@@ -44,7 +44,7 @@ Getting the array in specified units
 Given an array, you can convert it in-place into units of your
 own chosing:
   x = SimArray([1,2], "Msol")
-  x.convert_units('kg)
+  x.convert_units('kg')
   print x # ->  SimArray([  1.99e+30,   3.98e+30], 'kg')
   
 Or you can leave the original array alone and get a *copy* in
