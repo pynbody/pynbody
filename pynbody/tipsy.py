@@ -22,12 +22,6 @@ class TipsySnap(snapshot.SimSnap) :
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
 
-        # In non-cosmological simulations, what is t? Is it physical
-        # time?  In which case, we need some way of telling what we
-        # are dealing with and setting properties accordingly.
-        self.properties['a'] = t
-        self.properties['z'] = 1.0/t - 1.0
-
 	assert ndim==3
 	
 	self._num_particles = ng+nd+ns
@@ -62,9 +56,23 @@ class TipsySnap(snapshot.SimSnap) :
 
 	self._decorate()
 
+
+
         if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
             raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
 
+	if self._paramfile.has_key('bComove') and self._paramfile['bComove']!=0 :
+	    from . import analysis
+	    import analysis.cosmology
+	    # In non-cosmological simulations, what is t? Is it physical
+	    # time?  In which case, we need some way of telling what we
+	    # are dealing with and setting properties accordingly.
+	    self.properties['a'] = t
+	    self.properties['z'] = 1.0/t - 1.0
+	    self.properties['time'] = analysis.cosmology.age(self, unit=self.infer_original_units('Gyr')) * self.infer_original_units('Gyr')
+	else :
+	    self.properties['time'] = t * self.infer_original_units('Gyr')
+		
         if only_header == True:
             return
 	
@@ -160,7 +168,10 @@ class TipsySnap(snapshot.SimSnap) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
         specified name. If fam is not None, read only the particles of
         the specified family."""
-        
+
+	if filename is None and array_name in ['massform', 'rhoform', 'tempform'] :
+	    self.read_starlog()
+	    
         import sys, os
 	
 	# N.B. this code is a bit inefficient for loading
@@ -259,7 +270,7 @@ class TipsySnap(snapshot.SimSnap) :
                                            data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
             self._get_family_array(array_name, fam).sim = self
 	
-    def load_starlog(self, fam=None) :
+    def read_starlog(self, fam=None) :
 	"""Read a TIPSY-starlog file."""
  	file_structure = {'names': ("iorderStar","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
 	
