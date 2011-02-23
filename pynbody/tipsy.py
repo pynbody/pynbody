@@ -72,7 +72,7 @@ class TipsySnap(snapshot.SimSnap) :
             n_done = 0
             self_type = self[type]
             while n_left>0 :
-                n_block = max(n_left,max_block_size)
+                n_block = min(n_left,max_block_size)
 
                 # Read in the block
                 if(byteswap):
