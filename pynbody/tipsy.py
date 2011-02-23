@@ -287,28 +287,27 @@ class TipsySnap(snapshot.SimSnap) :
         x = os.path.abspath(self._filename)
         done = False
         filename=None
-        for i in xrange(2) :
-            x = os.path.dirname(x)
-            l = glob.glob(os.path.join(x,"*.starlog"))
-            for filename in l :
-                # Attempt the loading of information
-                try :
-                    sl = StarLog(filename)
-                except IOError :
-                    l = glob.glob(os.path.join(x,"../*.starlog"))
-                    try : 
-                        for filename in l:
-                            sl = StarLog(filename)
-                    except IOError:
-                        continue
+        x = os.path.dirname(x)
+        l = glob.glob(os.path.join(x,"*.starlog"))
+        for filename in l :
+            # Attempt the loading of information
+            try :
+                sl = StarLog(filename)
+            except IOError :
+                l = glob.glob(os.path.join(x,"../*.starlog"))
+                try : 
+                    for filename in l:
+                        sl = StarLog(filename)
+                except IOError:
+                    continue
 
-                b = pynbody.bridge.OrderBridge(self,sl)
-                b(sl).star['iorderGas'] = sl.star['iorderGas'][:self.star['iord'].size-1]
-                b(sl).star['massform'] = sl.star['massform'][:self.star['iord'].size-1]
-                b(sl).star['rhoform'] = sl.star['rhoform'][:self.star['iord'].size-1]
-                b(sl).star['tempform'] = sl.star['tempform'][:self.star['iord'].size-1]
-                b(sl)['posform'] = sl['pos'][:,:self.star['iord'].size-1]
-                b(sl)['velform'] = sl['vel'][:,:self.star['iord'].size-1]
+            b = pynbody.bridge.OrderBridge(self,sl)
+            b(sl).star['iorderGas'] = sl.star['iorderGas'][:self.star['iord'].size]
+            b(sl).star['massform'] = sl.star['massform'][:self.star['iord'].size]
+            b(sl).star['rhoform'] = sl.star['rhoform'][:self.star['iord'].size]
+            b(sl).star['tempform'] = sl.star['tempform'][:self.star['iord'].size]
+            b(sl)['posform'] = sl['pos'][:self.star['iord'].size,:]
+            b(sl)['velform'] = sl['vel'][:self.star['iord'].size,:]
                 
 	
     @staticmethod
