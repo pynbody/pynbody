@@ -134,39 +134,39 @@ class TipsySnap(snapshot.SimSnap) :
             for type in self._loadable_keys_registry: self._loadable_keys_registry[type].sort(key=str.lower)
             self._loadable_keys_registry.__repr__ = self._print_loadable_keys_registry
         return self._loadable_keys_registry
-    
-    def _write_array(self, array_name, filename=None) :		
-        """Write a TIPSY-ASCII file."""		
-        
-        with self.lazy_suppressor : # prevent any lazy reading or evaluation		
-            if filename is None :		
-                if self._filename[-3:] == '.gz' :		
-                    filename = self._filename[:-3]+"."+array_name+".gz"		
-                else :		
-                    filename = self._filename+"."+array_name			
-            f = util.open_(filename, 'w')		
-            print>>f, str(len(self))		
-			
-            if array_name in self.family_keys() :		
-                for fam in [family.gas, family.dm, family.star] :		
-                    try:		
-                        ar = self[fam][array_name]		
-                    except KeyError :		
-                        ar = np.zeros(len(self[fam]), dtype=int)		
-			
-                    if ar.dtype==float :		
-                        fmt = "%g"		
-                    else :		
-                        fmt = "%d"		
-                    np.savetxt(f, ar, fmt=fmt)		
-            else :		
-                ar = self[array_name]		
-                if ar.dtype==float :		
-                    fmt = "%g"		
-                else :		
-                    fmt = "%d"		
-                np.savetxt(f, ar, fmt=fmt)		
-			
+
+    def _write_array(self, array_name, filename=None) :
+        """Write a TIPSY-ASCII file."""
+
+        with self.lazy_off : # prevent any lazy reading or evaluation
+            if filename is None :
+                if self._filename[-3:] == '.gz' :
+                    filename = self._filename[:-3]+"."+array_name+".gz"
+                else :
+                    filename = self._filename+"."+array_name
+            f = util.open_(filename, 'w')
+            print>>f, str(len(self))
+
+            if array_name in self.family_keys() :
+                for fam in [family.gas, family.dm, family.star] :
+                    try:
+                        ar = self[fam][array_name]
+                    except KeyError :
+                        ar = np.zeros(len(self[fam]), dtype=int)
+
+                    if ar.dtype==float :
+                        fmt = "%g"
+                    else :
+                        fmt = "%d"
+                    np.savetxt(f, ar, fmt=fmt)
+            else :
+                ar = self[array_name]
+                if ar.dtype==float :
+                    fmt = "%g"
+                else :
+                    fmt = "%d"
+                np.savetxt(f, ar, fmt=fmt)
+
         f.close()
         
     def _read_array(self, array_name, fam=None, filename = None,
@@ -460,113 +460,111 @@ def load_paramfile(sim) :
 @TipsySnap.decorator
 @StarLog.decorator
 def param2units(sim) :
-    import sys, math, os, glob
-    
+    with sim.lazy_off :
+        import sys, math, os, glob
 
-    munit = dunit = hub = None
-    
-    try :
-        munit_st = sim._paramfile["dMsolUnit"]+" Msol"
-        munit = float(sim._paramfile["dMsolUnit"])
-        dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
-        dunit = float(sim._paramfile["dKpcUnit"])
-        hub = float(sim._paramfile["dHubble0"])
-        om_m0 = float(sim._paramfile["dOmega0"])
-        om_lam0 = float(sim._paramfile["dLambda"])
+        munit = dunit = hub = None
 
-    except KeyError :
-        pass
-
-    if munit is None or dunit is None :
-        return
-
-
-    denunit = munit/dunit**3
-    denunit_st = str(denunit)+" Msol kpc^-3"
-
-    #
-    # the obvious way:
-    #
-    #denunit_cgs = denunit * 6.7696e-32
-    #kpc_in_km = 3.0857e16
-    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
-    #velunit = dunit*kpc_in_km/secunit
-
-    # the sensible way:
-    # avoid numerical accuracy problems by concatinating factors:
-    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
-    velunit_st = ("%.5g"%velunit)+" km s^-1"
-
-    #You have: kpc s / km
-    #You want: Gyr
-    #* 0.97781311
-    timeunit = dunit / velunit * 0.97781311
-    timeunit_st = ("%.5g"%timeunit)+" Gyr"
-
-    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
-
-    if hub!=None:
-        hubunit = 10. * velunit / dunit
-        hubunit_st = ("%.3f"%(hubunit*hub))
-
-        # append dependence on 'a' for cosmological runs
-        dunit_st += " a"
-        denunit_st += " a^-3"
-        velunit_st += " a"
-
-
-
-    sim["vel"].units = velunit_st
-    #  Assuming G=1 in code units, phi is actually vel^2/a^3.		
-    # See also gasoline's master.c:5511.		
-    # Or should we be calculating phi as GM/R units (which		
-    # is the same for G=1 runs)?
-    try :
-        sim["phi"].units = sim["vel"].units**2 / units.a**3
-        sim["eps"].units = dunit_st
-    except KeyError :
-        pass
-    
-    sim["pos"].units = dunit_st
-    try :
-        sim.gas["rho"].units = denunit_st
-    except KeyError :
-        pass
-
-    try :
-        sim.star["rhoform"].units = denunit_st
-    except KeyError :
-        pass
-
-    try:
-        sim.star["massform"].units = munit_st
-    except KeyError :
-        pass
-
-    try :
-        sim["mass"].units = munit_st
-    except KeyError :
-        pass
-
-    sim.star["tform"].units = timeunit_st
-
-    try :
-        sim.gas["metals"].units = ""
-    except KeyError :
-        pass
-    
-    sim.star["metals"].units = ""
-
-    try :
-        sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
-    except KeyError :
         try :
-            sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units]
-        except : pass
+            munit_st = sim._paramfile["dMsolUnit"]+" Msol"
+            munit = float(sim._paramfile["dMsolUnit"])
+            dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
+            dunit = float(sim._paramfile["dKpcUnit"])
+            hub = float(sim._paramfile["dHubble0"])
+            om_m0 = float(sim._paramfile["dOmega0"])
+            om_lam0 = float(sim._paramfile["dLambda"])
 
-    if hub!=None:
-        sim.properties['h'] = hubunit*hub
-        sim.properties['omegaM0'] = float(om_m0)
-        sim.properties['omegaL0'] = float(om_lam0)
+        except KeyError :
+            pass
+
+        if munit is None or dunit is None :
+            return
 
 
+        denunit = munit/dunit**3
+        denunit_st = str(denunit)+" Msol kpc^-3"
+
+        #
+        # the obvious way:
+        #
+        #denunit_cgs = denunit * 6.7696e-32
+        #kpc_in_km = 3.0857e16
+        #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
+        #velunit = dunit*kpc_in_km/secunit
+
+        # the sensible way:
+        # avoid numerical accuracy problems by concatinating factors:
+        velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit
+        velunit_st = ("%.5g"%velunit)+" km s^-1"
+
+        #You have: kpc s / km
+        #You want: Gyr
+        #* 0.97781311
+        timeunit = dunit / velunit * 0.97781311
+        timeunit_st = ("%.5g"%timeunit)+" Gyr"
+
+        enunit_st = "%.5g km^2 s^-2"%(velunit**2)
+
+        if hub!=None:
+            hubunit = 10. * velunit / dunit
+            hubunit_st = ("%.3f"%(hubunit*hub))
+
+            # append dependence on 'a' for cosmological runs
+            dunit_st += " a"
+            denunit_st += " a^-3"
+            velunit_st += " a"
+
+
+
+        sim["vel"].units = velunit_st
+        #  Assuming G=1 in code units, phi is actually vel^2/a^3.
+        # See also gasoline's master.c:5511.
+        # Or should we be calculating phi as GM/R units (which
+        # is the same for G=1 runs)?
+        try :
+            sim["phi"].units = sim["vel"].units**2 / units.a**3
+            sim["eps"].units = dunit_st
+        except KeyError :
+            pass
+
+        sim["pos"].units = dunit_st
+        try :
+            sim.gas["rho"].units = denunit_st
+        except KeyError :
+            pass
+
+        try :
+            sim.star["rhoform"].units = denunit_st
+        except KeyError :
+            pass
+
+        try:
+            sim.star["massform"].units = munit_st
+        except KeyError :
+            pass
+
+        try :
+            sim["mass"].units = munit_st
+        except KeyError :
+            pass
+
+        sim.star["tform"].units = timeunit_st
+
+        try :
+            sim.gas["metals"].units = ""
+        except KeyError :
+            pass
+
+        sim.star["metals"].units = ""
+
+        try :
+            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
+        except KeyError :
+            try :
+                sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units]
+            except : pass
+
+        if hub!=None:
+            sim.properties['h'] = hubunit*hub
+            sim.properties['omegaM0'] = float(om_m0)
+            sim.properties['omegaL0'] = float(om_lam0)
