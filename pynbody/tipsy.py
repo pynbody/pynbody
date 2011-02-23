@@ -266,18 +266,14 @@ class TipsySnap(snapshot.SimSnap) :
                 v_order = 'C'
             else :
                 v_order = 'F'
-	else :
-	    dims = len(self)
+        else :
+            dims = len(self)
             v_order = 'C'
 
-	if fam is None :
-            self._arrays[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
-            self._arrays[array_name].sim = self
-	else :
-            self._create_family_array(array_name, fam, ndim, data.dtype)
-            self._get_family_array(array_name, fam)[:] = \
-                                           data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
-            self._get_family_array(array_name, fam).sim = self
+        if fam is None :
+            self[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
+        else :
+            self[fam][array_name] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
 
 
     def read_starlog(self, fam=None) :
@@ -371,15 +367,15 @@ def p(sim) :
 class StarLog(snapshot.SimSnap):
     def __init__(self, filename):
         import os
-	super(StarLog,self).__init__()
+        super(StarLog,self).__init__()
         self._filename = filename
 
- 	f = util.open_(filename)
+        f = util.open_(filename)
         self.properties = {}
         
- 	file_structure = {'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
+        file_structure = {'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
 
- 	size = struct.unpack("i", f.read(4))
+        size = struct.unpack("i", f.read(4))
         iSize = size[0]
         if (iSize>  1000 or iSize<  10):
             byteswap=True
@@ -396,17 +392,15 @@ class StarLog(snapshot.SimSnap):
 
         iord, indices = np.unique(g['iord'],return_index=True)
 
-	self._num_particles = indices.size
+        self._num_particles = indices.size
 
-	self._family_slice[family.star] = slice(0, n)
-        
+        self._family_slice[family.star] = slice(0, n)
         self._create_arrays(["pos","vel"],3)
         self._create_arrays(["iord"])
- 	self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
-
+        self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
         self._decorate()
 
-#        self['iord'] = g['iord'][indices]
+        #self['iord'] = g['iord'][indices]
         for name in file_structure['names'] :
             self.star[name][:] = g[name][indices]
 

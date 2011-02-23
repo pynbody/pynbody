@@ -8,20 +8,6 @@ import copy
 import weakref
 
 
-class LazySuppressor(object) :
-    def __init__(self) :
-        self.count = 0
-
-    def __enter__(self) :
-        self.count+=1
- 
-    def __exit__(self, *excp) :
-        self.count-=1
-        assert self.count>=0
-        
-    @property
-    def lazy(self) :
-        return self.count==0
 
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
@@ -53,7 +39,7 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._unifamily = None
-        self.lazy_off = LazySuppressor()
+        self.lazy_off = util.ExecutionControl()
         self.filename=""
         self.properties = {}
         self._file_units_system = []
@@ -79,15 +65,17 @@ class SimSnap(object) :
             try:
                 return self._get_array(i)
             except KeyError :
-                if self.lazy_off.lazy :
+                if not self.lazy_off :
                     try:
                         self._read_array(i)
-                        self._promote_family_array(i)
+                        if i in self.family_keys() :
+                            self._promote_family_array(i)
                         return self._get_array(i)
                     except IOError :
                         try:
                             self._derive_array(i)
-                            self._promote_family_array(i)
+                            if i in self.family_keys() :
+                                self._promote_family_array(i)
                             return self._get_array(i)
                         except (ValueError, KeyError) :
                             pass
@@ -130,7 +118,7 @@ class SimSnap(object) :
                 ndim = len(ax[0])
             except TypeError :
                 ndim = 1
-            self._create_array(name, ndim)
+            self._create_array(name, ndim, dtype=item.dtype)
 
         # Copy in contents if the contents isn't actually pointing to
         # the same data (which will be the case following operations like
@@ -160,9 +148,10 @@ class SimSnap(object) :
         """Returns true if self is a subview of other"""
         return other.is_ancestor(self)
 
+    @property
     def ancestor(self) :
         if hasattr(self, 'base') :
-            return self.base.ancestor()
+            return self.base.ancestor
         else :
             return self
 
@@ -170,7 +159,7 @@ class SimSnap(object) :
         """Returns the set intersection of this simulation view with another view
         of the same simulation"""
 
-        anc = self.ancestor()
+        anc = self.ancestor
         if not anc.is_ancestor(other) :
             raise RuntimeError, "Parentage is not suitable"
 
@@ -252,7 +241,7 @@ class SimSnap(object) :
         self._assert_not_family_array(name)
         del self._arrays[name]
 
-    def __getattribute__(self, name) :
+    def __getattr__(self, name) :
         """Implements getting particles of a specified family name"""
 
         try:
@@ -260,7 +249,8 @@ class SimSnap(object) :
         except ValueError :
             pass
 
-        return object.__getattribute__(self, name)
+        raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
+
 
     def __setattr__(self, name, val) :
         """Raise an error if an attempt is made to overwrite
@@ -385,21 +375,58 @@ class SimSnap(object) :
 
     def _create_family_array(self, array_name, family, ndim=1, dtype=None) :
         """Create a single array of dimension len(self.<family.name>) x ndim,
-        with a given numpy dtype, belonging to the specified family"""
+        with a given numpy dtype, belonging to the specified family.
+
+        Warning: Do not assume that the family array will be available after
+        calling this funciton, because it might be a 'completion' of existing
+        family arrays, at which point the routine will actually be creating
+        a simulation-level array, e.g.
+
+        sim._create_family_array('bla', dm)
+        sim._create_family_array('bla', star)
+        'bla' in sim.family_keys() # -> True
+        'bla' in sim.keys() # -> False
+        sim._create_family_array('bla', gas)
+        'bla' in sim.keys() # -> True
+        'bla' in sim.family_keys() # -> False
+        
+        sim[gas]['bla'] *is* guaranteed to exist however, it just might
+        be a view on a simulation-length array.
+        
+        """
+        
         if ndim==1 :
             dims = self[family]._num_particles
         else :
             dims = (self[family]._num_particles, ndim)
 
-        new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
-        new_ar._sim = weakref.ref(self)
-        new_ar._name = array_name
 
-        try:
-            self._family_arrays[array_name][family] = new_ar
+        # Determine what families already have an array of this name
+        try :
+            fams = self._family_arrays[array_name].keys()
         except KeyError :
-            self._family_arrays[array_name] = dict({family : new_ar})
+            fams = []
 
+        fams.append(family)
+
+        # If, once we created this array, *all* families would have
+        # this array, just create a simulation-level array
+        if all([x in fams for x in self.families()]) :
+            self._promote_family_array(array_name, ndim=ndim)
+
+        else :
+        
+            new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
+            new_ar._sim = weakref.ref(self)
+            new_ar._name = array_name
+
+            try:
+                self._family_arrays[array_name][family] = new_ar
+            except KeyError :
+                self._family_arrays[array_name] = dict({family : new_ar})
+
+            
+        
     def _del_family_array(self, array_name, family) :
         del self._family_arrays[array_name][family]
         if len(self._family_arrays[array_name])==0 :
@@ -464,13 +491,25 @@ class SimSnap(object) :
         except KeyError :
             raise KeyError("No array "+name+" for family "+fam.name)
 
-    def _promote_family_array(self, name, ndim=1) :
+    def _promote_family_array(self, name, ndim=1, dtype=None) :
         """Create a simulation-level array (if it does not exist) with
         the specified name. Copy in any data from family-level arrays
         of the same name."""
 
+        if dtype is None :
+            try :
+                x = self._family_arrays[name].keys()[0]
+                dtype = self._family_arrays[name][x].dtype
+                for x in self._family_arrays[name].values() :
+                    if x.dtype!=dtype :
+                        import warnings
+                        warnings.warn("Data types of family arrays do not match; assuming "+str(dtype),  RuntimeWarning)
+                    
+            except IndexError :
+                pass
+            
         if not self._arrays.has_key(name) :
-            self._create_array(name, ndim=ndim)
+            self._create_array(name, ndim=ndim, dtype=dtype)
         try:
             for fam in self._family_arrays[name] :
                 self._arrays[name][self._get_family_slice(fam)] = self._family_arrays[name][fam]
@@ -542,6 +581,7 @@ class SimSnap(object) :
         This searches the registry of @X.derived_quantity functions
         for all X in the inheritance path of the current class. The first
         """
+        calculated = False
         if name in SimSnap._calculating :
             raise ValueError, "Circular reference in derived quantity"
         else :
@@ -554,10 +594,14 @@ class SimSnap(object) :
                             self[name] = SimSnap._derived_quantity_registry[cl][name](self)
                         else :
                             self[fam][name] = SimSnap._derived_quantity_registry[cl][name](self[fam])
+                        calculated = True
                         break
             finally:
                 assert SimSnap._calculating[-1]==name
                 del SimSnap._calculating[-1]
+
+            if not calculated :
+                raise KeyError, "No derivation rule for "+name
 
     def derive(self, name) :
         """Force a calculation of the derived_quantity specified by name.
