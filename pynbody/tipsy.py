@@ -266,16 +266,14 @@ class TipsySnap(snapshot.SimSnap) :
                 v_order = 'C'
             else :
                 v_order = 'F'
-	else :
-	    dims = len(self)
+        else :
+            dims = len(self)
             v_order = 'C'
 
-	if fam is None :
-            self._arrays[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
-            self._arrays[array_name].sim = self
-	else :
-            self._create_family_array(array_name, fam, ndim, data.dtype)
-            self[fam][array_name][:] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
+        if fam is None :
+            self[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
+        else :
+            self[fam][array_name] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
 
 
     def read_starlog(self, fam=None) :
@@ -398,8 +396,8 @@ class StarLog(snapshot.SimSnap):
 
 	self._family_slice[family.star] = slice(0, n)
         
-        self._create_arrays(["pos","vel"],3)
-        self._create_arrays(["iord"])
+    self._create_arrays(["pos","vel"],3)
+    self._create_arrays(["iord"])
  	self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
 
 	self._decorate()

@@ -82,12 +82,14 @@ class SimSnap(object) :
                 if not self.lazy_off :
                     try:
                         self._read_array(i)
-                        self._promote_family_array(i)
+                        if i in self.family_keys() :
+                            self._promote_family_array(i)
                         return self._get_array(i)
                     except IOError :
                         try:
                             self._derive_array(i)
-                            self._promote_family_array(i)
+                            if i in self.family_keys() :
+                                self._promote_family_array(i)
                             return self._get_array(i)
                         except (ValueError, KeyError) :
                             pass
@@ -130,7 +132,7 @@ class SimSnap(object) :
                 ndim = len(ax[0])
             except TypeError :
                 ndim = 1
-            self._create_array(name, ndim)
+            self._create_array(name, ndim, dtype=item.dtype)
 
         # Copy in contents if the contents isn't actually pointing to
         # the same data (which will be the case following operations like
