@@ -11,23 +11,17 @@ import weakref
 class LazySuppressor(object) :
     def __init__(self) :
         self.count = 0
-        self._lazy = True
 
     def __enter__(self) :
         self.count+=1
-        self._lazy = False
-
+ 
     def __exit__(self, *excp) :
         self.count-=1
         assert self.count>=0
-        if self.count==0 :
-            self._lazy = True
-
-    # Make the publically visible lazy property read-only to prevent
-    # casual mis-use
+        
     @property
     def lazy(self) :
-        return self._lazy
+        return self.count>0
 
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
@@ -47,7 +41,8 @@ class SimSnap(object) :
 
     _decorator_registry = {}
 
-    _loadable_keys_registry = util.Registry()
+    _loadable_keys_registry = {}
+    _computable_keys_registry = {}
 
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
@@ -498,15 +493,30 @@ class SimSnap(object) :
         else :
             return "<SimSnap len="+str(len(self))+">"
 
-
-    def loadable_keys(self) :
-        """Returns a list of arrays which can be lazy-evaluated or
-        lazy-loaded from the underlying file."""
+    
+    def computable_keys(self) :
+        """Returns a list of arrays which can be lazy-evaluated."""
         res = []
         for cl in type(self).__mro__ :
             if self._derived_quantity_registry.has_key(cl) :
                 res+=self._derived_quantity_registry[cl].keys()
         return res
+
+    def loadable_keys(self) :
+        """Returns a list of arrays which can be lazy-loaded from 
+        an auxiliary file."""
+        #res = []
+        #for cl in type(self).__mro__ :
+        #    if self._derived_quantity_registry.has_key(cl) :
+        #        res+=self._derived_quantity_registry[cl].keys()
+        #return res
+        pass
+        
+    def all_keys(self) :
+        """Returns a list of all arrays that can be either lazy-evaluated
+        or lazy loaded from an auxiliary file."""
+        return self.computable_keys() + self.loadable_keys()
+
 
     def _print_loadable_keys_registry(self):
         """Method to make the contents of loadable_keys_registry more readable."""

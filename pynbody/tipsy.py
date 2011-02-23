@@ -129,10 +129,7 @@ class TipsySnap(snapshot.SimSnap) :
             fs = glob.glob(self._filename+".*")
             res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
             for i,n in enumerate(res): res[i] = util.cutgz(n)
-            self._loadable_keys_registry['From files'] = res
-            self._loadable_keys_registry['To compute'] = snapshot.SimSnap.loadable_keys(self)
-            for type in self._loadable_keys_registry: self._loadable_keys_registry[type].sort(key=str.lower)
-            self._loadable_keys_registry.__repr__ = self._print_loadable_keys_registry
+            self._loadable_keys_registry = res
         return self._loadable_keys_registry
 
     def _write_array(self, array_name, filename=None) :
