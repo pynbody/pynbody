@@ -363,3 +363,19 @@ class Registry(dict) :
             string = "Empty registry"
 
         return string
+
+
+
+class ExecutionControl(object) :
+    def __init__(self) :
+        self.count = 0
+
+    def __enter__(self) :
+        self.count+=1
+ 
+    def __exit__(self, *excp) :
+        self.count-=1
+        assert self.count>=0
+
+    def __nonzero__(self) :
+        return self.count>0

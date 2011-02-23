@@ -8,20 +8,6 @@ import copy
 import weakref
 
 
-class LazySuppressor(object) :
-    def __init__(self) :
-        self.count = 0
-
-    def __enter__(self) :
-        self.count+=1
- 
-    def __exit__(self, *excp) :
-        self.count-=1
-        assert self.count>=0
-
-    def __nonzero__(self) :
-        return self.count>0
-
 
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
@@ -53,7 +39,7 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._unifamily = None
-        self.lazy_off = LazySuppressor()
+        self.lazy_off = util.ExecutionControl()
         self.filename=""
         self.properties = {}
         self._file_units_system = []
