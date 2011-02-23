@@ -404,7 +404,7 @@ class StarLog(snapshot.SimSnap):
         self._create_arrays(["iord"])
  	self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
 
-	self._decorate()
+        self._decorate()
 
 #        self['iord'] = g['iord'][indices]
         for name in file_structure['names'] :
