@@ -345,13 +345,20 @@ class Registry(dict) :
     """A simple extension of the dict class to make the
     __repr__ more readable."""
 
+    is_file = []
+
     def __repr__ (self) :
         string = " "
-
+        
         if len(self.keys()) > 0 :
-            for type in self.keys() :
-                string += "\n" + type + ":\n"
-                string += str(self[type]) + "\n"
+            print 'files: \n'
+            for i, key in enumerate(self.keys()) :
+                if is_file[i]:
+                    string += key
+            print 'compute: \n'
+            for i, key in enumerate(self.keys()) :
+                if not is_file[i]:
+                    string += key
         else :
             string = "Empty registry"
 
