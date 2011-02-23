@@ -18,10 +18,10 @@ class LazySuppressor(object) :
     def __exit__(self, *excp) :
         self.count-=1
         assert self.count>=0
-        
-    @property
-    def lazy(self) :
-        return self.count==0
+
+    def __nonzero__(self) :
+        return self.count>0
+
 
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
@@ -79,7 +79,7 @@ class SimSnap(object) :
             try:
                 return self._get_array(i)
             except KeyError :
-                if self.lazy_off.lazy :
+                if not self.lazy_off :
                     try:
                         self._read_array(i)
                         self._promote_family_array(i)
@@ -252,7 +252,7 @@ class SimSnap(object) :
         self._assert_not_family_array(name)
         del self._arrays[name]
 
-    def __getattribute__(self, name) :
+    def __getattr__(self, name) :
         """Implements getting particles of a specified family name"""
 
         try:
@@ -260,7 +260,8 @@ class SimSnap(object) :
         except ValueError :
             pass
 
-        return object.__getattribute__(self, name)
+        raise AttributeError
+
 
     def __setattr__(self, name, val) :
         """Raise an error if an attempt is made to overwrite
@@ -542,6 +543,7 @@ class SimSnap(object) :
         This searches the registry of @X.derived_quantity functions
         for all X in the inheritance path of the current class. The first
         """
+        calculated = False
         if name in SimSnap._calculating :
             raise ValueError, "Circular reference in derived quantity"
         else :
@@ -554,10 +556,14 @@ class SimSnap(object) :
                             self[name] = SimSnap._derived_quantity_registry[cl][name](self)
                         else :
                             self[fam][name] = SimSnap._derived_quantity_registry[cl][name](self[fam])
+                        calculated = True
                         break
             finally:
                 assert SimSnap._calculating[-1]==name
                 del SimSnap._calculating[-1]
+
+            if not calculated :
+                raise KeyError, "No derivation rule for "+name
 
     def derive(self, name) :
         """Force a calculation of the derived_quantity specified by name.
