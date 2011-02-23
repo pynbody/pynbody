@@ -140,7 +140,7 @@ class TipsySnap(snapshot.SimSnap) :
     def _write_array(self, array_name, filename=None) :
         """Write a TIPSY-ASCII file."""
 
-        with self.lazy_suppressor : # prevent any lazy reading or evaluation
+        with self.lazy_off : # prevent any lazy reading or evaluation
             if filename is None :
                 if self._filename[-3:] == '.gz' :
                     filename = self._filename[:-3]+"."+array_name+".gz"

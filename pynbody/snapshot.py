@@ -58,7 +58,7 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._unifamily = None
-        self.lazy_suppressor = LazySuppressor()
+        self.lazy_off = LazySuppressor()
         self.filename=""
         self.properties = {}
         self._file_units_system = []
@@ -79,20 +79,24 @@ class SimSnap(object) :
         siman filters."""
 
         if isinstance(i, str) :
-            self._assert_not_family_array(i)
+            # self._assert_not_family_array(i)
 
             try:
                 return self._get_array(i)
             except KeyError :
-                if self.lazy_suppressor._lazy :
+                if self.lazy_off._lazy :
                     try:
                         self._read_array(i)
+                        self._promote_family_array(i)
                         return self._get_array(i)
                     except IOError :
                         try:
                             self._derive_array(i)
+                            self._promote_family_array(i)
                             return self._get_array(i)
-                        except (ValueError, KeyError) :
+                        except ValueError :
+                            pass
+                        except KeyError :
                             pass
                 raise
 
@@ -464,6 +468,21 @@ class SimSnap(object) :
         except KeyError :
             raise KeyError("No array "+name+" for family "+fam.name)
 
+    def _promote_family_array(self, name, ndim=1) :
+        """Create a simulation-level array (if it does not exist) with
+        the specified name. Copy in any data from family-level arrays
+        of the same name."""
+
+        if not self._arrays.has_key(name) :
+            self._create_array(name, ndim=ndim)
+        try:
+            for fam in self._family_arrays[name] :
+                self._arrays[name][self._get_family_slice(fam)] = self._family_arrays[name][fam]
+            del self._family_arrays[name]
+            
+        except KeyError :
+            pass
+        
     def family_keys(self, fam=None) :
         """Return list of arrays which are not accessible from this
         view, but can be accessed from family-specific sub-views."""
@@ -593,7 +612,7 @@ class SubSnap(SimSnap) :
         self.base = base
         self._file_units_system = base._file_units_system
         self._unifamily = base._unifamily
-        self.lazy_suppressor = self.base.lazy_suppressor
+        self.lazy_off = self.base.lazy_off
 
         if isinstance(_slice,slice) :
             # Various slice logic later (in particular taking
@@ -648,7 +667,9 @@ class SubSnap(SimSnap) :
         fslice = self._get_family_slice(family)
         self.base._set_family_array(name, family, value, util.concatenate_indexing(fslice, index))
 
-
+    def _promote_family_array(self, *args, **kwargs) :
+        self.base._promote_family_array(*args, **kwargs)
+        
     def __delitem__(self, name) :
         # is this the right behaviour?
         raise RuntimeError, "Arrays can only be deleted from the base snapshot"
@@ -717,7 +738,7 @@ class IndexedSubSnap(SubSnap) :
     def __init__(self, base, index_array) :
 
         self._descriptor = "indexed"
-        self.lazy_suppressor = base.lazy_suppressor
+        self.lazy_off = base.lazy_off
 
         if isinstance(index_array, filt.Filter) :
             self._descriptor = index_array._descriptor
@@ -769,12 +790,13 @@ class IndexedSubSnap(SubSnap) :
         self.base._create_array(*args)
 
 
+
 class FamilySubSnap(SubSnap) :
     """Represents a one-family portion of a parent snap object"""
     def __init__(self, base, fam) :
         self.base = base
         self.properties = base.properties
-        self.lazy_suppressor = self.base.lazy_suppressor
+        self.lazy_off = self.base.lazy_off
         self._slice = base._get_family_slice(fam)
         self._unifamily = fam
         self._descriptor = ":"+fam.name
@@ -825,6 +847,10 @@ class FamilySubSnap(SubSnap) :
 
     def _create_family_array(self, array_name, family, ndim, dtype) :
         self.base._create_family_array(array_name, family, ndim, dtype)
+
+    def _promote_family_array(self, *args, **kwargs) :
+        pass
+        
 
     def _read_array(self, array_name, fam=None) :
         if fam is self._unifamily or fam is None :
