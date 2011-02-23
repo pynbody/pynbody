@@ -160,9 +160,10 @@ class SimSnap(object) :
         """Returns true if self is a subview of other"""
         return other.is_ancestor(self)
 
+    @property
     def ancestor(self) :
         if hasattr(self, 'base') :
-            return self.base.ancestor()
+            return self.base.ancestor
         else :
             return self
 
@@ -170,7 +171,7 @@ class SimSnap(object) :
         """Returns the set intersection of this simulation view with another view
         of the same simulation"""
 
-        anc = self.ancestor()
+        anc = self.ancestor
         if not anc.is_ancestor(other) :
             raise RuntimeError, "Parentage is not suitable"
 
@@ -260,7 +261,7 @@ class SimSnap(object) :
         except ValueError :
             pass
 
-        raise AttributeError
+        raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
 
 
     def __setattr__(self, name, val) :
@@ -386,21 +387,58 @@ class SimSnap(object) :
 
     def _create_family_array(self, array_name, family, ndim=1, dtype=None) :
         """Create a single array of dimension len(self.<family.name>) x ndim,
-        with a given numpy dtype, belonging to the specified family"""
+        with a given numpy dtype, belonging to the specified family.
+
+        Warning: Do not assume that the family array will be available after
+        calling this funciton, because it might be a 'completion' of existing
+        family arrays, at which point the routine will actually be creating
+        a simulation-level array, e.g.
+
+        sim._create_family_array('bla', dm)
+        sim._create_family_array('bla', star)
+        'bla' in sim.family_keys() # -> True
+        'bla' in sim.keys() # -> False
+        sim._create_family_array('bla', gas)
+        'bla' in sim.keys() # -> True
+        'bla' in sim.family_keys() # -> False
+        
+        sim[gas]['bla'] *is* guaranteed to exist however, it just might
+        be a view on a simulation-length array.
+        
+        """
+        
         if ndim==1 :
             dims = self[family]._num_particles
         else :
             dims = (self[family]._num_particles, ndim)
 
-        new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
-        new_ar._sim = weakref.ref(self)
-        new_ar._name = array_name
 
-        try:
-            self._family_arrays[array_name][family] = new_ar
+        # Determine what families already have an array of this name
+        try :
+            fams = self._family_arrays[array_name].keys()
         except KeyError :
-            self._family_arrays[array_name] = dict({family : new_ar})
+            fams = []
 
+        fams.append(family)
+
+        # If, once we created this array, *all* families would have
+        # this array, just create a simulation-level array
+        if all([x in fams for x in self.families()]) :
+            self._promote_family_array(array_name, ndim=ndim)
+
+        else :
+        
+            new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
+            new_ar._sim = weakref.ref(self)
+            new_ar._name = array_name
+
+            try:
+                self._family_arrays[array_name][family] = new_ar
+            except KeyError :
+                self._family_arrays[array_name] = dict({family : new_ar})
+
+            
+        
     def _del_family_array(self, array_name, family) :
         del self._family_arrays[array_name][family]
         if len(self._family_arrays[array_name])==0 :
@@ -465,13 +503,25 @@ class SimSnap(object) :
         except KeyError :
             raise KeyError("No array "+name+" for family "+fam.name)
 
-    def _promote_family_array(self, name, ndim=1) :
+    def _promote_family_array(self, name, ndim=1, dtype=None) :
         """Create a simulation-level array (if it does not exist) with
         the specified name. Copy in any data from family-level arrays
         of the same name."""
 
+        if dtype is None :
+            try :
+                x = self._family_arrays[name].keys()[0]
+                dtype = self._family_arrays[name][x].dtype
+                for x in self._family_arrays[name].values() :
+                    if x.dtype!=dtype :
+                        import warnings
+                        warnings.warn("Data types of family arrays do not match; assuming "+str(dtype),  RuntimeWarning)
+                    
+            except IndexError :
+                pass
+            
         if not self._arrays.has_key(name) :
-            self._create_array(name, ndim=ndim)
+            self._create_array(name, ndim=ndim, dtype=dtype)
         try:
             for fam in self._family_arrays[name] :
                 self._arrays[name][self._get_family_slice(fam)] = self._family_arrays[name][fam]

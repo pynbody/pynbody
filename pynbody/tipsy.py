@@ -275,9 +275,7 @@ class TipsySnap(snapshot.SimSnap) :
             self._arrays[array_name].sim = self
 	else :
             self._create_family_array(array_name, fam, ndim, data.dtype)
-            self._get_family_array(array_name, fam)[:] = \
-                                           data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
-            self._get_family_array(array_name, fam).sim = self
+            self[fam][array_name][:] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
 
 
     def read_starlog(self, fam=None) :
