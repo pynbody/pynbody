@@ -67,7 +67,7 @@ class TipsySnap(snapshot.SimSnap) :
         except units.UnitsError :
             pass
         
-        if self._paramfile.has_key('bComove') and self._paramfile['bComove']!=0 :
+        if self._paramfile.has_key('bComove') and int(self._paramfile['bComove'])!=0 :
             from . import analysis
             import analysis.cosmology
             self.properties['a'] = t
