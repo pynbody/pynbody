@@ -21,7 +21,7 @@ class LazySuppressor(object) :
         
     @property
     def lazy(self) :
-        return self.count>0
+        return self.count==0
 
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
@@ -79,7 +79,7 @@ class SimSnap(object) :
             try:
                 return self._get_array(i)
             except KeyError :
-                if self.lazy_off._lazy :
+                if self.lazy_off.lazy :
                     try:
                         self._read_array(i)
                         self._promote_family_array(i)
@@ -89,11 +89,12 @@ class SimSnap(object) :
                             self._derive_array(i)
                             self._promote_family_array(i)
                             return self._get_array(i)
-                        except ValueError :
+                        except (ValueError, KeyError) :
                             pass
-                        except KeyError :
-                            pass
-                raise
+
+                # All available methods of getting this array have failed
+                
+                raise KeyError, "Unknown array "+i
 
         elif isinstance(i,slice) :
             return SubSnap(self, i)
