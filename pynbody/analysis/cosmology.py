@@ -18,17 +18,17 @@ def age(f, z=None, unit='Gyr') :
     output f."""
 
     import scipy, scipy.integrate
-    
+
     if z is None :
         z = f.properties['z']
-        
+
     a = 1.0/(1.0+z)
     h0 = f.properties['h']
     omM = f.properties['omegaM0']
     omL = f.properties['omegaL0']
 
     conv = units.Unit("0.01 s Mpc km^-1").ratio(unit, **f.conversion_context())
-    
+
     age = scipy.integrate.quad(_a_dot_recip,0,a, (h0, omM, omL))[0]
 
     return age*conv
@@ -40,7 +40,7 @@ def rho_crit(f, z=None, unit=None) :
 
     z specifies the redshift. If z is none, the redshift of the
     provided snapshot is used.
-    
+
     unit specifies the units of the returned density. If unit is None,
     the returned density will be in the units of
     f["mass"].units/f["pos"].units**3. If that unit cannot be calculated,
@@ -52,7 +52,7 @@ def rho_crit(f, z=None, unit=None) :
     you specify is calulated, but expressed as a comoving density *at
     the redshift of the snapshot*. This is intentional behaviour."""
 
-    
+
     if z is None :
         z = f.properties['z']
 
@@ -64,7 +64,7 @@ def rho_crit(f, z=None, unit=None) :
 
     if hasattr(unit, "_no_unit") :
         unit = units.Unit("Msol kpc^-3 a^-3")
-        
+
     omM = f.properties['omegaM0']
     omL = f.properties['omegaL0']
     h0 = f.properties['h']
@@ -74,5 +74,5 @@ def rho_crit(f, z=None, unit=None) :
     H_z = units.Unit("100 km s^-1 Mpc^-1")*H_z
 
     rho_crit = (3*H_z**2)/(8*math.pi*units.G)
-    
+
     return rho_crit.ratio(unit, **f.conversion_context())

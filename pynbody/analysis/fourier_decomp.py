@@ -4,7 +4,7 @@ import numpy as np
 # A module for doing Fourier analysis on a set of particles
 #
 # Mostly empty now, but will add functions to decompose and reform
-# images of fourier components from particle data... 
+# images of fourier components from particle data...
 #
 
 """
@@ -15,29 +15,29 @@ Required inputs are particle x,y positions and masses.
 All functions assume that the particles have been aligned and centered.
 
 """
-    
+
 def fourier(px, py, pm):
     """
-    
+
     Calculate the fourier coefficients for a set of particle positions.
 
     Assumes that the particles belong to a disk that has been centered
-    and aligned. 
-    
+    and aligned.
+
     """
 
     phi = np.arctan2(py,px)
-    
+
     hist, binphi = np.histogram(phi, weights = pm, bins = 100)
-    
+
     binphi = .5*(binphi[1:]+binphi[:-1])
-    
+
     c = np.zeros(7,dtype=complex)
-    
+
     for m in np.arange(0,7):
         c[m] = np.sum(hist*np.exp(1j*m*binphi))
-        
-        
+
+
     return c
 
 
@@ -64,39 +64,33 @@ def fourier(px, py, pm):
 ##     >>> plot(prof.midbins, prof.amp[2,:]
 
 ##     """
-    
-    
+
+
 ##     assert isinstance(prof, profile.Profile)
 
 ##     # make sure the profile has a mass profile
 
 ##     if not 'mass' in dir(prof):
 ##         prof.massprof(pm)
-    
+
 ##     prof.phi = np.zeros((7,prof.nbins))
 ##     prof.amp = np.zeros((7,prof.nbins))
 ##     prof.c = np.zeros((7,prof.nbins), dtype=complex)
 
 ## #    nonzero = prof.ninbin > 100
-    
+
 ##     for i, bin in enumerate(prof.bins[:-1]):
-        
+
 ##         if prof.ninbin[i] > 100:
 ##             prof.c[:,i] = fourier(px[prof.binind[i]],
 ##                                   py[prof.binind[i]],
 ##                                   pm[prof.binind[i]], bins)
-     
+
 
 ##     im = np.imag(prof.c)
 ##     re = np.real(prof.c)
-    
+
 ##     prof.c /= prof.mass
 
 ##     prof.amp = np.sqrt(im**2 + re**2)
 ##     prof.phi = np.arctan2(im,re)
-        
-
-        
-            
-            
-            

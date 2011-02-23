@@ -10,7 +10,7 @@ def r(self):
 @SimSnap.derived_quantity
 def rxy(self):
     return ((self['pos'][:,0:2]**2).sum(axis = 1))**(1,2)
-           
+
 @SimSnap.derived_quantity
 def vr(self):
     """Radial velocity"""
@@ -32,7 +32,7 @@ def j(self) :
     angmom = np.cross(self['pos'], self['vel']).view(array.SimArray)
     angmom.units = self['pos'].units*self['vel'].units
     return angmom
-        
+
 @SimSnap.derived_quantity
 def vrxy(self):
     return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['rxy']
@@ -50,5 +50,3 @@ def rho(self):
 @SimSnap.derived_quantity
 def smooth(self) :
     return (self['mass']/self['rho'])**(1,3)
-
-

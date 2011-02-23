@@ -15,8 +15,8 @@ def shrink_sphere_centre(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     if r is None :
         # use rough estimate for a maximum radius
         # results will be insensitive to the exact value chosen
-        r = (sim["x"].max()-sim["x"].min())/2 
-    
+        r = (sim["x"].max()-sim["x"].min())/2
+
     while len(x)>min_particles :
         com = centre_of_mass(x)
         r*=shrink_factor
@@ -37,17 +37,17 @@ def virial_radius(sim, cen=(0,0,0), overden=178, r_max=None) :
     else :
         sim = sim[filt.Sphere(r_max,cen)]
 
-    
+
     r_min = 0.0
 
     sim["r"] = ((sim["pos"]-cen)**2).sum(axis=1)**(1,2)
-    
+
     rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
     target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
-    
+
     return util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
-    
-                  
+
+
 def potential_minimum(sim) :
     i = sim["phi"].argmin()
     return sim["pos"][i].copy()
@@ -56,7 +56,7 @@ def hybrid_centre(sim, r='3 kpc', **kwargs) :
     """Determine the centre of the halo by finding the
     shrink-sphere -centre inside the specified distance
     of the potential minimum"""
-    
+
     cen_a = potential_minimum(sim)
     return shrink_sphere_centre(sim[filt.Sphere(r, cen_a)], **kwargs)
 
@@ -69,14 +69,13 @@ def centre(sim, mode='pot') :
       'com': centre of mass
       'ssc': shrink sphere centre
     or a function returning the COM."""
-    
+
     try:
-	fn = {'pot': potential_minimum,
-	      'com': centre_of_mass,
-	      'ssc': shrink_sphere_centre}[mode]
+        fn = {'pot': potential_minimum,
+              'com': centre_of_mass,
+              'ssc': shrink_sphere_centre}[mode]
     except KeyError :
-	fn = mode
+        fn = mode
 
     cen = fn(sim)
     sim["pos"]-=cen
-    
