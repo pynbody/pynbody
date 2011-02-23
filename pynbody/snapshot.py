@@ -11,23 +11,17 @@ import weakref
 class LazySuppressor(object) :
     def __init__(self) :
         self.count = 0
-        self._lazy = True
 
     def __enter__(self) :
         self.count+=1
-        self._lazy = False
-
+ 
     def __exit__(self, *excp) :
         self.count-=1
         assert self.count>=0
-        if self.count==0 :
-            self._lazy = True
-
-    # Make the publically visible lazy property read-only to prevent
-    # casual mis-use
+        
     @property
     def lazy(self) :
-        return self._lazy
+        return self.count>0
 
 class SimSnap(object) :
     """The abstract holder for a simulation snapshot. Derived classes
