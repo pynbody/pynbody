@@ -185,7 +185,7 @@ class Profile:
         elif name in Profile._profile_registry :
             self._profiles[name] = Profile._profile_registry[name](self)
             return self._profiles[name]
-        elif name in self.sim.keys() or name in self.sim.loadable_keys() :
+        elif name in self.sim.keys() or name in self.sim.all_keys() :
             self._profiles[name] = self._auto_profile(name)
             return self._profiles[name]
         else :

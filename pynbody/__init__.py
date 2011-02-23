@@ -1,4 +1,4 @@
-import util, filt, array, family, snapshot,  tipsy, gadget, analysis, halo, derived, bridge
+import util, filt, array, family, snapshot,  tipsy, gadget, analysis, halo, derived, bridge, plot
 
 # The following code resolves inter-dependencies when reloading
 reload(array)
@@ -12,6 +12,7 @@ reload(analysis)
 reload(halo)
 reload(derived)
 reload(bridge)
+reload(plot)
 
 from analysis import profile
 
