@@ -178,6 +178,11 @@ class UnitBase(object) :
         except UnitsException :
             raise UnitsException, "Not convertible"
 
+    def in_units(self, *a, **kw) :
+        """Alias for ratio"""
+
+        return self.ratio(*a, **kw)
+    
     def irrep(self) :
         """Return a unit equivalent to this one (may be identical) but
         expressed in terms of the currently defined IrreducibleUnit
