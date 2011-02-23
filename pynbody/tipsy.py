@@ -22,12 +22,7 @@ class TipsySnap(snapshot.SimSnap) :
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
 
-        # In non-cosmological simulations, what is t? Is it physical
-        # time?  In which case, we need some way of telling what we
-        # are dealing with and setting properties accordingly.
-        self.properties['a'] = t
-        self.properties['z'] = 1.0/t - 1.0
-
+        
         assert ndim==3
 
         self._num_particles = ng+nd+ns
@@ -65,6 +60,22 @@ class TipsySnap(snapshot.SimSnap) :
         if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
             raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
 
+        time_unit = 'Gyr'
+        try :
+            time_unit = self.infer_original_units('yr')
+        except units.UnitsError :
+            pass
+        
+        if self._paramfile.has_key('bComove') and self._paramfile['bComove']!=0 :
+            from . import analysis
+            self.properties['a'] = t
+            self.properties['z'] = 1.0/t - 1.0
+            self.properties['time'] = time_unit * analysis.cosmology.age(self, unit=time_unit)
+            
+        else :
+            # Assume a non-cosmological run
+            self.properties['time'] = time_unit * t
+            
         if only_header == True:
             return
 
