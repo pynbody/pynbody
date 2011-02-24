@@ -586,12 +586,7 @@ class SimSnap(object) :
     def loadable_keys(self) :
         """Returns a list of arrays which can be lazy-loaded from 
         an auxiliary file."""
-        #res = []
-        #for cl in type(self).__mro__ :
-        #    if self._derived_quantity_registry.has_key(cl) :
-        #        res+=self._derived_quantity_registry[cl].keys()
-        #return res
-        pass
+        return []
         
     def all_keys(self) :
         """Returns a list of all arrays that can be either lazy-evaluated

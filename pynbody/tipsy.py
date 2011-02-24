@@ -108,14 +108,13 @@ class TipsySnap(snapshot.SimSnap) :
 	
 
     def loadable_keys(self) :
-	"""Produce and return a list of loadable arrays for this TIPSY file."""
-
-	def is_readable_array(x) :
-	    try:
-		f = util.open_(x)
-		return int(f.readline()) == len(self)
-	    except (IOError, ValueError) :
-		# could be a binary file
+        """Produce and return a list of loadable arrays for this TIPSY file."""
+        def is_readable_array(x) :
+            try:
+                f = util.open_(x)
+                return int(f.readline()) == len(self)
+            except (IOError, ValueError) :
+                # could be a binary file
                 f.seek(0)
                 buflen = len(f.read())
                 if (buflen-4)/4/3. == len(self) : # it's a float vector
@@ -124,14 +123,15 @@ class TipsySnap(snapshot.SimSnap) :
                     return True
                 else :
                     return False
-	    
-	import glob
-	if len(self._loadable_keys_registry) == 0 :
+
+        import glob
+        if len(self._loadable_keys_registry) == 0 :
             name = util.cutgz(self._filename)
             fs = glob.glob(self._filename+".*")
             res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
             for i,n in enumerate(res): res[i] = util.cutgz(n)
             self._loadable_keys_registry = res
+            
         return self._loadable_keys_registry
 
     def _write_array(self, array_name, filename=None) :
