@@ -16,9 +16,8 @@ def rotation_curve(s, center=True, r_units = 'kpc',
         angmom.faceon(s)
 
 
-    disc = s.gas[filt.Disc('10 Mpc', disk_height)]
 
-    pro = profile.Profile(disc, nbins = nbins, type=bin_spacing).D()
+    pro = profile.Profile(s, nbins = nbins, type=bin_spacing)
 
     r = pro.r.in_units(r_units)
     v = pro['v_circ'].in_units(v_units)
