@@ -3,12 +3,12 @@ from . import cosmology
 import numpy as np
 import math
 
-def centre_of_mass(sim) : # shared-code names should be explicit, not short
-    """Return the centre of mass of the SimSnap"""
+def center_of_mass(sim) : # shared-code names should be explicit, not short
+    """Return the center of mass of the SimSnap"""
     return np.average(sim["pos"],axis=0,weights=sim["mass"])
 
-def shrink_sphere_centre(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
-    """Return the centre according to the shrinking-sphere method
+def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
+    """Return the center according to the shrinking-sphere method
     of Power et al (2003)"""
     x = sim
 
@@ -18,7 +18,7 @@ def shrink_sphere_centre(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         r = (sim["x"].max()-sim["x"].min())/2
 
     while len(x)>min_particles :
-        com = centre_of_mass(x)
+        com = center_of_mass(x)
         r*=shrink_factor
         x = sim[filt.Sphere(r, com)]
         if verbose:
@@ -26,10 +26,10 @@ def shrink_sphere_centre(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     return com
 
 def virial_radius(sim, cen=(0,0,0), overden=178, r_max=None) :
-    """Calculate the virial radius of the halo centred on the given
+    """Calculate the virial radius of the halo centerd on the given
     coordinates.
 
-    This is here defined by the sphere centred on cen which contains a mean
+    This is here defined by the sphere centerd on cen which contains a mean
     density of overden * rho_c_0 * (1+z)^3. """
 
     if r_max is None :
@@ -52,28 +52,28 @@ def potential_minimum(sim) :
     i = sim["phi"].argmin()
     return sim["pos"][i].copy()
 
-def hybrid_centre(sim, r='3 kpc', **kwargs) :
-    """Determine the centre of the halo by finding the
-    shrink-sphere -centre inside the specified distance
+def hybrid_center(sim, r='3 kpc', **kwargs) :
+    """Determine the center of the halo by finding the
+    shrink-sphere -center inside the specified distance
     of the potential minimum"""
 
     cen_a = potential_minimum(sim)
-    return shrink_sphere_centre(sim[filt.Sphere(r, cen_a)], **kwargs)
+    return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
-def centre(sim, mode='pot') :
-    """Determine the centre of mass using the specified mode
-    and recentre the particles accordingly
+def center(sim, mode='pot') :
+    """Determine the center of mass using the specified mode
+    and recenter the particles accordingly
 
     Accepted values for mode are
       'pot': potential minimum
-      'com': centre of mass
-      'ssc': shrink sphere centre
+      'com': center of mass
+      'ssc': shrink sphere center
     or a function returning the COM."""
 
     try:
         fn = {'pot': potential_minimum,
-              'com': centre_of_mass,
-              'ssc': shrink_sphere_centre}[mode]
+              'com': center_of_mass,
+              'ssc': shrink_sphere_center}[mode]
     except KeyError :
         fn = mode
 

@@ -31,11 +31,11 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
                   angular momentum which a particle can have to be part of the 'disk'
     E_cut -- the energy boundary between bulge and spheroid. If None, this is taken
              to be the median energy of the stars.
-    aligned -- if False, the simulation is recentred and aligned so the disk is
+    aligned -- if False, the simulation is recenterd and aligned so the disk is
                in the xy plane as required for the rest of the analysis.
-    cen -- if not None, specifies the centre of the halo. Otherwise it is found.
+    cen -- if not None, specifies the center of the halo. Otherwise it is found.
            This has no effect if aligned=True
-    vcen -- if not None, specifies the velocity centre of the halo. Otherwise it is found.
+    vcen -- if not None, specifies the velocity center of the halo. Otherwise it is found.
             This has no effect if aligned=True
     j_circ_from_r -- if True, the maximum angular momentum is determined as a
     function of radius, rather than as a function of orbital energy. Default
@@ -43,7 +43,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     verbose -- if True, print information
     """
 
-    # Centre, eliminate proper motion, rotate so that
+    # Center, eliminate proper motion, rotate so that
     # gas disk is in X-Y plane
     if not aligned :
         angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose)

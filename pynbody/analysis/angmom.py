@@ -38,7 +38,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     see h's disk edge on.
 
     Given a simulation and a subview of that simulation (probably
-    the halo of interest), this routine centres the simulation and
+    the halo of interest), this routine centers the simulation and
     rotates it so that the disk lies in the x-z plane. This gives
     a side-on view for SPH images, for instance."""
 
@@ -50,17 +50,17 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
 
     if cen is None :
         if verbose :
-            print "Finding halo centre..."
-        cen = halo.hybrid_centre(h) # or h['pos'][h['phi'].argmin()]
+            print "Finding halo center..."
+        cen = halo.hybrid_center(h) # or h['pos'][h['phi'].argmin()]
         if verbose :
             print "cen=",cen
 
     top['pos']-=cen
 
     if vcen is None :
-        # Use stars from inner 1kpc to calculate centre of velocity
+        # Use stars from inner 1kpc to calculate center of velocity
         if verbose :
-            print "Finding halo velocity centre..."
+            print "Finding halo velocity center..."
         cen = h.star[filt.Sphere(cen_size)]
         if len(cen)<5 :
             # fall-back to DM
@@ -70,7 +70,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
             cen = h.gas[filt.Sphere(cen_size)]
         if len(cen)<5 :
             # very weird snapshot, or mis-centering!
-            raise ValueError, "Insufficient particles around centre to get velocity"
+            raise ValueError, "Insufficient particles around center to get velocity"
 
         vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
         if verbose :
@@ -95,7 +95,7 @@ def faceon(h, **kwargs) :
     see h's disk face on.
 
     Given a simulation and a subview of that simulation (probably
-    the halo of interest), this routine centres the simulation and
+    the halo of interest), this routine centers the simulation and
     rotates it so that the disk lies in the x-y plane. This gives
     a face-on view for SPH images, for instance."""
 
