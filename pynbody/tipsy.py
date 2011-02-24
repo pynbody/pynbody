@@ -61,10 +61,10 @@ class TipsySnap(snapshot.SimSnap) :
         if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
             raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
 
-        time_unit = 'Gyr'
+        time_unit = None
         try :
             time_unit = self.infer_original_units('yr')
-        except units.UnitsError :
+        except units.UnitsException :
             pass
         
         if self._paramfile.has_key('bComove') and int(self._paramfile['bComove'])!=0 :
@@ -72,12 +72,14 @@ class TipsySnap(snapshot.SimSnap) :
             import analysis.cosmology
             self.properties['a'] = t
             self.properties['z'] = 1.0/t - 1.0
-            self.properties['time'] = time_unit * analysis.cosmology.age(self, unit=time_unit)
+            self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
             
         else :
             # Assume a non-cosmological run
-            self.properties['time'] = time_unit * t
+            self.properties['time'] =  t
             
+        if time_unit is not None :
+            self.properties['time']*=time_unit
 
         if only_header == True:
             return
