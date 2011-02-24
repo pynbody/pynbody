@@ -542,6 +542,15 @@ class IndexedSimArray(object) :
     def __str__(self) :
         return self.__array__().__str__() # Could be optimized
 
+    def __len__(self) :
+        return len(self._ptr)
+    
+    @property
+    def shape(self) :
+        x = [len(self._ptr)]
+        x+=self.base.shape[1:]
+        return tuple(x)
+
     @property
     def units(self) :
         return self.base.units
