@@ -494,7 +494,9 @@ def param2units(sim) :
         timeunit_st = ("%.5g"%timeunit)+" Gyr"
 
         enunit_st = "%.5g km^2 s^-2"%(velunit**2)
-
+        
+        sim["vel"].units = velunit_st
+        potunit = sim["vel"].units**2
         if hub!=None:
             hubunit = 10. * velunit / dunit
             hubunit_st = ("%.3f"%(hubunit*hub))
@@ -503,16 +505,14 @@ def param2units(sim) :
             dunit_st += " a"
             denunit_st += " a^-3"
             velunit_st += " a"
-
-
-
-        sim["vel"].units = velunit_st
+            potunit /= units.a**3
+                
         #  Assuming G=1 in code units, phi is actually vel^2/a^3.
         # See also gasoline's master.c:5511.
         # Or should we be calculating phi as GM/R units (which
         # is the same for G=1 runs)?
         try :
-            sim["phi"].units = sim["vel"].units**2 / units.a**3
+            sim["phi"].units = potunit
             sim["eps"].units = dunit_st
         except KeyError :
             pass

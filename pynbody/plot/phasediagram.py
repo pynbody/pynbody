@@ -40,9 +40,13 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
 
 
     if log:
-        levels = np.logspace(np.log10(np.min(hist[hist>0])),       # there must be an
-                             np.log10(np.max(hist)),nlevels)      # easier way to do this...
-        cont_color=colors.LogNorm()
+        try:
+            levels = np.logspace(np.log10(np.min(hist[hist>0])),       # there must be an
+                                 np.log10(np.max(hist)),nlevels)      # easier way to do this...
+            cont_color=colors.LogNorm()
+        except ValueError:
+            print 'crazy temperature or density range - please specify ranges'
+            return
     else:
         levels = np.linspace(np.min(hist[hist>0]),
                              np.max(hist), nlevels)

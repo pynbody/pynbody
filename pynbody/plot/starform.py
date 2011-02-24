@@ -27,14 +27,14 @@ def schmidtlaw(t,center=True,filename=None,pretime=50,diskheight=3,maxr=20,radia
     # calculate surface densities
     if radial :
         ps = profile.Profile(t.star[youngdiskstars])
-        ps.rho
+#        ps.rho
         pg = profile.Profile(t.gas[diskgas])
-        pg.rho
+#        pg.rho
     else :
         gashist, x, y = np.histogram2d(sim.gas['x'][diskgas], sim.gas['y'][diskgas],bins=nbins,range=[t_range,rho_range])
         starhist, x, y = np.histogram2d(sim.star['x'][youngdiskstars], sim.star['y'][youngdiskstars],bins=nbins,range=[t_range,rho_range])
 
-    plt.plot(pg.rho,ps.rho,mark="+")
+    plt.plot(pg['rho'],ps['rho'],mark="+")
     ysigma=2.5e-4*xsigma**1.5        # Kennicutt (1998)
     ysigmanew=10.**(-2.1)*xsigma**1.0   # Bigiel et al (2007)
     plt.plot(xsigma,ysigma)
