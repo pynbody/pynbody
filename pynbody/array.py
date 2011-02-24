@@ -153,9 +153,11 @@ class SimArray(np.ndarray) :
 
         new._units = units
         new.sim = sim # will generate a weakref automatically
-
+        new.derived = False
         new._name = None
 
+        
+        
         return new
 
     def __array_finalize__(self, obj) :
@@ -168,6 +170,12 @@ class SimArray(np.ndarray) :
             self._units = None
             self._sim = lambda : None
 
+        self._name = None
+
+        if hasattr(obj, 'derived') :
+            self.derived = obj.derived
+        else :
+            self.derived = False
 
     def __array_wrap__(self, array, context=None) :
         if context is None :
@@ -179,6 +187,8 @@ class SimArray(np.ndarray) :
             n_array = array.view(SimArray)
             n_array.units = output_units
             n_array.sim = self.sim
+            n_array.derived = self.derived
+            n_array._name = self._name
             return n_array
         except (KeyError, units.UnitsException) :
             return array
@@ -361,24 +371,6 @@ class SimArray(np.ndarray) :
             self.units = new_unit
 
 
-    def recalculate(self) :
-        """If this array is derived, recalculate it using the original
-        procedure.
-
-        For instance, when one first accesses array f['r'] of a given
-        snapshot f, the radius is calculated (see module derived). If
-        one recentres, the radius is not automatically recalculated,
-        so one needs to issue
-
-        f['r'].recalculate()
-
-        to recalculate the updated radius"""
-
-        if self._sim() and self._name :
-            self._sim()._derive_array(self._name)
-        else :
-            raise RuntimeError, "No link to SimSnap"
-
     def write(self) :
         """Write this array to disk according to the standard method associated
         with its base file"""
@@ -389,6 +381,42 @@ class SimArray(np.ndarray) :
             raise RuntimeError, "No link to SimSnap"
 
 
+
+# Now add dirty bit setters to all the operations which are known
+# to modify the numpy array
+
+def _dirty_fn(w) :
+    def q(a, *y, **kw) :
+        if a.sim is not None and a._name is not None :
+            a.sim._dirty(a._name)
+            
+        if kw!={} :
+            return w(a, *y, **kw)
+        else :
+            return w(a, *y)
+
+    q.__name__ = w.__name__
+    return q
+
+_dirty_fns = ['__setitem__', '__setslice__',
+ '__irshift__',
+ '__imod__',
+ '__iand__',
+ '__ifloordiv__',
+ '__ilshift__',
+ '__imul__',
+ '__ior__',
+ '__ixor__',
+ '__isub__',
+ '__invert__',
+ '__iadd__',
+ '__itruediv__',
+ '__idiv__',
+ '__ipow__']
+
+for x in _dirty_fns :
+    setattr(SimArray, x, _dirty_fn(getattr(np.ndarray, x)))
+        
 _u = SimArray.ufunc_rule
 
 def _get_units_or_none(*a) :
@@ -541,9 +569,6 @@ class IndexedSimArray(object) :
 
     def convert_units(self, new_unit) :
         self.base.convert_units(new_unit)
-
-    def recalculate(self) :
-        self.base.recalculate()
 
     def write(self) :
         self.base.write()
