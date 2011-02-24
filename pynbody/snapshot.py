@@ -558,14 +558,6 @@ class SimSnap(object) :
         return self.computable_keys() + self.loadable_keys()
 
 
-    def _print_loadable_keys_registry(self):
-        """Method to make the contents of loadable_keys_registry more readable."""
-        print 'From file:'
-        print _loadable_keys_registry['files']
-        print 'To compute:'
-        print _loadable_keys_registry['compute']
-
-
     # Methods for derived arrays
 
     @classmethod

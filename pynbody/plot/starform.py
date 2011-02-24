@@ -31,9 +31,14 @@ def sfh(t,filename=None,massform=True,**kwargs):
 
 
 def schmidtlaw(t,center=True,filename=None,pretime=50,diskheight=3,rmax=20,radial=True,**kwargs):
+   
+    if not radial :
+        print 'only radial Schmidt Law supported at the moment'
+        return
+    
     if center :
         angmom.faceon(t)
-    
+        
     # select stuff
     youngstars = np.where(t.star['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)[0]
     # * means "and"
@@ -47,8 +52,8 @@ def schmidtlaw(t,center=True,filename=None,pretime=50,diskheight=3,rmax=20,radia
         ps = profile.Profile(t.star[youngdiskstars])
         pg = profile.Profile(t.gas[diskgas])
     else :
-        gashist, x, y = np.histogram2d(sim.gas['x'][diskgas], sim.gas['y'][diskgas],bins=nbins,range=[t_range,rho_range])
-        starhist, x, y = np.histogram2d(sim.star['x'][youngdiskstars], sim.star['y'][youngdiskstars],bins=nbins,range=[t_range,rho_range])
+        gashist, x, y = np.histogram2d(t.gas['x'][diskgas], t.gas['y'][diskgas],bins=nbins,range=[t_range,rho_range])
+        starhist, x, y = np.histogram2d(t.star['x'][youngdiskstars], t.star['y'][youngdiskstars],bins=nbins,range=[t_range,rho_range])
 
     plt.loglog(pg['den'].in_units('Msol pc^-2'),ps['den'].in_units('Msol kpc^-2') / pretime/1e6,"+")
     xsigma = 10.0**np.linspace(np.log10(pg['den'].min()),np.log10(pg['den'].max()),100)

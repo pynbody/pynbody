@@ -37,11 +37,7 @@ class Profile:
     Output:
 
     a Profile object. To find out which profiles are available, use keys().
-    The class defines  __get__ and __getitem__ methods so that
-    these are equivalent:
-
-    p.mass == p['mass'] # AP - *Must* we have this? p['mass'] seems quite sufficient to me
-
+   
     Implemented profile functions:
 
     den: density
@@ -115,19 +111,19 @@ class Profile:
             self.min = np.min(x[x>0])
 
         if type == 'log':
-            self.bins = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
+            self.bin_edges = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
         elif type == 'lin':
-            self.bins = np.linspace(self.min, self.max, num = self.nbins+1)
+            self.bin_edges = np.linspace(self.min, self.max, num = self.nbins+1)
         elif type == 'equaln':
-            self.bins = util.equipartition(x, self.nbins, self.min, self.max)
+            self.bin_edges = util.equipartition(x, self.nbins, self.min, self.max)
         else:
             raise RuntimeError, "Bin type must be one of: lin, log, equaln"
 
 
-        self.bins = array.SimArray(self.bins, x.units)
-        self.bins.sim = self.sim
+        self.bin_edges = array.SimArray(self.bin_edges, x.units)
+        self.bin_edges.sim = self.sim
 
-        self.n, bins = np.histogram(self._x, self.bins)
+        self.n, bins = np.histogram(self._x, self.bin_edges)
         self._setup_bins()
 
         # set up the empty list of profiles
@@ -137,29 +133,27 @@ class Profile:
     def _setup_bins(self) :
         # middle of the bins for convenience
 
-        self.r = 0.5*(self.bins[:-1]+self.bins[1:])
-        self.r.sim = self.sim
+        self.rbins = 0.5*(self.bin_edges[:-1]+self.bin_edges[1:])
+        self.rbins.sim = self.sim
 
         # Width of the bins
-        self.dr = np.diff(self.r)
+        self.dr = np.diff(self.rbins)
 
         self.binind = []
         if len(self._x) > 0:
-            self.partbin = np.digitize(self._x, self.bins)
+            self.partbin = np.digitize(self._x, self.bin_edges)
         else :
             self.partbin = np.array([])
 
         assert self._ndim in [2,3]
         if self._ndim == 2:
-            self._binsize = np.pi*(self.bins[1:]**2 - self.bins[:-1]**2)
+            self._binsize = np.pi*(self.bin_edges[1:]**2 - self.bin_edges[:-1]**2)
         else:
-            self._binsize  = 4./3.*np.pi*(self.bins[1:]**3 - self.bins[:-1]**3)
+            self._binsize  = 4./3.*np.pi*(self.bin_edges[1:]**3 - self.bin_edges[:-1]**3)
 
         for i in np.arange(self.nbins)+1:
             ind = np.where(self.partbin == i)
             self.binind.append(ind)
-
-
 
 
 
@@ -206,20 +200,6 @@ class Profile:
 
     def __delitem__(self, name) :
         del self._profiles[name]
-
-
-
-    def __getattr__(self, name) :
-        # AP - I don't like this, implementing for consistency with Rok's ideas only.
-        try:
-            return self._get_profile(name)
-        except KeyError :
-            raise AttributeError(name)
-
-    def __delattr__(self, name) :
-        # AP - I don't like this, implementing for consistency with Rok's ideas only.
-        del self._profiles[name]
-
 
     def __repr__(self):
         return ("<Profile: " +
@@ -297,11 +277,12 @@ class DerivativeProfile(Profile) :
         self._ndim = base._ndim
         self._x = base._x
         self._type = base._type
-        self.max = base.bins.max()
-        self.min = base.bins.min()
+        self.max = base.bin_edges.max()
+        self.min = base.bin_edges.min()
         self.nbins = base.nbins-1
-        self.bins = base.r
-        self.n, bins = np.histogram(self._x, self.bins)
+        self.rbins = base.rbins
+        self.bin_edges = base.bin_edges
+        self.n, bins = np.histogram(self._x, self.bin_edges)
         self._setup_bins()
         self._profiles = {'n': self.n}
 
@@ -323,7 +304,6 @@ def mass(self):
     Calculate mass in each bin
     """
 
-    #print '[calculating mass]'
     mass = np.zeros(self.nbins)
     for i in range(self.nbins):
         mass[i] = (self.sim['mass'][self.binind[i]]).sum()
@@ -337,15 +317,13 @@ def den(self):
     Generate a radial density profile for the current type of profile
     """
 
-    #print '[calculating density]'
-    return self.mass/self._binsize
+    return self['mass']/self._binsize
 
 @Profile.profile_property
 def fourier(self):
     """
     Generate a profile of fourier coefficients, amplitudes and phases
     """
-    #print '[calculating fourier decomposition]'
     from . import fourier_decomp
 
     f = {'c': np.zeros((7, self.nbins),dtype=complex),
