@@ -1,6 +1,6 @@
 import numpy as np
 
-def plot_rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
+def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 

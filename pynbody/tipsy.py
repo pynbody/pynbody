@@ -395,7 +395,6 @@ class StarLog(snapshot.SimSnap):
         self._num_particles = indices.size
 
         self._family_slice[family.star] = slice(0, n)
-
         self._create_arrays(["pos","vel"],3)
         self._create_arrays(["iord"])
         self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
