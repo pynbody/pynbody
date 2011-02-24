@@ -25,6 +25,12 @@ class SimSnap(object) :
     _calculating = [] # maintains a list of currently-being-calculated lazy evaluations
                       # to prevent circular references
 
+    _dependency_track = [] # getitem automatically adds any requested arrays to sets within
+                           # this list, which allows for automatic calculation of the dependencies
+                           # of derived arrays
+
+    _dependency_chain = {} # key is an array name. Value gives the set of arrays which depend on it.
+    
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
@@ -38,11 +44,14 @@ class SimSnap(object) :
         self._num_particles = 0
         self._family_slice = {}
         self._family_arrays = {}
+        
+        
         self._unifamily = None
         self.lazy_off = util.ExecutionControl()
         self.filename=""
         self.properties = {}
         self._file_units_system = []
+        
 
     def __getitem__(self, i) :
         """Given a SimSnap object s, the following should be implemented:
@@ -61,7 +70,9 @@ class SimSnap(object) :
 
         if isinstance(i, str) :
             # self._assert_not_family_array(i)
-
+            if len(SimSnap._dependency_track)>0 :
+                SimSnap._dependency_track[-1].add(i)
+                
             try:
                 return self._get_array(i)
             except KeyError :
@@ -200,7 +211,7 @@ class SimSnap(object) :
         the original file.
 
         If verbose is True, the conversions are printed."""
-        physical_units(self, distance=self.infer_original_units('km'),
+        self.physical_units(distance=self.infer_original_units('km'),
                              velocity=self.infer_original_units('km s^-1'),
                              mass=self.infer_original_units('Msol'),
                        verbose=verbose)
@@ -238,8 +249,11 @@ class SimSnap(object) :
         return new_unit
 
     def __delitem__(self, name) :
-        self._assert_not_family_array(name)
-        del self._arrays[name]
+        if self._family_arrays.has_key(name) :
+            assert not self._arrays.has_key(name) # mustn't have simulation-level array of this name
+            del self._family_arrays[name]
+        else :
+            del self._arrays[name]
 
     def __getattr__(self, name) :
         """Implements getting particles of a specified family name"""
@@ -266,6 +280,10 @@ class SimSnap(object) :
         """Returns True if the array name is accessible (in memory)"""
         return name in self.keys()
 
+    def has_family_key(self, name) :
+        """Returns True if the array name is accessible (in memory) for at least one family"""
+        return name in self.family_keys()
+    
     def values(self) :
         """Returns a list of the actual arrays in memory"""
         x = []
@@ -402,13 +420,23 @@ class SimSnap(object) :
 
 
         # Determine what families already have an array of this name
+        fams = []
+        dtx = None
         try :
             fams = self._family_arrays[array_name].keys()
+            dtx = self._family_arrays[array_name][fams[0]].dtype
         except KeyError :
-            fams = []
+            pass
 
         fams.append(family)
 
+        if dtype is not None and dtx is not None and dtype!=dtx :
+
+            # We insist on the data types being the same for, e.g. sim.gas['my_prop'] and sim.star['my_prop']
+            # This makes promotion to simulation-level arrays possible.
+            raise ValueError("Requested data type %r is not consistent with existing data type %r for family array %r"%(str(dtype), str(dtx), array_name))
+
+        
         # If, once we created this array, *all* families would have
         # this array, just create a simulation-level array
         if all([x in fams for x in self.families()]) :
@@ -450,7 +478,13 @@ class SimSnap(object) :
         self._arrays[array_name] = new_array
 
     def _get_array(self, name) :
-        return self._arrays[name]
+        x = self._arrays[name]
+        if x.derived :
+            x = x.view()
+            x.flags['WRITEABLE'] = False
+            return x
+        else :
+            return x
 
 
     def _set_array(self, name, value, index=None) :
@@ -487,9 +521,16 @@ class SimSnap(object) :
         type."""
 
         try:
-            return self._family_arrays[name][fam]
+            x = self._family_arrays[name][fam]
         except KeyError :
             raise KeyError("No array "+name+" for family "+fam.name)
+
+        if x.derived :
+            x = x.view()
+            x.flags['WRITEABLE'] = False
+            return x
+        else :
+            return x
 
     def _promote_family_array(self, name, ndim=1, dtype=None) :
         """Create a simulation-level array (if it does not exist) with
@@ -575,6 +616,8 @@ class SimSnap(object) :
         SimSnap._derived_quantity_registry[cl][fn.__name__]=fn
         return fn
 
+   
+        
     def _derive_array(self, name, fam=None) :
         """Calculate and store, for this SnapShot, the derivable array 'name'.
 
@@ -587,30 +630,58 @@ class SimSnap(object) :
         else :
             try:
                 SimSnap._calculating.append(name)
+                SimSnap._dependency_track.append(set())
                 for cl in type(self).__mro__ :
                     if self._derived_quantity_registry.has_key(cl) \
                            and self._derived_quantity_registry[cl].has_key(name) :
                         if fam is None :
                             self[name] = SimSnap._derived_quantity_registry[cl][name](self)
+                            self[name].derived = True
+                                                        
                         else :
                             self[fam][name] = SimSnap._derived_quantity_registry[cl][name](self[fam])
+                            self[fam][name].derived = True
+                            
                         calculated = True
+                        for x in SimSnap._dependency_track[-1] :
+                            if x!=name :
+                                if not SimSnap._dependency_chain.has_key(x) :
+                                    SimSnap._dependency_chain[x] = set()
+                                
+                                SimSnap._dependency_chain[x].add(name)
+                            
+                        
                         break
             finally:
                 assert SimSnap._calculating[-1]==name
                 del SimSnap._calculating[-1]
+                del SimSnap._dependency_track[-1]
 
             if not calculated :
                 raise KeyError, "No derivation rule for "+name
 
-    def derive(self, name) :
-        """Force a calculation of the derived_quantity specified by name.
+    def _dirty(self, name) :
+        """Declare a given array as changed, so deleting any derived
+        quantities which depend on it"""
 
-        Unlike calling sim[name], which just gets the array, even if
-        the array already exists, it is recalculated and re-stored."""
+        if SimSnap._dependency_chain.has_key(name) :
+            for d_ar in SimSnap._dependency_chain[name] :
+                if self.has_key(d_ar) or self.has_family_key(d_ar) :
+                    if self.is_derived_array(d_ar) :
+                        del self[d_ar]
+                        self._dirty(d_ar)
+                
 
-        self._derive_array(name)
-        return self[name]
+
+    def is_derived_array(self, name) :
+        """Returns True if the array or family array of given name is
+        auto-derived (and therefore read-only)."""
+        
+        if self.has_key(name) :
+            return self[name].derived
+        else :
+            return any([x.derived for x in self._family_arrays[name].values()])
+        
 
     def mean_by_mass(self, name) :
         """Calculate the mean by mass of the specified array"""
