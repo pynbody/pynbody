@@ -375,11 +375,13 @@ def j_circ(p) :
 
 @Profile.profile_property
 def v_circ(p) :
-    return np.sqrt(p["phi'"]*p.r)
+    from . import gravity
+    return gravity.midplane_rot_curve(p.sim, p.r)
+    #return np.sqrt(p["phi'"]*p.r) 
 
 @Profile.profile_property
 def E_circ(p) :
-    return p["phi"] + 0.5*(p["phi'"]*p.r)
+    return p["phi"] + 0.5*((p["v_circ"]**2) / p.r)
 
 
 
