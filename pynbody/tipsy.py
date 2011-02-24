@@ -168,7 +168,7 @@ class TipsySnap(snapshot.SimSnap) :
 
         f.close()
         
-    def _read_array(self, array_name, fam=None, filename = None,
+    def _load_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
         specified name. If fam is not None, read only the particles of

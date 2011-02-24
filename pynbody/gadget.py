@@ -356,7 +356,7 @@ class GadgetFile :
 
 class GadgetSnap(snapshot.SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
-    of the blocks, which are then read by _read_array"""
+    of the blocks, which are then read by _load_array"""
     def __init__(self, filename, only_header=False, must_have_paramfile=False) :
         super(GadgetSnap,self).__init__()
         self._files = []
@@ -457,7 +457,7 @@ class GadgetSnap(snapshot.SimSnap):
         #  Therefore, we can't check them.
         return True
 
-    def _read_array(self, name, fam=None) :
+    def _load_array(self, name, fam=None) :
         """Read in data from a Gadget file.
         If fam != None, loads only data for that particle family"""
         #Make the name a four-character upper case name, possibly with trailing spaces

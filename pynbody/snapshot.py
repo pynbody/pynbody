@@ -14,7 +14,7 @@ class SimSnap(object) :
     should implement
 
     __init__(self, filename) -> sets up object. May or may not load any actual data.
-    _read_array(self, arrayname) -> attempts to load the named array into self._arrays
+    _load_array(self, arrayname) -> attempts to load the named array into self._arrays
     @staticmethod _can_load(filename) -> determines whether the specified file can be loaded
 
     @staticmethod derived_quantity(qty) -> calculates a derived quantity, i.e. radius 'r'
@@ -78,7 +78,7 @@ class SimSnap(object) :
             except KeyError :
                 if not self.lazy_off :
                     try:
-                        self._read_array(i)
+                        self._load_array(i)
                         if i in self.family_keys() :
                             self._promote_family_array(i)
                         return self._get_array(i)
@@ -321,7 +321,7 @@ class SimSnap(object) :
         for k in self :
             yield (k, self[k])
 
-    def _read_array(self, array_name, fam=None) :
+    def _load_array(self, array_name, fam=None) :
         raise IOError, "No lazy-loading implemented"
 
     def families(self) :
@@ -808,8 +808,8 @@ class SubSnap(SimSnap) :
 
 
 
-    def _read_array(self, array_name, fam=None) :
-        self.base._read_array(array_name, fam)
+    def _load_array(self, array_name, fam=None) :
+        self.base._load_array(array_name, fam)
 
     def _write_array(self, array_name) :
         self.base._write_array(array_name)
@@ -965,9 +965,9 @@ class FamilySubSnap(SubSnap) :
         pass
         
 
-    def _read_array(self, array_name, fam=None) :
+    def _load_array(self, array_name, fam=None) :
         if fam is self._unifamily or fam is None :
-            self.base._read_array(array_name, self._unifamily)
+            self.base._load_array(array_name, self._unifamily)
 
     def _derive_array(self, array_name, fam=None) :
         if fam is self._unifamily or fam is None :
