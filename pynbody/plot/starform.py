@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ..analysis import angmom
 from ..analysis import profile
 
 def sfh(t,filename=None,massform=True,**kwargs):
@@ -38,22 +37,26 @@ def schmidtlaw(t,center=True,filename=None,pretime=50,diskheight=3,rmax=20,radia
     
     if center :
         angmom.faceon(t)
-        
+
     # select stuff
-    youngstars = np.where(t.star['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)[0]
-    # * means "and"
-    diskstars = np.where((np.abs(t.star['z'].in_units("kpc")) < diskheight) * (t.star['rxy'] < rmax))[0]
-    youngdiskstars = np.intersect1d(youngstars, diskstars)
-    
-    diskgas = np.where((np.abs(t.gas['z'].in_units("kpc")) < diskheight) * (t.gas['rxy'] < rmax))[0]
+    diskgas = t.gas[filt.Disc(rmax,diskheight)]
+    diskstars = t.star[filt.Disc(rmax,diskheight)]
+
+    youngstars = np.where(diskstars['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)[0]
 
     # calculate surface densities
     if radial :
-        ps = profile.Profile(t.star[youngdiskstars])
-        pg = profile.Profile(t.gas[diskgas])
+        ps = profile.Profile(diskstars[youngstars])
+        pg = profile.Profile(diskgas)
     else :
-        gashist, x, y = np.histogram2d(t.gas['x'][diskgas], t.gas['y'][diskgas],bins=nbins,range=[t_range,rho_range])
-        starhist, x, y = np.histogram2d(t.star['x'][youngdiskstars], t.star['y'][youngdiskstars],bins=nbins,range=[t_range,rho_range])
+        # make bins 2 kpc
+        nbins = rmax * 2 / binsize
+        pg, x, y = np.histogram2d(diskgas['x'], diskgas['y'],bins=nbins,
+                                  weights=diskgas['mass'],
+                                  range=[(-rmax,rmax),(-rmax,rmax)])
+        ps, x, y = np.histogram2d(diskstars[youngstars]['x'], diskstars[youngstars]['y'],
+                                  weights=diskstars['mass'],
+                                  bins=nbins,range=[(-rmax,rmax),(-rmax,rmax)])
 
     plt.loglog(pg['den'].in_units('Msol pc^-2'),ps['den'].in_units('Msol kpc^-2') / pretime/1e6,"+")
     xsigma = 10.0**np.linspace(np.log10(pg['den'].min()),np.log10(pg['den'].max()),100)

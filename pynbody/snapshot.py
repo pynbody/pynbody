@@ -99,7 +99,7 @@ class SimSnap(object) :
             return SubSnap(self, i)
         elif isinstance(i, family.Family) :
             return FamilySubSnap(self, i)
-        elif isinstance(i, tuple) or isinstance(i,np.ndarray) or isinstance(i,filt.Filter) :
+        elif isinstance(i, (list, tuple, np.ndarray, filt.Filter)) :
             return IndexedSubSnap(self, i)
         elif isinstance(i, int) or isinstance(i, np.int32) or isinstance(i, np.int64) :
             return IndexedSubSnap(self, (i,))
