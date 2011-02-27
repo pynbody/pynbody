@@ -1,7 +1,6 @@
 from . import array
 from . import family, util
 from . import filt
-from . import halo
 from . import units
 import numpy as np
 import copy
@@ -140,6 +139,8 @@ class SimSnap(object) :
         """Tries to instantiate a halo catalogue object for the given
         snapshot, using the first available method."""
 
+        from . import halo
+        
         for c in halo._halo_classes :
             if c._can_load(self) : return c(self, *args)
 
