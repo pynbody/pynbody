@@ -13,7 +13,7 @@ dimensions
 
 * addition or subtraction causes auto-unit conversion. For example
 
-   SimArray([1,2], "Mpc") + SimArray([1,2], "kpc") 
+   SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")
 
 yields ``SimArray([1.001, 1.002], "Mpc")``
 
@@ -44,9 +44,9 @@ Getting the array in specified units
 Given an array, you can convert it in-place into units of your
 own chosing:
   x = SimArray([1,2], "Msol")
-  x.convert_units('kg)
+  x.convert_units('kg')
   print x # ->  SimArray([  1.99e+30,   3.98e+30], 'kg')
-  
+
 Or you can leave the original array alone and get a *copy* in
 different units, correctly converted:
 
@@ -65,7 +65,7 @@ conversions are correctly achieved:
   SimArray([[ 0.05419805, -0.0646539 , -0.15700017],
        [ 0.05169899, -0.06193341, -0.14475258],
        [ 0.05672406, -0.06384531, -0.15909944],
-       ..., 
+       ...,
        [ 0.0723075 , -0.07650762, -0.07657281],
        [ 0.07166634, -0.07453796, -0.08020873],
        [ 0.07165282, -0.07468577, -0.08020587]], '2.86e+04 kpc a')
@@ -76,7 +76,7 @@ conversions are correctly achieved:
    SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],
        [ 1477.1124212 , -1769.52421398, -4135.78377699],
        [ 1620.68592366, -1824.15000686, -4545.69387564],
-       ..., 
+       ...,
        [ 2065.9264273 , -2185.92982874, -2187.79225915],
        [ 2047.60759667, -2129.6537339 , -2291.6758134 ],
        [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
@@ -104,30 +104,30 @@ handler:
     @SimArray.ufunc_rule(np.subtract)
     def _consistent_units(a,b) :
 
-	# This will be called whenever the standard numpy ufuncs np.add
-	# or np.subtract are called with parameters a,b.
-	
-	# You should always be ready for the inputs to have no units.
+        # This will be called whenever the standard numpy ufuncs np.add
+        # or np.subtract are called with parameters a,b.
 
-	a_units = a.units if hasattr(a, 'units') else None
-	b_units = b.units if hasattr(b, 'units') else None
+        # You should always be ready for the inputs to have no units.
 
-	# Now do the logic. If we're adding incompatible units,
-	# we want just to get a plain numpy array out. If we only
-	# know the units of one of the arrays, we assume the output
-	# is in those units.
+        a_units = a.units if hasattr(a, 'units') else None
+        b_units = b.units if hasattr(b, 'units') else None
 
-	if a_units is not None and b_units is not None :
-	    if a_units==b_units :
-		return a_units
-	    else :
-		raise units.UnitsException("Incompatible units")
+        # Now do the logic. If we're adding incompatible units,
+        # we want just to get a plain numpy array out. If we only
+        # know the units of one of the arrays, we assume the output
+        # is in those units.
 
-	elif a_units is not None :
-	    return a_units
-	else :
-	    return b_units
-    
+        if a_units is not None and b_units is not None :
+            if a_units==b_units :
+                return a_units
+            else :
+                raise units.UnitsException("Incompatible units")
+
+        elif a_units is not None :
+            return a_units
+        else :
+            return b_units
+
 """
 
 import numpy as np
@@ -140,63 +140,73 @@ from .backcompat import fractions
 
 class SimArray(np.ndarray) :
     _ufunc_registry = {}
-    
+
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
-	new = np.array(data, **kwargs).view(subtype)
+        new = np.array(data, **kwargs).view(subtype)
 
         if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None :
             units = data.units
             sim = data.sim
-            
-	if isinstance(units, str) :
-	    units = _units.Unit(units)
 
-	new._units = units
+        if isinstance(units, str) :
+            units = _units.Unit(units)
+
+        new._units = units
         new.sim = sim # will generate a weakref automatically
+        new.derived = False
+        new._name = None
 
-	new._name = None
-	
-	return new
+        
+        
+        return new
 
     def __array_finalize__(self, obj) :
-	if obj is None :
-	    return
-	elif obj is not self and hasattr(obj, 'units') :
-	    self._units = obj.units
-	    self._sim = obj._sim
-	else :
-	    self._units = None
-	    self._sim = lambda : None
+        if obj is None :
+            return
+        elif obj is not self and hasattr(obj, 'units') :
+            self._units = obj.units
+            self._sim = obj._sim
+        else :
+            self._units = None
+            self._sim = lambda : None
 
+        self._name = None
+
+        if hasattr(obj, 'derived') :
+            self.derived = obj.derived
+        else :
+            self.derived = False
 
     def __array_wrap__(self, array, context=None) :
-	if context is None :
-	    return array
-	
-	try:
-	    ufunc = context[0]
-	    output_units = SimArray._ufunc_registry[ufunc](*context[1])
-	    n_array = array.view(SimArray)
-	    n_array.units = output_units
+        if context is None :
+            return array
+
+        try:
+            ufunc = context[0]
+            output_units = SimArray._ufunc_registry[ufunc](*context[1])
+            n_array = array.view(SimArray)
+            n_array.units = output_units
             n_array.sim = self.sim
-	    return n_array
-	except (KeyError, units.UnitsException) :
-	    return array
+            n_array.derived = self.derived
+            n_array._name = self._name
+            return n_array
+        except (KeyError, units.UnitsException) :
+            return array
 
     @staticmethod
     def ufunc_rule(for_ufunc) :
-	def x(fn) :
-	    SimArray._ufunc_registry[for_ufunc] = fn
-	    return fn
-	    
-	return x
-	    
+        def x(fn) :
+            SimArray._ufunc_registry[for_ufunc] = fn
+            return fn
+
+        return x
+
 
     @property
     def units(self) :
-	if hasattr(self.base, 'units') :
-	    return self.base.units
-	else :
+        if hasattr(self.base, 'units') :
+            return self.base.units
+        else :
             if self._units is None :
                 return _units.no_unit
             else :
@@ -204,12 +214,12 @@ class SimArray(np.ndarray) :
 
     @units.setter
     def units(self, u) :
-	if isinstance(u, str):
-	    u = units.Unit(u)
-	    
-	if hasattr(self.base, 'units') :
-	    self.base.units = u
-	else :
+        if isinstance(u, str):
+            u = units.Unit(u)
+
+        if hasattr(self.base, 'units') :
+            self.base.units = u
+        else :
             if hasattr(u, "_no_unit") :
                 self._units = None
             else :
@@ -218,8 +228,8 @@ class SimArray(np.ndarray) :
 
     @property
     def sim(self) :
-	if self._sim() is not None :
-	    return self._sim()
+        if self._sim() is not None :
+            return self._sim()
 
     @sim.setter
     def sim(self, s) :
@@ -245,87 +255,87 @@ class SimArray(np.ndarray) :
             return np.ndarray.__div__(self, rhs)
 
     def conversion_context(self) :
-	if self._sim() is not None :
-	    return self._sim().conversion_context()
-	else :
-	    return {}
-	
+        if self._sim() is not None :
+            return self._sim().conversion_context()
+        else :
+            return {}
+
     def _generic_add(self, x, add_op=np.add) :
         if hasattr(x, 'units') and not hasattr(self.units, "_no_unit") and not hasattr(x.units, "_no_unit") :
-	    # Check unit compatibility
-	    try:
-		cr = x.units.ratio(self.units,
-				     **self.conversion_context())
-	    except units.UnitsException :
-		raise ValueError, "Incompatible physical dimensions"
+            # Check unit compatibility
+            try:
+                cr = x.units.ratio(self.units,
+                                     **self.conversion_context())
+            except units.UnitsException :
+                raise ValueError, "Incompatible physical dimensions"
 
-	    
-	    if cr==1.0 :
-		r =  add_op(self, x)
-		
-	    else :
-		b = np.multiply(x,cr)
-		if hasattr(b,'units') :
-		    b.units=None
-		
-		r = add_op(self, b)
 
-	    return r
-	
-	else :
-	    r = add_op(self, x)
-	    return r
+            if cr==1.0 :
+                r =  add_op(self, x)
 
-    
+            else :
+                b = np.multiply(x,cr)
+                if hasattr(b,'units') :
+                    b.units=None
+
+                r = add_op(self, b)
+
+            return r
+
+        else :
+            r = add_op(self, x)
+            return r
+
+
     def __add__(self,x) :
-	return self._generic_add(x)
+        return self._generic_add(x)
 
     def __sub__(self, x) :
-	return self._generic_add(x, np.subtract)
+        return self._generic_add(x, np.subtract)
 
     def __pow__(self, x) :
-	numerical_x = x
+        numerical_x = x
 
-	if isinstance(x, tuple) :
-	    x = fractions.Fraction(x[0],x[1])
-	    numerical_x = float(x)
-	elif isinstance(x, fractions.Fraction) :
-	    numerical_x = float(x)
-	    
-	# The following magic circumvents our normal unit-assignment
-	# code which couldn't cope with the numerical version of x
-	# in the case of fractions. All this is necessary to make the
-	# magic tuple->fraction conversions work seamlessly.
-	r = np.power(self.view(np.ndarray), numerical_x).view(SimArray)
+        if isinstance(x, tuple) :
+            x = fractions.Fraction(x[0],x[1])
+            numerical_x = float(x)
+        elif isinstance(x, fractions.Fraction) :
+            numerical_x = float(x)
 
-	if self.units is not None and (
-	    isinstance(x, fractions.Fraction) or
-	    isinstance(x, int)) :
-	    
-	    r.units = self.units**x
-	else :
-	    r.units = None
-	return r
-    
+        # The following magic circumvents our normal unit-assignment
+        # code which couldn't cope with the numerical version of x
+        # in the case of fractions. All this is necessary to make the
+        # magic tuple->fraction conversions work seamlessly.
+        r = np.power(self.view(np.ndarray), numerical_x).view(SimArray)
+
+        if self.units is not None and (
+            isinstance(x, fractions.Fraction) or
+            isinstance(x, int)) :
+
+            r.units = self.units**x
+        else :
+            r.units = None
+        return r
+
 
     def __repr__(self) :
-	x = np.ndarray.__repr__(self)
-	if not hasattr(self.units, "_no_unit") :
-	    return x[:-1]+", '"+str(self.units)+"')"
-	else :
-	    return x
+        x = np.ndarray.__repr__(self)
+        if not hasattr(self.units, "_no_unit") :
+            return x[:-1]+", '"+str(self.units)+"')"
+        else :
+            return x
 
     def prod(self, axis=None, dtype=None, out=None) :
-	x = np.ndarray.prod(self, axis, dtype, out)
-	if hasattr(x, 'units') and axis is not None and self.units is not None :
-	    x.units = self.units**self.shape[axis]
-	return x
+        x = np.ndarray.prod(self, axis, dtype, out)
+        if hasattr(x, 'units') and axis is not None and self.units is not None :
+            x.units = self.units**self.shape[axis]
+        return x
 
     def sum(self, *args, **kwargs) :
-	x = np.ndarray.sum(self, *args, **kwargs)
-	if hasattr(x, 'units') and self.units is not None :
-	    x.units = self.units
-	return x
+        x = np.ndarray.sum(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
 
     def set_units_like(self, new_unit) :
         """Set the units for this array by performing dimensional analysis
@@ -336,48 +346,30 @@ class SimArray(np.ndarray) :
             self.units = self.sim.infer_original_units(new_unit)
         else :
             raise RuntimeError, "No link to SimSnap"
-    
-    def in_units(self, new_unit) :
-	"""Return a copy of this array expressed relative to an alternative
-	unit."""
 
-	if self.units is not None :
-	    r = self * self.units.ratio(new_unit,
-					  **(self.conversion_context()))
-	    r.units = new_unit
-	    return r
-	else :
-	    raise ValueError, "Units of array unknown"
+    def in_units(self, new_unit) :
+        """Return a copy of this array expressed relative to an alternative
+        unit."""
+
+        if self.units is not None :
+            r = self * self.units.ratio(new_unit,
+                                          **(self.conversion_context()))
+            r.units = new_unit
+            return r
+        else :
+            raise ValueError, "Units of array unknown"
 
     def convert_units(self, new_unit) :
-	"""Convert units of this array in-place. Note that if
-	this is a sub-view, the entire base array will be converted."""
+        """Convert units of this array in-place. Note that if
+        this is a sub-view, the entire base array will be converted."""
 
-	if self.base is not None and hasattr(self.base, 'units') :
-	    self.base.convert_units(new_unit)
-	else :
-	    self*=self.units.ratio(new_unit,
-				     **(self.conversion_context()))
-	    self.units = new_unit
+        if self.base is not None and hasattr(self.base, 'units') :
+            self.base.convert_units(new_unit)
+        else :
+            self*=self.units.ratio(new_unit,
+                                     **(self.conversion_context()))
+            self.units = new_unit
 
-
-    def recalculate(self) :
-	"""If this array is derived, recalculate it using the original
-	procedure.
-
-	For instance, when one first accesses array f['r'] of a given
-	snapshot f, the radius is calculated (see module derived). If
-	one recentres, the radius is not automatically recalculated,
-	so one needs to issue
-
-	f['r'].recalculate()
-
-	to recalculate the updated radius"""
-
-	if self._sim() and self._name :
-	    self._sim()._derive_array(self._name)
-	else :
-	    raise RuntimeError, "No link to SimSnap"
 
     def write(self) :
         """Write this array to disk according to the standard method associated
@@ -387,21 +379,58 @@ class SimArray(np.ndarray) :
             self._sim()._write_array(self._name)
         else :
             raise RuntimeError, "No link to SimSnap"
-	
+
+
+
+# Now add dirty bit setters to all the operations which are known
+# to modify the numpy array
+
+def _dirty_fn(w) :
+    def q(a, *y, **kw) :
+        if a.sim is not None and a._name is not None :
+            a.sim._dirty(a._name)
+            
+        if kw!={} :
+            return w(a, *y, **kw)
+        else :
+            return w(a, *y)
+
+    q.__name__ = w.__name__
+    return q
+
+_dirty_fns = ['__setitem__', '__setslice__',
+ '__irshift__',
+ '__imod__',
+ '__iand__',
+ '__ifloordiv__',
+ '__ilshift__',
+ '__imul__',
+ '__ior__',
+ '__ixor__',
+ '__isub__',
+ '__invert__',
+ '__iadd__',
+ '__itruediv__',
+ '__idiv__',
+ '__ipow__']
+
+for x in _dirty_fns :
+    setattr(SimArray, x, _dirty_fn(getattr(np.ndarray, x)))
+        
 _u = SimArray.ufunc_rule
 
 def _get_units_or_none(*a) :
     if len(a)==1 :
-	return a[0].units
+        return a[0].units
     else :
-	r = []
-	for x in a :
-	    if hasattr(x,"units") :
-		r.append(x.units)
-	    else :
-		r.append(None)
+        r = []
+        for x in a :
+            if hasattr(x,"units") :
+                r.append(x.units)
+            else :
+                r.append(None)
 
-	return r
+        return r
 
 #
 # Now we have the rules for unit outputs after numpy built-in ufuncs
@@ -414,54 +443,54 @@ def _get_units_or_none(*a) :
 @_u(np.sqrt)
 def _sqrt_units(a) :
     if a.units is not None :
-	return a.units**(1,2)
+        return a.units**(1,2)
     else :
-	return None
-    
+        return None
+
 @_u(np.multiply)
 def _mul_units(a,b) :
     a_units, b_units = _get_units_or_none(a,b)
     if a_units is not None and b_units is not None :
-	return a_units * b_units
+        return a_units * b_units
     elif a_units is not None :
-	return a_units
+        return a_units
     else :
-	return b_units
+        return b_units
 
 @_u(np.divide)
 def _div_units(a,b) :
     a_units, b_units = _get_units_or_none(a,b)
     if a_units is not None and b_units is not None :
-	return a_units/b_units
+        return a_units/b_units
     elif a_units is not None :
-	return a_units
+        return a_units
     else :
-	return 1/b_units
+        return 1/b_units
 
 @_u(np.add)
 @_u(np.subtract)
 def _consistent_units(a,b) :
     a_units, b_units = _get_units_or_none(a,b)
     if a_units is not None and b_units is not None :
-	if a_units==b_units :
-	    return a_units
-	else :
-	    raise units.UnitsException("Incompatible units")
-    
+        if a_units==b_units :
+            return a_units
+        else :
+            raise units.UnitsException("Incompatible units")
+
     elif a_units is not None :
-	return a_units
+        return a_units
     else :
-	return b_units
+        return b_units
 
 @_u(np.power)
 def _pow_units(a,b) :
     a_units = _get_units_or_none(a)
     if a_units is not None :
-	if not isinstance(b, int) and not isinstance(b, units.Fraction) :
-	    raise units.UnitsException("Can't track units")
-	return a_units**b
+        if not isinstance(b, int) and not isinstance(b, units.Fraction) :
+            raise units.UnitsException("Can't track units")
+        return a_units**b
     else :
-	return None
+        return None
 
 @_u(np.arctan)
 @_u(np.arctan2)
@@ -494,16 +523,16 @@ class IndexedSimArray(object) :
             return [self._ptr[index[0]]]+list(index[1:])
         else :
             return self._ptr[index]
-        
+
     def __getitem__(self, item) :
         return self.base[self._reexpress_index(item)]
 
     def __setitem__(self, item, to) :
         self.base[self._reexpress_index(item)] = to
-    
+
     def __getslice__(self, a, b) :
         return self.__getitem__(slice(a,b), to)
-        
+
     def __setslice__(self, a, b, to) :
         self.__setitem__(slice(a,b), to)
 
@@ -512,6 +541,15 @@ class IndexedSimArray(object) :
 
     def __str__(self) :
         return self.__array__().__str__() # Could be optimized
+
+    def __len__(self) :
+        return len(self._ptr)
+    
+    @property
+    def shape(self) :
+        x = [len(self._ptr)]
+        x+=self.base.shape[1:]
+        return tuple(x)
 
     @property
     def units(self) :
@@ -541,9 +579,6 @@ class IndexedSimArray(object) :
     def convert_units(self, new_unit) :
         self.base.convert_units(new_unit)
 
-    def recalculate(self) :
-        self.base.recalculate()
-
     def write(self) :
         self.base.write()
 
@@ -558,23 +593,22 @@ class IndexedSimArray(object) :
 # method.
 
 def _wrap_fn(w) :
-     def q(s, *y,  **kw) :
-	 # AP: I Don't understand why the following condition should be necessary,
-	 # but it seems required on McMaster setup (Py 2.6.5, NP 1.4.1)
-	 if kw!={} :
-	     return w(SimArray(s), *y, **kw)
-	 else :
-	     return w(SimArray(s), *y)
-	 
-     q.__name__ = w.__name__
-     return q
+    def q(s, *y,  **kw) :
+        # AP: I Don't understand why the following condition should be necessary,
+        # but it seems required on McMaster setup (Py 2.6.5, NP 1.4.1)
+        if kw!={} :
+            return w(SimArray(s), *y, **kw)
+        else :
+            return w(SimArray(s), *y)
+
+    q.__name__ = w.__name__
+    return q
 
 # functions we definitely want to wrap, even though there's an existing
 # implementatin
 _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
 
-for x in np.ndarray.__dict__ :
+for x in set(np.ndarray.__dict__).union(SimArray.__dict__) :
     w = getattr(SimArray, x)
     if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and callable(w) :
         setattr(IndexedSimArray, x, _wrap_fn(w))
-    

@@ -17,45 +17,45 @@ def family_names(with_aliases=False) :
     global _registry
     l = []
     for o in _registry :
-	l.append(o.name)
-	if with_aliases :
-	    for a in o.aliases : l.append(a)
+        l.append(o.name)
+        if with_aliases :
+            for a in o.aliases : l.append(a)
     return l
 
 def get_family(name, create=False) :
     if isinstance(name, Family) :
-	return name
-    
+        return name
+
     name = name.lower() # or should it check and raise rather than just convert? Not sure.
     for n in _registry :
-	if n.name==name or name in n.aliases :
-	    return n
+        if n.name==name or name in n.aliases :
+            return n
 
     if create :
-	return Family(name)
+        return Family(name)
     else :
-	raise ValueError, name+" not a family" # is ValueError the right thing here?
-    
+        raise ValueError, name+" not a family" # is ValueError the right thing here?
+
 class Family(object) :
     def __init__(self, name, aliases=[]) :
-	if name!=name.lower() :
-	    raise ValueError, "Family names must be lower case"
-	if name in family_names(with_aliases=True) :
-	    raise ValueError, "Family name "+name+" is not unique"
-	for a in aliases :
-	    if a!=a.lower() :
-		raise ValueError, "Aliases must be lower case"
-	    
-	self.name = name
-	self.aliases = aliases
-	_registry.append(self)
+        if name!=name.lower() :
+            raise ValueError, "Family names must be lower case"
+        if name in family_names(with_aliases=True) :
+            raise ValueError, "Family name "+name+" is not unique"
+        for a in aliases :
+            if a!=a.lower() :
+                raise ValueError, "Aliases must be lower case"
+
+        self.name = name
+        self.aliases = aliases
+        _registry.append(self)
 
     def __repr__(self) :
-	return "<Family "+self.name+">"
+        return "<Family "+self.name+">"
 
 
 
 dm = Family("dm",["d","dark"])
 star = Family("star",["stars","st","s"])
 gas = Family("gas",["g"])
-
+neutrino = Family("neutrino", ["n","neu"])

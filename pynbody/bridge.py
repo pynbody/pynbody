@@ -59,7 +59,7 @@ class Bridge(object) :
         self._start = weakref.ref(start)
         self._end = weakref.ref(end)
         assert len(start)==len(end)
-        
+
 
     def is_same(i1, i2) :
         """Returns true if the particle i1 in the start point is the same
@@ -70,21 +70,21 @@ class Bridge(object) :
         """Given a subview of either the start or end point of the bridge,
         generate the corresponding subview of the connected snapshot"""
         start, end = self._get_ends()
-        
+
         if s.is_descendant(start) :
             return end[s.get_index_list(start)]
         elif s.is_descendant(end) :
             return start[s.get_index_list(end)]
         else :
             raise RuntimeError, "Not a subview of either end of the bridge"
-        
+
     def _get_ends(self) :
         start = self._start()
         end = self._end()
         if start is None or end is None :
             raise RuntimeError, "Stale reference to start or endpoint"
         return start, end
-    
+
     def match_catalog(self, min_index = 1, max_index = 30) :
         """Given a Halos object groups_1, a Halos object groups_2 and a
         Bridge object connecting the two parent simulations, this identifies
@@ -94,7 +94,7 @@ class Bridge(object) :
         numbers to be matched (in both ends of the bridge). If max_index is
         too large, the catalogue matching can take prohibitively long (it
         scales as max_index^2).
-        
+
         This routine currently uses particle number as a proxy for mass, so that the
         main simulation data does not need to be loaded.
 
@@ -107,13 +107,13 @@ class Bridge(object) :
 
         cat[0:min_index+1] is set to -2. Halos which cannot be matched because
         they have too few particles give the result -1.
-        
+
         """
         start, end = self._get_ends()
 
         groups_1 = start.halos()
         groups_2 = end.halos()
-        
+
         mass = np.zeros((max_index+1-min_index,max_index+1-min_index),dtype=np.float128)
         for i in xrange(min_index,max_index+1) :
             tot_mass = len(groups_1[i])
@@ -139,14 +139,14 @@ class OrderBridge(Bridge) :
     order_array must be monotonically increasing in both ends
     of the bridge.
     """
-    
+
     def __init__(self, start, end, order_array="iord") :
         self._start = weakref.ref(start)
         self._end = weakref.ref(end)
         self._order_array = order_array
 
     def is_same(self, i1, i2) :
-        
+
         start, end = self._get_ends()
         return start[order_array][i1] == end[order_array][i2]
 
@@ -154,31 +154,31 @@ class OrderBridge(Bridge) :
     def __call__(self, s) :
         import scipy, scipy.weave
         from scipy.weave import inline
-        
+
         start, end = self._get_ends()
-      
-        
+
+
         if s.is_descendant(start) :
             from_ = start
             to_ = end
-            
+
         elif s.is_descendant(end) :
             from_ = end
             to_ = start
-            
+
         else :
             raise RuntimeError, "Not a subview of either end of the bridge"
-        
+
 
         iord_to = np.asarray(to_[self._order_array]).view(np.ndarray)
         iord_from = np.asarray(s[self._order_array]).view(np.ndarray)
-        
+
         output_index = np.zeros(len(iord_from)+1, dtype=int)
-        
+
         code = """
         long len = iord_from_array->dimensions[0];
         long len_to = iord_to_array->dimensions[0];
-        
+
         long i_to=0, j=1;
 
         // note j starts at 1 because output length stored in position zero
@@ -187,7 +187,7 @@ class OrderBridge(Bridge) :
           long i_from = IORD_FROM1(i);
           while(i_from>IORD_TO1(i_to) && i_to<len_to) i_to++;
           if(i_from==IORD_TO1(i_to)) {
-            output_index[j] = i_to; 
+            output_index[j] = i_to;
             j++;
           }
         }
@@ -196,13 +196,11 @@ class OrderBridge(Bridge) :
         // length is j-1, because the last written index was j-1 and the
         // indexing is 1-based precisely because we're writing this information
         // into position zero.
-        
+
         """
 
         inline(code, ['iord_to', 'iord_from', 'output_index'])
-        
+
         output_index = output_index[1:output_index[0]+1]
 
         return to_[output_index]
-
-

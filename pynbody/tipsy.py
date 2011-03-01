@@ -6,7 +6,7 @@ import struct
 import numpy as np
 
 class TipsySnap(snapshot.SimSnap) :
-    def __init__(self, filename, only_header=False) :
+    def __init__(self, filename, only_header=False, must_have_paramfile=False) :
 	super(TipsySnap,self).__init__()
 	
 	self._filename = filename
@@ -41,7 +41,6 @@ class TipsySnap(snapshot.SimSnap) :
 	self._family_slice[family.dm] = slice(ng, nd+ng)
 	self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
-        
 	self._create_arrays(["pos","vel"],3)
 	self._create_arrays(["mass","eps","phi"])
 	self.gas._create_arrays(["rho","temp","metals"])
@@ -65,17 +64,42 @@ class TipsySnap(snapshot.SimSnap) :
 	
 
 	self._decorate()
-	
-        if only_header == True :
-            return 
 
+
+
+        if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
+            raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+
+        time_unit = None
+        try :
+            time_unit = self.infer_original_units('yr')
+        except units.UnitsException :
+            pass
+        
+        if self._paramfile.has_key('bComove') and int(self._paramfile['bComove'])!=0 :
+            from . import analysis
+            import analysis.cosmology
+            self.properties['a'] = t
+            self.properties['z'] = 1.0/t - 1.0
+            self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
+            
+        else :
+            # Assume a non-cosmological run
+            self.properties['time'] =  t
+            
+        if time_unit is not None :
+            self.properties['time']*=time_unit
+
+        if only_header == True:
+            return
+	
 	for n_left, type, st in file_structure :
 	    n_done = 0
 	    self_type = self[type]
 	    while n_left>0 :
-		n_block = max(n_left,max_block_size)
+                n_block = min(n_left,max_block_size)
 
-		# Read in the block
+                # Read in the block
                 if(byteswap):
                     g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
                 else:
@@ -93,57 +117,41 @@ class TipsySnap(snapshot.SimSnap) :
 	
 
     def loadable_keys(self) :
-	"""Produce and return a list of loadable arrays for this TIPSY file."""
-
-	def is_readable_array(x) :
-	    try:
-		f = util.open_(x)
-		return int(f.readline()) == len(self)
-	    except (IOError, ValueError) :
+        """Produce and return a list of loadable arrays for this TIPSY file."""
+        def is_readable_array(x) :
+            try:
+                f = util.open_(x)
+                return int(f.readline()) == len(self)
+            except (IOError, ValueError) :
                 # could be a binary file
                 f.seek(0)
-                
                 buflen = len(f.read())
-                
-                if (buflen-4)/4/3. == len(self) : # it's a float vector 
+                if (buflen-4)/4/3. == len(self) : # it's a float vector
                     return True
-                elif (buflen-4)/4. == len(self) : # it's a float array 
+                elif (buflen-4)/4. == len(self) : # it's a float array
                     return True
                 else :
                     return False
 
-	    
-	import glob
-
+        import glob
         if len(self._loadable_keys_registry) == 0 :
-            
             name = util.cutgz(self._filename)
-            
-            fs = glob.glob(name+".*")
-            
-            res =  map(lambda q: q[len(name)+1:], filter(is_readable_array, fs))
+            fs = glob.glob(self._filename+".*")
+            res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
             for i,n in enumerate(res): res[i] = util.cutgz(n)
-
-            self._loadable_keys_registry['From files'] = res
-            self._loadable_keys_registry['To compute'] = snapshot.SimSnap.loadable_keys(self)
-
-            for type in self._loadable_keys_registry: self._loadable_keys_registry[type].sort(key=str.lower)
-            
-            self._loadable_keys_registry.__repr__ = self._print_loadable_keys_registry
+            self._loadable_keys_registry = res
             
         return self._loadable_keys_registry
-	
 
     def _write_array(self, array_name, filename=None) :
         """Write a TIPSY-ASCII file."""
 
-        with self.lazy_suppressor : # prevent any lazy reading or evaluation
+        with self.lazy_off : # prevent any lazy reading or evaluation
             if filename is None :
                 if self._filename[-3:] == '.gz' :
                     filename = self._filename[:-3]+"."+array_name+".gz"
                 else :
                     filename = self._filename+"."+array_name
-
             f = util.open_(filename, 'w')
             print>>f, str(len(self))
 
@@ -167,13 +175,16 @@ class TipsySnap(snapshot.SimSnap) :
                     fmt = "%d"
                 np.savetxt(f, ar, fmt=fmt)
 
-            f.close()
+        f.close()
         
-    def _read_array(self, array_name, fam=None, filename = None,
-        packed_vector = None) :
+    def _load_array(self, array_name, fam=None, filename = None,
+                    packed_vector = None) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
         specified name. If fam is not None, read only the particles of
         the specified family."""
+
+        if filename is None and array_name in ['massform', 'rhoform', 'tempform'] :
+            self.read_starlog()
 
         import sys, os
 	
@@ -182,10 +193,9 @@ class TipsySnap(snapshot.SimSnap) :
 	# then slices it.  But of course the memory is only wasted
 	# while still inside this routine, so it's only really the
 	# wasted time that's a problem.
-
-
+	
         # determine whether the array exists in a file
-
+        
         if filename is None :
             if self._filename[-3:] == '.gz' :
                 filename = self._filename[:-3]+"."+array_name
@@ -194,17 +204,14 @@ class TipsySnap(snapshot.SimSnap) :
                 
             if not os.path.isfile(filename) :
                 filename+=".gz"
-
-        
+          
         f = util.open_(filename)
-        
-
+ 
         # if we get here, we've got the file - try loading it
-
-        try :
-            l = int(f.readline())
-
-        except ValueError :
+  
+	try :
+	    l = int(f.readline())
+	except ValueError :
             # this is probably a binary file
             import xdrlib
             binary = True
@@ -219,16 +226,21 @@ class TipsySnap(snapshot.SimSnap) :
                 data = np.array(up.unpack_farray(l*3,up.unpack_float))
                 ndim = 3
             elif (buflen-4)/4. == l : # it's a float array 
-                data = np.array(up.unpack_farray(l,up.unpack_float))
+                if (array_name == 'iord') :
+                    isInt = True
+                    data = np.zeros(l,dtype=int)
+                    for i in xrange(l) : data[i] = up.unpack_int()
+                else :
+                    isInt = False
+                    data = np.array(up.unpack_farray(l,up.unpack_float))
                 ndim = 1
             else: # don't know what it is
                 raise IOError, "Incorrect file format"
         else:
             binary = False
-
             if l!=len(self) :
                 raise IOError, "Incorrect file format"
-
+	
             # Inspect the first line to see whether it's float or int
             l = "0\n"
             while l=="0\n" : l = f.readline()
@@ -246,10 +258,9 @@ class TipsySnap(snapshot.SimSnap) :
 
             if ndim*len(self)!=len(data) :
                 raise IOError, "Incorrect file format"
-
+	
         if ndim>1 :
             dims = (len(self),ndim)
-
             # check whether the vector format is specified in the param file
             # this only matters for binary because ascii files use packed vectors by default
             if (binary) and (packed_vector == None) :
@@ -270,137 +281,48 @@ class TipsySnap(snapshot.SimSnap) :
             dims = len(self)
             v_order = 'C'
 
-
         if fam is None :
-            self._arrays[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
-            self._arrays[array_name].sim = self
+            self[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
         else :
-            self._create_family_array(array_name, fam, ndim, data.dtype)
-            self._get_family_array(array_name, fam)[:] = \
-                                           data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
-            self._get_family_array(array_name, fam).sim = self
-            
+            self[fam][array_name] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
 
+
+    def read_starlog(self, fam=None) :
+	"""Read a TIPSY-starlog file."""
+	
+        import sys, os, glob, pynbody.bridge
+        x = os.path.abspath(self._filename)
+        done = False
+        filename=None
+        x = os.path.dirname(x)
+        l = glob.glob(os.path.join(x,"*.starlog"))
+        for filename in l :
+            # Attempt the loading of information
+            try :
+                sl = StarLog(filename)
+            except IOError :
+                l = glob.glob(os.path.join(x,"../*.starlog"))
+                try : 
+                    for filename in l:
+                        sl = StarLog(filename)
+                except IOError:
+                    continue
+
+            b = pynbody.bridge.OrderBridge(self,sl)
+            b(sl).star['iorderGas'] = sl.star['iorderGas'][:self.star['iord'].size]
+            b(sl).star['massform'] = sl.star['massform'][:self.star['iord'].size]
+            b(sl).star['rhoform'] = sl.star['rhoform'][:self.star['iord'].size]
+            b(sl).star['tempform'] = sl.star['tempform'][:self.star['iord'].size]
+            b(sl)['posform'] = sl['pos'][:self.star['iord'].size,:]
+            b(sl)['velform'] = sl['vel'][:self.star['iord'].size,:]
+                
 	
     @staticmethod
     def _can_load(f) :
 	# to implement!
 	return True
 
-@TipsySnap.decorator
-def load_paramfile(sim) :
-    import sys, os, glob
-    x = os.path.abspath(sim._filename)
-    done = False
-    sim._paramfile = {}
-    filename=None
-    for i in xrange(2) :
-        x = os.path.dirname(x)
-	l = glob.glob(os.path.join(x,"*.param"))
-
-	for filename in l :
-	    # Attempt the loading of information
-	    try :
-		f = file(filename)
-	    except IOError :
-		continue
-	    
-            
-            for line in f :
-		try :
-                    if line[0]!="#" :
-                        s = line.split()
-                        sim._paramfile[s[0]] = " ".join(s[2:])
-                                
-		except IndexError, ValueError :
-		    pass
-
-            if len(sim._paramfile)>1 :
-                sim._paramfile["filename"] = filename
-                done = True
-                
-        if done : break
-
-            
-
-@TipsySnap.decorator
-def param2units(sim) :
-    import sys, math, os, glob
-
-    munit = dunit = hub = None
-    
-    try :
-        munit_st = sim._paramfile["dMsolUnit"]+" Msol"
-        munit = float(sim._paramfile["dMsolUnit"])
-        dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
-        dunit = float(sim._paramfile["dKpcUnit"])
-        hub = float(sim._paramfile["dHubble0"])
-        om_m0 = float(sim._paramfile["dOmega0"])
-        om_lam0 = float(sim._paramfile["dLambda"])
-
-    except KeyError :
-        pass
-
-    if munit is None or dunit is None :
-        return
-
-
-    denunit = munit/dunit**3
-    denunit_st = str(denunit)+" Msol kpc^-3"
-
-    #
-    # the obvious way:
-    #
-    #denunit_cgs = denunit * 6.7696e-32
-    #kpc_in_km = 3.0857e16
-    #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
-    #velunit = dunit*kpc_in_km/secunit
-
-    # the sensible way:
-    # avoid numerical accuracy problems by concatinating factors:
-    velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit   
-    velunit_st = ("%.5g"%velunit)+" km s^-1"
-
-    #You have: kpc s / km
-    #You want: Gyr
-    #* 0.97781311
-    timeunit = dunit / velunit * 0.97781311
-    timeunit_st = ("%.5g"%timeunit)+" Gyr"
-
-    enunit_st = "%.5g km^2 s^-2"%(velunit**2)
-
-    if hub!=None:
-        hubunit = 10. * velunit / dunit
-        hubunit_st = ("%.3f"%(hubunit*hub))
-
-        # append dependence on 'a' for cosmological runs
-        dunit_st += " a"
-        denunit_st += " a^-3"
-        velunit_st += " a"
-
-        # Assume the box size is equal to the length unit
-        sim.properties["boxsize"] = units.Unit(dunit_st)
-
-
-    sim["vel"].units = velunit_st
-    sim["phi"].units = sim["vel"].units**2
-    sim["eps"].units = dunit_st
-    sim["pos"].units = dunit_st
-    sim.gas["rho"].units = denunit_st
-    sim["mass"].units = munit_st
-    sim.star["tform"].units = timeunit_st
-
-    sim.gas["metals"].units = ""
-    sim.star["metals"].units = ""
-
-    sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
-
-    if hub!=None:
-        sim.properties['h'] = hubunit*hub
-        sim.properties['omegaM0'] = float(om_m0)
-        sim.properties['omegaL0'] = float(om_lam0)
-
-
+        
 def _abundance_estimator(metal) :
 
     Y_He = ((0.236+2.1*metal)/4.0)*(metal<=0.1)
@@ -451,3 +373,199 @@ def p(sim) :
     p = sim["u"]*sim["rho"]*(2./3)
     p.convert_units("dyn")
     return p
+
+
+class StarLog(snapshot.SimSnap):
+    def __init__(self, filename):
+        import os
+        super(StarLog,self).__init__()
+        self._filename = filename
+
+        f = util.open_(filename)
+        self.properties = {}
+        
+        file_structure = {'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
+
+        size = struct.unpack("i", f.read(4))
+        iSize = size[0]
+        if (iSize>  1000 or iSize<  10):
+            byteswap=True
+            f.seek(0)
+            size = struct.unpack(">i", f.read(4))
+        iSize = size[0]
+            
+        n = (os.path.getsize(filename)-f.tell())/iSize
+
+        if(byteswap):
+            g = np.fromstring(f.read(n*iSize),dtype=file_structure).byteswap()
+        else:
+            g = np.fromstring(f.read(n*iSize),dtype=file_structure)
+
+        iord, indices = np.unique(g['iord'],return_index=True)
+
+        self._num_particles = indices.size
+
+        self._family_slice[family.star] = slice(0, n)
+        self._create_arrays(["pos","vel"],3)
+        self._create_arrays(["iord"])
+        self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
+        self._decorate()
+
+        #self['iord'] = g['iord'][indices]
+        for name in file_structure['names'] :
+            self.star[name][:] = g[name][indices]
+
+
+
+@TipsySnap.decorator
+@StarLog.decorator
+def load_paramfile(sim) :
+    import sys, os, glob
+    x = os.path.abspath(sim._filename)
+    done = False
+    sim._paramfile = {}
+    filename=None
+    for i in xrange(2) :
+        x = os.path.dirname(x)
+	l = glob.glob(os.path.join(x,"*.param"))
+
+	for filename in l :
+	    # Attempt the loading of information
+	    try :
+		f = file(filename)
+	    except IOError :
+                l = glob.glob(os.path.join(x,"../*.param"))
+                try : 
+                    for filename in l:
+                        f = file(filename)
+                except IOError:
+                    continue
+	    
+            
+            for line in f :
+		try :
+                    if line[0]!="#" :
+                        s = line.split()
+                        sim._paramfile[s[0]] = " ".join(s[2:])
+                                
+		except IndexError, ValueError :
+		    pass
+
+            if len(sim._paramfile)>1 :
+                sim._paramfile["filename"] = filename
+                done = True
+                
+        if done : break
+
+            
+@TipsySnap.decorator
+@StarLog.decorator
+def param2units(sim) :
+    with sim.lazy_off :
+        import sys, math, os, glob
+
+        munit = dunit = hub = None
+
+        try :
+            munit_st = sim._paramfile["dMsolUnit"]+" Msol"
+            munit = float(sim._paramfile["dMsolUnit"])
+            dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
+            dunit = float(sim._paramfile["dKpcUnit"])
+            hub = float(sim._paramfile["dHubble0"])
+            om_m0 = float(sim._paramfile["dOmega0"])
+            om_lam0 = float(sim._paramfile["dLambda"])
+
+        except KeyError :
+            pass
+
+        if munit is None or dunit is None :
+            return
+
+
+        denunit = munit/dunit**3
+        denunit_st = str(denunit)+" Msol kpc^-3"
+
+        #
+        # the obvious way:
+        #
+        #denunit_cgs = denunit * 6.7696e-32
+        #kpc_in_km = 3.0857e16
+        #secunit = 1./math.sqrt(denunit_cgs*6.67e-8)
+        #velunit = dunit*kpc_in_km/secunit
+
+        # the sensible way:
+        # avoid numerical accuracy problems by concatinating factors:
+        velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit
+        velunit_st = ("%.5g"%velunit)+" km s^-1"
+
+        #You have: kpc s / km
+        #You want: Gyr
+        #* 0.97781311
+        timeunit = dunit / velunit * 0.97781311
+        timeunit_st = ("%.5g"%timeunit)+" Gyr"
+
+        enunit_st = "%.5g km^2 s^-2"%(velunit**2)
+        
+        sim["vel"].units = velunit_st
+        potunit = sim["vel"].units**2
+        if hub!=None:
+            hubunit = 10. * velunit / dunit
+            hubunit_st = ("%.3f"%(hubunit*hub))
+
+            # append dependence on 'a' for cosmological runs
+            dunit_st += " a"
+            denunit_st += " a^-3"
+            velunit_st += " a"
+            potunit /= units.a**3
+                
+        #  Assuming G=1 in code units, phi is actually vel^2/a^3.
+        # See also gasoline's master.c:5511.
+        # Or should we be calculating phi as GM/R units (which
+        # is the same for G=1 runs)?
+        try :
+            sim["phi"].units = potunit
+            sim["eps"].units = dunit_st
+        except KeyError :
+            pass
+
+        sim["pos"].units = dunit_st
+        try :
+            sim.gas["rho"].units = denunit_st
+        except KeyError :
+            pass
+
+        try :
+            sim.star["rhoform"].units = denunit_st
+        except KeyError :
+            pass
+
+        try:
+            sim.star["massform"].units = munit_st
+        except KeyError :
+            pass
+
+        try :
+            sim["mass"].units = munit_st
+        except KeyError :
+            pass
+
+        sim.star["tform"].units = timeunit_st
+
+        try :
+            sim.gas["metals"].units = ""
+        except KeyError :
+            pass
+
+        sim.star["metals"].units = ""
+
+        try :
+            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
+        except KeyError :
+            try :
+                sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units]
+            except : pass
+
+        if hub!=None:
+            sim.properties['h'] = hubunit*hub
+            sim.properties['omegaM0'] = float(om_m0)
+            sim.properties['omegaL0'] = float(om_lam0)
