@@ -29,12 +29,12 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
         t_range = kwargs['t_range']
         assert len(t_range) == 2
     else:
-        t_range = (np.min(sim.gas['temp']),np.max(sim.gas['temp']))
+        t_range = (np.log10(np.min(sim.gas['temp'])),np.log10(np.max(sim.gas['temp'])))
     if kwargs.has_key('rho_range'):
         rho_range = kwargs['rho_range']
         assert len(rho_range) == 2
     else:
-        rho_range = (np.min(sim.gas['rho']), np.max(sim.gas['rho']))
+        rho_range = (np.log10(np.min(sim.gas['rho'])), np.log10(np.max(sim.gas['rho'])))
 
     hist, x, y = np.histogram2d(np.log10(sim.gas['temp']), np.log10(sim.gas['rho']),bins=nbins,range=[t_range,rho_range])
 
@@ -46,6 +46,8 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
             cont_color=colors.LogNorm()
         except ValueError:
             print 'crazy temperature or density range - please specify ranges'
+            print 't_range = ' + str(t_range)
+            print 'rho_range = ' + str(rho_range)
             return
     else:
         levels = np.linspace(np.min(hist[hist>0]),
@@ -59,3 +61,5 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
 
     plt.xlabel(r'$log_{10}(\rho/'+sim.gas['rho'].units.latex()+')$')
     plt.ylabel(r'$log_{10}(T/'+sim.gas['temp'].units.latex()+')$')
+    plt.xlim((rho_range[0],rho_range[1]))
+    plt.ylim((t_range[0],t_range[1]))
