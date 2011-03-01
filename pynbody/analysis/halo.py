@@ -5,7 +5,7 @@ import math
 
 def centre_of_mass(sim) : # shared-code names should be explicit, not short
     """Return the centre of mass of the SimSnap"""
-    return np.average(sim["pos"],axis=0,weights=sim["mass"])
+    return np.average(sim["pos"],axis=0,weights=sim["mass"]), np.average(sim["vel"],axis=0,weights=sim["mass"])
 
 def shrink_sphere_centre(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
     """Return the centre according to the shrinking-sphere method
