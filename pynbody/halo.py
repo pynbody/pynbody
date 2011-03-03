@@ -41,9 +41,12 @@ class AHFCatalogue(HaloCatalogue) :
             self._run_ahf(sim)
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
-        self._load_ahf_particles(glob.glob(self.base._filename+'*z*particles')[0])
-        self._load_ahf_halos(glob.glob(sim._filename+'*z*halos')[0])
-        self._load_ahf_substructure(glob.glob(sim._filename+'*z*substructure')[0])
+        try:
+            self._load_ahf_particles(glob.glob(self.base._filename+'*z*particles')[0])
+            self._load_ahf_halos(glob.glob(sim._filename+'*z*halos')[0])
+            self._load_ahf_substructure(glob.glob(sim._filename+'*z*substructure')[0])
+        except IndexError:
+            pass
 
     def _get_halo(self, i) :
         if self.base is None :
@@ -120,7 +123,7 @@ class AHFCatalogue(HaloCatalogue) :
         f = open('tipsy.info','w')
         f.write(str(sim.properties['omegaM0'])+"\n")
         f.write(str(sim.properties['omegaL0'])+"\n")
-        f.write(str(float(sim._paramfile['dKpcUnit'])/1000.0 * sim.properties['h'])+"\n")
+        f.write(str(sim['pos'].units.ratio(units.kpc,a=1)./1000.0 * sim.properties['h'])+"\n")
         f.write(str(sim['vel'].units.ratio(units.km/units.s))+"\n")
         f.write(str(sim['mass'].units.ratio(units.Msol))+"\n")
         f.close()
