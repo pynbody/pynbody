@@ -144,6 +144,9 @@ class SimSnap(object) :
         for c in halo._halo_classes :
             if c._can_load(self) : return c(self, *args)
 
+        for c in halo._runable_halo_classes :
+            if c._can_run(self) : return c(self, *args)
+
         raise RuntimeError("No halo catalogue found")
 
     def is_ancestor(self, other) :
