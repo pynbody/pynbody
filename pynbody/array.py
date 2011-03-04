@@ -228,8 +228,7 @@ class SimArray(np.ndarray) :
 
     @property
     def sim(self) :
-        if self._sim() is not None :
-            return self._sim()
+        return self._sim()
 
     @sim.setter
     def sim(self, s) :
@@ -263,11 +262,20 @@ class SimArray(np.ndarray) :
     def _generic_add(self, x, add_op=np.add) :
         if hasattr(x, 'units') and not hasattr(self.units, "_no_unit") and not hasattr(x.units, "_no_unit") :
             # Check unit compatibility
+            
+            try :
+                context = x.conversion_context()
+            except AttributeError :
+                context = {}
+
+            # Our own contextual information overrides x's
+            context.update(self.conversion_context())
+            
             try:
                 cr = x.units.ratio(self.units,
-                                     **self.conversion_context())
+                                     **context)
             except units.UnitsException :
-                raise ValueError, "Incompatible physical dimensions"
+                raise ValueError("Incompatible physical dimensions %r and %r, context %r"%(str(self.units),str(x.units), str(self.conversion_context())))
 
 
             if cr==1.0 :
@@ -311,10 +319,12 @@ class SimArray(np.ndarray) :
         if self.units is not None and (
             isinstance(x, fractions.Fraction) or
             isinstance(x, int)) :
-
+            r.sim = self.sim
             r.units = self.units**x
         else :
             r.units = None
+            r.sim = self.sim
+            
         return r
 
 
