@@ -3,6 +3,7 @@
 Tools for bulge/disk/halo decomposition"""
 
 from . import angmom
+from .. import array
 from .. import filt, util
 from . import profile
 import numpy as np
@@ -43,15 +44,14 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     verbose -- if True, print information
     """
 
+    import scipy.interpolate as interp
+    
     # Center, eliminate proper motion, rotate so that
     # gas disk is in X-Y plane
     if not aligned :
         angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose)
 
-        # Derive or rederive quantities of interest
-        h.derive('ke')
-        h.derive('j')
-
+        
 
 
 
@@ -83,7 +83,33 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # inside a vertical height of 100pc.
 
     d = h[filt.Disc('1 Mpc', '100 pc')]
-    pro_d = profile.Profile(d, nbins=100, type='equaln').D()
+    
+    try :
+        
+        
+        r, v_c = np.loadtxt(h.ancestor.filename+".rot."+str(h.properties["halo_id"]), skiprows=1, unpack=True)
+        
+        pro_d = profile.Profile(d, nbins=100, type='log')
+        r_x = pro_d.rbins.in_units("kpc")
+        r_x = np.concatenate(([0], r, [r.max()*2]))
+        v_c = np.concatenate(([v_c[0]], v_c, [v_c[-1]]))
+        v_c = interp.interp1d(r_x, v_c, bounds_error=False)(pro_d.rbins)
+        
+        if verbose :
+            print "   -- found existing rotation curve on disk, using that"
+            
+        v_c = v_c.view(array.SimArray)
+        v_c.units = "km s^-1"
+        v_c.sim = d
+    
+        pro_d._profiles['v_circ'] = v_c
+        print v_c
+        pro_d.v_circ_loaded = True
+        
+    except IOError :
+        pro_d = profile.Profile(d, nbins=100, type='log') #.D()
+    
+    
     pro_phi = pro_d['phi']
 
     # offset the potential as for the te array
@@ -95,7 +121,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         pro_d.create_particle_array("j_circ", out_sim=h)
         pro_d.create_particle_array("E_circ", out_sim=h)
     else :
-        import scipy.interpolate as interp
+        
         if log_interp :
             j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'])[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
             h['j_circ'] = 10**j_from_E(np.log10(-h['te']))
@@ -158,3 +184,6 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     h_star['decomp', bulge] = 3
     h_star['decomp', thick] = 4
     h_star['decomp', pbulge] = 5
+
+    # Return profile object for informational purposes
+    return pro_d
