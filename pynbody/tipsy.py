@@ -517,7 +517,10 @@ def param2units(sim) :
             denunit_st += " a^-3"
             velunit_st += " a"
             potunit /= units.a**3
-                
+
+            # Assume the box size is equal to the length unit
+            sim.properties['boxsize'] = units.Unit(dunit_st)
+            
         #  Assuming G=1 in code units, phi is actually vel^2/a^3.
         # See also gasoline's master.c:5511.
         # Or should we be calculating phi as GM/R units (which
