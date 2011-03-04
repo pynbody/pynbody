@@ -36,6 +36,12 @@ class HaloCatalogue(object) :
             return True
         else : return False
 
+    def _can_load(self) :
+        return False
+
+    def _can_run(self) :
+        return False
+
 class AHFCatalogue(HaloCatalogue) :
     def __init__(self, sim) :
         import os.path
@@ -126,7 +132,7 @@ class AHFCatalogue(HaloCatalogue) :
         f = open('tipsy.info','w')
         f.write(str(sim.properties['omegaM0'])+"\n")
         f.write(str(sim.properties['omegaL0'])+"\n")
-        f.write(str(sim['pos'].units.ratio(units.kpc,a=1)./1000.0 * sim.properties['h'])+"\n")
+        f.write(str(sim['pos'].units.ratio(units.kpc,a=1)/1000.0 * sim.properties['h'])+"\n")
         f.write(str(sim['vel'].units.ratio(units.km/units.s))+"\n")
         f.write(str(sim['mass'].units.ratio(units.Msol))+"\n")
         f.close()
@@ -184,4 +190,3 @@ class AmigaGrpCatalogue(HaloCatalogue) :
 
 
 _halo_classes = [AmigaGrpCatalogue,AHFCatalogue]
-_runable_halo_classes = [AHFCatalogue]
