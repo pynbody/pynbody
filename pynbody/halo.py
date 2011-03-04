@@ -13,8 +13,7 @@ class Halo(snapshot.IndexedSubSnap) :
         self._halo_id = halo_id
         self._descriptor = "halo_"+str(halo_id)
         self.properties = copy.copy(self.properties)
-        self.properties["halo_id"] = halo_id
-        
+        self.properties['halo_id'] = halo_id
 
     def is_subhalo(self, otherhalo):
         return self._halo_catalogue.is_subhalo(self._halo_id, otherhalo._halo_id)
@@ -36,10 +35,10 @@ class HaloCatalogue(object) :
             return True
         else : return False
 
-    def _can_load(self) :
+    def _can_load(self):
         return False
 
-    def _can_run(self) :
+    def _can_run(self):
         return False
 
 class AHFCatalogue(HaloCatalogue) :
@@ -50,9 +49,15 @@ class AHFCatalogue(HaloCatalogue) :
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
         try:
-            self._load_ahf_particles(glob.glob(self.base._filename+'*z*particles')[0])
-            self._load_ahf_halos(glob.glob(sim._filename+'*z*halos')[0])
-            self._load_ahf_substructure(glob.glob(sim._filename+'*z*substructure')[0])
+            print "Loading particles"
+            self._load_ahf_particles(glob.glob(self.base._filename+'.z*particles')[0])
+            print "Loading halos"
+            self._load_ahf_halos(glob.glob(sim._filename+'.z*halos')[0])
+            print "Loading substructure"
+            self._load_ahf_substructure(glob.glob(sim._filename+'.z*substructure')[0])
+            print "Setting grp"
+            for halo in self._halos.values():
+                halo['grp'][:] = halo._halo_id
         except IndexError:
             pass
 
@@ -78,10 +83,18 @@ class AHFCatalogue(HaloCatalogue) :
         # tried readlines, which is fast, but the time is spent in the
         # for loop below, so sticking with this (hopefully) more readable 
         nhalos=int(f.readline())
+        ng = len(self.base.gas)
+        nds = len(self.base.dark) + len(self.base.star)
         for h in xrange(nhalos) :
             nparts = int(f.readline())
             keys = {}
-            for i in xrange(nparts) : keys[int(f.readline().split()[0])]=1
+            # wow,  AHFstep has the audacity to switch the id order to dark,star,gas
+            # switching back to gas, dark, star
+            for i in xrange(nparts) : 
+                key,value=f.readline().split()
+                if (value == '0'): key=int(key)-nds
+                else: key=int(key)+ng
+                keys[int(key)]=int(value)
             self._halos[h+1] = Halo( h+1, self, self.base, sorted(keys.keys()))
         f.close()
 
@@ -105,7 +118,6 @@ class AHFCatalogue(HaloCatalogue) :
                 self._halos[h+1].properties[key] = values[i]
         f.close()
 
-
     def _load_ahf_substructure(self,filename) :
         f = open(filename)
         nhalos = int(f.readline())  # number of halos?  no, some crazy number
@@ -120,7 +132,7 @@ class AHFCatalogue(HaloCatalogue) :
 
     @staticmethod
     def _can_load(sim) :
-        for file in glob.glob(sim._filename+'*z*particles') :
+        for file in glob.glob(sim._filename+'.z*particles') :
             if os.path.exists(file) :
                 return True
         return False
@@ -188,5 +200,6 @@ class AmigaGrpCatalogue(HaloCatalogue) :
             return False
 
 
+_halo_classes = [AHFCatalogue,AmigaGrpCatalogue]
+_runable_halo_classes = [AHFCatalogue]
 
-_halo_classes = [AmigaGrpCatalogue,AHFCatalogue]
