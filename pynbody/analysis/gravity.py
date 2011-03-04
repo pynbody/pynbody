@@ -4,6 +4,39 @@ from .. import array
 import math
 import numpy as np
 
+def potential(f, pos_vec, eps=None, unit=None) :
+    """Calculates the gravitational potential at the
+    specified position using all particles in the specified snapshot.
+
+    The gravitational softening length is determined by (in order of
+    preference):
+
+    1. The parameter eps (scalar, unit or array)
+    2. The array f['eps']
+    3. f.properties['eps'] (scalar or unit) """
+
+    if eps is None :
+        try :
+            eps = f['eps']
+        except KeyError :
+            eps = f.properties['eps']
+            
+    if isinstance(eps, str) :
+        eps = units.Unit(eps)
+
+    if isinstance(eps, units.UnitBase) :
+        eps = eps.in_units(f['pos'].units, **f.conversion_context())
+        
+    d_pos = f['pos'] - pos_vec
+    
+    GM_by_r = units.G * f['mass'] / ((d_pos**2).sum(axis=1) + eps**2)**(1,2)
+
+    if unit is not None :
+        GM_by_r.convert_units(unit)
+
+    return  GM_by_r.sum()
+
+    
 def accel(f, pos_vec, eps=None) :
     """Calculates the gravitational acceleration vector at the
     specified position using all particles in the specified snapshot.
@@ -15,8 +48,6 @@ def accel(f, pos_vec, eps=None) :
     2. The array f['eps']
     3. f.properties['eps'] (scalar or unit) """
     
-    
-
     if eps is None :
         try :
             eps = f['eps']
