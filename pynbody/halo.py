@@ -13,6 +13,8 @@ class Halo(snapshot.IndexedSubSnap) :
         self._halo_id = halo_id
         self._descriptor = "halo_"+str(halo_id)
         self.properties = copy.copy(self.properties)
+        self.properties["halo_id"] = halo_id
+        
 
     def is_subhalo(self, otherhalo):
         return self._halo_catalogue.is_subhalo(self._halo_id, otherhalo._halo_id)
@@ -97,6 +99,7 @@ class AHFCatalogue(HaloCatalogue) :
                 self._halos[h+1].properties[key] = values[i]
         f.close()
 
+
     def _load_ahf_substructure(self,filename) :
         f = open(filename)
         nhalos = int(f.readline())  # number of halos?  no, some crazy number
@@ -162,7 +165,7 @@ class AmigaGrpCatalogue(HaloCatalogue) :
         if self.base is None :
             raise RuntimeError, "Parent SimSnap has been deleted"
 
-        x = self.base[np.where(self.base['amiga.grp']==i)]
+        x = Halo(i, self, self.base, np.where(self.base['amiga.grp']==i))
         x._descriptor = "halo_"+str(i)
         return x
 
@@ -179,6 +182,6 @@ class AmigaGrpCatalogue(HaloCatalogue) :
             return False
 
 
-_halo_classes = [AHFCatalogue,AmigaGrpCatalogue]
-_runable_halo_classes = [AHFCatalogue]
 
+_halo_classes = [AmigaGrpCatalogue,AHFCatalogue]
+_runable_halo_classes = [AHFCatalogue]
