@@ -47,7 +47,6 @@ class SimSnap(object) :
         
         self._unifamily = None
         self.lazy_off = util.ExecutionControl()
-        self.filename=""
         self.properties = {}
         self._file_units_system = []
         
@@ -147,7 +146,8 @@ class SimSnap(object) :
         for c in halo._runable_halo_classes :
             if c._can_run(self) : return c(self, *args)
 
-        raise RuntimeError("No halo catalogue found")
+        raise RuntimeError("No halo catalogue found for %r"%str(self))
+
 
     def is_ancestor(self, other) :
         """Returns true if other is a subview of self"""
@@ -169,6 +169,10 @@ class SimSnap(object) :
             return self.base.ancestor
         else :
             return self
+
+    @property
+    def filename(self) :
+        return self._filename
 
     def intersect(self, other, op=np.intersect1d) :
         """Returns the set intersection of this simulation view with another view
@@ -827,11 +831,11 @@ class SubSnap(SimSnap) :
     def loadable_keys(self) :
         return self.base.loadable_keys()
 
-    def _create_array(self, *args) :
-        self.base._create_array(*args)
+    def _create_array(self, *args, **kwargs) :
+        self.base._create_array(*args, **kwargs)
 
-    def _create_family_array(self, *args) :
-        self.base._create_family_array(*args)
+    def _create_family_array(self, *args, **kwargs) :
+        self.base._create_family_array(*args, **kwargs)
 
     def physical_units(self, *args, **kwargs) :
         self.base.physical_units(*args, **kwargs)
@@ -903,8 +907,8 @@ class IndexedSubSnap(SubSnap) :
         self.base._set_family_array(name, family, value,
                                     util.concatenate_indexing(self._family_indices[family], index))
 
-    def _create_array(self, *args) :
-        self.base._create_array(*args)
+    def _create_array(self, *args, **kwargs) :
+        self.base._create_array(*args, **kwargs)
 
 
 
