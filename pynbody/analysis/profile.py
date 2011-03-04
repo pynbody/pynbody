@@ -178,9 +178,11 @@ class Profile:
             return self._profiles[name]
         elif name in Profile._profile_registry :
             self._profiles[name] = Profile._profile_registry[name](self)
+            self._profiles[name].sim = self.sim
             return self._profiles[name]
         elif name in self.sim.keys() or name in self.sim.all_keys() :
             self._profiles[name] = self._auto_profile(name)
+            self._profiles[name].sim = self.sim
             return self._profiles[name]
         else :
             raise KeyError, name+" is not a valid profile"
@@ -359,7 +361,7 @@ def g_spherical(self) :
     """The naive gravitational acceleration assuming spherical
     symmetry = GM_enc/r^2"""
 
-    return (units.G*self.mass_enc/self.r**2)
+    return (units.G*self.mass_enc/self.rbins**2)
 
 @Profile.profile_property
 def rotation_curve_spherical(self):
@@ -367,21 +369,27 @@ def rotation_curve_spherical(self):
     The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
 
-    return ((units.G*self.mass_enc/self.r)**(1,2)).in_units('km s**-1')
+    return ((units.G*self.mass_enc/self.rbins)**(1,2)).in_units('km s**-1')
 
 @Profile.profile_property
 def j_circ(p) :
-    return p["v_circ"] * p.r
+    return p["v_circ"] * p.rbins
 
 @Profile.profile_property
 def v_circ(p) :
     from . import gravity
-    return gravity.midplane_rot_curve(p.sim, p.r)
+    grav_sim = p.sim
+
+    # Go up to the halo level
+    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+        grav_sim = grav_sim.base
+    
+    return gravity.midplane_rot_curve(grav_sim, p.rbins)
     #return np.sqrt(p["phi'"]*p.r) 
 
 @Profile.profile_property
 def E_circ(p) :
-    return p["phi"] + 0.5*((p["v_circ"]**2) / p.r)
+    return 0.5*((p["v_circ"]*p["v_circ"])) + p["phi"]
 
 
 
