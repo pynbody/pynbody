@@ -222,3 +222,8 @@ def Annulus(r1, r2, cen=(0,0,0)) :
     x = Sphere(max(r1,r2),cen) & ~Sphere(min(r1,r2),cen)
     x._descriptor = "annulus"
     return x
+
+def SolarNeighborhood(r1=units.Unit("5 kpc"), r2=units.Unit("10 kpc"), height=units.Unit("2 kpc"),cen=(0,0,0)) :
+    x = Disc(max(r1,r2),height,cen) & ~Disc(min(r1,r2),height,cen)
+    x._descriptor = "Solar Neighborhood"
+    return x

@@ -51,10 +51,6 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     if not aligned :
         angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose)
 
-        
-
-
-
     # Find KE, PE and TE
     ke = h['ke']
     pe = h['phi']

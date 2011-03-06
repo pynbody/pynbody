@@ -18,7 +18,7 @@ class TipsySnap(snapshot.SimSnap) :
 
 	t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
         if (ndim > 3 or ndim < 1):
-            byteswap=True
+            self._byteswap=True
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
 
@@ -62,10 +62,7 @@ class TipsySnap(snapshot.SimSnap) :
 			  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
 			  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
 	
-
 	self._decorate()
-
-
 
         if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
             raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
@@ -100,7 +97,7 @@ class TipsySnap(snapshot.SimSnap) :
                 n_block = min(n_left,max_block_size)
 
                 # Read in the block
-                if(byteswap):
+                if(self._byteswap):
                     g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
                 else:
                     g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
@@ -143,7 +140,55 @@ class TipsySnap(snapshot.SimSnap) :
             
         return self._loadable_keys_registry
 
-    def _write_array(self, array_name, filename=None) :
+    def write(self, filename=None) :
+        """Write a TIPSY file.  Just the reverse of reading a file. """
+
+        with self.lazy_off : # prevent any lazy reading or evaluation
+            if filename is None :
+                if self._filename[-3:] == '.gz' :
+                    filename = self._filename[:-3]+".new.gz"
+                else :
+                    filename = self._filename+'.new'
+            f = util.open_(filename, 'w')
+            t = self.properties['a']
+            n = len(self)
+            ndim = 3
+            ng = len(self.gas)
+            nd = len(self.dark)
+            ns = len(self.star)
+            if self._byteswap :
+                f.write(struct.pack(">diiiii", t,n,ndim,ng,nd,ns))
+            else:
+                f.write(struct.pack("diiiii", t,n,ndim,ng,nd,ns))
+            # needs to be done in blocks like reading
+            # describe the file structure as list of (num_parts, [list_of_properties]) 
+            file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
+                              (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
+                              (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+            max_block_size = 1024 # particles
+            for n_left, type, st in file_structure :
+                n_done = 0
+                self_type = self[type]
+                while n_left>0 :
+                    n_block = min(n_left,max_block_size)
+                    
+                    g = np.ones((n_block,len(st)),dtype=np.float32)
+                    # Copy into the correct arrays
+                    for i, name in enumerate(st) :
+                        g[:,i] =np.float32(self_type[name][n_done:n_done+n_block])
+                    # Write out the block
+                    if(self._byteswap):
+                        g.byteswap().tofile(f)
+                    else:
+                        g.tofile(f)
+
+                    # Increment total ptcls written, decrement ptcls left of this type
+                    n_left-=n_block
+                    n_done+=n_block
+
+            f.close()
+        
+    def write_array(self, array_name, filename=None) :
         """Write a TIPSY-ASCII file."""
 
         with self.lazy_off : # prevent any lazy reading or evaluation
@@ -304,6 +349,7 @@ class TipsySnap(snapshot.SimSnap) :
                 l = glob.glob(os.path.join(x,"../*.starlog"))
                 try : 
                     for filename in l:
+                        print 'Found '+filename
                         sl = StarLog(filename)
                 except IOError:
                     continue
@@ -374,6 +420,61 @@ def p(sim) :
     p.convert_units("dyn")
     return p
 
+XSOLFe=0.117E-2
+XSOLO=0.96E-2
+XSOLH=0.706
+XSOLC=3.03e-3
+XSOLN=1.105e-3
+XSOLNe=2.08e-4
+XSOLMg=5.13e-4
+XSOLSi=6.53e-4
+
+@TipsySnap.derived_quantity
+def hetot(self) :
+    return 0.236+(2.1*self['metals'])
+
+@TipsySnap.derived_quantity
+def hydrogen(self) :
+    return 1.0-self['metals']-self['hetot']
+
+@TipsySnap.derived_quantity
+def feh(self) :
+    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
+    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
+    return np.log10(self['FeMassFrac']/self['hydrogen']) - np.log10(XSOLFe/XSOLH)
+
+@TipsySnap.derived_quantity
+def ofe(self) :
+    minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
+    self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)]=minox
+    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
+    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
+    return np.log10(self['OxMassFrac']/self['FeMassFrac']) - np.log10(XSOLO/XSOLFe)
+
+@TipsySnap.derived_quantity
+def mgfe(self) :
+    minmg = np.amin(self['MgMassFrac'][np.where(self['MgMassFrac'] > 0)])
+    self['MgMassFrac'][np.where(self['MgMassFrac'] == 0)]=minmg
+    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
+    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
+    return np.log10(self['MgMassFrac']/self['FeMassFrac']) - np.log10(XSOLMg/XSOLFe)
+
+@TipsySnap.derived_quantity
+def nefe(self) :
+    minne = np.amin(self['NeMassFrac'][np.where(self['NeMassFrac'] > 0)])
+    self['NeMassFrac'][np.where(self['NeMassFrac'] == 0)]=minne
+    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
+    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
+    return np.log10(self['NeMassFrac']/self['FeMassFrac']) - np.log10(XSOLNe/XSOLFe)
+
+@TipsySnap.derived_quantity
+def sife(self) :
+    minsi = np.amin(self['SiMassFrac'][np.where(self['SiMassFrac'] > 0)])
+    self['SiMassFrac'][np.where(self['SiMassFrac'] == 0)]=minsi
+    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
+    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
+    return np.log10(self['SiMassFrac']/self['FeMassFrac']) - np.log10(XSOLSi/XSOLFe)
+
 
 class StarLog(snapshot.SimSnap):
     def __init__(self, filename):
@@ -389,14 +490,14 @@ class StarLog(snapshot.SimSnap):
         size = struct.unpack("i", f.read(4))
         iSize = size[0]
         if (iSize>  1000 or iSize<  10):
-            byteswap=True
+            self._byteswap=True
             f.seek(0)
             size = struct.unpack(">i", f.read(4))
         iSize = size[0]
             
         n = (os.path.getsize(filename)-f.tell())/iSize
-
-        if(byteswap):
+        print "Reading "+filename
+        if(self._byteswap):
             g = np.fromstring(f.read(n*iSize),dtype=file_structure).byteswap()
         else:
             g = np.fromstring(f.read(n*iSize),dtype=file_structure)
@@ -409,12 +510,11 @@ class StarLog(snapshot.SimSnap):
         self._create_arrays(["pos","vel"],3)
         self._create_arrays(["iord"])
         self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
-        self._decorate()
 
-        #self['iord'] = g['iord'][indices]
         for name in file_structure['names'] :
             self.star[name][:] = g[name][indices]
 
+        self._decorate()
 
 
 @TipsySnap.decorator
@@ -459,7 +559,6 @@ def load_paramfile(sim) :
 
             
 @TipsySnap.decorator
-@StarLog.decorator
 def param2units(sim) :
     with sim.lazy_off :
         import sys, math, os, glob
@@ -538,16 +637,6 @@ def param2units(sim) :
             pass
 
         try :
-            sim.star["rhoform"].units = denunit_st
-        except KeyError :
-            pass
-
-        try:
-            sim.star["massform"].units = munit_st
-        except KeyError :
-            pass
-
-        try :
             sim["mass"].units = munit_st
         except KeyError :
             pass
@@ -572,3 +661,35 @@ def param2units(sim) :
             sim.properties['h'] = hubunit*hub
             sim.properties['omegaM0'] = float(om_m0)
             sim.properties['omegaL0'] = float(om_lam0)
+
+
+@StarLog.decorator
+def slparam2units(sim) :
+    with sim.lazy_off :
+        import sys, math, os, glob
+
+        munit = dunit = hub = None
+
+        try :
+            munit_st = sim._paramfile["dMsolUnit"]+" Msol"
+            munit = float(sim._paramfile["dMsolUnit"])
+            dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
+            dunit = float(sim._paramfile["dKpcUnit"])
+            hub = float(sim._paramfile["dHubble0"])
+        except KeyError :
+            pass
+
+        if munit is None or dunit is None :
+            return
+
+        denunit = munit/dunit**3
+        denunit_st = str(denunit)+" Msol kpc^-3"
+
+        if hub!=None:
+            # append dependence on 'a' for cosmological runs
+            dunit_st += " a"
+            denunit_st += " a^-3"
+            
+        sim.star["rhoform"].units = denunit_st
+        print "Setting massform units"
+        sim.star["massform"].units = munit_st
