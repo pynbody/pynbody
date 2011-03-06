@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ..analysis import profile
+from ..analysis import profile, angmom
 
-def sfh(t,filename=None,massform=True,**kwargs):
+def sfh(sim,filename=None,massform=True,**kwargs):
     '''star formation history
     Usage:
     import pynbody.plot as pp
@@ -13,34 +13,34 @@ def sfh(t,filename=None,massform=True,**kwargs):
     star formation history
     '''
     nbins=100
-    binnorm = 1e-9*nbins / (t.star['tform'].in_units("Gyr").max() - t.star['tform'].in_units("Gyr").min())
+    binnorm = 1e-9*nbins / (sim.star['tform'].in_units("Gyr").max() - sim.star['tform'].in_units("Gyr").min())
     if massform :
         try:
-            weight = t.star['massform'].in_units('Msol') * binnorm
+            weight = sim.star['massform'].in_units('Msol') * binnorm
         except KeyError :
-            weight = t.star['mass'].in_units('Msol') * binnorm
+            weight = sim.star['mass'].in_units('Msol') * binnorm
     else:
-        weight = t.star['mass'].in_units('Msol') * binnorm
+        weight = sim.star['mass'].in_units('Msol') * binnorm
                                                                
-    sfhist, bins, patches = plt.hist(t.star['tform'].in_units("Gyr"),weights=weight,
+    sfhist, bins, patches = plt.hist(sim.star['tform'].in_units("Gyr"),weights=weight,
                                      bins=nbins,histtype='step',**kwargs)
     plt.xlabel('Time [Gyr]')
     plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]')
     if (filename): plt.savefig(filename)
 
 
-def schmidtlaw(t,center=True,filename=None,pretime=50,diskheight=3,rmax=20,radial=True,**kwargs):
+def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,radial=True,**kwargs):
    
     if not radial :
         print 'only radial Schmidt Law supported at the moment'
         return
     
     if center :
-        angmom.faceon(t)
+        angmom.faceon(sim)
 
     # select stuff
-    diskgas = t.gas[filt.Disc(rmax,diskheight)]
-    diskstars = t.star[filt.Disc(rmax,diskheight)]
+    diskgas = sim.gas[filt.Disc(rmax,diskheight)]
+    diskstars = sim.star[filt.Disc(rmax,diskheight)]
 
     youngstars = np.where(diskstars['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)[0]
 
