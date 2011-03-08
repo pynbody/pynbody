@@ -127,7 +127,8 @@ class SimSnap(object) :
                 ndim = len(ax[0])
             except TypeError :
                 ndim = 1
-            self._create_array(name, ndim, dtype=item.dtype)
+
+            self._create_array(name, ndim, dtype=getattr(item,'dtype',None))
 
         # Copy in contents if the contents isn't actually pointing to
         # the same data (which will be the case following operations like
