@@ -420,6 +420,11 @@ def p(sim) :
     p.convert_units("dyn")
     return p
 
+# Asplund et al (2009) ARA&A solar abundances (Table 1)
+# m_frac = 10.0^([X/H] - 12)*M_X/M_H*0.74
+# OR
+# http://en.wikipedia.org/wiki/Abundance_of_the_chemical_elements      
+# puts stuff more straighforwardly                                     
 XSOLFe=0.117E-2
 XSOLO=0.96E-2
 XSOLH=0.706
