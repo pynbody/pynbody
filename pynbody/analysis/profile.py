@@ -142,7 +142,7 @@ class Profile:
 
         self.binind = []
         if len(self._x) > 0:
-            self.partbin = np.digitize(self._x, self.bin_edges)
+            self.partbin = np.digitize(self._x, self['bin_edges'])
         else :
             self.partbin = np.array([])
 
