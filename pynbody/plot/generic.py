@@ -1,7 +1,7 @@
 import numpy as np
 
 def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
-           ylogrange=False,**kwargs):
+           ylogrange=False,filename=None,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -29,6 +29,9 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
     if kwargs.has_key('y_range'):
         y_range = kwargs['y_range']
         assert len(y_range) == 2
+    elif kwargs.has_key('yrange'):
+        y_range = kwargs['yrange']
+        assert len(y_range) == 2
     else:
         if ylogrange:
             y_range = (np.log10(np.min(y)),np.log10(np.max(y)))
@@ -38,6 +41,9 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
     if kwargs.has_key('x_range'):
         x_range = kwargs['x_range']
         assert len(x_range) == 2
+    elif kwargs.has_key('xrange'):
+        x_range = kwargs['xrange']
+        assert len(x_range) == 2
     else:
         if xlogrange:
             x_range = (np.log10(np.min(x)), np.log10(np.max(x)))
@@ -45,13 +51,13 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
             x_range = (np.min(x),np.max(x))
 
     if (xlogrange and ylogrange) :
-        hist, xs, ys = np.histogram2d(np.log10(x), np.log10(y),bins=nbins,range=[y_range,x_range])
+        hist, xs, ys = np.histogram2d(np.log10(y), np.log10(x),bins=nbins,range=[y_range,x_range])
     elif (xlogrange):
-        hist, xs, ys = np.histogram2d(np.log10(x), y,bins=nbins,range=[y_range,x_range])
+        hist, xs, ys = np.histogram2d(y, np.log10(x),bins=nbins,range=[y_range,x_range])
     elif (ylogrange):
-        hist, xs, ys = np.histogram2d(x, np.log10(y),bins=nbins,range=[y_range,x_range])
+        hist, xs, ys = np.histogram2d(np.log10(y), x,bins=nbins,range=[y_range,x_range])
     else :
-        hist, xs, ys = np.histogram2d(x, y,bins=nbins,range=[y_range,x_range])
+        hist, xs, ys = np.histogram2d(y, x,bins=nbins,range=[y_range,x_range])
 
 
     if logscale:
@@ -75,8 +81,11 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
 
 
     if kwargs.has_key('xlabel'):
+        xlabel = kwargs['xlabel']
         plt.xlabel(xlabel)
     if kwargs.has_key('ylabel'):
+        ylabel = kwargs['ylabel']
         plt.ylabel(ylabel)
     plt.xlim((x_range[0],x_range[1]))
     plt.ylim((y_range[0],y_range[1]))
+    if (filename): plt.savefig(filename)
