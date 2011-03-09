@@ -80,15 +80,16 @@ class Profile:
     """
 
     _profile_registry = {}
+    _properties = {}
 
     def _calculate_x(self, sim) :
-        return ((sim['pos'][:,0:self._ndim]**2).sum(axis = 1))**(1,2)
+        return ((sim['pos'][:,0:self.ndim]**2).sum(axis = 1))**(1,2)
 
     def __init__(self, sim, ndim = 2, type = 'lin', **kwargs):
 
 
-        self._ndim = ndim
-        self._type = type
+        self.ndim = ndim
+        self.type = type
         self.sim = sim
         self._x = self._calculate_x(sim)
         x = self._x
@@ -111,33 +112,33 @@ class Profile:
             self.min = np.min(x[x>0])
 
         if type == 'log':
-            self.bin_edges = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
+            self._properties['bin_edges'] = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
         elif type == 'lin':
-            self.bin_edges = np.linspace(self.min, self.max, num = self.nbins+1)
+            self._properties['bin_edges'] = np.linspace(self.min, self.max, num = self.nbins+1)
         elif type == 'equaln':
-            self.bin_edges = util.equipartition(x, self.nbins, self.min, self.max)
+            self._properties['bin_edges'] = util.equipartition(x, self.nbins, self.min, self.max)
         else:
             raise RuntimeError, "Bin type must be one of: lin, log, equaln"
 
 
-        self.bin_edges = array.SimArray(self.bin_edges, x.units)
-        self.bin_edges.sim = self.sim
+        self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
+        self['bin_edges'].sim = self.sim
 
-        self.n, bins = np.histogram(self._x, self.bin_edges)
+        n, bins = np.histogram(self._x, self['bin_edges'])
         self._setup_bins()
 
         # set up the empty list of profiles
-        self._profiles = {'n':self.n}
-
+        self._profiles = {'n':n}
+        
 
     def _setup_bins(self) :
         # middle of the bins for convenience
 
-        self.rbins = 0.5*(self.bin_edges[:-1]+self.bin_edges[1:])
-        self.rbins.sim = self.sim
+        self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+self['bin_edges'][1:])
+        self['rbins'].sim = self.sim
 
         # Width of the bins
-        self.dr = np.diff(self.rbins)
+        self._properties['dr'] = np.diff(self['rbins'])
 
         self.binind = []
         if len(self._x) > 0:
@@ -145,11 +146,11 @@ class Profile:
         else :
             self.partbin = np.array([])
 
-        assert self._ndim in [2,3]
-        if self._ndim == 2:
-            self._binsize = np.pi*(self.bin_edges[1:]**2 - self.bin_edges[:-1]**2)
+        assert self.ndim in [2,3]
+        if self.ndim == 2:
+            self._binsize = np.pi*(self['bin_edges'][1:]**2 - self['bin_edges'][:-1]**2)
         else:
-            self._binsize  = 4./3.*np.pi*(self.bin_edges[1:]**3 - self.bin_edges[:-1]**3)
+            self._binsize  = 4./3.*np.pi*(self['bin_edges'][1:]**3 - self['bin_edges'][:-1]**3)
 
         for i in np.arange(self.nbins)+1:
             ind = np.where(self.partbin == i)
@@ -198,7 +199,19 @@ class Profile:
 
     def __getitem__(self, name):
         """Return the profile of a given kind"""
-        return self._get_profile(name)
+        if name in self._properties:
+            return self._properties[name]
+        else:
+            return self._get_profile(name)
+
+    def __setitem__(self, name, item):
+        """Set the profile or property by hand"""
+        if name in self._properties:
+            self._properties[name] = item
+        elif name in self._profiles:
+            self._profiles[name] = item
+        else :
+            raise KeyError, name + " is not a valid profile or property"
 
     def __delitem__(self, name) :
         del self._profiles[name]
@@ -206,7 +219,7 @@ class Profile:
     def __repr__(self):
         return ("<Profile: " +
                 str(self.families()) + " ; " +
-                str(self._ndim) + "D ; " +
+                str(self.ndim) + "D ; " +
                 self._type) + " ; " + str(self.keys())+ ">"
 
     def keys(self):
@@ -276,18 +289,21 @@ class DerivativeProfile(Profile) :
     def __init__(self, base) :
         self.base = base
         self.sim = base.sim
-        self._ndim = base._ndim
+        self.ndim = base.ndim
         self._x = base._x
         self._type = base._type
         self.max = base.bin_edges.max()
         self.min = base.bin_edges.min()
         self.nbins = base.nbins-1
         self.rbins = base.rbins
-        self.bin_edges = base.bin_edges
-        self.n, bins = np.histogram(self._x, self.bin_edges)
+        self._properties['bin_edges'] = base['bin_edges']
+        n, bins = np.histogram(self._x, self['bin_edges'])
         self._setup_bins()
-        self._profiles = {'n': self.n}
+        self._profiles = {'n': n}
+        self._properties['rbins'] = self.rbins
 
+        
+        
     def _get_profile(self, name) :
         if name[-1]=="'" :
             # Calculate derivative. This simple differencing algorithm
@@ -314,7 +330,7 @@ def mass(self):
     return mass
 
 @Profile.profile_property
-def den(self):
+def density(self):
     """
     Generate a radial density profile for the current type of profile
     """
@@ -339,7 +355,7 @@ def fourier(self):
                                                  self.sim['mass'][self.binind[i]])
 
 
-    f['c'][:,self.mass>0] /= self.mass[self.mass>0]
+    f['c'][:,self['mass']>0] /= self['mass'][self['mass']>0]
     f['amp'] = np.sqrt(np.imag(f['c'])**2 + np.real(f['c'])**2)
     f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
 
@@ -353,7 +369,7 @@ def mass_enc(self):
     m_enc = array.SimArray(np.zeros(self.nbins), 'Msol')
     m_enc.sim = self.sim
     for i in range(self.nbins):
-        m_enc[i] = self.mass[:i].sum()
+        m_enc[i] = self['mass'][:i].sum()
     return m_enc
 
 @Profile.profile_property
@@ -361,7 +377,7 @@ def g_spherical(self) :
     """The naive gravitational acceleration assuming spherical
     symmetry = GM_enc/r^2"""
 
-    return (units.G*self.mass_enc/self.rbins**2)
+    return (units.G*self['mass_enc']/self['rbins']**2)
 
 @Profile.profile_property
 def rotation_curve_spherical(self):
@@ -369,11 +385,11 @@ def rotation_curve_spherical(self):
     The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
 
-    return ((units.G*self.mass_enc/self.rbins)**(1,2)).in_units('km s**-1')
+    return ((units.G*self['mass_enc']/self['rbins'])**(1,2)).in_units('km s**-1')
 
 @Profile.profile_property
 def j_circ(p) :
-    return p["v_circ"] * p.rbins
+    return p['v_circ'] * p['rbins']
 
 @Profile.profile_property
 def v_circ(p) :
@@ -389,7 +405,7 @@ def v_circ(p) :
 
 @Profile.profile_property
 def E_circ(p) :
-    return 0.5*((p["v_circ"]*p["v_circ"])) + p["phi"]
+    return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
 
 
 
