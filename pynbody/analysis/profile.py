@@ -220,7 +220,7 @@ class Profile:
         return ("<Profile: " +
                 str(self.families()) + " ; " +
                 str(self.ndim) + "D ; " +
-                self._type) + " ; " + str(self.keys())+ ">"
+                self.type) + " ; " + str(self.keys())+ ">"
 
     def keys(self):
         """Returns a listing of available profile types"""
