@@ -33,7 +33,6 @@ class SimSnap(object) :
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
-    _computable_keys_registry = {}
 
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
@@ -584,7 +583,7 @@ class SimSnap(object) :
             return "<SimSnap len="+str(len(self))+">"
 
     
-    def computable_keys(self) :
+    def derivable_keys(self) :
         """Returns a list of arrays which can be lazy-evaluated."""
         res = []
         for cl in type(self).__mro__ :
@@ -600,7 +599,7 @@ class SimSnap(object) :
     def all_keys(self) :
         """Returns a list of all arrays that can be either lazy-evaluated
         or lazy loaded from an auxiliary file."""
-        return self.computable_keys() + self.loadable_keys()
+        return self.derivable_keys() + self.loadable_keys()
 
 
     # Methods for derived arrays
@@ -807,6 +806,12 @@ class SubSnap(SimSnap) :
     def keys(self) :
         return self.base.keys()
 
+    def loadable_keys(self) :
+        return self.base.loadable_keys()
+
+    def derivable_keys(self) :
+        return self.base.derivable_keys()
+    
     def infer_original_units(self, *args) :
         return self.base.infer_original_units(*args)
 
@@ -924,7 +929,7 @@ class FamilySubSnap(SubSnap) :
         self._descriptor = ":"+fam.name
         # Use the slice attributes to find sub array length
         self._num_particles = self._slice.stop-self._slice.start
-
+        self._file_units_system = base._file_units_system
 
     def __delitem__(self, name) :
         if name in self.base.keys() :
