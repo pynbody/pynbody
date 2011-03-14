@@ -866,7 +866,7 @@ class IndexedSubSnap(SubSnap) :
 
         self._descriptor = "indexed"
         self.lazy_off = base.lazy_off
-
+        self._file_units_system = base._file_units_system
         if isinstance(index_array, filt.Filter) :
             self._descriptor = index_array._descriptor
             index_array = index_array.where(base)
