@@ -86,11 +86,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         r, v_c = np.loadtxt(h.ancestor.filename+".rot."+str(h.properties["halo_id"]), skiprows=1, unpack=True)
         
         pro_d = profile.Profile(d, nbins=100, type='log')
-        r_me = pro_d.rbins.in_units("kpc")
+        r_me = pro_d["rbins"].in_units("kpc")
         r_x = np.concatenate(([0], r, [r.max()*2]))
         v_c = np.concatenate(([v_c[0]], v_c, [v_c[-1]]))
         v_c = interp.interp1d(r_x, v_c, bounds_error=False)(r_me)
-        
+
+            
         if verbose :
             print "   -- found existing rotation curve on disk, using that"
             
