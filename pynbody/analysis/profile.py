@@ -80,7 +80,7 @@ class Profile:
     """
 
     _profile_registry = {}
-    _properties = {}
+
 
     def _calculate_x(self, sim) :
         return ((sim['pos'][:,0:self.ndim]**2).sum(axis = 1))**(1,2)
@@ -92,6 +92,8 @@ class Profile:
         self.type = type
         self.sim = sim
         self._x = self._calculate_x(sim)
+        
+        self._properties = {}
         x = self._x
 
         # The profile object is initialized given some array of values
@@ -133,7 +135,7 @@ class Profile:
 
     def _setup_bins(self) :
         # middle of the bins for convenience
-
+        
         self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+self['bin_edges'][1:])
         self['rbins'].sim = self.sim
 
@@ -400,7 +402,7 @@ def v_circ(p) :
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
     
-    return gravity.midplane_rot_curve(grav_sim, p.rbins)
+    return gravity.midplane_rot_curve(grav_sim, p['rbins'])
     #return np.sqrt(p["phi'"]*p.r) 
 
 @Profile.profile_property
