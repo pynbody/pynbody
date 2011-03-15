@@ -181,10 +181,10 @@ def concatenate_indexing(i1, i2) :
         return i1
     if isinstance(i1, slice) and isinstance(i2, slice) :
         return chained_slice(i1,i2)
-    elif isinstance(i1, slice) and isinstance(i2, np.ndarray) :
+    elif isinstance(i1, slice) and isinstance(i2, (np.ndarray, list)) :
         return index_before_slice(i1, i2)
-    elif isinstance(i1, np.ndarray) and (isinstance(i2, slice) or isinstance(i2,np.ndarray)) :
-        return i1[i2]
+    elif isinstance(i1, (np.ndarray, list)) and isinstance(i2, (slice, np.ndarray, slice)) :
+        return np.asarray(i1)[i2]
     else :
         raise TypeError, "Don't know how to chain these index types"
 
