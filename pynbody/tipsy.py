@@ -188,7 +188,7 @@ class TipsySnap(snapshot.SimSnap) :
 
             f.close()
         
-    def write_array(self, array_name, filename=None) :
+    def _write_array(self, array_name, filename=None) :
         """Write a TIPSY-ASCII file."""
 
         with self.lazy_off : # prevent any lazy reading or evaluation
