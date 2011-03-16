@@ -1,0 +1,31 @@
+import pynbody
+from pynbody import units
+
+def numacc(a,b, tol=1.e-9) :
+    print a,b
+    assert abs(a-b)<a*tol
+        
+def test_units_conversion() :
+    
+        
+    numacc(units.kpc.in_units(units.Mpc), 0.001)
+    numacc(units.Mpc.in_units(units.kpc), 1000)
+    numacc(units.yr.in_units(units.Myr),1.e-6)
+    numacc(units.au.in_units(units.pc), 4.84813681e-6)
+
+
+def test_units_manipulation() :
+    # Just do some manipulation and check it's happy
+    (units.kpc*units.yr)**(1,3)/units.Myr
+    (units.a*units.erg)**9
+
+
+def test_units_substitution() :
+    numacc((units.a/units.h).in_units(units.Unit(""), a=22, h=2),11)
+    
+def test_units_parser() :
+    testunit = units.Unit("kpc a s^-1 Myr^-1")**(2,3)
+    assert str(testunit)=="kpc**2/3 a**2/3 s**-2/3 Myr**-2/3"
+   
+    
+    
