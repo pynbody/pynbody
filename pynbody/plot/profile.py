@@ -19,7 +19,7 @@ def rotation_curve(s, center=True, r_units = 'kpc',
 
     pro = profile.Profile(s, nbins = nbins, type=bin_spacing)
 
-    r = pro['rbins']in_units(r_units)
+    r = pro['rbins'].in_units(r_units)
     v = pro['v_circ'].in_units(v_units)
 
     p.plot(r, v)
