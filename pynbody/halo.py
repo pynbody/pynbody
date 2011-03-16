@@ -200,6 +200,9 @@ class AmigaGrpCatalogue(HaloCatalogue) :
             return False
 
 
-_halo_classes = [AHFCatalogue,AmigaGrpCatalogue]
+# AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
+# want to use it, but an AHFCatalogue will probably be on-disk too.
+
+_halo_classes = [AmigaGrpCatalogue, AHFCatalogue]
 _runable_halo_classes = [AHFCatalogue]
 
