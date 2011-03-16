@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom
+from .. import filt
 
 def sfh(sim,filename=None,massform=True,**kwargs):
     '''star formation history
@@ -42,7 +43,7 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
     diskgas = sim.gas[filt.Disc(rmax,diskheight)]
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
 
-    youngstars = np.where(diskstars['tform'].in_units("Myr") > t.properties['time'].in_units("Myr") - pretime)[0]
+    youngstars = np.where(diskstars['tform'].in_units("Myr") > sim.properties['time'].in_units("Myr", **sim.conversion_context()) - pretime)[0]
 
     # calculate surface densities
     if radial :
@@ -58,8 +59,8 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
                                   weights=diskstars['mass'],
                                   bins=nbins,range=[(-rmax,rmax),(-rmax,rmax)])
 
-    plt.loglog(pg['den'].in_units('Msol pc^-2'),ps['den'].in_units('Msol kpc^-2') / pretime/1e6,"+")
-    xsigma = 10.0**np.linspace(np.log10(pg['den'].min()),np.log10(pg['den'].max()),100)
+    plt.loglog(pg['density'].in_units('Msol pc^-2'),ps['density'].in_units('Msol kpc^-2') / pretime/1e6,"+")
+    xsigma = 10.0**np.linspace(np.log10(pg['density'].min()),np.log10(pg['density'].max()),100)
     ysigma=2.5e-4*xsigma**1.5        # Kennicutt (1998)
     ysigmanew=10.**(-2.1)*xsigma**1.0   # Bigiel et al (2007)
     plt.loglog(xsigma,ysigma,label='Kennicutt (1998)')
