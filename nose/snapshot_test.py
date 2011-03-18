@@ -92,3 +92,9 @@ def test_derived_array() :
     except RuntimeError :
         pass
     
+
+def test_loadable_array() :
+    assert 'HI' in f.loadable_keys()
+    f['HI']
+    assert 'HI' in f.keys()
+    
