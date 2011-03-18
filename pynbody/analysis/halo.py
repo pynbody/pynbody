@@ -61,7 +61,16 @@ def hybrid_center(sim, r='3 kpc', **kwargs) :
     cen_a = potential_minimum(sim)
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
-def center(sim, mode='pot') :
+def index_center(sim, **kwargs) :
+    """Determine the center of mass based on specific particles"""
+    if 'ind' in kwargs :
+        ind = kwargs['ind']
+        return np.average(sim["pos"][ind],axis=0,weights=sim["mass"][ind])
+    else :  
+        raise RuntimeError("Need to supply indices for centering")
+    
+
+def center(sim, mode='pot', **kwargs) :
     """Determine the center of mass using the specified mode
     and recenter the particles accordingly
 
@@ -69,14 +78,17 @@ def center(sim, mode='pot') :
       'pot': potential minimum
       'com': center of mass
       'ssc': shrink sphere center
+      'ind': center on specific particles
     or a function returning the COM."""
 
     try:
         fn = {'pot': potential_minimum,
               'com': center_of_mass,
-              'ssc': shrink_sphere_center}[mode]
+              'ssc': shrink_sphere_center,
+              'ind': index_center}[mode]
     except KeyError :
         fn = mode
 
-    cen = fn(sim)
+    cen = fn(sim, **kwargs)
     sim["pos"]-=cen
+
