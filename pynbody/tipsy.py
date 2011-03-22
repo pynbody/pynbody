@@ -480,6 +480,49 @@ def sife(self) :
     self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
     return np.log10(self['SiMassFrac']/self['FeMassFrac']) - np.log10(XSOLSi/XSOLFe)
 
+@TipsySnap.derived_quantity
+def c_s(self) :
+    """Ideal gas sound speed"""
+    x = np.sqrt(5./3.*units.k*self['temp']*self['mu'])
+    x.convert_units('km s^-1')
+    return x
+
+@TipsySnap.derived_quantity
+def c_s_turb(self) :
+    """Turbulent sound speed (from Mac Low & Klessen 2004)"""
+    if 'dsp' not in self.keys() :
+        self['dsp'].set_units_like('km s^-1')
+    x = np.sqrt(self['c_s']**2+1./3*self['dsp']**2)
+    x.convert_units('km s^-1')
+    return x
+
+@TipsySnap.derived_quantity
+def mjeans(self) :
+    """Classical Jeans mass"""
+    x = np.pi**(5./2.)*self['c_s']**3/(6.*units.G**(3,2)*self['rho']**(1,2))
+    x.convert_units('Msol')
+    return x
+
+@TipsySnap.derived_quantity
+def mjeans_turb(self) :
+    """Turbulent Jeans mass"""
+    x = np.pi**(5./2.)*self['c_s_turb']**3/(6.*units.G**(3,2)*self['rho']**(1,2))
+    x.convert_units('Msol')
+    return x
+
+@TipsySnap.derived_quantity
+def ljeans(self) :
+    """Jeans length"""
+    x = self['c_s']*np.sqrt(np.pi/(units.G*self['rho']))
+    x.convert_units('kpc')
+    return x
+
+@TipsySnap.derived_quantity
+def ljeans_turb(self) :
+    """Jeans length"""
+    x = self['c_s_turb']*np.sqrt(np.pi/(units.G*self['rho']))
+    x.convert_units('kpc')
+    return x
 
 class StarLog(snapshot.SimSnap):
     def __init__(self, filename):
