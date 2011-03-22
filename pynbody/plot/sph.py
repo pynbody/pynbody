@@ -22,7 +22,7 @@ def faceon_image(sim, *args, **kwargs) :
     image(sim, *args, **kwargs)
 
 
-def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None, av_z = False) :
+def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None, av_z = False, clear = True) :
     """Make an SPH image of the given simulation.
 
     Keyword arguments
@@ -77,7 +77,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    p.clf()
+    if clear = True : p.clf()
+    
     p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax)
 
     u_st = sim['pos'].units.latex()
