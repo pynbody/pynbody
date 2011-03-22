@@ -77,7 +77,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    if clear = True : p.clf()
+    if clear : p.clf()
     
     p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax)
 
