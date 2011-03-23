@@ -1,6 +1,6 @@
 import numpy as np
 
-def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
+def hist2d(x, y, weights=None, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
            ylogrange=False,filename=None,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
@@ -21,6 +21,10 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
 
        *logscale*: boolean
          whether to use log or linear spaced contours
+
+       *weights*: numpy array of same length as x and y
+         if weights is passed, color corresponds to
+         the mean value of weights in each cell
     """
     import matplotlib.pyplot as plt
     from matplotlib import ticker, colors
@@ -51,7 +55,12 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
             x_range = (np.min(x),np.max(x))
 
     if (xlogrange and ylogrange) :
-        hist, xs, ys = np.histogram2d(np.log10(y), np.log10(x),bins=nbins,range=[y_range,x_range])
+        hist, xs, ys = np.histogram2d(np.log10(y), np.log10(x), bins=nbins,range=[y_range,x_range])
+        if weights != None :
+            hist_weight, xs, ys = np.histogram2d(np.log10(y), np.log10(x), weights = weights,
+                                                 bins=nbins,range=[y_range,x_range])
+        good = np.where(hist_weight > 0)
+        hist[good] = hist_weight[good]/hist[good]
     elif (xlogrange):
         hist, xs, ys = np.histogram2d(y, np.log10(x),bins=nbins,range=[y_range,x_range])
     elif (ylogrange):
@@ -75,6 +84,8 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
                              np.max(hist), nlevels)
         cont_color=None
 
+    print levels
+
     cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)
@@ -95,3 +106,6 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
     plt.xlim((x_range[0],x_range[1]))
     plt.ylim((y_range[0],y_range[1]))
     if (filename): plt.savefig(filename)
+
+
+    
