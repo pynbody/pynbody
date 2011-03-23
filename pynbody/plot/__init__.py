@@ -1,16 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from . import stars, phasediagram, profile, sph
+from . import generic, stars, gas, profile, metals
 
 reload(profile)
-reload(phasediagram)
+reload(generic)
 reload(stars)
-reload(sph)
+reload(gas)
+reload(metals)
 
-from .stars import sfh, schmidtlaw
 from .profile import rotation_curve
-from .phasediagram import rho_T
 from .generic import hist2d
+from .stars import sfh, schmidtlaw
+from .gas import rho_T
+from .metals import mdf, ofefeh
 from .sph import image
 from .sph import faceon_image
 from .sph import sideon_image
