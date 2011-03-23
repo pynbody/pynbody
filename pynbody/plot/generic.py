@@ -83,9 +83,15 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
     if kwargs.has_key('xlabel'):
         xlabel = kwargs['xlabel']
         plt.xlabel(xlabel)
+    else :
+        if xlogrange: label='$log_{10}('+x.units.latex()+')$'
+        plt.xlabel(r''+label)
     if kwargs.has_key('ylabel'):
         ylabel = kwargs['ylabel']
         plt.ylabel(ylabel)
+    else :
+        if ylogrange: label='$log_{10}('+y.units.latex()+')$'
+        plt.ylabel(r''+label)
     plt.xlim((x_range[0],x_range[1]))
     plt.ylim((y_range[0],y_range[1]))
     if (filename): plt.savefig(filename)
