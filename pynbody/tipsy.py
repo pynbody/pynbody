@@ -228,8 +228,9 @@ class TipsySnap(snapshot.SimSnap) :
         specified name. If fam is not None, read only the particles of
         the specified family."""
 
-        if filename is None and array_name in ['massform', 'rhoform', 'tempform'] :
+        if filename is None and array_name in ['massform', 'rhoform', 'tempform','phiform','nsmooth'] :
             self.read_starlog()
+            return
 
         import sys, os
 	
@@ -340,27 +341,26 @@ class TipsySnap(snapshot.SimSnap) :
         done = False
         filename=None
         x = os.path.dirname(x)
+        # Attempt the loading of information
         l = glob.glob(os.path.join(x,"*.starlog"))
-        for filename in l :
-            # Attempt the loading of information
-            try :
+        if (len(l)) :
+            for filename in l :
+                print 'Found '+filename
                 sl = StarLog(filename)
-            except IOError :
-                l = glob.glob(os.path.join(x,"../*.starlog"))
-                try : 
-                    for filename in l:
-                        print 'Found '+filename
-                        sl = StarLog(filename)
-                except IOError:
-                    continue
+        else:
+            l = glob.glob(os.path.join(x,"../*.starlog"))
+            if (len(l) == 0): raise IOError, "Couldn't find starlog file"
+            for filename in l:
+                print 'Found '+filename
+                sl = StarLog(filename)
 
-            b = pynbody.bridge.OrderBridge(self,sl)
-            b(sl).star['iorderGas'] = sl.star['iorderGas'][:self.star['iord'].size]
-            b(sl).star['massform'] = sl.star['massform'][:self.star['iord'].size]
-            b(sl).star['rhoform'] = sl.star['rhoform'][:self.star['iord'].size]
-            b(sl).star['tempform'] = sl.star['tempform'][:self.star['iord'].size]
-            b(sl)['posform'] = sl['pos'][:self.star['iord'].size,:]
-            b(sl)['velform'] = sl['vel'][:self.star['iord'].size,:]
+        b = pynbody.bridge.OrderBridge(self,sl)
+        b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
+        b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
+        b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
+        b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
+        b(sl)['posform'] = sl['pos'][:len(self.star),:]
+        b(sl)['velform'] = sl['vel'][:len(self.star),:]
                 
 	
     @staticmethod
@@ -368,6 +368,19 @@ class TipsySnap(snapshot.SimSnap) :
 	# to implement!
 	return True
 
+# caculate the number fraction YH, YHe as a function of metalicity. Cosmic 
+# production rate of helium relative to metals (in mass)  
+# delta Y/delta Z = 2.1 and primordial He Yp = 0.236 (Jimenez et al. 2003, 
+# Science 299, 5612. 
+#  piecewise linear
+#  Y = Yp + dY/dZ*ZMetal up to ZMetal = 0.1, then linear decrease to 0 at Z=1)  
+
+#  SUM_Metal = sum(ni/nH *mi),it is a fixed number for cloudy abundance. 
+#  Massfraction fmetal = Z*SUM_metal/(1 + 4*nHe/nH + Z*SUM_metal) (1)
+#  4*nHe/nH = mHe/mH = fHe/fH 
+#  also fH + fHe + fMetal = 1  (2)
+#  if fHe specified, combining the 2 eq above will solve for 
+#  fH and fMetal 
         
 def _abundance_estimator(metal) :
 
@@ -420,20 +433,6 @@ def p(sim) :
     p.convert_units("dyn")
     return p
 
-# Asplund et al (2009) ARA&A solar abundances (Table 1)
-# m_frac = 10.0^([X/H] - 12)*M_X/M_H*0.74
-# OR
-# http://en.wikipedia.org/wiki/Abundance_of_the_chemical_elements      
-# puts stuff more straighforwardly                                     
-XSOLFe=0.117E-2
-XSOLO=0.96E-2
-XSOLH=0.706
-XSOLC=3.03e-3
-XSOLN=1.105e-3
-XSOLNe=2.08e-4
-XSOLMg=5.13e-4
-XSOLSi=6.53e-4
-
 @TipsySnap.derived_quantity
 def hetot(self) :
     return 0.236+(2.1*self['metals'])
@@ -441,6 +440,23 @@ def hetot(self) :
 @TipsySnap.derived_quantity
 def hydrogen(self) :
     return 1.0-self['metals']-self['hetot']
+
+#from .tipsy import TipsySnap
+# Asplund et al (2009) ARA&A solar abundances (Table 1)
+# m_frac = 10.0^([X/H] - 12)*M_X/M_H*0.74
+# OR
+# http://en.wikipedia.org/wiki/Abundance_of_the_chemical_elements      
+# puts stuff more straighforwardly cites Arnett (1996)
+# Wikipedia                Asplund
+XSOLFe=0.117E-2         # 1.31e-3
+XSOLO=0.59E-2           # 5.8e-2
+XSOLH=0.706             # 0.74
+XSOLC=3.03e-3           # 2.39e-3
+XSOLN=1.105e-3          # 7e-4
+XSOLNe=2.08e-4          # 1.26e-3
+XSOLMg=5.13e-4          # 7e-4
+XSOLSi=6.53e-4          # 6.7e-4
+
 
 @TipsySnap.derived_quantity
 def feh(self) :
@@ -457,28 +473,28 @@ def ofe(self) :
     return np.log10(self['OxMassFrac']/self['FeMassFrac']) - np.log10(XSOLO/XSOLFe)
 
 @TipsySnap.derived_quantity
-def mgfe(self) :
-    minmg = np.amin(self['MgMassFrac'][np.where(self['MgMassFrac'] > 0)])
-    self['MgMassFrac'][np.where(self['MgMassFrac'] == 0)]=minmg
-    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
-    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
-    return np.log10(self['MgMassFrac']/self['FeMassFrac']) - np.log10(XSOLMg/XSOLFe)
+def mgfe(sim) :
+    minmg = np.amin(sim['MgMassFrac'][np.where(sim['MgMassFrac'] > 0)])
+    sim['MgMassFrac'][np.where(sim['MgMassFrac'] == 0)]=minmg
+    minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
+    sim['FeMassFrac'][np.where(sim['FeMassFrac'] == 0)]=minfe
+    return np.log10(sim['MgMassFrac']/sim['FeMassFrac']) - np.log10(XSOLMg/XSOLFe)
 
 @TipsySnap.derived_quantity
-def nefe(self) :
-    minne = np.amin(self['NeMassFrac'][np.where(self['NeMassFrac'] > 0)])
-    self['NeMassFrac'][np.where(self['NeMassFrac'] == 0)]=minne
-    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
-    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
-    return np.log10(self['NeMassFrac']/self['FeMassFrac']) - np.log10(XSOLNe/XSOLFe)
+def nefe(sim) :
+    minne = np.amin(sim['NeMassFrac'][np.where(sim['NeMassFrac'] > 0)])
+    sim['NeMassFrac'][np.where(sim['NeMassFrac'] == 0)]=minne
+    minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
+    sim['FeMassFrac'][np.where(sim['FeMassFrac'] == 0)]=minfe
+    return np.log10(sim['NeMassFrac']/sim['FeMassFrac']) - np.log10(XSOLNe/XSOLFe)
 
 @TipsySnap.derived_quantity
-def sife(self) :
-    minsi = np.amin(self['SiMassFrac'][np.where(self['SiMassFrac'] > 0)])
-    self['SiMassFrac'][np.where(self['SiMassFrac'] == 0)]=minsi
-    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
-    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)]=minfe
-    return np.log10(self['SiMassFrac']/self['FeMassFrac']) - np.log10(XSOLSi/XSOLFe)
+def sife(sim) :
+    minsi = np.amin(sim['SiMassFrac'][np.where(sim['SiMassFrac'] > 0)])
+    sim['SiMassFrac'][np.where(sim['SiMassFrac'] == 0)]=minsi
+    minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
+    sim['FeMassFrac'][np.where(sim['FeMassFrac'] == 0)]=minfe
+    return np.log10(sim['SiMassFrac']/sim['FeMassFrac']) - np.log10(XSOLSi/XSOLFe)
 
 @TipsySnap.derived_quantity
 def c_s(self) :
@@ -533,36 +549,52 @@ class StarLog(snapshot.SimSnap):
         f = util.open_(filename)
         self.properties = {}
         
-        file_structure = {'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')}
+        file_structure = np.dtype({'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')})
 
         size = struct.unpack("i", f.read(4))
-        iSize = size[0]
-        if (iSize>  1000 or iSize<  10):
+        if (size[0]> 1000 or size[0]<  10):
             self._byteswap=True
             f.seek(0)
             size = struct.unpack(">i", f.read(4))
         iSize = size[0]
+
+        if (iSize > file_structure.itemsize) :
+            file_structure = np.dtype({'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform","phiform","nsmooth"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8','i4')})
+            if (iSize != file_structure.itemsize and iSize != 104):
+                raise ValueError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
+            else : bigstarlog = True
             
-        n = (os.path.getsize(filename)-f.tell())/iSize
+        datasize = os.path.getsize(filename)-f.tell()
         print "Reading "+filename
         if(self._byteswap):
-            g = np.fromstring(f.read(n*iSize),dtype=file_structure).byteswap()
+            g = np.fromstring(f.read(datasize),dtype=file_structure).byteswap()
         else:
-            g = np.fromstring(f.read(n*iSize),dtype=file_structure)
+            g = np.fromstring(f.read(datasize),dtype=file_structure)
 
-        iord, indices = np.unique(g['iord'],return_index=True)
+        # hoping to provide backward compatibility for np.unique by
+        # copying relavent part of current numpy source:
+        # numpy/lib/arraysetops.py:192 (on 22nd March 2011)
+        tmp = g['iord'].flatten()
+        perm = tmp.argsort()
+        aux = tmp[perm]
+        flag = np.concatenate(([True],aux[1:]!=aux[:-1]))
+        iord = aux[flag]; indices = perm[flag]
 
-        self._num_particles = indices.size
+        self._num_particles = len(indices)
 
-        self._family_slice[family.star] = slice(0, n)
+        self._family_slice[family.star] = slice(0, len(indices))
         self._create_arrays(["pos","vel"],3)
         self._create_arrays(["iord"])
-        self.star._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
+        self._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
+        if bigstarlog :
+            self._create_arrays(["phiform","nsmooth"])
 
-        for name in file_structure['names'] :
+        #import pdb; pdb.set_trace()
+        self._decorate()
+        for name in file_structure.fields.keys() :
             self.star[name][:] = g[name][indices]
 
-        self._decorate()
+        #self._decorate()
 
 
 @TipsySnap.decorator

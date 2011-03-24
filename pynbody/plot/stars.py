@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom
-from .. import filt
+from .. import filt, units
 
 def sfh(sim,filename=None,massform=True,**kwargs):
     '''star formation history
@@ -18,7 +18,7 @@ def sfh(sim,filename=None,massform=True,**kwargs):
     if massform :
         try:
             weight = sim.star['massform'].in_units('Msol') * binnorm
-        except KeyError :
+        except (KeyError, units.UnitsException) :
             weight = sim.star['mass'].in_units('Msol') * binnorm
     else:
         weight = sim.star['mass'].in_units('Msol') * binnorm
@@ -68,4 +68,5 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
     plt.xlabel('$\Sigma_{gas}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
     plt.ylabel('$\Sigma_{SFR}$ [M$_\odot$ pc$^{-2}$]')
     plt.legend(loc=2)
+    if (filename): plt.savefig(filename)
 
