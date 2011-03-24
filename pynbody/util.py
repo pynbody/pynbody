@@ -1,5 +1,6 @@
 import numpy as np
 from .backcompat import fractions
+import copy
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
@@ -379,3 +380,49 @@ class ExecutionControl(object) :
 
     def __nonzero__(self) :
         return self.count>0
+
+
+
+class LazyKeyError(KeyError) :
+    """An extended exception, like KeyError, but allowing information
+    about the ways in which the framework attempted to generate the
+    array to be queried.
+
+    Usage:
+
+    try :
+       do_something()
+    catch LazyKeyError, error_from_level_below:
+       raise LazyKeyError("name of current array", error_from_level_below)
+
+
+    To find out what actually happened without looking at the text, you can
+    inspect self.bases, a list of array names which were accessed.
+    This is just a list of array names.
+
+    """
+
+    def __init__(self, name, bases=[] ) :
+
+        if type(bases) is not LazyKeyError :
+            self.bases = copy.copy(bases)
+        else :
+            self.bases = copy.copy(bases.bases)
+
+        self.bases = [name]+self.bases
+            
+        self.name=name
+        KeyError.__init__(self, name)
+
+   
+    def __str__(self) :
+        ss = "Could not generate or load array %r"%str(self.name)
+        if len(self.bases)>1 :
+            if self.bases[-1]==self.name :
+                ss+="\nThis is because the derivation methods are circular (e.g. data which could break the circularity is missing?)"
+            else :
+                ss+="\nThis is because of failure to generate or load array %r"%str(self.bases[-1])
+        if len(self.bases)>2 :
+            ss+="\nThe dependency chain is: "+(" -> ".join(self.bases))
+            
+        return ss

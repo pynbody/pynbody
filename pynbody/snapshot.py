@@ -5,19 +5,19 @@ from . import units
 import numpy as np
 import copy
 import weakref
+import exceptions
+import sys
 
+from util import LazyKeyError
 
-
+            
 class SimSnap(object) :
-    """The abstract holder for a simulation snapshot. Derived classes
-    should implement
+    """The basic holder of data for a single simulation snapshot.
 
-    __init__(self, filename) -> sets up object. May or may not load any actual data.
-    _load_array(self, arrayname) -> attempts to load the named array into self._arrays
-    @staticmethod _can_load(filename) -> determines whether the specified file can be loaded
-
-    @staticmethod derived_quantity(qty) -> calculates a derived quantity, i.e. radius 'r'
-    ...
+    Should be initialized indirectly using pynbody.load.
+    
+    N.B. SimSnap is not thread-safe (when the derived-array system is
+    invoked).
     """
 
     _derived_quantity_registry = {}
@@ -51,7 +51,7 @@ class SimSnap(object) :
         
 
     def __getitem__(self, i) :
-        """Given a SimSnap object s, the following should be implemented:
+        """Return either a specific array or a subview of this simulation.
 
         s[string] -> return array of name string
 
@@ -61,15 +61,28 @@ class SimSnap(object) :
         s[numpy.where(...)] -> return an object which represents the
         subset of particles specified by the where clause
 
-        s[abstract_condition] -> return an object which represents
-        the particles satisfying abstract_condition, a bit like
-        siman filters."""
+        s[family] ->  return a subview with only the particles belonging
+        to the specified family.
+        
+        s[filt] -> return an object which represents
+        the particles satisfying the filter requirements. (See
+        pynbody.filt submodule.)"""
 
         if isinstance(i, str) :
             # self._assert_not_family_array(i)
             if len(SimSnap._dependency_track)>0 :
                 SimSnap._dependency_track[-1].add(i)
-                
+
+            if i in self.family_keys() :
+                in_fam = []
+                out_fam = []
+                for x in self.families() :
+                    if self[x].has_key(i) :
+                        in_fam.append(x)
+                    else :
+                        out_fam.append(x)
+                raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
+
             try:
                 return self._get_array(i)
             except KeyError :
@@ -80,17 +93,13 @@ class SimSnap(object) :
                             self._promote_family_array(i)
                         return self._get_array(i)
                     except IOError :
-                        try:
-                            self._derive_array(i)
-                            if i in self.family_keys() :
-                                self._promote_family_array(i)
-                            return self._get_array(i)
-                        except (ValueError, KeyError) :
-                            pass
+                        self._derive_array(i)
+                        return self._get_array(i)
+                        
 
                 # All available methods of getting this array have failed
                 
-                raise KeyError, "Unknown array "+i
+                # raise LazyKeyError, i
 
         elif isinstance(i,slice) :
             return SubSnap(self, i)
