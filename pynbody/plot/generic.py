@@ -1,7 +1,7 @@
 import numpy as np
 
-def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
-           ylogrange=False,filename=None,**kwargs):
+def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
+           ylogrange=False,filename=None,colorbar=False,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -21,6 +21,13 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
 
        *logscale*: boolean
          whether to use log or linear spaced contours
+
+       *weights*: numpy array of same length as x and y
+         if weights is passed, color corresponds to
+         the mean value of weights in each cell
+
+       *colorbar*: boolean
+         draw a colorbar
     """
     import matplotlib.pyplot as plt
     from matplotlib import ticker, colors
@@ -34,9 +41,9 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
         assert len(y_range) == 2
     else:
         if ylogrange:
-            y_range = (np.log10(np.min(y)),np.log10(np.max(y)))
+            y_range = (np.log10(np.min(yo)),np.log10(np.max(yo)))
         else:
-            y_range = (np.min(y),np.max(y))
+            y_range = (np.min(yo),np.max(yo))
 
     if kwargs.has_key('x_range'):
         x_range = kwargs['x_range']
@@ -46,19 +53,24 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
         assert len(x_range) == 2
     else:
         if xlogrange:
-            x_range = (np.log10(np.min(x)), np.log10(np.max(x)))
+            x_range = (np.log10(np.min(xo)), np.log10(np.max(xo)))
         else:
-            x_range = (np.min(x),np.max(x))
+            x_range = (np.min(xo),np.max(xo))
 
-    if (xlogrange and ylogrange) :
-        hist, xs, ys = np.histogram2d(np.log10(y), np.log10(x),bins=nbins,range=[y_range,x_range])
-    elif (xlogrange):
-        hist, xs, ys = np.histogram2d(y, np.log10(x),bins=nbins,range=[y_range,x_range])
-    elif (ylogrange):
-        hist, xs, ys = np.histogram2d(np.log10(y), x,bins=nbins,range=[y_range,x_range])
+    if (xlogrange):
+        x = np.log10(xo)
     else :
-        hist, xs, ys = np.histogram2d(y, x,bins=nbins,range=[y_range,x_range])
-
+        x = xo
+    if (ylogrange):
+        y = np.log10(yo)
+    else :
+        y = yo
+        
+    hist, xs, ys = np.histogram2d(y, x, bins=nbins,range=[y_range,x_range])
+    if weights != None :
+        hist_weight, xs, ys = np.histogram2d(y, x, weights = weights,bins=nbins,range=[y_range,x_range])
+        good = np.where(hist_weight > 0)
+        hist[good] = hist_weight[good]/hist[good]
 
     if logscale:
         try:
@@ -70,11 +82,21 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
             print 'y_range = ' + str(y_range)
             print 'x_range = ' + str(x_range)
             return
+
+        if weights != None :
+            cb_label = '$log_{10}('+weights.units.latex()+')$'
+        else :
+            cb_label = '$log_{10}(N)$'
     else:
         levels = np.linspace(np.min(hist[hist>0]),
                              np.max(hist), nlevels)
         cont_color=None
 
+        if weights != None :
+            cb_label = '$'+weights.units.latex()+'$'
+        else :
+            cb_label = '$N$'
+    
     cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)
@@ -83,9 +105,21 @@ def hist2d(x, y, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
     if kwargs.has_key('xlabel'):
         xlabel = kwargs['xlabel']
         plt.xlabel(xlabel)
+    else :
+        if xlogrange: label='$log_{10}('+xo.units.latex()+')$'
+        plt.xlabel(r''+label)
     if kwargs.has_key('ylabel'):
         ylabel = kwargs['ylabel']
         plt.ylabel(ylabel)
+    else :
+        if ylogrange: label='$log_{10}('+yo.units.latex()+')$'
+        plt.ylabel(r''+label)
     plt.xlim((x_range[0],x_range[1]))
     plt.ylim((y_range[0],y_range[1]))
     if (filename): plt.savefig(filename)
+
+    if colorbar :
+        cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
+        
+
+    

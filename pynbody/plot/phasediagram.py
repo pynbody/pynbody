@@ -1,6 +1,10 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import ticker, colors
+import pynbody
+import pynbody.units as units
 
-def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
+def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
@@ -21,9 +25,9 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
        *log*: boolean
          whether to use log or linear spaced contours
     """
-    import matplotlib.pyplot as plt
-    from matplotlib import ticker, colors
+    
 
+    if clear: plt.clf()
 
     if kwargs.has_key('t_range'):
         t_range = kwargs['t_range']
@@ -63,3 +67,25 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
     plt.ylabel(r'$log_{10}(T/'+sim.gas['temp'].units.latex()+')$')
     plt.xlim((rho_range[0],rho_range[1]))
     plt.ylim((t_range[0],t_range[1]))
+
+
+def overplot_mjeans(xrange,yrange) :
+    def rho_mj(mj,temp) :
+        return (1/mj**2*np.pi**5/36*(5./2*units.k*temp/
+                                     (units.G*0.5*units.m_p))**3).in_units('m_p cm^-3')
+
+    temp = pynbody.array.SimArray(np.logspace(1,6),units='K')
+
+    for mj in np.logspace(0,6,7) :
+        label = (r'$M_{j} = ' + '{0:.0e}'.format(mj)+' M_{\odot}$') 
+        rho_mj_arr = np.log10(rho_mj(units.Unit(str(mj) + ' Msol'),temp))
+        plt.plot(rho_mj_arr,np.log10(temp),label=label)
+
+        angle = 2*np.arctan((np.log10(temp[1])-np.log10(temp[0]))/(rho_mj_arr[1]-rho_mj_arr[0]))*180/np.pi
+
+        plt.text(rho_mj_arr[5],np.log10(temp[5]),label,rotation=angle, clip_on=True)
+
+    plt.xlim(xrange)
+    plt.ylim(yrange)
+
+    
