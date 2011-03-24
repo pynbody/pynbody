@@ -85,8 +85,8 @@ class SimSnap(object) :
                             if i in self.family_keys() :
                                 self._promote_family_array(i)
                             return self._get_array(i)
-                        except (ValueError, KeyError) as inst:
-                            print inst
+                        except (ValueError, KeyError) :
+                            pass
 
                 # All available methods of getting this array have failed
                 
