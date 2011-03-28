@@ -55,9 +55,13 @@ class AHFCatalogue(HaloCatalogue) :
             self._load_ahf_halos(glob.glob(sim._filename+'.z*halos')[0])
             print "Loading substructure"
             self._load_ahf_substructure(glob.glob(sim._filename+'.z*substructure')[0])
-            print "Setting grp"
-            for halo in self._halos.values():
-                halo['grp'][:] = halo._halo_id
+            try:
+                print "Setting grp"
+                for halo in self._halos.values():
+                    halo['grp'][:] = halo._halo_id
+            except KeyError:
+                print "Failed grp load: "+str(KeyError)
+                pass
         except IndexError:
             pass
 
@@ -67,10 +71,11 @@ class AHFCatalogue(HaloCatalogue) :
 
         # XXX how do we lazy load particles (and only do it once)?
         # in other words, WHEN do we lazy load particles?
-        if (not self._particles_loaded) :
-            self._particles_loaded = True
+        #if (not self._particles_loaded) :
+        #    self._particles_loaded = True
             
-        x = self.base[self._halos[i]]
+        #x = self.base[self._halos[i]]
+        x = self._halos[i]
         x._descriptor = "halo_"+str(i)
         return x
 
@@ -164,6 +169,7 @@ class AHFCatalogue(HaloCatalogue) :
             if os.path.exists(groupfinder) :
                 # run it
                 os.system(groupfinder+" AHFstep.in")
+                return
 
     @staticmethod
     def _can_run(sim) :
