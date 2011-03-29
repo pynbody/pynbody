@@ -35,6 +35,10 @@ class HaloCatalogue(object) :
             return True
         else : return False
 
+    def contains(self,haloid):
+        if (haloid in self._halos) : return True
+        else: return False
+
     def _can_load(self):
         return False
 
@@ -130,7 +134,7 @@ class AHFCatalogue(HaloCatalogue) :
         for i in xrange(len(self._halos)) :
             try:
                 haloid, nsubhalos = [int(x) for x in f.readline().split()]
-                self._halos[haloid+1].properties['children'] = [int(x) for x in f.readline().split()]
+                self._halos[haloid+1].properties['children'] = [int(x)+1 for x in f.readline().split()]
             except ValueError:
                 break
         f.close()

@@ -431,7 +431,8 @@ _u = SimArray.ufunc_rule
 
 def _get_units_or_none(*a) :
     if len(a)==1 :
-        return a[0].units
+        if hasattr(a[0],"units"): return a[0].units
+        else: return None
     else :
         r = []
         for x in a :
@@ -615,7 +616,7 @@ def _wrap_fn(w) :
     return q
 
 # functions we definitely want to wrap, even though there's an existing
-# implementatin
+# implementation
 _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
 
 for x in set(np.ndarray.__dict__).union(SimArray.__dict__) :

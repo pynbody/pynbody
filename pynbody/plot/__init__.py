@@ -10,7 +10,7 @@ reload(metals)
 
 from .profile import rotation_curve
 from .generic import hist2d
-from .stars import sfh, schmidtlaw
+from .stars import sfh, schmidtlaw, satlf
 from .gas import rho_T
 from .metals import mdf, ofefeh
 from .sph import image

@@ -2,6 +2,7 @@ import numpy as np
 import scipy, scipy.weave
 from scipy.weave import inline
 import os
+from ..array import SimArray
 
 def calc_mags(simstars, band='v') :
     # find data file in PYTHONPATH
@@ -13,7 +14,7 @@ def calc_mags(simstars, band='v') :
         # print "Loading luminosity data"
         lums=np.load(lumfile)
     else :
-        raise IOError, "cmdlum.npz not found"
+        raise IOError, "cmdlum.npz (magnitude table) not found"
 
     #calculate star age
     #import pdb; pdb.set_trace()
@@ -42,4 +43,12 @@ def calc_mags(simstars, band='v') :
     #print "Calculating magnitudes"
     inline(code,['met_grid','n_met_grid','age_grid','n_age_grid',
                  'age_star','metals','n_stars','mag_grid','output_mags'])
-    return output_mags
+    try :
+        return output_mags - 2.5*np.log10(simstars['massform'].in_units('Msol'))
+    except KeyError:
+        return output_mags - 2.5*np.log10(simstars['mass'].in_units('Msol'))
+
+
+def halo_mag(sim,band='v') :
+    return -2.5*np.log10(np.sum(10.0**(-0.4*sim.star[band+'_mag'])))
+

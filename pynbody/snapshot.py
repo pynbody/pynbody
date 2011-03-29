@@ -889,11 +889,11 @@ class IndexedSubSnap(SubSnap) :
 
         # Check the index array is monotonically increasing
         # If not, the family slices cannot be implemented
-        if not all(np.diff(index_array)>0) :
+        if not (np.diff(index_array)>0).all() :
             raise ValueError, "Index array must be monotonically increasing"
 
         self._slice = index_array
-
+        
         self.properties = base.properties
         self._family_slice = {}
         self._family_indices = {}
