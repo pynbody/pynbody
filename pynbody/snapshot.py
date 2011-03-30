@@ -99,7 +99,7 @@ class SimSnap(object) :
 
                 # All available methods of getting this array have failed
                 
-                # raise LazyKeyError, i
+	    raise KeyError, "No such array %r"%i
 
         elif isinstance(i,slice) :
             return SubSnap(self, i)
@@ -109,6 +109,7 @@ class SimSnap(object) :
             return IndexedSubSnap(self, i)
         elif isinstance(i, int) or isinstance(i, np.int32) or isinstance(i, np.int64) :
             return IndexedSubSnap(self, (i,))
+
         raise TypeError
 
 
