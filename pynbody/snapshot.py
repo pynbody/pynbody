@@ -888,6 +888,9 @@ class IndexedSubSnap(SubSnap) :
             else :
                 index_array = np.array(index_array)
 
+        if isinstance(index_array, list) :
+            index_array = np.array(index_array)
+
         # Check the index array is monotonically increasing
         # If not, the family slices cannot be implemented
         if not (np.diff(index_array)>0).all() :

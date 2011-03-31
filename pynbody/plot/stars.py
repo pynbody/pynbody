@@ -38,8 +38,7 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
         return
     
     if center :
-        halo.center(sim)
-        angmom.faceon(sim,cen=[0,0,0])
+        angmom.faceon(sim)
 
     # select stuff
     diskgas = sim.gas[filt.Disc(rmax,diskheight)]
