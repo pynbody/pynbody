@@ -1,6 +1,6 @@
 import numpy as np
 
-def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
+def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
@@ -54,6 +54,7 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, **kwargs):
                              np.max(hist), nlevels)
         cont_color=None
 
+    if clear : plt.clf()
     cs = plt.contourf(.5*(y[:-1]+y[1:]),.5*(x[:-1]+x[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)

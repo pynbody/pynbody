@@ -1,7 +1,7 @@
 import numpy as np
 
 def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
-           ylogrange=False,filename=None,colorbar=False,**kwargs):
+           ylogrange=False,filename=None,colorbar=False,clear=True,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -97,6 +97,7 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, xlogran
         else :
             cb_label = '$N$'
     
+    if clear : plt.clf()
     cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)

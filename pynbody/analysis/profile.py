@@ -410,6 +410,36 @@ def E_circ(p) :
     return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
 
 
+@Profile.profile_property
+def magnitudes(self,band='v'):
+    """
+    Calculate magnitudes in each bin
+    """
+    from . import luminosity
+
+    magnitudes = np.zeros(self.nbins)
+    print "Calculating magnitudes"
+    for i in range(self.nbins):
+        magnitudes[i] = luminosity.halo_mag(self.sim[self.binind[i]],band=band)
+    magnitudes = array.SimArray(magnitudes, units.Unit('1'))
+    magnitudes.sim = self.sim
+    return magnitudes
+
+@Profile.profile_property
+def sb(self,band='v') :
+    # At 10 pc (distance for absolute magnitudes), 1 arcsec is 10 AU=1/2.06e4 pc
+    # In [5]: (np.tan(np.pi/180/3600)*10.0)**2
+    # Out[5]: 2.3504430539466191e-09
+    # 1 square arcsecond is thus 2.35e-9 pc^2
+    sqarcsec_in_bin = self._binsize.in_units('pc^2') / 2.3504430539466191e-09
+    bin_luminosity = 10.0**(-0.4*self['magnitudes'])
+    #import pdb; pdb.set_trace()
+    surfb = -2.5*np.log10(bin_luminosity / sqarcsec_in_bin)
+    surfb = array.SimArray(surfb, units.Unit('1'))
+    surfb.sim = self.sim
+    return surfb
+
+
 
 """
 

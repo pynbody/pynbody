@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units
 
-def sfh(sim,filename=None,massform=True,**kwargs):
+def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
     '''star formation history
     Usage:
     import pynbody.plot as pp
@@ -23,6 +23,7 @@ def sfh(sim,filename=None,massform=True,**kwargs):
     else:
         weight = sim.star['mass'].in_units('Msol') * binnorm
                                                                
+    if clear : plt.clf()
     sfhist, bins, patches = plt.hist(sim.star['tform'].in_units("Gyr"),
                                      weights=weight, bins=nbins,
                                      histtype='step',**kwargs)
@@ -31,8 +32,19 @@ def sfh(sim,filename=None,massform=True,**kwargs):
     if (filename): plt.savefig(filename)
 
 
-def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,radial=True,**kwargs):
-   
+def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
+               diskheight='3 kpc',rmax='20 kpc',
+               radial=True,clear=True,**kwargs):
+    '''Schmidt Law
+    Usage:
+    import pynbody.plot as pp
+    pp.schmidtlaw(h[1])
+
+    Plots star formation surface density vs. gas surface density including
+    the observed relationships.  Currently, only plots densities found in
+    radial annuli.
+    '''
+    
     if not radial :
         print 'only radial Schmidt Law supported at the moment'
         return
@@ -40,11 +52,16 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
     if center :
         angmom.faceon(sim)
 
+    if isinstance(pretime, str):
+        pretime = units.Unit(pretime)
+
     # select stuff
     diskgas = sim.gas[filt.Disc(rmax,diskheight)]
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
 
-    youngstars = np.where(diskstars['tform'].in_units("Myr") > sim.properties['time'].in_units("Myr", **sim.conversion_context()) - pretime)[0]
+    youngstars = np.where(diskstars['tform'].in_units("Myr") > 
+                          sim.properties['time'].in_units("Myr", **sim.conversion_context()) 
+                          - pretime.in_units('Myr'))[0]
 
     # calculate surface densities
     if radial :
@@ -61,7 +78,10 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
                                   weights=diskstars['mass'],
                                   bins=nbins,range=[(-rmax,rmax),(-rmax,rmax)])
 
-    plt.loglog(pg['density'].in_units('Msol pc^-2'),ps['density'].in_units('Msol kpc^-2') / pretime/1e6,"+")
+    if clear : plt.clf()
+    plt.loglog(pg['density'].in_units('Msol pc^-2'),
+               ps['density'].in_units('Msol kpc^-2') / pretime/1e6,"+",
+               **kwargs)
     xsigma = np.logspace(np.log10(pg['density'].in_units('Msol pc^-2')).min(),
                          np.log10(pg['density'].in_units('Msol pc^-2')).max(),
                          100)
@@ -76,7 +96,7 @@ def schmidtlaw(sim,center=True,filename=None,pretime=50,diskheight=3,rmax=20,rad
     if (filename): plt.savefig(filename)
 
 
-def satlf(sim,band='R',filename=None, compare=True,**kwargs) :
+def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
     '''satellite luminosity function
     Usage:
     import pynbody.plot as pp
@@ -108,6 +128,7 @@ def satlf(sim,band='R',filename=None, compare=True,**kwargs) :
     #except KeyError:
         #raise KeyError, str(sim)+' properties have no children key as a halo type would'
     
+    if clear : plt.clf()
     plt.semilogy(sorted(halomags),np.arange(len(halomags)), label='Simulation',
                  **kwargs)
     plt.xlabel('M'+band)
@@ -137,3 +158,23 @@ def satlf(sim,band='R',filename=None, compare=True,**kwargs) :
 
     plt.legend(loc=2)
     if (filename): plt.savefig(filename)
+
+
+def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', 
+              center=True, clear=True, **kwargs) :
+    
+    if center :
+        print "Centering"
+        angmom.faceon(sim,verbose=True)
+
+    print "Selecting disk stars"
+    diskstars = sim.star[filt.Disc(rmax,diskheight)]
+    print "Creating profile"
+    ps = profile.Profile(diskstars)
+    print "Plotting"
+    if clear : plt.clf()
+    r=ps['rbins'].in_units('kpc')
+    plt.plot(r,ps['sb'],**kwargs)
+    plt.axis([min(r),max(r),max(ps['sb']),min(ps['sb'])])
+    plt.xlabel('R [kpc]')
+    plt.ylabel('Surface brightness [mag as$^{-2}$]')

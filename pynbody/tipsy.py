@@ -345,13 +345,11 @@ class TipsySnap(snapshot.SimSnap) :
         l = glob.glob(os.path.join(x,"*.starlog"))
         if (len(l)) :
             for filename in l :
-                print 'Found '+filename
                 sl = StarLog(filename)
         else:
             l = glob.glob(os.path.join(x,"../*.starlog"))
             if (len(l) == 0): raise IOError, "Couldn't find starlog file"
             for filename in l:
-                print 'Found '+filename
                 sl = StarLog(filename)
 
         b = pynbody.bridge.OrderBridge(self,sl)
@@ -771,5 +769,4 @@ def slparam2units(sim) :
             denunit_st += " a^-3"
             
         sim.star["rhoform"].units = denunit_st
-        print "Setting massform units"
         sim.star["massform"].units = munit_st

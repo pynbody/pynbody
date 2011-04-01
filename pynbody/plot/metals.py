@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 from ..analysis import profile
 from .generic import hist2d
 
-def mdf(sim,filename=None,**kwargs):
+def mdf(sim,filename=None,clear=True,**kwargs):
     '''Metallicity Distribution Function
     Usage:
     import pynbody.plot as pp
     pp.mdf(s,linestyle='dashed',color='k')
     '''
     nbins=100
+    if clear : plt.clf()
     metpdf, bins, patches = plt.hist(sim.star['feh'],weights=sim.star['mass'],
                                      bins=nbins,histtype='step',normed=True,
                                      **kwargs)

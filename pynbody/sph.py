@@ -127,8 +127,9 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
 
     return im
 
-def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=None,
-                 z_plane = 0.0, out_units=None, kernel=Kernel()) :
+def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, 
+                 y1=None, z_plane = 0.0, out_units=None, xy_units='kpc',
+                 kernel=Kernel()) :
 
     """Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -143,6 +144,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     y1 -- The y-coordinate of the lower edge of the image (default -y2)
     z_plane -- The z-coordinate of the plane of the image (default 0.0)
     out_units -- The units to convert the output image into (default no conversion)
+    xy_units -- The units for the x and y axes
     kernel -- The Kernel object to use (default Kernel(), a 3D spline kernel)
     """
 
@@ -162,10 +164,11 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     result = np.zeros((nx,ny))
 
     n_part = len(snap)
-    x = snap['x']
-    y = snap['y']
-    z = snap['z']
+    x = snap['x'].in_units(xy_units)
+    y = snap['y'].in_units(xy_units)
+    z = snap['z'].in_units(xy_units)
 
+    import pdb; pdb.set_trace()
     sm = snap['smooth']
 
     if sm.units!=x.units :
@@ -195,7 +198,6 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, y1=
     # before inlining, the views on the arrays must be standard np.ndarray
     # otherwise the normal numpy macros are not generated
     x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
-
 
 
     inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
