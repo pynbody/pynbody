@@ -166,6 +166,8 @@ class AHFCatalogue(HaloCatalogue) :
         f.write(sim._filename+"\n256\n5\n5\n0\n0\n0\n0\n")
         f.close()
 
+        if (not os.path.exists(sim._filename)):
+            os.system("gunzip "+sim._filename+".gz")
         # determine parallel possibilities
         # find AHFstep
         for directory in os.environ["PATH"].split(os.pathsep) :

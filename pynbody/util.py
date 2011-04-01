@@ -6,11 +6,11 @@ def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
     gzip decompression"""
 
-    if filename[-3:]==".gz" :
-        import gzip
-        return gzip.open(filename, *args)
-    else :
+    try :
         return open(filename, *args)
+    except IOError :
+        import gzip
+        return gzip.open(filename+".gz", *args)
 
 def gcf(a,b) :
     while b>0 : a,b = b,a%b

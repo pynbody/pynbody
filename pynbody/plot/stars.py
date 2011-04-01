@@ -29,7 +29,9 @@ def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
                                      histtype='step',**kwargs)
     plt.xlabel('Time [Gyr]')
     plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]')
-    if (filename): plt.savefig(filename)
+    if (filename): 
+        print "Saving "+filename
+        plt.savefig(filename)
 
 
 def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
@@ -93,7 +95,9 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
     plt.xlabel('$\Sigma_{gas}$ [M$_\odot$ pc$^{-2}$]')
     plt.ylabel('$\Sigma_{SFR}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
     plt.legend(loc=2)
-    if (filename): plt.savefig(filename)
+    if (filename): 
+        print "Saving "+filename
+        plt.savefig(filename)
 
 
 def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
@@ -157,15 +161,17 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
                      label='Koposov et al (2007) + Trentham & Tully (2009)')
 
     plt.legend(loc=2)
-    if (filename): plt.savefig(filename)
+    if (filename): 
+        print "Saving "+filename
+        plt.savefig(filename)
 
 
 def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', 
-              center=True, clear=True, **kwargs) :
+              center=True, clear=True, filename=None, **kwargs) :
     
     if center :
         print "Centering"
-        angmom.faceon(sim,verbose=True)
+        angmom.faceon(sim)
 
     print "Selecting disk stars"
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
@@ -178,3 +184,6 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc',
     plt.axis([min(r),max(r),max(ps['sb']),min(ps['sb'])])
     plt.xlabel('R [kpc]')
     plt.ylabel('Surface brightness [mag as$^{-2}$]')
+    if (filename): 
+        print "Saving "+filename
+        plt.savefig(filename)

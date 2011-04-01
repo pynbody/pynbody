@@ -2,14 +2,14 @@ from . import snapshot, array, util
 from . import family
 from . import units
 
-import struct
+import struct, os
 import numpy as np
 
 class TipsySnap(snapshot.SimSnap) :
     def __init__(self, filename, only_header=False, must_have_paramfile=False) :
 	super(TipsySnap,self).__init__()
 	
-	self._filename = filename
+	self._filename = util.cutgz(filename)
 	
 	f = util.open_(filename)
 	# factoring out gzip logic opens up possibilities for bzip2,
@@ -122,7 +122,7 @@ class TipsySnap(snapshot.SimSnap) :
             except (IOError, ValueError) :
                 # could be a binary file
                 f.seek(0)
-                buflen = len(f.read())
+                buflen = os.path.getsize(x)
                 if (buflen-4)/4/3. == len(self) : # it's a float vector
                     return True
                 elif (buflen-4)/4. == len(self) : # it's a float array
@@ -132,9 +132,9 @@ class TipsySnap(snapshot.SimSnap) :
 
         import glob
         if len(self._loadable_keys_registry) == 0 :
-            name = util.cutgz(self._filename)
             fs = glob.glob(self._filename+".*")
-            res =  map(lambda q: q[len(self._filename)+1:], filter(is_readable_array, fs))
+            res =  map(lambda q: q[len(self._filename)+1:], 
+                       filter(is_readable_array, fs))
             for i,n in enumerate(res): res[i] = util.cutgz(n)
             self._loadable_keys_registry = res
             
@@ -248,9 +248,6 @@ class TipsySnap(snapshot.SimSnap) :
             else :
                 filename = self._filename+"."+array_name
                 
-            if not os.path.isfile(filename) :
-                filename+=".gz"
-          
         f = util.open_(filename)
  
         # if we get here, we've got the file - try loading it
@@ -352,6 +349,7 @@ class TipsySnap(snapshot.SimSnap) :
             for filename in l:
                 sl = StarLog(filename)
 
+        print "Bridging starlog into SimSnap"
         b = pynbody.bridge.OrderBridge(self,sl)
         b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
         b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
@@ -546,6 +544,7 @@ class StarLog(snapshot.SimSnap):
 
         f = util.open_(filename)
         self.properties = {}
+        bigstarlog = False
         
         file_structure = np.dtype({'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')})
 
