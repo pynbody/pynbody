@@ -519,6 +519,14 @@ def _pow_units(a,b) :
 def _trig_units(*a) :
     return None
 
+@_u(np.greater)
+@_u(np.greater_equal)
+@_u(np.less)
+@_u(np.less_equal)
+@_u(np.equal)
+@_u(np.not_equal)
+def _comparison_units(*a) :
+    return None
 
 
 class IndexedSimArray(object) :
