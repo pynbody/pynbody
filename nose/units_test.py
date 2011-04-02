@@ -24,8 +24,14 @@ def test_units_substitution() :
     numacc((units.a/units.h).in_units(units.Unit(""), a=22, h=2),11)
     
 def test_units_parser() :
-    testunit = units.Unit("kpc a s^-1 Myr^-1")**(2,3)
-    assert str(testunit)=="kpc**2/3 a**2/3 s**-2/3 Myr**-2/3"
+    testunit = units.Unit("kpc a s^-2/3 Myr^2/3")
+    print "Unit as parsed: ",testunit
+    testunit/=units.kpc
+    testunit/=units.a
+    testunit/=units.s**(-2,3)
+    testunit/=units.Myr**(2,3)
+    print "This should be one: ",testunit
+    assert abs(testunit.dimensionless_constant()-1)<1.e-10
    
     
     
