@@ -45,7 +45,7 @@ class Kernel(object) :
 
         code+= """
         const float KERNEL_VALS[] = %s
-        #define KERNEL1(d,h) (d<2*h)?KERNEL_VALS[int(d/(0.01*h))]/(h%s):0
+        #define KERNEL1(d,h) (d<2*h)?KERNEL_VALS[(int)(d/(0.01*h))]/(h%s):0
         #define KERNEL(dx,dy,dz,h) KERNEL1(DISTANCE(dx,dy,dz),h)
         #define MAX_D_OVER_H %d
         """%(samples_s,h_str,self.max_d)
@@ -127,7 +127,7 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
 
     return im
 
-def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, 
+def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  y1=None, z_plane = 0.0, out_units=None, xy_units='kpc',
                  kernel=Kernel()) :
 
@@ -161,14 +161,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
 
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
-    result = np.zeros((nx,ny))
+    result = np.zeros((nx,ny),dtype=np.float32)
 
     n_part = len(snap)
     x = snap['x'].in_units(xy_units)
     y = snap['y'].in_units(xy_units)
     z = snap['z'].in_units(xy_units)
 
-    import pdb; pdb.set_trace()
     sm = snap['smooth']
 
     if sm.units!=x.units :
@@ -190,18 +189,64 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     code = kernel.get_c_code()
 
 
-    code+=file(os.path.join(
-        os.path.dirname(__file__),
-        'sph_image.c')).read()
+    try:
+        import pyopencl as cl
+        import struct
+        import squadron
+        
+        ctx = cl.create_some_context(interactive=False)
+        queue = cl.CommandQueue(ctx)
+
+        mf = cl.mem_flags
+
+        pos = snap['pos']
+        par = struct.pack('ffffi', (x2-x1)/nx, (y2-y1)/ny, x1, y1, len(pos))
+    
+        par_buf = cl.Buffer(ctx, mf.READ_ONLY, len(par))
+        cl.enqueue_write_buffer(queue, par_buf, par)
+        
+        
+        
+        sm_buf, qty_buf, pos_buf = [cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=x.astype(np.float32))
+                                              for x in sm, (qty*mass/rho), pos]
+
+        par_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=par)
+        
+        dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, result.nbytes)
+
+        local_pos = cl.LocalMemory(500*3*4)
+        local_sm = cl.LocalMemory(500*4)
+        local_qty = cl.LocalMemory(500*4)
+        
+        code+=file(os.path.join(os.path.dirname(__file__),
+                                'sph_image.cl')).read()
+
+        print code
+        
+        prg = cl.Program(ctx, code).build(devices=[cl.get_platforms()[0].get_devices()[0]])
+
+        prg.render(queue, result.shape, None, sm_buf, qty_buf, pos_buf, par_buf,
+                   dest_buf,
+                   local_pos, local_sm, local_qty )
+        
+        cl.enqueue_read_buffer(queue, dest_buf, result).wait()
+
+    except ImportError :
+        
+        code+=file(os.path.join(
+            os.path.dirname(__file__),
+            'sph_image.c')).read()
 
 
-    # before inlining, the views on the arrays must be standard np.ndarray
-    # otherwise the normal numpy macros are not generated
-    x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
+        # before inlining, the views on the arrays must be standard np.ndarray
+        # otherwise the normal numpy macros are not generated
+        x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
 
 
-    inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
-                  'x1', 'x2', 'y1', 'y2', 'z1',  'qty', 'mass', 'rho'])
+
+        inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
+                      'x1', 'x2', 'y1', 'y2', 'z1',  'qty', 'mass', 'rho'])
+
 
     result = result.view(array.SimArray)
 
