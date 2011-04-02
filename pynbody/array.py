@@ -533,7 +533,7 @@ class IndexedSimArray(object) :
     def __init__(self, array, ptr) :
         self.base = array
         self._ptr = ptr
-
+        
     def __array__(self, *args, **kwargs) :
         return self.base[self._ptr].__array__(*args, **kwargs)
 
@@ -563,6 +563,10 @@ class IndexedSimArray(object) :
 
     def __len__(self) :
         return len(self._ptr)
+
+    @property
+    def derived(self) :
+        return self.base.derived
     
     @property
     def shape(self) :
