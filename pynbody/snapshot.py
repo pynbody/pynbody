@@ -881,15 +881,13 @@ class IndexedSubSnap(SubSnap) :
             self._descriptor = index_array._descriptor
             index_array = index_array.where(base)
 
-
-        if isinstance(index_array, tuple) :
+        elif isinstance(index_array, tuple) :
             if isinstance(index_array[0], np.ndarray) :
                 index_array = index_array[0]
             else :
                 index_array = np.array(index_array)
-
-        if isinstance(index_array, list) :
-            index_array = np.array(index_array)
+        else :
+            index_array = np.asarray(index_array)
 
         # Check the index array is monotonically increasing
         # If not, the family slices cannot be implemented
