@@ -74,14 +74,17 @@ class SimSnap(object) :
                 SimSnap._dependency_track[-1].add(i)
 
             if i in self.family_keys() :
-                in_fam = []
-                out_fam = []
-                for x in self.families() :
-                    if self[x].has_key(i) :
-                        in_fam.append(x)
-                    else :
-                        out_fam.append(x)
-                raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
+                if self.is_derived_array(i) :
+                    del self[i]
+                else :
+                    in_fam = []
+                    out_fam = []
+                    for x in self.families() :
+                        if self[x].has_key(i) :
+                            in_fam.append(x)
+                        else :
+                            out_fam.append(x)
+                    raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
 
             try:
                 return self._get_array(i)
