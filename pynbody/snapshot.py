@@ -117,6 +117,9 @@ class SimSnap(object) :
 
 
     def __setitem__(self, name, item) :
+        if self.is_derived_array(name) :
+            raise RuntimeError, "Derived array is not writable"
+        
         if isinstance(name, tuple) or isinstance(name, list) :
             index = name[1]
             name = name[0]
@@ -510,7 +513,8 @@ class SimSnap(object) :
 
     def _set_array(self, name, value, index=None) :
         util.set_array_if_not_same(self._arrays[name], value, index)
-
+        
+        
     def _create_arrays(self, array_list, ndim=1, dtype=None) :
         """Create a set of arrays of dimension len(self) x ndim, with
         a given numpy dtype."""
@@ -687,9 +691,10 @@ class SimSnap(object) :
         
         if self.has_key(name) :
             return self[name].derived
-        else :
+        elif self._family_arrays.has_key(name) :
             return any([x.derived for x in self._family_arrays[name].values()])
-        
+        else :
+            return False
 
     def mean_by_mass(self, name) :
         """Calculate the mean by mass of the specified array"""
@@ -859,7 +864,9 @@ class SubSnap(SimSnap) :
     def physical_units(self, *args, **kwargs) :
         self.base.physical_units(*args, **kwargs)
 
-
+    def is_derived_array(self, v) :
+        return self.base.is_derived_array(v)
+    
     def get_index_list(self, relative_to, of_particles=None) :
         if of_particles is None :
             of_particles = np.arange(len(self))
