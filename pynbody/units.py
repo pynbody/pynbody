@@ -157,6 +157,9 @@ class UnitBase(object) :
     def __ge__(self, other) :
         return self.ratio(other)>=1.
 
+    def __neg__(self) :
+        return self*(-1)
+
     def simplify(self) :
         return self
 
