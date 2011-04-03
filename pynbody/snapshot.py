@@ -889,7 +889,7 @@ class IndexedSubSnap(SubSnap) :
         self._file_units_system = base._file_units_system
         if isinstance(index_array, filt.Filter) :
             self._descriptor = index_array._descriptor
-            index_array = index_array.where(base)
+            index_array = index_array.where(base)[0]
 
         elif isinstance(index_array, tuple) :
             if isinstance(index_array[0], np.ndarray) :
