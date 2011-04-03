@@ -386,7 +386,9 @@ class ExecutionControl(object) :
 class LazyKeyError(KeyError) :
     """An extended exception, like KeyError, but allowing information
     about the ways in which the framework attempted to generate the
-    array to be queried.
+    array to be queried. *This is not currently in use within the
+    pynbody framework, and is kept here as part of a previous
+    attempt to clean up derived/lazy array backtraces*.
 
     Usage:
 
