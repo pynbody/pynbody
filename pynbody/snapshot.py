@@ -719,6 +719,21 @@ class SimSnap(object) :
                     fn(self)
 
 
+    # Equality testing
+    
+
+    def __eq__(self, other) :
+        """Equality test for Snapshots. Returns true if both sides of the
+        == operator point to the same data."""
+        
+        if self is other : return True
+        if len(self)!=len(other) : return False
+        
+        self_ancestor = self.ancestor
+        if self_ancestor!=other.ancestor : return False
+        return (self.get_index_list(self_ancestor)==other.get_index_list(self_ancestor)).all()
+
+
 
 
 @SimSnap.decorator
@@ -879,6 +894,7 @@ class SubSnap(SimSnap) :
 
 
 
+
 class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
     to an index array."""
@@ -936,6 +952,7 @@ class IndexedSubSnap(SubSnap) :
 
     def _create_array(self, *args, **kwargs) :
         self.base._create_array(*args, **kwargs)
+
 
 
 

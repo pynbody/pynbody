@@ -67,3 +67,13 @@ def test_derived_array() :
 def test_unit_inheritance() :
     f['pos'].units = 'km'
     f['vel'].units = 'km s^-1'
+
+
+def test_equality() :
+    assert f==f
+    assert f[[1,5,8]]!=f
+    assert f[[1,6,9]]!=f[[1,5,22]]
+    assert f[::5][[1,2,3]]==f[[5,10,15]]
+    assert f.dm==f.dm
+    assert f.dm==f[f._get_family_slice(pynbody.family.dm)]
+    
