@@ -4,7 +4,7 @@ import os.path
 import glob
 import re
 import copy
-from . import snapshot
+from . import snapshot, util
 
 class Halo(snapshot.IndexedSubSnap) :
     def __init__(self, halo_id, halo_catalogue, *args) :
@@ -54,11 +54,11 @@ class AHFCatalogue(HaloCatalogue) :
         HaloCatalogue.__init__(self)
         try:
             print "Loading particles"
-            self._load_ahf_particles(glob.glob(self.base._filename+'.z*particles')[0])
+            self._load_ahf_particles(util.cutgz(glob.glob(self.base._filename+'.z*particles*')[0]))
             print "Loading halos"
-            self._load_ahf_halos(glob.glob(sim._filename+'.z*halos')[0])
+            self._load_ahf_halos(util.cutgz(glob.glob(sim._filename+'.z*halos*')[0]))
             print "Loading substructure"
-            self._load_ahf_substructure(glob.glob(sim._filename+'.z*substructure')[0])
+            self._load_ahf_substructure(util.cutgz(glob.glob(sim._filename+'.z*substructure*')[0]))
             try:
                 print "Setting grp"
                 for halo in self._halos.values():
@@ -88,7 +88,7 @@ class AHFCatalogue(HaloCatalogue) :
         return self._base()
 
     def _load_ahf_particles(self,filename) :
-        f = open(filename)
+        f = util.open_(filename)
         # tried readlines, which is fast, but the time is spent in the
         # for loop below, so sticking with this (hopefully) more readable 
         nhalos=int(f.readline())
@@ -108,7 +108,7 @@ class AHFCatalogue(HaloCatalogue) :
         f.close()
 
     def _load_ahf_halos(self,filename) :
-        f = open(filename)
+        f = util.open_(filename)
         # get all the property names from the first, commented line
         # remove (#)
         keys = [re.sub('\([0-9]*\)','',field)
@@ -128,7 +128,7 @@ class AHFCatalogue(HaloCatalogue) :
         f.close()
 
     def _load_ahf_substructure(self,filename) :
-        f = open(filename)
+        f = util.open_(filename)
         nhalos = int(f.readline())  # number of halos?  no, some crazy number
                                     # that we will ignore
         for i in xrange(len(self._halos)) :
@@ -141,7 +141,7 @@ class AHFCatalogue(HaloCatalogue) :
 
     @staticmethod
     def _can_load(sim) :
-        for file in glob.glob(sim._filename+'.z*particles') :
+        for file in glob.glob(sim._filename+'.z*particles*') :
             if os.path.exists(file) :
                 return True
         return False
