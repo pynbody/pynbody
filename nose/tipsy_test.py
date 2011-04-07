@@ -63,3 +63,17 @@ def test_loadable_array() :
     assert 'HI' in f.keys()
 
     
+def test_units() :
+    print f['pos'].units
+    print f['vel'].units
+    print f['phi'].units
+    print f.gas['rho'].units
+    print f.star['tform'].units
+
+    assert str(f['pos'].units)=="6.85e+04 kpc a"
+    assert str(f['vel'].units)=="1.73e+03 km s**-1"
+    assert str(f['phi'].units)=="2.98e+06 km**2 s**-2 a**-3"
+    assert str(f.gas['rho'].units)=="1.48e+02 Msol kpc**-3 a**-3"
+    assert str(f.star['tform'].units)=="3.88e+01 Gyr"
+
+
