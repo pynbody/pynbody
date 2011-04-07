@@ -156,8 +156,6 @@ class SimArray(np.ndarray) :
         new.derived = False
         new._name = None
 
-        
-        
         return new
 
     def __array_finalize__(self, obj) :
@@ -179,7 +177,8 @@ class SimArray(np.ndarray) :
 
     def __array_wrap__(self, array, context=None) :
         if context is None :
-            return array
+            n_array = array.view(SimArray)
+            return n_array
 
         try:
             ufunc = context[0]
@@ -345,6 +344,24 @@ class SimArray(np.ndarray) :
         x = np.ndarray.sum(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        return x
+
+    def mean(self, *args, **kwargs) :
+        x = np.ndarray.mean(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
+
+    def std(self, *args, **kwargs) :
+        x = np.ndarray.std(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
+
+    def var(self, *args, **kwargs) :
+        x = np.ndarray.var(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units**2
         return x
 
     def set_units_like(self, new_unit) :
