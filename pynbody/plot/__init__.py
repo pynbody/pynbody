@@ -8,10 +8,10 @@ reload(stars)
 reload(gas)
 reload(metals)
 
-from .profile import rotation_curve
+from .profile import rotation_curve, fourier_profile
 from .generic import hist2d
 from .stars import sfh, schmidtlaw, satlf, sbprofile
-from .gas import rho_T
+from .gas import rho_T, temp_profile
 from .metals import mdf, ofefeh
 from .sph import image
 from .sph import faceon_image

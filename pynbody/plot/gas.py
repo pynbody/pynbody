@@ -76,3 +76,40 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True,
     if (filename): 
         print "Saving "+filename
         plt.savefig(filename)
+
+
+
+def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln', 
+                 clear = True, filename=None,**kwargs) :
+    """Centre on potential minimum, align so that the disk is in the
+    x-y plane, then plot the amplitude of the 2nd fourier mode as a 
+    function of radius."""
+
+    if center :
+        angmom.sideon(sim)
+
+    if 'min' in kwargs :
+        min_r = kwargs['min']
+    else:
+        min_r = sim['r'].min()
+    if 'max' in kwargs :
+        max_r = kwargs['max']
+    else:
+        max_r = sim['r'].max()
+
+    pro = profile.Profile(sim.gas, type=bin_spacing, nbins = nbins,
+                          min = min_r, max = max_r)
+
+    r = pro['rbins'].in_units(r_units)
+    tempprof = pro['temp']
+
+    if clear : p.clf()
+
+    p.semilogy(r, tempprof)
+
+    p.xlabel("r / $"+r.units.latex()+"$")
+    p.ylabel("Temperature [K]")
+    if (filename): 
+        print "Saving "+filename
+        p.savefig(filename)
+    
