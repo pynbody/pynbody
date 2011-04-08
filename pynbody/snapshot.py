@@ -501,12 +501,17 @@ class SimSnap(object) :
         new_array._name = array_name
         self._arrays[array_name] = new_array
 
-    def _get_array(self, name) :
+    def _get_array(self, name, index=None) :
         x = self._arrays[name]
         if x.derived :
             x = x.view()
             x.flags['WRITEABLE'] = False
-            return x
+        
+        if index is not None :
+            if type(index) is slice :
+                return x[index]
+            else :
+                return array.IndexedSimArray(x, index)
         else :
             return x
 
@@ -541,7 +546,7 @@ class SimSnap(object) :
         if name in self.family_keys() :
             raise KeyError, "Array "+name+" is a family-level property"
 
-    def _get_family_array(self, name, fam) :
+    def _get_family_array(self, name, fam, index=None) :
         """Retrieve the array with specified name for the given particle family
         type."""
 
@@ -553,9 +558,14 @@ class SimSnap(object) :
         if x.derived :
             x = x.view()
             x.flags['WRITEABLE'] = False
-            return x
-        else :
-            return x
+
+        if index is not None :
+            if type(index) is slice :
+                x = x[index]
+            else :
+                x = array.IndexedSimArray(x, index)
+
+        return x
 
     def _promote_family_array(self, name, ndim=1, dtype=None) :
         """Create a simulation-level array (if it does not exist) with
@@ -799,23 +809,25 @@ class SubSnap(SimSnap) :
         self.properties = base.properties
 
 
-    def _get_array(self, name) :
-        if isinstance(self._slice, slice) or _subarray_immediate_mode :
+    def _get_array(self, name, index=None) :
+        if _subarray_immediate_mode :
             return self.base._get_array(name)[self._slice]
         else :
-            return array.IndexedSimArray(self.base._get_array(name), self._slice)
-
+            return self.base._get_array(name, util.concatenate_indexing(self._slice, index))
+        
     def _set_array(self, name, value, index=None) :
         self.base._set_array(name,value,util.concatenate_indexing(self._slice, index))
 
-    def _get_family_array(self, name, fam) :
+    def _get_family_array(self, name, fam, index=None) :
         base_family_slice = self.base._get_family_slice(fam)
         sl = util.relative_slice(base_family_slice,
                                  util.intersect_slices(self._slice, base_family_slice, len(self.base)))
-        if isinstance(sl, slice) or _subarray_immediate_mode :
+        sl = util.concatenate_indexing(sl, index)
+
+        if _subarray_immediate_mode :
             return self.base._get_family_array(name, fam)[sl]
         else :
-            return array.IndexedSimArray(self.base._get_family_array(name, fam), sl)
+            return self.base._get_family_array(name, fam, index=sl)
 
     def _set_family_array(self, name, family, value, index=None) :
         fslice = self._get_family_slice(family)
@@ -902,6 +914,7 @@ class IndexedSubSnap(SubSnap) :
 
         self._descriptor = "indexed"
         self.lazy_off = base.lazy_off
+        self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
         if isinstance(index_array, filt.Filter) :
             self._descriptor = index_array._descriptor
@@ -943,8 +956,11 @@ class IndexedSubSnap(SubSnap) :
         # and call SimSnap method directly...
         return SimSnap._get_family_slice(self, fam)
 
-    def _get_family_array(self, name, fam) :
-        return self.base._get_family_array(name, fam)[self._family_indices[fam]]
+    def _get_family_array(self, name, fam, index=None) :
+        sl = self._family_indices[fam]
+        sl = util.concatenate_indexing(sl, index)
+
+        return self.base._get_family_array(name, fam, index=sl)
 
     def _set_family_array(self, name, family, value, index=None) :
         self.base._set_family_array(name, family, value,
@@ -992,11 +1008,11 @@ class FamilySubSnap(SubSnap) :
         else :
             return slice(0,0)
 
-    def _get_array(self, name) :
+    def _get_array(self, name, index=None) :
         try:
-            return self.base._get_array(name)[self._slice]
+            return SubSnap._get_array(self, name, index) 
         except KeyError :
-            return self.base._get_family_array(name, self._unifamily)
+            return self.base._get_family_array(name, self._unifamily, index)
 
     def _create_array(self, array_name, ndim=1, dtype=None) :
         # Array creation now maps into family-array creation in the parent

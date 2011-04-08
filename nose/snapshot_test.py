@@ -7,6 +7,7 @@ def setup() :
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
     f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
     f['mass'] = np.random.uniform(1.0,10.0,size=f['mass'].shape)
+    f.gas['rho'] = np.ones(500, dtype=float)
 
 def teardown() :
     global f
@@ -76,4 +77,17 @@ def test_equality() :
     assert f[::5][[1,2,3]]==f[[5,10,15]]
     assert f.dm==f.dm
     assert f.dm==f[f._get_family_slice(pynbody.family.dm)]
+    
+
+def test_arraytype() :
+    SA = pynbody.array.SimArray
+    ISA = pynbody.array.IndexedSimArray
+
+    assert type(f["mass"]) is SA
+    assert type(f[[1,2,3]]["mass"]) is ISA
+    assert type(f[::20]["mass"]) is SA
+    assert type(f.dm['mass']) is SA
+    assert type(f.gas['rho']) is SA
+    assert type(f[[1,3,5,7,9,11]].dm['mass']) is ISA
+    assert type(f[[1,2,3,8]].gas['rho']) is ISA
     
