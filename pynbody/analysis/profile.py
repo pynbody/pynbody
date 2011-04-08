@@ -360,7 +360,7 @@ def fourier(self):
          'phi': np.zeros((7, self.nbins))}
 
     for i in range(self.nbins):
-        if self.n[i] > 100:
+        if self._profiles['n'][i] > 100:
             f['c'][:,i] = fourier_decomp.fourier(self.sim['x'][self.binind[i]],
                                                  self.sim['y'][self.binind[i]],
                                                  self.sim['mass'][self.binind[i]])
