@@ -100,7 +100,10 @@ class Profile:
         # and optional keyword parameters
 
         if kwargs.has_key('max'):
-            self.max = kwargs['max']
+            if isinstance(kwargs['max'],str):
+                self.max = units.Unit(kwargs['max']).ratio(x.units, 
+                                                           **x.conversion_context())
+            else: self.max = kwargs['max']
         else:
             self.max = np.max(x)
         if kwargs.has_key('nbins'):
@@ -109,7 +112,10 @@ class Profile:
             self.nbins = 100
 
         if kwargs.has_key('min'):
-            self.min = kwargs['min']
+            if isinstance(kwargs['min'],str):
+                self.min = units.Unit(kwargs['min']).ratio(x.units, 
+                                                           **x.conversion_context())
+            else : self.min = kwargs['min']
         else:
             self.min = np.min(x[x>0])
 
@@ -324,11 +330,11 @@ def mass(self):
     Calculate mass in each bin
     """
 
-    mass = np.zeros(self.nbins)
+    mass = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
     for i in range(self.nbins):
         mass[i] = (self.sim['mass'][self.binind[i]]).sum()
-    mass = array.SimArray(mass, self.sim['mass'].units)
     mass.sim = self.sim
+
     return mass
 
 @Profile.profile_property
@@ -371,7 +377,7 @@ def mass_enc(self):
     m_enc = array.SimArray(np.zeros(self.nbins), 'Msol')
     m_enc.sim = self.sim
     for i in range(self.nbins):
-        m_enc[i] = self['mass'][:i].sum()
+        m_enc[i] = self['mass'].in_units('Msol')[:i].sum()
     return m_enc
 
 @Profile.profile_property
@@ -387,7 +393,7 @@ def rotation_curve_spherical(self):
     The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
 
-    return ((units.G*self['mass_enc']/self['rbins'])**(1,2)).in_units('km s**-1')
+    return ((units.G*self['mass_enc']/self['rbins'])**(1,2))#.in_units('km s**-1')
 
 @Profile.profile_property
 def j_circ(p) :
