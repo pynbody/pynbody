@@ -67,8 +67,8 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
 
     # calculate surface densities
     if radial :
-        ps = profile.Profile(diskstars[youngstars])
-        pg = profile.Profile(diskgas)
+        ps = profile.Profile(diskstars[youngstars],nbins=10)
+        pg = profile.Profile(diskgas,nbins=10)
     else :
         # make bins 2 kpc
         nbins = rmax * 2 / binsize
@@ -146,17 +146,19 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
             raise IOError, "cmdlum.npz not found"
         plt.semilogy(sorted(tolmags),np.arange(len(tolmags)),
                      label='MW (Tollerud et al 1998)')
-        
-        xmag = np.linspace(min(halomags),max(halomags),100)
+
+        halomags = np.array(halomags)
+        halomags = halomags[np.asarray(np.where(np.isfinite(halomags)))]
+        xmag = np.linspace(halomags.min(),halomags.max(),100)
         # Trentham + Tully (2009) equation 6
         # number of dwarfs between -11>M_R>-17 is well correlated with mass
         logNd = 0.91*np.log10(sim.properties['mass'])-10.2
         # set Nd from each equal to combine Trentham + Tully with Koposov
         coeff = 10.0**logNd / (10**-0.6 - 10**-1.2)
+
         print 'Koposov coefficient:'+str(coeff)
         # Analytic expression for MW from Koposov
         yn=coeff * 10**((xmag+5.0)/10.0) # Koposov et al (2007)
-        #100.0/np.log(10.0)
         plt.semilogy(xmag,yn,linestyle="dashed",
                      label='Koposov et al (2007) + Trentham & Tully (2009)')
 

@@ -1,7 +1,8 @@
 import numpy as np
 
-def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, xlogrange=False,
-           ylogrange=False,filename=None,colorbar=False,clear=True,**kwargs):
+def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, 
+           xlogrange=False, ylogrange=False,filename=None,
+           colorbar=False,clear=True,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -117,7 +118,9 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, xlogran
         plt.ylabel(r''+label)
     plt.xlim((x_range[0],x_range[1]))
     plt.ylim((y_range[0],y_range[1]))
-    if (filename): plt.savefig(filename)
+    if (filename): 
+        print "Saving "+filename
+        plt.savefig(filename)
 
     if colorbar :
         cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
