@@ -77,3 +77,9 @@ def test_units() :
     assert str(f.star['tform'].units)=="3.88e+01 Gyr"
 
 
+def test_halo_unit_conversion() :
+    f.gas['rho'].convert_units('Msol kpc^-3')
+    assert str(h[1].gas['rho'].units)=='Msol kpc**-3'
+    
+    h[1].gas['rho'].convert_units('m_p cm^-3')
+    assert str(h[1].gas['rho'].units)=='m_p cm**-3'
