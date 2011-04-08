@@ -266,6 +266,20 @@ class SimSnap(object) :
                         print ar._name,ar.units,"->",new_unit
                     ar.convert_units(new_unit)
 
+        for k in self.properties.keys() :
+            v = self.properties[k]
+            if isinstance(v, units.UnitBase) :
+                try :
+                    new_unit = v.dimensional_project(dims)
+                except units.UnitsException :
+                    continue
+                new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, new_unit[:3])])
+                new_unit*=v.ratio(new_unit, **self.conversion_context())
+                if verbose :
+                    print k,":",v,"-->",new_unit
+                self.properties[k] = new_unit
+            
+
     def infer_original_units(self, dimensions) :
         dimensions = units.Unit(dimensions)
         d = dimensions.dimensional_project(self._file_units_system+["a","h"])
