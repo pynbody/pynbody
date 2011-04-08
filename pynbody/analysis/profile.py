@@ -187,7 +187,10 @@ class Profile:
             return self._profiles[name]
         elif name in Profile._profile_registry :
             self._profiles[name] = Profile._profile_registry[name](self)
-            self._profiles[name].sim = self.sim
+            try :
+                self._profiles[name].sim = self.sim
+            except AttributeError :
+                pass
             return self._profiles[name]
         elif name in self.sim.keys() or name in self.sim.all_keys() :
             self._profiles[name] = self._auto_profile(name)
