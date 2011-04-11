@@ -143,7 +143,7 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
         if os.path.exists(tolfile) :
             tolmags = [float(q) for q in file(tolfile).readlines()]
         else :
-            raise IOError, "cmdlum.npz not found"
+            raise IOError, tolfile+" not found"
         plt.semilogy(sorted(tolmags),np.arange(len(tolmags)),
                      label='MW (Tollerud et al 1998)')
 
@@ -156,7 +156,7 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
         # set Nd from each equal to combine Trentham + Tully with Koposov
         coeff = 10.0**logNd / (10**-0.6 - 10**-1.2)
 
-        print 'Koposov coefficient:'+str(coeff)
+        #print 'Koposov coefficient:'+str(coeff)
         # Analytic expression for MW from Koposov
         yn=coeff * 10**((xmag+5.0)/10.0) # Koposov et al (2007)
         plt.semilogy(xmag,yn,linestyle="dashed",
