@@ -142,7 +142,8 @@ class Profile:
     def _setup_bins(self) :
         # middle of the bins for convenience
         
-        self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+self['bin_edges'][1:])
+        self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+
+                                         self['bin_edges'][1:])
         self['rbins'].sim = self.sim
 
         # Width of the bins
@@ -156,9 +157,11 @@ class Profile:
 
         assert self.ndim in [2,3]
         if self.ndim == 2:
-            self._binsize = np.pi*(self['bin_edges'][1:]**2 - self['bin_edges'][:-1]**2)
+            self._binsize = np.pi*(self['bin_edges'][1:]**2 - 
+                                   self['bin_edges'][:-1]**2)
         else:
-            self._binsize  = 4./3.*np.pi*(self['bin_edges'][1:]**3 - self['bin_edges'][:-1]**3)
+            self._binsize  = 4./3.*np.pi*(self['bin_edges'][1:]**3 - 
+                                          self['bin_edges'][:-1]**3)
 
         for i in np.arange(self.nbins)+1:
             ind = np.where(self.partbin == i)

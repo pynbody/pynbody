@@ -20,6 +20,7 @@ def rotation_curve(s, center=True, r_units = 'kpc',
         min_r = kwargs['min']
     else:
         min_r = s['rxy'].min()
+
     if 'max' in kwargs :
         max_r = kwargs['max']
     else:
@@ -47,7 +48,7 @@ def rotation_curve(s, center=True, r_units = 'kpc',
 
 def fourier_profile(sim, center=True, disk_height='100 pc', nbins=50,
                     r_units='kpc', bin_spacing = 'equaln', clear = True,
-                    filename=None,**kwargs) :
+                    min=False, max=False, filename=None,**kwargs) :
     """Centre on potential minimum, align so that the disk is in the
     x-y plane, then plot the amplitude of the 2nd fourier mode as a 
     function of radius."""
@@ -55,12 +56,12 @@ def fourier_profile(sim, center=True, disk_height='100 pc', nbins=50,
     if center :
         angmom.faceon(sim)
 
-    if 'min' in kwargs :
-        min_r = kwargs['min']
+    if min :
+        min_r = min
     else:
         min_r = sim['rxy'].min()
-    if 'max' in kwargs :
-        max_r = kwargs['max']
+    if max :
+        max_r = max
     else:
         max_r = sim['rxy'].max()
 
@@ -73,7 +74,7 @@ def fourier_profile(sim, center=True, disk_height='100 pc', nbins=50,
 
     if clear : p.clf()
 
-    p.plot(r, a2)
+    p.plot(r, a2, **kwargs)
 
     p.xlabel("r / $"+r.units.latex()+"$")
     p.ylabel("Amplitude of Fourier 2nd")
