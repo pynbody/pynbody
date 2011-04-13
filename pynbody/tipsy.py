@@ -1,3 +1,5 @@
+from __future__ import with_statement # for py2.5
+
 from . import snapshot, array, util
 from . import family
 from . import units

@@ -1,6 +1,10 @@
 import numpy as np
-import scipy, scipy.weave
-from scipy.weave import inline
+try :
+    import scipy, scipy.weave
+    from scipy.weave import inline
+except ImportError :
+    pass
+
 import os
 from ..array import SimArray
 
