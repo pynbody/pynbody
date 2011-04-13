@@ -1,20 +1,25 @@
 from . import snapshot, array, util
 from . import family
 from . import units
+from . import config
 
 import struct, os
 import numpy as np
 
+import sys
+
 class TipsySnap(snapshot.SimSnap) :
     def __init__(self, filename, only_header=False, must_have_paramfile=False) :
+
+        global config
+
 	super(TipsySnap,self).__init__()
 	
 	self._filename = util.cutgz(filename)
 	
 	f = util.open_(filename)
-	# factoring out gzip logic opens up possibilities for bzip2,
-	# or other more advanced filename -> file object mapping later,
-	# carrying this across the suite
+
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: loading ",filename
 
 	t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
         if (ndim > 3 or ndim < 1):
@@ -249,7 +254,8 @@ class TipsySnap(snapshot.SimSnap) :
                 filename = self._filename+"."+array_name
                 
         f = util.open_(filename)
- 
+
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: attempting to load auxiliary array",filename
         # if we get here, we've got the file - try loading it
   
 	try :

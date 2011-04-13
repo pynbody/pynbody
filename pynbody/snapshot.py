@@ -2,6 +2,8 @@ from . import array
 from . import family, util
 from . import filt
 from . import units
+from . import config
+
 import numpy as np
 import copy
 import weakref
@@ -230,21 +232,20 @@ class SimSnap(object) :
                 d[x] = self.properties[x]
         return d
 
-    def original_units(self, verbose=False) :
+    def original_units(self) :
         """Converts all array's units to be consistent with the units of
         the original file.
 
         If verbose is True, the conversions are printed."""
         self.physical_units(distance=self.infer_original_units('km'),
                              velocity=self.infer_original_units('km s^-1'),
-                             mass=self.infer_original_units('Msol'),
-                       verbose=verbose)
+                             mass=self.infer_original_units('Msol'))
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', verbose=False) :
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol') :
         """Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified.
+        distance, velocity, mass basis units specified."""
 
-        If verbose is True, the conversions are printed."""
+        global config
 
         dims = [units.Unit(x) for x in distance, velocity, mass, 'a', 'h']
 
@@ -262,7 +263,7 @@ class SimSnap(object) :
 
                 new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, d[:3])])
                 if new_unit!=ar.units :
-                    if verbose :
+                    if config['verbose'] :
                         print ar._name,ar.units,"->",new_unit
                     ar.convert_units(new_unit)
 
@@ -275,7 +276,7 @@ class SimSnap(object) :
                     continue
                 new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, new_unit[:3])])
                 new_unit*=v.ratio(new_unit, **self.conversion_context())
-                if verbose :
+                if config['verbose'] :
                     print k,":",v,"-->",new_unit
                 self.properties[k] = new_unit
             
@@ -660,6 +661,8 @@ class SimSnap(object) :
         This searches the registry of @X.derived_quantity functions
         for all X in the inheritance path of the current class. The first
         """
+        global config
+
         calculated = False
         if name in SimSnap._calculating :
             raise ValueError, "Circular reference in derived quantity"
@@ -670,6 +673,7 @@ class SimSnap(object) :
                 for cl in type(self).__mro__ :
                     if self._derived_quantity_registry.has_key(cl) \
                            and self._derived_quantity_registry[cl].has_key(name) :
+                        if config['verbose'] : print>>sys.stderr, "SimSnap: deriving array",name
                         if fam is None :
                             self[name] = SimSnap._derived_quantity_registry[cl][name](self)
                             self[name].derived = True
