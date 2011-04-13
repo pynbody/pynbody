@@ -183,10 +183,12 @@ class Profile:
 
     def _get_profile(self, name) :
         """Return the profile of a given kind"""
+        x = name.split(",")
         if name in self._profiles :
             return self._profiles[name]
-        elif name in Profile._profile_registry :
-            self._profiles[name] = Profile._profile_registry[name](self)
+        elif x[0] in Profile._profile_registry :
+            args = x[1:]
+            self._profiles[name] = Profile._profile_registry[x[0]](self, *args)
             try :
                 self._profiles[name].sim = self.sim
             except AttributeError :
