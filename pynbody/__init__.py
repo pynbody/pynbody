@@ -1,5 +1,9 @@
+import ConfigParser, os
 
-config = {'verbose' : False}
+Cf = ConfigParser.ConfigParser()
+Cf.read(os.path.join(os.path.dirname(__file__),"default_config.ini"))
+Cf.read(os.path.join(os.path.dirname(__file__),"config.ini"))
+config= {'verbose': Cf.getboolean('general','verbose')}
 
 
 import util, filt, array, family, snapshot,  tipsy, gadget, analysis, halo, derived, bridge, plot
