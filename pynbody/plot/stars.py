@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
-from .. import filt, units
+from .. import filt, units, config
 
 def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
     '''star formation history
@@ -30,7 +30,7 @@ def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
     plt.xlabel('Time [Gyr]')
     plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]')
     if (filename): 
-        print "Saving "+filename
+        if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
 
@@ -100,7 +100,9 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
         plt.savefig(filename)
 
 
-def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
+def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True, 
+          clear=True, legend=True,
+          label='Simulation',**kwargs) :
     '''satellite luminosity function
     Usage:
     import pynbody.plot as pp
@@ -111,7 +113,9 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
     * band='v'       which Johnson band to use. available filters:  
                      U, B, V, R, I, J, H, K
     * filename=None  name of file to which to save output
-    * compare=True   whether to plot comparison lines to MW
+    * MWcompare=True whether to plot comparison lines to MW
+    * Trentham=True  whether to plot comparison lines to Trentham + Tully (2009)
+                     combined with Koposov et al (2007)
 
     By default, satlf will use the formation mass of the star.  
     In tipsy, this will be taken from the starlog file. 
@@ -120,24 +124,24 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
     import os
 
     halomags = []
-    #try :
-    for haloid in sim.properties['children'] :
-        if (sim._halo_catalogue.contains(haloid)) :
-            halo = sim._halo_catalogue[haloid]
-            try:
-                halo.properties[band+'_mag'] = lum.halo_mag(halo,band=band)
-                halomags.append(halo.properties[band+'_mag'])
-            except IndexError:
-                pass  # no stars in satellite
-    #except KeyError:
-        #raise KeyError, str(sim)+' properties have no children key as a halo type would'
+    try :
+        for haloid in sim.properties['children'] :
+            if (sim._halo_catalogue.contains(haloid)) :
+                halo = sim._halo_catalogue[haloid]
+                try:
+                    halo.properties[band+'_mag'] = lum.halo_mag(halo,band=band)
+                    halomags.append(halo.properties[band+'_mag'])
+                except IndexError:
+                    pass  # no stars in satellite
+    except KeyError:
+        raise KeyError, str(sim)+' properties have no children key as a halo type would'
     
     if clear : plt.clf()
-    plt.semilogy(sorted(halomags),np.arange(len(halomags)), label='Simulation',
+    plt.semilogy(sorted(halomags),np.arange(len(halomags))+1, label=label,
                  **kwargs)
-    plt.xlabel('M'+band)
+    plt.xlabel('M_'+band)
     plt.ylabel('Cumulative LF')
-    if (compare):
+    if MWcompare:
         # compare with observations of MW
         tolfile = os.path.join(os.path.dirname(__file__),"tollerud2008mw")
         if os.path.exists(tolfile) :
@@ -145,8 +149,9 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
         else :
             raise IOError, tolfile+" not found"
         plt.semilogy(sorted(tolmags),np.arange(len(tolmags)),
-                     label='MW (Tollerud et al 1998)')
+                     label='Milky Way')
 
+    if Trentham:
         halomags = np.array(halomags)
         halomags = halomags[np.asarray(np.where(np.isfinite(halomags)))]
         xmag = np.linspace(halomags.min(),halomags.max(),100)
@@ -158,11 +163,12 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
 
         #print 'Koposov coefficient:'+str(coeff)
         # Analytic expression for MW from Koposov
+        #import pdb; pdb.set_trace()
         yn=coeff * 10**((xmag+5.0)/10.0) # Koposov et al (2007)
         plt.semilogy(xmag,yn,linestyle="dashed",
-                     label='Koposov et al (2007) + Trentham & Tully (2009)')
+                     label='Trentham & Tully (2009)')
 
-    plt.legend(loc=2)
+    if legend : plt.legend(loc=2)
     if (filename): 
         print "Saving "+filename
         plt.savefig(filename)
@@ -170,22 +176,74 @@ def satlf(sim,band='R',filename=None, compare=True,clear=True,**kwargs) :
 
 def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', 
               center=True, clear=True, filename=None, **kwargs) :
+    '''surface brightness profile
+    Usage:
+    import pynbody.plot as pp
+    h = s.halos()
+    pp.sbprofile(h[1],linestyle='dashed',color='k')
+
+    Options:
+    * band='v'       which Johnson band to use. available filters:  
+                     U, B, V, R, I, J, H, K
+    * filename=None  name of file to which to save output
+
+    By default, sbprof will use the formation mass of the star.  
+    In tipsy, this will be taken from the starlog file. 
+    '''
     
     if center :
-        print "Centering"
+        if config['verbose']: print "Centering"
         angmom.faceon(sim)
 
-    print "Selecting disk stars"
+    if config['verbose']: print "Selecting disk stars"
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
-    print "Creating profile"
+    if config['verbose']: print "Creating profile"
     ps = profile.Profile(diskstars)
-    print "Plotting"
+    if config['verbose']: print "Plotting"
     if clear : plt.clf()
     r=ps['rbins'].in_units('kpc')
-    plt.plot(r,ps['sb'],**kwargs)
-    plt.axis([min(r),max(r),max(ps['sb']),min(ps['sb'])])
+    plt.plot(r,ps['sb,'+band],'ko',**kwargs)
+    plt.axis([min(r),max(r),max(ps['sb,'+band]),min(ps['sb,'+band])])
     plt.xlabel('R [kpc]')
     plt.ylabel('Surface brightness [mag as$^{-2}$]')
     if (filename): 
-        print "Saving "+filename
+        if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
+
+
+def guo(halo_catalog, clear=False, **kwargs):
+    '''Stellar Mass vs. Halo Mass
+    Usage:
+    import pynbody.plot as pp
+    h = s.halos()
+    pp.sbprofile(h,marker='+',markerfacecolor='k')
+
+    Options:
+    * band='v'       which Johnson band to use. available filters:  
+                     U, B, V, R, I, J, H, K
+    * filename=None  name of file to which to save output
+
+    By default, sbprof will use the formation mass of the star.  
+    In tipsy, this will be taken from the starlog file. 
+    '''
+
+    if 'marker' not in kwargs :
+        kwargs['marker']='o'
+
+    starmasshalos = np.array([])
+    totmasshalos = np.array([])
+    for halo in halo_catalog :
+        halostarmass = np.sum(halo.star['mass'])
+        if halostarmass :
+            starmasshalos.append(halostarmass.in_units('Msol'))
+            totmasshalos.append(np.sum(halo['mass'].in_units('Msol')))
+
+    if clear: plt.clf()
+
+    plt.loglog(totmasshalos,starmasshalos,**kwargs)
+
+    # from Sawala et al (2011) + Guo et al (2009)
+    xmasses = np.logspace(totmasshalos.min(),totmasshalos.max(),20)
+    ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
+
+    plt.loglog(xmasses,ystarmasses,linestyle='dashed')

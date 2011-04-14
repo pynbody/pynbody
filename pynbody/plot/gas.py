@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from ..analysis import profile, angmom, halo
 
 def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True, 
           filename=None, rho_units="m_p cm**-3",**kwargs):
@@ -22,12 +24,10 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True,
        *log*: boolean
          whether to use log or linear spaced contours
     """
-    import matplotlib.pyplot as plt
     from matplotlib import ticker, colors
 
-    print rho_units
     sim.gas['rho'].sim.gas['rho'].convert_units(rho_units)
-    print sim.gas['rho'].units
+
     if kwargs.has_key('t_range'):
         t_range = kwargs['t_range']
         assert len(t_range) == 2
@@ -41,7 +41,6 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True,
         rho_range = (np.log10(np.min(sim.gas['rho'])), 
                      np.log10(np.max(sim.gas['rho'])))
 
-    print sim.gas['rho'].units
     hist, x, y = np.histogram2d(np.log10(sim.gas['temp']), 
                                 np.log10(sim.gas['rho']),
                                 bins=nbins, range=[t_range,rho_range])
@@ -66,8 +65,6 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True,
     cs = plt.contourf(.5*(y[:-1]+y[1:]),.5*(x[:-1]+x[1:]), # note that hist is strange and x/y values
                                                           # are swapped
                      hist, levels, norm=cont_color)
-
-    print sim.gas['rho'].units
 
     plt.xlabel(r'log$_{10}$($\rho$/$'+sim.gas['rho'].units.latex()+'$)')
     plt.ylabel(r'log$_{10}$(T/$'+sim.gas['temp'].units.latex()+'$)')
@@ -97,19 +94,18 @@ def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln',
     else:
         max_r = sim['r'].max()
 
-    pro = profile.Profile(sim.gas, type=bin_spacing, nbins = nbins,
-                          min = min_r, max = max_r)
+    pro = profile.Profile(sim.gas, type=bin_spacing, min = min_r, max = max_r)
 
     r = pro['rbins'].in_units(r_units)
     tempprof = pro['temp']
 
-    if clear : p.clf()
+    if clear : plt.clf()
 
-    p.semilogy(r, tempprof)
+    plt.semilogy(r, tempprof)
 
-    p.xlabel("r / $"+r.units.latex()+"$")
-    p.ylabel("Temperature [K]")
+    plt.xlabel("r / $"+r.units.latex()+"$")
+    plt.ylabel("Temperature [K]")
     if (filename): 
         print "Saving "+filename
-        p.savefig(filename)
+        plt.savefig(filename)
     

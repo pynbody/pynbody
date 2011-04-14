@@ -4,7 +4,7 @@ import os.path
 import glob
 import re
 import copy
-from . import snapshot, util
+from . import snapshot, util, config
 
 class Halo(snapshot.IndexedSubSnap) :
     def __init__(self, halo_id, halo_catalogue, *args) :
@@ -52,22 +52,27 @@ class AHFCatalogue(HaloCatalogue) :
             self._run_ahf(sim)
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
-        try:
-            print "Loading particles"
-            self._load_ahf_particles(util.cutgz(glob.glob(self.base._filename+'.z*particles*')[0]))
-            print "Loading halos"
-            self._load_ahf_halos(util.cutgz(glob.glob(sim._filename+'.z*halos*')[0]))
-            print "Loading substructure"
-            self._load_ahf_substructure(util.cutgz(glob.glob(sim._filename+'.z*substructure*')[0]))
-            try:
-                print "Setting grp"
-                for halo in self._halos.values():
-                    halo['grp'][:] = halo._halo_id
-            except KeyError:
-                print "Failed grp load: "+str(KeyError)
-                pass
-        except IndexError:
+        #try:
+        f = util.open_((util.cutgz(glob.glob(sim._filename+'*z*halos*')[0])))
+        for i, l in enumerate(f):
             pass
+        self._nhalos=i
+        f.close()
+        if config['verbose']: print "Loading particles"
+        self._load_ahf_particles(util.cutgz(glob.glob(self.base._filename+'*z*particles*')[0]))
+        if config['verbose']: print "Loading halos"
+        self._load_ahf_halos(util.cutgz(glob.glob(sim._filename+'*z*halos*')[0]))
+        if config['verbose']: print "Loading substructure"
+        self._load_ahf_substructure(util.cutgz(glob.glob(sim._filename+'*z*substructure*')[0]))
+        try:
+            if config['verbose']: print "Setting grp"
+            for halo in self._halos.values():
+                halo['grp'][:] = halo._halo_id
+        except KeyError:
+            print "Failed grp load: "+str(KeyError)
+            pass
+        #except IndexError:
+        #    print "IndexError"+str(IndexError)
 
     def _get_halo(self, i) :
         if self.base is None :
@@ -89,9 +94,14 @@ class AHFCatalogue(HaloCatalogue) :
 
     def _load_ahf_particles(self,filename) :
         f = util.open_(filename)
+        if filename.split("z")[0][-1] is "." : self.isnew = True
+        else : self.isnew = False
         # tried readlines, which is fast, but the time is spent in the
         # for loop below, so sticking with this (hopefully) more readable 
-        nhalos=int(f.readline())
+        if self.isnew:
+            nhalos=int(f.readline())
+        else: 
+            nhalos = self._nhalos
         ng = len(self.base.gas)
         nds = len(self.base.dark) + len(self.base.star)
         for h in xrange(nhalos) :
@@ -100,9 +110,13 @@ class AHFCatalogue(HaloCatalogue) :
             # wow,  AHFstep has the audacity to switch the id order to dark,star,gas
             # switching back to gas, dark, star
             for i in xrange(nparts) : 
-                key,value=f.readline().split()
-                if (value == '0'): key=int(key)-nds
-                else: key=int(key)+ng
+                if self.isnew:
+                    key,value=f.readline().split()
+                    if (value == '0'): key=int(key)-nds
+                    else: key=int(key)+ng
+                else :
+                    key=f.readline()
+                    value = 0
                 keys[int(key)]=int(value)
             self._halos[h+1] = Halo( h+1, self, self.base, sorted(keys.keys()))
         f.close()
@@ -115,7 +129,10 @@ class AHFCatalogue(HaloCatalogue) :
                 for field in f.readline().split()]
         # provide translations
         for i,key in enumerate(keys) :
-            if(key == '#npart') : keys[i] = 'npart'
+            if self.isnew:
+                if(key == '#npart') : keys[i] = 'npart'
+            else: 
+                if(key == '#') : keys[i] = 'dumb'
             if(key == 'a') : keys[i] = 'a_axis'
             if(key == 'b') : keys[i] = 'b_axis'
             if(key == 'c') : keys[i] = 'c_axis'
@@ -124,7 +141,10 @@ class AHFCatalogue(HaloCatalogue) :
             values = [float(x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as well
             for i,key in enumerate(keys) :
-                self._halos[h+1].properties[key] = values[i]
+                if self.isnew:
+                    self._halos[h+1].properties[key] = values[i]
+                else :
+                    self._halos[h+1].properties[key] = values[i-1]
         f.close()
 
     def _load_ahf_substructure(self,filename) :
@@ -141,7 +161,7 @@ class AHFCatalogue(HaloCatalogue) :
 
     @staticmethod
     def _can_load(sim) :
-        for file in glob.glob(sim._filename+'.z*particles*') :
+        for file in glob.glob(sim._filename+'*z*particles*') :
             if os.path.exists(file) :
                 return True
         return False

@@ -446,7 +446,7 @@ def sb(self,band='v') :
     # Out[5]: 2.3504430539466191e-09
     # 1 square arcsecond is thus 2.35e-9 pc^2
     sqarcsec_in_bin = self._binsize.in_units('pc^2') / 2.3504430539466191e-09
-    bin_luminosity = 10.0**(-0.4*self['magnitudes'])
+    bin_luminosity = 10.0**(-0.4*self['magnitudes,'+band])
     #import pdb; pdb.set_trace()
     surfb = -2.5*np.log10(bin_luminosity / sqarcsec_in_bin)
     surfb = array.SimArray(surfb, units.Unit('1'))

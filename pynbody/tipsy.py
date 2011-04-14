@@ -357,7 +357,7 @@ class TipsySnap(snapshot.SimSnap) :
             for filename in l:
                 sl = StarLog(filename)
 
-        print "Bridging starlog into SimSnap"
+        if config['verbose'] : print "Bridging starlog into SimSnap"
         b = pynbody.bridge.OrderBridge(self,sl)
         b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
         b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
@@ -451,15 +451,20 @@ def hydrogen(self) :
 # OR
 # http://en.wikipedia.org/wiki/Abundance_of_the_chemical_elements      
 # puts stuff more straighforwardly cites Arnett (1996)
-# Wikipedia                Asplund
-XSOLFe=0.117E-2         # 1.31e-3
-XSOLO=0.59E-2           # 5.8e-2
+# A+G from http://www.t4.lanl.gov/opacity/grevand1.html
+# Anders + Grev (1989)    Asplund
+XSOLFe=0.125E-2         # 1.31e-3
+# Looks very wrong ([O/Fe] ~ 0.2-0.3 higher than solar), 
+# probably because SN ejecta are calculated with
+# Woosley + Weaver (1995) based on Anders + Grevesse (1989)
+# XSOLO=0.59E-2           # 5.8e-2
+XSOLO=0.84E-2
 XSOLH=0.706             # 0.74
 XSOLC=3.03e-3           # 2.39e-3
-XSOLN=1.105e-3          # 7e-4
-XSOLNe=2.08e-4          # 1.26e-3
-XSOLMg=5.13e-4          # 7e-4
-XSOLSi=6.53e-4          # 6.7e-4
+XSOLN=9.2e-4          # 7e-4
+XSOLNe=1.66e-3          # 1.26e-3
+XSOLMg=6.44e-4          # 7e-4
+XSOLSi=7e-4          # 6.7e-4
 
 
 @TipsySnap.derived_quantity
@@ -570,7 +575,7 @@ class StarLog(snapshot.SimSnap):
             else : bigstarlog = True
             
         datasize = os.path.getsize(filename)-f.tell()
-        print "Reading "+filename
+        if config['verbose'] : print "Reading "+filename
         if(self._byteswap):
             g = np.fromstring(f.read(datasize),dtype=file_structure).byteswap()
         else:
