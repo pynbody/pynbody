@@ -92,6 +92,39 @@ class Sphere(Filter) :
         else :
             return "Sphere(%.2e, %s)"%(self.radius, repr(self.cen))
 
+class Cuboid(Filter) :
+    def __init__(self, x1, y1=None, z1=None, x2=None, y2=None, z2=None) :
+        """Create a cube with specified edge coordinates. If any of
+        the cube coordinates x1,y1,z1,x2,y2,z2 are not specified they are
+        determined as y1=x1; z1=x1; x2=-x1; y2=-y1; z2=-z1."""
+        
+        self._desciptor="cube"
+        x1,y1,z1,x2,y2,z2 = [units.Unit(x) if isinstance(x,str) else x for x in x1,y1,z1,x2,y2,z2]
+        if y1 is None :
+            y1 = x1
+        if z1 is None :
+            z1 = x1
+        if x2 is None :
+            x2 = -x1
+        if y2 is None :
+            y2 = -y1
+        if z2 is None :
+            z2 = -z1
+        self.x1, self.y1, self.z1, self.x2, self.y2, self.z2 = x1,y1,z1,x2,y2,z2
+
+    def __call__(self, sim) :
+        x1,y1,z1,x2,y2,z2 = [x.ratio(sim["pos"].units, **sim["pos"].conversion_context())
+                             if isinstance(x, units.UnitBase) else x
+                             for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
+
+        return ((sim["x"]>x1)*(sim["x"]<x2)*(sim["y"]>y1)*(sim["y"]<y2)*(sim["z"]>z1)*(sim["z"]<z2))
+
+    def __repr__(self) :
+        x1,y1,z1,x2,y2,z2 = ["'%s'"%str(x)
+                             if isinstance(x, units.UnitBase) else x
+                             for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
+        return "Cuboid(%s, %s, %s, %s, %s, %s)"%(x1,y1,z1,x2,y2,z2)
+    
 class Disc(Filter) :
     def __init__(self, radius, height, cen=(0,0,0)) :
         self._descriptor = "disc"
