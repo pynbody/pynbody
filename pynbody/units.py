@@ -296,7 +296,7 @@ class CompositeUnit(UnitBase) :
             x = ("%.2e"%self._scale).split('e')
             s = x[0]
             ex = x[1].lstrip('0+')
-            if ex[0]=='-':
+            if len(ex)>0 and ex[0]=='-':
                 ex = '-'+(ex[1:]).lstrip('0')
             if ex!='' : s+=r"\times 10^{"+ex+"}"
         else :
