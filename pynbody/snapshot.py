@@ -487,11 +487,13 @@ class SimSnap(object) :
             new_ar._sim = weakref.ref(self)
             new_ar._name = array_name
 
+            new_ar.set_default_units(quiet=True)
             try:
                 self._family_arrays[array_name][family] = new_ar
             except KeyError :
                 self._family_arrays[array_name] = dict({family : new_ar})
 
+                
             
         
     def _del_family_array(self, array_name, family) :
@@ -514,6 +516,7 @@ class SimSnap(object) :
         new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
+        new_array.set_default_units(quiet=True)
         self._arrays[array_name] = new_array
 
     def _get_array(self, name, index=None) :
@@ -768,13 +771,15 @@ class SimSnap(object) :
 def put_1d_slices(sim) :
     if not hasattr(sim, '_arrays') :
         return
-    for i, a in enumerate(["x","y","z"]) :
-        sim._arrays[a] = sim._arrays["pos"][:,i]
-        sim._arrays[a]._name = a
-        sim._arrays["v"+a] = sim._arrays["vel"][:,i]
-        sim._arrays["v"+a]._name = "v"+a
+    try :
+        for i, a in enumerate(["x","y","z"]) :
+            sim._arrays[a] = sim._arrays["pos"][:,i]
+            sim._arrays[a]._name = a
+            sim._arrays["v"+a] = sim._arrays["vel"][:,i]
+            sim._arrays["v"+a]._name = "v"+a
 
-
+    except KeyError :
+        pass
 
 
 

@@ -1,12 +1,13 @@
 import ConfigParser, os
 
-Cf = ConfigParser.ConfigParser()
-Cf.read(os.path.join(os.path.dirname(__file__),"default_config.ini"))
-Cf.read(os.path.join(os.path.dirname(__file__),"config.ini"))
-config= {'verbose': Cf.getboolean('general','verbose')}
+config_parser = ConfigParser.ConfigParser()
+config_parser.optionxform = str
+config_parser.read(os.path.join(os.path.dirname(__file__),"default_config.ini"))
+config_parser.read(os.path.join(os.path.dirname(__file__),"config.ini"))
+config= {'verbose': config_parser.getboolean('general','verbose')}
 
 
-import util, filt, array, family, snapshot,  tipsy, gadget, analysis, halo, derived, bridge, plot
+import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot
 
 # The following code resolves inter-dependencies when reloading
 reload(array)
@@ -15,6 +16,7 @@ reload(util)
 reload(snapshot)
 reload(tipsy)
 reload(gadget)
+reload(gadgethdf)
 reload(filt)
 reload(analysis)
 reload(halo)
@@ -24,7 +26,7 @@ reload(plot)
 
 from analysis import profile
 
-_snap_classes = [gadget.GadgetSnap, tipsy.TipsySnap]
+_snap_classes = [gadgethdf.GadgetHDFSnap, gadget.GadgetSnap, tipsy.TipsySnap]
 
 def load(filename, *args, **kwargs) :
     """Loads a file using the appropriate class, returning a SimSnap

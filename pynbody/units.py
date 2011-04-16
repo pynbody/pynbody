@@ -596,3 +596,12 @@ one_plus_z = NamedUnit("(1+z)", 1/a)
 k = 1.3806503e-23 * J / K
 c = 299792458 * m/s
 G = 6.67300e-11 * m**3 * kg**-1 * s**-2
+
+from . import  config_parser
+
+
+_default_units = {}
+
+for a_,b_ in config_parser.items("default-array-dimensions") :
+    _default_units[a_] = Unit(b_)
+

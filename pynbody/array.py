@@ -374,6 +374,18 @@ class SimArray(np.ndarray) :
         else :
             raise RuntimeError, "No link to SimSnap"
 
+    def set_default_units(self, quiet=False) :
+        """Set the units for this array by performing dimensional analysis
+        on the default dimensions for the array."""
+
+        if self.sim is not None :
+            try :
+                self.set_units_like(units._default_units[self._name])
+            except (KeyError, units.UnitsException) :
+                if not quiet: raise
+        else :
+            raise RuntimeError, "No link to SimSnap"
+        
     def in_units(self, new_unit) :
         """Return a copy of this array expressed relative to an alternative
         unit."""
