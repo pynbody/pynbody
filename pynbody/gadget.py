@@ -374,8 +374,6 @@ class GadgetSnap(snapshot.SimSnap):
             self._filename = filename [:-2]
         else:
             self._filename=filename
-        #Not sure why the class has self.filename, but everything seems to manipulate self._filename?
-        self.filename = self._filename
         #Read the first file and use it to get an idea of how many files we are expecting.
         first_file = GadgetFile(filename)
         self._files.append(first_file)
