@@ -7,7 +7,8 @@ import pylab as p
 def rotation_curve(sim, center=True, r_units = 'kpc',
                    v_units = 'km s^-1', disk_height='100 pc', nbins=50,
                    bin_spacing = 'equaln', clear = True, quick=False,
-                   filename=None,min=False,max=False,**kwargs) :
+                   filename=None,min=False,max=False,yrange=False,
+                   legend=False,**kwargs) :
     """Centre on potential minimum, align so that the disk is in the
     x-y plane, then use the potential in that plane to generate and
     plot a rotation curve."""
@@ -37,8 +38,14 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
 
     p.plot(r, v, **kwargs)
 
+    if yrange :
+        p.axis([min_r,units.Unit(max_r).in_units(r.units),yrange[0],yrange[1]])
     p.xlabel("r / $"+r.units.latex()+"$")
     p.ylabel("v_c / $"+v.units.latex()+'$')
+
+    if legend :
+        p.legend(loc=1)
+
     if (filename): 
         print "Saving "+filename
         p.savefig(filename)
