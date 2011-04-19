@@ -202,7 +202,7 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc',
     if config['verbose']: print "Plotting"
     if clear : plt.clf()
     r=ps['rbins'].in_units('kpc')
-    plt.plot(r,ps['sb,'+band],'ko',**kwargs)
+    plt.plot(r,ps['sb,'+band],'o',**kwargs)
     plt.axis([min(r),max(r),max(ps['sb,'+band]),min(ps['sb,'+band])])
     plt.xlabel('R [kpc]')
     plt.ylabel('Surface brightness [mag as$^{-2}$]')
@@ -211,7 +211,7 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc',
         plt.savefig(filename)
 
 
-def guo(halo_catalog, clear=False, **kwargs):
+def guo(halo_catalog, clear=False, compare=True, baryfrac=False, **kwargs):
     '''Stellar Mass vs. Halo Mass
     Usage:
     import pynbody.plot as pp
@@ -227,23 +227,38 @@ def guo(halo_catalog, clear=False, **kwargs):
     In tipsy, this will be taken from the starlog file. 
     '''
 
-    if 'marker' not in kwargs :
-        kwargs['marker']='o'
+    #if 'marker' not in kwargs :
+    #    kwargs['marker']='o'
 
-    starmasshalos = np.array([])
-    totmasshalos = np.array([])
-    for halo in halo_catalog :
+    starmasshalos = []
+    totmasshalos = []
+
+    halo_catalog._halos[1]['mass'].convert_units('Msol')
+
+    for i in np.arange(len(halo_catalog._halos))+1 :
+        halo = halo_catalog[i]
         halostarmass = np.sum(halo.star['mass'])
         if halostarmass :
-            starmasshalos.append(halostarmass.in_units('Msol'))
-            totmasshalos.append(np.sum(halo['mass'].in_units('Msol')))
+            starmasshalos.append(halostarmass)
+            totmasshalos.append(np.sum(halo['mass']))
 
     if clear: plt.clf()
 
-    plt.loglog(totmasshalos,starmasshalos,**kwargs)
+    plt.loglog(totmasshalos,starmasshalos,'o',**kwargs)
+    plt.xlabel('Total Halo Mass')
+    plt.ylabel('Halo Stellar Mass')
 
-    # from Sawala et al (2011) + Guo et al (2009)
-    xmasses = np.logspace(totmasshalos.min(),totmasshalos.max(),20)
-    ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
+    if compare :
+        # from Sawala et al (2011) + Guo et al (2009)
+        xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+        ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
+        plt.loglog(xmasses,ystarmasses,linestyle='dashed',label='Guo et al (2009)')
 
-    plt.loglog(xmasses,ystarmasses,linestyle='dashed')
+    if baryfrac :
+        # from Sawala et al (2011) + Guo et al (2009)
+        xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+        ystarmasses = xmasses*0.04/0.24
+        plt.loglog(xmasses,ystarmasses,linestyle='dotted',label='f_b = 0.16')
+   
+    plt.axis([0.8*min(totmasshalos),1.2*max(totmasshalos),
+              0.8*min(starmasshalos),1.2*max(starmasshalos)])
