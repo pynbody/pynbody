@@ -53,17 +53,18 @@ class AHFCatalogue(HaloCatalogue) :
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
         #try:
-        f = util.open_((util.cutgz(glob.glob(sim._filename+'*z*halos*')[0])))
+        self._ahfBasename = util.cutgz(glob.glob(sim._filename+'*z*halos')[0])[:-5]
+        f = util.open_(self._ahfBasename+'halos')
         for i, l in enumerate(f):
             pass
         self._nhalos=i
         f.close()
         if config['verbose']: print "Loading particles"
-        self._load_ahf_particles(util.cutgz(glob.glob(self.base._filename+'*z*particles*')[0]))
+        self._load_ahf_particles(self._ahfBasename+'particles')
         if config['verbose']: print "Loading halos"
-        self._load_ahf_halos(util.cutgz(glob.glob(sim._filename+'*z*halos*')[0]))
+        self._load_ahf_halos(self._ahfBasename+'halos')
         if config['verbose']: print "Loading substructure"
-        self._load_ahf_substructure(util.cutgz(glob.glob(sim._filename+'*z*substructure*')[0]))
+        self._load_ahf_substructure(self._ahfBasename+'substructure')
         try:
             if config['verbose']: print "Setting grp"
             for halo in self._halos.values():
