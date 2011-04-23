@@ -39,5 +39,6 @@ def test_unit_tracking() :
     assert np.var(x).units=="kpc**2"
     
     assert np.std(x).units=="kpc"
-    
-    assert np.mean(x).units=="kpc"
+
+    if np.__version__[0]>'1' :
+        assert np.mean(x).units=="kpc"
