@@ -7,7 +7,7 @@ from . import config
 
 import struct, os
 import numpy as np
-
+import gzip
 import sys
 
 class TipsySnap(snapshot.SimSnap) :
@@ -126,23 +126,41 @@ class TipsySnap(snapshot.SimSnap) :
             try:
                 f = util.open_(x)
                 return int(f.readline()) == len(self)
-            except (IOError, ValueError) :
+            except ValueError :
                 # could be a binary file
                 f.seek(0)
-                buflen = os.path.getsize(x)
-                if (buflen-4)/4/3. == len(self) : # it's a float vector
+
+                if type(f) is gzip.GzipFile :
+                    # Cludge to get un-zipped length
+                    fx = f.fileobj
+                    fx.seek(-4, 2)
+                    buflen = gzip.read32(fx)
+                    ourlen_1 = ((len(self)*4)+4) & 0xffffffffL
+                    ourlen_3 = ((len(self)*3*4)+4) & 0xffffffffL
+                    
+                else :
+                    buflen = os.path.getsize(x)
+                    ourlen_1 = ((len(self)*4)+4)
+                    ourlen_3 = ((len(self)*4)+4)
+
+                if buflen==ourlen_1 : # it's a vector
                     return True
-                elif (buflen-4)/4. == len(self) : # it's a float array
+                elif buflen==ourlen_3 : # it's an array
                     return True
                 else :
                     return False
+                
+            except IOError :
+                return False
 
         import glob
         if len(self._loadable_keys_registry) == 0 :
-            fs = glob.glob(self._filename+".*")
+            fs = map(util.cutgz,glob.glob(self._filename+".*"))
+            print fs
             res =  map(lambda q: q[len(self._filename)+1:], 
                        filter(is_readable_array, fs))
-            for i,n in enumerate(res): res[i] = util.cutgz(n)
+           
+            
             self._loadable_keys_registry = res
             
         return self._loadable_keys_registry
