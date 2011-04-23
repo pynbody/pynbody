@@ -52,8 +52,9 @@ class AHFCatalogue(HaloCatalogue) :
             self._run_ahf(sim)
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
-        #try:
-        self._ahfBasename = util.cutgz(glob.glob(sim._filename+'*z*halos')[0])[:-5]
+       
+        self._ahfBasename = util.cutgz(glob.glob(sim._filename+'*z*halos*')[0])[:-5]
+        
         f = util.open_(self._ahfBasename+'halos')
         for i, l in enumerate(f):
             pass
