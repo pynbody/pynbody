@@ -129,7 +129,8 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  y1=None, z_plane = 0.0, out_units=None, xy_units='kpc',
-                 kernel=Kernel()) :
+                 kernel=Kernel(),
+                 z_camera=None) :
 
     """Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -146,6 +147,12 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     out_units -- The units to convert the output image into (default no conversion)
     xy_units -- The units for the x and y axes
     kernel -- The Kernel object to use (default Kernel(), a 3D spline kernel)
+    z_camera -- If this is set, a perspective image is rendered, assuming the kernel
+     is suitable (i.e. is a projecting kernel). The camera is at the
+     specified z coordinate looking towards -ve z, and each pixel represents
+     a line-of-sight radially outwards from the camera. The width then specifies
+     the width of the image in the z=0 plane. Particles too close to the camera
+     are also excluded.
     """
 
     import os, os.path
@@ -187,8 +194,12 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
 
     code = kernel.get_c_code()
+    perspective = z_camera is not None
 
-
+    if perspective :
+        z_camera = float(z_camera)
+        code+="#define PERSPECTIVE 1\n"
+    
     try:
         import pyopencl as cl
         import struct
@@ -221,8 +232,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         code+=file(os.path.join(os.path.dirname(__file__),
                                 'sph_image.cl')).read()
 
-        print code
-        
+      
         prg = cl.Program(ctx, code).build(devices=[cl.get_platforms()[0].get_devices()[0]])
 
         prg.render(queue, result.shape, None, sm_buf, qty_buf, pos_buf, par_buf,
@@ -232,6 +242,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         cl.enqueue_read_buffer(queue, dest_buf, result).wait()
 
     except ImportError :
+
+       
+
         
         code+=file(os.path.join(
             os.path.dirname(__file__),
@@ -242,10 +255,10 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         # otherwise the normal numpy macros are not generated
         x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
 
-
+        
 
         inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
-                      'x1', 'x2', 'y1', 'y2', 'z1',  'qty', 'mass', 'rho'])
+                      'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   'qty', 'mass', 'rho'])
 
 
     result = result.view(array.SimArray)

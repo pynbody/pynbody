@@ -22,7 +22,8 @@ def faceon_image(sim, *args, **kwargs) :
     image(sim, *args, **kwargs)
 
 
-def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None, av_z = False, clear = True) :
+def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None, av_z = False,
+          z_camera=None, clear = True) :
     """Make an SPH image of the given simulation.
 
     Keyword arguments
@@ -33,6 +34,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
     units -- The units of the output
     av_z -- If True, the requested quantity is averaged down the line of sight
             (default False: image is generated in the thin plane z=0)
+    z_camera -- If set, a perspective image is rendered. See pynbody.sph.image
+                for more details.
     """
 
     if isinstance(units, str) :
@@ -43,6 +46,9 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
     kernel = sph.Kernel()
 
 
+    perspective = z_camera is not None
+    if perspective and not av_z: kernel = sph.Kernel2D()
+    
     if units is not None :
         try :
             sim[qty].units.ratio(units, **sim[qty].conversion_context())
@@ -66,12 +72,15 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
                 aunits = None
 
             sim["one"]=np.ones_like(sim[qty])
-            im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel)
-            im2 = sph.render_image(sim, "one", width/2, resolution, kernel=kernel)
+            im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
+                                  z_camera=z_camera)
+            im2 = sph.render_image(sim, "one", width/2, resolution, kernel=kernel, 
+                                   z_camera=z_camera)
 
             im = im/im2
     else :
-        im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel)
+        
+        im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel,  z_camera = z_camera)
 
     if log :
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
