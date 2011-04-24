@@ -71,12 +71,14 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
             else :
                 aunits = None
 
-            sim["one"]=np.ones_like(sim[qty])
+            sim["__one"]=np.ones_like(sim[qty])
+            sim["__one"].units="1"
             im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
                                   z_camera=z_camera)
-            im2 = sph.render_image(sim, "one", width/2, resolution, kernel=kernel, 
+            im2 = sph.render_image(sim, "__one", width/2, resolution, kernel=kernel, 
                                    z_camera=z_camera)
-
+            del sim["__one"]
+            
             im = im/im2
     else :
         
@@ -95,8 +97,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
     p.ylabel("$y/%s$"%u_st)
 
     if units is None :
-        units = sim[qty].units
-
+        units = im.units
+   
 
     if log :
         units = r"$\log_{10}\,"+units.latex()+"$"

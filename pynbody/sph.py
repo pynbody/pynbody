@@ -192,7 +192,6 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                                                                                       **x.conversion_context())
 
 
-
     code = kernel.get_c_code()
     perspective = z_camera is not None
 
@@ -271,7 +270,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
 
         # The following will be the units of outputs after the above conversion is applied
-        result.units = snap[qty_s].units/snap['x'].units**kernel.h_power
+        result.units = snap[qty_s].units*snap['x'].units**(3-kernel.h_power)
     else:
         result*=conv_ratio
         result.units = out_units
