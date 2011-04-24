@@ -39,9 +39,11 @@ class HaloCatalogue(object) :
         if (haloid in self._halos) : return True
         else: return False
 
+    @staticmethod
     def _can_load(self):
         return False
 
+    @staticmethod
     def _can_run(self):
         return False
 

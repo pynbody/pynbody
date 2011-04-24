@@ -158,10 +158,10 @@ class SimSnap(object) :
 
         from . import halo
         
-        for c in halo._halo_classes :
+        for c in config['halo-class-priority']:
             if c._can_load(self) : return c(self, *args)
 
-        for c in halo._runable_halo_classes :
+        for c in config['halo-class-priority']:
             if c._can_run(self) : return c(self, *args)
 
         raise RuntimeError("No halo catalogue found for %r"%str(self))
