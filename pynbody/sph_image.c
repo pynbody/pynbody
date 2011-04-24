@@ -44,9 +44,7 @@ for(int i=0; i<n_part; i++) {
 #ifdef PERSPECTIVE
   if(z_i>0.9*z_camera) continue;
   float pixel_dx = (z_camera-z_i)*ddx;
-  if(i<10) {
-    printf("%e %e %e %e\n", z_camera, z_camera-z_i, pixel_dx, dx);
-  }
+  
 #else
   if(  (Z_CONDITION(z_i-z1, sm_i)) && x_i>x1-2*sm_i && x_i<x2+2*sm_i && y_i>y1-2*sm_i && y_i<y2+2*sm_i) 
 #endif
