@@ -8,12 +8,17 @@ def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
     Usage:
     import pynbody.plot as pp
     pp.mdf(s,linestyle='dashed',color='k')
+
+    Plots a metallicity distribution function to the best of matplotlib's
+    abilities.  Unfortunately, the "normed" keyword is buggy and does not
+    return a PDF.  The "density" keyword should, but it not yet supported
+    in many versions of numpy.
     '''
     nbins=100
     if clear : plt.clf()
     metpdf, bins, patches = plt.hist(sim.star['feh'],weights=sim.star['mass'],
                                      bins=nbins,histtype='step',normed=True,
-                                     range=range,**kwargs)
+                                     range=range,**kwargs)#density=True
     plt.xlabel('[Fe / H]')
     plt.ylabel('PDF')
     if (filename): 

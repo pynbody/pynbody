@@ -1,8 +1,8 @@
 import numpy as np
 
 def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, 
-           xlogrange=False, ylogrange=False,filename=None,
-           colorbar=False,clear=True,**kwargs):
+           xlogrange=False, ylogrange=False,filename=None, subplot=False, 
+           colorbar=False,clear=True,legend=False,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -30,7 +30,10 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
        *colorbar*: boolean
          draw a colorbar
     """
-    import matplotlib.pyplot as plt
+    if not subplot:
+        import matplotlib.pyplot as plt
+    else :
+        plt = subplot
     from matplotlib import ticker, colors
 
 
@@ -101,23 +104,24 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
     if clear : plt.clf()
     cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), # note that hist is strange and x/y values
                                                           # are swapped
-                     hist, levels, norm=cont_color)
+                     hist, levels, norm=cont_color,**kwargs)
 
 
     if kwargs.has_key('xlabel'):
         xlabel = kwargs['xlabel']
         plt.xlabel(xlabel)
     else :
-        if xlogrange: label='$log_{10}('+xo.units.latex()+')$'
-        plt.xlabel(r''+label)
+        if xlogrange: 
+            label='$log_{10}('+xo.units.latex()+')$'
+            plt.xlabel(r''+label)
     if kwargs.has_key('ylabel'):
         ylabel = kwargs['ylabel']
         plt.ylabel(ylabel)
     else :
-        if ylogrange: label='$log_{10}('+yo.units.latex()+')$'
-        plt.ylabel(r''+label)
-    plt.xlim((x_range[0],x_range[1]))
-    plt.ylim((y_range[0],y_range[1]))
+        if ylogrange: 
+            label='$log_{10}('+yo.units.latex()+')$'
+            plt.ylabel(r''+label)
+    plt.axis([x_range[0],x_range[1],y_range[0],y_range[1]])
     if (filename): 
         print "Saving "+filename
         plt.savefig(filename)
@@ -125,5 +129,5 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
     if colorbar :
         cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
         
-
+    if legend : plt.legend(loc=2)
     
