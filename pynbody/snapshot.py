@@ -451,7 +451,16 @@ class SimSnap(object) :
         be a view on a simulation-length array.
         
         """
-        
+
+        self_families = self.families()
+ 
+        if len(self_families)==1 and family in self_families :
+            # If the file has only one family, just go ahead and create
+            # a normal array
+            self._create_array(array_name, ndim=ndim, dtype=dtype)
+            return
+
+            
         if ndim==1 :
             dims = self[family]._num_particles
         else :
@@ -476,9 +485,11 @@ class SimSnap(object) :
             raise ValueError("Requested data type %r is not consistent with existing data type %r for family array %r"%(str(dtype), str(dtx), array_name))
 
         
-        # If, once we created this array, *all* families would have
-        # this array, just create a simulation-level array
-        if all([x in fams for x in self.families()]) :
+        
+       
+        if all([x in fams for x in self_families]) :
+            # If, once we created this array, *all* families would have
+            # this array, just create a simulation-level array
             self._promote_family_array(array_name, ndim=ndim)
 
         else :

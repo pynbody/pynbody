@@ -13,6 +13,50 @@ def teardown() :
     global f
     del f
 
+
+
+def test_array_promotion() :
+    f.dm['tx'] = np.arange(0,1000)
+    f.gas['tx'] = np.arange(0,500)
+
+    # currently still a family array
+    assert 'tx' in f.family_keys()
+    assert 'tx' not in f.keys()
+    
+    try :
+        f.star['tx']
+        assert False # should have raised KeyError
+    except KeyError :
+        pass
+    
+    try :
+        f['tx']
+        assert False # should have raised KeyError
+    except KeyError :
+        pass
+
+    f.star['tx'] = np.arange(0,500)
+
+    # Should have been promoted
+    assert 'tx' not in f.family_keys()
+    assert 'tx' in f.keys()
+
+    f['tx'] # should succeed
+    del f['tx']
+
+
+def test_one_family_promotion() :
+    fx = pynbody.new(dm=10)
+    fx.dm['bla'] = np.arange(10)
+    # should have been made as a full-simulation array
+    
+    assert 'bla' in fx.keys()
+    fx['bla']
+    del fx
+
+    
+    
+
     
 def test_subscript() :
     
