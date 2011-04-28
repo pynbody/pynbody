@@ -15,15 +15,15 @@ class TipsySnap(snapshot.SimSnap) :
 
         global config
 
-	super(TipsySnap,self).__init__()
+        super(TipsySnap,self).__init__()
+        
+        self._filename = util.cutgz(filename)
 	
-	self._filename = util.cutgz(filename)
-	
-	f = util.open_(filename)
-
+        f = util.open_(filename)
+    
         if config['verbose'] : print>>sys.stderr, "TipsySnap: loading ",filename
 
-	t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
+        t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
         if (ndim > 3 or ndim < 1):
             self._byteswap=True
             f.seek(0)
@@ -130,7 +130,7 @@ class TipsySnap(snapshot.SimSnap) :
                 # could be a binary file
                 f.seek(0)
 
-                if type(f) is gzip.GzipFile :
+                if hasattr(f,'fileobj') :
                     # Cludge to get un-zipped length
                     fx = f.fileobj
                     fx.seek(-4, 2)
@@ -156,7 +156,6 @@ class TipsySnap(snapshot.SimSnap) :
         import glob
         if len(self._loadable_keys_registry) == 0 :
             fs = map(util.cutgz,glob.glob(self._filename+".*"))
-            print fs
             res =  map(lambda q: q[len(self._filename)+1:], 
                        filter(is_readable_array, fs))
            
