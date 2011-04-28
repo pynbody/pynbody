@@ -315,6 +315,11 @@ class SimArray(np.ndarray) :
         # magic tuple->fraction conversions work seamlessly.
         r = np.power(self.view(np.ndarray), numerical_x).view(SimArray)
 
+        # Recent numpy versions can take 1-element arrays and return
+        # scalars, in which case we now have a floating point number :(
+        if type(r) is not SimArray :
+            return r
+        
         if self.units is not None and (
             isinstance(x, fractions.Fraction) or
             isinstance(x, int)) :
