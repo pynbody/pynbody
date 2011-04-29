@@ -485,7 +485,7 @@ class GadgetSnap(snapshot.SimSnap):
             p_read+=f_read
             data=np.append(data, f_data)
         if np.size(data) == 0:
-            raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
+            raise KeyError, "Block "+name+" not in snapshot for family "+fam
         #TODO: Add some logic. If we have already got the data from a family, make
         #the family array a pointer to the main array so we don't load things twice.
         if fam is None :
