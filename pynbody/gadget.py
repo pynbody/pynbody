@@ -162,7 +162,12 @@ class GadgetFile :
                 continue
             #Set the partlen, using our amazing heuristics
             if name[0:4] == "POS " or name[0:4] == "VEL " :
-                block.partlen = 12
+                if block.length == t_part * 24 :
+                    block.partlen = 24
+                    block.data_type = np.float64
+                else :
+                    block.partlen = 12
+                    block.data_type = np.float32
             elif name[0:4] == "ID  ":
                 #Heuristic for long (64-bit) IDs
                 if block.length == t_part * 4 :
@@ -172,7 +177,12 @@ class GadgetFile :
                     block.partlen = 8
                     block.data_type = np.int64
             else :
-                block.partlen = 4
+                if block.length == t_part * 8 :
+                    block.partlen = 8
+                    block.data_type = np.float64
+                else :
+                    block.partlen = 4
+                    block.data_type = np.float32
             block.start = fd.tell()
             # Check for the case where the record size overflows an int.
             # If this is true, we can't get record size from the length and we just have to guess
