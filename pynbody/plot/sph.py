@@ -23,7 +23,7 @@ def faceon_image(sim, *args, **kwargs) :
 
 
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None, av_z = False,
-          z_camera=None, clear = True) :
+          z_camera=None, clear = True, cmap=None) :
     """Make an SPH image of the given simulation.
 
     Keyword arguments
@@ -77,7 +77,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
                                   z_camera=z_camera)
             im2 = sph.render_image(sim, "__one", width/2, resolution, kernel=kernel, 
                                    z_camera=z_camera)
-            del sim["__one"]
+            # del sim["__one"]
             
             im = im/im2
     else :
@@ -90,7 +90,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
 
     if clear : p.clf()
     
-    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax)
+    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax, cmap=cmap)
 
     u_st = sim['pos'].units.latex()
     p.xlabel("$x/%s$"%u_st)
