@@ -437,7 +437,7 @@ def mu(sim) :
     
     x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
     
-    x._units = 1/units.m_p
+    x.units = 1/units.m_p
     return x
     
 @TipsySnap.derived_quantity
@@ -715,6 +715,8 @@ def param2units(sim) :
         
         sim["vel"].units = velunit_st
         potunit = sim["vel"].units**2
+
+        
         if hub!=None:
             hubunit = 10. * velunit / dunit
             hubunit_st = ("%.3f"%(hubunit*hub))
@@ -723,11 +725,14 @@ def param2units(sim) :
             dunit_st += " a"
             denunit_st += " a^-3"
             velunit_st += " a"
+            
             potunit /= units.a**3
 
             # Assume the box size is equal to the length unit
             sim.properties['boxsize'] = units.Unit(dunit_st)
-            
+
+        sim["vel"].units = velunit_st            
+
         #  Assuming G=1 in code units, phi is actually vel^2/a^3.
         # See also gasoline's master.c:5511.
         # Or should we be calculating phi as GM/R units (which
