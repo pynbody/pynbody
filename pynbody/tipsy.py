@@ -710,11 +710,11 @@ def param2units(sim) :
         timeunit = dunit / velunit * 0.97781311
         timeunit_st = ("%.5g"%timeunit)+" Gyr"
 
-        enunit_st = "%.5g km^2 s^-2"%(velunit**2)
-        
-        sim["vel"].units = velunit_st
-        potunit = sim["vel"].units**2
-
+        #  Assuming G=1 in code units, phi is actually vel^2/a^3.
+        # See also gasoline's master.c:5511.
+        # Or should we be calculating phi as GM/R units (which
+        # is the same for G=1 runs)?
+        potunit_st = "%.5g km^2 s^-2"%(velunit**2)
         
         if hub!=None:
             hubunit = 10. * velunit / dunit
@@ -724,20 +724,15 @@ def param2units(sim) :
             dunit_st += " a"
             denunit_st += " a^-3"
             velunit_st += " a"
-            
-            potunit /= units.a**3
-
+            potunit_st += " a^-1"
+        
             # Assume the box size is equal to the length unit
             sim.properties['boxsize'] = units.Unit(dunit_st)
 
         sim["vel"].units = velunit_st            
-
-        #  Assuming G=1 in code units, phi is actually vel^2/a^3.
-        # See also gasoline's master.c:5511.
-        # Or should we be calculating phi as GM/R units (which
-        # is the same for G=1 runs)?
+        
         try :
-            sim["phi"].units = potunit
+            sim["phi"].units = potunit_st
             sim["eps"].units = dunit_st
         except KeyError :
             pass
