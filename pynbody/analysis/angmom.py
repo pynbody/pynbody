@@ -33,7 +33,7 @@ def calc_faceon_matrix(angmom_vec) :
 
 
 def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "5 kpc",
-           cen = None, vcen=None, verbose=False ) :
+           cen = None, vcen=None, verbose=False, top=None ) :
     """Reposition and rotate the simulation containing the halo h to
     see h's disk edge on.
 
@@ -42,8 +42,9 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     rotates it so that the disk lies in the x-z plane. This gives
     a side-on view for SPH images, for instance."""
 
-    top = h
-    while hasattr(top,'base') : top = top.base
+    if top is None :
+        top = h
+        while hasattr(top,'base') : top = top.base
 
     # Top is the top-level view of the simulation, which will be
     # transformed

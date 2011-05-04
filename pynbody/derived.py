@@ -28,6 +28,11 @@ def ke(self) :
     return 0.5*(self['vel']**2).sum(axis=1)
 
 @SimSnap.derived_quantity
+def te(self) :
+    """Specific total energy"""
+    return self['ke']+self['phi']
+
+@SimSnap.derived_quantity
 def j(self) :
     """Specific angular momentum"""
     angmom = np.cross(self['pos'], self['vel']).view(array.SimArray)
