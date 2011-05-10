@@ -2,6 +2,8 @@ from . import snapshot
 from snapshot import SimSnap
 from . import array
 from . import analysis
+from . import sph
+from . import config
 import numpy as np
 
 @SimSnap.derived_quantity
@@ -53,9 +55,21 @@ def vcxy(self) :
 def rho(self):
     return self['mass']/self['smooth']**3
 
-@SimSnap.derived_quantity
-def smooth(self) :
-    return (self['mass']/self['rho'])**(1,3)
+#@SimSnap.derived_quantity
+#def smooth(self) :
+#    return (self['mass']/self['rho'])**(1,3)
+
+@snapshot.SimSnap.derived_quantity
+def smooth(self):
+    import kdtree 
+    if config['verbose']: print 'Building tree with leafsize=16'
+    kdt = kdtree.KDTree(self['pos'], leafsize=16)
+    if config['verbose']: print 'Tree build done.'
+    if config['verbose']: print 'Smoothing with 32 nearest neighbours'
+    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
+    kdt.populate(sm, 'hsm', nn=32) 
+    if config['verbose']: print 'Smoothing done.'
+    return sm 
 
 @SimSnap.derived_quantity
 def u_mag(self) :

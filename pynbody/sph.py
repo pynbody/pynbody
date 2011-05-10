@@ -254,11 +254,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         # otherwise the normal numpy macros are not generated
         x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
 
-        
-
         inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
                       'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   'qty', 'mass', 'rho'])
-
 
     result = result.view(array.SimArray)
 
@@ -278,43 +275,3 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     result.sim = snap
     return result
 
-
-def calculate_smoothing(snap, nleaf=10, nn=16, timing=False):
-    """
-    Construct a KDTree using the scipy.spatial.KDTree class and determine
-    the smoothing lenghts for all particles in the sim snapshot.
-    The smoothing length is defined as smooth = 0.5*d, where d is the distance
-    of the most distant nearest neighbor.
-
-    The kd tree is saved in the snapshot and the smoothing values are
-    saved as a new array.
-    """
-
-    import scipy.spatial.ckdtree as kdtree
-    from time import time
-
-    t1 = time()
-    snap.kdt = kdtree.cKDTree(snap['pos'], leafsize=nleaf)
-    t2 = time()
-    if timing:
-        print 'tree built in ' + str(t2-t1) + ' seconds'
-
-    t3 = time()
-    nd,ni = snap.kdt.query(snap['pos'],k=nn)
-    t4 = time()
-    if timing:
-        print 'nn search in ' + str(t4-t3) + ' seconds'
-
-    # add the smoothing length as an array
-    # nd is sorted, so only need the last item
-    # also set the units to be the same as the current distance
-    snap['smooth'] = array.SimArray(0.5*nd[:,nn-1], snap['pos'].units)
-
-    # keep the list of nearest-neighbor indices
-    del snap['nn_index']
-    snap['nn_index'] = ni
-
-
-#@snapshot.SimSnap.derived_quantity
-#def smooth(sim):
-#    calculate_smoothing(sim)
