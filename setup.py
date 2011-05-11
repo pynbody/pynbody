@@ -8,9 +8,7 @@ extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-mpreferred-stack-boundary=4',
                       '-std=c99',
-                      '-fopenmp',
                       '-Wall']
 
 extra_link_args = []

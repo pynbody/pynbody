@@ -19,14 +19,8 @@
 #include <sched.h>
 #include <errno.h>
 
-#include "timing.h"
 #include "kd.h"
 #include "smooth.h"
-
-/*==========================================================================*/
-/* Timing variables                                                         */
-/*==========================================================================*/
-CPUDEFS
 
 /*==========================================================================*/
 /* Debugging tools                                                          */
@@ -207,15 +201,11 @@ PyObject *nn_next(PyObject *self, PyObject *args)
     kd  = PyCObject_AsVoidPtr(kdobj);
     smx = PyCObject_AsVoidPtr(smxobj);
 
-    double stime = CPUTIME;
-
     Py_BEGIN_ALLOW_THREADS
 
     nCnt = smSmoothStep(smx, NULL);
 
     Py_END_ALLOW_THREADS
-
-    double etime = CPUTIME;
 
     if (nCnt != 0)
     {
@@ -236,8 +226,6 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
         return retList;
     }
-
-    //fprintf(stderr, "\rtime: %4.2f CPU seconds. %39c\n", (etime-stime), ' ');
 
     return Py_None;
 }
