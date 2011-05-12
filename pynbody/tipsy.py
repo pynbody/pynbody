@@ -28,7 +28,9 @@ class TipsySnap(snapshot.SimSnap) :
             self._byteswap=True
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
-
+        else :
+            self._byteswap=False
+            
         # In non-cosmological simulations, what is t? Is it physical
         # time?  In which case, we need some way of telling what we
         # are dealing with and setting properties accordingly.
