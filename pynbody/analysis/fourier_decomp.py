@@ -28,7 +28,7 @@ def fourier(px, py, pm):
 
     phi = np.arctan2(py,px)
 
-    hist, binphi = np.histogram(phi, weights = pm, bins = 100)
+    hist, binphi = np.histogram(phi, weights = pm, bins = 100, new = True)
 
     binphi = .5*(binphi[1:]+binphi[:-1])
 
