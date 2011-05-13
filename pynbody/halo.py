@@ -178,7 +178,7 @@ class AHFCatalogue(HaloCatalogue) :
         f.write(str(sim.properties['omegaM0'])+"\n")
         f.write(str(sim.properties['omegaL0'])+"\n")
         f.write(str(sim['pos'].units.ratio(units.kpc,a=1)/1000.0 * sim.properties['h'])+"\n")
-        f.write(str(sim['vel'].units.ratio(units.km/units.s))+"\n")
+        f.write(str(sim['vel'].units.ratio(units.km/units.s,a=1))+"\n")
         f.write(str(sim['mass'].units.ratio(units.Msol))+"\n")
         f.close()
         typecode='90'
