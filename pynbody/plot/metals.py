@@ -16,9 +16,11 @@ def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
     '''
     nbins=100
     if clear : plt.clf()
-    metpdf, bins, patches = plt.hist(sim.star['feh'],weights=sim.star['mass'],
-                                     bins=nbins,histtype='step',normed=True,
-                                     range=range,**kwargs)#density=True
+    metpdf, bins = np.histogram(sim.star['feh'],weights=sim.star['mass'],
+                                bins=nbins,normed=True,range=range,**kwargs)#density=True,
+    midpoints = 0.5*(bins[:-1] + bins[1:])
+    import pdb; pdb.set_trace()
+    plt.plot(midpoints,metpdf)
     plt.xlabel('[Fe / H]')
     plt.ylabel('PDF')
     if (filename): 
