@@ -9,12 +9,14 @@ extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
                       '-std=c99',
-                      '-Wall']
+                      '-Wall',
+                      '-O0']
 
 extra_link_args = []
 
 app_dir = 'pynbody'
-extra_files = ['default_config.ini', 'sph_image.c']
+extra_files = ['default_config.ini', 'sph_image.c', 'analysis/cmdlum.npz',
+               'analysis/interpolate.c', 'plot/tollerud2008mw']
 
 incdir = os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
 kdmain = Extension('pynbody/kdmain',
@@ -39,5 +41,5 @@ if dist.have_run.get('install'):
 
     # Copy textfiles in site-package directory
     for file in extra_files:
-        install.copy_file(os.path.join(app_dir,file), os.path.join(install.install_lib, app_dir))
+        install.copy_file(os.path.join(app_dir,file), os.path.join(install.install_lib, app_dir, file))
 
