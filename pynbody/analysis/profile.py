@@ -389,6 +389,13 @@ def mass_enc(self):
     return m_enc
 
 @Profile.profile_property
+def dyntime(self) :
+    """The dynamical time of the bin, sqrt(R^3/2GM)."""
+
+    dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(1,2)
+    return dyntime
+    
+@Profile.profile_property
 def g_spherical(self) :
     """The naive gravitational acceleration assuming spherical
     symmetry = GM_enc/r^2"""
