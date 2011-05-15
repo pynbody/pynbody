@@ -139,7 +139,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     qty -- The name of the array within the simulation to render
     x2 -- The x-coordinate of the right edge of the image (default 100.0)
     nx -- The number of pixels wide to make the image (default 500)
-    y2 -- The y-coordinate of the upper edge of the image (default x2)
+    y2 -- The y-coordinate of the upper edge of the image (default x2, or if ny is specified, x2*ny/nx)
     ny -- The number of pixels tall to make the image (default nx)
     x1 -- The x-coordinate of the left edge of the image (default -x2)
     y1 -- The y-coordinate of the lower edge of the image (default -y2)
@@ -158,7 +158,11 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     import os, os.path
 
     if y2 is None :
-        y2 = x2
+        if ny is not None :
+            y2 = x2*float(ny)/nx
+        else :
+            y2 = x2
+            
     if ny is None :
         ny = nx
     if x1 is None :
