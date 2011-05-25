@@ -130,3 +130,18 @@ def H_mag(self) :
 @SimSnap.derived_quantity
 def K_mag(self) :
     return analysis.luminosity.calc_mags(self,band='k')
+
+@SimSnap.derived_quantity
+def theta(self) :
+	"""Angle from the z axis, from [0:2pi]"""
+	return np.arccos(self['z']/self['r'])
+
+@SimSnap.derived_quantity
+def alt(self) :
+	"""Angle from the horizon, from [-pi/2:pi/2]"""
+	return np.pi/2 - self['theta']
+
+@SimSnap.derived_quantity
+def az(self) :
+	"""Angle in the xy plane from the x axis, from [-pi:pi]"""
+	return np.arctan2(self['y'],self['x'])
