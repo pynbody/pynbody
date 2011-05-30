@@ -8,7 +8,7 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
                    v_units = 'km s^-1', disk_height='100 pc', nbins=50,
                    bin_spacing = 'equaln', clear = True, quick=False,
                    filename=None,min=False,max=False,yrange=False,
-                   legend=False,**kwargs) :
+                   legend=False, parts=False, **kwargs) :
     """Centre on potential minimum, align so that the disk is in the
     x-y plane, then use the potential in that plane to generate and
     plot a rotation curve."""
@@ -38,10 +38,30 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
 
     p.plot(r, v, **kwargs)
 
+    if parts :
+        gpro = profile.Profile(sim.gas, type=bin_spacing, nbins = nbins,
+                               min = min_r, max = max_r)
+        dpro = profile.Profile(sim.dark, type=bin_spacing, nbins = nbins,
+                               min = min_r, max = max_r)
+        spro = profile.Profile(sim.star, type=bin_spacing, nbins = nbins,
+                               min = min_r, max = max_r)
+        if quick :
+            gv = gpro['rotation_curve_spherical'].in_units(v_units)
+            dv = dpro['rotation_curve_spherical'].in_units(v_units)
+            sv = spro['rotation_curve_spherical'].in_units(v_units)
+        else :
+            gv = gpro['v_circ'].in_units(v_units)
+            dv = dpro['v_circ'].in_units(v_units)
+            sv = spro['v_circ'].in_units(v_units)
+        p.plot(r,gv,linestyle="dotted",label="gas")
+        p.plot(r,dv,label="dark")
+        p.plot(r,sv,"--",label="star")
+
+
     if yrange :
         p.axis([min_r,units.Unit(max_r).in_units(r.units),yrange[0],yrange[1]])
-    p.xlabel("r / $"+r.units.latex()+"$")
-    p.ylabel("v_c / $"+v.units.latex()+'$')
+    p.xlabel("r / $"+r.units.latex()+"$",fontsize='large')
+    p.ylabel("v$_c / "+v.units.latex()+'$',fontsize='large')
 
     if legend :
         p.legend(loc=1)
