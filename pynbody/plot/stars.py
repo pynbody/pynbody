@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config
 
-def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
+def sfh(sim,filename=None,massform=True,clear=True,legend=False,**kwargs):
     '''star formation history
     Usage:
     import pynbody.plot as pp
@@ -27,8 +27,9 @@ def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
     sfhist, bins, patches = plt.hist(sim.star['tform'].in_units("Gyr"),
                                      weights=weight, bins=nbins,
                                      histtype='step',**kwargs)
-    plt.xlabel('Time [Gyr]')
-    plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]')
+    plt.xlabel('Time [Gyr]',fontsize='large')
+    plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+    if legend: plt.legend(loc=1)
     if (filename): 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
@@ -139,7 +140,7 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
     if clear : plt.clf()
     plt.semilogy(sorted(halomags),np.arange(len(halomags))+1, label=label,
                  **kwargs)
-    plt.xlabel('M_'+band)
+    plt.xlabel('M$_{'+band+'}$')
     plt.ylabel('Cumulative LF')
     if MWcompare:
         # compare with observations of MW
@@ -205,7 +206,7 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc',
     plt.plot(r,ps['sb,'+band],'o',**kwargs)
     plt.axis([min(r),max(r),max(ps['sb,'+band]),min(ps['sb,'+band])])
     plt.xlabel('R [kpc]')
-    plt.ylabel('Surface brightness [mag as$^{-2}$]')
+    plt.ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
     if (filename): 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
