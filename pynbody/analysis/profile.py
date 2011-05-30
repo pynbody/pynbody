@@ -102,7 +102,7 @@ class Profile:
         if kwargs.has_key('max'):
             if isinstance(kwargs['max'],str):
                 self.max = units.Unit(kwargs['max']).ratio(x.units, 
-                                                           **x.conversion_context())
+                                                           **sim.conversion_context())
             else: self.max = kwargs['max']
         else:
             self.max = np.max(x)
@@ -114,7 +114,7 @@ class Profile:
         if kwargs.has_key('min'):
             if isinstance(kwargs['min'],str):
                 self.min = units.Unit(kwargs['min']).ratio(x.units, 
-                                                           **x.conversion_context())
+                                                           **sim.conversion_context())
             else : self.min = kwargs['min']
         else:
             self.min = np.min(x[x>0])
