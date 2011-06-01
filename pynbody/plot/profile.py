@@ -1,6 +1,6 @@
 import numpy as np
-from ..analysis import angmom, profile
-from .. import filt, units
+from ..analysis import angmom, profile, halo
+from .. import filt, units, config
 
 import pylab as p
 
