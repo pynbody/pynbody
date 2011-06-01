@@ -114,3 +114,34 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
     if (filename): 
         print "Saving "+filename
         p.savefig(filename)
+
+def density_profile(sim, center=True, clear=True, filename=None, **kwargs) :
+    '''3d density profile
+    Usage:
+    import pynbody.plot as pp
+    h = s.halos()
+    pp.density_profile(h[1],linestyle='dashed',color='k')
+
+    Options:
+    * filename=None  name of file to which to save output
+
+    '''
+    import matplotlib.pyplot as plt
+    global config
+    
+    if center :
+        if config['verbose']: print "Centering"
+        halo.center(sim)
+
+    if config['verbose']: print "Creating profile"
+    ps = profile.Profile(sim,dim=3,type='log')
+    if config['verbose']: print "Plotting"
+    if clear : plt.clf()
+    r=ps['rbins'].in_units('kpc')
+    plt.loglog(r,ps['density'],'o',**kwargs)
+    plt.xlabel('r [kpc]')
+    plt.ylabel('Density [$'+ps['density'].units.latex()+'$]')
+    if (filename): 
+        if config['verbose']: print "Saving "+filename
+        plt.savefig(filename)
+
