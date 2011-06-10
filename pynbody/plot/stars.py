@@ -216,7 +216,8 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
         plt.savefig(filename)
 
 
-def guo(halo_catalog, clear=False, compare=True, baryfrac=False, **kwargs):
+def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
+        filename=False,**kwargs):
     '''Stellar Mass vs. Halo Mass
     Usage:
     import pynbody.plot as pp
@@ -267,3 +268,8 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False, **kwargs):
    
     plt.axis([0.8*min(totmasshalos),1.2*max(totmasshalos),
               0.8*min(starmasshalos),1.2*max(starmasshalos)])
+
+    if (filename): 
+        if config['verbose']: print "Saving "+filename
+        plt.savefig(filename)
+
