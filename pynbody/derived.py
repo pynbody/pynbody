@@ -72,6 +72,10 @@ def smooth(self):
     return sm 
 
 @SimSnap.derived_quantity
+def age(self) :
+    return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
+
+@SimSnap.derived_quantity
 def u_mag(self) :
     return analysis.luminosity.calc_mags(self,band='u')
 
