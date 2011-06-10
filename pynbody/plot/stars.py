@@ -36,8 +36,8 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,**kwargs):
 
 
 def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
-               diskheight='3 kpc',rmax='20 kpc',
-               radial=True,clear=True,**kwargs):
+               diskheight='3 kpc',rmax='20 kpc', compare=True,
+               radial=True,clear=True,legend=True,**kwargs):
     '''Schmidt Law
     Usage:
     import pynbody.plot as pp
@@ -82,20 +82,24 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
                                   bins=nbins,range=[(-rmax,rmax),(-rmax,rmax)])
 
     if clear : plt.clf()
+
     plt.loglog(pg['density'].in_units('Msol pc^-2'),
                ps['density'].in_units('Msol kpc^-2') / pretime/1e6,"+",
                **kwargs)
-    xsigma = np.logspace(np.log10(pg['density'].in_units('Msol pc^-2')).min(),
-                         np.log10(pg['density'].in_units('Msol pc^-2')).max(),
-                         100)
-    ysigma=2.5e-4*xsigma**1.5        # Kennicutt (1998)
-    xbigiel=np.logspace(1,2,10)
-    ybigiel=10.**(-2.1)*xbigiel**1.0   # Bigiel et al (2007)
-    plt.loglog(xsigma,ysigma,label='Kennicutt (1998)')
-    plt.loglog(xbigiel,ybigiel,linestyle="dashed",label='Bigiel et al (2007)')
+
+    if compare:
+        xsigma = np.logspace(np.log10(pg['density'].in_units('Msol pc^-2')).min(),
+                             np.log10(pg['density'].in_units('Msol pc^-2')).max(),
+                             100)
+        ysigma=2.5e-4*xsigma**1.5        # Kennicutt (1998)
+        xbigiel=np.logspace(1,2,10)
+        ybigiel=10.**(-2.1)*xbigiel**1.0   # Bigiel et al (2007)
+        plt.loglog(xsigma,ysigma,label='Kennicutt (1998)')
+        plt.loglog(xbigiel,ybigiel,linestyle="dashed",label='Bigiel et al (2007)')
+
     plt.xlabel('$\Sigma_{gas}$ [M$_\odot$ pc$^{-2}$]')
     plt.ylabel('$\Sigma_{SFR}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
-    plt.legend(loc=2)
+    if legend : plt.legend(loc=2)
     if (filename): 
         print "Saving "+filename
         plt.savefig(filename)
@@ -175,7 +179,7 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
         plt.savefig(filename)
 
 
-def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', 
+def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
               center=True, clear=True, filename=None, **kwargs) :
     '''surface brightness profile
     Usage:
@@ -199,7 +203,7 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc',
     if config['verbose']: print "Selecting disk stars"
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
     if config['verbose']: print "Creating profile"
-    ps = profile.Profile(diskstars)
+    ps = profile.Profile(diskstars, type=binning)
     if config['verbose']: print "Plotting"
     if clear : plt.clf()
     r=ps['rbins'].in_units('kpc')
