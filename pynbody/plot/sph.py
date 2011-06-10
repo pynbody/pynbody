@@ -22,7 +22,8 @@ def faceon_image(sim, *args, **kwargs) :
     image(sim, *args, **kwargs)
 
 
-def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=None, vmax=None, av_z = False,
+def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
+          vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None) :
     """Make an SPH image of the given simulation.
 
@@ -106,3 +107,6 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, vmin=N
         units = "$"+units.latex()+"$"
 
     p.colorbar().set_label(units)
+
+    if filename:
+        p.savefig(filename)
