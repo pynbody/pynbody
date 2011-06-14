@@ -15,7 +15,7 @@ extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
 extra_link_args = []
 
 app_dir = 'pynbody'
-extra_files = ['default_config.ini', 'sph_image.c', 'analysis/cmdlum.npz',
+extra_files = ['default_config.ini', 'config.ini', 'sph_image.c', 'analysis/cmdlum.npz',
                'analysis/interpolate.c', 'plot/tollerud2008mw']
 
 incdir = os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')

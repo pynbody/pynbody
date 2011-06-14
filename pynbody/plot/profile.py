@@ -64,7 +64,7 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
     p.ylabel("v$_c / "+v.units.latex()+'$',fontsize='large')
 
     if legend :
-        p.legend(loc=1)
+        p.legend(loc=0)
 
     if (filename): 
         print "Saving "+filename

@@ -123,11 +123,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     else :
         
         if log_interp :
-            j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'])[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
+            j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'].in_units(ke.units))[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
             h['j_circ'] = 10**j_from_E(np.log10(-h['te']))
         else :
-            j_from_E  = interp.interp1d(-pro_d['E_circ'][::-1], (pro_d['j_circ'])[::-1], bounds_error=False)
-            h['j_circ'] = j_from_E(-h['te'])
+#            j_from_E  = interp.interp1d(-pro_d['E_circ'][::-1], (pro_d['j_circ'])[::-1], bounds_error=False)
+            j_from_E  = interp.interp1d(pro_d['E_circ'].in_units(ke.units), pro_d['j_circ'], bounds_error=False)
+            h['j_circ'] = j_from_E(h['te'])
 
         # The next line forces everything close-to-unbound into the
         # spheroid, as per CB's original script ('get rid of weird
@@ -174,7 +175,6 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     bulge = np.where((te<=E_cut) * (JzJcirc<j_crit))
     pbulge = np.where((te<=E_cut) * (JzJcirc>j_crit) * ((JzJcirc<j_disk_min) + (JzJcirc>j_disk_max)) )
     thick = np.where((te>E_cut) * (JzJcirc>j_crit) * ((JzJcirc<j_disk_min) + (JzJcirc>j_disk_max)) )
-
 
 
     h_star['decomp'][disk] = 1

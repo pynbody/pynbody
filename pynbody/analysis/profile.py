@@ -425,6 +425,8 @@ def v_circ(p) :
     
     return gravity.midplane_rot_curve(grav_sim, p['rbins'])
     #return np.sqrt(p["phi'"]*p.r) 
+    # quick and dirty:
+    #return ((units.G*p['mass_enc']/p['rbins'])**(1,2))
 
 @Profile.profile_property
 def E_circ(p) :

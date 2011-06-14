@@ -149,7 +149,6 @@ class Disc(Filter) :
             radius = radius.ratio(sim["pos"].units, **sim["pos"].conversion_context())
         if isinstance(height, units.UnitBase) :
             height = height.ratio(sim["pos"].units, **sim["pos"].conversion_context())
-
         distance = (((sim["pos"]-self.cen)[:,:2])**2).sum(axis=1)
         return (distance<radius**2) * (np.abs(sim["z"]-self.cen[2])<height)
 
