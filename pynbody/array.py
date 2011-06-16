@@ -155,6 +155,17 @@ class SimArray(np.ndarray) :
         if self.derived :
             self.sim.unlink_array(self._name)
 
+    def __reduce__(self) :
+        T = np.ndarray.__reduce__(self)
+        T = (T[0],T[1],(self.units,T[2][0],T[2][1],T[2][2],T[2][3],T[2][4]))
+        return T
+
+    def __setstate__(self, args) :
+        self._units = args[0]
+        self.sim = None
+        self._name = None
+        np.ndarray.__setstate__(self, args[1:])
+        
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
         new = np.array(data, **kwargs).view(subtype)
 
