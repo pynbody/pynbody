@@ -14,10 +14,6 @@ extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
 
 extra_link_args = []
 
-app_dir = 'pynbody'
-extra_files = ['default_config.ini', 'sph_image.c', 'analysis/cmdlum.npz',
-               'analysis/interpolate.c', 'plot/tollerud2008mw']
-
 incdir = os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
 kdmain = Extension('pynbody/kdmain',
             sources = ['pynbody/kdmain.c', 'pynbody/kd.c', 'pynbody/smooth.c'],
@@ -27,19 +23,27 @@ kdmain = Extension('pynbody/kdmain',
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args)
 
-dist = setup(name = 'pyNBody',
-      author = '',
-      author_email = '',
-      version = '1.0',
-      description = '',
-      package_dir = {'pynbody': ''},
-      packages = ['pynbody/', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/plot' ],
-      ext_modules = [kdmain])
+dist = setup(name = 'pynbody',
+             author = '',
+             author_email = '',
+             version = '0.1beta',
+             description = '',
+             package_dir = {'pynbody': ''},
+             packages = ['pynbody/', 'pynbody/analysis', 'pynbody/bc_modules', 
+                         'pynbody/plot' ],
+             ext_modules = [kdmain],
+# treat weave .c files like data files since weave takes
+# care of their compilation for now
+# could make a separate extension for them in future
+             data_files = [('pynbody',['pynbody/default_config.ini', 
+                                       'pynbody/config.ini', 
+                                       'pynbody/sph_image.c']), 
+                           ('pynbody/analysis',['pynbody/analysis/cmdlum.npz',
+                                                'pynbody/analysis/interpolate.c']), 
+                           ('pynbody/plot',['pynbody/plot/tollerud2008mw'])],
+             scripts = ['scripts/doall.py']
+      )
 
-if dist.have_run.get('install'):
-    install = dist.get_command_obj('install')
-
-    # Copy textfiles in site-package directory
-    for file in extra_files:
-        install.copy_file(os.path.join(app_dir,file), os.path.join(install.install_lib, app_dir, file))
+#if dist.have_run.get('install'):
+#    install = dist.get_command_obj('install')
 
