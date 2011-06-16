@@ -141,6 +141,20 @@ from .backcompat import fractions
 class SimArray(np.ndarray) :
     _ufunc_registry = {}
 
+    @property
+    def derived(self) :
+        if self.sim and self._name :
+            return self.sim.is_derived_array(self._name)
+        else :
+            return False
+
+    @derived.setter
+    def derived(self, value) :
+        if value :
+            raise ValueError, "Can only unlink an array. Delete an array to force a rederivation if this is the intended effect."
+        if self.derived :
+            self.sim.unlink_array(self._name)
+
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
         new = np.array(data, **kwargs).view(subtype)
 
@@ -153,29 +167,27 @@ class SimArray(np.ndarray) :
 
         new._units = units
         new.sim = sim # will generate a weakref automatically
-        new.derived = False
+       
         new._name = None
 
         return new
 
     def __array_finalize__(self, obj) :
+     
         if obj is None :
             return
         elif obj is not self and hasattr(obj, 'units') :
             self._units = obj.units
             self._sim = obj._sim
+            self._name = obj._name
         else :
             self._units = None
             self._sim = lambda : None
+            self._name = None
 
-        self._name = None
-
-        if hasattr(obj, 'derived') :
-            self.derived = obj.derived
-        else :
-            self.derived = False
 
     def __array_wrap__(self, array, context=None) :
+ 
         if context is None :
             n_array = array.view(SimArray)
             return n_array
@@ -186,7 +198,6 @@ class SimArray(np.ndarray) :
             n_array = array.view(SimArray)
             n_array.units = output_units
             n_array.sim = self.sim
-            n_array.derived = self.derived
             n_array._name = self._name
             return n_array
         except (KeyError, units.UnitsException) :
@@ -564,6 +575,10 @@ def _comparison_units(*a) :
 
 
 class IndexedSimArray(object) :
+    @property
+    def derived(self) :
+        return self.base.derived
+    
     def __init__(self, array, ptr) :
         self.base = array
         self._ptr = ptr
@@ -598,9 +613,6 @@ class IndexedSimArray(object) :
     def __len__(self) :
         return len(self._ptr)
 
-    @property
-    def derived(self) :
-        return self.base.derived
     
     @property
     def shape(self) :

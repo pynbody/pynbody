@@ -44,10 +44,12 @@ class SimSnap(object) :
         self._num_particles = 0
         self._family_slice = {}
         self._family_arrays = {}
-        
+        self._derived_array_track = []
         
         self._unifamily = None
         self.lazy_off = util.ExecutionControl()
+        self.auto_propagate_off = util.ExecutionControl()
+        
         self.properties = {}
         self._file_units_system = []
         
@@ -119,7 +121,7 @@ class SimSnap(object) :
 
 
     def __setitem__(self, name, item) :
-        if self.is_derived_array(name) :
+        if self.is_derived_array(name) and not self.auto_propagate_off :
             raise RuntimeError, "Derived array is not writable"
         
         if isinstance(name, tuple) or isinstance(name, list) :
@@ -293,6 +295,9 @@ class SimSnap(object) :
             del self._family_arrays[name]
         else :
             del self._arrays[name]
+
+        if name in self._derived_array_track :
+            del self._derived_array_track[self._derived_array_track.index(name)]
 
     def __getattr__(self, name) :
         """Implements getting particles of a specified family name"""
@@ -688,13 +693,15 @@ class SimSnap(object) :
                     if self._derived_quantity_registry.has_key(cl) \
                            and self._derived_quantity_registry[cl].has_key(name) :
                         if config['verbose'] : print>>sys.stderr, "SimSnap: deriving array",name
-                        if fam is None :
-                            self[name] = SimSnap._derived_quantity_registry[cl][name](self)
-                            self[name].derived = True
-                                                        
-                        else :
-                            self[fam][name] = SimSnap._derived_quantity_registry[cl][name](self[fam])
-                            self[fam][name].derived = True
+                        with self.auto_propagate_off :
+                            if fam is None :
+                                self[name] = SimSnap._derived_quantity_registry[cl][name](self)
+                                
+                            else :
+                                self[fam][name] =  SimSnap._derived_quantity_registry[cl][name](self[fam])
+
+                        if name not in self._derived_array_track :
+                                self._derived_array_track.append(name)
                             
                         calculated = True
                         for x in SimSnap._dependency_track[-1] :
@@ -718,26 +725,42 @@ class SimSnap(object) :
         """Declare a given array as changed, so deleting any derived
         quantities which depend on it"""
 
-        if SimSnap._dependency_chain.has_key(name) :
-            for d_ar in SimSnap._dependency_chain[name] :
-                if self.has_key(d_ar) or self.has_family_key(d_ar) :
-                    if self.is_derived_array(d_ar) :
-                        del self[d_ar]
-                        self._dirty(d_ar)
+        if not self.auto_propagate_off :
+            # Nasty hack:
+            if name in ["x","y","z"] : name ="pos"
+            if name in ["vx","vy","vz"] : name ="vel"
+
+            if SimSnap._dependency_chain.has_key(name) :
+                for d_ar in SimSnap._dependency_chain[name] :
+                    if self.has_key(d_ar) or self.has_family_key(d_ar) :
+                        if self.is_derived_array(d_ar) :
+                            del self[d_ar]
+                            self._dirty(d_ar)
                 
 
 
     def is_derived_array(self, name) :
         """Returns True if the array or family array of given name is
         auto-derived (and therefore read-only)."""
-        
-        if self.has_key(name) :
+
+        return name in self._derived_array_track
+    
+        """if self.has_key(name) :
             return self[name].derived
         elif self._family_arrays.has_key(name) :
             return any([x.derived for x in self._family_arrays[name].values()])
         else :
-            return False
+            return False"""
 
+    def unlink_array(self, name) :
+        """If the named array is auto-derived, this destroys the link so that
+        the array becomes editable but no longer auto-updates."""
+
+        if name in self._derived_array_track :
+            del self._derived_array_track[self._derived_array_track.index(name)]
+        else :
+            raise RuntimeError, "Not a derived array"
+        
     def mean_by_mass(self, name) :
         """Calculate the mean by mass of the specified array"""
 
@@ -811,6 +834,7 @@ class SubSnap(SimSnap) :
         self._file_units_system = base._file_units_system
         self._unifamily = base._unifamily
         self.lazy_off = self.base.lazy_off
+        self.auto_propagate_off = self.base.auto_propagate_off
 
         if isinstance(_slice,slice) :
             # Various slice logic later (in particular taking
@@ -927,7 +951,10 @@ class SubSnap(SimSnap) :
 
     def is_derived_array(self, v) :
         return self.base.is_derived_array(v)
-    
+
+    def unlink_array(self, name) :
+        self.base.unlink_array(name)
+        
     def get_index_list(self, relative_to, of_particles=None) :
         if of_particles is None :
             of_particles = np.arange(len(self))
@@ -948,6 +975,7 @@ class IndexedSubSnap(SubSnap) :
 
         self._descriptor = "indexed"
         self.lazy_off = base.lazy_off
+        self.auto_propagate_off = base.auto_propagate_off
         self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
         if isinstance(index_array, filt.Filter) :
@@ -1012,6 +1040,7 @@ class FamilySubSnap(SubSnap) :
         self.base = base
         self.properties = base.properties
         self.lazy_off = self.base.lazy_off
+        self.auto_propagate_off = self.base.auto_propagate_off
         self._slice = base._get_family_slice(fam)
         self._unifamily = fam
         self._descriptor = ":"+fam.name

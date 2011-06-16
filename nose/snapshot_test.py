@@ -96,17 +96,28 @@ def test_derived_array() :
     f['pos']-=(2,0,0)
     f.gas['vr']
     assert f.gas['vr'].derived
+    f.dm['vr']
+    assert f.dm['vr'].derived
+    
     assert 'vr' not in f.keys()
     assert 'vr' in f.gas.keys()
     f['vr']
     assert 'vr' in f.keys()
     
     try:
-        f['r'][22]+=(3,3,3)
+        f['r'][22]+=3
         # Array should not be writable
         assert False
     except RuntimeError :
         pass
+
+    f['r'].derived = False
+    # Now we should be able to write to it
+    f['r'][22]+=3
+
+    f['pos']+=(2,0,0)
+    assert 'r' in f.keys() # broken the link, so r shouldn't have been marked dirty
+    
 
 
 def test_unit_inheritance() :
