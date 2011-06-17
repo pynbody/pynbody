@@ -63,18 +63,18 @@ pickle.dump({'rvir':rvir,
 
 ### Make plots
 try:
-    pp.schmidtlaw(h[1],filename=simname+'.schmidt.png')
-    pp.sbprofile(h[1],filename=simname+'.sbprof.png')
+    pp.schmidtlaw(h[1],filename=simname+'.schmidt.png',center=False)
+    pp.sbprofile(h[1],filename=simname+'.sbprof.png',center=False)
     pp.sfh(h[1],filename=simname+'.sfh.png')
     pp.rotation_curve(h[1],filename=simname+'.rc.png',quick=True,
-                      max='40 kpc')
+                      max='40 kpc',center=False)
     pp.rotation_curve(h[1],filename=simname+'.rcparts.png',quick=True,
-                      parts=True, legend=True, max='40 kpc')
+                      parts=True, legend=True, max='40 kpc',center=False)
     pp.rho_T(h[1],filename=simname+'.phase.png')
     pp.ofefeh(h[1], filename=simname+'.ofefeh.png',
               x_range=[-3,0.3],y_range=[-0.5,1.0])
     pp.mdf(h[1],filename=simname+'.mdf.png', range=[-4,0.5])
-    pp.density_profile(h[1].dark,filename=simname+'.dmprof.png')
+    pp.density_profile(h[1].dark,filename=simname+'.dmprof.png',center=False)
     pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
     pp.satlf(h[1],filename=simname+'.satlf.png')
 except:
