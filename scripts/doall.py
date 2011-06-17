@@ -61,26 +61,8 @@ pickle.dump({'rvir':rvir,
              },
             open(simname+'.data','w'))#, pickle.HIGHEST_PROTOCOL)
 
-### Write text file
-f=open(simname+'.txt','w')
-f.write('rvir: '+str(rvir)+'\n')
-f.write('mvir: '+str(mvir)+'\n')
-f.write('mgas: '+str(np.sum(h[1].gas['mass'].in_units('Msol')))+'\n')
-f.write('mstar: '+str(np.sum(h[1].star['mass'].in_units('Msol')))+'\n')
-f.write('mdisk: '+str( np.sum(h[1].star[np.where(dec == 1)]['mass'].in_units('Msol')))+'\n')
-f.write('msphere: '+str( np.sum(h[1].star[np.where(dec == 2)]['mass'].in_units('Msol')))+'\n')
-f.write('mbulge: '+str( np.sum(h[1].star[np.where(dec == 3)]['mass'].in_units('Msol')))+'\n')
-f.write('mthick: '+str( np.sum(h[1].star[np.where(dec == 4)]['mass'].in_units('Msol')))+'\n')
-f.write('mpseudob: '+str( np.sum(h[1].star[np.where(dec == 5)]['mass'].in_units('Msol')))+'\n')
-f.write('mgashot: '+str(np.sum(h[1].gas[filt.HighPass('temp',1e5)]['mass'].in_units('Msol')))+'\n')
-f.write('mgascool: '+str(np.sum(h[1].gas[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')))+'\n')
-f.write('Jtot: '+str(Jtot)+'\n')
-f.write('lambda: '+str(Jtot.in_units('kpc**2 Msol s**-1') * np.sqrt(3.0/(5.0*units.G.in_units('kpc**3 Msol**-1 s**-2')*mvir**3 * rvir)))+'\n')
-f.close()
-
 ### Make plots
 try:
-    pp.satlf(h[1],filename=simname+'.satlf.png')
     pp.schmidtlaw(h[1],filename=simname+'.schmidt.png')
     pp.sbprofile(h[1],filename=simname+'.sbprof.png')
     pp.sfh(h[1],filename=simname+'.sfh.png')
@@ -94,6 +76,7 @@ try:
     pp.mdf(h[1],filename=simname+'.mdf.png', range=[-4,0.5])
     pp.density_profile(h[1].dark,filename=simname+'.dmprof.png')
     pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
+    pp.satlf(h[1],filename=simname+'.satlf.png')
 except:
     pass
 
