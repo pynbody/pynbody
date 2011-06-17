@@ -1,4 +1,4 @@
-from .. import filt, util
+from .. import filt, util, config
 from . import cosmology
 import numpy as np
 import math

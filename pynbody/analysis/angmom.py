@@ -1,5 +1,5 @@
 import numpy as np
-from .. import filt
+from .. import filt, config
 from . import halo
 
 def ang_mom_vec(snap) :
