@@ -57,8 +57,8 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
         cen = halo.center(h) # or h['pos'][h['phi'].argmin()]
         if config['verbose'] :
             print "cen=",cen
-
-    top['pos']-=cen
+    else:
+        top['pos']-=cen
 
     if vcen is None :
         # Use stars from inner 1kpc to calculate center of velocity
