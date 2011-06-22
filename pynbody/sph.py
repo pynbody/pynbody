@@ -128,7 +128,7 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     return im
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
-                 y1=None, z_plane = 0.0, out_units=None, xy_units='kpc',
+                 y1=None, z_plane = 0.0, out_units=None, xy_units=None,
                  kernel=Kernel(),
                  z_camera=None) :
 
@@ -175,6 +175,10 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     result = np.zeros((nx,ny),dtype=np.float32)
 
     n_part = len(snap)
+
+    if xy_units is None :
+        xy_units = snap['x'].units
+
     x = snap['x'].in_units(xy_units)
     y = snap['y'].in_units(xy_units)
     z = snap['z'].in_units(xy_units)
