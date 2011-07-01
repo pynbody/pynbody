@@ -1,4 +1,4 @@
-from .. import filt, util
+from .. import filt, util, config
 from . import cosmology
 import numpy as np
 import math
@@ -70,7 +70,7 @@ def index_center(sim, **kwargs) :
         raise RuntimeError("Need to supply indices for centering")
     
 
-def center(sim, mode='pot', **kwargs) :
+def center(sim, mode=None, **kwargs) :
     """Determine the center of mass using the specified mode
     and recenter the particles accordingly
 
@@ -81,10 +81,15 @@ def center(sim, mode='pot', **kwargs) :
       'ind': center on specific particles
     or a function returning the COM."""
 
+    global config
+    if mode is None:
+        mode=config['centering-scheme']
+
     try:
         fn = {'pot': potential_minimum,
               'com': center_of_mass,
               'ssc': shrink_sphere_center,
+              'hyb': hybrid_center,
               'ind': index_center}[mode]
     except KeyError :
         fn = mode

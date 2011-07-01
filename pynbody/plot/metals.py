@@ -19,7 +19,7 @@ def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
     metpdf, bins = np.histogram(sim.star['feh'],weights=sim.star['mass'],
                                 bins=nbins,normed=True,range=range,**kwargs)#density=True,
     midpoints = 0.5*(bins[:-1] + bins[1:])
-    import pdb; pdb.set_trace()
+
     plt.plot(midpoints,metpdf)
     plt.xlabel('[Fe / H]')
     plt.ylabel('PDF')

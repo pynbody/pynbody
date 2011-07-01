@@ -1,6 +1,6 @@
 """KDTree. Provides access to nearest neighbour lists and smoothing lengths."""
 
-import kdmain
+from . import kdmain
 
 class KDTree:
     PROPID_HSM = 1

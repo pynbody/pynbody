@@ -2,6 +2,14 @@ import pynbody
 SA = pynbody.array.SimArray
 import numpy as np
 
+def test_pickle() :
+    import pickle
+    x = SA([1,2,3,4],units='kpc')
+    assert str(x.units)=='kpc'
+    y = pickle.loads(pickle.dumps(x))
+    assert y[3]==4
+    assert str(y.units)=='kpc'
+    
 def test_return_types() :
     
 

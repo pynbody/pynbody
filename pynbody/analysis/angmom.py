@@ -1,5 +1,5 @@
 import numpy as np
-from .. import filt
+from .. import filt, config
 from . import halo
 
 def ang_mom_vec(snap) :
@@ -42,6 +42,8 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     rotates it so that the disk lies in the x-z plane. This gives
     a side-on view for SPH images, for instance."""
 
+    global config
+
     if top is None :
         top = h
         while hasattr(top,'base') : top = top.base
@@ -50,17 +52,17 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     # transformed
 
     if cen is None :
-        if verbose :
+        if config['verbose'] :
             print "Finding halo center..."
-        cen = halo.hybrid_center(h) # or h['pos'][h['phi'].argmin()]
-        if verbose :
+        cen = halo.center(h) # or h['pos'][h['phi'].argmin()]
+        if config['verbose'] :
             print "cen=",cen
-
-    top['pos']-=cen
+    else:
+        top['pos']-=cen
 
     if vcen is None :
         # Use stars from inner 1kpc to calculate center of velocity
-        if verbose :
+        if config['verbose'] :
             print "Finding halo velocity center..."
         cen = h.star[filt.Sphere(cen_size)]
         if len(cen)<5 :
@@ -74,7 +76,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
             raise ValueError, "Insufficient particles around center to get velocity"
 
         vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
-        if verbose :
+        if config['verbose'] :
             print "vcen=",vcen
 
     top['vel']-=vcen
@@ -82,11 +84,11 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     # Use gas from inner 10kpc to calculate angular momentum vector
     cen = h.gas[filt.Sphere(disk_size)]
 
-    if verbose :
+    if config['verbose'] :
         print "Calculating angular momentum vector..."
     trans = vec_to_xform(ang_mom_vec(cen))
 
-    if verbose :
+    if config['verbose'] :
         print "Transforming simulation..."
     top.transform(trans)
 

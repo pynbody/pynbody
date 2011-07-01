@@ -5,11 +5,13 @@ Tools for bulge/disk/halo decomposition"""
 from . import angmom
 from .. import array
 from .. import filt, util
+from .. import config
 from . import profile
 import numpy as np
+import sys
 
 def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_circ_from_r=False,
-           cen=None, vcen=None, verbose=True, log_interp=False) :
+           cen=None, vcen=None, verbose=True, log_interp=False, angmom_size="3 kpc") :
     """
     Creates an array 'decomp' for star particles in the simulation, with an
     integer specifying a kinematic decomposition. The possible values are:
@@ -42,14 +44,16 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     function of radius, rather than as a function of orbital energy. Default
     False (determine as function of energy).
     verbose -- if True, print information
+    angmom_size -- the size of the gas sphere used to determine the plane of the disk
     """
 
     import scipy.interpolate as interp
-    
+    global config
+        
     # Center, eliminate proper motion, rotate so that
     # gas disk is in X-Y plane
     if not aligned :
-        angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose)
+        angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose, disk_size=angmom_size)
 
     # Find KE, PE and TE
     ke = h['ke']
@@ -66,14 +70,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # Add an arbitrary offset to the PE to reflect the idea that
     # the group is 'fully bound'.
     te-=te_max
-    if verbose :
-	print "te_max = ",te_max
+    if config['verbose'] : print>>sys.stderr, "te_max = ",te_max
 
     h['te']-=te_max
+
     
-    
-    if verbose :
-        print "Making disk rotation curve..."
+    if config['verbose'] : print>>sys.stderr, "Making disk rotation curve..."
     
     # Now make a rotation curve for the disk. We'll take everything
     # inside a vertical height of 100pc.
@@ -92,8 +94,8 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         v_c = interp.interp1d(r_x, v_c, bounds_error=False)(r_me)
 
             
-        if verbose :
-            print "   -- found existing rotation curve on disk, using that"
+        if config['verbose'] : 
+            print>>sys.stderr, "   -- found existing rotation curve on disk, using that"
             
         v_c = v_c.view(array.SimArray)
         v_c.units = "km s^-1"
@@ -114,6 +116,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     pro_phi-=te_max
 
     # (will automatically be reflected in E_circ etc)
+    # calculating v_circ for j_circ and E_circ is slow
 
     if j_circ_from_r :
         pro_d.create_particle_array("j_circ", out_sim=h)
@@ -121,11 +124,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     else :
         
         if log_interp :
-            j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'])[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
+            j_from_E  = interp.interp1d(np.log10(-pro_d['E_circ'].in_units(ke.units))[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
             h['j_circ'] = 10**j_from_E(np.log10(-h['te']))
         else :
-            j_from_E  = interp.interp1d(-pro_d['E_circ'][::-1], (pro_d['j_circ'])[::-1], bounds_error=False)
-            h['j_circ'] = j_from_E(-h['te'])
+#            j_from_E  = interp.interp1d(-pro_d['E_circ'][::-1], (pro_d['j_circ'])[::-1], bounds_error=False)
+            j_from_E  = interp.interp1d(pro_d['E_circ'].in_units(ke.units), pro_d['j_circ'], bounds_error=False)
+            h['j_circ'] = j_from_E(h['te'])
 
         # The next line forces everything close-to-unbound into the
         # spheroid, as per CB's original script ('get rid of weird
@@ -142,7 +146,10 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     if not h_star.has_key('decomp') :
         h_star._create_array('decomp', dtype=int)
     disk = np.where((h_star['jz_by_jzcirc']>j_disk_min)*(h_star['jz_by_jzcirc']<j_disk_max))
+
     h_star['decomp', disk[0]] = 1
+    # h_star = h_star[np.where(h_star['decomp']!=1)]
+    
 
     # Find disk/spheroid angular momentum cut-off to make spheroid
     # rotational velocity exactly zero.
@@ -152,22 +159,30 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     te = h_star['te']
 
 
-    if verbose:
-        print "Finding spheroid/disk angular momentum boundary..."
-    j_crit = util.bisect(0.,1.0,
+    if config['verbose'] : 
+        print>>sys.stderr, "Finding spheroid/disk angular momentum boundary..."
+    j_crit = util.bisect(0.,5.0,
                          lambda c : np.mean(V[np.where(JzJcirc<c)]))
 
-    if verbose:
-        print "j_crit = ",j_crit
+
+        
+    if config['verbose'] :
+        print>>sys.stderr, "j_crit = ",j_crit
+        if j_crit>j_disk_min :
+            print>>sys.stderr, "!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?) !!"
+            print>>sys.stderr, "!! j_crit will be reset to j_disk_min =",j_disk_min,"!!"
+            
+    if j_crit>j_disk_min :
+        j_crit = j_disk_min
+
     sphere = np.where(h_star['jz_by_jzcirc']<j_crit)
 
 
     if E_cut is None :
         E_cut = np.median(h_star['te'])
 
-    if verbose :
-        print "E_cut = ",E_cut
-
+    if config['verbose'] : 
+        print>>sys.stderr, "E_cut = ",E_cut
 
 
     halo =np.where((te>E_cut) * (JzJcirc<j_crit))
@@ -177,7 +192,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
 
 
 
-    h_star['decomp', disk] = 1
+    # h_star['decomp', disk] = 1
     h_star['decomp', halo] = 2
     h_star['decomp', bulge] = 3
     h_star['decomp', thick] = 4

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config
 
-def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
+def sfh(sim,filename=None,massform=True,clear=True,legend=False,**kwargs):
     '''star formation history
     Usage:
     import pynbody.plot as pp
@@ -27,16 +27,17 @@ def sfh(sim,filename=None,massform=True,clear=True,**kwargs):
     sfhist, bins, patches = plt.hist(sim.star['tform'].in_units("Gyr"),
                                      weights=weight, bins=nbins,
                                      histtype='step',**kwargs)
-    plt.xlabel('Time [Gyr]')
-    plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]')
+    plt.xlabel('Time [Gyr]',fontsize='large')
+    plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+    if legend: plt.legend(loc=1)
     if (filename): 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
 
 def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
-               diskheight='3 kpc',rmax='20 kpc',
-               radial=True,clear=True,**kwargs):
+               diskheight='3 kpc',rmax='20 kpc', compare=True,
+               radial=True,clear=True,legend=True,**kwargs):
     '''Schmidt Law
     Usage:
     import pynbody.plot as pp
@@ -81,20 +82,24 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
                                   bins=nbins,range=[(-rmax,rmax),(-rmax,rmax)])
 
     if clear : plt.clf()
+
     plt.loglog(pg['density'].in_units('Msol pc^-2'),
                ps['density'].in_units('Msol kpc^-2') / pretime/1e6,"+",
                **kwargs)
-    xsigma = np.logspace(np.log10(pg['density'].in_units('Msol pc^-2')).min(),
-                         np.log10(pg['density'].in_units('Msol pc^-2')).max(),
-                         100)
-    ysigma=2.5e-4*xsigma**1.5        # Kennicutt (1998)
-    xbigiel=np.logspace(1,2,10)
-    ybigiel=10.**(-2.1)*xbigiel**1.0   # Bigiel et al (2007)
-    plt.loglog(xsigma,ysigma,label='Kennicutt (1998)')
-    plt.loglog(xbigiel,ybigiel,linestyle="dashed",label='Bigiel et al (2007)')
+
+    if compare:
+        xsigma = np.logspace(np.log10(pg['density'].in_units('Msol pc^-2')).min(),
+                             np.log10(pg['density'].in_units('Msol pc^-2')).max(),
+                             100)
+        ysigma=2.5e-4*xsigma**1.5        # Kennicutt (1998)
+        xbigiel=np.logspace(1,2,10)
+        ybigiel=10.**(-2.1)*xbigiel**1.0   # Bigiel et al (2007)
+        plt.loglog(xsigma,ysigma,label='Kennicutt (1998)')
+        plt.loglog(xbigiel,ybigiel,linestyle="dashed",label='Bigiel et al (2007)')
+
     plt.xlabel('$\Sigma_{gas}$ [M$_\odot$ pc$^{-2}$]')
     plt.ylabel('$\Sigma_{SFR}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
-    plt.legend(loc=2)
+    if legend : plt.legend(loc=2)
     if (filename): 
         print "Saving "+filename
         plt.savefig(filename)
@@ -139,7 +144,7 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
     if clear : plt.clf()
     plt.semilogy(sorted(halomags),np.arange(len(halomags))+1, label=label,
                  **kwargs)
-    plt.xlabel('M_'+band)
+    plt.xlabel('M$_{'+band+'}$')
     plt.ylabel('Cumulative LF')
     if MWcompare:
         # compare with observations of MW
@@ -174,7 +179,7 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
         plt.savefig(filename)
 
 
-def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', 
+def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
               center=True, clear=True, filename=None, **kwargs) :
     '''surface brightness profile
     Usage:
@@ -198,20 +203,21 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc',
     if config['verbose']: print "Selecting disk stars"
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
     if config['verbose']: print "Creating profile"
-    ps = profile.Profile(diskstars)
+    ps = profile.Profile(diskstars, type=binning)
     if config['verbose']: print "Plotting"
     if clear : plt.clf()
     r=ps['rbins'].in_units('kpc')
     plt.plot(r,ps['sb,'+band],'o',**kwargs)
     plt.axis([min(r),max(r),max(ps['sb,'+band]),min(ps['sb,'+band])])
     plt.xlabel('R [kpc]')
-    plt.ylabel('Surface brightness [mag as$^{-2}$]')
+    plt.ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
     if (filename): 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
 
-def guo(halo_catalog, clear=False, compare=True, baryfrac=False, **kwargs):
+def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
+        filename=False,**kwargs):
     '''Stellar Mass vs. Halo Mass
     Usage:
     import pynbody.plot as pp
@@ -262,3 +268,8 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False, **kwargs):
    
     plt.axis([0.8*min(totmasshalos),1.2*max(totmasshalos),
               0.8*min(starmasshalos),1.2*max(starmasshalos)])
+
+    if (filename): 
+        if config['verbose']: print "Saving "+filename
+        plt.savefig(filename)
+

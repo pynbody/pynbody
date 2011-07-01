@@ -67,7 +67,11 @@ class AHFCatalogue(HaloCatalogue) :
         if config['verbose']: print "Loading halos"
         self._load_ahf_halos(self._ahfBasename+'halos')
         if config['verbose']: print "Loading substructure"
-        self._load_ahf_substructure(self._ahfBasename+'substructure')
+        try:
+            self._load_ahf_substructure(self._ahfBasename+'substructure')
+        except IOError:
+            print "Failed substructure load: "+str(IOError)
+            pass
         try:
             if config['verbose']: print "Setting grp"
             for halo in self._halos.values():

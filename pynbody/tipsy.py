@@ -87,7 +87,8 @@ class TipsySnap(snapshot.SimSnap) :
             import analysis.cosmology
             self.properties['a'] = t
             self.properties['z'] = 1.0/t - 1.0
-            self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
+            if self._paramfile.has_key('dMsolUnit') and self._paramfile.has_key('dKpcUnit'):
+                self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
             
         else :
             # Assume a non-cosmological run
@@ -675,18 +676,24 @@ def param2units(sim) :
         munit = dunit = hub = None
 
         try :
+            hub = float(sim._paramfile["dHubble0"])
+            sim.properties['omegaM0'] = float(sim._paramfile["dOmega0"])
+            sim.properties['omegaL0'] = float(sim._paramfile["dLambda"])
+        except KeyError :
+            pass
+
+        try :
             munit_st = sim._paramfile["dMsolUnit"]+" Msol"
             munit = float(sim._paramfile["dMsolUnit"])
             dunit_st = sim._paramfile["dKpcUnit"]+" kpc"
             dunit = float(sim._paramfile["dKpcUnit"])
-            hub = float(sim._paramfile["dHubble0"])
-            om_m0 = float(sim._paramfile["dOmega0"])
-            om_lam0 = float(sim._paramfile["dLambda"])
-
         except KeyError :
             pass
 
+
         if munit is None or dunit is None :
+            if hub!=None:
+                sim.properties['h'] = hub
             return
 
 
@@ -721,6 +728,7 @@ def param2units(sim) :
         if hub!=None:
             hubunit = 10. * velunit / dunit
             hubunit_st = ("%.3f"%(hubunit*hub))
+            sim.properties['h'] = hub*hubunit
 
             # append dependence on 'a' for cosmological runs
             dunit_st += " a"
@@ -765,11 +773,6 @@ def param2units(sim) :
             try :
                 sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units]
             except : pass
-
-        if hub!=None:
-            sim.properties['h'] = hubunit*hub
-            sim.properties['omegaM0'] = float(om_m0)
-            sim.properties['omegaL0'] = float(om_lam0)
 
 
 @StarLog.decorator

@@ -136,11 +136,13 @@ class GadgetFile :
         #If format 1, load the block definition file.
         if not self.format2 :
             try:
-                self.block_names=np.loadtxt(path.join(path.dirname(filename),"/blocks.txt"))
+                self.block_names=np.loadtxt(path.join(path.dirname(filename),"blocks.txt"))
                 for n in self.block_names:
                     n = (n.upper().ljust(4," "))[0:4]
             #Sane defaults
             except IOError:
+                print "WARNING: format 1 and "+path.join(path.dirname(filename),"blocks.txt")+"not found."
+                print "WARNING: using default block names, which may be incorrect."
                 self.block_names = np.array(["HEAD","POS ","VEL ","ID  ","MASS","U   ","RHO ","NE  ","NH  ","NHE ","HSML","SFR "])
         while True:
             block=GadgetBlock()
@@ -312,7 +314,10 @@ class GadgetFile :
             if len(record_size) != 4 :
                 raise IOError, "Ran out of data in "+filename+" before block "+name+" started"
             (record_size,)=struct.unpack(self.endian+'I', record_size)
-            name = self.block_names[0]
+            try:
+                name = self.block_names[0]
+            except IndexError:
+                raise ValueError, filename+"is format 1, and contains more blocks than are present in blocks.txt, or the default."  
             self.block_names = self.block_names[1:]
             return (name, record_size)
 
