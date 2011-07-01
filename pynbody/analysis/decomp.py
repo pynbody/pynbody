@@ -9,7 +9,7 @@ from . import profile
 import numpy as np
 
 def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_circ_from_r=False,
-           cen=None, vcen=None, verbose=True, log_interp=False) :
+           cen=None, vcen=None, verbose=True, log_interp=False, angmom_size="3 kpc") :
     """
     Creates an array 'decomp' for star particles in the simulation, with an
     integer specifying a kinematic decomposition. The possible values are:
@@ -42,6 +42,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     function of radius, rather than as a function of orbital energy. Default
     False (determine as function of energy).
     verbose -- if True, print information
+    angmom_size -- the size of the gas sphere used to determine the plane of the disk
     """
 
     import scipy.interpolate as interp
@@ -49,7 +50,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # Center, eliminate proper motion, rotate so that
     # gas disk is in X-Y plane
     if not aligned :
-        angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose)
+        angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose, disk_size=angmom_size)
 
     # Find KE, PE and TE
     ke = h['ke']
@@ -142,8 +143,10 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     if not h_star.has_key('decomp') :
         h_star._create_array('decomp', dtype=int)
     disk = np.where((h_star['jz_by_jzcirc']>j_disk_min)*(h_star['jz_by_jzcirc']<j_disk_max))
-    h_star['decomp', disk[0]] = 1
 
+    h_star['decomp', disk[0]] = 1
+    # h_star = h_star[np.where(h_star['decomp']!=1)]
+    
     # Find disk/spheroid angular momentum cut-off to make spheroid
     # rotational velocity exactly zero.
 
@@ -151,14 +154,23 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     JzJcirc = h_star['jz_by_jzcirc']
     te = h_star['te']
 
-
+    JzJcirc[np.where(JzJcirc!=JzJcirc)]=0
+    
     if verbose:
         print "Finding spheroid/disk angular momentum boundary..."
-    j_crit = util.bisect(0.,1.0,
+    j_crit = util.bisect(0.,5.0,
                          lambda c : np.mean(V[np.where(JzJcirc<c)]))
 
+        
     if verbose:
         print "j_crit = ",j_crit
+        if j_crit>j_disk_min :
+            print "!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?) !!"
+            print "!! j_crit will be reset to j_disk_min =",j_disk_min,"!!"
+            
+    if j_crit>j_disk_min :
+        j_crit = j_disk_min
+        
     sphere = np.where(h_star['jz_by_jzcirc']<j_crit)
 
 
@@ -169,7 +181,8 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         print "E_cut = ",E_cut
 
 
-
+        
+    
     halo =np.where((te>E_cut) * (JzJcirc<j_crit))
     bulge = np.where((te<=E_cut) * (JzJcirc<j_crit))
     pbulge = np.where((te<=E_cut) * (JzJcirc>j_crit) * ((JzJcirc<j_disk_min) + (JzJcirc>j_disk_max)) )
@@ -177,7 +190,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
 
 
 
-    h_star['decomp', disk] = 1
+    # h_star['decomp', disk] = 1
     h_star['decomp', halo] = 2
     h_star['decomp', bulge] = 3
     h_star['decomp', thick] = 4
