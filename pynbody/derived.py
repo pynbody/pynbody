@@ -19,10 +19,17 @@ def vr(self):
     """Radial velocity"""
     return (self['pos']*self['vel']).sum(axis=1)/self['r']
 
+
 @SimSnap.derived_quantity
 def v2(self) :
     """Squared velocity"""
     return (self['vel']**2).sum(axis=1)
+
+@SimSnap.derived_quantity
+def vt(self) :
+    """Tangential velocity"""
+    return np.sqrt(self['v2']-self['vr']**2)
+
 
 @SimSnap.derived_quantity
 def ke(self) :
