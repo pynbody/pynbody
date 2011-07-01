@@ -201,14 +201,27 @@ class Profile:
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
+        elif name[-5:]=="_disp" and name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys() :
+            self._profiles[name] = self._auto_profile(name[:-5], dispersion=True)
+            self._profiles[name].sim = self.sim
+            return self._profiles[name]
+            
         else :
             raise KeyError, name+" is not a valid profile"
 
-    def _auto_profile(self, name) :
-        result = np.zeros(self.nbins).view(array.SimArray)
+    def _auto_profile(self, name, dispersion=False) :
+        result = np.zeros(self.nbins)
         for i in range(self.nbins):
-            result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
-        result/= self['mass']
+            if dispersion :
+                sq_mean = ((self.sim[name][self.binind[i]]**2)*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i]
+                mean_sq = ((self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i])**2
+
+                result[i] = math.sqrt(sq_mean - mean_sq)
+                
+            else :
+                result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i]
+
+        result = result.view(array.SimArray)
         result.units = self.sim[name].units
         result.sim = self.sim
         return result
@@ -430,6 +443,11 @@ def v_circ(p) :
 def E_circ(p) :
     return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
 
+@Profile.profile_property
+def beta(p) :
+    """3D Anisotropy parameter as defined in Binney and Tremiane"""
+    assert p.ndim is 3
+    return  1-p['vt_disp']/(2*p['vr_disp'])
 
 @Profile.profile_property
 def magnitudes(self,band='v'):
