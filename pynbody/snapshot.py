@@ -194,6 +194,15 @@ class SimSnap(object) :
     def filename(self) :
         return self._filename
 
+    def write(self, fmt=None, filename=None) :
+	if filename is None and "<" in self.filename :
+	    raise RuntimeError, 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))'
+	
+	if fmt is None :
+	    self._write(self, filename)
+	else :
+	    fmt._write(self, filename)
+	    
     def intersect(self, other, op=np.intersect1d) :
         """Returns the set intersection of this simulation view with another view
         of the same simulation"""
@@ -763,7 +772,6 @@ class SimSnap(object) :
         
     def mean_by_mass(self, name) :
         """Calculate the mean by mass of the specified array"""
-
         m = np.asarray(self["mass"])
         return (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
 

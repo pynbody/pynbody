@@ -9,6 +9,7 @@ import struct, os
 import numpy as np
 import gzip
 import sys
+import warnings
 
 class TipsySnap(snapshot.SimSnap) :
     def __init__(self, filename, only_header=False, must_have_paramfile=False) :
@@ -73,9 +74,12 @@ class TipsySnap(snapshot.SimSnap) :
 	
 	self._decorate()
 
-        if must_have_paramfile and not (self._paramfile.has_key('achOutName')) :
-            raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
-
+        if  (self._paramfile.has_key('achOutName')) :
+	    if must_have_paramfile :
+		raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+	    else :
+		warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
+	    
         time_unit = None
         try :
             time_unit = self.infer_original_units('yr')
@@ -106,11 +110,13 @@ class TipsySnap(snapshot.SimSnap) :
 	    while n_left>0 :
                 n_block = min(n_left,max_block_size)
 
+				
                 # Read in the block
                 if(self._byteswap):
                     g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
                 else:
-                    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
+		    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
+	
                     
 		# Copy into the correct arrays
 		for i, name in enumerate(st) :
@@ -167,26 +173,44 @@ class TipsySnap(snapshot.SimSnap) :
             
         return self._loadable_keys_registry
 
-    def write(self, filename=None) :
+    
+    @staticmethod
+    def _write(self, filename=None) :
         """Write a TIPSY file.  Just the reverse of reading a file. """
 
+	global config
+	
         with self.lazy_off : # prevent any lazy reading or evaluation
+	    
             if filename is None :
-                if self._filename[-3:] == '.gz' :
-                    filename = self._filename[:-3]+".new.gz"
-                else :
-                    filename = self._filename+'.new'
+                #if self._filename[-3:] == '.gz' :
+                #    filename = self._filename[:-3]+".new.gz"
+                #else :
+                #    filename = self._filename+'.new'
+		filename = self._filename
+		
+	    if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
+
             f = util.open_(filename, 'w')
-            t = self.properties['a']
+	    try:
+		t = self.properties['a']
+	    except KeyError :
+		warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
+		t = 0
+		
             n = len(self)
             ndim = 3
             ng = len(self.gas)
             nd = len(self.dark)
             ns = len(self.star)
-            if self._byteswap :
-                f.write(struct.pack(">diiiii", t,n,ndim,ng,nd,ns))
+
+	    
+	    byteswap = getattr(self, "_byteswap", None)
+	    
+	    if byteswap: 
+                f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
             else:
-                f.write(struct.pack("diiiii", t,n,ndim,ng,nd,ns))
+                f.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
             # needs to be done in blocks like reading
             # describe the file structure as list of (num_parts, [list_of_properties]) 
             file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
@@ -197,14 +221,19 @@ class TipsySnap(snapshot.SimSnap) :
                 n_done = 0
                 self_type = self[type]
                 while n_left>0 :
-                    n_block = min(n_left,max_block_size)
-                    
-                    g = np.ones((n_block,len(st)),dtype=np.float32)
-                    # Copy into the correct arrays
+                    n_block = min(n_left,max_block_size)                   
+		    
+                    g = np.zeros((n_block,len(st)),dtype=np.float32)
+
+                    # Copy from the correct arrays
                     for i, name in enumerate(st) :
-                        g[:,i] =np.float32(self_type[name][n_done:n_done+n_block])
+			try:
+			    g[:,i] =np.float32(self_type[name][n_done:n_done+n_block])
+			except KeyError :
+			    pass
+			
                     # Write out the block
-                    if(self._byteswap):
+		    if byteswap :
                         g.byteswap().tofile(f)
                     else:
                         g.tofile(f)
@@ -214,9 +243,21 @@ class TipsySnap(snapshot.SimSnap) :
                     n_done+=n_block
 
             f.close()
-        
+	    if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
+
+	    for x in set(self.keys()).union(self.family_keys()) :
+		if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
+							      "eps","metals","phi"]  :
+		    TipsySnap._write_array(self, x, filename=filename+"."+x)
+		    
+	    
+    @staticmethod
     def _write_array(self, array_name, filename=None) :
         """Write a TIPSY-ASCII file."""
+
+	if array_name in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
+			  "eps","metals","phi"] :
+	    raise RuntimeError, "Cannot write back into TIPSY file." 
 
         with self.lazy_off : # prevent any lazy reading or evaluation
             if filename is None :
