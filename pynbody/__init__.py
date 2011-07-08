@@ -56,7 +56,7 @@ def load(filename, *args, **kwargs) :
 
     raise RuntimeError("File format not understood")
 
-def new(n_particles=None, **families) :
+def new(n_particles=0, **families) :
     """Create a blank SimSnap, with the specified number of particles.
 
     Position, velocity and mass arrays are created and filled
@@ -70,8 +70,6 @@ def new(n_particles=None, **families) :
     """
 
     if len(families)==0 :
-        if n_particles is None :
-            raise TypeError, "Must specify either the total number of particles or a per-family breakdown"
         families = {'dm': n_particles}
 
     t_fam = []
@@ -84,8 +82,6 @@ def new(n_particles=None, **families) :
         t_fam.append((family.get_family(k), v))
         tot_particles+=v
 
-    if n_particles is not None :
-        assert n_particles==tot_particles
         
     x = snapshot.SimSnap()
     x._num_particles = tot_particles
