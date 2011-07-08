@@ -66,7 +66,13 @@ class GadgetHDFSnap(snapshot.SimSnap) :
         super(GadgetHDFSnap,self).__init__()
         
         self._filename = filename
-        self._hdf = h5py.File(filename)
+	try:
+	    self._hdf = h5py.File(filename)
+	except IOError :
+	    # IOError here can be caused if no append access is available
+	    # so explicitly open as read-only
+	    self._hdf = h5py.File(filename,"r")
+	    
         self._family_slice = {}
 
         self._loadable_keys = set([])
