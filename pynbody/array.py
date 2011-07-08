@@ -379,6 +379,9 @@ class SimArray(np.ndarray) :
             x.units = self.units
         return x
 
+    def mean_by_mass(self, *args, **kwargs) :
+	return self.sim.mean_by_mass(self.name)
+    
     def std(self, *args, **kwargs) :
         x = np.ndarray.std(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
