@@ -95,3 +95,13 @@ def test_write() :
     assert all(f3['x']==f2['x'])
     assert all(f3['vx']==f3['vx'])
     assert all(f3.dm['test_array']==f2.dm['test_array'])
+
+def test_array_write() :
+    
+    f['array_write_test'] = np.random.rand(len(f))
+    f['array_write_test'].write()
+    f['array_read_test'] = f['array_write_test']
+    del f['array_write_test']
+
+    # will re-lazy-load
+    assert all(np.abs(f['array_write_test']-f['array_read_test'])<1.e-5)
