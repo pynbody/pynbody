@@ -83,3 +83,15 @@ def test_halo_unit_conversion() :
     
     h[1].gas['rho'].convert_units('m_p cm^-3')
     assert str(h[1].gas['rho'].units)=='m_p cm**-3'
+
+def test_write() :
+    f2 = pynbody.new(dm=10,star=10,gas=20)
+    f2.dm['test_array']=np.ones(10)
+    f2['x']=np.arange(0,40)
+    f2['vx']=np.arange(40,80)
+    f2.write(fmt=pynbody.tipsy.TipsySnap, filename="testdata/test_out.tipsy")
+    
+    f3 = pynbody.load("testdata/test_out.tipsy")
+    assert all(f3['x']==f2['x'])
+    assert all(f3['vx']==f3['vx'])
+    assert all(f3.dm['test_array']==f2.dm['test_array'])
