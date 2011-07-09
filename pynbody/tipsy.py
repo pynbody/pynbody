@@ -90,9 +90,19 @@ class TipsySnap(snapshot.SimSnap) :
             from . import analysis
             import analysis.cosmology
             self.properties['a'] = t
-            self.properties['z'] = 1.0/t - 1.0
-            if self._paramfile.has_key('dMsolUnit') and self._paramfile.has_key('dKpcUnit'):
+            try :
+                self.properties['z'] = 1.0/t - 1.0
+            except ZeroDivisionError :
+                # no sensible redshift
+                pass
+            
+            if self.properties['z'] is not None and self._paramfile.has_key('dMsolUnit') and self._paramfile.has_key('dKpcUnit'):
                 self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
+            else :
+                # something has gone wrong with the cosmological side of
+                # things
+                warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
+                self.properties['time'] = t
             
         else :
             # Assume a non-cosmological run
