@@ -444,8 +444,8 @@ class SimArray(np.ndarray) :
         """Write this array to disk according to the standard method associated
         with its base file"""
 
-        if self._sim() and self._name :
-            self._sim()._write_array(self._name)
+        if self.sim and self._name :
+            self.sim._write_array(self.sim, self._name)
         else :
             raise RuntimeError, "No link to SimSnap"
 
