@@ -74,7 +74,7 @@ class TipsySnap(snapshot.SimSnap) :
 	
 	self._decorate()
 
-        if  (self._paramfile.has_key('achOutName')) :
+        if  (not self._paramfile.has_key('achOutName')) :
 	    if must_have_paramfile :
 		raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
 	    else :
