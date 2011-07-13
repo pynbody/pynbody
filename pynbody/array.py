@@ -650,6 +650,11 @@ class IndexedSimArray(object) :
     def sim(self, s) :
         self.base.sim = s
 
+    @property
+    def dtype(self) :
+        return self.base.dtype
+
+    
     def conversion_context(self) :
         return self.base.conversion_context()
 
