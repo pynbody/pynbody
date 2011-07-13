@@ -195,13 +195,17 @@ class SimSnap(object) :
         return self._filename
 
     def write(self, fmt=None, filename=None) :
-	if filename is None and "<" in self.filename :
-	    raise RuntimeError, 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))'
-	
-	if fmt is None :
-	    self._write(self, filename)
-	else :
-	    fmt._write(self, filename)
+        if filename is None and "<" in self.filename :
+            raise RuntimeError, 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))'
+
+
+        if fmt is None :
+            if not hasattr(self, "_write") :
+                raise RuntimeError, 'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)'
+            
+            self._write(self, filename)
+        else :
+            fmt._write(self, filename)
 	    
     def intersect(self, other, op=np.intersect1d) :
         """Returns the set intersection of this simulation view with another view
