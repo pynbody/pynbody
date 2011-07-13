@@ -613,7 +613,7 @@ class IndexedSimArray(object) :
         self.base[self._reexpress_index(item)] = to
 
     def __getslice__(self, a, b) :
-        return self.__getitem__(slice(a,b), to)
+        return self.__getitem__(slice(a,b))
 
     def __setslice__(self, a, b, to) :
         self.__setitem__(slice(a,b), to)
