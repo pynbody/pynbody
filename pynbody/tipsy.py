@@ -383,6 +383,7 @@ class TipsySnap(snapshot.SimSnap) :
 	
         if ndim>1 :
             dims = (len(self),ndim)
+
             # check whether the vector format is specified in the param file
             # this only matters for binary because ascii files use packed vectors by default
             if (binary) and (packed_vector == None) :
@@ -395,7 +396,8 @@ class TipsySnap(snapshot.SimSnap) :
                     except ValueError :
                         pass
                     
-            elif (packed_vector is True) or (binary is False) :
+            elif ((packed_vector is True) or (binary is False)) and (packed_vector is None) :
+                if config['verbose']: print>>sys.stderr, 'Warning: assuming packed vector format!'
                 v_order = 'C'
             else :
                 v_order = 'F'
