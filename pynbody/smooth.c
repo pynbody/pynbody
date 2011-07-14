@@ -191,7 +191,7 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 				dy = sy - p[pj].r[1];
 				dz = sz - p[pj].r[2];
 				fDist2 = dx*dx + dy*dy + dz*dz;
-				if (fDist2 < fBall2) {
+				if (fDist2 <= fBall2) {
 					smx->fList[nCnt] = fDist2;
 					smx->pList[nCnt++] = pj;
 					}
@@ -352,7 +352,13 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		nCnt = 0;
 		h2 = smx->pqHead->fKey;
 		for (pq=smx->pq;pq<=pqLast;++pq) {
-			//if (pq == smx->pqHead) continue;
+
+                  /* the next line is commented out because it results in the furthest
+                     particle being excluded from the nearest-neighbor list - this means
+                     that although the user requests 32 NN, she would get back 31. By
+                     including the furthest particle, the neighbor list is always 32 long */
+
+                  //if (pq == smx->pqHead) continue;
 			smx->pList[nCnt] = pq->p;
 			smx->fList[nCnt++] = pq->fKey;
 			if (smx->pfBall2[pq->p] >= 0) continue;
@@ -377,3 +383,187 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		}
 	}
 
+
+void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs;
+	int i,pj;
+
+        ih2 = 4.0/smx->pfBall2[pi];
+        fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+                pj = pList[i];
+		r2 = fList[i]*ih2;
+                rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		rs *= fNorm;
+		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
+		smx->kd->p[pj].fDensity += rs*smx->kd->p[pi].fMass;
+        }
+}
+
+
+
+void smMeanVel(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		rs *= fNorm;
+		for (j=0;j<3;++j) {
+			smx->kd->p[pi].vMean[j] += rs*smx->kd->p[pj].fMass/
+				smx->kd->p[pj].fDensity*smx->kd->p[pj].v[j];
+			}
+		}
+	}
+
+void smMeanVelSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		rs *= fNorm;
+		for (j=0;j<3;++j) {
+			smx->kd->p[pi].vMean[j] += rs*smx->kd->p[pj].fMass/
+				smx->kd->p[pj].fDensity*smx->kd->p[pj].v[j];
+			smx->kd->p[pj].vMean[j] += rs*smx->kd->p[pi].fMass/
+				smx->kd->p[pi].fDensity*smx->kd->p[pi].v[j];
+			}
+		}
+	}
+
+void smDivvSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs;
+	float r, rs1, dvdotdr, fNorm1;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
+	fNorm1 = fNorm*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		r = sqrt(r2);
+		rs = 2.0 - r;
+		if (r2 < 1.0) {
+			rs1 = -3 + 2.25*r;
+			}
+		else {
+			rs1 = -0.75*rs*rs/r;
+			}
+		rs1 *= fNorm1;
+		dvdotdr = 0.0;
+		for (j=0;j<3;++j) {
+			dvdotdr += (smx->kd->p[pj].v[j] - smx->kd->p[pi].v[j])*
+				(smx->kd->p[pj].r[j] - smx->kd->p[pi].r[j]);
+			}
+		smx->kd->p[pi].fDivv -= rs1*smx->kd->p[pj].fMass/
+			smx->kd->p[pj].fDensity*dvdotdr;
+		smx->kd->p[pj].fDivv -= rs1*smx->kd->p[pi].fMass/
+			smx->kd->p[pi].fDensity*dvdotdr;
+		}
+	}
+
+void smVelDisp(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs,tv2;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		rs *= fNorm;
+		tv2 = 0.0;
+		for (j=0;j<3;++j) {
+                  tv2 += (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j])*
+                    (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j]);
+                }
+		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/smx->kd->p[pj].fDensity*tv2;
+        }
+}	
+
+
+
+void smVelDispSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs,tv2;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		rs *= fNorm;
+		tv2 = 0.0;
+		for (j=0;j<3;++j) {
+			tv2 += (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j])*
+				(smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j]);
+			}
+		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/
+			smx->kd->p[pj].fDensity*tv2;
+		tv2 = 0.0;
+		for (j=0;j<3;++j) {
+			tv2 += (smx->kd->p[pi].v[j] - smx->kd->p[pj].vMean[j])*
+				(smx->kd->p[pi].v[j] - smx->kd->p[pj].vMean[j]);
+			}
+		smx->kd->p[pj].fVel2 += rs*smx->kd->p[pi].fMass/
+			smx->kd->p[pi].fDensity*tv2;
+		}
+	}
+
+void smVelDispNBSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs,tv2;
+	float dr;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		rs *= fNorm;
+		tv2 = 0.0;
+		for (j=0;j<3;++j) {
+			dr = smx->kd->p[pj].r[j] - smx->kd->p[pi].r[j];
+			tv2 += (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j] -
+					smx->kd->p[pi].fDivv*dr)*
+				(smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j] -
+				 smx->kd->p[pi].fDivv*dr);
+			}
+		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/
+			smx->kd->p[pj].fDensity*tv2;
+		smx->kd->p[pj].fVel2 += rs*smx->kd->p[pi].fMass/
+			smx->kd->p[pi].fDensity*tv2;
+		}
+	}	

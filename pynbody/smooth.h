@@ -5,6 +5,7 @@
 
 #define RESMOOTH_SAFE  10
 
+#define M_1_PI  0.31830988618379067154
 
 typedef struct pqNode {
 	float fKey;
@@ -102,5 +103,13 @@ int  smBallGather(SMX,float,float *);
 
 int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *));
 void smSmoothInitStep(SMX smx);
+void smDensitySym(SMX,int,int,int *,float *);
+void smMeanVel(SMX,int,int,int *,float *);
+void smVelDisp(SMX,int,int,int *,float *);
+void smMeanVelSym(SMX,int,int,int *,float *);
+void smDivvSym(SMX,int,int,int *,float *);
+void smVelDispSym(SMX,int,int,int *,float *);
+void smVelDispNBSym(SMX,int,int,int *,float *);
+
 
 #endif

@@ -590,9 +590,7 @@ def c_s(self) :
 @TipsySnap.derived_quantity
 def c_s_turb(self) :
     """Turbulent sound speed (from Mac Low & Klessen 2004)"""
-    if 'dsp' not in self.keys() :
-        self['dsp'].set_units_like('km s^-1')
-    x = np.sqrt(self['c_s']**2+1./3*self['dsp']**2)
+    x = np.sqrt(self['c_s']**2+1./3*self['v_disp']**2)
     x.convert_units('km s^-1')
     return x
 

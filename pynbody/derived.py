@@ -58,24 +58,70 @@ def vcxy(self) :
     f[np.where(f!=f)]=0
     return f
 
-@SimSnap.derived_quantity
-def rho(self):
-    return self['mass']/self['smooth']**3
 
 #@SimSnap.derived_quantity
 #def smooth(self) :
 #    return (self['mass']/self['rho'])**(1,3)
 
-@snapshot.SimSnap.derived_quantity
+@SimSnap.derived_quantity
 def smooth(self):
-    import kdtree 
+    import kdtree
     if config['verbose']: print 'Building tree with leafsize=16'
-    kdt = kdtree.KDTree(self['pos'], leafsize=16)
+    kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16) 
     if config['verbose']: print 'Tree build done.'
     if config['verbose']: print 'Smoothing with 32 nearest neighbours'
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
     kdt.populate(sm, 'hsm', nn=32) 
     if config['verbose']: print 'Smoothing done.'
+    return sm 
+
+@SimSnap.derived_quantity
+def rho(self):
+    #return self['mass']/self['smooth']**3
+    import kdtree
+    if config['verbose']: print 'Building tree with leafsize=16'
+    kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16) 
+    if config['verbose']: print 'Tree build done.'
+
+    if config['verbose']: print 'Calculating density with 32 nearest neighbours'
+    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
+    kdt.populate(sm, 'rho', nn=32, smooth=self['smooth'])
+    
+    if config['verbose']: print 'Density done.'
+    return sm 
+
+@SimSnap.derived_quantity
+def v_mean(self):
+    import kdtree 
+
+    if config['verbose']: print 'Building tree with leafsize=16'
+    kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
+    if config['verbose']: print 'Tree build done.'
+
+    
+    
+    if config['verbose']: print 'Calculating mean velocity with 32 nearest neighbours'
+    sm = array.SimArray(np.empty((len(self['pos']),3)), self['vel'])
+    kdt.populate(sm, 'v_mean', nn=32, smooth=self['smooth'], rho=self['rho'])
+    if config['verbose']: print 'Mean velocity done.'
+
+    return sm 
+
+@SimSnap.derived_quantity
+def v_disp(self):
+    import kdtree 
+
+    if config['verbose']: print 'Building tree with leafsize=16'
+    kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
+    if config['verbose']: print 'Tree build done.'
+
+    self['rho']
+    
+    if config['verbose']: print 'Calculating velocity dispersion with 32 nearest neighbours'
+    sm = array.SimArray(np.empty(len(self['pos'])), self['vel'].units)
+    kdt.populate(sm, 'v_disp', nn=32, smooth=self['smooth'], rho=self['rho']) 
+    if config['verbose']: print 'Velocity dispersion done.'
+
     return sm 
 
 @SimSnap.derived_quantity
