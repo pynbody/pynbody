@@ -397,7 +397,9 @@ class TipsySnap(snapshot.SimSnap) :
                         pass
                     
             elif ((packed_vector is True) or (binary is False)) and (packed_vector is None) :
-                if config['verbose']: print>>sys.stderr, 'Warning: assuming packed vector format!'
+                if config['verbose']:
+                    print>>sys.stderr, 'Warning: assuming packed vector format!'
+                    print>>sys.stderr, 'Packed vector means values are in order x1, y1, z1... xn, yn, zn'
                 v_order = 'C'
             else :
                 v_order = 'F'
