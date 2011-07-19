@@ -16,6 +16,8 @@ if not os.path.exists(simname+'.OxMassFrac'):
     os.system('ln -s ../'+tfile+'.OxMassFrac '+simname+'.OxMassFrac')
 if not os.path.exists(simname+'.FeMassFrac'): 
     os.system('ln -s ../'+tfile+'.FeMassFrac '+simname+'.FeMassFrac')
+if not os.path.exists(simname+'.HI'): 
+    os.system('ln -s ../'+tfile+'.HI '+simname+'.HI')
 
 s = pynbody.load(simname)
 h = s.halos()
@@ -35,19 +37,19 @@ rcpro = profile.Profile(h[1], type='equaln', nbins = 50, max = '40 kpc')
 diskstars = h[1].star[filt.Disc('20 kpc','3 kpc')]
 sbprof = profile.Profile(diskstars,type='equaln')
 # Kinematic decomposition
-decompprof = pynbody.analysis.decomp(h[1])
-dec = h[1].star['decomp']
+#decompprof = pynbody.analysis.decomp(h[1])
+#dec = h[1].star['decomp']
 
 ### Save important numbers using pickle.  Currently not working for SimArrays
 pickle.dump({'rvir':rvir,
              'mvir':mvir,
              'mgas': np.sum(h[1].gas['mass'].in_units('Msol')),
              'mstar': np.sum(h[1].star['mass'].in_units('Msol')),
-             'mdisk': np.sum(h[1].star[np.where(dec == 1)]['mass'].in_units('Msol')),
-             'msphere': np.sum(h[1].star[np.where(dec == 2)]['mass'].in_units('Msol')),
-             'mbulge': np.sum(h[1].star[np.where(dec == 3)]['mass'].in_units('Msol')),
-             'mthick': np.sum(h[1].star[np.where(dec == 4)]['mass'].in_units('Msol')),
-             'mpseudob': np.sum(h[1].star[np.where(dec == 5)]['mass'].in_units('Msol')),
+             #'mdisk': np.sum(h[1].star[np.where(dec == 1)]['mass'].in_units('Msol')),
+             #'msphere': np.sum(h[1].star[np.where(dec == 2)]['mass'].in_units('Msol')),
+             #'mbulge': np.sum(h[1].star[np.where(dec == 3)]['mass'].in_units('Msol')),
+             #'mthick': np.sum(h[1].star[np.where(dec == 4)]['mass'].in_units('Msol')),
+             #'mpseudob': np.sum(h[1].star[np.where(dec == 5)]['mass'].in_units('Msol')),
              'mgashot': np.sum(h[1].gas[filt.HighPass('temp',1e5)]['mass'].in_units('Msol')),
              'mgascool': np.sum(h[1].gas[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')),
              'Jtot':Jtot,'lambda':Jtot / np.sqrt(5.0/3.0*mvir**3 * rvir),
@@ -82,15 +84,28 @@ except:
 
 ### Make pictures: not working past first one
 try:
-    pp.sph.sideon_image(h[1].gas,filename=simname+'.sidegas.png')
-    pp.sph.image(h[1].star,filename=simname+'.sidestar.png')
-    pp.sph.faceon_image(h[1].gas,filename=simname+'.facegas.png')
-    pp.sph.image(h[1].star,filename=simname+'.facestar.png')
+    pp.sph.sideon_image(h[1].gas,filename=simname+'.sidegas.png',width=30)
+    pp.sph.image(h[1].star,filename=simname+'.sidestar.png',width=30)
+    pp.sph.faceon_image(h[1].gas,filename=simname+'.facegas.png',width=30)
+    pp.sph.image(h[1].star,filename=simname+'.facestar.png',width=30)
 except:
     pass
-           
+
+try:
+    s.gas['oxden'] = s.gas['rho']*s.gas['OxMassFrac']
+    s.gas['oxden'].units = s.gas['rho'].units
+    pynbody.plot.sideon_image(s.gas,qty='oxden',units='m_p cm^-2',width=1000,center=False,filename=simname+'ox500kpc.png')
+    pp.sph.image(h[1].gas,qty='temp',filename=simname+'.tempgasside.png',
+                 width=320)
+    pynbody.plot.sideon_image(s.gas,qty='temp',width=1000,center=False,filename=simname+'temp500kpc.png')
+    s.gas['hiden'] = s.gas['rho']*s.gas['HI']
+    s.gas['hiden'].units = s.gas['rho'].units
+    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'hi500kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'hi250kpc.png')
+
 os.system('rm '+simname)
 os.system('rm '+simname+'.OxMassFrac')
 os.system('rm '+simname+'.FeMassFrac')
+os.system('rm '+simname+'.HI')
 if os.path.exists(simname+'.log'): 
     os.system('rm '+simname+'.log')
