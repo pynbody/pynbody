@@ -25,8 +25,8 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
     else:
         max_r = sim['rxy'].max()
 
-    pro = profile.Profile(sim, type=bin_spacing, nbins = nbins,
-                          min = min_r, max = max_r)
+    pro = profile.Profile(sim, type=bin_spacing, nbins = nbins, 
+                         min = min_r, max = max_r)
 
     r = pro['rbins'].in_units(r_units)
     if quick :
@@ -115,7 +115,8 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
         print "Saving "+filename
         p.savefig(filename)
 
-def density_profile(sim, center=True, clear=True, filename=None, **kwargs) :
+def density_profile(sim, linestyle=False, center=True, clear=True, 
+                    filename=None, **kwargs) :
     '''3d density profile
     Usage:
     import pynbody.plot as pp
@@ -138,7 +139,10 @@ def density_profile(sim, center=True, clear=True, filename=None, **kwargs) :
     if config['verbose']: print "Plotting"
     if clear : plt.clf()
     r=ps['rbins'].in_units('kpc')
-    plt.loglog(r,ps['density'],'o',**kwargs)
+    if linestyle:
+        plt.loglog(r,ps['density'],linestyle=linestyle,**kwargs)
+    else:
+        plt.loglog(r,ps['density'],'o',**kwargs)
     plt.xlabel('r [kpc]')
     plt.ylabel('Density [$'+ps['density'].units.latex()+'$]')
     if (filename): 
