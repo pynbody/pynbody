@@ -70,7 +70,7 @@ def index_center(sim, **kwargs) :
         raise RuntimeError("Need to supply indices for centering")
     
 
-def center(sim, mode=None, **kwargs) :
+def center(sim, mode=None, retcen=False, **kwargs) :
     """Determine the center of mass using the specified mode
     and recenter the particles accordingly
 
@@ -94,6 +94,8 @@ def center(sim, mode=None, **kwargs) :
     except KeyError :
         fn = mode
 
-    cen = fn(sim, **kwargs)
-    sim["pos"]-=cen
+    if retcen:  return fn(sim, **kwargs)
+    else:
+        cen = fn(sim, **kwargs)
+        sim["pos"]-=cen
 

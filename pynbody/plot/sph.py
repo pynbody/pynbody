@@ -9,7 +9,11 @@ def sideon_image(sim, *args, **kwargs) :
     the function image"""
 
     from ..analysis import angmom
-    angmom.sideon(sim)
+    if 'center' in kwargs:
+        if kwargs['center']:
+            angmom.sideon(sim)
+    else :
+        angmom.sideon(sim)
     image(sim, *args, **kwargs)
 
 def faceon_image(sim, *args, **kwargs) :
@@ -24,7 +28,7 @@ def faceon_image(sim, *args, **kwargs) :
 
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=False, 
-          z_camera=None, clear = True, cmap=None) :
+          z_camera=None, clear = True, cmap=None, center=False) :
     """Make an SPH image of the given simulation.
 
     Keyword arguments
