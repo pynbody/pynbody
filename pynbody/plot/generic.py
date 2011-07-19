@@ -4,7 +4,7 @@ from .. import config
 
 def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, 
            xlogrange=False, ylogrange=False,filename=None, subplot=False, 
-           colorbar=False,clear=True,legend=False,**kwargs):
+           colorbar=False,clear=True,legend=False,scalemin=False,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -82,7 +82,8 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
 
     if logscale:
         try:
-            levels = np.logspace(np.log10(np.min(hist[hist>0])),       # there must be an
+            if not scalemin: scalemin = np.min(hist[hist>0])
+            levels = np.logspace(np.log10(scalemin),       # there must be an
                                  np.log10(np.max(hist)),nlevels)      # easier way to do this...
             cont_color=colors.LogNorm()
         except ValueError:
@@ -129,14 +130,16 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
     plt.xlim((x_range[0],x_range[1]))
     plt.ylim((y_range[0],y_range[1]))
 
-    if (filename): 
-        if config['verbose']: print "Saving "+filename
-        plt.savefig(filename)
-
     if colorbar :
         cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
         
     if legend : plt.legend(loc=2)
+
+    if (filename): 
+        if config['verbose']: print "Saving "+filename
+        plt.savefig(filename)
+
+    return hist, xs, ys
     
 
 def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=True, 
