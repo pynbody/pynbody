@@ -102,6 +102,8 @@ try:
     s.gas['hiden'].units = s.gas['rho'].units
     pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'hi500kpc.png')
     pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'hi250kpc.png')
+except:
+    pass
 
 os.system('rm '+simname)
 os.system('rm '+simname+'.OxMassFrac')
