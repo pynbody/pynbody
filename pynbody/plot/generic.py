@@ -2,7 +2,7 @@ import numpy as np
 from ..analysis import profile, angmom, halo
 from .. import config
 
-def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True, 
+def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=True, 
            xlogrange=False, ylogrange=False,filename=None, subplot=False, 
            colorbar=False,clear=True,legend=False,scalemin=False,**kwargs):
     """
@@ -28,6 +28,10 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
        *weights*: numpy array of same length as x and y
          if weights is passed, color corresponds to
          the mean value of weights in each cell
+
+       *mass*: numpy array of masses same length as x andy
+         must also have weights passed in.  If you just
+         want to weight by mass, pass the masses to weights
 
        *colorbar*: boolean
          draw a colorbar
@@ -73,12 +77,16 @@ def hist2d(xo, yo, weights=None, nbins=100, nlevels = 20, logscale=True,
         y = np.log10(yo)
     else :
         y = yo
-        
-    hist, xs, ys = np.histogram2d(y, x, bins=nbins,range=[y_range,x_range])
-    if weights != None :
-        hist_weight, xs, ys = np.histogram2d(y, x, weights = weights,bins=nbins,range=[y_range,x_range])
-        good = np.where(hist_weight > 0)
-        hist[good] = hist_weight[good]/hist[good]
+
+    if mass:
+        hist, xs, ys = np.histogram2d(y, x, weights=weights*mass, bins=nbins,range=[y_range,x_range])
+        hist_weight, xs, ys = np.histogram2d(y, x, weights=mass,bins=nbins,range=[y_range,x_range])
+    else:
+        hist, xs, ys = np.histogram2d(y, x, bins=nbins,range=[y_range,x_range])
+        if weights != None :
+            hist_weight, xs, ys = np.histogram2d(y, x, weights = weights,bins=nbins,range=[y_range,x_range])
+            good = np.where(hist_weight > 0)
+            hist[good] = hist_weight[good]/hist[good]
 
     if logscale:
         try:
@@ -146,6 +154,7 @@ def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=T
            xlogrange=False, ylogrange=False,filename=None,
            colorbar=False,clear=True,**kwargs):
     """
+    *** DEPRECATED in favor of mass=mass keyword for hist2d ***
     Plot 2D histogram for arbitrary arrays that get passed in.
 
     Optional keyword arguments:
