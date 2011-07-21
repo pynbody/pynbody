@@ -105,6 +105,34 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
         plt.savefig(filename)
 
 
+def oneschmidtlawpoint(sim,center=True,pretime='50 Myr',
+                       diskheight='3 kpc',rmax='20 kpc',**kwargs):
+    '''One Schmidt Law Point
+    Usage:
+    import pynbody.plot as pp
+    pp.oneschmidtlawpoint(h[1])
+
+    Determines values for star formation surface density and gas surface 
+    density for the entire galaxy based on the half mass cold gas radius.
+    '''
+    
+    if center :
+        angmom.faceon(sim)
+
+    cg = h[1].gas[filt.LowPass('temp', 1e5)]
+    cgd = cg[filt.Disc('30 kpc','3 kpc')]
+    cgs = np.sort(cgd['rxy'].in_units('kpc'))
+    rhgas = cgs[len(cgs)/2]
+    instars = h[1].star[filt.Disc(str(rhgas)+' kpc', '3 kpc')]
+    minstars = np.sum(instars[filt.LowPass('age','100 Myr')]['mass'].in_units('Msol'))
+    ingasm = np.sum(cg[filt.Disc(str(rhgas)+' kpc', '3 kpc')]['mass'].in_units('Msol'))
+    rpc = rhgas * 1000.0
+    rkpc = rhgas
+    xsigma = ingasm / (np.pi*rpc*rpc)
+    ysigma = minstars / (np.pi*rkpc*rkpc*1e8)
+    return xsigma, ysigma
+
+
 def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True, 
           clear=True, legend=True,
           label='Simulation',**kwargs) :
@@ -219,18 +247,16 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
         filename=False,**kwargs):
     '''Stellar Mass vs. Halo Mass
+    Takes a halo catalogue and plots the member stellar masses as a function
+    of halo mass. 
+
     Usage:
     import pynbody.plot as pp
     h = s.halos()
-    pp.sbprofile(h,marker='+',markerfacecolor='k')
+    pp.guo(h,marker='+',markerfacecolor='k')
 
     Options:
-    * band='v'       which Johnson band to use. available filters:  
-                     U, B, V, R, I, J, H, K
     * filename=None  name of file to which to save output
-
-    By default, sbprof will use the formation mass of the star.  
-    In tipsy, this will be taken from the starlog file. 
     '''
 
     #if 'marker' not in kwargs :
@@ -255,13 +281,32 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
     plt.ylabel('Halo Stellar Mass')
 
     if compare :
-        # from Sawala et al (2011) + Guo et al (2009)
         xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
-        ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
-        plt.loglog(xmasses,ystarmasses,linestyle='dashed',label='Guo et al (2009)')
+        if compare == 'guo':
+            # from Sawala et al (2011) + Guo et al (2009)
+            ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
+        else :
+            # from Moster et al (2010)
+            mM0 = 0.0282
+            beta = -1.057
+            gamma = 0.5560
+            M1 = 10**(11.884)
+            mu = 0.019
+            nu = -0.72
+            gamma1 = -0.26
+            beta1 = 0.17
+            z=halo[1].properties['z']
+
+            M1_z = 10**(np.log10(M1)*(z+1)**mu)
+            mM0_z = mM0*(z+1)**nu
+            gamma_z = gamma*(z+1)**gamma1
+            beta_z  = beta+ beta1*z
+            
+            ratio = 2.0*mM0_z/((xmasses/M1_z)**beta_z + (xmasses/M1_z)**gamma_z)
+            ystarmasses = ratio*xmasses
+        plt.loglog(xmasses,ystarmasses,linestyle='dashed',label='Moster et al (2009)')
 
     if baryfrac :
-        # from Sawala et al (2011) + Guo et al (2009)
         xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
         ystarmasses = xmasses*0.04/0.24
         plt.loglog(xmasses,ystarmasses,linestyle='dotted',label='f_b = 0.16')
