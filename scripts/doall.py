@@ -94,14 +94,14 @@ except:
 try:
     s.gas['oxden'] = s.gas['rho']*s.gas['OxMassFrac']
     s.gas['oxden'].units = s.gas['rho'].units
-    pynbody.plot.sideon_image(s.gas,qty='oxden',units='m_p cm^-2',width=1000,center=False,filename=simname+'ox500kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='oxden',units='m_p cm^-2',width=500,center=False,filename=simname+'.ox500kpc.png')
     pp.sph.image(h[1].gas,qty='temp',filename=simname+'.tempgasside.png',
                  width=320)
-    pynbody.plot.sideon_image(s.gas,qty='temp',width=1000,center=False,filename=simname+'temp500kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='temp',width=500,center=False,filename=simname+'.temp500kpc.png')
     s.gas['hiden'] = s.gas['rho']*s.gas['HI']
     s.gas['hiden'].units = s.gas['rho'].units
-    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'hi500kpc.png')
-    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'hi250kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'.hi500kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'.hi250kpc.png')
 except:
     pass
 
