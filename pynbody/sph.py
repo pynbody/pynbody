@@ -89,7 +89,8 @@ class TopHatKernel(object) :
 
 
 
-def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel()) :
+def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
+                           kstep=0.5, out_units=None) :
     """Render an SPH image on a spherical surface. Note this is written in pure python and
     could be optimized into C, but would then need linking with the healpix libraries.
     Also currently uses a top-hat 3D kernel only."""
@@ -102,29 +103,51 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     except ImportError :
         query_disc = lambda a, b, c : hp.query_disc(a,b,c,deg=False)
 
-    ind = np.where(np.abs(snap["r"]-distance)<snap["smooth"]*kernel.max_d)
-
-    print "Spherical image from",len(ind[0]),"particles"
+        
+    if out_units is not None :
+        conv_ratio = (snap[qty].units*snap['mass'].units/(snap['rho'].units*snap['smooth'].units**kernel.h_power)).ratio(out_units,
+                                                                                                                         **snap.conversion_context())
+        
     D = snap["r"]
     h = snap["smooth"]
 
-    im = np.zeros(hp.nside2npix(nside))
+    ds = np.arange(kstep,kernel.max_d,kstep)
+    weights = np.array([kernel.get_value(d) for d in ds])
+    weights[:-1]-=weights[1:]
 
-    for i in ind[0] :
+    if kernel.h_power==3 :
+        ind = np.where(np.abs(snap["r"]-distance)<snap["smooth"]*kernel.max_d)
         # angular radius subtended by the intersection of the boundary
         # of the SPH particle with the boundary surface of the calculation
-        rad = np.arctan(math.sqrt((h[i]*kernel.max_d)**2 - (D[i]-distance)**2)/distance)
-        try :
-            i2 = query_disc(nside, snap["pos"][i], rad)
-        except UnboundLocalError :
-            i2 = []
+        rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds)**2 - (D[i]-distance)**2)/distance)
+        # den_fn = lambda i : [((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]
+        print "done"
+    elif kernel.h_power==2 :
+        ind = np.where(snap["r"]<distance)
+        
+        # angular radius taken at distance of particle
+        rad_fn = lambda i : np.arctan(h[i]*ds/D[i])
+        
+    den_fn = lambda i : ((snap[qty][i]*snap["mass"][i]/snap["rho"][i])) * weights
+        
 
-        im[i2]+=((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))
+    print "Spherical image from",len(ind[0]),"particles"    
+    im = np.zeros(hp.nside2npix(nside))
+    
+
+    for i in ind[0] :
+        for r,w in zip(rad_fn(i), den_fn(i)) :
+            if r==r : #ignore NaN's -- they just mean the current radius doesn't intersect our sphere
+                i2 = query_disc(nside, snap["pos"][i], r)
+                im[i2]+=w
 
     im = im.view(array.SimArray)
-    im.units = snap[qty].units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**3
+    im.units = snap[qty].units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
     im.sim = snap
 
+    if out_units is not None :
+        im.convert_units(out_units)
+    
     return im
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
