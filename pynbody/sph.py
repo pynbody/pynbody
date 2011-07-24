@@ -111,7 +111,9 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     D = snap["r"]
     h = snap["smooth"]
 
-    ds = np.arange(kstep,kernel.max_d,kstep)
+    ds = np.arange(kstep,kernel.max_d,kstep)        
+    ds_mean = np.hstack(([0],ds))
+    ds_mean = (ds_mean[1:]+ds_mean[:-1])/2 # should be K-weighted, or at least area-weighted, but this is better than nothing
     weights = np.array([kernel.get_value(d) for d in ds])
     weights[:-1]-=weights[1:]
 
@@ -119,14 +121,14 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
         ind = np.where(np.abs(snap["r"]-distance)<snap["smooth"]*kernel.max_d)
         # angular radius subtended by the intersection of the boundary
         # of the SPH particle with the boundary surface of the calculation
-        rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds)**2 - (D[i]-distance)**2)/distance)
+        rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds_mean)**2 - (D[i]-distance)**2)/distance)
         # den_fn = lambda i : [((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]
         print "done"
     elif kernel.h_power==2 :
         ind = np.where(snap["r"]<distance)
         
         # angular radius taken at distance of particle
-        rad_fn = lambda i : np.arctan(h[i]*ds/D[i])
+        rad_fn = lambda i : np.arctan(h[i]*ds_mean/D[i])
         
     den_fn = lambda i : ((snap[qty][i]*snap["mass"][i]/snap["rho"][i])) * weights
         
