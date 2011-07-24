@@ -583,7 +583,8 @@ def sife(sim) :
 @TipsySnap.derived_quantity
 def c_s(self) :
     """Ideal gas sound speed"""
-    x = np.sqrt(5./3.*units.k*self['temp']*self['mu'])
+    #x = np.sqrt(5./3.*units.k*self['temp']*self['mu'])
+    x = np.sqrt(5./3.*self['p']/self['rho'])
     x.convert_units('km s^-1')
     return x
 
