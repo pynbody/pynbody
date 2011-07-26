@@ -4,9 +4,16 @@ import numpy as np
 import math
 
 
-def center_of_mass(sim) : # shared-code names should be explicit, not short
+def center_of_mass(sim) : 
     """Return the centre of mass of the SimSnap"""
-    return np.average(sim["pos"],axis=0,weights=sim["mass"]), np.average(sim["vel"],axis=0,weights=sim["mass"])
+    mtot = sim["mass"].sum()
+    p = np.sum(sim["mass"]*sim["pos"].transpose(), axis=1)/mtot
+    v = np.sum(sim["mass"]*sim["vel"].transpose(), axis=1)/mtot
+
+    p.units, v.units = sim["pos"].units, sim["vel"].units # otherwise behaviour is numpy version dependent
+
+    return p,v
+    # return np.average(sim["pos"],axis=0,weights=sim["mass"]), np.average(sim["vel"],axis=0,weights=sim["mass"])
 
 def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
     """Return the center according to the shrinking-sphere method
@@ -65,7 +72,8 @@ def index_center(sim, **kwargs) :
     """Determine the center of mass based on specific particles"""
     if 'ind' in kwargs :
         ind = kwargs['ind']
-        return np.average(sim["pos"][ind],axis=0,weights=sim["mass"][ind])
+        return center_of_mass(sim[ind])
+        # return np.average(sim["pos"][ind],axis=0,weights=sim["mass"][ind])
     else :  
         raise RuntimeError("Need to supply indices for centering")
     
