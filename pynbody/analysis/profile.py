@@ -40,42 +40,80 @@ class Profile:
    
     Implemented profile functions:
 
-    den: density
-    fourier: provides fourier coefficients, amplitude and phase for m=0 to m=6.
-             To access the amplitude profile of m=2 mode, do
-             >>> p.fourier['amp'][2,:]
-
-
+    density    : density
+    mass       : mass in each bin
+    mass_enc   : enclosed mass 
+    fourier    : provides fourier coefficients, amplitude and phase for m=0 to m=6.
+                 To access the amplitude profile of m=2 mode, do
+                 >>> p['fourier']['amp'][2,:]
+    dyntime    : dynamical time
+    g_spherical: GM_enc/r^2
+    rotation_curve_spherical: rotation curve from vc = sqrt(GM/R) - can be very wrong!
+    j_circ     : angular momentum of particles on circular orbits
+    v_cirv     : circular velocity, aka rotation curve - calculated from the midplane
+                 gravity, so this can be expensive
+    E_circ     : energy of particles on circular orbits in the midplane
+    beta       : 3D velocity anisotropy parameter
+    magnitudes : magnitudes in each bin - default band = 'v' 
+    sb         : surface brightness (default band='v')
+    
 
     Additional functions should use the profile_property to
-    yield the desired profile. For example, to generate the density
-    profile, all that is required is
+    yield the desired profile. 
 
-    >>> p = profile(sim)
-    >>> p.den
+    Lazy-loading arrays:
+    --------------------
+    The Profile class will automatically compute a mass-weighted profile for any 
+    lazy-loadable array of its parent SimSnap object. 
+
+    Dispersion:
+    -----------
+    To obtain a dispersion profile, attach a '_disp' after the desired
+    quantity name. 
+
+    Derivatives:
+    ------------
+    To compute a derivative of a profile, use the subclass DerivativeProfile in the 
+    same way as the profile class 
 
 
     Examples:
+    ---------
+
+    Density profile of the entire simulation: 
 
     >>> s = pynbody.load('mysim')
     >>> import pynbody.profile as profile
     >>> p = profile.Profile(s) # 2D profile of the whole simulation - note
                                # that this only makes the bins etc. but
                                # doesn't generate the density
-    >>> p.den # now we have a density profile
+    >>> p['density'] # now we have a density profile
     >>> p.keys()
-    ['mass', 'n', 'den']
+    ['mass', 'n', 'density']
     >>> p.families()
     [<Family dm>, <Family star>, <Family gas>]
+
+    
+    Density profile of the stars:
 
     >>> ps = profile.Profile(s.s) # xy profile of the stars
     >>> ps = profile.Profile(s.s, type='log') # same, but with log bins
     >>> ps.families()
     [<Family star>]
     >>> import matplotlib.pyplot as plt
-    >>> plt.plot(ps.r, ps.den, 'o')
+    >>> plt.plot(ps['rbins'], ps['density'], 'o')
     >>> plt.semilogy()
 
+    Metallicity profile of the gas in spherical shells (requires appropriate auxilliary files):
+
+    >>> pg = profile.Profile(s.g, ndim=3)
+    >>> pg['feh']
+    SimSnap: deriving array feh
+    TipsySnap: attempting to load auxiliary array 10/12M_hr.01000.FeMassFrac
+    SimSnap: deriving array hydrogen
+    SimSnap: deriving array hetot
+    SimArray([  1.83251940e-01,   1.48439968e-02,  -4.09390892e-01,
+    -1.82734736e+01])
 
     """
 
@@ -425,10 +463,14 @@ def rotation_curve_spherical(self):
 
 @Profile.profile_property
 def j_circ(p) :
+    """Angular momentum of particles on circular orbits."""
     return p['v_circ'] * p['rbins']
 
 @Profile.profile_property
 def v_circ(p) :
+    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
+    in the midplane - can be expensive!!!"""
+
     from . import gravity
     grav_sim = p.sim
 
@@ -443,6 +485,7 @@ def v_circ(p) :
 
 @Profile.profile_property
 def E_circ(p) :
+    """Energy of particles on circular orbits."""
     return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
 
 @Profile.profile_property
