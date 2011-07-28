@@ -54,6 +54,8 @@ class Profile:
     v_cirv     : circular velocity, aka rotation curve - calculated from the midplane
                  gravity, so this can be expensive
     E_circ     : energy of particles on circular orbits in the midplane
+    omega      : circular orbital frequency
+    kappa      : radial orbital frequency
     beta       : 3D velocity anisotropy parameter
     magnitudes : magnitudes in each bin - default band = 'v' 
     sb         : surface brightness (default band='v')
@@ -64,18 +66,30 @@ class Profile:
 
     Lazy-loading arrays:
     --------------------
-    The Profile class will automatically compute a mass-weighted profile for any 
-    lazy-loadable array of its parent SimSnap object. 
+    The Profile class will automatically compute a mass-weighted
+    profile for any lazy-loadable array of its parent SimSnap object.
 
     Dispersion:
     -----------
     To obtain a dispersion profile, attach a '_disp' after the desired
-    quantity name. 
+    quantity name.
 
     Derivatives:
     ------------
     To compute a derivative of a profile, prepend a "d_" to the profile 
     string, as in "p['d_temp']" to get a temperature gradient. 
+
+    Saving and loading previously generated profiles:
+    ------------------------------------------------- 
+    Use the profile_dump() function to write the current profiles with
+    all the necessary information to a file. Initialize a profile with
+    the load_from_file=True keyword to automatically load a previously
+    saved profile. The filename is chosen automatically and
+    corresponds to a hash generated from the positions of the
+    particles used in the profile. This is to ensure that you are
+    always looking at the same set of particles, centered in the same
+    way. It also means you *must* use the same centering method if you
+    want to reuse a saved profile.
 
 
     Examples:
@@ -136,58 +150,77 @@ class Profile:
     def _calculate_x(self, sim) :
         return ((sim['pos'][:,0:self.ndim]**2).sum(axis = 1))**(1,2)
 
-    def __init__(self, sim, ndim = 2, type = 'lin', **kwargs):
+    def __init__(self, sim, load_from_file = False, ndim = 2, type = 'lin', **kwargs):
 
+        generate_new = True
 
-        self.ndim = ndim
-        self.type = type
         self.sim = sim
+        self.type = type
+        self.ndim = ndim
         self._x = self._calculate_x(sim)
-        
-        self._properties = {}
         x = self._x
 
-        # The profile object is initialized given some array of values
-        # and optional keyword parameters
+        if load_from_file :
+            import pickle
+            
+            filename = self._generate_hash_filename()
+            
+            try: 
+                data = pickle.load(open(filename,'r'))
+                self._properties = data['properties']
+                self.max         = data['max']
+                self.min         = data['min']
+                self.nbins       = data['nbins']
+                self._profiles   = data['profiles']
+                
+                generate_new = False
 
-        if kwargs.has_key('max'):
-            if isinstance(kwargs['max'],str):
-                self.max = units.Unit(kwargs['max']).ratio(x.units, 
-                                                           **sim.conversion_context())
-            else: self.max = kwargs['max']
-        else:
-            self.max = np.max(x)
-        if kwargs.has_key('nbins'):
-            self.nbins = kwargs['nbins']
-        else:
-            self.nbins = 100
+            except IOError:
+                print 'Profile: existing profile not found -- generating one from scratch'
+                                                          
+        if generate_new :
+            self._properties = {}
+            # The profile object is initialized given some array of values
+            # and optional keyword parameters
 
-        if kwargs.has_key('min'):
-            if isinstance(kwargs['min'],str):
-                self.min = units.Unit(kwargs['min']).ratio(x.units, 
-                                                           **sim.conversion_context())
-            else : self.min = kwargs['min']
-        else:
-            self.min = np.min(x[x>0])
+            if kwargs.has_key('max'):
+                if isinstance(kwargs['max'],str):
+                    self.max = units.Unit(kwargs['max']).ratio(x.units, 
+                                                               **sim.conversion_context())
+                else: self.max = kwargs['max']
+            else:
+                self.max = np.max(x)
+            if kwargs.has_key('nbins'):
+                self.nbins = kwargs['nbins']
+            else:
+                self.nbins = 100
 
-        if type == 'log':
-            self._properties['bin_edges'] = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
-        elif type == 'lin':
-            self._properties['bin_edges'] = np.linspace(self.min, self.max, num = self.nbins+1)
-        elif type == 'equaln':
-            self._properties['bin_edges'] = util.equipartition(x, self.nbins, self.min, self.max)
-        else:
-            raise RuntimeError, "Bin type must be one of: lin, log, equaln"
+            if kwargs.has_key('min'):
+                if isinstance(kwargs['min'],str):
+                    self.min = units.Unit(kwargs['min']).ratio(x.units, 
+                                                               **sim.conversion_context())
+                else : self.min = kwargs['min']
+            else:
+                self.min = np.min(x[x>0])
+
+            if type == 'log':
+                self._properties['bin_edges'] = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
+            elif type == 'lin':
+                self._properties['bin_edges'] = np.linspace(self.min, self.max, num = self.nbins+1)
+            elif type == 'equaln':
+                self._properties['bin_edges'] = util.equipartition(x, self.nbins, self.min, self.max)
+            else:
+                raise RuntimeError, "Bin type must be one of: lin, log, equaln"
 
 
-        self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
-        self['bin_edges'].sim = self.sim
+            self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
+            self['bin_edges'].sim = self.sim
 
-        n, bins = np.histogram(self._x, self['bin_edges'])
-        self._setup_bins()
+            n, bins = np.histogram(self._x, self['bin_edges'])
+            self._setup_bins()
 
-        # set up the empty list of profiles
-        self._profiles = {'n':n}
+            # set up the empty list of profiles
+            self._profiles = {'n':n}
         
 
     def _setup_bins(self) :
@@ -219,17 +252,6 @@ class Profile:
             self.binind.append(ind)
 
 
-
-    def D(self) :
-        """Return a new profile object which can return derivatives of
-        the profiles in this object.
-
-        For example, p.D()["phi"] gives the first derivative of the "phi" p["phi"]. For an example
-        use see module analysis.decomp"""
-
-        return DerivativeProfile(self)
-
-
     def __len__(self):
         """Returns the number of bins used in this profile object"""
         return self.nbins
@@ -253,11 +275,13 @@ class Profile:
             self._profiles[name].sim = self.sim
             return self._profiles[name]
         elif name[-5:]=="_disp" and name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys() :
+            if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
             self._profiles[name] = self._auto_profile(name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
         elif name[0:2]=="d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys() :
             if np.diff(self['dr']).all() < 1e-13 : 
+                if pynbody.config['verbose'] : print 'Profile: '+name+'/dR'
                 self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
                 self._profiles[name] = self._profiles[name] / self['dr'].units
                 return self._profiles[name]
@@ -275,7 +299,6 @@ class Profile:
                 mean_sq = ((self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i])**2
 
                 result[i] = math.sqrt(sq_mean - mean_sq)
-                
             else :
                 result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i]
 
@@ -369,6 +392,34 @@ class Profile:
 
         out_sim[particle_name].units = self[profile_name].units
 
+    def _generate_hash_filename(self):
+        """Create a filename for the saved profile from a hash using the binning data"""
+        import hashlib
+        
+        try:
+            filename = self.sim.base.filename+'.profile.'+(hashlib.md5(self._x,usedforsecurity=False)).hexdigest()
+        except AttributeError:
+            filename = self.sim.filename+'.profile.'+(hashlib.md5(self._x,usedforsecurity=False)).hexdigest()
+            
+        return filename
+
+
+    def dump_profile(self):
+        import pickle
+        
+        # record all the important data except for the snapshot itself
+        # use the hash generated from the particle list for the file name suffix
+
+        filename = self._generate_hash_filename()
+            
+        pickle.dump({'properties': self._properties, 
+                     'max': self.max,
+                     'min': self.min,
+                     'nbins': self.nbins,
+                     'profiles': self._profiles}, 
+                    open(filename,'w'))
+                     
+
     @staticmethod
     def profile_property(fn) :
         Profile._profile_registry[fn.__name__]=fn
@@ -380,7 +431,8 @@ def mass(self):
     """
     Calculate mass in each bin
     """
-
+    
+    if pynbody.config['verbose'] : print 'Profile: mass()'
     mass = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
     for i in range(self.nbins):
         mass[i] = (self.sim['mass'][self.binind[i]]).sum()
@@ -393,7 +445,7 @@ def density(self):
     """
     Generate a radial density profile for the current type of profile
     """
-
+    if pynbody.config['verbose'] : print 'Profile: density()'
     return self['mass']/self._binsize
 
 @Profile.profile_property
@@ -402,6 +454,7 @@ def fourier(self):
     Generate a profile of fourier coefficients, amplitudes and phases
     """
     from . import fourier_decomp
+    if pynbody.config['verbose'] : print 'Profile: fourier()'
 
     f = {'c': np.zeros((7, self.nbins),dtype=complex),
          'amp': np.zeros((7, self.nbins)),
@@ -425,6 +478,7 @@ def mass_enc(self):
     """
     Generate the enclosed mass profile
     """
+    if pynbody.config['verbose'] : print 'Profile: mass_enc()'
     m_enc = array.SimArray(np.zeros(self.nbins), 'Msol')
     m_enc.sim = self.sim
     for i in range(self.nbins):
@@ -434,7 +488,7 @@ def mass_enc(self):
 @Profile.profile_property
 def dyntime(self) :
     """The dynamical time of the bin, sqrt(R^3/2GM)."""
-
+    if pynbody.config['verbose'] : print 'Profile: dyntime()'
     dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(1,2)
     return dyntime
     
@@ -450,12 +504,13 @@ def rotation_curve_spherical(self):
     """
     The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
-
+    
     return ((units.G*self['mass_enc']/self['rbins'])**(1,2))#.in_units('km s**-1')
 
 @Profile.profile_property
 def j_circ(p) :
     """Angular momentum of particles on circular orbits."""
+    if pynbody.config['verbose'] : print 'Profile: j_circ()'
     return p['v_circ'] * p['rbins']
 
 @Profile.profile_property
@@ -479,21 +534,29 @@ def v_circ(p) :
 @Profile.profile_property
 def E_circ(p) :
     """Energy of particles on circular orbits."""
+    if pynbody.config['verbose'] : print 'Profile: E_circ()'
     return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
 
 @Profile.profile_property
 def omega(p) :
     """Circular frequency Omega = v_circ/radius (see Binney & Tremaine Sect. 3.2)"""
-    return p['v_circ']/p['rbins']
+    if pynbody.config['verbose'] : print 'Profile: omega()'
+    prof = p['v_circ']/p['rbins']
+    prof.set_units_like('km s**-1 kpc**-1')
+    return prof
 
 @Profile.profile_property
 def kappa(p) :
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
-    return np.sqrt(p['rbins']*np.gradient(p['omega']**2, p['dr'][0]) + 4*p['omega']**2)
+    if pynbody.config['verbose'] : print 'Profile: kappa()'
+    dOmegadR = np.gradient(p['omega']**2, p['dr'][0])
+    dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
+    return np.sqrt(p['rbins']*dOmegadR + 4*p['omega']**2)
 
 @Profile.profile_property
 def beta(p) :
     """3D Anisotropy parameter as defined in Binney and Tremiane"""
+    if pynbody.config['verbose'] : print 'Profile: beta()'
     assert p.ndim is 3
     return  1-p['vt_disp']/(2*p['vr_disp'])
 
