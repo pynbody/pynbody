@@ -87,7 +87,11 @@ def center(sim, mode=None, retcen=False, **kwargs) :
       'com': center of mass
       'ssc': shrink sphere center
       'ind': center on specific particles
-    or a function returning the COM."""
+    or a function returning the COM.
+
+    retcen: if True only return the center without centering
+            the snapshot (default = False)
+    """
 
     global config
     if mode is None:
