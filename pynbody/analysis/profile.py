@@ -1,4 +1,5 @@
 import numpy as np
+import pynbody
 from .. import family, snapshot, units, array, util
 import math
 
@@ -73,8 +74,8 @@ class Profile:
 
     Derivatives:
     ------------
-    To compute a derivative of a profile, use the subclass DerivativeProfile in the 
-    same way as the profile class 
+    To compute a derivative of a profile, prepend a "d_" to the profile 
+    string, as in "p['d_temp']" to get a temperature gradient. 
 
 
     Examples:
@@ -115,6 +116,18 @@ class Profile:
     SimArray([  1.83251940e-01,   1.48439968e-02,  -4.09390892e-01,
     -1.82734736e+01])
 
+    Radial velocity dispersion profile and its gradient:
+    >>> ps = profile.Profile(s.s, max=15)
+    >>> ps['vr_disp']
+    SimSnap: deriving array vr
+    SimSnap: deriving array r
+    SimArray([ 118.80420996,  122.06102431,  131.13872886,  144.74447697,
+    35.89904165,   37.59565128,   35.21608633,   35.03373379], '1.01e+00 km s**-1')
+
+    >>> >>> p['d_vr_disp']
+    SimArray([  21.71365764,   41.11802081,   75.61694836,  105.28110255,
+    2.664999  ,   -2.27668148,   -8.54033931,   -1.21577105], '1.01e+00 km s**-1 kpc**-1')
+    
     """
 
     _profile_registry = {}
@@ -243,7 +256,14 @@ class Profile:
             self._profiles[name] = self._auto_profile(name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
-            
+        elif name[0:2]=="d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys() :
+            if np.diff(self['dr']).all() < 1e-13 : 
+                self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
+                self._profiles[name] = self._profiles[name] / self['dr'].units
+                return self._profiles[name]
+            else :
+                raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
+
         else :
             raise KeyError, name+" is not a valid profile"
 
@@ -293,6 +313,9 @@ class Profile:
         """Returns a listing of available profile types"""
         return self._profiles.keys()
 
+    def derivable_keys(self):
+        """Returns a list of possible profiles"""
+        return self._profile_registry.keys()
 
     def families(self):
         """Returns the family of particles used"""
@@ -350,37 +373,6 @@ class Profile:
     def profile_property(fn) :
         Profile._profile_registry[fn.__name__]=fn
         return fn
-
-
-class DerivativeProfile(Profile) :
-    def __init__(self, base) :
-        self.base = base
-        self.sim = base.sim
-        self.ndim = base.ndim
-        self._x = base._x
-        self._type = base._type
-        self.max = base.bin_edges.max()
-        self.min = base.bin_edges.min()
-        self.nbins = base.nbins-1
-        self.rbins = base.rbins
-        self._properties['bin_edges'] = base['bin_edges']
-        n, bins = np.histogram(self._x, self['bin_edges'])
-        self._setup_bins()
-        self._profiles = {'n': n}
-        self._properties['rbins'] = self.rbins
-
-        
-        
-    def _get_profile(self, name) :
-        if name[-1]=="'" :
-            # Calculate derivative. This simple differencing algorithm
-            # could be made more sophisticated.
-            return np.diff(self.base[name[:-1]])/self.base.dr
-        else :
-            return Profile._get_profile(self, name)
-
-
-
 
 
 @Profile.profile_property
@@ -474,6 +466,7 @@ def v_circ(p) :
     from . import gravity
     grav_sim = p.sim
 
+    if pynbody.config['verbose'] : print 'Profile: v_circ() -- gravity calculation could take some time!'
     # Go up to the halo level
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
@@ -487,6 +480,16 @@ def v_circ(p) :
 def E_circ(p) :
     """Energy of particles on circular orbits."""
     return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
+
+@Profile.profile_property
+def omega(p) :
+    """Circular frequency Omega = v_circ/radius (see Binney & Tremaine Sect. 3.2)"""
+    return p['v_circ']/p['rbins']
+
+@Profile.profile_property
+def kappa(p) :
+    """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
+    return np.sqrt(p['rbins']*np.gradient(p['omega']**2, p['dr'][0]) + 4*p['omega']**2)
 
 @Profile.profile_property
 def beta(p) :
