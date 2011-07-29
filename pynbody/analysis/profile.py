@@ -81,7 +81,7 @@ class Profile:
 
     Saving and loading previously generated profiles:
     ------------------------------------------------- 
-    Use the profile_dump() function to write the current profiles with
+    Use the write() function to write the current profiles with
     all the necessary information to a file. Initialize a profile with
     the load_from_file=True keyword to automatically load a previously
     saved profile. The filename is chosen automatically and
@@ -404,13 +404,15 @@ class Profile:
         return filename
 
 
-    def dump_profile(self):
+    def write(self):
         import pickle
         
         # record all the important data except for the snapshot itself
         # use the hash generated from the particle list for the file name suffix
 
         filename = self._generate_hash_filename()
+
+        if pynbody.config['verbose']: print 'Profile: writing profile to ' + filename
             
         pickle.dump({'properties': self._properties, 
                      'max': self.max,
