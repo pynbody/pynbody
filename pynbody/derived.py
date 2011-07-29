@@ -49,11 +49,6 @@ def j(self) :
     return angmom
 
 @SimSnap.derived_quantity
-def E(self) :
-    """ Particle energy """
-    return self['phi'] + 0.5*(self['vel']**2).sum(axis=1)
-
-@SimSnap.derived_quantity
 def vrxy(self):
     return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['rxy']
 
