@@ -172,7 +172,10 @@ class Profile:
                 self.min         = data['min']
                 self.nbins       = data['nbins']
                 self._profiles   = data['profiles']
-                
+                self.binind      = data['binind']
+
+                if pynbody.config['verbose'] : print 'Profile: loaded profile from ' + filename
+
                 generate_new = False
 
             except IOError:
@@ -418,7 +421,8 @@ class Profile:
                      'max': self.max,
                      'min': self.min,
                      'nbins': self.nbins,
-                     'profiles': self._profiles}, 
+                     'profiles': self._profiles,
+                     'binind': self.binind}, 
                     open(filename,'w'))
                      
 
