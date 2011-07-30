@@ -527,12 +527,12 @@ def v_circ(p) :
     from . import gravity
     grav_sim = p.sim
 
-    if pynbody.config['verbose'] : print 'Profile: v_circ() -- gravity calculation could take some time!'
+    if pynbody.config['verbose'] : print 'Profile: v_circ() -- warning, disk must be in the x-y plane!!!'
     # Go up to the halo level
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
     
-    return gravity.midplane_rot_curve(grav_sim, p['rbins'])
+    return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
     #return np.sqrt(p["phi'"]*p.r) 
     # quick and dirty:
     #return ((units.G*p['mass_enc']/p['rbins'])**(1,2))
@@ -541,7 +541,22 @@ def v_circ(p) :
 def E_circ(p) :
     """Energy of particles on circular orbits."""
     if pynbody.config['verbose'] : print 'Profile: E_circ()'
-    return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
+    return 0.5*(p['v_circ']**2) + p['pot']
+
+@Profile.profile_property
+def pot(p) :
+    """Calculates the potential in the midplane - can be expensive!!!"""
+    from . import gravity
+    if pynbody.config['verbose'] : 
+        print 'Profile: pot() -- warning, disk must be in the x-y plane!!!'
+
+    grav_sim = p.sim
+    # Go up to the halo level
+    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+        grav_sim = grav_sim.base
+        
+    return gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
+    
 
 @Profile.profile_property
 def omega(p) :
