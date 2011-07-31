@@ -367,6 +367,29 @@ class GadgetFile :
         cur_block = self.blocks[name]
         dt = np.dtype(cur_block.data_type)
         return cur_block.partlen/dt.itemsize
+    
+    #The following functions are for writing blocks back to the file
+    def write_block(self, name, p_type) :
+        """Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this snapshot, 
+        or you try to write more particles than fit in the block, an exception is thrown"""
+
+    def write_block_header(self, fd, name, blocksize) :
+        """(Re) write a Gadget-style block header."""
+        if self.format_2:
+            #This is the block header record, which we want for format two files only
+            blkheadsize = 4 + 4*1;#1 int and 4 chars
+            nextblock = blocksize + 2 * 4;#Relative location of next block; the extra 2 uints are for storing the headers.
+            #Write format 2 header header
+            head = struct.pack(self.endian+'I4sIII',blkheadsize,name,nextblock,blkheadsize)
+            fd.write(head)
+      #Also write the record size, which we want for all files*/
+      return self.write_block_footer(fd,name,blocksize)
+
+    def write_block_footer(self, fd, name, blocksize) :
+        """(Re) write a Gadget-style block footer."""
+        foot=struct.pack(self.endian+'I',blocksize)
+        fd.write(foot)
+        return 0;
 
 
 class GadgetSnap(snapshot.SimSnap):
@@ -503,9 +526,6 @@ class GadgetSnap(snapshot.SimSnap):
             self._get_family_array(name, fam).sim = self
 
 
-    def _write_array(self, name, p_toread,p_start, p_type) :
-        raise Exception, "Not yet implemented"
-
     @staticmethod
     def _can_load(f) :
         """Check whether we can load the file as Gadget format by reading
@@ -525,3 +545,12 @@ class GadgetSnap(snapshot.SimSnap):
             return True
         else :
             return False
+    
+    @staticmethod
+    def _write(self, filename=None) :
+        """Write an entire Gadget file (actually an entire set of snapshots)."""
+    
+    @staticmethod
+    def _write_array(self, array_name, filename=None) :
+        raise Exception, "Not yet implemented"
+
