@@ -231,7 +231,9 @@ class Profile:
         
         self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+
                                          self['bin_edges'][1:])
-        self['rbins'].sim = self.sim
+        
+        # no idea why this next line was there... 
+        # self['rbins'].sim = self.sim
 
         # Width of the bins
         self._properties['dr'] = np.diff(self['rbins'])
@@ -666,3 +668,30 @@ def vrxy(self):
     return vrxy
 
 """
+
+class InclinedProfile(Profile) :
+    """Creates a profile object to be used with a snapshot inclined by
+    some known angle to the xy plane.
+
+    In addition to the SimSnap object, it also requires the angle to initialize. 
+
+    Example:
+    --------
+    >>> s = pynbody.load('sim')
+    >>> pynbody.analysis.angmom.faceon(s)
+    >>> s.rotate_x(60)
+    >>> p = pynbody.profile.InclinedProfile(s, 60)
+
+    """
+
+    def _calculate_x(self, sim) :
+        # calculate an ellipsoidal radius
+        return (sim['x']**2 + (sim['y']/np.cos(np.radians(self.angle)))**2)**(1,2)
+
+    def __init__(self, sim, angle, load_from_file = False, ndim = 2, type = 'lin', **kwargs):
+        self.angle = angle
+        
+        Profile.__init__(self,sim,load_from_file=load_from_file,ndim=ndim,type=type,**kwargs)
+
+        # define the minor axis
+        self._properties['rbins_min'] = np.cos(np.radians(self.angle))*self['rbins']
