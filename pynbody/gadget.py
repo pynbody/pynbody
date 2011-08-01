@@ -389,9 +389,52 @@ class GadgetFile :
         return cur_block.partlen/dt.itemsize
     
     #The following functions are for writing blocks back to the file
-    def write_block(self, name, p_type) :
-        """Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this snapshot, 
-        or you try to write more particles than fit in the block, an exception is thrown"""
+    def write_block(self, name, p_type, big_data) :
+        """Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this file, 
+        an exception KeyError is thrown. If there are too many particles, ValueError is thrown. 
+        big_data contains a reference to the data to be written. Type -1 is all types"""
+        try:
+            cur_block=self.blocks[name]
+        except KeyError:
+            raise KeyError, "Block "+name+" not in file "+self._filename
+        MinType=np.ravel(np.where(cur_block.p_types))[0]
+        MaxType=np.ravel(np.where(cur_block.p_types))[-1]
+        parts = self.get_block_parts(name, p_type)
+        p_start = self.get_start_part(name, p_type)
+        #Have we been given the right number of particles?
+        if np.size(big_data) > parts*self.get_block_dims(name):
+            raise ValueError, "Space for "+str(parts)+" particles of type "+str(p_type)+" in file "+self._filename+", "+str(np.shape(big_data)[0])+" requested."
+        #Do we have the right type?
+        dt = np.dtype(cur_block.data_type)
+        bt=big_data.dtype
+        if bt.kind != dt.kind : 
+            raise ValueError, "Data of incorrect type passed to write_block"
+        #Open the file
+        fd=open(self._filename,"r+b")
+        #Seek to the start of the block
+        fd.seek(cur_block.start+cur_block.partlen*p_start,0)
+        #Add the block header if we are at the start of a block
+        if p_type == MinType  or p_type < 0:
+            data=self.write_block_header(name,cur_block.length)
+            #Better seek back a bit first.
+            fd.seek(-len(data),1)
+            fd.write(data)
+        
+        if self.endian != '=' :
+            big_data=big_data.byteswap(True)
+
+        #Actually write the data
+        #Make sure to ravel it, otherwise the wrong amount will be written!
+        d=np.ravel(big_data.astype(dt)).tostring()
+        if len(d) != cur_block.length:
+            raise Exception
+        fd.write(d)
+
+        if p_type == MaxType or p_type < 0:
+            data=self.write_block_footer(name,cur_block.length)
+            fd.write(data)
+
+        fd.close()
 
     def write_block_header(self, name, blocksize) :
         """Create a string for a Gadget-style block header, but do not actually write it, for atomicity."""
