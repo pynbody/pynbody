@@ -146,3 +146,17 @@ def test_arraytype() :
     assert type(f[[1,3,5,7,9,11]].dm['mass']) is ISA
     assert type(f[[1,2,3,8]].gas['rho']) is ISA
     
+def test_persistence() :
+    f.dm.kdtree = 123
+    assert f.dm.kdtree==123
+    f.dm[::12].kdtree = 234
+    assert f.dm[::12].kdtree==234
+    assert f.dm.kdtree == 123
+    f.gas.kdtree=96
+    assert f.gas.kdtree==96
+    assert f.dm.kdtree==123
+    f.kdtree = 92
+    assert f.kdtree==92
+    assert f.dm.kdtree==123
+    assert f.dm[::12].kdtree==234
+    assert f.gas.kdtree==96
