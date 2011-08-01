@@ -2,6 +2,9 @@ import os
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_python_lib
 
+import numpy
+import numpy.distutils.misc_util
+
 libraries=[ ]
 extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
                       '-fno-omit-frame-pointer',
@@ -14,11 +17,13 @@ extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
 
 extra_link_args = []
 
-incdir = os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
+incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
+
+#os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
 kdmain = Extension('pynbody/kdmain',
                    sources = ['pynbody/kdmain.c', 'pynbody/kd.c', 
                               'pynbody/smooth.c'],
-                   include_dirs=[incdir],
+                   include_dirs=incdir,
                    undef_macros=['DEBUG'],
                    libraries=libraries,
                    extra_compile_args=extra_compile_args,
