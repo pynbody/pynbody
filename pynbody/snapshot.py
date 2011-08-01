@@ -9,6 +9,9 @@ import copy
 import weakref
 import exceptions
 import sys
+import hashlib
+import time
+
 
 from util import LazyKeyError
 
@@ -35,6 +38,7 @@ class SimSnap(object) :
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
+    _persistent = ["kdtree"]
 
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
@@ -45,7 +49,8 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._derived_array_track = []
-        
+        self._persistent_objects = {}
+
         self._unifamily = None
         self.lazy_off = util.ExecutionControl()
         self.auto_propagate_off = util.ExecutionControl()
@@ -153,6 +158,10 @@ class SimSnap(object) :
         # the same data (which will be the case following operations like
         # += etc, since these call __setitem__).
         self._set_array(name, ax, index)
+
+    @property
+    def _inclusion_hash(self) :
+        return 'base'
 
     def halos(self, *args) :
         """Tries to instantiate a halo catalogue object for the given
@@ -312,14 +321,30 @@ class SimSnap(object) :
         if name in self._derived_array_track :
             del self._derived_array_track[self._derived_array_track.index(name)]
 
+    def _get_persist(self, hash, name) :
+        try :
+            return self._persistent_objects[hash][name]
+        except :
+            return None
+
+    def _set_persist(self, hash, name, obj=None) :
+        if not self._persistent_objects.has_key(hash) :
+            self._persistent_objects[hash] = {}
+        self._persistent_objects[hash][name] = obj
+
     def __getattr__(self, name) :
         """Implements getting particles of a specified family name"""
+
+
+        if name in SimSnap._persistent :
+            obj = self.ancestor._get_persist(self._inclusion_hash, name)
+            if obj : return obj
 
         try:
             return self[family.get_family(name)]
         except ValueError :
             pass
-
+        
         raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
 
 
@@ -327,7 +352,24 @@ class SimSnap(object) :
         """Raise an error if an attempt is made to overwrite
         existing families"""
         if name in family.family_names() : raise AttributeError, "Cannot assign family name "+name
-        return object.__setattr__(self, name, val)
+
+        if name in SimSnap._persistent :
+            self.ancestor._set_persist(self._inclusion_hash, name, val)
+        else :
+            return object.__setattr__(self, name, val)
+
+    def __delattr__(self, name) :
+        if name in SimSnap._persistent :
+            obj = self.ancestor._get_persist(self._inclusion_hash, name)
+            if obj : 
+                self.ancestor._set_persist(self._inclusion_hash, name, None)
+                try :
+                    object.__delattr__(self, name)
+                except AttributeError :
+                    pass
+                return
+        object.__delattr__(self, name)
+
 
     def keys(self) :
         """Return the directly accessible array names (in memory)"""
@@ -804,11 +846,9 @@ class SimSnap(object) :
         == operator point to the same data."""
         
         if self is other : return True
-        if len(self)!=len(other) : return False
         
-        self_ancestor = self.ancestor
-        if self_ancestor!=other.ancestor : return False
-        return (self.get_index_list(self_ancestor)==other.get_index_list(self_ancestor)).all()
+        if self.ancestor!=other.ancestor : return False
+        return self._inclusion_hash==other._inclusion_hash
 
 
 
@@ -871,10 +911,11 @@ class SubSnap(SimSnap) :
 
         else :
             raise TypeError("Unknown SubSnap slice type")
-
-        # Work out the length by inspecting the guaranteed-available
-        # array 'pos'.
-        self._num_particles = len(self["pos"])
+        
+        
+        
+        self._num_particles = len(self["pos"]) # this is highly inefficient and needs fixing
+        
         self._descriptor = descriptor
         self.properties = base.properties
 
@@ -917,6 +958,17 @@ class SubSnap(SimSnap) :
     @property
     def _filename(self) :
         return self.base._filename+":"+self._descriptor
+
+    @property
+    def _inclusion_hash(self) :
+        try :
+            return self.__inclusion_hash
+        except AttributeError :
+            index_list  = self.get_index_list(self.ancestor)
+            hash = hashlib.md5(index_list.data)
+            self.__inclusion_hash = hash.digest()
+            return self.__inclusion_hash
+
 
     def keys(self) :
         return self.base.keys()
@@ -1115,3 +1167,4 @@ class FamilySubSnap(SubSnap) :
     def _derive_array(self, array_name, fam=None) :
         if fam is self._unifamily or fam is None :
             self.base._derive_array(array_name, self._unifamily)
+
