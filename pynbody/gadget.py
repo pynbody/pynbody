@@ -102,7 +102,7 @@ class GadgetHeader :
         #    FLAG_NORMALICS_2LPT    (5)   - standard gadget file format with 2lpt ICs
         # All other values, including 0 are interpreted as "don't know" for backwards compatability.
         self.lpt_scalingfactor=0.      # scaling factor for 2lpt initial conditions
-
+        self.endian=endian
         if data == '':
             return
         fmt= endian+"IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif48s"
@@ -116,6 +116,26 @@ class GadgetHeader :
         self.NallHW[0], self.NallHW[1],self.NallHW[2],self.NallHW[3],self.NallHW[4],self.NallHW[5],
         self.flag_entropy_instead_u, self.flag_doubleprecision, self.flag_ic_info, self.lpt_scalingfactor,fill) = struct.unpack(fmt, data)
         return
+    
+    def serialize(self) :
+        """This takes the header structure and returns it as a packed string"""
+        fmt= self.endian+"IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif"
+        #Do not attempt to include padding in the serialised data; the most common use of serialise 
+        #is to write to a file and we don't want to overwrite extra data that might be present
+        if struct.calcsize(fmt) != 256-48:
+            raise Exception, "There is a bug in gadget.py; the header format string is not 256 bytes"
+        #WARNING: On at least python 2.6.3 and numpy 1.3.0 on windows, this code fails with:
+        #SystemError: ..\Objects\longobject.c:336: bad argument to internal function
+        #This is because self.npart, etc, has type np.uint32 and not int.
+        #This is clearly a problem with python/numpy, but cast things to ints until I can determine how widespread it is. 
+        data=struct.pack(fmt,int(self.npart[0]), int(self.npart[1]),int(self.npart[2]),int(self.npart[3]),int(self.npart[4]),int(self.npart[5]),
+        self.mass[0], self.mass[1],self.mass[2],self.mass[3],self.mass[4],self.mass[5],
+        self.time, self.redshift,  self.flag_sfr, self.flag_feedback,
+        int(self.npartTotal[0]), int(self.npartTotal[1]),int(self.npartTotal[2]),int(self.npartTotal[3]),int(self.npartTotal[4]),int(self.npartTotal[5]),
+        self.flag_cooling, self.num_files, self.BoxSize, self.Omega0, self.OmegaLambda, self.HubbleParam,self.flag_stellarage, self.flag_metals,
+        int(self.NallHW[0]), int(self.NallHW[1]),int(self.NallHW[2]),int(self.NallHW[3]),int(self.NallHW[4]),int(self.NallHW[5]),
+        self.flag_entropy_instead_u, self.flag_doubleprecision, self.flag_ic_info, self.lpt_scalingfactor)
+        return data
 
 class GadgetFile :
     """This is a helper class.
@@ -373,23 +393,38 @@ class GadgetFile :
         """Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this snapshot, 
         or you try to write more particles than fit in the block, an exception is thrown"""
 
-    def write_block_header(self, fd, name, blocksize) :
-        """(Re) write a Gadget-style block header."""
-        if self.format_2:
+    def write_block_header(self, name, blocksize) :
+        """Create a string for a Gadget-style block header, but do not actually write it, for atomicity."""
+        if self.format2:
             #This is the block header record, which we want for format two files only
             blkheadsize = 4 + 4*1;#1 int and 4 chars
             nextblock = blocksize + 2 * 4;#Relative location of next block; the extra 2 uints are for storing the headers.
             #Write format 2 header header
-            head = struct.pack(self.endian+'I4sIII',blkheadsize,name,nextblock,blkheadsize)
-            fd.write(head)
-      #Also write the record size, which we want for all files*/
-      return self.write_block_footer(fd,name,blocksize)
+            head = struct.pack(self.endian+'I4sII',blkheadsize,name,nextblock,blkheadsize)
+        #Also write the record size, which we want for all files*/
+        head+=self.write_block_footer(name,blocksize)
+        return head
 
-    def write_block_footer(self, fd, name, blocksize) :
+    def write_block_footer(self, name, blocksize) :
         """(Re) write a Gadget-style block footer."""
-        foot=struct.pack(self.endian+'I',blocksize)
-        fd.write(foot)
-        return 0;
+        return struct.pack(self.endian+'I',blocksize)
+  
+    def write_header(self, head) :
+        """Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written."""
+        #Overwrite the npart in the passed header with the file header. 
+        head.npart=np.array(self.header.npart)
+        data=self.write_block_header("HEAD", 256)
+        data+=head.serialize()
+        #a mode will ignore the file position, and w truncates the file.
+        fd = open(self._filename, "r+")
+        fd.seek(0) #Header always at start of file
+        #Write header
+        fd.write(data)
+        #Seek 48 bytes forward, to skip the padding (which may contain extra data)
+        fd.seek(48,1)
+        data=self.write_block_footer("HEAD", 256)
+        fd.write(data)
+        fd.close()
 
 
 class GadgetSnap(snapshot.SimSnap):
