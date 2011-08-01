@@ -79,8 +79,12 @@ def midplane_rot_curve(f, rxy_points, eps = None) :
         for pos in [(r,0,0), (0,r,0), (-r,0,0), (0,-r,0)] :
             acc = accel(f, pos, eps)
             r_acc_r.append(np.dot(acc,pos))
-
-        vel = math.sqrt(np.mean(r_acc_r))
+        
+        vel2 = np.mean(r_acc_r)
+        if vel2>0 :
+            vel = math.sqrt(vel2)
+        else :
+            vel = 0
 
         vels.append(vel)
 
