@@ -160,3 +160,14 @@ def test_persistence() :
     assert f.dm.kdtree==123
     assert f.dm[::12].kdtree==234
     assert f.gas.kdtree==96
+
+def test_copy() :
+    import copy
+    f2 = copy.deepcopy(f)
+    f2.dm['mass'][0] = 2
+    f.dm['mass'][0] = 1
+    assert f2.dm['mass'][0]!=f.dm['mass'][0]
+    
+    assert len(f2)==len(f)
+    assert len(f2.dm)==len(f.dm)
+    assert len(f2.gas['rho'])==500
