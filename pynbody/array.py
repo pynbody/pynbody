@@ -597,8 +597,8 @@ class IndexedSimArray(object) :
         self.base = array
         self._ptr = ptr
         
-    def __array__(self, *args, **kwargs) :
-        return self.base[self._ptr].__array__(*args, **kwargs)
+    def __array__(self, dtype=None) :
+        return np.asanyarray(self.base[self._ptr], dtype=dtype)
 
     def _reexpress_index(self, index) :
         if isinstance(index, tuple) or (isinstance(index,list) and len(index)>0 and hasattr(index[0], '__len__')) :

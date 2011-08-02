@@ -141,7 +141,7 @@ class SimSnap(object) :
         if isinstance(item, array.SimArray) :
             ax = item
         else :
-            ax = np.asarray(item).view(array.SimArray)
+            ax = np.asanyarray(item).view(array.SimArray)
 
         if name not in self.keys() :
             # Array needs to be created. We do this through the
@@ -819,7 +819,7 @@ class SimSnap(object) :
         
     def mean_by_mass(self, name) :
         """Calculate the mean by mass of the specified array"""
-        m = np.asarray(self["mass"])
+        m = np.asanyarray(self["mass"])
         return (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
 
     # Methods for snapshot decoration
@@ -873,7 +873,6 @@ class SimSnap(object) :
             for fam in family._registry :
                 self_fam = self[fam]
                 if k in self_fam.keys() and not self_fam.is_derived_array(k) :
-                    print fam, k
                     new[fam][k] = self_fam[k]
 
 

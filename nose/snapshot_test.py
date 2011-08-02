@@ -175,8 +175,15 @@ def test_copy() :
     f2 = copy.deepcopy(f[::3])
     assert len(f2)==len(f[::3])
     assert len(f2.gas)==len(f[::3].gas)
-    print f2.gas['mass']
-    print f[::3].gas['mass']
+    
     assert all(f2.gas['mass'] == f[::3].gas['mass'])
     f2.gas['mass'][0]=999
     assert not all(f2.gas['mass'] == f[::3].gas['mass'])
+
+    f['pos'].units='kpc'
+    f2 = copy.deepcopy(f[[1,2,3,4]])
+    assert f2['pos'].units=='kpc'
+    # this tests for a bug where units were not correctly
+    # copied in from IndexedSimArrays
+    
+    
