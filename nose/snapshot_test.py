@@ -171,3 +171,12 @@ def test_copy() :
     assert len(f2)==len(f)
     assert len(f2.dm)==len(f.dm)
     assert len(f2.gas['rho'])==500
+
+    f2 = copy.deepcopy(f[::3])
+    assert len(f2)==len(f[::3])
+    assert len(f2.gas)==len(f[::3].gas)
+    print f2.gas['mass']
+    print f[::3].gas['mass']
+    assert all(f2.gas['mass'] == f[::3].gas['mass'])
+    f2.gas['mass'][0]=999
+    assert not all(f2.gas['mass'] == f[::3].gas['mass'])

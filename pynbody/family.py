@@ -53,15 +53,6 @@ class Family(object) :
     def __repr__(self) :
         return "<Family "+self.name+">"
 
-    def __deepcopy__(self, *args) :
-        # AP: 2/08/2011
-        # This is a difficult decision, but it's hard to see why getting a 
-        # deep copy of a Family object would ever be useful, and it makes
-        # deep-copying other objects with references to Family objects
-        # very hard. Therefore, I'm trying this approach, which will admittedly
-        # result in very surprising behaviour for anyone who actually wants
-        # to deep-copy a Family for any reason.
-        return self
 
 dm = Family("dm",["d","dark"])
 star = Family("star",["stars","st","s"])

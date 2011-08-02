@@ -4,6 +4,7 @@ from . import filt
 from . import units
 from . import config
 
+
 import numpy as np
 import copy
 import weakref
@@ -852,6 +853,37 @@ class SimSnap(object) :
 
 
 
+    def __deepcopy__(self, memo=None) :
+        create_args = {}
+        for fam in family._registry :
+            sl = self._get_family_slice(fam)
+            if sl.start!=sl.stop :
+                create_args[fam.name] = len(self[fam])
+
+        new = _new(**create_args)
+        
+        # ordering fix
+        for k in copy.copy(new._family_slice.keys()) :
+            new._family_slice[k] = copy.copy(self._get_family_slice(k))
+
+        for k in self.keys() :
+            new[k] = self[k]
+            
+        for k in self.family_keys() :
+            for fam in family._registry :
+                self_fam = self[fam]
+                if k in self_fam.keys() and not self_fam.is_derived_array(k) :
+                    print fam, k
+                    new[fam][k] = self_fam[k]
+
+
+        new.properties = copy.deepcopy(self.properties, memo)
+        new._file_units_system = copy.deepcopy(self._file_units_system, memo)
+
+        return new
+
+
+
 
 @SimSnap.decorator
 def put_1d_slices(sim) :
@@ -1030,8 +1062,6 @@ class SubSnap(SimSnap) :
 
 
 
-
-
 class IndexedSubSnap(SubSnap) :
     """Represents a subset of the simulation particles according
     to an index array."""
@@ -1168,3 +1198,46 @@ class FamilySubSnap(SubSnap) :
         if fam is self._unifamily or fam is None :
             self.base._derive_array(array_name, self._unifamily)
 
+
+
+def _new(n_particles=0, **families) :
+    """Create a blank SimSnap, with the specified number of particles.
+
+    Position, velocity and mass arrays are created and filled
+    with zeros.
+    
+    By default all particles are taken to be dark matter.
+    To specify otherwise, pass in keyword arguments specifying
+    the number of particles for each family, e.g.
+
+    f = new(dm=50, star=25, gas=25)
+    """
+
+    if len(families)==0 :
+        families = {'dm': n_particles}
+
+    t_fam = []
+    tot_particles = 0
+
+
+    for k,v in families.items() :
+        
+        assert isinstance(v,int)
+        t_fam.append((family.get_family(k), v))
+        tot_particles+=v
+
+        
+    x = SimSnap()
+    x._num_particles = tot_particles
+    x._filename = "<created>"
+
+    x._create_arrays(["pos","vel"],3)
+    x._create_arrays(["mass"],1)
+    
+    rt = 0
+    for k,v in t_fam :
+        x._family_slice[k] = slice(rt,rt+v)
+        rt+=v
+
+    x._decorate()
+    return x
