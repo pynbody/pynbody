@@ -524,12 +524,14 @@ def j_circ(p) :
 @Profile.profile_property
 def v_circ(p) :
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
-    in the midplane - can be expensive!!!"""
+    in the midplane - can be expensive"""
 
     from . import gravity
     grav_sim = p.sim
 
-    if pynbody.config['verbose'] : print 'Profile: v_circ() -- warning, disk must be in the x-y plane!!!'
+    if pynbody.config['verbose'] : 
+        print 'Profile: v_circ() -- warning, disk must be in the x-y plane'
+
     # Go up to the halo level
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
@@ -547,10 +549,10 @@ def E_circ(p) :
 
 @Profile.profile_property
 def pot(p) :
-    """Calculates the potential in the midplane - can be expensive!!!"""
+    """Calculates the potential in the midplane - can be expensive"""
     from . import gravity
     if pynbody.config['verbose'] : 
-        print 'Profile: pot() -- warning, disk must be in the x-y plane!!!'
+        print 'Profile: pot() -- warning, disk must be in the x-y plane'
 
     grav_sim = p.sim
     # Go up to the halo level
