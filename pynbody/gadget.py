@@ -385,7 +385,7 @@ class GadgetFile :
         return cur_block.partlen/dt.itemsize
     
     #The following functions are for writing blocks back to the file
-    def write_block(self, name, p_type, big_data) :
+    def write_block(self, name, p_type, big_data, filename=None) :
         """Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this file, 
         an exception KeyError is thrown. If there are too many particles, ValueError is thrown. 
         big_data contains a reference to the data to be written. Type -1 is all types"""
@@ -406,7 +406,10 @@ class GadgetFile :
         if bt.kind != dt.kind : 
             raise ValueError, "Data of incorrect type passed to write_block"
         #Open the file
-        fd=open(self._filename,"r+b")
+        if filename == None : 
+            fd = open(self._filename, "r+b")
+        else :
+            fd = open(filename, "r+b")
         #Seek to the start of the block
         fd.seek(cur_block.start+cur_block.partlen*p_start,0)
         #Add the block header if we are at the start of a block
@@ -469,14 +472,17 @@ class GadgetFile :
         """(Re) write a Gadget-style block footer."""
         return struct.pack(self.endian+'I',blocksize)
   
-    def write_header(self, head) :
+    def write_header(self, head, filename=None) :
         """Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written."""
         #Overwrite the npart in the passed header with the file header. 
         head.npart=np.array(self.header.npart)
         data=self.write_block_header("HEAD", 256)
         data+=head.serialize()
         #a mode will ignore the file position, and w truncates the file.
-        fd = open(self._filename, "r+")
+        if filename == None : 
+            fd = open(self._filename, "r+")
+        else :
+            fd = open(filename, "r+")
         fd.seek(0) #Header always at start of file
         #Write header
         fd.write(data)
@@ -653,9 +659,9 @@ class GadgetSnap(snapshot.SimSnap):
     @staticmethod
     def _write(self, filename=None) :
         """Write an entire Gadget file (actually an entire set of snapshots)."""
-        #Call _write_header for every file. 
+        #Call write_header for every file. 
         for f in self._files:
-            f.write_header(self.header)
+            f.write_header(self.header,filename=filename)
         #Call _write_array for every array.
         for x in set(self.keys()).union(self.family_keys()) :
             if not self.is_derived_array(x):
