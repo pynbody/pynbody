@@ -555,13 +555,13 @@ class GadgetSnap(snapshot.SimSnap):
             b_name = k.lower().rstrip()
             b_types = ()
             if b.p_types[GAS_TYPE]:
-                b_types.append(family.gas)
+                b_types+=(family.gas,)
             if b.p_types[DM_TYPE]:
-                b_types.append(family.dm)
+                b_types+=(family.dm,)
             if b.p_types[NEUTRINO_TYPE]:
-                b_types.append(family.neutrino)
+                b_types+=(family.neutrino,)
             if b.p_types[STAR_TYPE]:
-                b_types.append(family.star)
+                b_types+=(family.star,)
             out_list[b_name] = b_types
         return out_list
 
