@@ -482,7 +482,11 @@ class GadgetFile :
         if filename == None : 
             fd = open(self._filename, "r+")
         else :
-            fd = open(filename, "r+")
+            try :
+                fd = open(filename, "r+")
+            except IOError:
+                #If we couldn't open it (because it doesn't exist) open it for writing.
+                fd = open(filename, "w+")
         fd.seek(0) #Header always at start of file
         #Write header
         fd.write(data)
