@@ -26,14 +26,10 @@ def gadget_type(fam) :
             return GAS_TYPE
         if fam == family.dm:
             return DM_TYPE
-        if fam == family.disk or fam == family.neutrino:
+        if fam == family.neutrino:
             return NEUTRINO_TYPE
-        if fam == family.bulge:
-            return BULGE_TYPE
-        if fam == family.stars:
+        if fam == family.star:
             return STAR_TYPE
-        if fam == family.bndry:
-            return BNDRY_TYPE
     raise KeyError, "No particle of type"+fam.name
 
 class GadgetBlock :
@@ -424,7 +420,8 @@ class GadgetFile :
             big_data=big_data.byteswap(True)
 
         #Actually write the data
-        #Make sure to ravel it, otherwise the wrong amount will be written!
+        #Make sure to ravel it, otherwise the wrong amount will be written, 
+        #because it will also write nulls every time the first array dimension changes.
         d=np.ravel(big_data.astype(dt)).tostring()
         if len(d) != cur_block.length:
             raise Exception
@@ -435,6 +432,26 @@ class GadgetFile :
             fd.write(data)
 
         fd.close()
+
+    def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=-1):
+        """Add a block to the block table at the end of the file. Do not actually write anything"""
+        if self.blocks.has_key(name) :
+            raise KeyError,"Block "+name+" already present in file. Not adding"
+        def st(val):
+            return val.start
+        #Get last block
+        lb=max(self.blocks.values(), key=st)
+        #Make new block
+        block=GadgetBlock()
+        block.start=lb.start+lb.length+6*4 #For the block header, and footer of the previous block
+        block.length=blocksize
+        block.partlen=partlen
+        block.data_type=dtype
+        if p_types == -1:
+            block.p_types = np.ones(N_TYPE,bool)
+        else:
+            block.p_types = p_types
+        self.blocks[name]=block
 
     def write_block_header(self, name, blocksize) :
         """Create a string for a Gadget-style block header, but do not actually write it, for atomicity."""
@@ -509,7 +526,7 @@ class GadgetSnap(snapshot.SimSnap):
         self.header=copy.deepcopy(self._files[0].header)
         self.header.npart = npart
         #Set up _family_slice
-        self._family_slice[family.gas] = slice(npart[0:GAS_TYPE].sum(),npart[GAS_TYPE+1].sum())
+        self._family_slice[family.gas] = slice(npart[0:GAS_TYPE].sum(),npart[0:GAS_TYPE+1].sum())
         self._family_slice[family.dm] = slice(npart[0:DM_TYPE].sum(), npart[0:DM_TYPE+1].sum())
         self._family_slice[family.neutrino] = slice(npart[0:NEUTRINO_TYPE].sum(), npart[0:NEUTRINO_TYPE+1].sum())
         self._family_slice[family.star] = slice(npart[0:STAR_TYPE].sum(),npart[0:STAR_TYPE+1].sum() )
@@ -518,7 +535,7 @@ class GadgetSnap(snapshot.SimSnap):
         #TODO: Set up file_units_system
         return
 
-    def get_block_list():
+    def get_block_list(self):
         """Get list of unique blocks in snapshot (most of the time these should be the same
         in each file), with the types they refer to"""
         b_list = {}
@@ -547,6 +564,13 @@ class GadgetSnap(snapshot.SimSnap):
         total=0
         for f in self._files:
             total+=f.get_block_parts(name, p_type)
+        return total
+
+    def get_block_types(self, name) :
+        """Get the types for which block name exists"""
+        total=self._files[0].blocks[name].p_types
+        for f in self._files:
+            total+=f.blocks[name].p_types
         return total
 
     def check_headers(self, head1, head2) :
@@ -578,10 +602,18 @@ class GadgetSnap(snapshot.SimSnap):
         g_name = (name.upper().ljust(4," "))[0:4]
         p_read = 0
         p_start = 0
-        data = array.SimArray([])
+        try:
+            data = array.SimArray([],dtype=self._files[0].blocks[g_name].data_type)
+        except KeyError:
+            raise KeyError,"Block "+name+" not in "+self.filename
+        if not self.get_block_types(name).all() and fam is None:
+            raise KeyError,"Block "+name+" is a family type, not available for all families"
         p_type = gadget_type(fam)
         ndim = self._files[0].get_block_dims(g_name)
-        dims = (self.get_block_parts(g_name, p_type), ndim)
+        if ndim == 1:
+            dims = (self.get_block_parts(g_name, p_type),)
+        else:
+            dims = (self.get_block_parts(g_name, p_type), ndim)
         for f in self._files:
             f_read = 0
             f_parts = f.get_block_parts(g_name, p_type)
@@ -590,19 +622,13 @@ class GadgetSnap(snapshot.SimSnap):
             (f_read, f_data) = f.get_block(g_name, p_type, f_parts)
             p_read+=f_read
             data=np.append(data, f_data)
-        if np.size(data) == 0:
-            raise KeyError, "Block "+name+" not in snapshot for family "+fam
-        #TODO: Add some logic. If we have already got the data from a family, make
-        #the family array a pointer to the main array so we don't load things twice.
         if fam is None :
-            self._arrays[name] = data.reshape(dims, order='C').view(array.SimArray)
-            self._arrays[name].sim = self
+            self[name] = data.reshape(dims, order='C').view(array.SimArray)
         else :
-            self._create_family_array(name, fam, ndim, data.dtype)
-            self._get_family_array(name, fam)[:] = \
-                  data.reshape(dims,order='C').view(array.SimArray)
-            self._get_family_array(name, fam).sim = self
-
+            try:
+                self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
+            except IndexError:
+                raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
 
     @staticmethod
     def _can_load(f) :
@@ -627,8 +653,48 @@ class GadgetSnap(snapshot.SimSnap):
     @staticmethod
     def _write(self, filename=None) :
         """Write an entire Gadget file (actually an entire set of snapshots)."""
+        #Call _write_header for every file. 
+        for f in self._files:
+            f.write_header(self.header)
+        #Call _write_array for every array.
+        for x in set(self.keys()).union(self.family_keys()) :
+            if not self.is_derived_array(x):
+                self._write_array(self, x, filename=filename)
+        #If caller is a tipsy file, construct the GadgetFiles, so conversion works.
+        #Find some way of specifying format2, so that conversion works
     
-    @staticmethod
     def _write_array(self, array_name, filename=None) :
-        raise Exception, "Not yet implemented"
+        """Write a data array back to a Gadget snapshot, splitting it across files"""
+        #Make the name a four-character upper case name, possibly with trailing spaces
+        g_name = (array_name.upper().ljust(4," "))[0:4]
+        nfiles=np.size(self._files)
+        f_parts=np.zeros(nfiles)
+        #Find where each particle goes
+        for i in np.arange(0,nfiles):
+            f_parts[i] = self._files[i].get_block_parts(g_name, -1)
+        #If there is no block corresponding to this name in the file, add it.
+        if np.sum(f_parts) == 0:
+            #Get p_type
+            p_types=np.zeros(N_TYPES,bool)
+            if array_name in self.family_keys() :
+                for fam in self.families():
+                    #We get the particle types we want by trying to load all particle types and seeing which ones work
+                    if self[fam].has_key(array_name) :
+                        p_types[gadget_type(fam)]=True
+            ashape=np.shape(self[array_name])
+            asize=np.size(self[array_name])
+            per_file = ashape[0]/nfiles
+            for f in self._files[:-2]:
+                f.add_file_block(self[array_name], per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
+            self_files[-1].add_file_block(array_name, ashape[0]-(nfiles-1)*per_file,ashape[1])
+        #Write the blocks
+        s=0
+        for i in np.arange(0,nfiles) :
+            if array_name in self.family_keys() :
+                for fam in self.families() :
+                    if self[fam].has_key(array_name) :
+                        self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
+            else:
+                self._files[i].write_block(g_name, -1, self[array_name][s:(s+f_parts[i])])
+            s+=f_parts[i]
 
