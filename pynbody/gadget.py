@@ -312,7 +312,7 @@ class GadgetFile :
         else :
             record_size = fd.read(4)
             if len(record_size) != 4 :
-                raise IOError, "Ran out of data in "+filename+" before block "+name+" started"
+                raise IOError, "Ran out of data in "+self._filename+" before block started"
             (record_size,)=struct.unpack(self.endian+'I', record_size)
             try:
                 name = self.block_names[0]
