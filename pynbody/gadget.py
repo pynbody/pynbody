@@ -616,7 +616,7 @@ class GadgetSnap(snapshot.SimSnap):
             data = array.SimArray([],dtype=self._files[0].blocks[g_name].data_type)
         except KeyError:
             raise KeyError,"Block "+name+" not in "+self.filename
-        if not self.get_block_types(name).all() and fam is None:
+        if not self.get_block_types(g_name).all() and fam is None:
             raise KeyError,"Block "+name+" is a family type, not available for all families"
         p_type = gadget_type(fam)
         ndim = self._files[0].get_block_dims(g_name)
