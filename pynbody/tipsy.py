@@ -3,7 +3,7 @@ from __future__ import with_statement # for py2.5
 from . import snapshot, array, util
 from . import family
 from . import units
-from . import config
+from . import config, config_parser
 
 import struct, os
 import numpy as np
@@ -336,8 +336,9 @@ class TipsySnap(snapshot.SimSnap) :
 	except ValueError :
             # this is probably a binary file
             binary = True
+            del f
+            f, buflen = util.open_with_size(filename, 'rb')
 
-            f.seek(0)
             l = struct.unpack("i",f.read(4))[0]
 
             if (l > 1e8 or l < 10):
@@ -347,9 +348,6 @@ class TipsySnap(snapshot.SimSnap) :
             else :
                 _byteswap=False
 
-            f.seek(0, os.SEEK_END)
-            buflen = f.tell()
-            f.seek(4, os.SEEK_SET)
 
             if (buflen-4)/4/3. == l : # it's a float vector 
                 if _byteswap:
@@ -361,7 +359,8 @@ class TipsySnap(snapshot.SimSnap) :
                     data = data.byteswap()
                 ndim = 3
             elif (buflen-4)/4. == l : # it's a 1D array
-                if (array_name == 'iord' or array_name== 'igasorder') :
+                int_arrays = map(str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
+                if array_name in int_arrays :
                     isInt = True
                     if _byteswap:
                         data = np.fromstring(f.read(l*4),'i').byteswap()
