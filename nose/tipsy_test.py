@@ -61,7 +61,36 @@ def test_loadable_array() :
     assert 'HI' in f.loadable_keys()
     f['HI']
     assert 'HI' in f.keys()
+    
+    assert 'HeI' in f.loadable_keys()
+    f['HeI']
+    assert 'HeI' in f.keys()
 
+    assert f['HI'].dtype == np.float32
+    assert f['HeI'].dtype == np.float32
+    assert f['igasorder'].dtype == np.int32 
+
+    HI_correct = np.array([  5.35406599e-08,   4.97452731e-07,   5.73000014e-01, \
+         5.73000014e-01,   5.73000014e-01,   5.73000014e-01,\
+         5.73000014e-01,   5.73000014e-01,   5.73000014e-01,\
+         5.73000014e-01,   5.73000014e-01,   5.73000014e-01,\
+         5.73000014e-01,   5.73000014e-01,   5.73000014e-01,\
+         4.18154418e-01,   5.86960971e-01,   3.94545615e-01], dtype=np.float32)
+    HeI_correct = np.array([  3.51669648e-12,   2.28513852e-09,   3.53999995e-03,\
+         3.53999995e-03,   3.53999995e-03,   3.53999995e-03,\
+         3.53999995e-03,   3.53999995e-03,   3.53999995e-03,\
+         3.53999995e-03,   3.53999995e-03,   3.53999995e-03,\
+         3.53999995e-03,   3.53999995e-03,   3.53999995e-03,\
+         3.94968614e-02,   5.48484921e-02,   4.77905162e-02], dtype=np.float32)
+    igasorder_correct = np.array([     0,      0,      0,      0,      0,      0,      0,      0,\
+            0,      0,      0,      0,      0,      0,      0,  67264,\
+        72514, 177485], dtype=np.int32)
+
+    assert (f['igasorder'][::100000]==igasorder_correct).all()
+    assert abs(f['HI'][::100000]-HI_correct).sum()<1.e-10
+    assert abs(f['HeI'][::100000]-HeI_correct).sum()<1.e-10
+    
+    
     
 def test_units() :
     print f['pos'].units
