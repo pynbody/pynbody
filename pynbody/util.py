@@ -1,20 +1,37 @@
 import numpy as np
 from .backcompat import fractions
 import copy
+import gzip
+import struct
+import os
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
     gzip decompression"""
 
     if (filename[-3:] == '.gz') :
-        import gzip
         return gzip.open(filename, *args)
     try :
         return open(filename, *args)
     except IOError :
-        import gzip
         return gzip.open(filename+".gz", *args)
 
+def open_with_size(filename, *args) :
+    """Open a file for reading, returning also the (decompressed)
+    file size"""
+
+    f = open_(filename, *args)
+    if isinstance(f,gzip.GzipFile) :
+        fo = open(f.name, 'rb')
+        fo.seek(-4, 2)
+        r = fo.read()
+        fo.close()
+        return f, struct.unpack('<I', r)[0]
+    else :
+        f.seek(0, os.SEEK_END)
+        buflen = f.tell()
+        f.seek(4, os.SEEK_SET)
+        return f, buflen
 
 def gcf(a,b) :
     while b>0 : a,b = b,a%b

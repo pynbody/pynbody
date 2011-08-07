@@ -146,3 +146,44 @@ def test_arraytype() :
     assert type(f[[1,3,5,7,9,11]].dm['mass']) is ISA
     assert type(f[[1,2,3,8]].gas['rho']) is ISA
     
+def test_persistence() :
+    f.dm.kdtree = 123
+    assert f.dm.kdtree==123
+    f.dm[::12].kdtree = 234
+    assert f.dm[::12].kdtree==234
+    assert f.dm.kdtree == 123
+    f.gas.kdtree=96
+    assert f.gas.kdtree==96
+    assert f.dm.kdtree==123
+    f.kdtree = 92
+    assert f.kdtree==92
+    assert f.dm.kdtree==123
+    assert f.dm[::12].kdtree==234
+    assert f.gas.kdtree==96
+
+def test_copy() :
+    import copy
+    f2 = copy.deepcopy(f)
+    f2.dm['mass'][0] = 2
+    f.dm['mass'][0] = 1
+    assert f2.dm['mass'][0]!=f.dm['mass'][0]
+    
+    assert len(f2)==len(f)
+    assert len(f2.dm)==len(f.dm)
+    assert len(f2.gas['rho'])==500
+
+    f2 = copy.deepcopy(f[::3])
+    assert len(f2)==len(f[::3])
+    assert len(f2.gas)==len(f[::3].gas)
+    
+    assert all(f2.gas['mass'] == f[::3].gas['mass'])
+    f2.gas['mass'][0]=999
+    assert not all(f2.gas['mass'] == f[::3].gas['mass'])
+
+    f['pos'].units='kpc'
+    f2 = copy.deepcopy(f[[1,2,3,4]])
+    assert f2['pos'].units=='kpc'
+    # this tests for a bug where units were not correctly
+    # copied in from IndexedSimArrays
+    
+    

@@ -3,7 +3,7 @@ from __future__ import with_statement # for py2.5
 from . import snapshot, array, util
 from . import family
 from . import units
-from . import config
+from . import config, config_parser
 
 import struct, os
 import numpy as np
@@ -335,26 +335,48 @@ class TipsySnap(snapshot.SimSnap) :
 	    l = int(f.readline())
 	except ValueError :
             # this is probably a binary file
-            import xdrlib
             binary = True
+            del f
+            f, buflen = util.open_with_size(filename, 'rb')
 
-            f.seek(0)
-            up = xdrlib.Unpacker(f.read())
-            l = up.unpack_int()
+            l = struct.unpack("i",f.read(4))[0]
 
-            buflen = len(up.get_buffer())
+            if (l > 1e8 or l < 10):
+                _byteswap=True
+                f.seek(0)
+                l = struct.unpack(">i", f.read(4))[0]
+            else :
+                _byteswap=False
+
 
             if (buflen-4)/4/3. == l : # it's a float vector 
-                data = np.array(up.unpack_farray(l*3,up.unpack_float))
+                if _byteswap:
+                    data = np.fromstring(f.read(l*3*4),'f').byteswap()
+                else:
+                    data = np.fromstring(f.read(l*3*4),'f')
+                if (np.isnan(np.max(data)) or np.isnan(np.min(data)) or
+                    (np.max(data) > 1e20) or (np.min(data) < -1e20)):
+                    data = data.byteswap()
                 ndim = 3
-            elif (buflen-4)/4. == l : # it's a float array 
-                if (array_name == 'iord') :
+            elif (buflen-4)/4. == l : # it's a 1D array
+                int_arrays = map(str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
+                if array_name in int_arrays :
                     isInt = True
-                    data = np.zeros(l,dtype=int)
-                    for i in xrange(l) : data[i] = up.unpack_int()
+                    if _byteswap:
+                        data = np.fromstring(f.read(l*4),'i').byteswap()
+                    else:
+                        data = np.fromstring(f.read(l*4),'i')
+                    if (np.max(data) > 3*l) or (np.min(data) < 0):
+                        data = data.byteswap()
                 else :
                     isInt = False
-                    data = np.array(up.unpack_farray(l,up.unpack_float))
+                    if _byteswap:
+                        data = np.fromstring(f.read(l*4),'f').byteswap()
+                    else:
+                        data = np.fromstring(f.read(l*4),'f')
+                    if (np.isnan(np.max(data)) or np.isnan(np.min(data)) or
+                        (np.max(data) > 1e20) or (np.min(data) < -1e20)):
+                        data = data.byteswap()
                 ndim = 1
             else: # don't know what it is
                 raise IOError, "Incorrect file format"

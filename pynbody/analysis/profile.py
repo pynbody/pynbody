@@ -231,7 +231,9 @@ class Profile:
         
         self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+
                                          self['bin_edges'][1:])
-        self['rbins'].sim = self.sim
+        
+        # no idea why this next line was there... 
+        # self['rbins'].sim = self.sim
 
         # Width of the bins
         self._properties['dr'] = np.diff(self['rbins'])
@@ -522,17 +524,19 @@ def j_circ(p) :
 @Profile.profile_property
 def v_circ(p) :
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
-    in the midplane - can be expensive!!!"""
+    in the midplane - can be expensive"""
 
     from . import gravity
     grav_sim = p.sim
 
-    if pynbody.config['verbose'] : print 'Profile: v_circ() -- gravity calculation could take some time!'
+    if pynbody.config['verbose'] : 
+        print 'Profile: v_circ() -- warning, disk must be in the x-y plane'
+
     # Go up to the halo level
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
     
-    return gravity.midplane_rot_curve(grav_sim, p['rbins'])
+    return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
     #return np.sqrt(p["phi'"]*p.r) 
     # quick and dirty:
     #return ((units.G*p['mass_enc']/p['rbins'])**(1,2))
@@ -541,7 +545,22 @@ def v_circ(p) :
 def E_circ(p) :
     """Energy of particles on circular orbits."""
     if pynbody.config['verbose'] : print 'Profile: E_circ()'
-    return 0.5*((p['v_circ']*p['v_circ'])) + p['phi']
+    return 0.5*(p['v_circ']**2) + p['pot']
+
+@Profile.profile_property
+def pot(p) :
+    """Calculates the potential in the midplane - can be expensive"""
+    from . import gravity
+    if pynbody.config['verbose'] : 
+        print 'Profile: pot() -- warning, disk must be in the x-y plane'
+
+    grav_sim = p.sim
+    # Go up to the halo level
+    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+        grav_sim = grav_sim.base
+        
+    return gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
+    
 
 @Profile.profile_property
 def omega(p) :
@@ -651,3 +670,30 @@ def vrxy(self):
     return vrxy
 
 """
+
+class InclinedProfile(Profile) :
+    """Creates a profile object to be used with a snapshot inclined by
+    some known angle to the xy plane.
+
+    In addition to the SimSnap object, it also requires the angle to initialize. 
+
+    Example:
+    --------
+    >>> s = pynbody.load('sim')
+    >>> pynbody.analysis.angmom.faceon(s)
+    >>> s.rotate_x(60)
+    >>> p = pynbody.profile.InclinedProfile(s, 60)
+
+    """
+
+    def _calculate_x(self, sim) :
+        # calculate an ellipsoidal radius
+        return (sim['x']**2 + (sim['y']/np.cos(np.radians(self.angle)))**2)**(1,2)
+
+    def __init__(self, sim, angle, load_from_file = False, ndim = 2, type = 'lin', **kwargs):
+        self.angle = angle
+        
+        Profile.__init__(self,sim,load_from_file=load_from_file,ndim=ndim,type=type,**kwargs)
+
+        # define the minor axis
+        self._properties['rbins_min'] = np.cos(np.radians(self.angle))*self['rbins']

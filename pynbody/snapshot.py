@@ -4,11 +4,15 @@ from . import filt
 from . import units
 from . import config
 
+
 import numpy as np
 import copy
 import weakref
 import exceptions
 import sys
+import hashlib
+import time
+
 
 from util import LazyKeyError
 
@@ -35,6 +39,7 @@ class SimSnap(object) :
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
+    _persistent = ["kdtree"]
 
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
@@ -45,7 +50,8 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._derived_array_track = []
-        
+        self._persistent_objects = {}
+
         self._unifamily = None
         self.lazy_off = util.ExecutionControl()
         self.auto_propagate_off = util.ExecutionControl()
@@ -135,7 +141,7 @@ class SimSnap(object) :
         if isinstance(item, array.SimArray) :
             ax = item
         else :
-            ax = np.asarray(item).view(array.SimArray)
+            ax = np.asanyarray(item).view(array.SimArray)
 
         if name not in self.keys() :
             # Array needs to be created. We do this through the
@@ -153,6 +159,10 @@ class SimSnap(object) :
         # the same data (which will be the case following operations like
         # += etc, since these call __setitem__).
         self._set_array(name, ax, index)
+
+    @property
+    def _inclusion_hash(self) :
+        return 'base'
 
     def halos(self, *args) :
         """Tries to instantiate a halo catalogue object for the given
@@ -312,14 +322,30 @@ class SimSnap(object) :
         if name in self._derived_array_track :
             del self._derived_array_track[self._derived_array_track.index(name)]
 
+    def _get_persist(self, hash, name) :
+        try :
+            return self._persistent_objects[hash][name]
+        except :
+            return None
+
+    def _set_persist(self, hash, name, obj=None) :
+        if not self._persistent_objects.has_key(hash) :
+            self._persistent_objects[hash] = {}
+        self._persistent_objects[hash][name] = obj
+
     def __getattr__(self, name) :
         """Implements getting particles of a specified family name"""
+
+
+        if name in SimSnap._persistent :
+            obj = self.ancestor._get_persist(self._inclusion_hash, name)
+            if obj : return obj
 
         try:
             return self[family.get_family(name)]
         except ValueError :
             pass
-
+        
         raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
 
 
@@ -327,7 +353,24 @@ class SimSnap(object) :
         """Raise an error if an attempt is made to overwrite
         existing families"""
         if name in family.family_names() : raise AttributeError, "Cannot assign family name "+name
-        return object.__setattr__(self, name, val)
+
+        if name in SimSnap._persistent :
+            self.ancestor._set_persist(self._inclusion_hash, name, val)
+        else :
+            return object.__setattr__(self, name, val)
+
+    def __delattr__(self, name) :
+        if name in SimSnap._persistent :
+            obj = self.ancestor._get_persist(self._inclusion_hash, name)
+            if obj : 
+                self.ancestor._set_persist(self._inclusion_hash, name, None)
+                try :
+                    object.__delattr__(self, name)
+                except AttributeError :
+                    pass
+                return
+        object.__delattr__(self, name)
+
 
     def keys(self) :
         """Return the directly accessible array names (in memory)"""
@@ -776,7 +819,7 @@ class SimSnap(object) :
         
     def mean_by_mass(self, name) :
         """Calculate the mean by mass of the specified array"""
-        m = np.asarray(self["mass"])
+        m = np.asanyarray(self["mass"])
         return (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
 
     # Methods for snapshot decoration
@@ -804,11 +847,39 @@ class SimSnap(object) :
         == operator point to the same data."""
         
         if self is other : return True
-        if len(self)!=len(other) : return False
         
-        self_ancestor = self.ancestor
-        if self_ancestor!=other.ancestor : return False
-        return (self.get_index_list(self_ancestor)==other.get_index_list(self_ancestor)).all()
+        if self.ancestor!=other.ancestor : return False
+        return self._inclusion_hash==other._inclusion_hash
+
+
+
+    def __deepcopy__(self, memo=None) :
+        create_args = {}
+        for fam in family._registry :
+            sl = self._get_family_slice(fam)
+            if sl.start!=sl.stop :
+                create_args[fam.name] = len(self[fam])
+
+        new = _new(**create_args)
+        
+        # ordering fix
+        for k in copy.copy(new._family_slice.keys()) :
+            new._family_slice[k] = copy.copy(self._get_family_slice(k))
+
+        for k in self.keys() :
+            new[k] = self[k]
+            
+        for k in self.family_keys() :
+            for fam in family._registry :
+                self_fam = self[fam]
+                if k in self_fam.keys() and not self_fam.is_derived_array(k) :
+                    new[fam][k] = self_fam[k]
+
+
+        new.properties = copy.deepcopy(self.properties, memo)
+        new._file_units_system = copy.deepcopy(self._file_units_system, memo)
+
+        return new
 
 
 
@@ -871,10 +942,11 @@ class SubSnap(SimSnap) :
 
         else :
             raise TypeError("Unknown SubSnap slice type")
-
-        # Work out the length by inspecting the guaranteed-available
-        # array 'pos'.
-        self._num_particles = len(self["pos"])
+        
+        
+        
+        self._num_particles = len(self["pos"]) # this is highly inefficient and needs fixing
+        
         self._descriptor = descriptor
         self.properties = base.properties
 
@@ -917,6 +989,17 @@ class SubSnap(SimSnap) :
     @property
     def _filename(self) :
         return self.base._filename+":"+self._descriptor
+
+    @property
+    def _inclusion_hash(self) :
+        try :
+            return self.__inclusion_hash
+        except AttributeError :
+            index_list  = self.get_index_list(self.ancestor)
+            hash = hashlib.md5(index_list.data)
+            self.__inclusion_hash = hash.digest()
+            return self.__inclusion_hash
+
 
     def keys(self) :
         return self.base.keys()
@@ -975,8 +1058,6 @@ class SubSnap(SimSnap) :
             return of_particles
 
         return self.base.get_index_list(relative_to, util.concatenate_indexing(self._slice,of_particles))
-
-
 
 
 
@@ -1115,3 +1196,47 @@ class FamilySubSnap(SubSnap) :
     def _derive_array(self, array_name, fam=None) :
         if fam is self._unifamily or fam is None :
             self.base._derive_array(array_name, self._unifamily)
+
+
+
+def _new(n_particles=0, **families) :
+    """Create a blank SimSnap, with the specified number of particles.
+
+    Position, velocity and mass arrays are created and filled
+    with zeros.
+    
+    By default all particles are taken to be dark matter.
+    To specify otherwise, pass in keyword arguments specifying
+    the number of particles for each family, e.g.
+
+    f = new(dm=50, star=25, gas=25)
+    """
+
+    if len(families)==0 :
+        families = {'dm': n_particles}
+
+    t_fam = []
+    tot_particles = 0
+
+
+    for k,v in families.items() :
+        
+        assert isinstance(v,int)
+        t_fam.append((family.get_family(k), v))
+        tot_particles+=v
+
+        
+    x = SimSnap()
+    x._num_particles = tot_particles
+    x._filename = "<created>"
+
+    x._create_arrays(["pos","vel"],3)
+    x._create_arrays(["mass"],1)
+    
+    rt = 0
+    for k,v in t_fam :
+        x._family_slice[k] = slice(rt,rt+v)
+        rt+=v
+
+    x._decorate()
+    return x

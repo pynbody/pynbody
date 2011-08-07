@@ -34,7 +34,7 @@ def potential(f, pos_vec, eps=None, unit=None) :
     if unit is not None :
         GM_by_r.convert_units(unit)
 
-    return  GM_by_r.sum()
+    return  -(GM_by_r.sum())
 
     
 def accel(f, pos_vec, eps=None) :
@@ -79,11 +79,33 @@ def midplane_rot_curve(f, rxy_points, eps = None) :
         for pos in [(r,0,0), (0,r,0), (-r,0,0), (0,-r,0)] :
             acc = accel(f, pos, eps)
             r_acc_r.append(np.dot(acc,pos))
-
-        vel = math.sqrt(np.mean(r_acc_r))
+        
+        vel2 = np.mean(r_acc_r)
+        if vel2>0 :
+            vel = math.sqrt(vel2)
+        else :
+            vel = 0
 
         vels.append(vel)
 
     x = array.SimArray(vels, units = u_out)
+    x.sim = f.ancestor
+    return x
+
+def midplane_potential(f, rxy_points, eps = None) :
+    
+    u_out = units.G * f['mass'].units / f['pos'].units
+    
+    pots = []
+
+    for r in rxy_points :
+        # Do four samples like Tipsy does
+        pot = []
+        for pos in [(r,0,0), (0,r,0), (-r,0,0), (0,-r,0)] :
+            pot.append(potential(f, pos, eps))
+            
+        pots.append(np.mean(pot))
+
+    x = array.SimArray(pots, units = u_out)
     x.sim = f.ancestor
     return x
