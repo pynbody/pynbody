@@ -361,7 +361,7 @@ class TipsySnap(snapshot.SimSnap) :
                     data = data.byteswap()
                 ndim = 3
             elif (buflen-4)/4. == l : # it's a 1D array
-                if (array_name == 'iord' or array_name== 'igasord') :
+                if (array_name == 'iord' or array_name== 'igasorder') :
                     isInt = True
                     if _byteswap:
                         data = np.fromstring(f.read(l*4),'i').byteswap()
