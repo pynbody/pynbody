@@ -37,9 +37,20 @@ def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
     else:
         rho_range=False
 
-    hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],xlogrange=True,ylogrange=True,
-           xlabel=r'log$_{10}$($n$/$'+Unit(rho_units).latex()+'$)',
-           ylabel=r'log$_{10}$(T/$'+sim.gas['temp'].units.latex()+'$)',**kwargs)
+    if 'xlabel' in kwargs:
+        xlabel = kwargs['xlabel']
+        del kwargs['xlabel']
+    else:
+        xlabel=r'log$_{10}$($n$/$'+Unit(rho_units).latex()+'$)'
+
+    if 'ylabel' in kwargs:
+        ylabel = kwargs['ylabel']
+        del kwargs['ylabel']
+    else:
+        ylabel=r'log$_{10}$(T/$'+sim.gas['temp'].units.latex()+'$)'
+
+    hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],xlogrange=True,
+           ylogrange=True, xlabel=xlabel, ylabel=ylabel, **kwargs)
 
 
 def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln', 
