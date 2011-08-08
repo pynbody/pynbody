@@ -3,32 +3,63 @@ import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config
 
-def sfh(sim,filename=None,massform=True,clear=True,legend=False,**kwargs):
+def sfh(sim,filename=None,massform=True,clear=True,legend=False,
+        subplot=False, trange=False, nbins=100, **kwargs):
     '''star formation history
+
     Usage:
     import pynbody.plot as pp
     pp.sfh(s,linestyle='dashed',color='k')
+
+    Optional keyword arguments:
+
+       *trange*: list, array, or tuple
+         size(t_range) must be 2. Specifies the time range.
+
+       *nbins*: int
+         number of bins to use for the SFH
+
+       *massform*: bool
+         decides whether to use original star mass (massform) or final star mass
+
+       *subplot*: subplot object
+         where to plot SFH
 
     By default, sfh will use the formation mass of the star.  In tipsy, this will be
     taken from the starlog file.  Set massform=False if you want the final (observed)
     star formation history
     '''
-    nbins=100
-    binnorm = 1e-9*nbins / (sim.star['tform'].in_units("Gyr").max() - sim.star['tform'].in_units("Gyr").min())
+
+    if subplot:
+        plt = subplot
+    else :
+        import matplotlib.pyplot as plt
+
+    if trange:
+        assert len(trange) == 2
+    else:
+        trange = [sim.star['tform'].in_units("Gyr").min(),sim.star['tform'].in_units("Gyr").max()]
+    binnorm = 1e-9*nbins / (trange[1] - trange[0])
+
+    trangefilt = filt.And(filt.HighPass('tform',str(trange[0])+' Gyr'), 
+                          filt.LowPass('tform',str(trange[1])+' Gyr'))
+    tforms = sim.star[trangefilt]['tform'].in_units('Gyr')
+
     if massform :
         try:
-            weight = sim.star['massform'].in_units('Msol') * binnorm
+            weight = sim.star[trangefilt]['massform'].in_units('Msol') * binnorm
         except (KeyError, units.UnitsException) :
-            weight = sim.star['mass'].in_units('Msol') * binnorm
+            weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
     else:
-        weight = sim.star['mass'].in_units('Msol') * binnorm
+        weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
                                                                
     if clear : plt.clf()
-    sfhist, bins, patches = plt.hist(sim.star['tform'].in_units("Gyr"),
-                                     weights=weight, bins=nbins,
+    sfhist, bins, patches = plt.hist(tforms, weights=weight, bins=nbins,
                                      histtype='step',**kwargs)
-    plt.xlabel('Time [Gyr]',fontsize='large')
-    plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+    if not subplot:
+        plt.xlabel('Time [Gyr]',fontsize='large')
+        plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+
     if legend: plt.legend(loc=1)
     if (filename): 
         if config['verbose']: print "Saving "+filename
