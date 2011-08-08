@@ -28,7 +28,8 @@ def faceon_image(sim, *args, **kwargs) :
 
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=False, 
-          z_camera=None, clear = True, cmap=None, center=False) :
+          z_camera=None, clear = True, cmap=None, center=False,
+          title=False, qtytitle=False) :
     """Make an SPH image of the given simulation.
 
     Keyword arguments
@@ -86,7 +87,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
             
             im = im/im2
     else :
-        
+
         im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel,  z_camera = z_camera)
 
     if log :
@@ -110,7 +111,13 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     else :
         units = "$"+units.latex()+"$"
 
-    p.colorbar().set_label(units)
+    if qtytitle:
+        p.colorbar().set_label(qtytitle)
+    else:
+        p.colorbar().set_label(units)
+
+    if title:
+        p.title(title)
 
     if filename:
         p.savefig(filename)
