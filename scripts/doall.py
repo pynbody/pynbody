@@ -41,7 +41,9 @@ sbprof = profile.Profile(diskstars,type='equaln')
 #dec = h[1].star['decomp']
 
 ### Save important numbers using pickle.  Currently not working for SimArrays
-pickle.dump({'rvir':rvir,
+pickle.dump({'z':s.properties['z'],
+             'time':s.properties['time'].in_units('Gyr'),
+             'rvir':rvir,
              'mvir':mvir,
              'mgas': np.sum(h[1].gas['mass'].in_units('Msol')),
              'mstar': np.sum(h[1].star['mass'].in_units('Msol')),
@@ -67,7 +69,7 @@ pickle.dump({'rvir':rvir,
 try:
     pp.schmidtlaw(h[1],filename=simname+'.schmidt.png',center=False)
     pp.sbprofile(h[1],filename=simname+'.sbprof.png',center=False)
-    pp.sfh(h[1],filename=simname+'.sfh.png')
+    pp.sfh(h[1],filename=simname+'.sfh.png',nbins=1000)
     pp.rotation_curve(h[1],filename=simname+'.rc.png',quick=True,
                       max='40 kpc',center=False)
     pp.rotation_curve(h[1],filename=simname+'.rcparts.png',quick=True,
@@ -94,14 +96,14 @@ except:
 try:
     s.gas['oxden'] = s.gas['rho']*s.gas['OxMassFrac']
     s.gas['oxden'].units = s.gas['rho'].units
-    pynbody.plot.sideon_image(s.gas,qty='oxden',units='m_p cm^-2',width=500,center=False,filename=simname+'.ox500kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='oxden',units='m_p cm^-2',width=500,center=False,filename=simname+'.ox500kpc.png',vmin=12,vmax=18)
     pp.sph.image(h[1].gas,qty='temp',filename=simname+'.tempgasside.png',
-                 width=320)
-    pynbody.plot.sideon_image(s.gas,qty='temp',width=500,center=False,filename=simname+'.temp500kpc.png')
+                 width=320,vmin=3,vmax=7)
+    pynbody.plot.sideon_image(s.gas,qty='temp',width=500,center=False,filename=simname+'.temp500kpc.png',vmin=3,vmax=7)
     s.gas['hiden'] = s.gas['rho']*s.gas['HI']
     s.gas['hiden'].units = s.gas['rho'].units
-    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'.hi500kpc.png')
-    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'.hi250kpc.png')
+    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'.hi500kpc.png',vmin=14,vmax=22)
+    pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'.hi250kpc.png',vmin=14,vmax=22)
 except:
     pass
 
