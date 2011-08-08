@@ -669,7 +669,7 @@ class GadgetSnap(snapshot.SimSnap):
         #Call _write_array for every array.
         for x in set(self.keys()).union(self.family_keys()) :
             if not self.is_derived_array(x):
-                self._write_array(self, x, filename=filename)
+                self._write_array(x, filename=filename)
         #If caller is a tipsy file, construct the GadgetFiles, so conversion works.
         #Find some way of specifying format2, so that conversion works
     
