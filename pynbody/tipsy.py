@@ -333,54 +333,6 @@ class TipsySnap(snapshot.SimSnap) :
   
 	try :
 	    l = int(f.readline())
-	except ValueError :
-            # this is probably a binary file
-            binary = True
-            del f
-            f, buflen = util.open_with_size(filename, 'rb')
-
-            l = struct.unpack("i",f.read(4))[0]
-
-            if (l > 1e8 or l < 10):
-                _byteswap=True
-                f.seek(0)
-                l = struct.unpack(">i", f.read(4))[0]
-            else :
-                _byteswap=False
-
-
-            if (buflen-4)/4/3. == l : # it's a float vector 
-                if _byteswap:
-                    data = np.fromstring(f.read(l*3*4),'f').byteswap()
-                else:
-                    data = np.fromstring(f.read(l*3*4),'f')
-                if (np.isnan(np.max(data)) or np.isnan(np.min(data)) or
-                    (np.max(data) > 1e20) or (np.min(data) < -1e20)):
-                    data = data.byteswap()
-                ndim = 3
-            elif (buflen-4)/4. == l : # it's a 1D array
-                int_arrays = map(str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
-                if array_name in int_arrays :
-                    isInt = True
-                    if _byteswap:
-                        data = np.fromstring(f.read(l*4),'i').byteswap()
-                    else:
-                        data = np.fromstring(f.read(l*4),'i')
-                    if (np.max(data) > 3*l) or (np.min(data) < 0):
-                        data = data.byteswap()
-                else :
-                    isInt = False
-                    if _byteswap:
-                        data = np.fromstring(f.read(l*4),'f').byteswap()
-                    else:
-                        data = np.fromstring(f.read(l*4),'f')
-                    if (np.isnan(np.max(data)) or np.isnan(np.min(data)) or
-                        (np.max(data) > 1e20) or (np.min(data) < -1e20)):
-                        data = data.byteswap()
-                ndim = 1
-            else: # don't know what it is
-                raise IOError, "Incorrect file format"
-        else:
             binary = False
             if l!=len(self) :
                 raise IOError, "Incorrect file format"
@@ -398,11 +350,45 @@ class TipsySnap(snapshot.SimSnap) :
 
             f.readline()
             data = np.fromfile(f, dtype=tp, sep="\n")
-            ndim = len(data)/len(self)
+	except ValueError :
+            # this is probably a binary file
+            binary = True
+            f.seek(0)
 
-            if ndim*len(self)!=len(data) :
+            # Read header and check endianness
+            l = struct.unpack(">i",f.read(4))[0]
+
+            if (l != len(self)):
+                f.seek(0)
+                l = struct.unpack("i", f.read(4))[0]
+                if l!=len(self) :
+                    raise IOError, "Incorrect file format"
+
+            # Set data format to be read (float or int) based on config
+            int_arrays = map(str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
+            if array_name in int_arrays : fmt = 'i'
+            else: fmt = 'f'
+
+            # Read longest data array possible.  
+            # Assume byteswap since most will be.
+            data = np.fromstring(f.read(3*len(self)*4),fmt).byteswap()
+            if len(f.read(4))!= 0:
                 raise IOError, "Incorrect file format"
+            
+            # Check data endianness
+            if array_name in int_arrays : # for ints
+                if (np.max(data) > 3*l) or (np.min(data) < 0):
+                    data = data.byteswap()
+            else:   # for floats
+                if (np.isnan(np.max(data)) or np.isnan(np.min(data)) or
+                    (np.max(data) > 1e20) or (np.min(data) < -1e20)):
+                    data = data.byteswap()
 	
+        ndim = len(data)/len(self)
+
+        if ndim*len(self)!=len(data) :
+            raise IOError, "Incorrect file format"
+
         if ndim>1 :
             dims = (len(self),ndim)
 
