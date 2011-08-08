@@ -11,7 +11,7 @@ import scipy, scipy.weave
 from scipy.weave import inline
 import snapshot, array
 import math
-from . import snapshot, array
+from . import snapshot, array, config
 
 class Kernel(object) :
     def __init__(self) :
@@ -182,6 +182,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     import os, os.path
 
+    global config
+
     if y2 is None :
         if ny is not None :
             y2 = x2*float(ny)/nx
@@ -275,20 +277,20 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     except ImportError :
 
-       
-
-        
-        code+=file(os.path.join(
-            os.path.dirname(__file__),
-            'sph_image.c')).read()
+        code+=file(os.path.join(os.path.dirname(__file__),'sph_image.c')).read()
 
 
         # before inlining, the views on the arrays must be standard np.ndarray
         # otherwise the normal numpy macros are not generated
         x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
+        #qty[np.where(qty < 1e-15)] = 1e-15
+
+        if config['verbose']: print "Rendering SPH image"
 
         inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
-                      'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   'qty', 'mass', 'rho'])
+                      'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   
+                      'qty', 'mass', 'rho'],verbose=2)
+        #import pdb; pdb.set_trace()
 
     result = result.view(array.SimArray)
 
