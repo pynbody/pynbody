@@ -122,21 +122,29 @@ def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=T
 
     if kwargs.has_key('xlabel'):
         xlabel = kwargs['xlabel']
-        plt.xlabel(xlabel)
     else :
-        if xlogrange: label='$log_{10}('+xo.units.latex()+')$'
-        else : label = '$x/' + xo.units.latex() +'$'
-        plt.xlabel(r''+label)
+        if xlogrange: xlabel=r''+'$log_{10}('+xo.units.latex()+')$'
+        else : xlabel = r''+'$x/' + xo.units.latex() +'$'
+    
+    if subplot:
+        plt.set_xlabel(xlabel)
+    else:
+        plt.xlabel(xlabel)
 
     if kwargs.has_key('ylabel'):
         ylabel = kwargs['ylabel']
-        plt.ylabel(ylabel)
     else :
-        if ylogrange: label='$log_{10}('+yo.units.latex()+')$'
-        else : label = '$y/' + yo.units.latex() +'$'
-        plt.ylabel(r''+label)
-    plt.xlim((x_range[0],x_range[1]))
-    plt.ylim((y_range[0],y_range[1]))
+        if ylogrange: ylabel='$log_{10}('+yo.units.latex()+')$'
+        else : ylabel = r''+'$y/' + yo.units.latex() +'$'
+    
+    if subplot:
+        plt.set_ylabel(ylabel)
+    else:
+        plt.ylabel(ylabel)
+
+    if not subplot:
+        plt.xlim((x_range[0],x_range[1]))
+        plt.ylim((y_range[0],y_range[1]))
 
     if colorbar :
         cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
