@@ -1,5 +1,10 @@
 from . import snapshot,array
 from . import family
+from . import config
+from . import config_parser
+
+import ConfigParser
+
 import numpy as np
 #Needed to unpack things
 import struct
@@ -7,30 +12,49 @@ import sys
 import copy
 import os.path as path
 
-#Symbolic constants for the particle types
-GAS_TYPE=0
-DM_TYPE = 1
-NEUTRINO_TYPE = 2
-DISK_TYPE = 2
-BULGE_TYPE = 3
-STAR_TYPE = 4
-BNDRY_TYPE = 5
+#This is set here and not in a config file because too many things break 
+#if it is not 6
 N_TYPE = 6
 
+_type_map = {}
+for x in family.family_names() :
+    try :
+        #At the moment, families can only correspond to one particle type
+        pp = int(config_parser.get('gadget-type-mapping',x))
+        qq=np.array(pp)
+        if (qq >= N_TYPE).any() or (qq < 0).any() :
+            raise ValueError,"Type specified for family "+x+" is out of bounds ("+pp+")." 
+        _type_map[family.get_family(x)] = pp
+    except ConfigParser.NoOptionError :
+        pass
+
+_name_map = {}
+_rev_name_map = {}
+try :
+    for a, b in config_parser.items("gadget-name-mapping") :
+    #Need to do some changing of the actual specified names, 
+    #because not sure how to config_parse things with spaces in them.
+        a=a.upper().ljust(4)
+        _rev_name_map[a] = b
+        _name_map[b] = a
+except ConfigParser.NoOptionError :
+    pass
+
+def _translate_array_name(name, reverse=False) :
+    try :
+        if reverse :
+            return _rev_name_map[name]
+        else :
+            return _name_map[name]
+    except KeyError :
+        return name
+    
 def gadget_type(fam) :
     #-1 is "all types"
     if fam == None:
         return -1
     else :
-        if fam == family.gas :
-            return GAS_TYPE
-        if fam == family.dm:
-            return DM_TYPE
-        if fam == family.neutrino:
-            return NEUTRINO_TYPE
-        if fam == family.star:
-            return STAR_TYPE
-    raise KeyError, "No particle of type"+fam.name
+        return _type_map[fam]
 
 class GadgetBlock :
     """Class to describe each block.
@@ -120,10 +144,10 @@ class GadgetHeader :
         #is to write to a file and we don't want to overwrite extra data that might be present
         if struct.calcsize(fmt) != 256-48:
             raise Exception, "There is a bug in gadget.py; the header format string is not 256 bytes"
-        #WARNING: On at least python 2.6.3 and numpy 1.3.0 on windows, this code fails with:
+        #WARNING: On at least python 2.6.3 and numpy 1.3.0 on windows, castless code fails with:
         #SystemError: ..\Objects\longobject.c:336: bad argument to internal function
         #This is because self.npart, etc, has type np.uint32 and not int.
-        #This is clearly a problem with python/numpy, but cast things to ints until I can determine how widespread it is. 
+        #This is I think a problem with python/numpy, but cast things to ints until I can determine how widespread it is. 
         data=struct.pack(fmt,int(self.npart[0]), int(self.npart[1]),int(self.npart[2]),int(self.npart[3]),int(self.npart[4]),int(self.npart[5]),
         self.mass[0], self.mass[1],self.mass[2],self.mass[3],self.mass[4],self.mass[5],
         self.time, self.redshift,  self.flag_sfr, self.flag_feedback,
@@ -352,6 +376,7 @@ class GadgetFile :
         dt = np.dtype(cur_block.data_type)
         n_type = p_toread*cur_block.partlen/dt.itemsize
         data=np.fromfile(fd, dtype=cur_block.data_type, count=n_type, sep = '')
+        fd.close()
         if self.endian != '=' :
             data=data.byteswap(True)
         return (p_toread, data)
@@ -501,9 +526,11 @@ class GadgetSnap(snapshot.SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
     of the blocks, which are then read by _load_array"""
     def __init__(self, filename, only_header=False, must_have_paramfile=False) :
+
+        global config
         super(GadgetSnap,self).__init__()
         self._files = []
-        self._filename=""
+        self._filename=filename
         npart = np.empty(N_TYPE)
         #Check whether the file exists, and get the ".0" right
         try:
@@ -515,8 +542,6 @@ class GadgetSnap(snapshot.SimSnap):
         fd.close()
         if filename[-2:] == ".0" :
             self._filename = filename [:-2]
-        else:
-            self._filename=filename
         #Read the first file and use it to get an idea of how many files we are expecting.
         first_file = GadgetFile(filename)
         self._files.append(first_file)
@@ -535,19 +560,62 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up global header
         self.header=copy.deepcopy(self._files[0].header)
         self.header.npart = npart
-        #Set up _family_slice
-        self._family_slice[family.gas] = slice(npart[0:GAS_TYPE].sum(),npart[0:GAS_TYPE+1].sum())
-        self._family_slice[family.dm] = slice(npart[0:DM_TYPE].sum(), npart[0:DM_TYPE+1].sum())
-        self._family_slice[family.neutrino] = slice(npart[0:NEUTRINO_TYPE].sum(), npart[0:NEUTRINO_TYPE+1].sum())
-        self._family_slice[family.star] = slice(npart[0:STAR_TYPE].sum(),npart[0:STAR_TYPE+1].sum() )
-        #Delete any arrays the parent class may have made
+        
+        self._family_slice = {}
+
+        self._loadable_keys = set([])
+        self._family_keys=set([])
+        self._family_arrays = {}
         self._arrays = {}
-        #TODO: Set up file_units_system
-        return
+        self.properties = {}
+        
+        #Set up _family_slice
+        for x in _type_map :
+            max_t=_type_map[x]
+#            max_t=max(_type_map[x])
+            self._family_slice[x] = slice(npart[0:max_t].sum(),npart[0:max_t+1].sum())
+        
+        #Set up _loadable_keys
+        for f in self._files :
+            self._loadable_keys = self._loadable_keys.union(set(f.blocks.keys()))
+
+        #Add default mapping to unpadded lower case if not in config file.
+        for nn in self._loadable_keys : 
+            mm = nn.lower().strip()
+            if not nn in _rev_name_map :
+                _rev_name_map[nn] = mm
+            if not mm in _name_map :
+                _name_map[mm] = nn
+
+        #Use translated keys only
+        self._loadable_keys = [_translate_array_name(x, reverse=True) for x in self._loadable_keys]
+        #Set up block list, with attached families, as a caching mechanism
+        self._block_list = self.get_block_list()
+        
+        self._decorate()
+    
+    def loadable_family_keys(self, fam=None) :
+        """Return list of arrays which are loadable for specific families, 
+        but not for all families."""
+        if fam is not None : 
+            return [x for x in self._loadable_keys if self._family_has_loadable_array(fam, x)]
+        else :
+            return [x for x in self._loadable_keys if not self._family_has_loadable_array(fam, x)]
+
+
+    def loadable_keys(self) :
+            return self._loadable_keys
+
+    def _family_has_loadable_array(self, fam, name) :
+        """Returns True if the array can be loaded for the specified family.
+        If fam is None, returns True if the array can be loaded for all families."""
+        if fam is not None :
+                return fam in self._block_list[name]
+        else :
+                return set(self.families()) <= set(self._block_list[name])
 
     def get_block_list(self):
-        """Get list of unique blocks in snapshot (most of the time these should be the same
-        in each file), with the types they refer to"""
+        """Get list of unique blocks in snapshot, with the types they refer to"""
         b_list = {}
         for f in self._files:
             b_list.update(f.blocks)
@@ -556,31 +624,16 @@ class GadgetSnap(snapshot.SimSnap):
         #used for tipsy snapshots
         out_list={}
         for k,b in b_list.iteritems() :
-            b_name = k.lower().rstrip()
-            b_types = ()
-            if b.p_types[GAS_TYPE]:
-                b_types+=(family.gas,)
-            if b.p_types[DM_TYPE]:
-                b_types+=(family.dm,)
-            if b.p_types[NEUTRINO_TYPE]:
-                b_types+=(family.neutrino,)
-            if b.p_types[STAR_TYPE]:
-                b_types+=(family.star,)
+            b_name = _translate_array_name(k,reverse=True)
+            b_types = [ f for f in self.families() if b.p_types[_type_map[f]] ]
             out_list[b_name] = b_types
         return out_list
 
-    def get_block_parts(self, name, p_type) :
+    def get_block_parts(self, name, family) :
         """Get the number of particles present in a block, of a given type"""
         total=0
         for f in self._files:
-            total+=f.get_block_parts(name, p_type)
-        return total
-
-    def get_block_types(self, name) :
-        """Get the types for which block name exists"""
-        total=self._files[0].blocks[name].p_types
-        for f in self._files:
-            total+=f.blocks[name].p_types
+            total+=f.get_block_parts(name, gadget_type(family))
         return total
 
     def check_headers(self, head1, head2) :
@@ -604,26 +657,38 @@ class GadgetSnap(snapshot.SimSnap):
         #  ignores everything past flag_metals (!), leaving it uninitialised.
         #  Therefore, we can't check them.
         return True
+    def _get_array_type(self, name) :
+        """Get the type for the array given in name"""
+        g_name = _translate_array_name(name)
+        return self._files[0].blocks[g_name].data_type
+
+    def _get_array_dims(self, name) :
+        """Get the dimensions of an array; ie, is it 3d or 1d"""
+        g_name = _translate_array_name(name)
+        return self._files[0].get_block_dims(g_name)
 
     def _load_array(self, name, fam=None) :
         """Read in data from a Gadget file.
         If fam != None, loads only data for that particle family"""
-        #Make the name a four-character upper case name, possibly with trailing spaces
-        g_name = (name.upper().ljust(4," "))[0:4]
+        if not self._family_has_loadable_array( fam, name) :
+            if fam is None :
+                raise KeyError,"Block "+name+" is not available for all families"
+            else :
+                raise IOError, "No such array on disk"
+        #g_name is the internal name
+        g_name = _translate_array_name(name)
         p_read = 0
         p_start = 0
-        try:
-            data = array.SimArray([],dtype=self._files[0].blocks[g_name].data_type)
-        except KeyError:
-            raise KeyError,"Block "+name+" not in "+self.filename
-        if not self.get_block_types(g_name).all() and fam is None:
-            raise KeyError,"Block "+name+" is a family type, not available for all families"
-        p_type = gadget_type(fam)
-        ndim = self._files[0].get_block_dims(g_name)
+
+        data = array.SimArray([],dtype=self._get_array_type(name))
+        ndim = self._get_array_dims(name)
+
         if ndim == 1:
-            dims = (self.get_block_parts(g_name, p_type),)
+            dims = (self.get_block_parts(g_name, fam),)
         else:
-            dims = (self.get_block_parts(g_name, p_type), ndim)
+            dims = (self.get_block_parts(g_name, fam), ndim)
+        
+        p_type = gadget_type(fam)
         for f in self._files:
             f_read = 0
             f_parts = f.get_block_parts(g_name, p_type)
@@ -635,10 +700,7 @@ class GadgetSnap(snapshot.SimSnap):
         if fam is None :
             self[name] = data.reshape(dims, order='C').view(array.SimArray)
         else :
-            try:
-                self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
-            except IndexError:
-                raise KeyError, "Block "+name+" not in snapshot for family "+fam.name
+            self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
 
     @staticmethod
     def _can_load(f) :
@@ -667,7 +729,8 @@ class GadgetSnap(snapshot.SimSnap):
         for f in self._files:
             f.write_header(self.header,filename=filename)
         #Call _write_array for every array.
-        for x in set(self.keys()).union(self.family_keys()) :
+        all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
+        for x in all_keys :
             if not self.is_derived_array(x):
                 self._write_array(x, filename=filename)
         #If caller is a tipsy file, construct the GadgetFiles, so conversion works.
@@ -677,6 +740,7 @@ class GadgetSnap(snapshot.SimSnap):
         """Write a data array back to a Gadget snapshot, splitting it across files"""
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = (array_name.upper().ljust(4," "))[0:4]
+        family_names = set(self.loadable_family_keys()).union(self.family_keys())
         nfiles=np.size(self._files)
         f_parts=np.zeros(nfiles)
         #Find where each particle goes
@@ -686,7 +750,7 @@ class GadgetSnap(snapshot.SimSnap):
         if np.sum(f_parts) == 0:
             #Get p_type
             p_types=np.zeros(N_TYPES,bool)
-            if array_name in self.family_keys() :
+            if array_name in family_names :
                 for fam in self.families():
                     #We get the particle types we want by trying to load all particle types and seeing which ones work
                     if self[fam].has_key(array_name) :
@@ -700,7 +764,7 @@ class GadgetSnap(snapshot.SimSnap):
         #Write the blocks
         s=0
         for i in np.arange(0,nfiles) :
-            if array_name in self.family_keys() :
+            if array_name in family_names :
                 for fam in self.families() :
                     if self[fam].has_key(array_name) :
                         self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
