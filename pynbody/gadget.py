@@ -560,7 +560,14 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up global header
         self.header=copy.deepcopy(self._files[0].header)
         self.header.npart = npart
-        
+        #Check and fix npartTotal and NallHW if they are wrong.
+        if npart is not self.header.npartTotal+2**32*self.header.NallHW :
+            self.header.NallHW = npart/2**32
+            self.header.npartTotal = npart - 2**32*self.header.NallHW
+            for f in self._files :
+                f.header.npartTotal = self.header.npartTotal
+                f.header.NallHW = self.header.NallHW
+
         self._family_slice = {}
 
         self._loadable_keys = set([])
