@@ -161,9 +161,7 @@ class GadgetFile :
     """This is a helper class.
     Should only be called by GadgetSnap.
     Contains the block location dictionary for each file.
-    To read Gadget 1 format files, put a text file called blocks.txt
-    in the same directory as the snapshot containing a newline separated
-    list of the blocks in each snapshot file."""
+    To read Gadget 1 format files, use the gadget-1-blocks config entry"""
     def __init__(self, filename) :
         self._filename=filename
         self.blocks = {}
@@ -173,17 +171,11 @@ class GadgetFile :
         t_part = 0
         fd=open(filename, "rb")
         self.check_format(fd)
-        #If format 1, load the block definition file.
+        #If format 1, load the block definitions.
         if not self.format2 :
-            try:
-                self.block_names=np.loadtxt(path.join(path.dirname(filename),"blocks.txt"))
-                for n in self.block_names:
-                    n = (n.upper().ljust(4," "))[0:4]
-            #Sane defaults
-            except IOError:
-                print "WARNING: format 1 and "+path.join(path.dirname(filename),"blocks.txt")+"not found."
-                print "WARNING: using default block names, which may be incorrect."
-                self.block_names = np.array(["HEAD","POS ","VEL ","ID  ","MASS","U   ","RHO ","NE  ","NH  ","NHE ","HSML","SFR "])
+            self.block_names = config_parser.get('gadget-1-blocks',"blocks").split(",")
+            for n in self.block_names:
+                n = (n.upper().ljust(4," "))[0:4]
         while True:
             block=GadgetBlock()
             (name, block.length) = self.read_block_head(fd)
