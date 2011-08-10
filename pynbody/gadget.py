@@ -175,6 +175,8 @@ class GadgetFile :
         if not self.format2 :
             self.block_names = config_parser.get('gadget-1-blocks',"blocks").split(",")
 	    self.block_names = [q.upper().ljust(4) for q in self.block_names]
+	    #This is a counter for the fallback
+	    self.extra = 0
         while True:
             block=GadgetBlock()
             (name, block.length) = self.read_block_head(fd)
@@ -347,9 +349,12 @@ class GadgetFile :
             (record_size,)=struct.unpack(self.endian+'I', record_size)
             try:
                 name = self.block_names[0]
+            	self.block_names = self.block_names[1:]
             except IndexError:
-                raise ValueError, filename+"is format 1, and contains more blocks than are present in blocks.txt, or the default."  
-            self.block_names = self.block_names[1:]
+                if self.extra == 0 :
+                    print "WARNING: Run out of block names in the config file. Using fallbacks: UNK*"
+                name = "UNK"+str(self.extra)
+                self.extra+=1
             return (name, record_size)
 
     def get_block(self, name, p_type, p_toread) :
