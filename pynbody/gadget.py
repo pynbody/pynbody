@@ -11,6 +11,7 @@ import struct
 import sys
 import copy
 import os.path as path
+import warnings
 
 #This is set here and not in a config file because too many things break 
 #if it is not 6
@@ -352,7 +353,7 @@ class GadgetFile :
             	self.block_names = self.block_names[1:]
             except IndexError:
                 if self.extra == 0 :
-                    print "WARNING: Run out of block names in the config file. Using fallbacks: UNK*"
+                    warnings.warn("Run out of block names in the config file. Using fallbacks: UNK*",RuntimeWarning)
                 name = "UNK"+str(self.extra)
                 self.extra+=1
             return (name, record_size)
@@ -547,7 +548,7 @@ class GadgetSnap(snapshot.SimSnap):
             filename = filename[:-1]+str(i)
             tmp_file=GadgetFile(filename)
             if not self.check_headers(tmp_file.header, self._files[0].header) :
-                print "WARNING: file "+str(i)+" is not part of this snapshot set!"
+                warnings.warn("file "+str(i)+" is not part of this snapshot set!",RuntimeWarning)
                 continue
             self._files.append(tmp_file)
             npart=npart+tmp_file.header.npart
