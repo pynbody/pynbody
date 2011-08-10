@@ -174,8 +174,7 @@ class GadgetFile :
         #If format 1, load the block definitions.
         if not self.format2 :
             self.block_names = config_parser.get('gadget-1-blocks',"blocks").split(",")
-            for n in self.block_names:
-                n = (n.upper().ljust(4," "))[0:4]
+	    self.block_names = [q.upper().ljust(4) for q in self.block_names]
         while True:
             block=GadgetBlock()
             (name, block.length) = self.read_block_head(fd)
