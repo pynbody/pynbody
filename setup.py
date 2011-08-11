@@ -34,20 +34,19 @@ dist = setup(name = 'pynbody',
              author_email = '',
              version = '0.11alpha',
              description = '',
-             package_dir = {'pynbody': ''},
-             packages = ['pynbody/', 'pynbody/analysis', 'pynbody/bc_modules', 
+             package_dir = {'pynbody/': ''},
+             packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
                          'pynbody/plot' ],
-             ext_modules = [kdmain],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
-             data_files = [('pynbody',['pynbody/default_config.ini', 
-                                       'pynbody/sph_image.c']), 
-                           ('pynbody/analysis',['pynbody/analysis/cmdlum.npz',
-                                                'pynbody/analysis/ionfracs.npz',
-                                                'pynbody/analysis/interpolate.c', 
-                                                'pynbody/analysis/interpolate3d.c']), 
-                           ('pynbody/plot',['pynbody/plot/tollerud2008mw'])],
+             package_data={'pynbody': ['default_config.ini'],
+                           'pynbody/analysis': ['cmdlum.npz',
+                                                'ionfracs.npz',
+                                                'interpolate.c',
+                                                'interpolate3d.c'],
+                           'pynbody/plot': ['tollerud2008mw']},
+             ext_modules = [kdmain],
              scripts = ['scripts/doall.py']
       )
 
