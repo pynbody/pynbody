@@ -719,7 +719,7 @@ class GadgetSnap(snapshot.SimSnap):
             #Add arrays to self[name] reordered
             #We use this tmp array to get around the fact that we cannot take a slice of self[name]
             #at this point without calling _load_array and recursing.
-            tmp = np.empty(dims)
+            tmp = np.empty(dims, dtype=self._get_array_type(name))
             for m in famly :
                 dims[0] = self.get_block_parts(g_name, m)
                 tmp [self._family_slice[m]] = data[m].reshape(dims,order='C').view(array.SimArray)
