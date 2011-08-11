@@ -684,13 +684,22 @@ class GadgetSnap(snapshot.SimSnap):
         p_read = 0
         p_start = 0
 
-        data = array.SimArray([],dtype=self._get_array_type(name))
+        #Families used.
+        famly = [fam]
+        if fam is None : 
+            famly = self.families()
+        
+        #We need to re-order the data if we have multiple families, 
+        #because we need to concatenate multiple files.
+        #Therefore define temp arrays for each family used. 
+        data = dict((m, array.SimArray([],dtype=self._get_array_type(name))) for m in famly)
+        
         ndim = self._get_array_dims(name)
 
         if ndim == 1:
-            dims = (self.get_block_parts(g_name, fam),)
+            dims = [self.get_block_parts(g_name, fam),]
         else:
-            dims = (self.get_block_parts(g_name, fam), ndim)
+            dims = [self.get_block_parts(g_name, fam), ndim]
         
         p_type = gadget_type(fam)
         for f in self._files:
@@ -699,12 +708,24 @@ class GadgetSnap(snapshot.SimSnap):
             if f_parts == 0:
                 continue
             (f_read, f_data) = f.get_block(g_name, p_type, f_parts)
+            e_start = f.get_start_part(g_name,p_type)*ndim
             p_read+=f_read
-            data=np.append(data, f_data)
+            for m in famly:
+                m_type=gadget_type(m)
+                start=f.get_start_part(g_name, m_type)*ndim-e_start
+                stop=start+f.get_block_parts(g_name, m_type)*ndim
+                data[m]=np.append(data[m], f_data[start:stop])
         if fam is None :
-            self[name] = data.reshape(dims, order='C').view(array.SimArray)
+            #Add arrays to self[name] reordered
+            #We use this tmp array to get around the fact that we cannot take a slice of self[name]
+            #at this point without calling _load_array and recursing.
+            tmp = np.empty(dims)
+            for m in famly :
+                dims[0] = self.get_block_parts(g_name, m)
+                tmp [self._family_slice[m]] = data[m].reshape(dims,order='C').view(array.SimArray)
+                self[name] = tmp
         else :
-            self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
+            self[fam][name] = data[fam].reshape(dims,order='C').view(array.SimArray)
 
     @staticmethod
     def _can_load(f) :
