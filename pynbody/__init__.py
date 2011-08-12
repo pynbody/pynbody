@@ -9,6 +9,7 @@ config_parser.read(os.path.join(os.path.dirname(__file__),"config.ini"))
 
 config= {'verbose': config_parser.getboolean('general','verbose'),
          'centering-scheme': config_parser.get('general','centering-scheme')}
+
 config['snap-class-priority'] = map(str.strip,
                                     config_parser.get('general', 'snap-class-priority').split(","))
 config['halo-class-priority'] = map(str.strip,

@@ -9,6 +9,7 @@ This module might seem like over-kill (and could be removed if it
 proves to be so) but exists to enable future intelligent behaviour
 handling particles from different families in customizable ways."""
 
+from . import config_parser
 
 
 _registry = []
@@ -53,8 +54,12 @@ class Family(object) :
     def __repr__(self) :
         return "<Family "+self.name+">"
 
+g = globals()
+for f in config_parser.options('families') :
+    aliases = config_parser.get('families', f)
+    g[f] = Family(f,map(str.strip,aliases.split(","))) 
 
-dm = Family("dm",["d","dark"])
-star = Family("star",["stars","st","s"])
-gas = Family("gas",["g"])
-neutrino = Family("neutrino", ["n","neu"])
+#dm = Family("dm",["d","dark"])
+#star = Family("star",["stars","st","s"])
+#gas = Family("gas",["g"])
+#neutrino = Family("neutrino", ["n","neu"])
