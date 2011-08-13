@@ -4,6 +4,8 @@ config_parser = ConfigParser.ConfigParser()
 config_parser.optionxform = str
 config_parser.read(os.path.join(os.path.dirname(__file__),"default_config.ini"))
 config_parser.read(os.path.join(os.path.dirname(__file__),"config.ini"))
+config_parser.read(os.path.expanduser("~/.pynbodyrc"))
+config_parser.read("config.ini")
 
 
 
