@@ -54,6 +54,10 @@ class Family(object) :
     def __repr__(self) :
         return "<Family "+self.name+">"
 
+    def __reduce__(self) :
+        return get_family, (self.name, True), {"aliases": self.aliases}
+
+
 g = globals()
 for f in config_parser.options('families') :
     aliases = config_parser.get('families', f)
