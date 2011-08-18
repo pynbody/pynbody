@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from . import generic, stars, gas, profile, metals
+import imp
 
-reload(profile)
-reload(generic)
-reload(stars)
-reload(gas)
-reload(metals)
+imp.reload(profile)
+imp.reload(generic)
+imp.reload(stars)
+imp.reload(gas)
+imp.reload(metals)
 
 from .profile import rotation_curve, fourier_profile, density_profile
 from .generic import hist2d
