@@ -1,3 +1,117 @@
+"""
+pynbody
+=======
+
+A light-weight, portable, format-transparent analysis framework
+for N-body and SPH astrophysical simulations.
+
+Getting help
+------------
+
+Help for pynbody comes in two forms
+
+ 1. The wiki, which is recommended for new users, at
+      <http://tinyurl.com/pynbody>
+ 2. docstrings in the code for reference, which can be accessed
+    using the standard help() function
+
+What's available
+----------------
+
+Pynbody handles Gadget, Gadget-HDF and Tipsy files. To load
+any of these, use
+
+f = pynbody.load(filename)
+
+to create a pynbody.snapshot.SimSnap object f, which then acts
+as a dictionary holding the arrays inside f. For more information
+see <http://code.google.com/p/pynbody/wiki/BasicTutorial>.
+
+Configuration
+-------------
+
+Various aspects of the behaviour of pynbody can be controlled.
+See <http://code.google.com/p/pynbody/wiki/ConfigFiles>
+
+Subpackages
+-----------
+
+array
+    Extends numpy arrays with a custom class array.SimArray
+    which holds additional information like units.
+
+bridge
+    Allows connections to be made between two different
+    SimSnap objects in various ways. 
+    <http://code.google.com/p/pynbody/wiki/SameSimulationDifferentOutputs>
+    
+
+derived
+    Holds procedures for creating new arrays from existing
+    ones, e.g. for getting the radial position. 
+    <http://code.google.com/p/pynbody/wiki/AutomagicCalculation>
+
+family
+    Stores a registry of different particle types like dm,
+    star, gas.
+    <http://code.google.com/p/pynbody/wiki/TheFamilySystem>
+
+filt
+    Defines and implements 'filters' which allow abstract subsets
+    of data to be specified.
+    <http://code.google.com/p/pynbody/wiki/FiltersAndSubsims>
+
+gadget
+    Implements classes and functions for handling gadget files;
+    you rarely need to access this module directly as it will
+    be invoked automatically via pynbody.load.
+
+gadgethdf
+    Implements classes and functions for handling gadget HDF files
+    (if h5py is installed); you rarely need to access this module
+    directly as it will be invoked automatically via pynbody.load
+
+halo
+    Implements halo catalogue functions. If you have a supported
+    halo catalogue on disk or a halo finder installed and
+    correctly configured, you can access a halo catalogue through
+    f.halos() where f is a SimSnap.
+    <http://code.google.com/p/pynbody/wiki/HaloCatalogue>
+
+kdtree
+    Implements a KD Tree based on Joachim Stadel's smooth.c.
+    You are unlikely to need to access this module directly
+    as KD Trees are built in higher level analysis code
+    automatically.
+
+snapshot
+    Implements the basic SimSnap class and also SubSnap classes
+    which can represent different views of the same data.
+    <http://code.google.com/p/pynbody/wiki/FiltersAndSubsims>
+    You rarely need to access this module directly.
+
+sph
+    Allows SPH images to be rendered. The easiest interface
+    to this module, at least to start with, is through the
+    pynbody.plot package.
+    <http://code.google.com/p/pynbody/wiki/SphImages>
+
+tipsy
+    Implements classes and functions for handling tipsy files.
+    You rarely need to access this module directly as it will
+    be invoked automatically via pynbody.load.
+
+units
+    Implements a light-weight unit class which is
+    used to automatically track units of your simulation arrays.
+    <http://code.google.com/p/pynbody/wiki/ConvertingUnits>
+
+util
+    Various utility routines used internally by pynbody.
+
+    
+"""
+
 # Import basic dependencies
 import ConfigParser
 import os
@@ -77,3 +191,5 @@ def load(filename, *args, **kwargs) :
 
 
 from snapshot import _new as new
+
+__all__ = ['load', 'new']
