@@ -4,7 +4,6 @@ from . import filt
 from . import units
 from . import config
 
-
 import numpy as np
 import copy
 import weakref
@@ -12,6 +11,7 @@ import exceptions
 import sys
 import hashlib
 import time
+import warnings
 
 
 from util import LazyKeyError
@@ -668,7 +668,6 @@ class SimSnap(object) :
                 dtype = self._family_arrays[name][x].dtype
                 for x in self._family_arrays[name].values() :
                     if x.dtype!=dtype :
-                        import warnings
                         warnings.warn("Data types of family arrays do not match; assuming "+str(dtype),  RuntimeWarning)
                     
             except IndexError :
@@ -898,7 +897,16 @@ def put_1d_slices(sim) :
     except KeyError :
         pass
 
-
+@SimSnap.decorator
+def default_cosmology(sim) :
+    missing = [k for k in config['default-cosmology'] if k not in sim.properties]
+    if len(missing)>0 :
+        
+        warnings.warn("At least some cosmological parameters missing. Assuming defaults for: %s."%\
+                          ", ".join(missing),
+                       RuntimeWarning)
+        sim.properties.update([(k,config['default-cosmology'][k]) for k in missing])
+        
 
 _subarray_immediate_mode = False
 # Set this to True to always get copies of data when indexing is

@@ -8,7 +8,6 @@ config_parser.read(os.path.expanduser("~/.pynbodyrc"))
 config_parser.read("config.ini")
 
 
-
 config= {'verbose': config_parser.getboolean('general','verbose'),
          'centering-scheme': config_parser.get('general','centering-scheme')}
 
@@ -18,6 +17,9 @@ config['halo-class-priority'] = map(str.strip,
                                     config_parser.get('general', 'halo-class-priority').split(","))
 
 
+config['default-cosmology'] = {}
+for k in config_parser.options('default-cosmology') :
+    config['default-cosmology'][k] = float(config_parser.get('default-cosmology', k))
 
 
 import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot
