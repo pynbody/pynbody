@@ -518,6 +518,45 @@ class GadgetFile :
         fd.write(data)
         fd.close()
 
+class GadgetWriteFile (GadgetFile) :
+    """Class for write-only snapshots, as when we are creating a new set of files from, eg, a TipsySnap.
+        Should not be used directly."""
+    def __init__(self, filename, npart, block_names, header, format2=True) :
+        self.header=header
+        self._filename = filename
+        self.endian=''
+        self.format2=format2
+        self.blocks={}
+        self.header.npart = np.array(npart)
+        #Set up the positions
+        header_size = 4
+        if format2 :
+            header_size += 3*4 + 4
+        footer_size = 4
+        #First block is just past the header. 
+        cur_pos = 256 + header_size + footer_size
+        for block in block_names :
+            #Add block if present for some types
+            if block.types.sum() :
+                b=GadgetBlock()
+                b.p_types = block.types
+                b.start = cur_pos + header_size
+                b.partlen = block.partlen
+                b.length = b.partlen * types.sum()
+                b.data_type = block.data_type
+                cur_pos += b.length+header_size+footer_size
+                self.blocks[block.name] = b
+
+class WriteBlock :
+    """Internal structure for passing data around between file and snapshot"""
+    def __init__(self) :
+        #Bytes per particle in file
+        self.partlen=0
+        #Data type of block
+        self.data_type = np.float32
+        #Types of particle this block contains
+        self.p_types = np.zeros(N_TYPE,bool)
+        self.name = "    "
 
 class GadgetSnap(snapshot.SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
