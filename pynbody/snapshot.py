@@ -4,7 +4,6 @@ from . import filt
 from . import units
 from . import config
 
-
 import numpy as np
 import copy
 import weakref
@@ -12,6 +11,7 @@ import exceptions
 import sys
 import hashlib
 import time
+import warnings
 
 
 from util import LazyKeyError
@@ -90,7 +90,7 @@ class SimSnap(object) :
                     in_fam = []
                     out_fam = []
                     for x in self.families() :
-                        if self[x].has_key(i) :
+                        if i in self[x] :
                             in_fam.append(x)
                         else :
                             out_fam.append(x)
@@ -253,7 +253,7 @@ class SimSnap(object) :
         d = {}
         wanted = ['a','h']
         for x in wanted :
-            if self.properties.has_key(x) :
+            if x in self.properties :
                 d[x] = self.properties[x]
         return d
 
@@ -313,8 +313,8 @@ class SimSnap(object) :
         return new_unit
 
     def __delitem__(self, name) :
-        if self._family_arrays.has_key(name) :
-            assert not self._arrays.has_key(name) # mustn't have simulation-level array of this name
+        if name in self._family_arrays :
+            assert name not in self._arrays # mustn't have simulation-level array of this name
             del self._family_arrays[name]
         else :
             del self._arrays[name]
@@ -329,7 +329,7 @@ class SimSnap(object) :
             return None
 
     def _set_persist(self, hash, name, obj=None) :
-        if not self._persistent_objects.has_key(hash) :
+        if hash not in self._persistent_objects :
             self._persistent_objects[hash] = {}
         self._persistent_objects[hash][name] = obj
 
@@ -668,13 +668,12 @@ class SimSnap(object) :
                 dtype = self._family_arrays[name][x].dtype
                 for x in self._family_arrays[name].values() :
                     if x.dtype!=dtype :
-                        import warnings
                         warnings.warn("Data types of family arrays do not match; assuming "+str(dtype),  RuntimeWarning)
                     
             except IndexError :
                 pass
             
-        if not self._arrays.has_key(name) :
+        if name not in self._arrays :
             self._create_array(name, ndim=ndim, dtype=dtype)
         try:
             for fam in self._family_arrays[name] :
@@ -704,7 +703,7 @@ class SimSnap(object) :
         """Returns a list of arrays which can be lazy-evaluated."""
         res = []
         for cl in type(self).__mro__ :
-            if self._derived_quantity_registry.has_key(cl) :
+            if cl in self._derived_quantity_registry :
                 res+=self._derived_quantity_registry[cl].keys()
         return res
 
@@ -723,7 +722,7 @@ class SimSnap(object) :
 
     @classmethod
     def derived_quantity(cl,fn):
-        if not SimSnap._derived_quantity_registry.has_key(cl) :
+        if cl not in SimSnap._derived_quantity_registry :
             SimSnap._derived_quantity_registry[cl] = {}
         SimSnap._derived_quantity_registry[cl][fn.__name__]=fn
         return fn
@@ -746,8 +745,8 @@ class SimSnap(object) :
                 SimSnap._calculating.append(name)
                 SimSnap._dependency_track.append(set())
                 for cl in type(self).__mro__ :
-                    if self._derived_quantity_registry.has_key(cl) \
-                           and self._derived_quantity_registry[cl].has_key(name) :
+                    if cl in self._derived_quantity_registry \
+                           and name in self._derived_quantity_registry[cl] :
                         if config['verbose'] : print>>sys.stderr, "SimSnap: deriving array",name
                         with self.auto_propagate_off :
                             if fam is None :
@@ -762,7 +761,7 @@ class SimSnap(object) :
                         calculated = True
                         for x in SimSnap._dependency_track[-1] :
                             if x!=name :
-                                if not SimSnap._dependency_chain.has_key(x) :
+                                if x not in SimSnap._dependency_chain :
                                     SimSnap._dependency_chain[x] = set()
                                 
                                 SimSnap._dependency_chain[x].add(name)
@@ -898,7 +897,16 @@ def put_1d_slices(sim) :
     except KeyError :
         pass
 
-
+@SimSnap.decorator
+def default_cosmology(sim) :
+    missing = [k for k in config['default-cosmology'] if k not in sim.properties]
+    if len(missing)>0 :
+        
+        warnings.warn("At least some cosmological parameters missing. Assuming defaults for: %s."%\
+                          ", ".join(missing),
+                       RuntimeWarning)
+        sim.properties.update([(k,config['default-cosmology'][k]) for k in missing])
+        
 
 _subarray_immediate_mode = False
 # Set this to True to always get copies of data when indexing is

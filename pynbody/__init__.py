@@ -1,6 +1,129 @@
-import ConfigParser, os
+"""
+pynbody
+=======
 
+A light-weight, portable, format-transparent analysis framework
+for N-body and SPH astrophysical simulations.
+
+Getting help
+------------
+
+Help for pynbody comes in two forms
+
+ 1. The wiki, which is recommended for new users, at
+      <http://tinyurl.com/pynbody>
+ 2. docstrings in the code for reference, which can be accessed
+    using the standard help() function
+
+What's available
+----------------
+
+Pynbody handles Gadget, Gadget-HDF and Tipsy files. To load
+any of these, use
+
+f = pynbody.load(filename)
+
+to create a pynbody.snapshot.SimSnap object f, which then acts
+as a dictionary holding the arrays inside f. For more information
+see <http://code.google.com/p/pynbody/wiki/BasicTutorial>.
+
+Configuration
+-------------
+
+Various aspects of the behaviour of pynbody can be controlled.
+See <http://code.google.com/p/pynbody/wiki/ConfigFiles>
+
+Subpackages
+-----------
+
+array
+    Extends numpy arrays with a custom class array.SimArray
+    which holds additional information like units.
+
+bridge
+    Allows connections to be made between two different
+    SimSnap objects in various ways. 
+    <http://code.google.com/p/pynbody/wiki/SameSimulationDifferentOutputs>
+    
+
+derived
+    Holds procedures for creating new arrays from existing
+    ones, e.g. for getting the radial position. 
+    <http://code.google.com/p/pynbody/wiki/AutomagicCalculation>
+
+family
+    Stores a registry of different particle types like dm,
+    star, gas.
+    <http://code.google.com/p/pynbody/wiki/TheFamilySystem>
+
+filt
+    Defines and implements 'filters' which allow abstract subsets
+    of data to be specified.
+    <http://code.google.com/p/pynbody/wiki/FiltersAndSubsims>
+
+gadget
+    Implements classes and functions for handling gadget files;
+    you rarely need to access this module directly as it will
+    be invoked automatically via pynbody.load.
+
+gadgethdf
+    Implements classes and functions for handling gadget HDF files
+    (if h5py is installed); you rarely need to access this module
+    directly as it will be invoked automatically via pynbody.load
+
+halo
+    Implements halo catalogue functions. If you have a supported
+    halo catalogue on disk or a halo finder installed and
+    correctly configured, you can access a halo catalogue through
+    f.halos() where f is a SimSnap.
+    <http://code.google.com/p/pynbody/wiki/HaloCatalogue>
+
+kdtree
+    Implements a KD Tree based on Joachim Stadel's smooth.c.
+    You are unlikely to need to access this module directly
+    as KD Trees are built in higher level analysis code
+    automatically.
+
+snapshot
+    Implements the basic SimSnap class and also SubSnap classes
+    which can represent different views of the same data.
+    <http://code.google.com/p/pynbody/wiki/FiltersAndSubsims>
+    You rarely need to access this module directly.
+
+sph
+    Allows SPH images to be rendered. The easiest interface
+    to this module, at least to start with, is through the
+    pynbody.plot package.
+    <http://code.google.com/p/pynbody/wiki/SphImages>
+
+tipsy
+    Implements classes and functions for handling tipsy files.
+    You rarely need to access this module directly as it will
+    be invoked automatically via pynbody.load.
+
+units
+    Implements a light-weight unit class which is
+    used to automatically track units of your simulation arrays.
+    <http://code.google.com/p/pynbody/wiki/ConvertingUnits>
+
+util
+    Various utility routines used internally by pynbody.
+
+    
+"""
+
+# Import basic dependencies
+import ConfigParser
+import os
+import imp
+import numpy
+
+# Create config dictionaries which will be required by subpackages
 config_parser = ConfigParser.ConfigParser()
+config = {}
+
+
+# Process configuration options
 config_parser.optionxform = str
 config_parser.read(os.path.join(os.path.dirname(__file__),"default_config.ini"))
 config_parser.read(os.path.join(os.path.dirname(__file__),"config.ini"))
@@ -8,9 +131,8 @@ config_parser.read(os.path.expanduser("~/.pynbodyrc"))
 config_parser.read("config.ini")
 
 
-
-config= {'verbose': config_parser.getboolean('general','verbose'),
-         'centering-scheme': config_parser.get('general','centering-scheme')}
+config.update({'verbose': config_parser.getboolean('general','verbose'),
+         'centering-scheme': config_parser.get('general','centering-scheme')})
 
 config['snap-class-priority'] = map(str.strip,
                                     config_parser.get('general', 'snap-class-priority').split(","))
@@ -18,28 +140,36 @@ config['halo-class-priority'] = map(str.strip,
                                     config_parser.get('general', 'halo-class-priority').split(","))
 
 
+config['default-cosmology'] = {}
+for k in config_parser.options('default-cosmology') :
+    config['default-cosmology'][k] = float(config_parser.get('default-cosmology', k))
 
 
-import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot
+# Import subpackages
+from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot
 
 # The following code resolves inter-dependencies when reloading
-reload(array)
-reload(util)
-# reload(family) # reloading this causes problems for active snapshots
-reload(snapshot)
-reload(tipsy)
-reload(gadget)
-reload(gadgethdf)
-reload(filt)
-reload(analysis)
-reload(halo)
-reload(derived)
-reload(bridge)
-reload(plot)
+imp.reload(array)
+imp.reload(util)
+# imp.reload(family) # reloading this causes problems for active snapshots
+imp.reload(snapshot)
+imp.reload(tipsy)
+imp.reload(gadget)
+imp.reload(gadgethdf)
+imp.reload(filt)
+imp.reload(analysis)
+imp.reload(halo)
+imp.reload(derived)
+imp.reload(bridge)
+imp.reload(plot)
 
-from analysis import profile
+# from analysis import profile
 
+
+# This is our definitive list of classes which are able to
+# load snapshots
 _snap_classes = [gadgethdf.GadgetHDFSnap, gadget.GadgetSnap, tipsy.TipsySnap]
+
 
 # Turn the config strings for snapshot/halo classes into lists of
 # actual classes
@@ -47,7 +177,6 @@ _snap_classes_dict = dict([(x.__name__,x) for x in _snap_classes])
 _halo_classes_dict = dict([(x.__name__,x) for x in halo._halo_classes])
 config['snap-class-priority'] = [_snap_classes_dict[x] for x in config['snap-class-priority']]
 config['halo-class-priority'] = [_halo_classes_dict[x] for x in config['halo-class-priority']]
-
 
 
 def load(filename, *args, **kwargs) :
@@ -62,3 +191,5 @@ def load(filename, *args, **kwargs) :
 
 
 from snapshot import _new as new
+
+__all__ = ['load', 'new']

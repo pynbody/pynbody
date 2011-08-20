@@ -379,8 +379,10 @@ class CompositeUnit(UnitBase) :
                   for b in bases]
 
         bp = sorted(filter(lambda x : x[0]!=0,
-                           zip(powers, bases)),reverse=True,
-                    cmp=lambda x, y: cmp(x[0], y[0]))
+                           zip(powers, bases)),
+                    reverse=True,
+                    key=lambda x: x[0])
+                    # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
 
         if len(bp)!=0 :
             self._powers, self._bases = map(list,zip(*bp))

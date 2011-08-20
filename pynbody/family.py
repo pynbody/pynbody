@@ -1,13 +1,12 @@
-"""Definition of particle families for pynbody. Default types are dm,
-star, and gas.
+"""This module defines the Family class which represents
+families of particles (e.g. dm, gas, star particles).
+New Family objects are automatically registered so that
+snapshots can use them in the normal syntax (snap.dm,
+snap.star, etc).
 
-To add a new particle family, simply type
-
-pynbody.family.Family("new_family_name")
-
-This module might seem like over-kill (and could be removed if it
-proves to be so) but exists to enable future intelligent behaviour
-handling particles from different families in customizable ways."""
+In practice the easiest way to make use of the flexibility
+this module provides is through adding more families of
+particles in your config.ini."""
 
 from . import config_parser
 
@@ -15,6 +14,9 @@ from . import config_parser
 _registry = []
 
 def family_names(with_aliases=False) :
+    """Returns a list of the names of all particle families.
+    If with_aliases is True, include aliases in the list."""
+    
     global _registry
     l = []
     for o in _registry :
@@ -24,6 +26,11 @@ def family_names(with_aliases=False) :
     return l
 
 def get_family(name, create=False) :
+    """Returns a family corresponding to the specified string.  If the
+    family does not exist and create is False, raises ValueError. If
+    the family does not exist and create is True, an appropriate
+    object is instantiated, registered and returned."""
+    
     if isinstance(name, Family) :
         return name
 
@@ -58,12 +65,10 @@ class Family(object) :
         return get_family, (self.name, True), {"aliases": self.aliases}
 
 
+# Instantiate the default families as specified
+# by the configuration file
+
 g = globals()
 for f in config_parser.options('families') :
     aliases = config_parser.get('families', f)
     g[f] = Family(f,map(str.strip,aliases.split(","))) 
-
-#dm = Family("dm",["d","dark"])
-#star = Family("star",["stars","st","s"])
-#gas = Family("gas",["g"])
-#neutrino = Family("neutrino", ["n","neu"])
