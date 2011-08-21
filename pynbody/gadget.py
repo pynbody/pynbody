@@ -799,6 +799,8 @@ class GadgetSnap(snapshot.SimSnap):
                 self[name] = tmp
         else :
             self[fam][name] = data[fam].reshape(dims,order='C').view(array.SimArray)
+        #Decorate again, so that lazy-loading an array can also create dependent decoration arrays
+        self._decorate()
 
     @staticmethod
     def _can_load(f) :
