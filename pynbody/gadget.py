@@ -890,7 +890,7 @@ class GadgetSnap(snapshot.SimSnap):
         #Call _write_array for every array.
         for x in all_keys :
             #Do not write derived arrays by default
-            if not self.is_derived_array(x):
+            if not self.is_derived_array(x) and x not in ["x","y","z","vx","vy","vz"]:
                 GadgetSnap._write_array(self,x, filename)
 
     @staticmethod
