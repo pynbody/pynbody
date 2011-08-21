@@ -819,6 +819,7 @@ class GadgetSnap(snapshot.SimSnap):
         """Write an entire Gadget file (actually an entire set of snapshots)."""
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
+        all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
         if self.__class__ is not GadgetSnap :
             #We first need to construct some information normally found on the disc.
             #Make sure we have enough files to fit the data into. The magic numbers are:
@@ -837,23 +838,18 @@ class GadgetSnap(snapshot.SimSnap):
             #as well as a name. Blocks will hit the disc in the order they are in in block_names.
             #No writing format 1 files.
             block_names = []
-            #WARNING: This will probably break for formats which implement lazy loading. 
-            #At present this only works for Gadget formats, so it should be ok.
-            #I really need a way to tell which arrays are loadable family arrays, 
-            #like GadgetSnap's loadable_family_keys()
-            #Blocks which are for all types first
-            for k in set(self.keys()+self.loadable_keys()) :
+            for k in all_keys :
                 try :
                     partlen = np.shape(self[k])[1]
                 except IndexError:
                     partlen = 1
                 #Don't use the type mapping here, because it may not exist.
-                bb=WriteBlock(partlen, dtype=self[k].dtype, types = np.ones(N_TYPE,bool), name = k.upper().ljust(4))
+                types = np.zeros(N_TYPE,bool)
+                for f in self.families() :
+                    types[gadget_type(f)] = self._family_has_loadable_array(f, k)
+                bb=WriteBlock(partlen, dtype=self[k].dtype, types = types, name = k.upper().ljust(4))
                 block_names.append(bb)
-            #Blocks which are only for some families really need a SimSnap.method() to find which 
-            #families a given array exists for. Until then this function cannot be implemented cleanly.
-#             for k in self.family_keys() :
-#                 raise Exception,"Not Implemented!"
+
             #Create a list of files. 
             self._files = []
             if nfiles > 1 :
@@ -875,8 +871,8 @@ class GadgetSnap(snapshot.SimSnap):
             #Call write_header for every file. 
             [ self.write_header(self.header) for f in self._files ]
         #Call _write_array for every array.
-        all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
         for x in all_keys :
+            #Do not write derived arrays by default
             if not self.is_derived_array(x):
                 GadgetSnap._write_array(self,x, filename)
 
@@ -885,7 +881,6 @@ class GadgetSnap(snapshot.SimSnap):
         """Write a data array back to a Gadget snapshot, splitting it across files."""
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = (array_name.upper().ljust(4," "))[0:4]
-        family_names = set(self.loadable_family_keys()).union(self.family_keys())
         nfiles=np.size(self._files)
         #Set up the filenames
         if filename != None :
@@ -894,21 +889,22 @@ class GadgetSnap(snapshot.SimSnap):
                 ffile.append(filename+"."+str(i))
         #Find where each particle goes
         f_parts = [ f.get_block_parts(g_name, -1) for f in self._files ]
-        #If there is no block corresponding to this name in the file, add it.
+        #If there is no block corresponding to this name in the file, add it (so we can write derived arrays).
         if np.sum(f_parts) == 0:
             #Get p_type
             p_types=np.zeros(N_TYPES,bool)
-            if array_name in family_names :
-                for fam in self.families():
-                    #We get the particle types we want by trying to load all particle types (from memory) and seeing which ones work
-                    if self[fam].has_key(array_name) :
-                        p_types[gadget_type(fam)]=True
-            ashape=np.shape(self[array_name])
-            asize=np.size(self[array_name])
-            per_file = ashape[0]/nfiles
+            npart = 0
+            for fam in self.families():
+                gfam = gadget_type(fam)
+                #We get the particle types we want by trying to load all particle types (from memory) and seeing which ones work
+                p_types[gfam]=self[fam].has_key(array_name)
+                if p_types[gfam] :
+                    ashape = np.shape(self[fam][array_name])
+                    npart+=ashape[0]
+            per_file = npart/nfiles
             for f in self._files[:-2]:
-                f.add_file_block(self[array_name], per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
-            self_files[-1].add_file_block(array_name, ashape[0]-(nfiles-1)*per_file,ashape[1])
+                f.add_file_block(array_name, per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
+            self_files[-1].add_file_block(array_name, npart-(nfiles-1)*per_file,ashape[1])
         #Write the blocks
         #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
         for fam in self.families() :
