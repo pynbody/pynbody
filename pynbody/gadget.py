@@ -747,13 +747,29 @@ class GadgetSnap(snapshot.SimSnap):
     def _load_array(self, name, fam=None) :
         """Read in data from a Gadget file.
         If fam != None, loads only data for that particle family"""
+        #g_name is the internal name
+        g_name = _translate_array_name(name)
+        #Special-case mass
+        if g_name == "MASS" :
+            if fam == None :
+                for f in self.families() :
+                    fmass = self.header.mass[gadget_type(f)]
+                    if fmass == 0. :
+                        self._load_array(name, f)
+                    else :
+                        self[f][name] = fmass*np.ones(self.get_block_parts(g_name, fam), dtype=np.float32)
+                return
+            else :
+                fmass = self.header.mass[gadget_type(fam)]
+                if fmass != 0. :
+                    self[f][name] = fmass*np.ones(self.get_block_parts(g_name, fam), dtype=np.float32)
+                    return
+
         if not self._family_has_loadable_array( fam, name) :
             if fam is None :
                 raise KeyError,"Block "+name+" is not available for all families"
             else :
                 raise IOError, "No such array on disk"
-        #g_name is the internal name
-        g_name = _translate_array_name(name)
         p_read = 0
         p_start = 0
 
