@@ -60,59 +60,96 @@ def gadget_type(fam) :
 class GadgetBlock :
     """Class to describe each block.
     Each block has a start, a length, and a length-per-particle"""
-    def __init__(self) :
+    def __init__(self, start=0, length=0,partlen=0,dtype=np.float32,p_types=np.zeros(N_TYPE,bool)) :
         #Start of block in file
-        self.start=0
+        self.start=start
         #Length of block in file
-        self.length=0
+        self.length=length
         #Bytes per particle in file
-        self.partlen=0
+        self.partlen=partlen
         #Data type of block
-        self.data_type = np.float32
+        self.data_type = dtype
         #Types of particle this block contains
-        self.p_types = np.zeros(N_TYPE,bool)
+        self.p_types = p_types
 
+def _construct_gadget_header(data,endian='=') :
+    """This function exists purely because python does not allow us to overload constructors.
+       Create a GadgetHeader from a byte range read from a file."""
+    npart = np.zeros(N_TYPE, dtype=np.uint32)
+    mass = np.zeros(N_TYPE)
+    time = 0.
+    redshift = 0.
+    npartTotal=np.zeros(N_TYPE,dtype=np.int32)
+    num_files=0
+    BoxSize=0.
+    Omega0=0.
+    OmegaLambda=0.
+    HubbleParam=0.
+    NallHW=np.zeros(N_TYPE,dtype=np.int32)
+    if data == '':
+        return
+    fmt= endian+"IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif48s"
+    if struct.calcsize(fmt) != 256:
+        raise Exception, "There is a bug in gadget.py; the header format string is not 256 bytes"
+    (npart[0], npart[1],npart[2],npart[3],npart[4],npart[5],
+    mass[0], mass[1],mass[2],mass[3],mass[4],mass[5],
+    time, redshift,  flag_sfr, flag_feedback,
+    npartTotal[0], npartTotal[1],npartTotal[2],npartTotal[3],npartTotal[4],npartTotal[5],
+    flag_cooling, num_files, BoxSize, Omega0, OmegaLambda, HubbleParam,flag_stellarage, flag_metals,
+    NallHW[0], NallHW[1],NallHW[2],NallHW[3],NallHW[4],NallHW[5],
+    flag_entropy_instead_u, flag_doubleprecision, flag_ic_info, lpt_scalingfactor,fill) = struct.unpack(fmt, data)
+
+    header=GadgetHeader(npart,mass,time,redshift,BoxSize,Omega0,OmegaLambda,HubbleParam,num_files)
+    header.flag_sfr=flag_sfr
+    header.flag_feedback=flag_feedback
+    header.npartTotal=npartTotal
+    header.flag_cooling=flag_cooling
+    header.flag_stellarage=flag_stellarage
+    header.flag_metals=flag_metals
+    header.NallHW=NallHW
+    header.flag_entropy_instead_u=flag_entropy_instead_u       
+    header.flag_doubleprecision=flag_doubleprecision
+    header.flag_ic_info=flag_ic_info
+    header.lpt_scalingfactor=0.      
+    header.endian=endian
+
+    return header
+    
 class GadgetHeader :
     """Describes the header of gadget class files; this is all our metadata, so we are going to store it inline"""
-    def __init__(self, data, endian='=') :
-        """Takes a byte range, read from a file, creates a header"""
-        #Number of particles
-        self.npart = np.zeros(N_TYPE, dtype=np.uint32)
+    def __init__ (self,npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 ) :
+        "Construct a header from values, instead of a datastring."""
+        assert(len(mass) == 6)
+        assert(len(npart) == 6)
         # Mass of each particle type in this file. If zero,
         # particle mass stored in snapshot.
-        self.mass = np.zeros(N_TYPE)
+        self.mass = mass
         # Time of snapshot
-        self.time = 0.
+        self.time = time
         # Redshift of snapshot
-        self.redshift = 0.
+        self.redshift = redshift
         # Boolean to test the presence of star formation
         self.flag_sfr=False
         # Boolean to test the presence of feedback
         self.flag_feedback=False
-        # First 32-bits of total number of particles in the simulation
-        self.npartTotal=np.zeros(N_TYPE,dtype=np.int32)
         # Boolean to test the presence of cooling
         self.flag_cooling=False
         # Number of files expected in this snapshot
-        self.num_files=0
+        self.num_files=num_files
         # Box size of the simulation
-        self.BoxSize=0.
+        self.BoxSize=BoxSize
         # Omega_Matter. Note this is Omega_DM + Omega_Baryons
-        self.Omega0=0.
+        self.Omega0=Omega0
         # Dark energy density
-        self.OmegaLambda=0.
+        self.OmegaLambda=OmegaLambda
         # Hubble parameter, in units where it is around 70.
-        self.HubbleParam=0.
+        self.HubbleParam=HubbleParam
         # Boolean to test whether stars have an age
         self.flag_stellarage=False
         # Boolean to test the presence of metals
         self.flag_metals=False
-        # Long word of the total number of particles in the simulation.
-        # At least one version of N-GenICs sets this to something entirely different.
-        self.NallHW=np.zeros(N_TYPE,dtype=np.int32)
-        self.flag_entropy_instead_u=False       # flags that IC-file contains entropy instead of u
+        self.flag_entropy_instead_u=False      # flags that IC-file contains entropy instead of u
         self.flag_doubleprecision=False  # flags that snapshot contains double-precision instead of single precision
-
         self.flag_ic_info=False
         # flag to inform whether IC files are generated with Zeldovich approximation,
         # or whether they contain 2nd order lagrangian perturbation theory ICs.
@@ -122,21 +159,20 @@ class GadgetHeader :
         #    FLAG_EVOLVED_2LPT      (4)   - snapshot evolved from 2lpt ICs
         #    FLAG_NORMALICS_2LPT    (5)   - standard gadget file format with 2lpt ICs
         # All other values, including 0 are interpreted as "don't know" for backwards compatability.
-        self.lpt_scalingfactor=0.      # scaling factor for 2lpt initial conditions
-        self.endian=endian
-        if data == '':
-            return
-        fmt= endian+"IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif48s"
-        if struct.calcsize(fmt) != 256:
-            raise Exception, "There is a bug in gadget.py; the header format string is not 256 bytes"
-        (self.npart[0], self.npart[1],self.npart[2],self.npart[3],self.npart[4],self.npart[5],
-        self.mass[0], self.mass[1],self.mass[2],self.mass[3],self.mass[4],self.mass[5],
-        self.time, self.redshift,  self.flag_sfr, self.flag_feedback,
-        self.npartTotal[0], self.npartTotal[1],self.npartTotal[2],self.npartTotal[3],self.npartTotal[4],self.npartTotal[5],
-        self.flag_cooling, self.num_files, self.BoxSize, self.Omega0, self.OmegaLambda, self.HubbleParam,self.flag_stellarage, self.flag_metals,
-        self.NallHW[0], self.NallHW[1],self.NallHW[2],self.NallHW[3],self.NallHW[4],self.NallHW[5],
-        self.flag_entropy_instead_u, self.flag_doubleprecision, self.flag_ic_info, self.lpt_scalingfactor,fill) = struct.unpack(fmt, data)
-        return
+        self.lpt_scalingfactor=0.    # scaling factor for 2lpt initial conditions  
+        self.endian=""
+        #Number of particles
+        self.npart = np.array(npart,dtype=np.uint32)
+        if (npart < 2**31).all() :
+            # First 32-bits of total number of particles in the simulation
+            self.npartTotal=np.array(npart,dtype=np.int32)
+            # Long word of the total number of particles in the simulation.
+            # At least one version of N-GenICs sets this to something entirely different.
+            self.NallHW=np.zeros(N_TYPE,dtype=np.int32)
+        else :
+            self.header.NallHW = np.array(npart/2**32,dtype=np.int32)
+            self.header.npartTotal = np.array(npart - 2**32*self.header.NallHW,dtype=np.int32)
+
     
     def serialize(self) :
         """This takes the header structure and returns it as a packed string"""
@@ -166,7 +202,6 @@ class GadgetFile :
     def __init__(self, filename) :
         self._filename=filename
         self.blocks = {}
-        self.header=GadgetHeader('')
         self.endian=''
         self.format2=True
         t_part = 0
@@ -190,7 +225,7 @@ class GadgetFile :
                 self.header=fd.read(256)
                 if len(self.header) != 256 :
                     raise IOError, "Could not read HEAD block in "+filename
-                self.header=GadgetHeader(self.header, self.endian)
+                self.header=_construct_gadget_header(self.header, self.endian)
                 record_size = self.read_block_foot(fd)
                 if record_size != 256 :
                     raise IOError, "Bad record size for HEAD in "+filename
@@ -467,11 +502,8 @@ class GadgetFile :
         #Get last block
         lb=max(self.blocks.values(), key=st)
         #Make new block
-        block=GadgetBlock()
+        block=GadgetBlock(length=blocksize, partlen=partlen, dtype=dtype)
         block.start=lb.start+lb.length+6*4 #For the block header, and footer of the previous block
-        block.length=blocksize
-        block.partlen=partlen
-        block.data_type=dtype
         if p_types == -1:
             block.p_types = np.ones(N_TYPE,bool)
         else:
@@ -520,7 +552,7 @@ class GadgetFile :
 
 class GadgetWriteFile (GadgetFile) :
     """Class for write-only snapshots, as when we are creating a new set of files from, eg, a TipsySnap.
-        Should not be used directly."""
+        Should not be used directly. block_names is a list so we can specify an on-disc ordering."""
     def __init__(self, filename, npart, block_names, header, format2=True) :
         self.header=header
         self._filename = filename
@@ -538,25 +570,20 @@ class GadgetWriteFile (GadgetFile) :
         for block in block_names :
             #Add block if present for some types
             if block.types.sum() :
-                b=GadgetBlock()
-                b.p_types = block.types
-                b.start = cur_pos + header_size
-                b.partlen = block.partlen
-                b.length = b.partlen * types.sum()
-                b.data_type = block.data_type
+                b=GadgetBlock(start=cur_pos+header_size, partlen=block.partlen, length=block.partlen*block.types.sum(), dtype=block.dtype,p_types=block.types)
                 cur_pos += b.length+header_size+footer_size
                 self.blocks[block.name] = b
 
 class WriteBlock :
     """Internal structure for passing data around between file and snapshot"""
-    def __init__(self) :
+    def __init__(self, partlen=4, dtype=np.float32, types = np.zeros(N_TYPE,bool), name = "    ") :
         #Bytes per particle in file
-        self.partlen=0
+        self.partlen=partlen
         #Data type of block
-        self.data_type = np.float32
+        self.dtype = dtype
         #Types of particle this block contains
-        self.p_types = np.zeros(N_TYPE,bool)
-        self.name = "    "
+        self.types = types
+        self.name = name
 
 class GadgetSnap(snapshot.SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
@@ -789,19 +816,20 @@ class GadgetSnap(snapshot.SimSnap):
     @staticmethod
     def _write(self, filename=None) :
         """Write an entire Gadget file (actually an entire set of snapshots)."""
+        #If caller is not a GadgetSnap, construct the GadgetFiles, 
+        #so that format conversion works.
         #Call write_header for every file. 
-        for f in self._files:
-            f.write_header(self.header,filename=filename)
+        [ f.write_header(self.header, filename=filename) for f in self._files ]
         #Call _write_array for every array.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
         for x in all_keys :
             if not self.is_derived_array(x):
-                self._write_array(x, filename=filename)
-        #If caller is a tipsy file, construct the GadgetFiles, so conversion works.
-        #Find some way of specifying format2, so that conversion works
-    
+                GadgetSnap._write_array(self,x)
+
     def _write_array(self, array_name, filename=None) :
-        """Write a data array back to a Gadget snapshot, splitting it across files"""
+        """Write a data array back to a Gadget snapshot, splitting it across files. Note that
+        filename is ignored, because writing a single array to a new file does 
+        not make a valid gadget snapshot."""
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = (array_name.upper().ljust(4," "))[0:4]
         family_names = set(self.loadable_family_keys()).union(self.family_keys())
