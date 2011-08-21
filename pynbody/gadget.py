@@ -272,7 +272,12 @@ class GadgetFile :
                 block.length = extra_len
             # Set up the particle types in the block. This also is a heuristic,
             # which assumes that blocks are either fully present or not for a given particle type
-            block.p_types = self.get_block_types(block, self.header.npart)
+            try:
+                block.p_types = self.get_block_types(block, self.header.npart)
+            except ValueError :
+            #If it fails, try again with a different partlen
+                block.partlen = 8
+                block.p_types = self.get_block_types(block, self.header.npart)
             self.blocks[name[0:4]] = block
 
         #and we're done.
@@ -853,7 +858,7 @@ class GadgetSnap(snapshot.SimSnap):
                         except IndexError:
                             partlen = dtype.itemsize
                     except KeyError:
-                        types[gadget_type(f)] = False
+                        pass
                 bb=WriteBlock(partlen, dtype=dtype, types = types, name = _translate_array_name(k).upper().ljust(4)[0:4])
                 block_names.append(bb)
 
