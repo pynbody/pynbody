@@ -12,6 +12,7 @@ import sys
 import copy
 import os.path as path
 import warnings
+import errno
 
 #This is set here and not in a config file because too many things break 
 #if it is not 6
@@ -526,21 +527,22 @@ class GadgetFile :
         """(Re) write a Gadget-style block footer."""
         return struct.pack(self.endian+'I',blocksize)
   
-    def write_header(self, head, filename=None) :
+    def write_header(self, head) :
         """Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written."""
         #Overwrite the npart in the passed header with the file header. 
         head.npart=np.array(self.header.npart)
         data=self.write_block_header("HEAD", 256)
         data+=head.serialize()
         #a mode will ignore the file position, and w truncates the file.
-        if filename == None : 
+        try :
             fd = open(self._filename, "r+")
-        else :
-            try :
-                fd = open(filename, "r+")
-            except IOError:
-                #If we couldn't open it (because it doesn't exist) open it for writing.
-                fd = open(filename, "w+")
+        except IOError as (err, strerror):
+            #If we couldn't open it because it doesn't exist open it for writing.
+            if err == errno.ENOENT :
+                fd = open(self._filename, "w+")
+            #If we couldn't open it for any other reason, reraise exception
+            else :
+                raise IOError(err,strerror)
         fd.seek(0) #Header always at start of file
         #Write header
         fd.write(data)
@@ -818,8 +820,13 @@ class GadgetSnap(snapshot.SimSnap):
         """Write an entire Gadget file (actually an entire set of snapshots)."""
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
+        #Rewrite filenames in the files to use the new filename, if needed.
+        if filename != None :
+            self.filename = filename
+            for i in np.arange(0, np.size(self._files)) :
+                self._files[i]._filename = filename+"."+str(i)
         #Call write_header for every file. 
-        [ f.write_header(self.header, filename=filename) for f in self._files ]
+        [ f.write_header(self.header) for f in self._files ]
         #Call _write_array for every array.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
         for x in all_keys :
