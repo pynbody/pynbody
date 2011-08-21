@@ -853,8 +853,7 @@ class GadgetSnap(snapshot.SimSnap):
                             partlen = dtype.itemsize
                     except KeyError:
                         types[gadget_type(f)] = False
-#                     types[gadget_type(f)] = self._family_has_loadable_array(f, k)
-                bb=WriteBlock(partlen, dtype=dtype, types = types, name = k.upper().ljust(4))
+                bb=WriteBlock(partlen, dtype=dtype, types = types, name = _translate_array_name(k).upper().ljust(4)[0:4])
                 block_names.append(bb)
 
             #Create a list of files. 
@@ -887,7 +886,7 @@ class GadgetSnap(snapshot.SimSnap):
     def _write_array(self, array_name, filename=None) :
         """Write a data array back to a Gadget snapshot, splitting it across files."""
         #Make the name a four-character upper case name, possibly with trailing spaces
-        g_name = (array_name.upper().ljust(4," "))[0:4]
+        g_name = _translate_array_name(array_name).upper().ljust(4)[0:4]
         nfiles=np.size(self._files)
         #Set up the filenames
         if filename != None :
@@ -908,10 +907,11 @@ class GadgetSnap(snapshot.SimSnap):
                 if p_types[gfam] :
                     ashape = np.shape(self[fam][array_name])
                     npart+=ashape[0]
-            per_file = npart/nfiles
-            for f in self._files[:-2]:
-                f.add_file_block(array_name, per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
-            self_files[-1].add_file_block(array_name, npart-(nfiles-1)*per_file,ashape[1])
+            if p_types.sum() :
+                per_file = npart/nfiles
+                for f in self._files[:-2]:
+                    f.add_file_block(array_name, per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
+                self._files[-1].add_file_block(array_name, npart-(nfiles-1)*per_file,ashape[1])
         #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
         for fam in self.families() :
             try :
