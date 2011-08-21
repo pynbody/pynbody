@@ -848,9 +848,9 @@ class GadgetSnap(snapshot.SimSnap):
                             dtype = self[f][k].dtype
                         types[gadget_type(f)] = True
                         try :
-                            partlen = np.shape(self[k])[1]
+                            partlen = np.shape(self[f][k])[1]*dtype.itemsize
                         except IndexError:
-                            partlen = 1
+                            partlen = dtype.itemsize
                     except KeyError:
                         types[gadget_type(f)] = False
 #                     types[gadget_type(f)] = self._family_has_loadable_array(f, k)
@@ -899,7 +899,7 @@ class GadgetSnap(snapshot.SimSnap):
         #If there is no block corresponding to this name in the file, add it (so we can write derived arrays).
         if np.sum(f_parts) == 0:
             #Get p_type
-            p_types=np.zeros(N_TYPES,bool)
+            p_types=np.zeros(N_TYPE,bool)
             npart = 0
             for fam in self.families():
                 gfam = gadget_type(fam)
