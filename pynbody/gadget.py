@@ -822,8 +822,9 @@ class GadgetSnap(snapshot.SimSnap):
         #so that format conversion works.
         #Rewrite filenames in the files to use the new filename, if needed.
         if filename != None :
-            self.filename = filename
+            readfiles=[]
             for i in np.arange(0, np.size(self._files)) :
+                readfiles.append(self._files[i]._filename)
                 self._files[i]._filename = filename+"."+str(i)
         #Call write_header for every file. 
         [ f.write_header(self.header) for f in self._files ]
@@ -832,6 +833,10 @@ class GadgetSnap(snapshot.SimSnap):
         for x in all_keys :
             if not self.is_derived_array(x):
                 GadgetSnap._write_array(self,x)
+        #Reset filenames
+        if filename != None :
+            for i in np.arange(0, np.size(self._files)) :
+                self._files[i]._filename = readfiles[i]
 
     def _write_array(self, array_name, filename=None) :
         """Write a data array back to a Gadget snapshot, splitting it across files. Note that
