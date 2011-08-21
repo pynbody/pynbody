@@ -923,3 +923,14 @@ class GadgetSnap(snapshot.SimSnap):
                         self._files[i].write_block(g_name, gfam, self[fam][array_name][s:(s+f_parts[i])], filename=ffile[i])
                     s+=f_parts[i]
 
+@GadgetSnap.decorator
+def do_properties(sim) :
+    h = sim.header
+    sim.properties['a'] = h.time
+    sim.properties['omegaM0'] = h.Omega0
+    #sim.properties['omegaB0'] = ... This one is non-trivial to calculate
+    sim.properties['omegaL0'] = h.OmegaLambda
+    sim.properties['boxsize'] = h.BoxSize
+    sim.properties['z'] = h.redshift
+    sim.properties['h'] = h.HubbleParam
+
