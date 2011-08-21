@@ -451,10 +451,10 @@ class GadgetFile :
             cur_block=self.blocks[name]
         except KeyError:
             raise KeyError, "Block "+name+" not in file "+self._filename
-        MinType=np.ravel(np.where(cur_block.p_types))[0]
-        MaxType=np.ravel(np.where(cur_block.p_types))[-1]
         parts = self.get_block_parts(name, p_type)
         p_start = self.get_start_part(name, p_type)
+        MinType=np.ravel(np.where(cur_block.p_types * self.header.npart))[0]
+        MaxType=np.ravel(np.where(cur_block.p_types * self.header.npart))[-1]
         #Have we been given the right number of particles?
         if np.size(big_data) > parts*self.get_block_dims(name):
             raise ValueError, "Space for "+str(parts)+" particles of type "+str(p_type)+" in file "+self._filename+", "+str(np.shape(big_data)[0])+" requested."
@@ -485,7 +485,6 @@ class GadgetFile :
         #because it will also write nulls every time the first array dimension changes.
         d=np.ravel(big_data.astype(dt)).tostring()
         fd.write(d)
-
         if p_type == MaxType or p_type < 0:
             data=self.write_block_footer(name,cur_block.length)
             fd.write(data)
