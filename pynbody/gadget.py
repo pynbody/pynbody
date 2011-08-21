@@ -556,7 +556,7 @@ class GadgetWriteFile (GadgetFile) :
         Should not be used directly. block_names is a list so we can specify an on-disc ordering."""
     def __init__(self, filename, npart, block_names, header, format2=True) :
         self.header=header
-        self._write_filename = filename
+        self._filename = filename
         self.endian=''
         self.format2=format2
         self.blocks={}
@@ -839,15 +839,22 @@ class GadgetSnap(snapshot.SimSnap):
             #No writing format 1 files.
             block_names = []
             for k in all_keys :
-                try :
-                    partlen = np.shape(self[k])[1]
-                except IndexError:
-                    partlen = 1
-                #Don't use the type mapping here, because it may not exist.
+                if self.is_derived_array(k):
+                    continue
                 types = np.zeros(N_TYPE,bool)
                 for f in self.families() :
-                    types[gadget_type(f)] = self._family_has_loadable_array(f, k)
-                bb=WriteBlock(partlen, dtype=self[k].dtype, types = types, name = k.upper().ljust(4))
+                    try :
+                        with self.lazy_off :
+                            dtype = self[f][k].dtype
+                        types[gadget_type(f)] = True
+                        try :
+                            partlen = np.shape(self[k])[1]
+                        except IndexError:
+                            partlen = 1
+                    except KeyError:
+                        types[gadget_type(f)] = False
+#                     types[gadget_type(f)] = self._family_has_loadable_array(f, k)
+                bb=WriteBlock(partlen, dtype=dtype, types = types, name = k.upper().ljust(4))
                 block_names.append(bb)
 
             #Create a list of files. 
@@ -905,10 +912,11 @@ class GadgetSnap(snapshot.SimSnap):
             for f in self._files[:-2]:
                 f.add_file_block(array_name, per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
             self_files[-1].add_file_block(array_name, npart-(nfiles-1)*per_file,ashape[1])
-        #Write the blocks
         #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
         for fam in self.families() :
-            if self._family_has_loadable_array(fam, array_name) :
+            try :
+                with self.lazy_off :
+                    dtype = self[fam][array_name].dtype
                 s=0
                 gfam=gadget_type(fam)
                 #Find where each particle goes
@@ -919,6 +927,8 @@ class GadgetSnap(snapshot.SimSnap):
                     else:
                         self._files[i].write_block(g_name, gfam, self[fam][array_name][s:(s+f_parts[i])], filename=ffile[i])
                     s+=f_parts[i]
+            except KeyError:
+                pass
 
 @GadgetSnap.decorator
 def do_properties(sim) :
