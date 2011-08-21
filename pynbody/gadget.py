@@ -870,9 +870,12 @@ class GadgetSnap(snapshot.SimSnap):
                 self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))
         #Set _write_filename, which names the file to write to, if needed.
         if filename != None :
-            for i in np.arange(0, np.size(self._files)) :
-                ffile = filename+"."+str(i)
-                self._files[i].write_header(self.header,ffile) 
+            if np.size(self._files) > 1 :
+                for i in np.arange(0, np.size(self._files)) :
+                    ffile = filename+"."+str(i)
+                    self._files[i].write_header(self.header,ffile) 
+            else :
+                self._files[0].write_header(self.header,filename) 
         else :
             #Call write_header for every file. 
             [ self.write_header(self.header) for f in self._files ]
@@ -891,8 +894,11 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up the filenames
         if filename != None :
             ffile=[]
-            for i in np.arange(0, np.size(self._files)) :
-                ffile.append(filename+"."+str(i))
+            if np.size(self._files) > 1 :
+                for i in np.arange(0, np.size(self._files)) :
+                    ffile.append(filename+"."+str(i))
+            else :
+                ffile.append(filename)
         #Find where each particle goes
         f_parts = [ f.get_block_parts(g_name, -1) for f in self._files ]
         #If there is no block corresponding to this name in the file, add it (so we can write derived arrays).
