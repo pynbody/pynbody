@@ -87,6 +87,7 @@ def test_write() :
     and the written and the read are the same."""
     snap.write(filename = 'testdata/test_gadget_write')
     snap3=pynbody.load('testdata/test_gadget_write')
+    assert(snap.loadable_keys() == snap3.loadable_keys())
     assert((snap3["pos"] == snap["pos"]).all())
     assert((snap3.gas["rho"] == snap.gas["rho"]).all())
     assert(snap3.check_headers(snap.header, snap3.header))
