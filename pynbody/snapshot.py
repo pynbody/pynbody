@@ -891,11 +891,22 @@ def put_1d_slices(sim) :
         for i, a in enumerate(["x","y","z"]) :
             sim._arrays[a] = sim._arrays["pos"][:,i]
             sim._arrays[a]._name = a
+
+    except KeyError :
+        pass
+
+@SimSnap.decorator
+def put_1d_vel_slices(sim) :
+    if not hasattr(sim, '_arrays') :
+        return
+    try :
+        for i, a in enumerate(["x","y","z"]) :
             sim._arrays["v"+a] = sim._arrays["vel"][:,i]
             sim._arrays["v"+a]._name = "v"+a
 
     except KeyError :
         pass
+
 
 @SimSnap.decorator
 def default_cosmology(sim) :
