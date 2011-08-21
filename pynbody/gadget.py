@@ -820,6 +820,53 @@ class GadgetSnap(snapshot.SimSnap):
         """Write an entire Gadget file (actually an entire set of snapshots)."""
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
+        if self.__class__ is not GadgetSnap :
+            #We first need to construct some information normally found on the disc.
+            #Make sure we have enough files to fit the data into. The magic numbers are:
+            #12 - the largest block is likely to  be POS with 12 bytes per particle. 
+            #2**31 is the largest size a gadget block can safely have, so say 2**30 for safety.
+            nfiles = np.ceil((self.__len__()*12.)/2**30)
+            #Make npart
+            npart = np.zeros(N_TYPE, int)
+            arr_name=(self.keys()+self.loadable_keys())[0]
+            for f in self.families() :
+                npart[gadget_type(f)] = len(self[f][arr_name])
+            #Construct a header
+            # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
+            self.header=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],nfiles)
+            #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
+            #as well as a name. Blocks will hit the disc in the order they are in in block_names.
+            #No writing format 1 files.
+            block_names = []
+            #WARNING: This will probably break for formats which implement lazy loading. 
+            #At present this only works for Gadget formats, so it should be ok.
+            #I really need a way to tell which arrays are loadable family arrays, 
+            #like GadgetSnap's loadable_family_keys()
+            #Blocks which are for all types first
+            for k in set(self.keys()+self.loadable_keys()) :
+                try :
+                    partlen = np.shape(self[k])[1]
+                except IndexError:
+                    partlen = 1
+                #Don't use the type mapping here, because it may not exist.
+                bb=WriteBlock(partlen, dtype=self[k].dtype, types = np.ones(N_TYPE,bool), name = k.upper().ljust(4))
+                block_names.append(bb)
+            #Blocks which are only for some families really need a SimSnap.method() to find which 
+            #families a given array exists for. Until then this function cannot be implemented cleanly.
+#             for k in self.family_keys() :
+#                 raise Exception,"Not Implemented!"
+            #Create a list of files. 
+            self._files = []
+            if nfiles > 1 :
+                fnpart = np.array(npart/nfiles)
+                for i in np.arange(0,nfiles) :
+                    ffile=filename+"."+str(i)
+                    if (fnpart > npart).any() :
+                        fnpart = np.array(npart)
+                    npart -= fnpart
+                    self._files.append(GadgetWriteFile(ffile, fnpart, block_names, self.header))
+            else :
+                self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))
         #Rewrite filenames in the files to use the new filename, if needed.
         if filename != None :
             readfiles=[]
