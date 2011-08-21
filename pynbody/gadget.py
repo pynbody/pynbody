@@ -527,19 +527,21 @@ class GadgetFile :
         """(Re) write a Gadget-style block footer."""
         return struct.pack(self.endian+'I',blocksize)
   
-    def write_header(self, head) :
+    def write_header(self, head, filename=None) :
         """Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written."""
         #Overwrite the npart in the passed header with the file header. 
         head.npart=np.array(self.header.npart)
         data=self.write_block_header("HEAD", 256)
         data+=head.serialize()
+        if filename == None :
+            filename = self._filename
         #a mode will ignore the file position, and w truncates the file.
         try :
-            fd = open(self._filename, "r+")
+            fd = open(filename, "r+")
         except IOError as (err, strerror):
             #If we couldn't open it because it doesn't exist open it for writing.
             if err == errno.ENOENT :
-                fd = open(self._filename, "w+")
+                fd = open(filename, "w+")
             #If we couldn't open it for any other reason, reraise exception
             else :
                 raise IOError(err,strerror)
@@ -557,7 +559,7 @@ class GadgetWriteFile (GadgetFile) :
         Should not be used directly. block_names is a list so we can specify an on-disc ordering."""
     def __init__(self, filename, npart, block_names, header, format2=True) :
         self.header=header
-        self._filename = filename
+        self._write_filename = filename
         self.endian=''
         self.format2=format2
         self.blocks={}
@@ -867,33 +869,32 @@ class GadgetSnap(snapshot.SimSnap):
                     self._files.append(GadgetWriteFile(ffile, fnpart, block_names, self.header))
             else :
                 self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))
-        #Rewrite filenames in the files to use the new filename, if needed.
+        #Set _write_filename, which names the file to write to, if needed.
         if filename != None :
-            readfiles=[]
             for i in np.arange(0, np.size(self._files)) :
-                readfiles.append(self._files[i]._filename)
-                self._files[i]._filename = filename+"."+str(i)
-        #Call write_header for every file. 
-        [ f.write_header(self.header) for f in self._files ]
+                ffile = filename+"."+str(i)
+                self._files[i].write_header(self.header,ffile) 
+        else :
+            #Call write_header for every file. 
+            [ self.write_header(self.header) for f in self._files ]
         #Call _write_array for every array.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
         for x in all_keys :
             if not self.is_derived_array(x):
-                GadgetSnap._write_array(self,x)
-        #Reset filenames
-        if filename != None :
-            for i in np.arange(0, np.size(self._files)) :
-                self._files[i]._filename = readfiles[i]
+                GadgetSnap._write_array(self,x, filename)
 
     def _write_array(self, array_name, filename=None) :
-        """Write a data array back to a Gadget snapshot, splitting it across files. Note that
-        filename is ignored, because writing a single array to a new file does 
-        not make a valid gadget snapshot."""
+        """Write a data array back to a Gadget snapshot, splitting it across files."""
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = (array_name.upper().ljust(4," "))[0:4]
         family_names = set(self.loadable_family_keys()).union(self.family_keys())
         nfiles=np.size(self._files)
         f_parts=np.zeros(nfiles)
+        #Set up the filenames
+        if filename != None :
+            ffile=[]
+            for i in np.arange(0, np.size(self._files)) :
+                ffile.append(filename+"."+str(i))
         #Find where each particle goes
         for i in np.arange(0,nfiles):
             f_parts[i] = self._files[i].get_block_parts(g_name, -1)
@@ -904,7 +905,7 @@ class GadgetSnap(snapshot.SimSnap):
             if array_name in family_names :
                 for fam in self.families():
                     #We get the particle types we want by trying to load all particle types and seeing which ones work
-                    if self[fam].has_key(array_name) :
+                    if self._family_has_loadable_array(fam, array_name) :
                         p_types[gadget_type(fam)]=True
             ashape=np.shape(self[array_name])
             asize=np.size(self[array_name])
@@ -917,7 +918,10 @@ class GadgetSnap(snapshot.SimSnap):
         for i in np.arange(0,nfiles) :
             #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
             for fam in self.families() :
-                if self[fam].has_key(array_name) :
-                    self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
+                if self._family_has_loadable_array(fam, array_name) :
+                    if filename == None :
+                        self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
+                    else:
+                        self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])], filename=ffile[i])
             s+=f_parts[i]
 
