@@ -111,7 +111,7 @@ def _construct_gadget_header(data,endian='=') :
     header.flag_entropy_instead_u=flag_entropy_instead_u       
     header.flag_doubleprecision=flag_doubleprecision
     header.flag_ic_info=flag_ic_info
-    header.lpt_scalingfactor=0.      
+    header.lpt_scalingfactor=lpt_scalingfactor
     header.endian=endian
 
     return header
