@@ -484,8 +484,6 @@ class GadgetFile :
         #Make sure to ravel it, otherwise the wrong amount will be written, 
         #because it will also write nulls every time the first array dimension changes.
         d=np.ravel(big_data.astype(dt)).tostring()
-        if len(d) != cur_block.length:
-            raise Exception
         fd.write(d)
 
         if p_type == MaxType or p_type < 0:
@@ -889,23 +887,21 @@ class GadgetSnap(snapshot.SimSnap):
         g_name = (array_name.upper().ljust(4," "))[0:4]
         family_names = set(self.loadable_family_keys()).union(self.family_keys())
         nfiles=np.size(self._files)
-        f_parts=np.zeros(nfiles)
         #Set up the filenames
         if filename != None :
             ffile=[]
             for i in np.arange(0, np.size(self._files)) :
                 ffile.append(filename+"."+str(i))
         #Find where each particle goes
-        for i in np.arange(0,nfiles):
-            f_parts[i] = self._files[i].get_block_parts(g_name, -1)
+        f_parts = [ f.get_block_parts(g_name, -1) for f in self._files ]
         #If there is no block corresponding to this name in the file, add it.
         if np.sum(f_parts) == 0:
             #Get p_type
             p_types=np.zeros(N_TYPES,bool)
             if array_name in family_names :
                 for fam in self.families():
-                    #We get the particle types we want by trying to load all particle types and seeing which ones work
-                    if self._family_has_loadable_array(fam, array_name) :
+                    #We get the particle types we want by trying to load all particle types (from memory) and seeing which ones work
+                    if self[fam].has_key(array_name) :
                         p_types[gadget_type(fam)]=True
             ashape=np.shape(self[array_name])
             asize=np.size(self[array_name])
@@ -914,14 +910,17 @@ class GadgetSnap(snapshot.SimSnap):
                 f.add_file_block(self[array_name], per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
             self_files[-1].add_file_block(array_name, ashape[0]-(nfiles-1)*per_file,ashape[1])
         #Write the blocks
-        s=0
-        for i in np.arange(0,nfiles) :
-            #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
-            for fam in self.families() :
-                if self._family_has_loadable_array(fam, array_name) :
+        #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
+        for fam in self.families() :
+            if self._family_has_loadable_array(fam, array_name) :
+                s=0
+                gfam=gadget_type(fam)
+                #Find where each particle goes
+                f_parts = [ f.get_block_parts(g_name, gfam) for f in self._files ]
+                for i in np.arange(0,nfiles) :
                     if filename == None :
-                        self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
+                        self._files[i].write_block(g_name, gfam, self[fam][array_name][s:(s+f_parts[i])])
                     else:
-                        self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])], filename=ffile[i])
-            s+=f_parts[i]
+                        self._files[i].write_block(g_name, gfam, self[fam][array_name][s:(s+f_parts[i])], filename=ffile[i])
+                    s+=f_parts[i]
 
