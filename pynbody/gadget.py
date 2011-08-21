@@ -863,11 +863,9 @@ class GadgetSnap(snapshot.SimSnap):
         #Write the blocks
         s=0
         for i in np.arange(0,nfiles) :
-            if array_name in family_names :
-                for fam in self.families() :
-                    if self[fam].has_key(array_name) :
-                        self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
-            else:
-                self._files[i].write_block(g_name, -1, self[array_name][s:(s+f_parts[i])])
+            #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
+            for fam in self.families() :
+                if self[fam].has_key(array_name) :
+                    self._files[i].write_block(g_name, -1, self[fam][array_name][s:(s+f_parts[i])])
             s+=f_parts[i]
 
