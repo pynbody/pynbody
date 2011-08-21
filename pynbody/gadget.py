@@ -571,7 +571,8 @@ class GadgetWriteFile (GadgetFile) :
         for block in block_names :
             #Add block if present for some types
             if block.types.sum() :
-                b=GadgetBlock(start=cur_pos+header_size, partlen=block.partlen, length=block.partlen*block.types.sum(), dtype=block.dtype,p_types=block.types)
+                b_part = npart * block.types
+                b=GadgetBlock(start=cur_pos+header_size, partlen=block.partlen, length=block.partlen*b_part.sum(), dtype=block.dtype,p_types=block.types)
                 cur_pos += b.length+header_size+footer_size
                 self.blocks[block.name] = b
 
