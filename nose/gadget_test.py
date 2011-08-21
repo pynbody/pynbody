@@ -81,3 +81,12 @@ def test_header() :
 def test_g1_load() :
     """Check we can load gadget-1 files also"""
     snap2 = pynbody.load("testdata/gadget1.snap")
+
+def test_write() :
+    """Check that we can write a new snapshot and read it again, 
+    and the written and the read are the same."""
+    snap.write(filename = 'testdata/test_gadget_write')
+    snap3=pynbody.load('testdata/test_gadget_write')
+    assert((snap3["pos"] == snap["pos"]).all())
+    assert((snap3.gas["rho"] == snap.gas["rho"]).all())
+    assert(snap3.check_headers(snap.header, snap3.header))
