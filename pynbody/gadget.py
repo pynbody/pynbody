@@ -691,17 +691,20 @@ class GadgetSnap(snapshot.SimSnap):
     def get_block_list(self):
         """Get list of unique blocks in snapshot, with the types they refer to"""
         b_list = {}
-        for f in self._files:
-            b_list.update(f.blocks)
-        #Special case mass.
-        b_list["MASS"].p_types +=np.array(self.header.mass,dtype=bool)
-        #Setup array references
-        #Make all array names lower-case and trim trailing spaces, to match the names
-        #used for tipsy snapshots
+        for f in self._files :
+            for (n,b) in f.blocks.iteritems() :
+                if b_list.has_key(n) :
+                    b_list[n] += b.p_types
+                else :
+                    b_list[n] = np.array(b.p_types, dtype=bool)
+        #Special case mass. Note b_list has reference semantics.
+        if b_list.has_key("MASS") :
+            b_list["MASS"] += np.array(self.header.mass,dtype=bool)
+        #Translate this array into families and external names
         out_list={}
         for k,b in b_list.iteritems() :
             b_name = _translate_array_name(k,reverse=True)
-            b_types = [ f for f in self.families() if b.p_types[gadget_type(f)].all() ]
+            b_types = [ f for f in self.families() if b[gadget_type(f)].all() ]
             out_list[b_name] = b_types
         return out_list
 
@@ -945,7 +948,6 @@ class GadgetSnap(snapshot.SimSnap):
                         #Special-case MASS. 
                         if g_name == "MASS" and self.header.mass[gfam] != 0.:
                             nmass = np.min(data[s:(s+f.header.npart[gfam])])
-                            self.header.mass[gfam] = np.min(data[s:(s+f_parts[i])])
                             #Warn if there are now different masses for this particle type, 
                             # as this information cannot be represented in this snapshot.
                             if nmass != np.max(data[s:(s+f.header.npart[gfam])]) :
