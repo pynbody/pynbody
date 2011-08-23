@@ -834,7 +834,8 @@ class GadgetSnap(snapshot.SimSnap):
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
-        if self.__class__ is not GadgetSnap :
+      """ This code is for format conversions, but it does not work.
+      if self.__class__ is not GadgetSnap :
             #We first need to construct some information normally found on the disc.
             #Make sure we have enough files to fit the data into. The magic numbers are:
             #12 - the largest block is likely to  be POS with 12 bytes per particle. 
@@ -883,7 +884,7 @@ class GadgetSnap(snapshot.SimSnap):
                     npart -= fnpart
                     self._files.append(GadgetWriteFile(ffile, fnpart, block_names, self.header))
             else :
-                self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))
+                self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))"""
         #Write headers
         if filename != None :
             if np.size(self._files) > 1 :
@@ -930,9 +931,8 @@ class GadgetSnap(snapshot.SimSnap):
 
         #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
         for fam in self.families() :
-            try :
-                with self.lazy_off :
-                    data = self[fam][array_name]
+            if self._family_has_loadable_array(fam, array_name) :
+                data = self[fam][array_name]
                 s=0
                 for gfam in gadget_type(fam) :
                     #Find where each particle goes
@@ -959,8 +959,6 @@ class GadgetSnap(snapshot.SimSnap):
                             #Write data
                             self._files[i].write_block(g_name, gfam, data[s:(s+f_parts[i])], filename=ffile)
                         s+=f_parts[i]
-            except KeyError:
-                pass
 
 @GadgetSnap.decorator
 def do_properties(sim) :
