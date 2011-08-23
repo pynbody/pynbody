@@ -26,7 +26,7 @@ def test_loadable() :
     assert (blocks == expected)
     #Check that they have the right families
     assert(snap.loadable_family_keys(pynbody.family.gas) == expected)
-    assert(snap.loadable_family_keys(pynbody.family.dm) == ['pos','vel','id'])
+    assert(snap.loadable_family_keys(pynbody.family.dm) == ['pos','vel','id','mass'])
     assert(snap.loadable_family_keys(pynbody.family.star) == ['pos','vel','id','mass'])
     assert(snap.loadable_family_keys(pynbody.family.neutrino) == [])
 

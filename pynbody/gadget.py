@@ -693,6 +693,8 @@ class GadgetSnap(snapshot.SimSnap):
         b_list = {}
         for f in self._files:
             b_list.update(f.blocks)
+        #Special case mass.
+        b_list["MASS"].p_types +=np.array(self.header.mass,dtype=bool)
         #Setup array references
         #Make all array names lower-case and trim trailing spaces, to match the names
         #used for tipsy snapshots
