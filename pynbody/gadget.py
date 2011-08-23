@@ -527,9 +527,11 @@ class GadgetFile :
         """(Re) write a Gadget-style block footer."""
         return struct.pack(self.endian+'I',blocksize)
   
-    def write_header(self, head, filename=None) :
+    def write_header(self, head_in, filename=None) :
         """Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written."""
-        #Overwrite the npart in the passed header with the file header. 
+        #Construct new header with the passed header and overwrite npart with the file header. 
+        #This has ref. semantics so use copy
+        head=copy.deepcopy(head_in)
         head.npart=np.array(self.header.npart)
         data=self.write_block_header("HEAD", 256)
         data+=head.serialize()
@@ -780,7 +782,7 @@ class GadgetSnap(snapshot.SimSnap):
         data = np.array([], dtype = self._get_array_type(name))
         for p in p_types :
             #Special-case mass
-            if g_name == "MASS" and self.header.mass[p] != 0 :
+            if g_name == "MASS" and self.header.mass[p] != 0. :
                 data = np.append(data, self.header.mass[p]*np.ones(self.header.npart[p],dtype=data.dtype))
             else :
                 data = np.append(data, self.__load_array(g_name, p))
@@ -828,13 +830,14 @@ class GadgetSnap(snapshot.SimSnap):
         else :
             return False
     
+    @staticmethod
     def _write(self, filename=None) :
         """Write an entire Gadget file (actually an entire set of snapshots)."""
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
-      """ This code is for format conversions, but it does not work.
-      if self.__class__ is not GadgetSnap :
+        """ This code is for format conversions, but it does not work.
+        if self.__class__ is not GadgetSnap :
             #We first need to construct some information normally found on the disc.
             #Make sure we have enough files to fit the data into. The magic numbers are:
             #12 - the largest block is likely to  be POS with 12 bytes per particle. 
@@ -952,7 +955,7 @@ class GadgetSnap(snapshot.SimSnap):
                                 warnings.warn("Cannot write variable masses for type "+str(gfam)+", as masses are stored in the header.",RuntimeWarning)
                             elif self.header.mass[gfam] != nmass :
                                 self.header.mass[gfam] = nmass
-                                self._files[i].write_header(self.header)
+                                self._files[i].write_header(self.header, filename=ffile)
                         else : 
                             #Write data
                             self._files[i].write_block(g_name, gfam, data[s:(s+f_parts[i])], filename=ffile)
