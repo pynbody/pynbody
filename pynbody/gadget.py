@@ -939,8 +939,17 @@ class GadgetSnap(snapshot.SimSnap):
                                 ffile = filename
                         else :
                             ffile = None
-                        #Write data
-                        self._files[i].write_block(g_name, gfam, data[s:(s+f_parts[i])], filename=ffile)
+                        #Special-case MASS. 
+                        if g_name == "MASS" and self.header.mass[gfam] != 0.:
+                            self.header.mass[gfam] = np.min(data[s:(s+f_parts[i])])
+                            #Warn if there are now different masses for this particle type, 
+                            # as this information cannot be represented in this snapshot.
+                            if self.header.mass[gfam] != np.max(data[s:(s+f_parts[i])]) :
+                                warnings.warn("Cannot write variable masses for type "+str(gfam)+", as masses are stored in the header.",RuntimeWarning)
+                            self._files[i].write_header(self.header)
+                        else : 
+                            #Write data
+                            self._files[i].write_block(g_name, gfam, data[s:(s+f_parts[i])], filename=ffile)
                         s+=f_parts[i]
             except KeyError:
                 pass
