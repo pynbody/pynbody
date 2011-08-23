@@ -710,6 +710,9 @@ class GadgetSnap(snapshot.SimSnap):
         total=0
         for f in self._files:
             total+= sum([ f.get_block_parts(name, gfam) for gfam in gadget_type(family)])
+        #Special-case MASS
+        if name == "MASS" :
+            total+= sum([ self.header.npart[p]*np.array(self.header.mass[p],dtype=bool) for p in gadget_type(family)])
         return total
 
     def check_headers(self, head1, head2) :
