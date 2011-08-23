@@ -732,11 +732,11 @@ class GadgetSnap(snapshot.SimSnap):
            head1.HubbleParam != head2.HubbleParam  or
            head1.flag_stellarage != head2.flag_stellarage or
            head1.flag_metals != head2.flag_metals) :
-            return False;
+            return False
         #Check array quantities
-        if((head1.mass != head2.mass).any() or  (head1.npartTotal != head2.npartTotal).any()) :
-        #        or head1.NallHW != head2.NallHW)
-            return False;
+        if (((head1.mass - head2.mass) > 1e-5*head1.mass).any()  or 
+                (head1.npartTotal != head2.npartTotal).any()) :
+            return False
         #  At least one version of N-GenICs writes a header file which
         #  ignores everything past flag_metals (!), leaving it uninitialised.
         #  Therefore, we can't check them.
