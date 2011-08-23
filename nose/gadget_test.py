@@ -36,6 +36,7 @@ def test_standard_arrays() :
     snap.gas['pos']
     snap.star['pos']
     snap['pos']
+    snap['mass']
     #Load a second time to check that family_arrays still work
     snap.dm['pos']
     snap['vel']
@@ -69,6 +70,7 @@ def test_array_contents() :
     assert(abs(np.mean(snap["pos"]) - 1434.666) < 0.001)
     assert(abs(snap["pos"][52][1] - 456.6968) < 0.001)
     assert(abs(snap.gas["u"][100] - 438.39496) < 0.001)
+    assert(abs(snap.dm["mass"][5] - 0.04061608) < 0.001)
 
 def test_header() :
     """Check some header properties"""
