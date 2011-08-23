@@ -21,8 +21,7 @@ N_TYPE = 6
 _type_map = {}
 for x in family.family_names() :
     try :
-        #At the moment, families can only correspond to one particle type
-        pp = int(config_parser.get('gadget-type-mapping',x))
+        pp =  [int(q) for q in config_parser.get('gadget-type-mapping',x).split(",")]
         qq=np.array(pp)
         if (qq >= N_TYPE).any() or (qq < 0).any() :
             raise ValueError,"Type specified for family "+x+" is out of bounds ("+pp+")." 
@@ -52,9 +51,8 @@ def _translate_array_name(name, reverse=False) :
         return name
     
 def gadget_type(fam) :
-    #-1 is "all types"
     if fam == None:
-        return -1
+        return list(np.arange(0,N_TYPE))
     else :
         return _type_map[fam]
 
@@ -649,8 +647,7 @@ class GadgetSnap(snapshot.SimSnap):
         #Set up _family_slice
         for x in _type_map :
             max_t=_type_map[x]
-#            max_t=max(_type_map[x])
-            self._family_slice[x] = slice(npart[0:max_t].sum(),npart[0:max_t+1].sum())
+            self._family_slice[x] = slice(npart[0:np.min(max_t)].sum(),npart[0:np.max(max_t)+1].sum())
         
         #Set up _loadable_keys
         for f in self._files :
@@ -702,7 +699,7 @@ class GadgetSnap(snapshot.SimSnap):
         out_list={}
         for k,b in b_list.iteritems() :
             b_name = _translate_array_name(k,reverse=True)
-            b_types = [ f for f in self.families() if b.p_types[_type_map[f]] ]
+            b_types = [ f for f in self.families() if b.p_types[gadget_type(f)].all() ]
             out_list[b_name] = b_types
         return out_list
 
@@ -710,7 +707,7 @@ class GadgetSnap(snapshot.SimSnap):
         """Get the number of particles present in a block, of a given type"""
         total=0
         for f in self._files:
-            total+=f.get_block_parts(name, gadget_type(family))
+            total+= sum([ f.get_block_parts(name, gfam) for gfam in gadget_type(family)])
         return total
 
     def check_headers(self, head1, head2) :
@@ -737,7 +734,12 @@ class GadgetSnap(snapshot.SimSnap):
     def _get_array_type(self, name) :
         """Get the type for the array given in name"""
         g_name = _translate_array_name(name)
-        return self._files[0].blocks[g_name].data_type
+        return self._get_array_type_g(g_name)
+    
+    def _get_array_type_g(self, name) :
+        """Get the type for the array given in name"""
+        return self._files[0].blocks[name].data_type
+
 
     def _get_array_dims(self, name) :
         """Get the dimensions of an array; ie, is it 3d or 1d"""
@@ -749,74 +751,54 @@ class GadgetSnap(snapshot.SimSnap):
         If fam != None, loads only data for that particle family"""
         #g_name is the internal name
         g_name = _translate_array_name(name)
-        #Special-case mass
-        if g_name == "MASS" :
-            if fam == None :
-                for f in self.families() :
-                    fmass = self.header.mass[gadget_type(f)]
-                    if fmass == 0. :
-                        self._load_array(name, f)
-                    else :
-                        self[f][name] = fmass*np.ones(self.get_block_parts(g_name, fam), dtype=np.float32)
-                return
-            else :
-                fmass = self.header.mass[gadget_type(fam)]
-                if fmass != 0. :
-                    self[f][name] = fmass*np.ones(self.get_block_parts(g_name, fam), dtype=np.float32)
-                    return
 
         if not self._family_has_loadable_array( fam, name) :
             if fam is None :
                 raise KeyError,"Block "+name+" is not available for all families"
             else :
                 raise IOError, "No such array on disk"
-        p_read = 0
-        p_start = 0
 
-        #Families used.
-        famly = [fam]
-        if fam is None : 
-            famly = self.families()
-        
-        #We need to re-order the data if we have multiple families, 
-        #because we need to concatenate multiple files.
-        #Therefore define temp arrays for each family used. 
-        data = dict((m, array.SimArray([],dtype=self._get_array_type(name))) for m in famly)
-        
         ndim = self._get_array_dims(name)
 
         if ndim == 1:
             dims = [self.get_block_parts(g_name, fam),]
         else:
             dims = [self.get_block_parts(g_name, fam), ndim]
-        
-        p_type = gadget_type(fam)
+
+        p_types = gadget_type(fam)
+
+        #Get the data. Get one type at a time and then concatenate. 
+        #A possible optimisation is to special-case loading all particles.
+        data = np.array([], dtype = self._get_array_type(name))
+        for p in p_types :
+            #Special-case mass
+            if g_name == "MASS" and self.header.mass[p] != 0 :
+                data = np.append(data, self.header.mass[p]*np.ones(self.header.npart[p],dtype=data.dtype))
+            else :
+                data = np.append(data, self.__load_array(g_name, p))
+
+        if fam is None :
+            self[name] = data.reshape(dims,order='C').view(array.SimArray)
+        else :
+            self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
+
+        #Decorate again, so that lazy-loading an array can also create dependent decoration arrays
+        self._decorate()
+
+    def __load_array(self, g_name, p_type) :
+        """Internal helper function for _load_array that takes a g_name and a gadget type, 
+        gets the data from each file and returns it as one long array."""
+        data=np.array([],dtype=self._get_array_type_g(g_name))
+        #Get a type from each file
         for f in self._files:
-            f_read = 0
             f_parts = f.get_block_parts(g_name, p_type)
             if f_parts == 0:
                 continue
             (f_read, f_data) = f.get_block(g_name, p_type, f_parts)
-            e_start = f.get_start_part(g_name,p_type)*ndim
-            p_read+=f_read
-            for m in famly:
-                m_type=gadget_type(m)
-                start=f.get_start_part(g_name, m_type)*ndim-e_start
-                stop=start+f.get_block_parts(g_name, m_type)*ndim
-                data[m]=np.append(data[m], f_data[start:stop])
-        if fam is None :
-            #Add arrays to self[name] reordered
-            #We use this tmp array to get around the fact that we cannot take a slice of self[name]
-            #at this point without calling _load_array and recursing.
-            tmp = np.empty(dims, dtype=self._get_array_type(name))
-            for m in famly :
-                dims[0] = self.get_block_parts(g_name, m)
-                tmp [self._family_slice[m]] = data[m].reshape(dims,order='C').view(array.SimArray)
-                self[name] = tmp
-        else :
-            self[fam][name] = data[fam].reshape(dims,order='C').view(array.SimArray)
-        #Decorate again, so that lazy-loading an array can also create dependent decoration arrays
-        self._decorate()
+            if f_read != f_parts :
+                raise IOError,"Read of "+f._filename+" asked for "+str(f_parts)+" particles but got "+str(f_read)
+            data = np.append(data, f_data)
+        return data
 
     @staticmethod
     def _can_load(f) :
@@ -854,7 +836,9 @@ class GadgetSnap(snapshot.SimSnap):
             npart = np.zeros(N_TYPE, int)
             arr_name=(self.keys()+self.loadable_keys())[0]
             for f in self.families() :
-                npart[gadget_type(f)] = len(self[f][arr_name])
+                #Note that if we have more than one type per family, we cannot
+                # determine which type each individual particle is, so assume they are all the first.
+                npart[np.min(gadget_type(f))] = len(self[f][arr_name])
             #Construct a header
             # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
             self.header=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],nfiles)
@@ -870,7 +854,7 @@ class GadgetSnap(snapshot.SimSnap):
                     try :
                         with self.lazy_off :
                             dtype = self[f][k].dtype
-                        types[gadget_type(f)] = True
+                        types[gadget_type(f)] += True
                         try :
                             partlen = np.shape(self[f][k])[1]*dtype.itemsize
                         except IndexError:
@@ -892,7 +876,7 @@ class GadgetSnap(snapshot.SimSnap):
                     self._files.append(GadgetWriteFile(ffile, fnpart, block_names, self.header))
             else :
                 self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))
-        #Set _write_filename, which names the file to write to, if needed.
+        #Write headers
         if filename != None :
             if np.size(self._files) > 1 :
                 for i in np.arange(0, np.size(self._files)) :
@@ -902,7 +886,7 @@ class GadgetSnap(snapshot.SimSnap):
                 self._files[0].write_header(self.header,filename) 
         else :
             #Call write_header for every file. 
-            [ self.write_header(self.header) for f in self._files ]
+            [ f.write_header(self.header) for f in self._files ]
         #Call _write_array for every array.
         for x in all_keys :
             #Do not write derived arrays by default
@@ -915,23 +899,16 @@ class GadgetSnap(snapshot.SimSnap):
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = _translate_array_name(array_name).upper().ljust(4)[0:4]
         nfiles=np.size(self._files)
-        #Set up the filenames
-        if filename != None :
-            ffile=[]
-            if np.size(self._files) > 1 :
-                for i in np.arange(0, np.size(self._files)) :
-                    ffile.append(filename+"."+str(i))
-            else :
-                ffile.append(filename)
         #Find where each particle goes
         f_parts = [ f.get_block_parts(g_name, -1) for f in self._files ]
-        #If there is no block corresponding to this name in the file, add it (so we can write derived arrays).
+        #If there is no block corresponding to this name in the file, 
+        # add it (so we can write derived arrays).
         if np.sum(f_parts) == 0:
             #Get p_type
             p_types=np.zeros(N_TYPE,bool)
             npart = 0
             for fam in self.families():
-                gfam = gadget_type(fam)
+                gfam = np.min(gadget_type(fam))
                 #We get the particle types we want by trying to load all particle types (from memory) and seeing which ones work
                 p_types[gfam]=self[fam].has_key(array_name)
                 if p_types[gfam] :
@@ -942,21 +919,27 @@ class GadgetSnap(snapshot.SimSnap):
                 for f in self._files[:-2]:
                     f.add_file_block(array_name, per_file,ashape[1],dtype=self[array_name].dtype,p_types=p_types)
                 self._files[-1].add_file_block(array_name, npart-(nfiles-1)*per_file,ashape[1])
+
         #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
         for fam in self.families() :
             try :
                 with self.lazy_off :
-                    dtype = self[fam][array_name].dtype
+                    data = self[fam][array_name]
                 s=0
-                gfam=gadget_type(fam)
-                #Find where each particle goes
-                f_parts = [ f.get_block_parts(g_name, gfam) for f in self._files ]
-                for i in np.arange(0,nfiles) :
-                    if filename == None :
-                        self._files[i].write_block(g_name, gfam, self[fam][array_name][s:(s+f_parts[i])])
-                    else:
-                        self._files[i].write_block(g_name, gfam, self[fam][array_name][s:(s+f_parts[i])], filename=ffile[i])
-                    s+=f_parts[i]
+                for gfam in gadget_type(fam) :
+                    #Find where each particle goes
+                    f_parts = [ f.get_block_parts(g_name, gfam) for f in self._files ]
+                    for i in np.arange(0,nfiles) :
+                        #Set up filename
+                        if filename != None :
+                            ffile = filename + "."+str(i)
+                            if nfiles == 1 :
+                                ffile = filename
+                        else :
+                            ffile = None
+                        #Write data
+                        self._files[i].write_block(g_name, gfam, data[s:(s+f_parts[i])], filename=ffile)
+                        s+=f_parts[i]
             except KeyError:
                 pass
 
