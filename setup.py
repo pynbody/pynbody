@@ -40,7 +40,8 @@ dist = setup(name = 'pynbody',
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
-             package_data={'pynbody': ['default_config.ini'],
+             package_data={'pynbody': ['default_config.ini', 
+                                       'sph_image.c'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'ionfracs.npz',
                                                 'interpolate.c',
