@@ -12,8 +12,7 @@ def center_of_mass(sim) :
 
     p.units, v.units = sim["pos"].units, sim["vel"].units # otherwise behaviour is numpy version dependent
 
-    return p,v
-    # return np.average(sim["pos"],axis=0,weights=sim["mass"]), np.average(sim["vel"],axis=0,weights=sim["mass"])
+    return p # only return position to be consistent with other functions in halo.py
 
 def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
     """Return the center according to the shrinking-sphere method
@@ -73,7 +72,6 @@ def index_center(sim, **kwargs) :
     if 'ind' in kwargs :
         ind = kwargs['ind']
         return center_of_mass(sim[ind])
-        # return np.average(sim["pos"][ind],axis=0,weights=sim["mass"][ind])
     else :  
         raise RuntimeError("Need to supply indices for centering")
     
