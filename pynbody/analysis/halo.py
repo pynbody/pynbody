@@ -25,7 +25,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         r = (sim["x"].max()-sim["x"].min())/2
     com=None
     while len(x)>min_particles or com is None :
-        com, cov = center_of_mass(x)
+        com = center_of_mass(x)
         r*=shrink_factor
         x = sim[filt.Sphere(r, com)]
         if verbose:
