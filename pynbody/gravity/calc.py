@@ -24,7 +24,8 @@ def direct(f, ipos, eps= None) :
     inline(code,['nips','n','pos','mass','ipos','epssq','m_by_r','m_by_r2'])
     return m_by_r, m_by_r2
 
-def treecalc(f, rs, gtree, eps= None) :
+def treecalc(f, rs, eps= None) :
+    gtree = tree.GravTree(f['pos'].view(np.ndarray),f['mass'].view(np.ndarray),eps=np.min(eps))
     a, p = gtree.calc(rs,eps=eps)
     import pdb; pdb.set_trace()
     return p, a
@@ -52,12 +53,11 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
     except KeyError :
         fn = mode
 
-    if mode == 'tree':
-        gtree = tree.GravTree(f['pos'].view(np.ndarray),f['mass'].view(np.ndarray),eps=np.min(eps))
-        m_by_r, m_by_r2 = fn(f,np.array(rs), gtree, eps=np.min(eps))
-    else:
-        m_by_r, m_by_r2 = fn(f,np.array(rs), eps=np.min(eps))
+    #if mode == 'tree':
+    #else:
+    #    m_by_r, m_by_r2 = fn(f,np.array(rs), eps=np.min(eps))
 
+    m_by_r, m_by_r2 = fn(f,np.array(rs), eps=np.min(eps))
     import pdb; pdb.set_trace()
 
     

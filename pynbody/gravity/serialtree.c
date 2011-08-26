@@ -884,15 +884,8 @@ void kdFinish(KD kd) {
     free(kd->ilp);
     free(kd->ilc);
 #endif
-    /*
-    ** Free Stack.
-    */
-    for (ism=0;ism<kd->nMaxStack;++ism) {
-	clFinish(kd->S[ism].cl);
-	}
-    free(kd->S);
     if (kd->kdTopPRIVATE) free(kd->kdTopPRIVATE);
-    free(kd->ew.ewt);
+    /*free(kd->ew.ewt);*/
     free(kd->pStorePRIVATE);
     free(kd->pTempPRIVATE);
     free(kd);
