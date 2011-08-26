@@ -407,7 +407,7 @@ class GadgetFile :
         if p_toread > parts :
             p_toread = parts
         fd=open(self._filename, 'rb')
-        fd.seek(cur_block.start+cur_block.partlen*p_start,0)
+        fd.seek(cur_block.start+int(cur_block.partlen*p_start),0)
         #This is just so that we can get a size for the type
         dt = np.dtype(cur_block.data_type)
         n_type = p_toread*cur_block.partlen/dt.itemsize
