@@ -267,23 +267,34 @@ class Profile:
         x = name.split(",")
         if name in self._profiles :
             return self._profiles[name]
+
         elif x[0] in Profile._profile_registry :
             args = x[1:]
             self._profiles[name] = Profile._profile_registry[x[0]](self, *args)
+
             try :
                 self._profiles[name].sim = self.sim
             except AttributeError :
                 pass
             return self._profiles[name]
+
         elif name in self.sim.keys() or name in self.sim.all_keys() :
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
+
         elif name[-5:]=="_disp" and name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys() :
             if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
             self._profiles[name] = self._auto_profile(name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
+
+        elif name[-4:]=="_rms" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys() :
+            if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
+            self._profiles[name] = self._auto_profile(name[:-3], rms=True)
+            self._profiles[name].sim = self.sim
+            return self._profiles[name]
+        
         elif name[0:2]=="d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys() :
             if np.diff(self['dr']).all() < 1e-13 : 
                 if pynbody.config['verbose'] : print 'Profile: '+name+'/dR'
@@ -296,7 +307,7 @@ class Profile:
         else :
             raise KeyError, name+" is not a valid profile"
 
-    def _auto_profile(self, name, dispersion=False) :
+    def _auto_profile(self, name, dispersion=False, rms=False) :
         result = np.zeros(self.nbins)
         for i in range(self.nbins):
             if dispersion :
@@ -304,6 +315,8 @@ class Profile:
                 mean_sq = ((self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i])**2
 
                 result[i] = math.sqrt(sq_mean - mean_sq)
+            elif rms : 
+                result[i] = np.sqrt(((self.sim[name][self.binind[i]]**2)*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i])
             else :
                 result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i]
 
@@ -532,15 +545,17 @@ def v_circ(p) :
     if pynbody.config['verbose'] : 
         print 'Profile: v_circ() -- warning, disk must be in the x-y plane'
 
-    # Go up to the halo level
-    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+    
+    # If this is a cosmological run, go up to the halo level
+    if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+        while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+            grav_sim = grav_sim.base
+    
+    elif hasattr(grav_sim,'base') : 
         grav_sim = grav_sim.base
     
     return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-    #return np.sqrt(p["phi'"]*p.r) 
-    # quick and dirty:
-    #return ((units.G*p['mass_enc']/p['rbins'])**(1,2))
-
+    
 @Profile.profile_property
 def E_circ(p) :
     """Energy of particles on circular orbits."""
@@ -574,9 +589,9 @@ def omega(p) :
 def kappa(p) :
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
     if pynbody.config['verbose'] : print 'Profile: kappa()'
-    dOmegadR = np.gradient(p['omega']**2, p['dr'][0])
-    dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
-    return np.sqrt(p['rbins']*dOmegadR + 4*p['omega']**2)
+    #dOmegadR = np.gradient(p['omega']**2, p['dr'][0])
+    #dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
+    return np.sqrt(p['rbins']*p['d_omega'] + 4*p['omega']**2)
 
 @Profile.profile_property
 def beta(p) :
@@ -614,62 +629,20 @@ def sb(self,band='v') :
     surfb.sim = self.sim
     return surfb
 
-
-
-"""
+@Profile.profile_property
+def Q(self) : 
+    """Toomre Q parameter"""
+    return (self['vr_disp']*self['kappa']/(3.36*self['density']*units.G)).in_units("")
 
 @Profile.profile_property
-def vr(self):
+def X(self) : 
+    """X parameter defined as kappa^2*R/(2*pi*G*sigma*m) 
+    See Binney & Tremaine 2008, eq. 6.77"""
 
-    Generate a mean radial velocity profile, where the vr vector
-    is taken to be in three dimensions - for in-plane radial velocity
-    use the vr_xy array.
+    lambda_crit = 4.*np.pi**2 * units.G * self['density']/(self['kappa']**2)
+    kcrit = 2.*np.pi/lambda_crit
+    return (kcrit*self['rbins']/2).in_units("")
 
-    vr = np.zeros(self.nbins)
-    for i in range(self.nbins):
-        vr[i] = (self.sim['vr'][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
-    vr /= self['mass']
-    return vr
-
-@Profile.profile_property
-def v_c_xy(self) :
-
-    Generate a circular velocity profile assuming the disk is aligned in the
-    x-y plane (which can be achieved in a single line using the faceon
-    function in module angmom)
-
-    v = np.zeros(self.nbins).view(array.SimArray)
-    for i in range(self.nbins) :
-        bi = self.binind[i]
-        v[i] = (self.sim['mass'][bi] * np.sqrt(self.sim['vx'][bi]**2+self.sim['vy'][bi]**2)).sum()
-    v/=self['mass']
-    v.units = self.sim['vx'].units
-    return v
-
-@Profile.profile_property
-def phi(self) :
-    v = np.zeros(self.nbins).view(array.SimArray)
-    for i in range(self.nbins) :
-        bi = self.binind[i]
-        v[i] = (self.sim['mass'][bi]*self.sim['phi'][bi]).sum()
-    v/=self['mass']
-    v.units = self.sim['phi'].units
-    return v
-
-@Profile.profile_property
-def vrxy(self):
-
-    Generate a mean radial velocity profile, where the vr vector
-    is taken to be in three dimensions - for in-plane radial velocity
-    use the vr_xy array.
-
-    vrxy = np.zeros(self.nbins)
-    for i in range(self.nbins):
-        vrxy[i] = (self.sim['vrxy'][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()
-    vrxy /= self['mass']
-    return vrxy
-
-"""
 
 class InclinedProfile(Profile) :
     """Creates a profile object to be used with a snapshot inclined by
