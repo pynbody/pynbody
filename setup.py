@@ -29,14 +29,29 @@ kdmain = Extension('pynbody/kdmain',
                    extra_compile_args=extra_compile_args,
                    extra_link_args=extra_link_args)
 
+gravity = Extension('pynbody/grav',
+                   sources = ['pynbody/gravity/main.c', 
+                              'pynbody/gravity/serialtree.c',
+                              'pynbody/gravity/walk.c',
+                              'pynbody/gravity/grav.c',
+                              'pynbody/gravity/ilc.c',
+                              'pynbody/gravity/cl.c',
+                              'pynbody/gravity/ilp.c',
+                              'pynbody/gravity/moments.c'],
+                   include_dirs=incdir,
+                   undef_macros=['DEBUG'],
+                   libraries=libraries,
+                   extra_compile_args=extra_compile_args,
+                   extra_link_args=extra_link_args)
+
 dist = setup(name = 'pynbody',
              author = '',
              author_email = '',
-             version = '0.11alpha',
+             version = '0.13alpha',
              description = '',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot' ],
+                         'pynbody/plot', 'pynbody/gravity' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
@@ -46,8 +61,9 @@ dist = setup(name = 'pynbody',
                                                 'ionfracs.npz',
                                                 'interpolate.c',
                                                 'interpolate3d.c'],
-                           'pynbody/plot': ['tollerud2008mw']},
-             ext_modules = [kdmain],
+                           'pynbody/plot': ['tollerud2008mw'],
+                           'pynbody/gravity': ['direct.c']},
+             ext_modules = [kdmain, gravity],
              scripts = ['scripts/doall.py']
       )
 
