@@ -34,6 +34,9 @@ def ofefeh(sim,filename=None,**kwargs):
     Some common arguments
     x_range=[-2,0.5],y_range=[-0.2,1.0]
     '''
-    hist2d(sim.star['feh'],sim.star['ofe'],filename=filename,
-           xlabel="[Fe/H]",ylabel="[O/Fe]",**kwargs)
+    if 'subplot' in kwargs:
+        hist2d(sim.star['feh'],sim.star['ofe'],filename=filename,**kwargs)
+    else:
+        hist2d(sim.star['feh'],sim.star['ofe'],filename=filename,
+               xlabel="[Fe/H]",ylabel="[O/Fe]",**kwargs)
 
