@@ -1,4 +1,4 @@
-from . import snapshot,array
+from . import snapshot,array, units
 from . import family
 from . import config
 from . import config_parser
@@ -972,3 +972,15 @@ def do_properties(sim) :
     sim.properties['z'] = h.redshift
     sim.properties['h'] = h.HubbleParam
 
+@GadgetSnap.decorator
+def do_units(sim) :
+    #cosmo = (sim._hdf['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
+    vel_unit = units.Unit('1 km s^-1')
+    dist_unit = units.Unit('1 kpc')
+    #if cosmo :
+    dist_unit/=units.h
+    mass_unit = units.Unit('1e10 Msol')
+    #if cosmo:
+    mass_unit/=units.h
+
+    sim._file_units_system=[units.Unit(x) for x in [vel_unit,dist_unit,mass_unit,"K"]]
