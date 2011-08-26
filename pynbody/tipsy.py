@@ -356,13 +356,13 @@ class TipsySnap(snapshot.SimSnap) :
             f.seek(0)
 
             # Read header and check endianness
-            l = struct.unpack(">i",f.read(4))[0]
-
-            if (l != len(self)):
-                f.seek(0)
+            if self._byteswap:
+                l = struct.unpack(">i",f.read(4))[0]
+            else:
                 l = struct.unpack("i", f.read(4))[0]
-                if l!=len(self) :
-                    raise IOError, "Incorrect file format"
+
+            if l!=len(self) :
+                raise IOError, "Incorrect file format"
 
             # Set data format to be read (float or int) based on config
             int_arrays = map(str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
@@ -371,19 +371,13 @@ class TipsySnap(snapshot.SimSnap) :
 
             # Read longest data array possible.  
             # Assume byteswap since most will be.
-            data = np.fromstring(f.read(3*len(self)*4),fmt).byteswap()
+            if self._byteswap:
+                data = np.fromstring(f.read(3*len(self)*4),fmt).byteswap()
+            else:
+                data = np.fromstring(f.read(3*len(self)*4),fmt)
             if len(f.read(4))!= 0:
                 raise IOError, "Incorrect file format"
             
-            # Check data endianness
-            if array_name in int_arrays : # for ints
-                if (np.max(data) > 3*l) or (np.min(data) < 0):
-                    data = data.byteswap()
-            else:   # for floats
-                if (np.isnan(np.max(data)) or np.isnan(np.min(data)) or
-                    (np.max(data) > 1e20) or (np.min(data) < -1e20)):
-                    data = data.byteswap()
-	
         ndim = len(data)/len(self)
 
         if ndim*len(self)!=len(data) :
@@ -681,7 +675,6 @@ class StarLog(snapshot.SimSnap):
         if bigstarlog :
             self._create_arrays(["phiform","nsmooth"])
 
-        #import pdb; pdb.set_trace()
         self._decorate()
         for name in file_structure.fields.keys() :
             self.star[name][:] = g[name][indices]
@@ -731,6 +724,7 @@ def load_paramfile(sim) :
 
             
 @TipsySnap.decorator
+@StarLog.decorator
 def param2units(sim) :
     with sim.lazy_off :
         import sys, math, os, glob
