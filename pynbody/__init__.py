@@ -131,8 +131,10 @@ config_parser.read(os.path.expanduser("~/.pynbodyrc"))
 config_parser.read("config.ini")
 
 
-config.update({'verbose': config_parser.getboolean('general','verbose'),
-         'centering-scheme': config_parser.get('general','centering-scheme')})
+
+config= {'verbose': config_parser.getboolean('general','verbose'),
+         'tracktime': config_parser.getboolean('general','tracktime'),
+         'centering-scheme': config_parser.get('general','centering-scheme')}
 
 config['snap-class-priority'] = map(str.strip,
                                     config_parser.get('general', 'snap-class-priority').split(","))
@@ -146,7 +148,7 @@ for k in config_parser.options('default-cosmology') :
 
 
 # Import subpackages
-from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot
+from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot, gravity
 
 # The following code resolves inter-dependencies when reloading
 imp.reload(array)
@@ -162,6 +164,7 @@ imp.reload(halo)
 imp.reload(derived)
 imp.reload(bridge)
 imp.reload(plot)
+imp.reload(gravity)
 
 # from analysis import profile
 
@@ -169,7 +172,6 @@ imp.reload(plot)
 # This is our definitive list of classes which are able to
 # load snapshots
 _snap_classes = [gadgethdf.GadgetHDFSnap, gadget.GadgetSnap, tipsy.TipsySnap]
-
 
 # Turn the config strings for snapshot/halo classes into lists of
 # actual classes
