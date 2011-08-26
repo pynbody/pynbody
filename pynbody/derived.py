@@ -67,12 +67,26 @@ def vcxy(self) :
 def smooth(self):
     import kdtree
     if config['verbose']: print 'Building tree with leafsize=16'
-    kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16) 
-    if config['verbose']: print 'Tree build done.'
+    if config['tracktime']:
+        import time
+        start = time.clock()
+        kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
+        end = time.clock()
+        if config['verbose']: print 'Tree build done in %5.3g s'%(end-start)
+    else:
+        kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
+        if config['verbose']: print 'Tree build done.'
     if config['verbose']: print 'Smoothing with 32 nearest neighbours'
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
-    kdt.populate(sm, 'hsm', nn=32) 
-    if config['verbose']: print 'Smoothing done.'
+    if config['tracktime']:
+        import time
+        start = time.clock()
+        kdt.populate(sm, 'hsm', nn=32) 
+        end = time.clock()
+        if config['verbose']: print 'Smoothing done in %5.3g s'%(end-start)
+    else:
+        kdt.populate(sm, 'hsm', nn=32) 
+        if config['verbose']: print 'Smoothing done.'
     return sm 
 
 @SimSnap.derived_quantity
