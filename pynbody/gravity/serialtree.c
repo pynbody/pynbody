@@ -16,8 +16,10 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stddef.h>
+#if !defined(__APPLE__)
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #endif
 #include <assert.h>
 #include "kd.h"
