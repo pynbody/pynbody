@@ -21,6 +21,9 @@
 #include <malloc.h>
 #endif
 #endif
+#if defined(__APPLE__)
+#include <stdio.h>
+#endif
 #include <assert.h>
 #include "kd.h"
 #include "cl.h"
