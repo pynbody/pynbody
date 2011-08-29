@@ -19,7 +19,6 @@
 #endif
 #include "ilp.h"
 #include "ilc.h"
-#include "cl.h"
 #include "moments.h"
 #include "config.h"
 
@@ -198,7 +197,6 @@ typedef struct {
     int S ## __s=0, S ## __ns=inc, S ## __inc=inc; \
     do { S = malloc((S ## __ns)*sizeof(*S)); assert(S != NULL); } while (0)
 #define FREE_STACK(S) do { free(S); } while (0)
-
 #define PUSH(S,v) do { S[(S ## __s)++] = (v); } while (0)
 #define POP(S) (S[--(S ## __s)])
 #define STACK_EMPTY(S) (S ## __s == 0)
@@ -303,11 +301,8 @@ typedef struct CheckStack {
     int nPart;
     int nCell;
     int nCheck;
-    CL cl;
     CELT *Check;
     FLOCR L;
-    float dirLsum;
-    float normLsum;
     float fWeight;
     } CSTACK;
 
@@ -366,8 +361,8 @@ typedef struct kdContext {
     */
     int nMaxStack;
     CSTACK *S;
-    ILP ilp;
-    ILC ilc;
+    ILP *ilp;
+    ILC *ilc;
     CELT *Check;
     int nMaxPart, nMaxCell;
     int nMaxCheck;
@@ -528,7 +523,8 @@ void kdDistribCells(KD,int,KDN *);
 void kdCalcRoot(KD,MOMC *);
 void kdDistribRoot(KD,MOMC *);
 
-void kdGravInteract(KD kd, KDN *pBucket,ILP ilp,ILC ilc,int bEwald,PARTICLE *p);
+void kdGravInteract(KD kd,KDN *pBucket, ILP *ilp,int nPart,
+		   ILC *ilc,int nCell, int bEwald, PARTICLE *p);
 void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos);
 double kdTime(void);
 
