@@ -1,6 +1,12 @@
-#ifdef HAVE_CONFIG_H
+/*
+ * Gravity code stolen from Zurich group's (Joachim Stadel, Doug Potter,
+ * Jonathan Coles, et al) amazing gravity code pkdgrav2 and severly
+ * bastardized and converted from parallel to serial for pynbody by
+ * Greg Stinson with help from Jonathan, Tom Quinn, Rok Roskar and
+ * Andrew Pontzen.
+ */
+
 #include "config.h"
-#endif
 
 #include <math.h>
 #include <stdlib.h>
@@ -10,12 +16,9 @@
 #include <stddef.h>
 #include <assert.h>
 #include <time.h>
-#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif
 #include "kd.h"
 #include "moments.h"
-
 
 #define SQRT1(d2,dir)				\
     {						\
@@ -27,135 +30,148 @@
 ** v_sqrt's and such.
 ** Returns nActive.
 */
-void kdGravInteract(KD kd, KDN *pBucket,ILP ilp,ILC ilc,int bEwald,PARTICLE *p) {
+void kdGravInteract(KD kd,KDN *pBucket, ILP *ilp,int nPart,
+		   ILC *ilc,int nCell, int bEwald, PARTICLE *p) 
+{
     KDN *kdn = pBucket;
-    pBND bnd;
-    float ax,ay,az,fPot;
-    float d2,dir,dir2;
-    float fMass,fSoft;
-    float fx, fy, fz;
-    float tax,tay,taz;
-    const float onethird = 1.0f/3.0f;
-    float u,g0,g2,g3,g4;
-    float x,y,z;
-    float tx,ty,tz;
-    float xx,xy,xz,yy,yz,zz;
-    float xxx,xxz,yyy,yyz,xxy,xyy,xyz;
-    ILPTILE tile;
-    ILCTILE ctile;
-    int j,nSoft;
-    float fourh2;
+    pBND kbnd;
+    const double onethird = 1.0/3.0;
+    float fPot;
+    double ax,ay,az;
+    double x,y,z,d2,dir,dir2,g2,g3,g4;
+    double xx,xy,xz,yy,yz,zz;
+    double xxx,xxz,yyy,yyz,xxy,xyy,xyz;
+    double tx,ty,tz;
+    double fourh2;
+    momFloat tax,tay,taz;
+#ifdef SOFTSQUARE
+    double ptwoh2;
+#endif
+    int j, nSoft;
+    double three_eighths = 3.0/8.0;
+    double ffbytt = 45.0/32.0;
+    double otfbysixteen = 135.0/16.0;
+    kdNodeBnd(kd, kdn, &kbnd);
 
-    kdNodeBnd(kd, kdn, &bnd);
+    printf("nPart: %d, nCell: %d\n",nPart,nCell);
+    /*
+    ** Now process the two interaction lists for each active particle.
+    */
+    nSoft = 0;
+    ax = 0;
+    ay = 0;
+    az = 0;
 
     /*
-    ** Process the two interaction lists for each active particle.
-    */
-    fMass = p->fMass;
-    fSoft = p->fSoft;
-    nSoft = 0;
-    
-    fx = p->r[0] - ilc->cx;
-    fy = p->r[1] - ilc->cy;
-    fz = p->r[2] - ilc->cz;
-    
-    ilc->cx = p->r[0]; /* => cx += fx */
-    ilc->cy = p->r[1];
-    ilc->cz = p->r[2];
-    ilcCompute(ilc,fx,fy,fz);
-    ILC_LOOP(ilc,ctile) {
-	for (j=0;j<ctile->nCell;++j) {
-	    SQRT1(ctile->d2.f[j],dir);
-	    u = ctile->u.f[j]*dir;
-	    g0 = dir;
-	    g2 = 3*dir*u*u;
-	    g3 = 5*g2*u;
-	    g4 = 7*g3*u;
-	    /*
-	    ** Calculate the funky distance terms.
-	    */
-	    x = ctile->dx.f[j]*dir;
-	    y = ctile->dy.f[j]*dir;
-	    z = ctile->dz.f[j]*dir;
-	    xx = 0.5*x*x;
-	    xy = x*y;
-	    xz = x*z;
-	    yy = 0.5*y*y;
-	    yz = y*z;
-	    zz = 0.5*z*z;
-	    xxx = x*(onethird*xx - zz);
-	    xxz = z*(xx - onethird*zz);
-	    yyy = y*(onethird*yy - zz);
-	    yyz = z*(yy - onethird*zz);
-	    xx -= zz;
-	    yy -= zz;
-	    xxy = y*xx;
-	    xyy = x*yy;
-	    xyz = xy*z;
-	    /*
-	    ** Now calculate the interaction up to Hexadecapole order.
-	    */
-	    tx = g4*(ctile->xxxx.f[j]*xxx + ctile->xyyy.f[j]*yyy + ctile->xxxy.f[j]*xxy + ctile->xxxz.f[j]*xxz + ctile->xxyy.f[j]*xyy + ctile->xxyz.f[j]*xyz + ctile->xyyz.f[j]*yyz);
-	    ty = g4*(ctile->xyyy.f[j]*xyy + ctile->xxxy.f[j]*xxx + ctile->yyyy.f[j]*yyy + ctile->yyyz.f[j]*yyz + ctile->xxyy.f[j]*xxy + ctile->xxyz.f[j]*xxz + ctile->xyyz.f[j]*xyz);
-	    tz = g4*(-ctile->xxxx.f[j]*xxz - (ctile->xyyy.f[j] + ctile->xxxy.f[j])*xyz - ctile->yyyy.f[j]*yyz + ctile->xxxz.f[j]*xxx + ctile->yyyz.f[j]*yyy - ctile->xxyy.f[j]*(xxz + yyz) + ctile->xxyz.f[j]*xxy + ctile->xyyz.f[j]*xyy);
-	    g4 = 0.25*(tx*x + ty*y + tz*z);
-	    xxx = g3*(ctile->xxx.f[j]*xx + ctile->xyy.f[j]*yy + ctile->xxy.f[j]*xy + ctile->xxz.f[j]*xz + ctile->xyz.f[j]*yz);
-	    xxy = g3*(ctile->xyy.f[j]*xy + ctile->xxy.f[j]*xx + ctile->yyy.f[j]*yy + ctile->yyz.f[j]*yz + ctile->xyz.f[j]*xz);
-	    xxz = g3*(-(ctile->xxx.f[j] + ctile->xyy.f[j])*xz - (ctile->xxy.f[j] + ctile->yyy.f[j])*yz + ctile->xxz.f[j]*xx + ctile->yyz.f[j]*yy + ctile->xyz.f[j]*xy);
-	    g3 = onethird*(xxx*x + xxy*y + xxz*z);
-	    xx = g2*(ctile->xx.f[j]*x + ctile->xy.f[j]*y + ctile->xz.f[j]*z);
-	    xy = g2*(ctile->yy.f[j]*y + ctile->xy.f[j]*x + ctile->yz.f[j]*z);
-	    xz = g2*(-(ctile->xx.f[j] + ctile->yy.f[j])*z + ctile->xz.f[j]*x + ctile->yz.f[j]*y);
-	    g2 = 0.5*(xx*x + xy*y + xz*z);
-	    g0 *= ctile->m.f[j];
-	    fPot -= g0 + g2 + g3 + g4;
-	    g0 += 5*g2 + 7*g3 + 9*g4;
-	    tax = dir*(xx + xxx + tx - x*g0);
-	    tay = dir*(xy + xxy + ty - y*g0);
-	    taz = dir*(xz + xxz + tz - z*g0);
-	    ax += tax;
-	    ay += tay;
-	    az += taz;
-	    }
+     * Process cell interaction list
+     */
+    for (j=0;j<nCell;++j) {
+	x = p->r[0] - ilc[j].x;
+	y = p->r[1] - ilc[j].y;
+	z = p->r[2] - ilc[j].z;
+	d2 = x*x + y*y + z*z;
+	SQRT1(d2,dir);
+	dir2 = dir*dir;
+	g2 = 3*dir*dir2*dir2;
+	g3 = 5*g2*dir2;
+	g4 = 7*g3*dir2;
+	/*
+	** Calculate the funky distance terms.
+	*/
+	xx = 0.5*x*x;
+	xy = x*y;
+	xz = x*z;
+	yy = 0.5*y*y;
+	yz = y*z;
+	zz = 0.5*z*z;
+	xxx = x*(onethird*xx - zz);
+	xxz = z*(xx - onethird*zz);
+	yyy = y*(onethird*yy - zz);
+	yyz = z*(yy - onethird*zz);
+	xx -= zz;
+	yy -= zz;
+	xxy = y*xx;
+	xyy = x*yy;
+	xyz = xy*z;
+	/*
+	** Now calculate the interaction up to Hexadecapole order.
+	*/
+	tx = g4*(ilc[j].mom.xxxx*xxx + ilc[j].mom.xyyy*yyy + ilc[j].mom.xxxy*xxy + ilc[j].mom.xxxz*xxz + ilc[j].mom.xxyy*xyy + ilc[j].mom.xxyz*xyz + ilc[j].mom.xyyz*yyz);
+	ty = g4*(ilc[j].mom.xyyy*xyy + ilc[j].mom.xxxy*xxx + ilc[j].mom.yyyy*yyy + ilc[j].mom.yyyz*yyz + ilc[j].mom.xxyy*xxy + ilc[j].mom.xxyz*xxz + ilc[j].mom.xyyz*xyz);
+	tz = g4*(-ilc[j].mom.xxxx*xxz - (ilc[j].mom.xyyy + ilc[j].mom.xxxy)*xyz - ilc[j].mom.yyyy*yyz + ilc[j].mom.xxxz*xxx + ilc[j].mom.yyyz*yyy - ilc[j].mom.xxyy*(xxz + yyz) + ilc[j].mom.xxyz*xxy + ilc[j].mom.xyyz*xyy);
+	g4 = 0.25*(tx*x + ty*y + tz*z);
+	xxx = g3*(ilc[j].mom.xxx*xx + ilc[j].mom.xyy*yy + ilc[j].mom.xxy*xy + ilc[j].mom.xxz*xz + ilc[j].mom.xyz*yz);
+	xxy = g3*(ilc[j].mom.xyy*xy + ilc[j].mom.xxy*xx + ilc[j].mom.yyy*yy + ilc[j].mom.yyz*yz + ilc[j].mom.xyz*xz);
+	xxz = g3*(-(ilc[j].mom.xxx + ilc[j].mom.xyy)*xz - (ilc[j].mom.xxy + ilc[j].mom.yyy)*yz + ilc[j].mom.xxz*xx + ilc[j].mom.yyz*yy + ilc[j].mom.xyz*xy);
+	g3 = onethird*(xxx*x + xxy*y + xxz*z);
+	xx = g2*(ilc[j].mom.xx*x + ilc[j].mom.xy*y + ilc[j].mom.xz*z);
+	xy = g2*(ilc[j].mom.yy*y + ilc[j].mom.xy*x + ilc[j].mom.yz*z);
+	xz = g2*(-(ilc[j].mom.xx + ilc[j].mom.yy)*z + ilc[j].mom.xz*x + ilc[j].mom.yz*y);
+	g2 = 0.5*(xx*x + xy*y + xz*z);
+	dir *= ilc[j].mom.m;
+	dir2 *= dir + 5*g2 + 7*g3 + 9*g4;
+	fPot -= dir + g2 + g3 + g4;
+	tax = xx + xxx + tx - x*dir2;
+	tay = xy + xxy + ty - y*dir2;
+	taz = xz + xxz + tz - z*dir2;
+	ax += tax;
+	ay += tay;
+	az += taz;
 	} /* end of cell list gravity loop */
 
-    ILP_LOOP(ilp,tile) {
-	for (j=0;j<tile->nPart;++j) {
-	    d2 = tile->d2.f[j];
-	    fourh2 = softmassweight(fMass,4*fSoft*fSoft,
-				    tile->m.f[j],tile->fourh2.f[j]);
-	    if (d2 > fourh2) {
-		SQRT1(d2,dir);
-		dir2 = dir*dir*dir;
-		}
-	    else {
-		/*
-		** This uses the Dehnen K1 kernel function now, it's fast!
-		*/
-		SQRT1(fourh2,dir);
-		dir2 = dir*dir;
-		d2 *= dir2;
-		dir2 *= dir;
-		d2 = 1 - d2;
-		dir *= 1.0 + d2*(0.5 + d2*(3.0/8.0 + d2*(45.0/32.0)));
-		dir2 *= 1.0 + d2*(1.5 + d2*(135.0/16.0));
-		++nSoft;
-		}
-	    dir2 *= tile->m.f[j];
-	    tax = -tile->dx.f[j]*dir2;
-	    tay = -tile->dy.f[j]*dir2;
-	    taz = -tile->dz.f[j]*dir2;
-	    fPot -= tile->m.f[j]*dir;
-	    ax += tax;
-	    ay += tay;
-	    az += taz;
+    printf("after cells:  ax: %g ay: %g az: %g fPot: %g\n", ax, ay, az, fPot);
+    /*
+     * Process particle interaction list
+     */
+#ifdef SOFTSQUARE
+    ptwoh2 = 2*kdSoft(kd,p)*kdSoft(kd,p);
+#endif
+    for (j=0;j<nPart;++j) {
+	x = p->r[0] - ilp[j].x;
+	y = p->r[1] - ilp[j].y;
+	z = p->r[2] - ilp[j].z;
+	d2 = x*x + y*y + z*z;
+#ifdef SOFTLINEAR
+	fourh2 = kdSoft(kd,p) + ilp[j].h;
+	fourh2 *= fourh2;
+#endif
+#if !defined(SOFTLINEAR) && !defined(SOFTSQUARE)
+#ifdef SOFTENING_NOT_MASS_WEIGHTED
+	fourh2 = ilp[j].fourh2;
+#else
+	fourh2 = softmassweight(p->fMass,4*p->fSoft*p->fSoft,ilp[j].m,ilp[j].fourh2);
+#endif
+#endif
+	if (d2 > fourh2) {
+	    SQRT1(d2,dir);
+	    dir2 = dir*dir*dir;
 	    }
+	else {
+	    /*
+	    ** This uses the Dehnen K1 kernel function now, it's fast!
+	    */
+	    SQRT1(fourh2,dir);
+	    dir2 = dir*dir;
+	    d2 *= dir2;
+	    dir2 *= dir;
+	    d2 = 1.0 - d2;
+	    dir *= 1.0 + d2*(0.5 + d2*(three_eighths + d2*(ffbytt)));
+	    dir2 *= 1.0 + d2*(1.5 + d2*(otfbysixteen));
+	    ++nSoft;
+	    }
+
+	dir2 *= ilp[j].m;
+	tax = -x*dir2;
+	tay = -y*dir2;
+	taz = -z*dir2;
+	fPot -= ilp[j].m*dir;
+	ax += tax;
+	ay += tay;
+	az += taz;
 	} /* end of particle list gravity loop */
+    printf("after particles:  ax: %g ay: %g az: %g fPot: %g\n", ax, ay, az, fPot);
     /*
     ** Finally set new acceleration and potential.
-    ** Note that after this point we cannot use the new timestepping criterion since we
-    ** overwrite the acceleration.
-    ** WANT TO RETURN THESE
     */
     p->fPot = fPot;
     p->a[0] = ax;
@@ -164,9 +180,11 @@ void kdGravInteract(KD kd, KDN *pBucket,ILP ilp,ILC ilc,int bEwald,PARTICLE *p) 
     /*
     ** Now finally calculate the Ewald correction for this particle, if it is
     ** required.
-    /
     if (bEwald) {
-	kdParticleEwald(kd,uRungLo,uRungHi,p);
+	*pdEwFlop += kdParticleEwald(kd,uRungLo,uRungHi,p);
 	}
     */
+
     }
+
+
