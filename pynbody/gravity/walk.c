@@ -1,6 +1,12 @@
-#ifdef HAVE_CONFIG_H
+/*
+ * Gravity code stolen from Zurich group's (Joachim Stadel, Doug Potter,
+ * Jonathan Coles, et al) amazing gravity code pkdgrav2 and severly
+ * bastardized and converted from parallel to serial for pynbody by
+ * Greg Stinson with help from Jonathan, Tom Quinn, Rok Roskar and
+ * Andrew Pontzen.
+ */
+
 #include "config.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,26 +31,22 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
     PARTICLE q;
     KDN *kdn;
     KDN *kdc;
-    pBND kbnd;
+    pBND kbnd, cbnd;
     FLOAT dMin,min2;
     FLOAT rCheck[3];
     FLOAT rOffset[3];
-    int iStack,ism;
     int ix,iy,iz,bRep;
     int nMaxInitCheck,nCheck, iCheckCell;
     int i,ii,j,n,pj,nTotActive;
     int iOpen, iPos;
     int nPart;
     int nCell;
-    double start_time, stop_time;
+    double start_time;
 
     assert(kd->oNodeMom);
     /*
     ** Allocate initial interaction lists.
     */
-    nTotActive = 0;
-    nPart = 0;
-    nCell = 0;
     nMaxInitCheck = 2*nReps+1;
     nMaxInitCheck = nMaxInitCheck*nMaxInitCheck*nMaxInitCheck;	/* all replicas */
     assert(nMaxInitCheck < kd->nMaxCheck);
@@ -53,8 +55,14 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 	start_time = kdTime();
 	q = testParticles[iPos];
 	kdn = kdNodeInit(kd, &q);
-	ilpClear(kd->ilp);
-	ilcClear(kd->ilc);
+	free(kd->ilp);
+	kd->ilp = malloc(kd->nMaxPart*sizeof(ILP));
+	assert(kd->ilp != NULL);
+	nPart = 0;
+	free(kd->ilc);
+	kd->ilc = malloc(kd->nMaxCell*sizeof(ILC));
+	assert(kd->ilc != NULL);
+	nCell = 0;
 
 	nCheck = 0;
 	/*
@@ -93,9 +101,14 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 		%d\n",kd->Check[i].iCell,kdc->pUpper,
 		kdc->pLower,kdc->pUpper - kdc->pLower + 1);
 		*/
+		kdNodeBnd(kd, kdc, &cbnd);
+		/*printf("%d rCheck",kd->Check[i].iCell);*/
 		for (j=0;j<3;++j) {
-		    rCheck[j] = kdc->r[j] + kd->Check[i].rOffset[j];
+		    rCheck[j] = cbnd.fCenter[j] + kd->Check[i].rOffset[j];
+		    /*rCheck[j] = kdc->r[j] + kd->Check[i].rOffset[j];*/
+		    /*printf("[%d]: %g ",j,rCheck[j]);*/
 		    }
+		/*printf("\n");*/
 		
 		kdNodeBnd(kd, kdn, &kbnd);
 		/*
@@ -111,12 +124,13 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 		    }
 		/*
 		** By default we open the cell!
-		printf("min2: %g fOpen: %g\n",min2,kdc->bMax*kdc->bMax/kd->dTheta2);
 		*/
+		printf("min2: %g fOpen: %g\n",6.8e4*sqrt(min2),6.8e4*kdc->bMax);
 		if (min2 > kdc->bMax*kdc->bMax/kd->dTheta2) {
 
 #if !defined(SOFTLINEAR) && !defined(SOFTSQUARE)
 		    if (min2 > 4*kdc->fSoft2) {
+			printf("Open cell?  n: %d",n);
 			if (n >= WALK_MINMULTIPOLE) iOpen = -1;
 			else iOpen = 1;
 			}
@@ -171,11 +185,19 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 			    }
 			for (pj=kdc->pLower;pj<=kdc->pUpper;++pj) {
 			    p = kdParticle(kd,pj);
+			    /*
 			    ilpAppend(kd->ilp,
 				      p->r[0] + kd->Check[i].rOffset[0],
 				      p->r[1] + kd->Check[i].rOffset[1],
 				      p->r[2] + kd->Check[i].rOffset[2],
 				      p->fMass,4*p->fSoft*p->fSoft,p->iOrder);
+			    */
+			    kd->ilp[nPart].iOrder = p->iOrder;
+			    kd->ilp[nPart].m = p->fMass;
+			    kd->ilp[nPart].x = p->r[0] + kd->Check[i].rOffset[0];
+			    kd->ilp[nPart].y = p->r[1] + kd->Check[i].rOffset[1];
+			    kd->ilp[nPart].z = p->r[2] + kd->Check[i].rOffset[2];
+			    kd->ilp[nPart].fourh2 = 4*p->fSoft*p->fSoft;
 			    ++nPart;
 			    }
 			}  /* end of opening a bucket */
@@ -190,8 +212,14 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 			kd->ilc = realloc(kd->ilc,kd->nMaxCell*sizeof(ILC));
 			assert(kd->ilc != NULL);
 			}
+		    kd->ilc[nCell].x = rCheck[0];
+		    kd->ilc[nCell].y = rCheck[1];
+		    kd->ilc[nCell].z = rCheck[2];
+		    kd->ilc[nCell].mom = *kdNodeMom(kd,kdc);
+		    /*
 		    ilcAppend(kd->ilc,rCheck[0],rCheck[1],rCheck[2],
 			      kdNodeMom(kd,kdc),kdc->bMax);
+		    */
 		    ++nCell;
 		    }
 		else if (iOpen == -2) {
@@ -205,8 +233,16 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 			kd->ilp = realloc(kd->ilp,kd->nMaxPart*sizeof(ILP));
 			assert(kd->ilp != NULL);
 			}
+		    /*
 		    ilpAppend(kd->ilp,rCheck[0],rCheck[1],rCheck[2],
 			      kdNodeMom(kd,kdc)->m,4*kdc->fSoft2,-1); 
+		    */
+		    kd->ilp[nPart].iOrder = -1; /* set iOrder to negative value for time step criterion */
+		    kd->ilp[nPart].m = kdNodeMom(kd,kdc)->m;
+		    kd->ilp[nPart].x = rCheck[0];
+		    kd->ilp[nPart].y = rCheck[1];
+		    kd->ilp[nPart].z = rCheck[2];
+		    kd->ilp[nPart].fourh2 = 4*kdc->fSoft2;
 		    /* set iOrder to negative value for time step criterion */
 		    ++nPart;
 		    }
@@ -214,9 +250,7 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 		    kd->Check[ii++] = kd->Check[i];
 		    }
 		}
-	    /*
 	    printf("checklist length: %d\n",nCheck);
-	    */
 	    nCheck = ii;
 	    /*
 	    ** Done processing of the Checklist.
@@ -237,16 +271,12 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 	/*
 	** Now calculate gravity on this bucket!
 	*/
-	/*
 	printf("iPos: %d, tree walked: %g s\n",iPos,kdTime()-start_time);
 	start_time=kdTime();
-	*/
-	kdGravInteract(kd,kdc,kd->ilp,kd->ilc,bEwald,&q);
+	kdGravInteract(kd,kdc,kd->ilp,nPart,kd->ilc,nCell, bEwald,&q);
 	testParticles[iPos].fPot = q.fPot;
 	for (j=0; j<3; j++) testParticles[iPos].a[j] = q.a[j];
-	/*
 	printf("gravity calculated: %g s\n",kdTime()-start_time);
-	*/
 	free(kdn);
 	}
     }

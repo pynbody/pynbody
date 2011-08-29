@@ -26,7 +26,6 @@
 #endif
 #include <assert.h>
 #include "kd.h"
-#include "cl.h"
 #include "moments.h"
 
 #ifdef HAVE_SYS_TIME_H
@@ -171,17 +170,12 @@ void kdInitialize( KD kd,int nStore,int nBucket,double dTheta,int nTreeBitsLo,
     /*
     ** Tree walk stuff.
     */
-#ifdef LOCAL_EXPANSION
-    ilpInitialize(&kd->ilp);
-    ilcInitialize(&kd->ilc);
-#else
     kd->nMaxPart = 10000;
     kd->ilp = malloc(kd->nMaxPart*sizeof(ILP));
     assert(kd->ilp != NULL);
     kd->nMaxCell = 1000;
     kd->ilc = malloc(kd->nMaxCell*sizeof(ILC));
     assert(kd->ilc != NULL);
-#endif
     /*
     ** Allocate Checklist.
     */
@@ -544,7 +538,7 @@ void Create(KD kd,int iNode) {
     FMOMR mom;
     pBND bnd;
     FLOAT m,fMass,fSoft,x,y,z,ft,d2,d2Max,dih2,bmin,b;
-    int pj,d,nDepth,ism;
+    int j, pj,d,nDepth;
     const int nMaxStackIncrease = 1;
     int bSoftZero = 0;
 
@@ -565,9 +559,6 @@ void Create(KD kd,int iNode) {
 	    if (nDepth > kd->nMaxStack) {
 		kd->S = realloc(kd->S,(kd->nMaxStack+nMaxStackIncrease)*sizeof(CSTACK));
 		assert(kd->S != NULL);
-		for (ism=kd->nMaxStack;ism<(kd->nMaxStack+nMaxStackIncrease);++ism) {
-		    clInitialize(&kd->S[ism].cl);
-		    }
 		kd->nMaxStack += nMaxStackIncrease;
 		}
 	    }
@@ -709,13 +700,20 @@ void Create(KD kd,int iNode) {
 		/*
 		** Now determine the opening radius for gravity.
 		*/
+		for(j=0; j< 3; j++) printf(" %g ", bnd.fCenter[j]*68000);
 		MAXSIDE(bnd.fMax,b);
+		printf("maxside: %g",b*68000);
 		if (b < bmin) b = bmin;
 		if (d2Max>b) b = d2Max;
 		kdn->bMax = b;
+		printf(", bmin: %g, d2Max: %g, bMax 1: %g ",bmin*68000, d2Max*68000, kdn->bMax*68000);
+		printf("\n");
 		}
 	    else {
-	      CALCOPEN(kdn,bmin);  /* set bMax */
+		CALCOPEN(kdn,bmin);  /* set bMax */
+		printf("bMax 2: %g ",kdn->bMax*68000);
+		for(j=0; j< 3; j++) printf(" %g ", bnd.fCenter[j]*68000);
+		printf("\n");
 	    }
 	    kdCombineCells2(kd,kdn,kdl,kdu);
 	    }
@@ -868,7 +866,6 @@ void kdDistribRoot(KD kd,MOMC *pmom) {
 
 
 void kdFinish(KD kd) {
-    int ism;
     int i;
 
     if (kd->kdNodeListPRIVATE) {
@@ -882,13 +879,8 @@ void kdFinish(KD kd) {
     /*
     ** Free Interaction lists.
     */
-#ifdef LOCAL_EXPANSION
-    ilpFinish(kd->ilp);
-    ilcFinish(kd->ilc);
-#else
     free(kd->ilp);
     free(kd->ilc);
-#endif
     if (kd->kdTopPRIVATE) free(kd->kdTopPRIVATE);
     /*free(kd->ew.ewt);*/
     free(kd->pStorePRIVATE);
