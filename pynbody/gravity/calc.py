@@ -27,7 +27,6 @@ def direct(f, ipos, eps= None) :
 def treecalc(f, rs, eps= None) :
     gtree = tree.GravTree(f['pos'].view(np.ndarray),f['mass'].view(np.ndarray),eps=np.min(eps))
     a, p = gtree.calc(rs,eps=eps)
-    import pdb; pdb.set_trace()
     return p, a
 
 def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
@@ -58,8 +57,6 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
     #    m_by_r, m_by_r2 = fn(f,np.array(rs), eps=np.min(eps))
 
     m_by_r, m_by_r2 = fn(f,np.array(rs), eps=np.min(eps))
-    import pdb; pdb.set_trace()
-
     
     accel = array.SimArray(m_by_r2,units.G * f['mass'].units / (f['pos'].units**2) )
 
@@ -78,6 +75,7 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
         else :
             vel = 0
 
+        import pdb; pdb.set_trace()
         vels.append(vel)
 
     x = array.SimArray(vels, units = u_out)
