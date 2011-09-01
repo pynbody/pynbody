@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
-from .. import filt, units, config
+from .. import filt, units, config, array
 
 def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         subplot=False, trange=False, nbins=100, **kwargs):
@@ -65,6 +65,7 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
+    return array.SimArray(sfhist, "Msol yr**-1"), array.SimArray(bins, "Gyr")
 
 def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
                diskheight='3 kpc',rmax='20 kpc', compare=True,

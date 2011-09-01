@@ -29,11 +29,11 @@ def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
 
     if kwargs.has_key('t_range'):
         kwargs['y_range'] = kwargs['t_range']
-        assert len(t_range) == 2
+        assert len(kwargs['y_range']) == 2
 
     if kwargs.has_key('rho_range'):
         kwargs['x_range'] = kwargs['rho_range']
-        assert len(rho_range) == 2
+        assert len(kwargs['x_range']) == 2
     else:
         rho_range=False
 
