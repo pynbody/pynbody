@@ -267,18 +267,22 @@ class Profile:
         x = name.split(",")
         if name in self._profiles :
             return self._profiles[name]
+
         elif x[0] in Profile._profile_registry :
             args = x[1:]
             self._profiles[name] = Profile._profile_registry[x[0]](self, *args)
+
             try :
                 self._profiles[name].sim = self.sim
             except AttributeError :
                 pass
             return self._profiles[name]
+
         elif name in self.sim.keys() or name in self.sim.all_keys() :
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
+
         elif name[-5:]=="_disp" and name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys() :
             if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
             self._profiles[name] = self._auto_profile(name[:-5], dispersion=True)
@@ -508,7 +512,8 @@ def dyntime(self) :
     if pynbody.config['verbose'] : print 'Profile: dyntime()'
     dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(1,2)
     return dyntime
-    
+
+
 @Profile.profile_property
 def g_spherical(self) :
     """The naive gravitational acceleration assuming spherical
@@ -530,6 +535,7 @@ def j_circ(p) :
     if pynbody.config['verbose'] : print 'Profile: j_circ()'
     return p['v_circ'] * p['rbins']
 
+
 @Profile.profile_property
 def v_circ(p) :
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
@@ -543,29 +549,26 @@ def v_circ(p) :
     grav_sim = p.sim
 
     if pynbody.config['verbose'] : 
-        print 'Profile: v_circ() -- warning, disk must be in the x-y plane (faceon)'
+        print 'Profile: v_circ() -- warning, disk must be in the x-y plane'
 
     
     # If this is a cosmological run, go up to the halo level
-    #if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-        grav_sim = grav_sim.base
+    if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+        while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+            grav_sim = grav_sim.base
     
-    #elif hasattr(grav_sim,'base') : 
-    #    grav_sim = grav_sim.base
+    elif hasattr(grav_sim,'base') : 
+        grav_sim = grav_sim.base
     
     if config['tracktime']:
         import time
         start = time.clock()
-        rc = gravity.midplane_rot_curve(grav_sim, p['rbins'],mode='direct').in_units(p.sim['vel'].units)
+        rc = gravity.midplane_rot_curve(grav_sim, p['rbins'], mode='direct').in_units(p.sim['vel'].units)
         end = time.clock()
         if config['verbose']: print 'Rotation curve calculated in %5.3g s'%(end-start)
         return rc
     else:
         return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-    #return np.sqrt(p["phi'"]*p.r) 
-    # quick and dirty:
-    #return ((units.G*p['mass_enc']/p['rbins'])**(1,2))
 
 @Profile.profile_property
 def E_circ(p) :
