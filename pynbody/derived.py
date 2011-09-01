@@ -5,6 +5,7 @@ from . import analysis
 from . import sph
 from . import config
 import numpy as np
+import sys
 
 @SimSnap.derived_quantity
 def r(self):
@@ -65,43 +66,49 @@ def vcxy(self) :
 
 @SimSnap.derived_quantity
 def smooth(self):
-    import kdtree
-    if config['verbose']: print 'Building tree with leafsize=16'
-    if config['tracktime']:
-        import time
-        start = time.clock()
-        kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
-        end = time.clock()
-        if config['verbose']: print 'Tree build done in %5.3g s'%(end-start)
-    else:
-        kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
-        if config['verbose']: print 'Tree build done.'
-    if config['verbose']: print 'Smoothing with 32 nearest neighbours'
+    
+    if hasattr(self,'kdtree') is False : 
+        import kdtree
+        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=16'
+        if config['tracktime']:
+            import time
+            start = time.clock()
+        self.kdtree = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
+        if config['tracktime'] : 
+            end = time.clock()
+            print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
+        elif config['verbose'] : print>>sys.stderr, 'Tree build done.'
+        
+    if config['verbose']: print>>sys.stderr, 'Smoothing with 32 nearest neighbours'
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
     if config['tracktime']:
         import time
         start = time.clock()
-        kdt.populate(sm, 'hsm', nn=32) 
+
+    self.kdtree.populate(sm, 'hsm', nn=32) 
+    
+    if config['tracktime'] : 
         end = time.clock()
-        if config['verbose']: print 'Smoothing done in %5.3g s'%(end-start)
-    else:
-        kdt.populate(sm, 'hsm', nn=32) 
-        if config['verbose']: print 'Smoothing done.'
+        print>>sys.stderr, 'Smoothing done in %5.3g s'%(end-start)
+    elif config['verbose']: print>>sys.stderr, 'Smoothing done.'
+
     return sm 
 
 @SimSnap.derived_quantity
 def rho(self):
     #return self['mass']/self['smooth']**3
-    import kdtree
-    if config['verbose']: print 'Building tree with leafsize=16'
-    kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16) 
-    if config['verbose']: print 'Tree build done.'
-
-    if config['verbose']: print 'Calculating density with 32 nearest neighbours'
-    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
-    kdt.populate(sm, 'rho', nn=32, smooth=self['smooth'])
+    if hasattr(self,'kdtree') is False: 
+        import kdtree
+        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=16'
+        kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16) 
+        if config['verbose']: print>>sys.stderr, 'Tree build done.'
+        self.kdtree = kdt
     
-    if config['verbose']: print 'Density done.'
+    if config['verbose']: print>>sys.stderr, 'Calculating density with 32 nearest neighbours'
+    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
+    self.kdtree.populate(sm, 'rho', nn=32, smooth=self['smooth'])
+    
+    if config['verbose']: print>>sys.stderr, 'Density done.'
     return sm 
 
 @SimSnap.derived_quantity
