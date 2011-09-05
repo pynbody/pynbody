@@ -274,6 +274,28 @@ class SimArray(np.ndarray) :
         else :
             return np.ndarray.__div__(self, rhs)
 
+    def __imul__(self, rhs) :
+        if isinstance(rhs, _units.UnitBase) :
+            self.units*=rhs
+        else :
+            np.ndarray.__imul__(self, rhs)
+            try :
+                self.units*=rhs.units
+            except AttributeError :
+                pass
+        return self
+        
+    def __idiv__(self, rhs) :
+        if isinstance(rhs, _units.UnitBase) :
+            self.units/=rhs
+        else :
+            np.ndarray.__idiv__(self, rhs)
+            try :
+                self.units/=rhs.units
+            except AttributeError :
+                pass
+        return self
+
     def conversion_context(self) :
         if self._sim() is not None :
             return self._sim().conversion_context()
@@ -321,6 +343,12 @@ class SimArray(np.ndarray) :
 
     def __sub__(self, x) :
         return self._generic_add(x, np.subtract)
+
+    def __iadd__(self, x) :
+        return self._generic_add(x, np.ndarray.__iadd__)
+
+    def __isub__(self, x) :
+        return self._generic_add(x, np.ndarray.__isub__)
 
     def __pow__(self, x) :
         numerical_x = x
@@ -484,7 +512,7 @@ _dirty_fns = ['__setitem__', '__setslice__',
  '__ipow__']
 
 for x in _dirty_fns :
-    setattr(SimArray, x, _dirty_fn(getattr(np.ndarray, x)))
+    setattr(SimArray, x, _dirty_fn(getattr(SimArray, x)))
         
 _u = SimArray.ufunc_rule
 
