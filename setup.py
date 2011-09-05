@@ -63,7 +63,7 @@ dist = setup(name = 'pynbody',
                                                 'interpolate3d.c'],
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
-             ext_modules = [kdmain, gravity],
+             ext_modules = [kdmain], #, gravity],
              scripts = ['scripts/doall.py']
       )
 
