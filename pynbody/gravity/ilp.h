@@ -10,6 +10,13 @@
 #define ILP_ALIGN_SIZE (1<<ILP_ALIGN_BITS)
 #define ILP_ALIGN_MASK (ILP_ALIGN_SIZE-1)
 
+typedef struct ilPart {
+    double m,x,y,z;
+    double fourh2;
+    uint64_t iOrder;
+    } ILP;
+
+#if 0
 /*
 ** We use a union here so that the compiler can properly align the values.
 */
@@ -127,4 +134,5 @@ static inline void ilpCompute(ILP ilp, float fx, float fy, float fz ) {
 	}
     }
 
+#endif
 #endif

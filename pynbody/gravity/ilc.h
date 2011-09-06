@@ -1,5 +1,17 @@
 #ifndef ILC_H
 #define ILC_H
+#include "moments.h"
+/*
+** components required for evaluating a multipole interaction.
+*/
+
+typedef struct ilCell {
+    double x,y,z;
+    FMOMR mom;
+    } ILC;
+
+
+#if 0
 #include <stdint.h>
 
 #ifndef ILC_PART_PER_TILE
@@ -141,4 +153,5 @@ static inline void ilcCompute(ILC ilc, float fx, float fy, float fz ) {
 	}
     }
 
+#endif
 #endif
