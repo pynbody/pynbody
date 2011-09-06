@@ -34,9 +34,6 @@ gravity = Extension('pynbody/grav',
                               'pynbody/gravity/serialtree.c',
                               'pynbody/gravity/walk.c',
                               'pynbody/gravity/grav.c',
-                              'pynbody/gravity/ilc.c',
-                              'pynbody/gravity/cl.c',
-                              'pynbody/gravity/ilp.c',
                               'pynbody/gravity/moments.c'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
@@ -63,7 +60,7 @@ dist = setup(name = 'pynbody',
                                                 'interpolate3d.c'],
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
-             ext_modules = [kdmain], #, gravity],
+             ext_modules = [kdmain, gravity],
              scripts = ['scripts/doall.py']
       )
 
