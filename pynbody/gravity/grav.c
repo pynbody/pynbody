@@ -10,8 +10,10 @@
 
 #include <math.h>
 #include <stdlib.h>
+#if !defined(__APPLE__)
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #endif
 #include <stddef.h>
 #include <assert.h>
