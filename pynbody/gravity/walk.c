@@ -10,10 +10,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined(__APPLE__)
+#if defined(__APPLE__)
+#undef HAVE_MALLOC_H
+#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
-#endif
 #endif
 #include <math.h>
 #include <time.h>

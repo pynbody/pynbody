@@ -16,10 +16,11 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stddef.h>
-#if !defined(__APPLE__)
+#if defined(__APPLE__)
+#undef HAVE_MALLOC_H
+#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
-#endif
 #endif
 #if defined(__APPLE__)
 #include <stdio.h>
