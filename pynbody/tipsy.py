@@ -257,7 +257,7 @@ class TipsySnap(snapshot.SimSnap) :
 
 	    for x in set(self.keys()).union(self.family_keys()) :
 		if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
-							      "eps","metals","phi"]  :
+							      "eps","metals","phi", "tform"]  :
 		    TipsySnap._write_array(self, x, filename=filename+"."+x)
 		    
 	    
