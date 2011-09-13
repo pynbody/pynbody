@@ -75,7 +75,8 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
             # very weird snapshot, or mis-centering!
             raise ValueError, "Insufficient particles around center to get velocity"
 
-        vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()/cen['mass'].units
+        vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
+        vcen.units = cen['vel'].units
         if config['verbose'] :
             print "vcen=",vcen
 
