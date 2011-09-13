@@ -260,10 +260,39 @@ class TipsySnap(snapshot.SimSnap) :
 							      "eps","metals","phi", "tform"]  :
 		    TipsySnap._write_array(self, x, filename=filename+"."+x)
 		    
-	    
+
     @staticmethod
-    def _write_array(self, array_name, filename=None) :
+    def __write_block(f,ar,binary, byteswap) :
+        if issubclass(ar.dtype.type, np.integer) :
+            ar = np.asarray(ar, dtype=np.int32)
+        else :
+            ar = np.asarray(ar, dtype=np.float32)
+
+        if binary :
+            if byteswap:
+                ar.byteswap().tofile(f)
+            else :
+                ar.tofile(f)
+
+        else :
+            if ar.dtype==float :
+                fmt = "%g"
+            else :
+                fmt = "%d"
+            np.savetxt(f, ar, fmt=fmt)
+
+    @staticmethod
+    def _write_array(self, array_name, filename=None, binary=None, byteswap=None) :
         """Write a TIPSY-ASCII file."""
+
+        
+            
+
+        if binary is None :
+            binary = getattr(self.ancestor,"_tipsy_arrays_binary",False)
+            
+        if binary and ( byteswap is None ) :
+            byteswap = getattr(self.ancestor, "_byteswap", False)
 
 	if array_name in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
 			  "eps","metals","phi"] :
@@ -275,8 +304,19 @@ class TipsySnap(snapshot.SimSnap) :
                     filename = self._filename[:-3]+"."+array_name+".gz"
                 else :
                     filename = self._filename+"."+array_name
-            f = util.open_(filename, 'w')
-            print>>f, str(len(self))
+            if binary :
+                f = util.open_(filename, 'wb')
+                if byteswap :
+                    f.write(struct.pack(">i", len(self)))
+    
+                else :
+                    f.write(struct.pack("i", len(self)))
+
+            else :
+                f = util.open_(filename, 'w')
+                print>>f, str(len(self))
+
+        
 
             if array_name in self.family_keys() :
                 for fam in [family.gas, family.dm, family.star] :
@@ -284,19 +324,12 @@ class TipsySnap(snapshot.SimSnap) :
                         ar = self[fam][array_name]
                     except KeyError :
                         ar = np.zeros(len(self[fam]), dtype=int)
-
-                    if ar.dtype==float :
-                        fmt = "%g"
-                    else :
-                        fmt = "%d"
-                    np.savetxt(f, ar, fmt=fmt)
+                    
+                    TipsySnap.__write_block(f, ar, binary, byteswap)
+                    
             else :
                 ar = self[array_name]
-                if ar.dtype==float :
-                    fmt = "%g"
-                else :
-                    fmt = "%d"
-                np.savetxt(f, ar, fmt=fmt)
+                TipsySnap.__write_block(f, ar, binary, byteswap)
 
         f.close()
         
@@ -414,6 +447,7 @@ class TipsySnap(snapshot.SimSnap) :
         else :
             self[fam][array_name] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
 
+        self.ancestor._tipsy_arrays_binary = binary
 
     def read_starlog(self, fam=None) :
 	"""Read a TIPSY-starlog file."""
