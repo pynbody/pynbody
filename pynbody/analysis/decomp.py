@@ -11,7 +11,7 @@ import numpy as np
 import sys
 
 def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_circ_from_r=False,
-           cen=None, vcen=None, verbose=True, log_interp=False, angmom_size="3 kpc") :
+           cen=None, vcen=None, log_interp=False, angmom_size="3 kpc") :
     """
     Creates an array 'decomp' for star particles in the simulation, with an
     integer specifying a kinematic decomposition. The possible values are:
@@ -43,7 +43,6 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     j_circ_from_r -- if True, the maximum angular momentum is determined as a
     function of radius, rather than as a function of orbital energy. Default
     False (determine as function of energy).
-    verbose -- if True, print information
     angmom_size -- the size of the gas sphere used to determine the plane of the disk
     """
 
@@ -53,7 +52,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # Center, eliminate proper motion, rotate so that
     # gas disk is in X-Y plane
     if not aligned :
-        angmom.faceon(h,cen=cen,vcen=vcen, verbose=verbose, disk_size=angmom_size)
+        angmom.faceon(h,cen=cen,vcen=vcen, disk_size=angmom_size)
 
     # Find KE, PE and TE
     ke = h['ke']
@@ -78,9 +77,9 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     if config['verbose'] : print>>sys.stderr, "Making disk rotation curve..."
     
     # Now make a rotation curve for the disk. We'll take everything
-    # inside a vertical height of 100pc.
+    # inside a vertical height of 500pc.
 
-    d = h[filt.Disc('1 Mpc', '100 pc')]
+    d = h[filt.Disc('1 Mpc', '500 pc')]
     
     try :
         
@@ -106,12 +105,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         pro_d._profiles['v_circ'] = v_c
         pro_d.v_circ_loaded = True
         
-    except IOError :
+    except :#IOError,KeyError :
         pro_d = profile.Profile(d, nbins=100, type='log') #.D()
     
     
     pro_phi = pro_d['phi']
-
+    #import pdb; pdb.set_trace()
     # offset the potential as for the te array
     pro_phi-=te_max
 

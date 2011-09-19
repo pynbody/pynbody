@@ -568,7 +568,7 @@ def v_circ(p) :
         if config['verbose']: print 'Rotation curve calculated in %5.3g s'%(end-start)
         return rc
     else:
-        return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
+        return gravity.midplane_rot_curve(grav_sim, p['rbins'], mode='direct').in_units(p.sim['vel'].units)
 
 @Profile.profile_property
 def E_circ(p) :
@@ -579,7 +579,9 @@ def E_circ(p) :
 @Profile.profile_property
 def pot(p) :
     """Calculates the potential in the midplane - can be expensive"""
-    from . import gravity
+    #from . import gravity
+    import pynbody.gravity.calc as gravity
+
     if pynbody.config['verbose'] : 
         print 'Profile: pot() -- warning, disk must be in the x-y plane'
 
@@ -588,7 +590,15 @@ def pot(p) :
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
         
-    return gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
+    if pynbody.config['tracktime']:
+        import time
+        start = time.clock()
+        pot = gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
+        end = time.clock()
+        if pynbody.config['verbose']: print 'Potential calculated in %5.3g s'%(end-start)
+        return pot
+    else:
+        return gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
     
 
 @Profile.profile_property

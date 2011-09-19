@@ -84,7 +84,7 @@ def direct(f, ipos, eps= None) :
     m_by_r*=units.G
     m_by_r2*=units.G
     
-    return m_by_r, -m_by_r2
+    return -m_by_r, -m_by_r2
 
 def treecalc(f, rs, eps= None) :
     gtree = tree.GravTree(f['pos'].view(np.ndarray),f['mass'].view(np.ndarray),eps=np.min(eps))
@@ -141,18 +141,30 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
     x.sim = f.ancestor
     return x
 
-def midplane_potential(f, rxy_points, eps = None) :
+def midplane_potential(f, rxy_points, eps = None, mode='direct') :
     
+    if eps is None :
+        try :
+            eps = f['eps']
+        except KeyError :
+            eps = f.properties['eps']
+            
+    if isinstance(eps, str) :
+        eps = units.Unit(eps)
+
     u_out = units.G * f['mass'].units / f['pos'].units
     
     try:
-        fn = {'dir': direct,
+        fn = {'direct': direct,
               'tree': tree,
               }[mode]
     except KeyError :
         fn = mode
 
-    m_by_r, m_by_r2 = fn(f,np.array(rs),eps=eps)
+    # Do four samples like Tipsy does
+    rs = [pos for r in rxy_points for pos in [(r,0,0), (0,r,0), (-r,0,0), (0,-r,0)]]
+
+    m_by_r, m_by_r2 = fn(f,np.array(rs),eps=np.min(eps))
 
     potential = units.G * m_by_r * f['mass'].units / f['pos'].units
 
