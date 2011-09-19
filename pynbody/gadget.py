@@ -685,10 +685,13 @@ class GadgetSnap(snapshot.SimSnap):
     def _family_has_loadable_array(self, fam, name) :
         """Returns True if the array can be loaded for the specified family.
         If fam is None, returns True if the array can be loaded for all families."""
-        if fam is not None :
+        if name in self._block_list:
+            if fam is not None :
                 return fam in self._block_list[name]
-        else :
+            else :
                 return set(self.families()) <= set(self._block_list[name])
+        else:
+            return False
 
     def get_block_list(self):
         """Get list of unique blocks in snapshot, with the types they refer to"""
@@ -763,7 +766,7 @@ class GadgetSnap(snapshot.SimSnap):
         g_name = _translate_array_name(name)
 
         if not self._family_has_loadable_array( fam, name) :
-            if fam is None :
+            if fam is None and name in self._block_list:
                 raise KeyError,"Block "+name+" is not available for all families"
             else :
                 raise IOError, "No such array on disk"
@@ -971,6 +974,9 @@ def do_properties(sim) :
     sim.properties['boxsize'] = h.BoxSize
     sim.properties['z'] = h.redshift
     sim.properties['h'] = h.HubbleParam
+    eps = np.zeros(len(sim)) + 0.1
+    sim['eps'] = eps
+    sim['eps'].units = units.Unit("kpc")
 
 @GadgetSnap.decorator
 def do_units(sim) :
@@ -979,8 +985,30 @@ def do_units(sim) :
     dist_unit = units.Unit('1 kpc')
     #if cosmo :
     dist_unit/=units.h
+
+    #You have: kpc s / km
+    #You want: Gyr
+    #* 0.97781311
+    timeunit = dist_unit / vel_unit * 0.97781311
+    #timeunit_st = ("%.5g"%timeunit)+" Gyr"
+
     mass_unit = units.Unit('1e10 Msol')
     #if cosmo:
     mass_unit/=units.h
+
+    denunit = mass_unit/dist_unit**3
+    denunit_st = str(denunit)+" Msol kpc^-3"
+
+    potunit_st = vel_unit**2
+
+    try :
+        sim["phi"].units = potunit_st
+    except KeyError :
+        pass
+
+    #try :
+    #    sim.gas["smooth"].units = dist_unit
+    #except KeyError :
+    #    pass
 
     sim._file_units_system=[units.Unit(x) for x in [vel_unit,dist_unit,mass_unit,"K"]]
