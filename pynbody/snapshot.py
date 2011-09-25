@@ -3,6 +3,7 @@ from . import family, util
 from . import filt
 from . import units
 from . import config
+from . import simdict
 
 import numpy as np
 import copy
@@ -56,7 +57,7 @@ class SimSnap(object) :
         self.lazy_off = util.ExecutionControl()
         self.auto_propagate_off = util.ExecutionControl()
         
-        self.properties = {}
+        self.properties = simdict.SimDict({})
         self._file_units_system = []
         
 
@@ -908,6 +909,9 @@ def put_1d_vel_slices(sim) :
         pass
 
 
+"""
+# No longer required - defaults now implemnted within SimDict
+
 @SimSnap.decorator
 def default_cosmology(sim) :
     missing = [k for k in config['default-cosmology'] if k not in sim.properties]
@@ -918,6 +922,7 @@ def default_cosmology(sim) :
                        RuntimeWarning)
         sim.properties.update([(k,config['default-cosmology'][k]) for k in missing])
         
+"""
 
 _subarray_immediate_mode = False
 # Set this to True to always get copies of data when indexing is
