@@ -1,5 +1,5 @@
 import imp
-from . import profile, fourier_decomp, cosmology, halo, luminosity
+from . import profile, fourier_decomp, cosmology, halo, luminosity, hmf
 from . import ionfrac, pkdgrav_cosmo
 from .decomp import decomp
 
@@ -10,5 +10,6 @@ imp.reload(pkdgrav_cosmo)
 imp.reload(halo)
 imp.reload(luminosity)
 imp.reload(ionfrac)
+imp.reload(hmf)
 
 import numpy as np

@@ -176,7 +176,7 @@ def sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
 #######################################################################
 
 def halo_mass_function(context,
-                       log_M_min=8.0, log_M_max=12.0, delta_log_M=0.1,
+                       log_M_min=8.0, log_M_max=15.0, delta_log_M=0.1,
                        kern = "ST",
                        pspec = PowerSpectrumCAMB,
                        delta_crit = 1.686,
@@ -211,7 +211,7 @@ def halo_mass_function(context,
 
     if isinstance(kern, str) :
         kern = {'PS': press_schechter,
-                'ST': sheth_tormen}
+                'ST': sheth_tormen}[kern]
     
     rho_bar = cosmology.rho_M(context, unit="Msol Mpc^-3 h^2")
 
