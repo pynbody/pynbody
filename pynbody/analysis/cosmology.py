@@ -13,11 +13,11 @@ def hzoverh0(a, omegam0):
     """ returns: H(a) / H0  = [omegam/a**3 + (1-omegam)]**0.5 """
     return numpy.sqrt(omegam0*numpy.power(a,-3) + (1.-omegam0))
 
-def lingrowthintegral(a,omegam0):   
+def _lingrowthintegral(a,omegam0):   
     """ (e.g. eq. 8 in lukic et al. 2008)   returns: da / [a*H(a)/H0]**3 """
     return numpy.power((a * hzoverh0(a,omegam0)),-3)
 
-def lingrowthfac(red,omegam0,omegal0):
+def _lingrowthfac(red,omegam0,omegal0):
     """
     returns: linear growth factor, b(a) normalized to 1 at z=0, good for flat lambda only
     a = 1/1+z
@@ -36,25 +36,25 @@ def lingrowthfac(red,omegam0,omegal0):
     a = 1/(1.+red)
     
     ## 1st calc. for z=z
-    lingrowth = scipy.integrate.quad(lingrowthintegral,0.,a, (omegam0))[0]
+    lingrowth = scipy.integrate.quad(_lingrowthintegral,0.,a, (omegam0))[0]
     lingrowth *= 5./2. * omegam0 * hzoverh0(a,omegam0)
 
     ## then calc. for z=0 (for normalization)
     a0 = 1.
-    lingrowtha0 =  scipy.integrate.quad(lingrowthintegral,0.,a0, (omegam0))[0]
+    lingrowtha0 =  scipy.integrate.quad(_lingrowthintegral,0.,a0, (omegam0))[0]
     lingrowtha0 *= 5./2. * omegam0  * hzoverh0(a0,omegam0)
 
     lingrowthfactor = lingrowth / lingrowtha0
     return lingrowthfactor
 
 
-def getlingrowthfactor(f,z=None):  ##  this is just a wrapper for pynbody.
+def linear_growth_factor(f,z=None):  ##  this is just a wrapper for pynbody.
     ## returns: linear growth factor, b(a) normalized to 1 at z=0, good for flat lambda only
     if z is None :
-        red = f.properties['z']
+        z = f.properties['z']
     omegam0 = f.properties['omegaM0']
     omegal0 = f.properties['omegaL0']
-    return lingrowthfac(red,omegam0,omegal0)
+    return _lingrowthfac(z,omegam0,omegal0)
 
 
 def age(f, z=None, unit='Gyr') :
@@ -124,3 +124,14 @@ def rho_crit(f, z=None, unit=None) :
     rho_crit = (3*H_z**2)/(8*math.pi*units.G)
 
     return rho_crit.ratio(unit, **f.conversion_context())
+
+def rho_M(f, z=None, unit=None) :
+    """Calculate the matter density of the universe in snapshot f.
+
+    unit and z are used if not None, as by rho_crit. See also the note in
+    rho_crit about confusion over comoving units in this case."""
+
+    if z is None :
+        z = f.properties['z']
+        
+    return f.properties['omegaM0']*rho_crit(f,0,unit)*(1.0+z)**3
