@@ -249,14 +249,19 @@ class SimArray(np.ndarray) :
 
     @property
     def sim(self) :
+        if hasattr(self.base, 'sim') :
+            return self.base.sim
         return self._sim()
 
     @sim.setter
     def sim(self, s) :
-        if s is not None :
-            self._sim = weakref.ref(s)
+        if hasattr(self.base, 'sim') :
+            self.base.sim = s
         else :
-            self._sim = lambda : None
+            if s is not None :
+                self._sim = weakref.ref(s)
+            else :
+                self._sim = lambda : None
 
     def __mul__(self, rhs) :
         if isinstance(rhs, _units.UnitBase) :
