@@ -66,13 +66,15 @@ class PowerSpectrumCAMB(object) :
 
         k, Pk = np.loadtxt(filename,unpack=True)
 
+        self._orig_k_min = k.min()
+        self._orig_k_max = k.max()
         
         bot_k = 1.e-5
         
         if k[0]>bot_k :
             # extrapolate out
             n = math.log10(Pk[1]/Pk[0])/math.log10(k[1]/k[0])
-            warnings.warn("Power spectrum does not extend to low enough k; extrapolating as power law assuming ns=%.2f"%n, RuntimeWarning)
+            
             
             Pkinterp = 10**(math.log10(Pk[0])-math.log10(k[0]/bot_k)*n)
             k = np.hstack((bot_k,k))
@@ -85,7 +87,6 @@ class PowerSpectrumCAMB(object) :
         if k[-1]<top_k :
             # extrapolate out
             n = math.log10(Pk[-1]/Pk[-2])/math.log10(k[-1]/k[-2])
-            warnings.warn("Power spectrum does not extend to high enough k; extrapolating as power law assuming ns=%.2f"%n, RuntimeWarning)
             
             Pkinterp = 10**(math.log10(Pk[-1])-math.log10(k[-1]/top_k)*n)
             k = np.hstack((k,top_k))
@@ -128,6 +129,10 @@ class PowerSpectrumCAMB(object) :
         return current_sigma8
     
     def __call__(self, k) :
+        if k<self._orig_k_min :
+            warnings.warn("Power spectrum does not extend to low enough k; using power-law extrapolation (this is likely to be fine)", RuntimeWarning)
+        if k>self._orig_k_max :
+            warnings.warn("Power spectrum does not extend to high enough k; using power-law extrapolation. This is bad but your results are unlikely to be sensitive to it unless they relate directly to very small scales or you have run CAMB with inappropriate settings.", RuntimeWarning)
         return self._norm*self._lingrowth*np.exp(self._interp(np.log(k)))
 
     
