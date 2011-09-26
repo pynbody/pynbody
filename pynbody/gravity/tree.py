@@ -1,6 +1,11 @@
 """Gravity Tree. Builds tree based on pkdgrav2"""
 
-from .. import grav
+try :
+    from .. import grav
+except ImportError :
+    import warnings
+    warnings.warn("Unable to import PKDGrav gravity solver",RuntimeWarning)
+    
 from .. import config
 import numpy as np
 
