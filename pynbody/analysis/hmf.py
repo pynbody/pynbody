@@ -177,7 +177,7 @@ def sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
     return A*(1+1./nu_bar**(q))*press_schechter(nu_bar)
 
 #######################################################################
-# The most usefu function: halo_mass_function
+# The most useful function: halo_mass_function
 #######################################################################
 
 def halo_mass_function(context,
