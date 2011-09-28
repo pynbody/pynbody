@@ -22,7 +22,7 @@ def test_construct() :
 def test_loadable() :
     """Check we have found all the blocks that should be in the snapshot"""
     blocks=snap.loadable_keys()
-    expected=['nhp','hsml','nhe','u','sfr','pos','vel','id','mass','nh','rho','nheq','nhep']
+    expected=['nhp','smooth','nhe','u','sfr','pos','vel','id','mass','nh','rho','nheq','nhep']
     assert (blocks == expected)
     #Check that they have the right families
     assert(snap.loadable_family_keys(pynbody.family.gas) == expected)
