@@ -71,7 +71,9 @@ class TipsySnap(snapshot.SimSnap) :
 	file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
 			  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
 			  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
-	
+	#Hacky.
+        self.put_1d_slices()
+        self.put_1d_vel_slices()
 	self._decorate()
 
         if  (not self._paramfile.has_key('achOutName')) :

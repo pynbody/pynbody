@@ -796,8 +796,15 @@ class GadgetSnap(snapshot.SimSnap):
         else :
             self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
 
+        #Hacky.
+        if name == "pos" :
+            self.put_1d_slices()
+
+        if name == "vel" :
+            self.put_1d_vel_slices()
+
         #Decorate again, so that lazy-loading an array can also create dependent decoration arrays
-        self._decorate()
+       # self._decorate()
 
     def __load_array(self, g_name, p_type) :
         """Internal helper function for _load_array that takes a g_name and a gadget type, 

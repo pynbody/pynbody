@@ -881,32 +881,29 @@ class SimSnap(object) :
 
         return new
 
-
-
-
-@SimSnap.decorator
-def put_1d_slices(sim) :
-    if not hasattr(sim, '_arrays') :
-        return
-    try :
-        for i, a in enumerate(["x","y","z"]) :
-            sim._arrays[a] = sim._arrays["pos"][:,i]
-            sim._arrays[a]._name = a
-
-    except KeyError :
-        pass
-
-@SimSnap.decorator
-def put_1d_vel_slices(sim) :
-    if not hasattr(sim, '_arrays') :
-        return
-    try :
-        for i, a in enumerate(["x","y","z"]) :
-            sim._arrays["v"+a] = sim._arrays["vel"][:,i]
-            sim._arrays["v"+a]._name = "v"+a
-
-    except KeyError :
-        pass
+    # These next two are not decorators so that 
+    # they can be called as functions from lazy-loading code.
+    def put_1d_slices(self) :
+        if not hasattr(self, '_arrays') :
+            return
+        try :
+            for i, a in enumerate(["x","y","z"]) :
+                self._arrays[a] = self._arrays["pos"][:,i]
+                self._arrays[a]._name = a
+    
+        except KeyError :
+            pass
+    
+    def put_1d_vel_slices(self) :
+        if not hasattr(self, '_arrays') :
+            return
+        try :
+            for i, a in enumerate(["x","y","z"]) :
+                self._arrays["v"+a] = self._arrays["vel"][:,i]
+                self._arrays["v"+a]._name = "v"+a
+    
+        except KeyError :
+            pass
 
 
 """
