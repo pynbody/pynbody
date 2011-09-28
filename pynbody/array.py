@@ -449,13 +449,16 @@ class SimArray(np.ndarray) :
         else :
             raise RuntimeError, "No link to SimSnap"
         
-    def in_units(self, new_unit) :
+    def in_units(self, new_unit, **context_overrides) :
         """Return a copy of this array expressed relative to an alternative
         unit."""
 
+        context = self.conversion_context()
+        context.update(context_overrides)
+        
         if self.units is not None :
             r = self * self.units.ratio(new_unit,
-                                          **(self.conversion_context()))
+                                        **context)
             r.units = new_unit
             return r
         else :
@@ -694,8 +697,8 @@ class IndexedSimArray(object) :
     def set_units_like(self, new_unit) :
         self.base.set_units_like(new_unit)
 
-    def in_units(self, new_unit) :
-        return IndexedSimArray(self.base.in_units(new_unit), self._ptr)
+    def in_units(self, new_unit, **context_overrides) :
+        return IndexedSimArray(self.base.in_units(new_unit, **context_overrides), self._ptr)
 
     def convert_units(self, new_unit) :
         self.base.convert_units(new_unit)
