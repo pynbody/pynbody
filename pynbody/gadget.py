@@ -927,6 +927,9 @@ class GadgetSnap(snapshot.SimSnap):
                 p_types[gfam]=self[fam].has_key(array_name)
                 if p_types[gfam] :
                     ashape = np.shape(self[fam][array_name])
+                    #If the partlen is 1, append so the shape array has the right shape.
+                    if np.size(ashape) < 2 :
+                        ashape = (ashape[0],1)
                     npart+=ashape[0]
             if p_types.sum() :
                 per_file = npart/nfiles
