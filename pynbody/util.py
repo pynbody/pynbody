@@ -449,3 +449,68 @@ class LazyKeyError(KeyError) :
             ss+="\nThe dependency chain is: "+(" -> ".join(self.bases))
             
         return ss
+
+
+
+#################################################################
+# Code for incomplete gamma function accepting complex arguments
+#################################################################
+    
+def _gser(a, x, eps=3.e-7, itmax=700):
+    """Series representation of the incomplete gamma
+    function, based on numerical recipes 3rd ed"""
+    if x==0.0 :
+        return 0.0
+    ap = a
+    sum = 1. / a
+    delta = sum
+    n = 1
+    while n<=itmax:
+        ap = ap + 1.
+        delta = delta * x / ap
+        sum = sum + delta
+        if (abs(delta) < abs(sum)*eps):
+            return (sum * np.exp(-x + a*np.log(x) ))
+        n = n + 1
+    raise RuntimeError("Maximum iterations exceeded in gser")
+
+
+def _gcf(a, x, eps=3.e-7, itmax=200):
+        """Continued fraction representation of the incomplete gamma
+        function, based on numerical recipes 3rd ed"""
+
+        gold = 0.
+        a0 = 1.
+        a1 = x
+        b0 = 0.
+        b1 = 1.
+        fac = 1.
+        n = 1
+        while n<=itmax:
+            an = n
+            ana = an - a
+            a0 = (a1 + a0*ana)*fac
+            b0 = (b1 + b0*ana)*fac
+            anf = an*fac
+            a1 = x*a0 + anf*a1
+            b1 = x*b0 + anf*b1
+            if (a1 != 0.):
+                fac = 1. / a1
+                g = b1*fac
+                if (abs((g-gold)/g) < eps):
+                    return (g*np.exp(-x+a*np.log(x)))
+                gold = g
+                n = n + 1
+        raise RuntimeError("Maximum iterations exceeded in gcf")
+
+
+def gamma_inc(a, z,eps=3.e-7):
+    """Incomplete gamma function accepting complex z, based on algorithm
+    given in numerical recipes (3rd ed)"""
+    import scipy, scipy.special
+    
+    if (abs(z)<a+1.):
+        return _gser(a,z,eps)
+    else:
+        return scipy.special.gamma(a)-_gcf(a,z,eps)
+        
