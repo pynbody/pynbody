@@ -541,6 +541,62 @@ def Unit(s) :
 
     return CompositeUnit(scale, units, powers)
 
+
+def takes_arg_in_units(*args, **orig_kwargs) :
+    """Returns a decorator to create a function which auto-converts input
+    to given units.
+
+    Usage:
+        @takes_arg_in_units((2, "Msol"), (1, "kpc"), ("blob", "erg"))
+        def my_function(arg0, arg1, arg2, blob=22) :
+           print "Arg 2 is",arg2,"Msol"
+           print "Arg 1 is",arg1,"kpc"
+           print "blob is",blob,"ergs"
+
+        My_function(22, "1.e30 kg", 23, blob="12 J")
+
+        This should print:
+           Input 3 is 0.5 Msol
+           Input 2 is 23 kpc
+    """
+
+    context_arg = orig_kwargs.get('context_arg',None)
+    
+    kwargs = filter(lambda x: hasattr(x[0],'__len__'), args)
+    args = filter(lambda x: not hasattr(x[0], '__len__'), args)
+    
+    def decorator_fn(x) :
+        def wrapper_fn(*fn_args, **fn_kwargs) :
+            context = {}
+            if context_arg is not None :
+                context = fn_args[context_arg].conversion_context()
+                
+            fn_args = list(fn_args)
+
+            for arg_num, arg_units in args :
+
+                if isinstance(fn_args[arg_num],str) :
+                    fn_args[arg_num] = Unit(fn_args[arg_num])
+
+                if hasattr(fn_args[arg_num], "in_units") :
+                    fn_args[arg_num] = fn_args[arg_num].in_units(arg_units,**context)
+
+            for arg_name, arg_units in kwargs :
+                if isinstance(fn_kwargs[arg_name],str) :
+                    fn_kwargs[arg_name] = Unit(fn_kwargs[arg_name])
+
+                if hasattr(fn_kwargs[arg_name], "in_units") :
+                    fn_kwargs[arg_name] = fn_kwargs[arg_name].in_units(arg_units, **context)
+
+            return x(*fn_args, **fn_kwargs)
+
+        wrapper_fn.__name__ = x.__name__
+        wrapper_fn.__doc__ = x.__doc__
+        return wrapper_fn
+
+    return decorator_fn
+
+        
 m = IrreducibleUnit("m")
 s = IrreducibleUnit("s")
 kg = IrreducibleUnit("kg")
