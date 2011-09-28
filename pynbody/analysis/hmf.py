@@ -1,10 +1,13 @@
 import numpy as np
 from . import cosmology
+from .. import units
+from .. import util
 import pynbody
 import os
 import scipy, scipy.interpolate
 import math
 import warnings
+import cmath
 
 #######################################################################
 # Filters
@@ -129,9 +132,9 @@ class PowerSpectrumCAMB(object) :
         return current_sigma8
     
     def __call__(self, k) :
-        if k<self._orig_k_min :
+        if np.any(k<self._orig_k_min) :
             warnings.warn("Power spectrum does not extend to low enough k; using power-law extrapolation (this is likely to be fine)", RuntimeWarning)
-        if k>self._orig_k_max :
+        if np.any(k>self._orig_k_max) :
             warnings.warn("Power spectrum does not extend to high enough k; using power-law extrapolation. This is bad but your results are unlikely to be sensitive to it unless they relate directly to very small scales or you have run CAMB with inappropriate settings.", RuntimeWarning)
         return self._norm*self._lingrowth*np.exp(self._interp(np.log(k)))
 
@@ -159,7 +162,82 @@ def variance(M, f_filter=TophatFilter, powspec=PowerSpectrumCAMB, arg_is_R=False
     
     return v
 
-  
+
+
+
+
+        
+def correlation(r, powspec=PowerSpectrumCAMB) :
+    
+    if hasattr(r,'__len__') :
+        ax = pynbody.array.SimArray([correlation(ri,  powspec) for ri in r])
+        ax.units = powspec.Pk.units*powspec.k.units**3
+        return ax
+    
+    # Because sin kr becomes so highly oscilliatory, normal
+    # quadrature is slow/inaccurate for this problem. The following
+    # is the best way I could come up with to overcome that.
+    #
+    # Each segment of the power spectrum is represented by a power law,
+    # over which the integral boils down to a normal incomplete gamma
+    # function extended into the complex plane.
+    #
+    # Originally, we had:
+    #
+    # integrand = lambda k: k**2 * powspec(k) * (np.sin(k*r)/(k*r))
+    # integrand_ln_k = lambda k: np.exp(k)*integrand(np.exp(k))
+    #
+    
+    tot=0
+    defer = False
+
+    k = powspec.k
+    
+    for k_bot, k_top in zip(k[:-1],k[1:]) :
+        if defer :
+            k_bot = k_bot_defer
+            
+        # express segment as P(k) = P0*k^n 
+        Pk_top = powspec(k_top)
+        Pk_bot = powspec(k_bot)
+
+        n = np.log(Pk_top/Pk_bot)/np.log(k_top/k_bot)
+        P0 = Pk_top/k_top**n
+
+        
+        # now integral of this segment is exactly
+        # P0 * int_(k_bot)^(k_top) k^(2+n) sin(kr)/(kr) = (P0/r^(n+3)) Im[ (i)^(-n-2) Gamma(n+2,i k_bot r, i k_top r)]
+        # First we need to evaluate the Gamma integral sufficiently accurately
+
+    
+        top_val = util.gamma_inc(n+2,(1.0j) * r * k_top)
+        bot_val = util.gamma_inc(n+2, (1.0j)*r*k_bot)
+        segment = -((1.0j)**(-n-2) *P0* (top_val-bot_val) / r**(n+3)).imag
+
+        # accuracy monitoring
+        f_acc = (np.abs(top_val-bot_val)/np.abs(top_val))
+        # N.B. for large r, we can see from this that we're subtracting two big numbers
+        # to get something very small, and the accuracy of the gamma procedure
+        # becomes bad. We need to do something about this
+
+        tot+=segment
+        
+        #if abs(segment)/tot>1.e-6 :
+        #    print k_bot, n, segment, "|",abs(segment)/tot, f_acc, tot
+        
+        
+        
+    tot/= (2*math.pi**2)
+
+    return tot
+
+def correlation_func(pspec, log_r_min=-3, log_r_max=2, delta_log_r=0.2) :
+    r = 10.0**np.arange(log_r_min,log_r_max+delta_log_r/2,delta_log_r)
+
+    Xi_r = np.array([correlation(ri,pspec) for ri in r])
+
+    return r, Xi_r
+    
 #######################################################################
 # Default kernels for halo mass function
 #######################################################################
@@ -177,7 +255,15 @@ def sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
     return A*(1+1./nu_bar**(q))*press_schechter(nu_bar)
 
 #######################################################################
-# The most usefu function: halo_mass_function
+# Bias functions
+#######################################################################
+
+def cole_kaiser(nu, delta_c) :
+    """The Cole-Kaiser (1989) bias function"""
+    return 1+(nu**2-1)/delta_c
+
+#######################################################################
+# The most useful function: halo_mass_function
 #######################################################################
 
 def halo_mass_function(context,
@@ -251,3 +337,31 @@ def halo_mass_function(context,
     sig = (sig[1:]+sig[:-1])/2
 
     return M_mid, sig, out
+
+@units.takes_arg_in_units((1, "Msol h^-1"), context_arg=0)
+def halo_bias(context, M, kern=cole_kaiser, pspec = PowerSpectrumCAMB,
+              delta_crit = 1.686) :
+    """Return the halo bias for the given halo mass.
+
+    Args:
+       context (SimSnap): The snapshot from which to pull the cosmological context
+       M: float, unit or string describing the halo mass. If a float, units are Msol h^-1.
+
+    Kwargs:
+       kern: The kernel function describing the halo bias (default Cole-Kaiser).
+       pspec: A power spectrum object (which also defines the window function);
+              default is a WMAP7 cosmology calculated by CAMB, and a top hat window
+       delta_crit: The critical overdensity for collapse
+
+    Returns:
+       The halo bias (single float)
+
+    """
+
+    if isinstance(pspec, type) :
+        pspec = pspec(context)
+
+    sig = variance(M, pspec._default_filter, pspec)
+    nu = delta_crit / np.sqrt(sig)
+
+    return kern(nu, delta_crit)
