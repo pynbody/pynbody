@@ -709,7 +709,8 @@ class GadgetSnap(snapshot.SimSnap):
         out_list={}
         for k,b in b_list.iteritems() :
             b_name = _translate_array_name(k,reverse=True)
-            b_types = [ f for f in self.families() if b[gadget_type(f)].all() ]
+            #Make this be only if there are actually particles of that type in the snap
+            b_types = [ f for f in self.families() if b[gadget_type(f) and np.where(self.header.npart != 0)].all() ]
             out_list[b_name] = b_types
         return out_list
 
