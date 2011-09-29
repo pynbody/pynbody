@@ -1254,6 +1254,10 @@ def _new(n_particles=0, **families) :
     x._create_arrays(["pos","vel"],3)
     x._create_arrays(["mass"],1)
     
+    #Hacky.
+    x.put_1d_slices()
+    x.put_1d_vel_slices()
+
     rt = 0
     for k,v in t_fam :
         x._family_slice[k] = slice(rt,rt+v)
