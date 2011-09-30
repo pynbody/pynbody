@@ -112,7 +112,8 @@ class GadgetHDFSnap(snapshot.SimSnap) :
     def loadable_keys(self) :
         return self._loadable_keys
 
-    def write(self, filename=None) :
+    @staticmethod
+    def _write(self, filename=None) :
         raise RuntimeError, "Not implemented"
         
     def _write_array(self, array_name, filename=None) :
