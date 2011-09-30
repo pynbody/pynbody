@@ -746,7 +746,7 @@ def load_paramfile(sim) :
             for line in f :
 		try :
                     if line[0]!="#" :
-                        s = line.split()
+                        s = line.split("#")[0].split()
                         sim._paramfile[s[0]] = " ".join(s[2:])
                                 
 		except IndexError, ValueError :
