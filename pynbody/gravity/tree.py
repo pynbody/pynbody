@@ -4,7 +4,7 @@ try :
     from .. import grav
 except ImportError :
     import warnings
-    warnings.warn("Unable to import PKDGrav gravity solver",RuntimeWarning)
+    warnings.warn("Unable to import PKDGrav gravity solver. Most likely this means either that your installation is broken, or that you are running python inside the pynbody distribution directory, in which case python cannot see the installed version. However, it also doesn't matter unless you want to use the tree gravity solver.",RuntimeWarning)
     
 from .. import config
 import numpy as np
