@@ -302,8 +302,8 @@ class SimArray(np.ndarray) :
         return self
 
     def conversion_context(self) :
-        if self._sim() is not None :
-            return self._sim().conversion_context()
+        if self.sim is not None :
+            return self.sim.conversion_context()
         else :
             return {}
 
