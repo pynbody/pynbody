@@ -85,6 +85,7 @@ You can even define completely new dimensions.
 
 """
 
+import re, keyword
 import numpy as np
 from . import backcompat
 from .backcompat import fractions
@@ -168,7 +169,20 @@ class UnitBase(object) :
 
     def ratio(self, other, **substitutions) :
         """Get the conversion ratio between this Unit and another
-        specified unit"""
+        specified unit.
+
+        Keyword arguments, if specified, give numerical substitutions
+        for the named unit. This is most useful for specifying values
+        for cosmological quantities like 'a' and 'h', but can also
+        be used for any IrreducibleUnit.
+
+        >>> Unit("1 Mpc a").ratio("kpc", a=0.25)
+        250.0
+        >>> Unit("1 Mpc").ratio("Msol")
+        UnitsException: not convertible
+        >>> Unit("1 Mpc").ratio("Msol", kg=25.0, m=50.0)
+        3.1028701506345152e-08
+        """
 
         if isinstance(other, str) :
             other = Unit(other)
@@ -266,6 +280,9 @@ class IrreducibleUnit(UnitBase) :
 class NamedUnit(UnitBase) :
     def __init__(self, st, represents) :
         self._st_rep = st
+        if isinstance(represents, str) :
+            represents = Unit(represents)
+            
         self._represents = represents
         self._register_unit(st)
 
@@ -283,6 +300,11 @@ class NamedUnit(UnitBase) :
 
 class CompositeUnit(UnitBase) :
     def __init__(self, scale, bases, powers) :
+        """Initialize a composite unit.
+
+        Direct use of this function is not recommended. Instead use the
+        factory function Unit(...)."""
+        
         if scale==1. :
             scale = 1
 
@@ -291,7 +313,13 @@ class CompositeUnit(UnitBase) :
         self._powers = powers
 
     def latex(self) :
+        """Returns a LaTeX representation of this unit.
 
+        Prefactors are converted into exponent notation. Named units by default
+        are represented by the string '\mathrm{unit_name}', although this can
+        be overriden in the pynbody configuration files or by setting
+        unit_name._latex."""
+        
         if self._scale!=1 :
             x = ("%.2e"%self._scale).split('e')
             s = x[0]
@@ -408,17 +436,29 @@ class CompositeUnit(UnitBase) :
         return self
 
     def irrep(self) :
+        """Return a new unit which represents this unit expressed
+        solely in terms of IrreducibleUnit bases."""
         x = self.copy()
         x._expand(True)
         x._gather()
         return x
 
     def is_dimensionless(self) :
+        """Returns true if this unit actually translates into a scalar
+        quantity."""
         x = self.irrep()
         if len(x._powers)==0 :
             return True
 
     def dimensionless_constant(self, **substitutions) :
+        """If this unit is dimensionless, return its scalar quantity.
+
+        Direct use of this function is not recommended. It is generally
+        better to use the ratio function instead.
+        
+        Provide keyword arguments to set values for named IrreducibleUnits --
+        see the ratio function for more information."""
+        
         x = self.irrep()
         c = x._scale
         for xb, xp in zip(x._bases, x._powers) :
@@ -437,7 +477,27 @@ class CompositeUnit(UnitBase) :
 
     def dimensional_project(self, basis_units) :
         """Work out how to express the dimensions of this unit relative to the
-        specified list of basis units."""
+        specified list of basis units.
+
+        This is used by the framework when making inferences about sensible units to
+        use in various situations.
+        
+        For example, you can represent a length as an energy divided by a force:
+
+           >>> Unit("23 kpc").dimensional_project(["J", "N"])
+           array([1, -1], dtype=object)
+
+        However it's not possible to represent a length by energy alone:
+
+           >>> Unit("23 kpc").dimensional_project(["J"])
+           UnitsException: Basis units do not span dimensions of specified unit
+
+        This function also doesn't know what to do if the result is ambiguous:
+
+           >>> Unit("23 kpc").dimensional_project(["J", "N", "kpc"])
+           UnitsException: Basis units are not linearly independent
+        
+        """
 
         vec_irrep = [Unit(x).irrep() for x in basis_units]
         me_irrep = self.irrep()
@@ -596,68 +656,30 @@ def takes_arg_in_units(*args, **orig_kwargs) :
 
     return decorator_fn
 
-        
-m = IrreducibleUnit("m")
-s = IrreducibleUnit("s")
-kg = IrreducibleUnit("kg")
-K = IrreducibleUnit("K")
-
-# Cosmological quantities that can be substituted later
-a = IrreducibleUnit("a")
-h = IrreducibleUnit("h")
-
-
-# Times
-yr = NamedUnit("yr", 3.1556926e7*s)
-kyr = NamedUnit("kyr", 1000*yr)
-Myr = NamedUnit("Myr", 1000*kyr)
-Gyr = NamedUnit("Gyr", 1000*Myr)
-
-# Distances
-cm = NamedUnit("cm", 0.01*m)
-km =  NamedUnit("km", 1000*m)
-au =  NamedUnit("au", 1.49598e11*m)
-pc =  NamedUnit("pc", 3.08568025e16*m)
-kpc = NamedUnit("kpc", 1000*pc)
-Mpc = NamedUnit("Mpc", 1000*kpc)
-Gpc = NamedUnit("Gpc", 1000*Mpc)
-
-
-# Masses
-Msol = NamedUnit("Msol", 1.98892e30*kg)
-Msol._latex = "M_{\\odot}"
-g = NamedUnit("g", 1.e-3*kg)
-m_p = NamedUnit("m_p", 1.67262158e-27*kg)
-m_p._latex = "m_p"
-m_e = NamedUnit("m_e", 9.10938188e-31*kg)
-m_e._latex = "m_e"
-
-# Forces
-N = NamedUnit("N", kg * m * s**-2)
-
-# Energies
-J = NamedUnit("J", N *m)
-erg = NamedUnit("erg", 1.e-7 * J)
-eV = NamedUnit("eV", 1.60217646e-19 * J)
-keV = NamedUnit("keV", 1.e3*eV)
-MeV = NamedUnit("MeV", 1.e3*keV)
-
-# Pressures
-Pa = NamedUnit("Pa", J/m**3)
-dyn = NamedUnit("dyn", erg/cm**3)
-
-# Redshift
-one_plus_z = NamedUnit("(1+z)", 1/a)
-
-# Helpful physical quantities
-
-k = 1.3806503e-23 * J / K
-c = 299792458 * m/s
-G = 6.67300e-11 * m**3 * kg**-1 * s**-2
 
 from . import  config_parser
 
+def __is_clean_name(s) :
+    if re.search('[^0-9a-zA-Z_]',s) : return False
+    if re.search('^[^a-zA-Z_]+',s) : return False
+    if keyword.iskeyword(s) : return False
+    return True
 
+for new_unit_name in map(str.strip,config_parser.get('irreducible-units', 'names').split(",")) :
+    new_unit = IrreducibleUnit(new_unit_name)
+    if __is_clean_name(new_unit_name) :
+        globals()[new_unit_name] = new_unit
+
+for new_unit_name, new_unit_definition in config_parser.items("named-units") :
+    new_unit = NamedUnit(new_unit_name, new_unit_definition)
+    if __is_clean_name(new_unit_name) :
+        globals()[new_unit_name] = new_unit
+
+for unit_name, latex in config_parser.items("units-latex") :
+    _registry[unit_name]._latex = latex
+    
+
+    
 _default_units = {}
 
 for a_,b_ in config_parser.items("default-array-dimensions") :
