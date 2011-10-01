@@ -42,3 +42,12 @@ if sys.version_info[:2] <= (2, 5) :
 else :
     property = __builtin__.property
     import fractions
+
+
+if sys.version_info[:2] <= (2,6) :
+    import bc_modules.ordered_dict
+    from bc_modules.ordered_dict import OrderedDict
+else :
+    import collections
+    from collections import OrderedDict
+    

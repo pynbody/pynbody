@@ -112,6 +112,8 @@ util
     
 """
 
+from . import backcompat
+
 # Import basic dependencies
 import ConfigParser
 import os
@@ -119,7 +121,10 @@ import imp
 import numpy
 
 # Create config dictionaries which will be required by subpackages
-config_parser = ConfigParser.ConfigParser()
+# We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
+# the backcompat module. This keeps things in the order they were parsed (important
+# for units module, for instance).
+config_parser = ConfigParser.ConfigParser(dict_type = backcompat.OrderedDict)
 config = {}
 
 
