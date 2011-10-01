@@ -332,7 +332,8 @@ def halo_mass_function(context,
 
     M_mid = (10**M_mid).view(pynbody.array.SimArray)
     M_mid.units = "Msol h^-1"
-
+    M_mid.sim = context
+    
     # interpolate sigma for output checking purposes
     sig = (sig[1:]+sig[:-1])/2
 
