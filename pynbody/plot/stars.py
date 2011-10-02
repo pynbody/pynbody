@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
+import warnings
 
 def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         subplot=False, trange=False, nbins=100, **kwargs):
@@ -49,6 +50,7 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         try:
             weight = sim.star[trangefilt]['massform'].in_units('Msol') * binnorm
         except (KeyError, units.UnitsException) :
+            warnings.warn("Could not load massform array -- falling back to current stellar masses", RuntimeWarning)
             weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
     else:
         weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
