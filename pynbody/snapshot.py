@@ -592,6 +592,16 @@ class SimSnap(object) :
         new_array.set_default_units(quiet=True)
         self._arrays[array_name] = new_array
 
+        if ndim is 3 :
+            array_name_prefix = array_name+"_"
+            if array_name=="pos" : array_name_prefix=""
+            if array_name=="vel" : array_name_prefix="v"
+
+            for i,a in enumerate(["x", "y", "z"]) :
+                self._arrays[array_name_prefix+a] = new_array[:,i]
+                self._arrays[array_name_prefix+a]._name = array_name_prefix+a
+            
+
     def _get_array(self, name, index=None) :
         x = self._arrays[name]
         if x.derived :
@@ -881,29 +891,6 @@ class SimSnap(object) :
 
         return new
 
-    # These next two are not decorators so that 
-    # they can be called as functions from lazy-loading code.
-    def put_1d_slices(self) :
-        if not hasattr(self, '_arrays') :
-            return
-        try :
-            for i, a in enumerate(["x","y","z"]) :
-                self._arrays[a] = self._arrays["pos"][:,i]
-                self._arrays[a]._name = a
-    
-        except KeyError :
-            pass
-    
-    def put_1d_vel_slices(self) :
-        if not hasattr(self, '_arrays') :
-            return
-        try :
-            for i, a in enumerate(["x","y","z"]) :
-                self._arrays["v"+a] = self._arrays["vel"][:,i]
-                self._arrays["v"+a]._name = "v"+a
-    
-        except KeyError :
-            pass
 
 
 """
@@ -1253,10 +1240,6 @@ def _new(n_particles=0, **families) :
 
     x._create_arrays(["pos","vel"],3)
     x._create_arrays(["mass"],1)
-    
-    #Hacky.
-    x.put_1d_slices()
-    x.put_1d_vel_slices()
 
     rt = 0
     for k,v in t_fam :
