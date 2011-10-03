@@ -1,3 +1,13 @@
+"""
+
+util
+====
+
+Various utility routines used internally by pynbody.
+
+"""
+
+
 import numpy as np
 from .backcompat import fractions
 import copy

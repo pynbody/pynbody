@@ -1,3 +1,15 @@
+"""
+
+gadget
+======
+
+Implements classes and functions for handling gadget files; you rarely
+need to access this module directly as it will be invoked
+automatically via pynbody.load.
+
+"""
+
+
 from . import snapshot,array, units
 from . import family
 from . import config

@@ -1,16 +1,57 @@
-"""
 
-sph
-===
 
-pynbody SPH rendering module.
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.sph &mdash; pynbody v0.13-alpha documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.13-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="pynbody v0.13-alpha documentation" href="../../index.html" />
+    <link rel="up" title="pynbody" href="../pynbody.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" accesskey="U">pynbody</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pynbody.sph</h1><pre>
 
 This module encompasses Kernel objects, which return C fragments from which
 a final C code to perform the rendering is derived.
 
-For most users, the function of interest will be render_image.
-
-"""
+For most users, the function of interest will be render_image."""
 
 import numpy as np
 import scipy, scipy.weave
@@ -41,7 +82,7 @@ class Kernel(object) :
         if self.h_power==2 :
             code+="#define Z_CONDITION(dz,h) true\n"
         else :
-            code+="#define Z_CONDITION(dz,h) abs(dz)<MAX_D_OVER_H*(h)\n"
+            code+="#define Z_CONDITION(dz,h) abs(dz)&lt;MAX_D_OVER_H*(h)\n"
 
         if self.h_power==2 :
             code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy))"
@@ -51,7 +92,7 @@ class Kernel(object) :
 
         code+= """
         const float KERNEL_VALS[] = %s
-        #define KERNEL1(d,h) (d<2*h)?KERNEL_VALS[(int)(d/(0.01*h))]/(h%s):0
+        #define KERNEL1(d,h) (d&lt;2*h)?KERNEL_VALS[(int)(d/(0.01*h))]/(h%s):0
         #define KERNEL(dx,dy,dz,h) KERNEL1(DISTANCE(dx,dy,dz),h)
         #define MAX_D_OVER_H %d
         """%(samples_s,h_str,self.max_d)
@@ -60,9 +101,9 @@ class Kernel(object) :
     def get_value(self, d, h=1) :
         """Get the value of the kernel for a given smoothing length."""
         # Default : spline kernel
-        if d<1 :
+        if d&lt;1 :
             f = 1.-(3./2)*d**2 + (3./4.)*d**3
-        elif d<2 :
+        elif d&lt;2 :
             f = 0.25*(2.-d)**3
         else :
             f = 0
@@ -87,9 +128,9 @@ class TopHatKernel(object) :
         self.max_d = 2
 
     def get_c_code(self) :
-        code = """#define KERNEL1(d,h) (d<%d *h)?%.5e/(h*h*h):0
+        code = """#define KERNEL1(d,h) (d&lt;%d *h)?%.5e/(h*h*h):0
         #define KERNEL(dx,dy,dz,h) KERNEL1(sqrt((dx)*(dx)+(dy)*(dy)+(dz)*(dz)),h)
-        #define Z_CONDITION(dz,h) abs(dz)<(%d*h)
+        #define Z_CONDITION(dz,h) abs(dz)&lt;(%d*h)
         #define MAX_D_OVER_H %d"""%(self.max_d,3./(math.pi*4*self.max_d**self.h_power),self.max_d, self.max_d)
         return code
 
@@ -97,7 +138,7 @@ class TopHatKernel(object) :
 
 def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
                            kstep=0.5, out_units=None) :
-    """Render an SPH image on a spherical surface. Note this is written in pure python and
+<div class="viewcode-block" id="render_spherical_image"><a class="viewcode-back" href="../../index.html#pynbody.sph.render_spherical_image">[docs]</a>    """Render an SPH image on a spherical surface. Note this is written in pure python and
     could be optimized into C, but would then need linking with the healpix libraries.
     Also currently uses a top-hat 3D kernel only."""
 
@@ -124,14 +165,14 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     weights[:-1]-=weights[1:]
 
     if kernel.h_power==3 :
-        ind = np.where(np.abs(snap["r"]-distance)<snap["smooth"]*kernel.max_d)
+        ind = np.where(np.abs(snap["r"]-distance)&lt;snap["smooth"]*kernel.max_d)
         # angular radius subtended by the intersection of the boundary
         # of the SPH particle with the boundary surface of the calculation
         rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds_mean)**2 - (D[i]-distance)**2)/distance)
         # den_fn = lambda i : [((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]
         print "done"
     elif kernel.h_power==2 :
-        ind = np.where(snap["r"]<distance)
+        ind = np.where(snap["r"]&lt;distance)
         
         # angular radius taken at distance of particle
         rad_fn = lambda i : np.arctan(h[i]*ds_mean/D[i])
@@ -159,8 +200,8 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     return im
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
-                 y1=None, z_plane = 0.0, out_units=None, xy_units=None,
-                 kernel=Kernel(),
+                 y1=None, z_plane = 0.0, out_units=None, xy_units=None,</div>
+<div class="viewcode-block" id="render_image"><a class="viewcode-back" href="../../index.html#pynbody.sph.render_image">[docs]</a>                 kernel=Kernel(),
                  z_camera=None) :
 
     """Render an SPH image using a typical (mass/rho)-weighted 'scatter'
@@ -289,7 +330,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         # before inlining, the views on the arrays must be standard np.ndarray
         # otherwise the normal numpy macros are not generated
         x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
-        #qty[np.where(qty < 1e-15)] = 1e-15
+        #qty[np.where(qty &lt; 1e-15)] = 1e-15
 
         if config['verbose']: print "Rendering SPH image"
 
@@ -316,3 +357,47 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     result.sim = snap
     return result
 
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" >pynbody</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
+    </div>
+  </body>
+</html>

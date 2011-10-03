@@ -1,15 +1,59 @@
-"""
 
-bridge
-======
 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.bridge &mdash; pynbody v0.13-alpha documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.13-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="pynbody v0.13-alpha documentation" href="../../index.html" />
+    <link rel="up" title="pynbody" href="../pynbody.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" accesskey="U">pynbody</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pynbody.bridge</h1><pre>
 The bridge module has tools for connecting different outputs. For instance,
 it's possible to take a subview (e.g. a halo) from one snapshot and 'push'
 it into the other. This is especially useful if the two snapshots are
 different time outputs of the same simulation.
 
 Basic usage
------------
+===========
 
 f1 = pynbody.load(high_redshift_file)
 f2 = pynbody.load(low_redshift_file)
@@ -25,7 +69,7 @@ h1_at_high_z = b(h_low_z[1])
 
 
 Identifying halos between different outputs
--------------------------------------------
+===========================================
 
 You may wish to work out how a halo catalogue maps onto a halo
 catalogue for a different output. For this purpose a simple function,
@@ -39,7 +83,7 @@ major progenitor for f2.halos()[cat[i]].
 
 
 Which class to use
-------------------
+==================
 
 For files where the particle ordering is static, so that the particle with
 index i in the first snapshot also has index i in the second snapshot, use the Bridge
@@ -134,7 +178,7 @@ class Bridge(object) :
 
 class OrderBridge(Bridge) :
 
-    """An OrderBridge uses integer arrays in two simulations
+<div class="viewcode-block" id="OrderBridge"><a class="viewcode-back" href="../../index.html#pynbody.bridge.OrderBridge">[docs]</a>    """An OrderBridge uses integer arrays in two simulations
     (start,end) where particles i_start and i_end are
     defined to be the same if and only if
     start[order_array][i_start] == start[order_array][i_end].
@@ -179,16 +223,16 @@ class OrderBridge(Bridge) :
         output_index = np.zeros(len(iord_from)+1, dtype=int)
 
         code = """
-        long len = iord_from_array->dimensions[0];
-        long len_to = iord_to_array->dimensions[0];
+        long len = iord_from_array-&gt;dimensions[0];
+        long len_to = iord_to_array-&gt;dimensions[0];
 
         long i_to=0, j=1;
 
         // note j starts at 1 because output length stored in position zero
 
-        for(long i=0; i<len; i++) {
+        for(long i=0; i&lt;len; i++) {
           long i_from = IORD_FROM1(i);
-          while(i_from>IORD_TO1(i_to) && i_to<len_to) i_to++;
+          while(i_from&gt;IORD_TO1(i_to) &amp;&amp; i_to&lt;len_to) i_to++;
           if(i_from==IORD_TO1(i_to)) {
             output_index[j] = i_to;
             j++;
@@ -207,3 +251,47 @@ class OrderBridge(Bridge) :
         output_index = output_index[1:output_index[0]+1]
 
         return to_[output_index]
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" >pynbody</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
+    </div>
+  </body>
+</html>

@@ -1,4 +1,53 @@
-"""
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.array &mdash; pynbody v0.13-alpha documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.13-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="pynbody v0.13-alpha documentation" href="../../index.html" />
+    <link rel="up" title="pynbody" href="../pynbody.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" accesskey="U">pynbody</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pynbody.array</h1><pre>
+
 array
 =====
 
@@ -9,34 +58,34 @@ array.SimArray are not important. However, when units are specified
 (by setting the ``units`` attribute), the behaviour is slightly
 different. In particular,
 
-* it becomes impossible to add or subtract arrays with incompatible dimensions
+* it becomes impossible to add or subtract arrays with incompatible
+dimensions
 
- ``SimArray([1,2], "Mpc") + SimArray([1,2], "Msol")) # ->ValueError``
+   SimArray([1,2], "Mpc") + SimArray([1,2], "Msol")) # -&gt;ValueError
 
 * addition or subtraction causes auto-unit conversion. For example
 
- ``SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")``
+   SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")
 
- yields ``SimArray([1.001, 1.002], "Mpc")``
+yields ``SimArray([1.001, 1.002], "Mpc")``
 
 * Note that in this context the left value takes precedence in
-  specifying the return units, so that reversing the order of the
-  operation here would return results in kpc.
+specifying the return units, so that reversing the order of the
+operation here would return results in kpc.
 
 * If only one of the arrays specifies a Unit, no checking occurs and
-  the unit of the returned array is assumed to be the same as the one
-  specified input unit.
+the unit of the returned array is assumed to be the same as the
+one specified input unit.
 
 * Powers to single integer or rational powers will maintain unit
-  tracking.  Powers to float or other powers will not be able to do
-  so.
+tracking.  Powers to float or other powers will not be able to do so.
 
-  SimArray([1,2],"Msol Mpc**-3")**2 # -> SimArray([1, 4], 'Msol**2 Mpc**-6')
-  SimArray([1,2],"Msol Mpc**-3")**(1,3) # -> SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
+   SimArray([1,2],"Msol Mpc**-3")**2 # -&gt; SimArray([1, 4], 'Msol**2 Mpc**-6')
+   SimArray([1,2],"Msol Mpc**-3")**(1,3) # -&gt; SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
    # Syntax above mirrors syntax in units module, where a length-two tuple
    # can represent a rational number, in this case one third.
 
-   SimArray([1.,2], "Msol Mpc**-3")**0.333 # -> SimArray([ 1.,1.26])
+   SimArray([1.,2], "Msol Mpc**-3")**0.333 # -&gt; SimArray([ 1.,1.26])
    # Lost track of units
 
 
@@ -48,18 +97,18 @@ Given an array, you can convert it in-place into units of your
 own chosing:
   x = SimArray([1,2], "Msol")
   x.convert_units('kg')
-  print x # ->  SimArray([  1.99e+30,   3.98e+30], 'kg')
+  print x # -&gt;  SimArray([  1.99e+30,   3.98e+30], 'kg')
 
 Or you can leave the original array alone and get a *copy* in
 different units, correctly converted:
 
    x = SimArray([1,2], "Msol")
-   print x.in_units("kg") # -> SimArray([  1.99e+30,   3.98e+30], 'kg')
-   print x # -> SimArray([1,2], "Msol")
+   print x.in_units("kg") # -&gt; SimArray([  1.99e+30,   3.98e+30], 'kg')
+   print x # -&gt; SimArray([1,2], "Msol")
 
 If the SimArray was created by a SimSnap (which is most likely), it
 has a pointer into the SimSnap's properties so that the cosmological
-context is automatically fetched. For example, comoving -> physical
+context is automatically fetched. For example, comoving -&gt; physical
 conversions are correctly achieved:
 
   f = pynbody.load("fname")
@@ -252,19 +301,14 @@ class SimArray(np.ndarray) :
 
     @property
     def sim(self) :
-        if hasattr(self.base, 'sim') :
-            return self.base.sim
         return self._sim()
 
     @sim.setter
     def sim(self, s) :
-        if hasattr(self.base, 'sim') :
-            self.base.sim = s
+        if s is not None :
+            self._sim = weakref.ref(s)
         else :
-            if s is not None :
-                self._sim = weakref.ref(s)
-            else :
-                self._sim = lambda : None
+            self._sim = lambda : None
 
     def __mul__(self, rhs) :
         if isinstance(rhs, _units.UnitBase) :
@@ -305,8 +349,8 @@ class SimArray(np.ndarray) :
         return self
 
     def conversion_context(self) :
-        if self.sim is not None :
-            return self.sim.conversion_context()
+        if self._sim() is not None :
+            return self._sim().conversion_context()
         else :
             return {}
 
@@ -370,7 +414,7 @@ class SimArray(np.ndarray) :
         # The following magic circumvents our normal unit-assignment
         # code which couldn't cope with the numerical version of x
         # in the case of fractions. All this is necessary to make the
-        # magic tuple->fraction conversions work seamlessly.
+        # magic tuple-&gt;fraction conversions work seamlessly.
         r = np.power(self.view(np.ndarray), numerical_x).view(SimArray)
 
         # Recent numpy versions can take 1-element arrays and return
@@ -452,16 +496,13 @@ class SimArray(np.ndarray) :
         else :
             raise RuntimeError, "No link to SimSnap"
         
-    def in_units(self, new_unit, **context_overrides) :
+    def in_units(self, new_unit) :
         """Return a copy of this array expressed relative to an alternative
         unit."""
 
-        context = self.conversion_context()
-        context.update(context_overrides)
-        
         if self.units is not None :
             r = self * self.units.ratio(new_unit,
-                                        **context)
+                                          **(self.conversion_context()))
             r.units = new_unit
             return r
         else :
@@ -640,7 +681,7 @@ class IndexedSimArray(object) :
         return np.asanyarray(self.base[self._ptr], dtype=dtype)
 
     def _reexpress_index(self, index) :
-        if isinstance(index, tuple) or (isinstance(index,list) and len(index)>0 and hasattr(index[0], '__len__')) :
+        if isinstance(index, tuple) or (isinstance(index,list) and len(index)&gt;0 and hasattr(index[0], '__len__')) :
             return [self._ptr[index[0]]]+list(index[1:])
         else :
             return self._ptr[index]
@@ -700,8 +741,8 @@ class IndexedSimArray(object) :
     def set_units_like(self, new_unit) :
         self.base.set_units_like(new_unit)
 
-    def in_units(self, new_unit, **context_overrides) :
-        return IndexedSimArray(self.base.in_units(new_unit, **context_overrides), self._ptr)
+    def in_units(self, new_unit) :
+        return IndexedSimArray(self.base.in_units(new_unit), self._ptr)
 
     def convert_units(self, new_unit) :
         self.base.convert_units(new_unit)
@@ -739,3 +780,47 @@ for x in set(np.ndarray.__dict__).union(SimArray.__dict__) :
     w = getattr(SimArray, x)
     if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(w, '__call__') :
         setattr(IndexedSimArray, x, _wrap_fn(w))
+</pre>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" >pynbody</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
+    </div>
+  </body>
+</html>

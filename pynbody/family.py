@@ -1,4 +1,9 @@
-"""This module defines the Family class which represents
+"""
+
+family
+======
+
+This module defines the Family class which represents
 families of particles (e.g. dm, gas, star particles).
 New Family objects are automatically registered so that
 snapshots can use them in the normal syntax (snap.dm,
@@ -6,7 +11,9 @@ snap.star, etc).
 
 In practice the easiest way to make use of the flexibility
 this module provides is through adding more families of
-particles in your config.ini."""
+particles in your config.ini.
+
+"""
 
 from . import config_parser
 

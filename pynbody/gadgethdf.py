@@ -1,4 +1,8 @@
-"""gadgethdf.py
+"""
+
+gadgethdf
+=========
+
 
 Implementation of backend reader for GadgetHDF files by Andrew Pontzen.
 

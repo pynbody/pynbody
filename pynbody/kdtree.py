@@ -1,4 +1,11 @@
-"""KDTree. Provides access to nearest neighbour lists and smoothing lengths."""
+"""
+
+KDTree 
+======
+
+Provides access to nearest neighbour lists and smoothing lengths.
+
+"""
 
 from . import kdmain
 
