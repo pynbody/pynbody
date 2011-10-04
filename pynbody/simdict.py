@@ -41,10 +41,14 @@ class SimDict(dict) :
 
 @SimDict.getter
 def z(d) :
+    if d["a"] is None :
+        return None
     return 1.0/d["a"] -1.0
 
 @SimDict.setter
 def z(d,z) :
+    if z is None :
+        d["a"] = None
     d["a"] = 1.0/(1.0+z)
         
 
