@@ -23,8 +23,8 @@ any of these, use
 
 >>> f = pynbody.load(filename)
 
-to create a :class:`pynbody.snapshot.SimSnap` object f, which then acts
-as a dictionary holding the arrays inside f. For more information
+to create a :class:`pynbody.snapshot.SimSnap` object *f*, which then acts
+as a dictionary holding the arrays inside *f*. For more information
 see <http://code.google.com/p/pynbody/wiki/BasicTutorial>.
 
 Configuration
