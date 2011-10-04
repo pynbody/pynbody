@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pynbody's documentation!
-===================================
+Pynbody -- a Python N-body analysis package
+===========================================
 
 .. toctree::
    :maxdepth: 2

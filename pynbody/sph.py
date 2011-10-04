@@ -8,7 +8,7 @@ pynbody SPH rendering module.
 This module encompasses Kernel objects, which return C fragments from which
 a final C code to perform the rendering is derived.
 
-For most users, the function of interest will be render_image.
+For most users, the function of interest will be :func:`~pynbody.sph.render_image`.
 
 """
 
@@ -163,27 +163,44 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  kernel=Kernel(),
                  z_camera=None) :
 
-    """Render an SPH image using a typical (mass/rho)-weighted 'scatter'
+    """
+
+    Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
 
-    Keyword arguments:
-    qty -- The name of the array within the simulation to render
-    x2 -- The x-coordinate of the right edge of the image (default 100.0)
-    nx -- The number of pixels wide to make the image (default 500)
-    y2 -- The y-coordinate of the upper edge of the image (default x2, or if ny is specified, x2*ny/nx)
-    ny -- The number of pixels tall to make the image (default nx)
-    x1 -- The x-coordinate of the left edge of the image (default -x2)
-    y1 -- The y-coordinate of the lower edge of the image (default -y2)
-    z_plane -- The z-coordinate of the plane of the image (default 0.0)
-    out_units -- The units to convert the output image into (default no conversion)
-    xy_units -- The units for the x and y axes
-    kernel -- The Kernel object to use (default Kernel(), a 3D spline kernel)
-    z_camera -- If this is set, a perspective image is rendered, assuming the kernel
-     is suitable (i.e. is a projecting kernel). The camera is at the
-     specified z coordinate looking towards -ve z, and each pixel represents
-     a line-of-sight radially outwards from the camera. The width then specifies
-     the width of the image in the z=0 plane. Particles too close to the camera
-     are also excluded.
+    **Keyword arguments:**
+
+    *qty* ('rho'): The name of the array within the simulation to render
+
+    *x2* (100.0): The x-coordinate of the right edge of the image
+
+    *nx* (500): The number of pixels wide to make the image
+
+    *y2*: The y-coordinate of the upper edge of the image (default x2,
+     or if ny is specified, x2*ny/nx)
+
+    *ny* (nx): The number of pixels tall to make the image
+    
+    *x1* (-x2): The x-coordinate of the left edge of the image
+
+    *y1* (-y2): The y-coordinate of the lower edge of the image 
+
+    *z_plane* (0.0): The z-coordinate of the plane of the image
+
+    *out_units* (no conversion): The units to convert the output image into
+
+    *xy_units*: The units for the x and y axes
+
+    *kernel*: The Kernel object to use (default Kernel(), a 3D spline kernel)
+
+    *z_camera*: If this is set, a perspective image is rendered,
+     assuming the kernel is suitable (i.e. is a projecting
+     kernel). The camera is at the specified z coordinate looking
+     towards -ve z, and each pixel represents a line-of-sight radially
+     outwards from the camera. The width then specifies the width of
+     the image in the z=0 plane. Particles too close to the camera are
+     also excluded.
+
     """
 
     import os, os.path

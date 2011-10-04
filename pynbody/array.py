@@ -107,8 +107,9 @@ array will be made into a numpy.ndarray.)
 For example, here is the code for the correct addition/subtraction
 handler:
 
+.. code-block:: python
 
-    ``@SimArray.ufunc_rule(np.add)
+    @SimArray.ufunc_rule(np.add)
     @SimArray.ufunc_rule(np.subtract)
     def _consistent_units(a,b) :
 
@@ -134,7 +135,7 @@ handler:
         elif a_units is not None :
             return a_units
         else :
-            return b_units``
+            return b_units
 
 """
 

@@ -5,6 +5,9 @@ filt
 
 Defines and implements 'filters' which allow abstract subsets
 of data to be specified.
+
+**Needs docstrings & sample usage**
+
 <http://code.google.com/p/pynbody/wiki/FiltersAndSubsims>
 
 """
