@@ -49,7 +49,8 @@ def z(d) :
 def z(d,z) :
     if z is None :
         d["a"] = None
-    d["a"] = 1.0/(1.0+z)
+    else :
+        d["a"] = 1.0/(1.0+z)
         
 
 
