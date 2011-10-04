@@ -1,3 +1,10 @@
+"""
+
+profile
+=======
+
+"""
+
 import numpy as np
 from ..analysis import angmom, profile, halo
 from .. import filt, units, config
@@ -9,9 +16,15 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
                    bin_spacing = 'equaln', clear = True, quick=False,
                    filename=None,min=False,max=False,yrange=False,
                    legend=False, parts=False, **kwargs) :
-    """Centre on potential minimum, align so that the disk is in the
+    """
+    
+    Centre on potential minimum, align so that the disk is in the
     x-y plane, then use the potential in that plane to generate and
-    plot a rotation curve."""
+    plot a rotation curve.
+
+    **needs documentation/description of the keyword arguments**
+    
+    """
 
     if center :
         angmom.faceon(sim)
@@ -74,9 +87,14 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
 def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
                     pretime='2 Gyr',r_units='kpc', bin_spacing = 'equaln', 
                     clear = True,min=False,max=False,filename=None,**kwargs) :
-    """Centre on potential minimum, align so that the disk is in the
+    """
+    Centre on potential minimum, align so that the disk is in the
     x-y plane, then plot the amplitude of the 2nd fourier mode as a 
-    function of radius."""
+    function of radius.
+
+    **needs description of the keyword arguments**
+
+    """
 
     if center :
         angmom.faceon(sim)
@@ -117,15 +135,21 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
 
 def density_profile(sim, linestyle=False, center=True, clear=True, 
                     filename=None, **kwargs) :
-    '''3d density profile
-    Usage:
-    import pynbody.plot as pp
-    h = s.halos()
-    pp.density_profile(h[1],linestyle='dashed',color='k')
+    '''
 
-    Options:
-    * filename=None  name of file to which to save output
+    3d density profile
+    
+    **Options:**
 
+    *filename* (None):  name of file to which to save output
+
+    **Usage:**
+
+    >>> import pynbody.plot as pp
+    >>> h = s.halos()
+    >>> pp.density_profile(h[1],linestyle='dashed',color='k')
+
+    
     '''
     import matplotlib.pyplot as plt
     global config

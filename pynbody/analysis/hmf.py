@@ -1,3 +1,12 @@
+"""
+
+halo mass function (hmf)
+========================
+
+Various halo mass function routines. 
+
+"""
+
 import numpy as np
 from . import cosmology
 from .. import units
@@ -262,24 +271,38 @@ def correlation(r, powspec=PowerSpectrumCAMB) :
 
 def correlation_func(context, log_r_min=-3, log_r_max=2, delta_log_r=0.2,
                      pspec = PowerSpectrumCAMB) :
-    """Calculate the linear density field correlation function.
+    """
 
-    Args:
-      context (SimSnap): The snapshot from which to pull the cosmological context
-        (includes sigma8 normalization and growth function integrations, but
-        does not currently affect transfer function)
+    Calculate the linear density field correlation function.
 
-    Kwargs:
-      log_r_min: log10 of the minimum separation (Mpc h^-1) to consider
-      log_r_max: log10 of the maximum separation (Mpc h^-1) to consider
-      delta_log_r: The value spacing in dex
-      pspec: A power spectrum object; default is a WMAP7 cosmology calculated
-        by CAMB.
+    **Args**:
+      
+    *context* (SimSnap): The snapshot from which to pull the
+        cosmological context (includes sigma8 normalization and growth
+        function integrations, but does not currently affect transfer
+        function)
 
-    Returns:
-      r: Array of the r values (Mpc h^-1) for which the correlation function
-         was evaluated.
-      Xi: Array of the dimensionless correlation for each separation.
+    **Kwargs:**
+
+      *log_r_min:* log10 of the minimum separation (Mpc h^-1) to
+       consider
+
+      *log_r_max:* log10 of the maximum separation (Mpc h^-1) to
+       consider
+
+      *delta_log_r:* The value spacing in dex
+
+      *pspec:* A power spectrum object; default is a WMAP7 cosmology
+        calculated by CAMB.
+
+    **Returns:**
+
+      *r:* Array of the r values (Mpc h^-1) for which the correlation
+         function was evaluated.
+
+      *Xi:* Array of the dimensionless correlation for each
+       separation.
+
     """
 
     if isinstance(pspec, type) :
@@ -300,13 +323,23 @@ def correlation_func(context, log_r_min=-3, log_r_max=2, delta_log_r=0.2,
 #######################################################################
 
 def press_schechter(nu) :
-    """The Press-Schechter kernel used by halo_mass_function"""
+    """
+
+    The Press-Schechter kernel used by halo_mass_function
+
+    """
+
     return 0.7978845 * nu * np.exp(-(nu**2)/2)
 
 def sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
-    """The Sheth-Tormen kernel used by halo_mass_function.
+    """
 
-    Default shape values are taken from eq 7.67 of Mo, van den Bosch and White (CUP)."""
+    The Sheth-Tormen kernel used by halo_mass_function.
+
+    Default shape values are taken from eq 7.67 of Mo, van den Bosch
+    and White (CUP).
+
+    """
     
     nu_bar = nu*0.84
     return A*(1+1./nu_bar**(q))*press_schechter(nu_bar)
@@ -316,13 +349,20 @@ def sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
 #######################################################################
 
 def cole_kaiser_bias(nu, delta_c) :
-    """The Cole-Kaiser (1989) bias function. Also in
-    Mo & White 1996."""
+    """
+    
+    The Cole-Kaiser (1989) bias function. Also in Mo & White 1996.
+
+    """
     return 1+(nu**2-1)/delta_c
 
 def sheth_tormen_bias(nu, delta_c,
                       a=0.707, b=0.5, c=0.6) :
-    """The Sheth-Tormen (1999) bias function [eq 8]"""
+    """
+
+    The Sheth-Tormen (1999) bias function [eq 8]
+
+    """
 
     root_a = math.sqrt(a)
     
@@ -340,31 +380,49 @@ def halo_mass_function(context,
                        pspec = PowerSpectrumCAMB,
                        delta_crit = 1.686,
                        no_h = False) :
-    """Returns the halo mass function, dN/d log_{10} M in units of Mpc^-3 h^3.
+    """
 
-    Args:
-       context (SimSnap): The snapshot from which to pull the cosmological context
-          (includes sigma8 normalization and growth function integrations, but does
-          not currently affect transfer function)
+    Returns the halo mass function, dN/d log_{10} M in units of Mpc^-3
+    h^3.
 
-    Kwargs:
-       log_M_min: The minimum halo mass (Msol h^-1) to consider
-       log_M_max: The maximum halo mass (Msol h^-1) to consider
-       delta_log_M: The bin spacing of halo masses (see warning below)
-       kern: The kernel function which dictates what type of mass function to calculate;
-             or a string ("PS" or "ST") for one of the defaults
-       pspec: A power spectrum object (which also defines the window function);
-             default is a WMAP7 cosmology calculated by CAMB, and a top hat window
-       delta_crit: The critical overdensity for collapse
+    **Args:**
 
-    Returns:       
-       M: The centre of the mass bins, in Msol h^-1
-       sigma: The linear variance of the corresponding sphere 
-       N: The abundance of halos of that mass (Mpc^-3 h^3 comoving, per decade of mass)
+       *context (SimSnap):* The snapshot from which to pull the
+          cosmological context (includes sigma8 normalization and
+          growth function integrations, but does not currently affect
+          transfer function)
 
-    Because numerical derivatives are involved, the value of delta_log_M affects
-    the accuracy. Numerical experiments suggest that delta_log_M=0.1 gives more than
-    enough accuracy, but you should check for your own use case.
+    **Kwargs:**
+
+       *log_M_min:* The minimum halo mass (Msol h^-1) to consider
+
+       *log_M_max:* The maximum halo mass (Msol h^-1) to consider
+
+       *delta_log_M:* The bin spacing of halo masses (see warning below)
+
+       *kern:* The kernel function which dictates what type of mass
+             function to calculate; or a string ("PS" or "ST") for one
+             of the defaults
+
+       *pspec:* A power spectrum object (which also defines the window
+             function); default is a WMAP7 cosmology calculated by
+             CAMB, and a top hat window
+
+       *delta_crit:* The critical overdensity for collapse
+
+    **Returns:**       
+
+       *M:* The centre of the mass bins, in Msol h^-1
+
+       *sigma:* The linear variance of the corresponding sphere
+
+       *N:* The abundance of halos of that mass (Mpc^-3 h^3 comoving,
+        per decade of mass)
+
+    Because numerical derivatives are involved, the value of
+    delta_log_M affects the accuracy. Numerical experiments suggest
+    that delta_log_M=0.1 gives more than enough accuracy, but you
+    should check for your own use case.
        
     """
 
@@ -410,19 +468,31 @@ def halo_mass_function(context,
 @units.takes_arg_in_units((1, "Msol h^-1"), context_arg=0)
 def halo_bias(context, M, kern=cole_kaiser_bias, pspec = PowerSpectrumCAMB,
               delta_crit = 1.686) :
-    """Return the halo bias for the given halo mass.
+    """
 
-    Args:
-       context (SimSnap): The snapshot from which to pull the cosmological context
-       M: float, unit or string describing the halo mass. If a float, units are Msol h^-1.
+    Return the halo bias for the given halo mass.
 
-    Kwargs:
-       kern: The kernel function describing the halo bias (default Cole-Kaiser).
-       pspec: A power spectrum object (which also defines the window function);
-              default is a WMAP7 cosmology calculated by CAMB, and a top hat window
-       delta_crit: The critical overdensity for collapse
+    **Args:**
 
-    Returns:
+       *context (SimSnap):* The snapshot from which to pull the
+        cosmological context
+
+       *M:* float, unit or string describing the halo mass. If a
+        float, units are Msol h^-1.
+
+    **Kwargs:**
+
+       *kern:* The kernel function describing the halo bias (default
+        Cole-Kaiser).
+
+       *pspec:* A power spectrum object (which also defines the window
+              function); default is a WMAP7 cosmology calculated by
+              CAMB, and a top hat window
+
+       *delta_crit:* The critical overdensity for collapse
+
+    **Returns:**
+
        The halo bias (single float)
 
     """

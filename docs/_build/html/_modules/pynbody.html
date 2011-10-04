@@ -229,7 +229,7 @@ config['halo-class-priority'] = [_halo_classes_dict[x] for x in config['halo-cla
 
 def load(filename, *args, **kwargs) :
     """Loads a file using the appropriate class, returning a SimSnap
-<div class="viewcode-block" id="load"><a class="viewcode-back" href="../index.html#pynbody.load">[docs]</a>    instance."""
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../pynbody.html#pynbody.load">[docs]</a>    instance."""
     for c in config['snap-class-priority'] :
         if c._can_load(filename) :
             if config['verbose'] : print "Attempting to load as",c
@@ -279,7 +279,7 @@ __all__ = ['load', 'new']
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

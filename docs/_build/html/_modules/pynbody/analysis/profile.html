@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <link rel="top" title="pynbody v0.13-alpha documentation" href="../../../index.html" />
-    <link rel="up" title="pynbody" href="../../pynbody.html" /> 
+    <link rel="up" title="pynbody.analysis" href="../analysis.html" /> 
   </head>
   <body>
     <div class="related">
@@ -37,7 +37,8 @@
              >modules</a> |</li>
         <li><a href="../../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
           <li><a href="../../index.html" >Module code</a> &raquo;</li>
-          <li><a href="../../pynbody.html" accesskey="U">pynbody</a> &raquo;</li> 
+          <li><a href="../../pynbody.html" >pynbody</a> &raquo;</li>
+          <li><a href="../analysis.html" accesskey="U">pynbody.analysis</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -57,7 +58,7 @@
 
 <span class="k">class</span> <span class="nc">Profile</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="Profile"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.Profile">[docs]</a>
+<div class="viewcode-block" id="Profile"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Profile">[docs]</a>
 <span class="sd">    A basic profile class for arbitrary profiles. Stores information about bins etc.</span>
 
 <span class="sd">    Made to work with the pynbody SimSnap instances. The constructor only</span>
@@ -399,19 +400,19 @@
 
     <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a listing of available profile types&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="Profile.keys"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.Profile.keys">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="viewcode-block" id="Profile.keys"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Profile.keys">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">derivable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of possible profiles&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="Profile.derivable_keys"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.Profile.derivable_keys">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profile_registry</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="viewcode-block" id="Profile.derivable_keys"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Profile.derivable_keys">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profile_registry</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">families</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns the family of particles used&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="Profile.families"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.Profile.families">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
+<div class="viewcode-block" id="Profile.families"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Profile.families">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">create_particle_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profile_name</span><span class="p">,</span> <span class="n">particle_name</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">out_sim</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Create a particle array with the results of the profile</span></div>
-<div class="viewcode-block" id="Profile.create_particle_array"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.Profile.create_particle_array">[docs]</a><span class="sd">        calculation.</span>
+<div class="viewcode-block" id="Profile.create_particle_array"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Profile.create_particle_array">[docs]</a><span class="sd">        calculation.</span>
 
 <span class="sd">        After calling this function, sim[particle_name][i] ==</span>
 <span class="sd">        profile[profile_name][bin_in_which_particle_i_sits]</span>
@@ -471,7 +472,7 @@
 
     <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">import</span> <span class="nn">pickle</span>
-        
+<div class="viewcode-block" id="Profile.write"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Profile.write">[docs]</a>        
         <span class="c"># record all the important data except for the snapshot itself</span>
         <span class="c"># use the hash generated from the particle list for the file name suffix</span>
 
@@ -489,7 +490,7 @@
                      
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">profile_property</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">def</span> <span class="nf">profile_property</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="p">:</span></div>
         <span class="n">Profile</span><span class="o">.</span><span class="n">_profile_registry</span><span class="p">[</span><span class="n">fn</span><span class="o">.</span><span class="n">__name__</span><span class="p">]</span><span class="o">=</span><span class="n">fn</span>
         <span class="k">return</span> <span class="n">fn</span>
 
@@ -497,7 +498,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="mass"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.mass">[docs]</a><span class="sd">    Calculate mass in each bin</span>
+<div class="viewcode-block" id="mass"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.mass">[docs]</a><span class="sd">    Calculate mass in each bin</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
     <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: mass()&#39;</span>
@@ -511,7 +512,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">density</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="density"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.density">[docs]</a><span class="sd">    Generate a radial density profile for the current type of profile</span>
+<div class="viewcode-block" id="density"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.density">[docs]</a><span class="sd">    Generate a radial density profile for the current type of profile</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: density()&#39;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">_binsize</span>
@@ -519,7 +520,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">fourier</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="fourier"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.fourier">[docs]</a><span class="sd">    Generate a profile of fourier coefficients, amplitudes and phases</span>
+<div class="viewcode-block" id="fourier"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.fourier">[docs]</a><span class="sd">    Generate a profile of fourier coefficients, amplitudes and phases</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">fourier_decomp</span>
     <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: fourier()&#39;</span>
@@ -544,7 +545,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">mass_enc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="mass_enc"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.mass_enc">[docs]</a><span class="sd">    Generate the enclosed mass profile</span>
+<div class="viewcode-block" id="mass_enc"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.mass_enc">[docs]</a><span class="sd">    Generate the enclosed mass profile</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: mass_enc()&#39;</span>
     <span class="n">m_enc</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">),</span> <span class="s">&#39;Msol&#39;</span><span class="p">)</span>
@@ -556,7 +557,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">dyntime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;The dynamical time of the bin, sqrt(R^3/2GM).&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="dyntime"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.dyntime">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: dyntime()&#39;</span>
+<div class="viewcode-block" id="dyntime"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.dyntime">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: dyntime()&#39;</span>
     <span class="n">dyntime</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">3</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">G</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass_enc&#39;</span><span class="p">]))</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">dyntime</span>
 
@@ -564,14 +565,14 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">g_spherical</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;The naive gravitational acceleration assuming spherical</span>
-<div class="viewcode-block" id="g_spherical"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.g_spherical">[docs]</a><span class="sd">    symmetry = GM_enc/r^2&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="g_spherical"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.g_spherical">[docs]</a><span class="sd">    symmetry = GM_enc/r^2&quot;&quot;&quot;</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">G</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass_enc&#39;</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
 
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">rotation_curve_spherical</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="rotation_curve_spherical"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.rotation_curve_spherical">[docs]</a><span class="sd">    The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)</span>
+<div class="viewcode-block" id="rotation_curve_spherical"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.rotation_curve_spherical">[docs]</a><span class="sd">    The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
     <span class="k">return</span> <span class="p">((</span><span class="n">units</span><span class="o">.</span><span class="n">G</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass_enc&#39;</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="c">#.in_units(&#39;km s**-1&#39;)</span>
@@ -579,14 +580,14 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">j_circ</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Angular momentum of particles on circular orbits.&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="j_circ"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.j_circ">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: j_circ()&#39;</span>
+<div class="viewcode-block" id="j_circ"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.j_circ">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: j_circ()&#39;</span>
     <span class="k">return</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span>
 
 
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">v_circ</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Circular velocity, i.e. rotation curve. Calculated by computing the gravity </span>
-<div class="viewcode-block" id="v_circ"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.v_circ">[docs]</a><span class="sd">    in the midplane - can be expensive&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="v_circ"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.v_circ">[docs]</a><span class="sd">    in the midplane - can be expensive&quot;&quot;&quot;</span>
 
     <span class="kn">import</span> <span class="nn">pynbody.gravity.calc</span> <span class="kn">as</span> <span class="nn">gravity</span>
     <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span>
@@ -620,13 +621,13 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">E_circ</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Energy of particles on circular orbits.&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="E_circ"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.E_circ">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: E_circ()&#39;</span>
+<div class="viewcode-block" id="E_circ"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.E_circ">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: E_circ()&#39;</span>
     <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;pot&#39;</span><span class="p">]</span>
 
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">pot</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Calculates the potential in the midplane - can be expensive&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="pot"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.pot">[docs]</a>    <span class="c">#from . import gravity</span>
+<div class="viewcode-block" id="pot"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.pot">[docs]</a>    <span class="c">#from . import gravity</span>
     <span class="kn">import</span> <span class="nn">pynbody.gravity.calc</span> <span class="kn">as</span> <span class="nn">gravity</span>
 
     <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> 
@@ -651,7 +652,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">omega</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Circular frequency Omega = v_circ/radius (see Binney &amp; Tremaine Sect. 3.2)&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="omega"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.omega">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: omega()&#39;</span>
+<div class="viewcode-block" id="omega"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.omega">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: omega()&#39;</span>
     <span class="n">prof</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span>
     <span class="n">prof</span><span class="o">.</span><span class="n">set_units_like</span><span class="p">(</span><span class="s">&#39;km s**-1 kpc**-1&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">prof</span>
@@ -659,7 +660,7 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">kappa</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney &amp; Tremaine Sect. 3.2)&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="kappa"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.kappa">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: kappa()&#39;</span>
+<div class="viewcode-block" id="kappa"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.kappa">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: kappa()&#39;</span>
     <span class="c">#dOmegadR = np.gradient(p[&#39;omega&#39;]**2, p[&#39;dr&#39;][0])</span>
     <span class="c">#dOmegadR.set_units_like(&#39;km**2 s**-2 kpc**-3&#39;)</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;d_omega&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;omega&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
@@ -667,14 +668,14 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;3D Anisotropy parameter as defined in Binney and Tremiane&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="beta"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.beta">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: beta()&#39;</span>
+<div class="viewcode-block" id="beta"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.beta">[docs]</a>    <span class="k">if</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&#39;Profile: beta()&#39;</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">is</span> <span class="mi">3</span>
     <span class="k">return</span>  <span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;vt_disp&#39;</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">])</span>
 
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">magnitudes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="magnitudes"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.magnitudes">[docs]</a><span class="sd">    Calculate magnitudes in each bin</span>
+<div class="viewcode-block" id="magnitudes"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.magnitudes">[docs]</a><span class="sd">    Calculate magnitudes in each bin</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">luminosity</span>
 
@@ -703,12 +704,12 @@
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">Q</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span> 
     <span class="sd">&quot;&quot;&quot;Toomre Q parameter&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="Q"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.Q">[docs]</a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;kappa&#39;</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mf">3.36</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">G</span><span class="p">))</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="Q"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.Q">[docs]</a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;kappa&#39;</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mf">3.36</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">G</span><span class="p">))</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
 
 <span class="nd">@Profile.profile_property</span>
 <span class="k">def</span> <span class="nf">X</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span> </div>
     <span class="sd">&quot;&quot;&quot;X parameter defined as kappa^2*R/(2*pi*G*sigma*m) </span>
-<div class="viewcode-block" id="X"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.X">[docs]</a><span class="sd">    See Binney &amp; Tremaine 2008, eq. 6.77&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="X"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.X">[docs]</a><span class="sd">    See Binney &amp; Tremaine 2008, eq. 6.77&quot;&quot;&quot;</span>
 
     <span class="n">lambda_crit</span> <span class="o">=</span> <span class="mf">4.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;kappa&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">kcrit</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">lambda_crit</span>
@@ -717,7 +718,7 @@
 
 <span class="k">class</span> <span class="nc">InclinedProfile</span><span class="p">(</span><span class="n">Profile</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Creates a profile object to be used with a snapshot inclined by</span></div>
-<div class="viewcode-block" id="InclinedProfile"><a class="viewcode-back" href="../../../index.html#pynbody.analysis.profile.InclinedProfile">[docs]</a><span class="sd">    some known angle to the xy plane.</span>
+<div class="viewcode-block" id="InclinedProfile"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.profile.InclinedProfile">[docs]</a><span class="sd">    some known angle to the xy plane.</span>
 
 <span class="sd">    In addition to the SimSnap object, it also requires the angle to initialize. </span>
 
@@ -776,11 +777,12 @@
              >modules</a> |</li>
         <li><a href="../../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
           <li><a href="../../index.html" >Module code</a> &raquo;</li>
-          <li><a href="../../pynbody.html" >pynbody</a> &raquo;</li> 
+          <li><a href="../../pynbody.html" >pynbody</a> &raquo;</li>
+          <li><a href="../analysis.html" >pynbody.analysis</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

@@ -1,6 +1,11 @@
-"""decomp.py
+"""
 
-Tools for bulge/disk/halo decomposition"""
+decomp
+======
+
+Tools for bulge/disk/halo decomposition
+
+"""
 
 from . import angmom
 from .. import array
@@ -17,33 +22,51 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     integer specifying a kinematic decomposition. The possible values are:
 
     1 -- thin disk
+
     2 -- halo
+
     3 -- bulge
+
     4 -- thick disk
+
     5 -- pseudo bulge
 
     This routine is based on an original IDL procedure by Chris Brook.
 
 
-    Parameters:
+    **Parameters:**
 
-    h -- the halo to work on
-    j_disk_min -- the minimum angular momentum as a proportion of the circular
-                  angular momentum which a particle must have to be part of the 'disk'
-    j_disk_max -- the maximum angular momentum as a proportion of the circular
-                  angular momentum which a particle can have to be part of the 'disk'
-    E_cut -- the energy boundary between bulge and spheroid. If None, this is taken
-             to be the median energy of the stars.
-    aligned -- if False, the simulation is recenterd and aligned so the disk is
-               in the xy plane as required for the rest of the analysis.
-    cen -- if not None, specifies the center of the halo. Otherwise it is found.
-           This has no effect if aligned=True
-    vcen -- if not None, specifies the velocity center of the halo. Otherwise it is found.
-            This has no effect if aligned=True
-    j_circ_from_r -- if True, the maximum angular momentum is determined as a
-    function of radius, rather than as a function of orbital energy. Default
-    False (determine as function of energy).
-    angmom_size -- the size of the gas sphere used to determine the plane of the disk
+    *h* -- the halo to work on
+
+    *j_disk_min* -- the minimum angular momentum as a proportion of
+                  the circular angular momentum which a particle must
+                  have to be part of the 'disk'
+
+    *j_disk_max* -- the maximum angular momentum as a proportion of
+                  the circular angular momentum which a particle can
+                  have to be part of the 'disk'
+
+    *E_cut* -- the energy boundary between bulge and spheroid. If
+             None, this is taken to be the median energy of the stars.
+
+    *aligned* -- if False, the simulation is recenterd and aligned so
+               the disk is in the xy plane as required for the rest of
+               the analysis.
+
+    *cen* -- if not None, specifies the center of the halo. Otherwise
+           it is found.  This has no effect if aligned=True
+
+    *vcen* -- if not None, specifies the velocity center of the
+            halo. Otherwise it is found.  This has no effect if
+            aligned=True
+
+    *j_circ_from_r* -- if True, the maximum angular momentum is
+    determined as a function of radius, rather than as a function of
+    orbital energy. Default False (determine as function of energy).
+
+    *angmom_size* -- the size of the gas sphere used to determine the
+     plane of the disk
+
     """
 
     import scipy.interpolate as interp

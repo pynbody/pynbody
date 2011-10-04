@@ -54,7 +54,7 @@
 
 <span class="k">def</span> <span class="nf">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Open a file, determining from the filename whether to use</span>
-<div class="viewcode-block" id="open_"><a class="viewcode-back" href="../../index.html#pynbody.util.open_">[docs]</a><span class="sd">    gzip decompression&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="open_"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.open_">[docs]</a><span class="sd">    gzip decompression&quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s">&#39;.gz&#39;</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">return</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
@@ -65,7 +65,7 @@
 
 <span class="k">def</span> <span class="nf">open_with_size</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Open a file for reading, returning also the (decompressed)</span></div>
-<div class="viewcode-block" id="open_with_size"><a class="viewcode-back" href="../../index.html#pynbody.util.open_with_size">[docs]</a><span class="sd">    file size&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="open_with_size"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.open_with_size">[docs]</a><span class="sd">    file size&quot;&quot;&quot;</span>
 
     <span class="n">f</span> <span class="o">=</span> <span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">)</span> <span class="p">:</span>
@@ -89,7 +89,7 @@
 
 <span class="k">def</span> <span class="nf">intersect_slices</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">,</span> <span class="n">array_length</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Given two python slices s1 and s2, return a new slice which</span>
-<div class="viewcode-block" id="intersect_slices"><a class="viewcode-back" href="../../index.html#pynbody.util.intersect_slices">[docs]</a><span class="sd">    will extract the data of an array d which is in both d[s1] and</span>
+<div class="viewcode-block" id="intersect_slices"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.intersect_slices">[docs]</a><span class="sd">    will extract the data of an array d which is in both d[s1] and</span>
 <span class="sd">    d[s2].</span>
 
 <span class="sd">    Note that it may not be possible to do this without information on</span>
@@ -162,7 +162,7 @@
 
 <span class="k">def</span> <span class="nf">relative_slice</span><span class="p">(</span><span class="n">s_relative_to</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Given a slice s, return a slice s_prime with the property that</span></div>
-<div class="viewcode-block" id="relative_slice"><a class="viewcode-back" href="../../index.html#pynbody.util.relative_slice">[docs]</a><span class="sd">    array[s_relative_to][s_prime] == array[s]. Clearly this will</span>
+<div class="viewcode-block" id="relative_slice"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.relative_slice">[docs]</a><span class="sd">    array[s_relative_to][s_prime] == array[s]. Clearly this will</span>
 <span class="sd">    not be possible for arbitrarily chosen s_relative_to and s, but</span>
 <span class="sd">    it should be possible for s=intersect_slices(s_relative_to, s_any)</span>
 <span class="sd">    which is the use case envisioned here (and used by SubSim).</span>
@@ -193,7 +193,7 @@
 
 <span class="k">def</span> <span class="nf">chained_slice</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span><span class="n">s2</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Return a slice s3 with the property that</span></div>
-<div class="viewcode-block" id="chained_slice"><a class="viewcode-back" href="../../index.html#pynbody.util.chained_slice">[docs]</a><span class="sd">    ar[s1][s2] == ar[s3] &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="chained_slice"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.chained_slice">[docs]</a><span class="sd">    ar[s1][s2] == ar[s3] &quot;&quot;&quot;</span>
 
     <span class="k">assert</span> <span class="p">(</span><span class="n">s1</span><span class="o">.</span><span class="n">start</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">s2</span><span class="o">.</span><span class="n">start</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">s1</span><span class="o">.</span><span class="n">stop</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">s2</span><span class="o">.</span><span class="n">stop</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">s1_start</span> <span class="o">=</span> <span class="n">s1</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span>
@@ -217,7 +217,7 @@
 
 <span class="k">def</span> <span class="nf">index_before_slice</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Return an index array new_index with the property that, for a</span></div>
-<div class="viewcode-block" id="index_before_slice"><a class="viewcode-back" href="../../index.html#pynbody.util.index_before_slice">[docs]</a><span class="sd">    slice s (start, stop and step all positive), ar[s][index] ==</span>
+<div class="viewcode-block" id="index_before_slice"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.index_before_slice">[docs]</a><span class="sd">    slice s (start, stop and step all positive), ar[s][index] ==</span>
 <span class="sd">    ar[new_index].&quot;&quot;&quot;</span>
 
     <span class="n">start</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span>
@@ -235,7 +235,7 @@
 
 <span class="k">def</span> <span class="nf">concatenate_indexing</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Given either a numpy array or slice for both i1 and i2,</span></div>
-<div class="viewcode-block" id="concatenate_indexing"><a class="viewcode-back" href="../../index.html#pynbody.util.concatenate_indexing">[docs]</a><span class="sd">    return either a numpy array or slice i3 with the property that</span>
+<div class="viewcode-block" id="concatenate_indexing"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.concatenate_indexing">[docs]</a><span class="sd">    return either a numpy array or slice i3 with the property that</span>
 
 <span class="sd">    ar[i3] == ar[i1][i2].</span>
 
@@ -259,7 +259,7 @@
 
 <span class="k">def</span> <span class="nf">arrays_are_same</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns True if a1 and a2 are numpy views pointing to the exact</span></div>
-<div class="viewcode-block" id="arrays_are_same"><a class="viewcode-back" href="../../index.html#pynbody.util.arrays_are_same">[docs]</a><span class="sd">    same underlying data; False otherwise.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="arrays_are_same"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.arrays_are_same">[docs]</a><span class="sd">    same underlying data; False otherwise.&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">a1</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">a2</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">]</span> \
                <span class="ow">and</span> <span class="n">a1</span><span class="o">.</span><span class="n">strides</span><span class="o">==</span><span class="n">a2</span><span class="o">.</span><span class="n">strides</span>
@@ -268,7 +268,7 @@
 
 <span class="k">def</span> <span class="nf">set_array_if_not_same</span><span class="p">(</span><span class="n">a_store</span><span class="p">,</span> <span class="n">a_in</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;This routine checks whether a_store and a_in ultimately point to the</span></div>
-<div class="viewcode-block" id="set_array_if_not_same"><a class="viewcode-back" href="../../index.html#pynbody.util.set_array_if_not_same">[docs]</a><span class="sd">    same buffer; if not, the contents of a_in are copied into a_store.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="set_array_if_not_same"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.set_array_if_not_same">[docs]</a><span class="sd">    same buffer; if not, the contents of a_in are copied into a_store.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span> <span class="n">index</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">arrays_are_same</span><span class="p">(</span><span class="n">a_store</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">a_in</span><span class="p">)</span> <span class="p">:</span>
         <span class="n">a_store</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">a_in</span>
@@ -278,7 +278,7 @@
 
 <span class="k">def</span> <span class="nf">index_of_first</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">find</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns the index to the first element in array</span></div>
-<div class="viewcode-block" id="index_of_first"><a class="viewcode-back" href="../../index.html#pynbody.util.index_of_first">[docs]</a><span class="sd">    which satisfies array[index]&gt;=find. The array must</span>
+<div class="viewcode-block" id="index_of_first"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.index_of_first">[docs]</a><span class="sd">    which satisfies array[index]&gt;=find. The array must</span>
 <span class="sd">    be sorted in ascending order.&quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="p">:</span>
@@ -306,7 +306,7 @@
 
 <span class="k">def</span> <span class="nf">equipartition</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Given an array ar, return nbins+1 monotonically increasing bin edges</span></div>
-<div class="viewcode-block" id="equipartition"><a class="viewcode-back" href="../../index.html#pynbody.util.equipartition">[docs]</a><span class="sd">    such that the number of items in each bin is approximately equal&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="equipartition"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.equipartition">[docs]</a><span class="sd">    such that the number of items in each bin is approximately equal&quot;&quot;&quot;</span>
 
     <span class="n">a_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span>
 
@@ -319,7 +319,7 @@
 
 <span class="k">def</span> <span class="nf">bisect</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Finds the value x such that f(x)=0 for a monotonically</span></div>
-<div class="viewcode-block" id="bisect"><a class="viewcode-back" href="../../index.html#pynbody.util.bisect">[docs]</a><span class="sd">    increasing function f, using a binary search.</span>
+<div class="viewcode-block" id="bisect"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.bisect">[docs]</a><span class="sd">    increasing function f, using a binary search.</span>
 
 <span class="sd">    The search stops when either the bounding domain is</span>
 <span class="sd">    smaller than epsilon (by default 10^-7 times the original</span>
@@ -348,7 +348,7 @@
 
 <span class="k">def</span> <span class="nf">gauss_jordan</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A simple Gauss-Jordan matrix inverter. This is provided so that</span></div>
-<div class="viewcode-block" id="gauss_jordan"><a class="viewcode-back" href="../../index.html#pynbody.util.gauss_jordan">[docs]</a><span class="sd">    matrices of fractions can be inverted (numpy linalg converts</span>
+<div class="viewcode-block" id="gauss_jordan"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.gauss_jordan">[docs]</a><span class="sd">    matrices of fractions can be inverted (numpy linalg converts</span>
 <span class="sd">    everything to floats first.)</span>
 
 <span class="sd">    Don&#39;t use on large matrices -- it&#39;s slow!</span>
@@ -387,7 +387,7 @@
 
 <span class="k">def</span> <span class="nf">rational_matrix_inv</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A simple replacement for numpy linalg matrix inverse</span></div>
-<div class="viewcode-block" id="rational_matrix_inv"><a class="viewcode-back" href="../../index.html#pynbody.util.rational_matrix_inv">[docs]</a><span class="sd">    which handles fractions exactly. Not suitable for large</span>
+<div class="viewcode-block" id="rational_matrix_inv"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.rational_matrix_inv">[docs]</a><span class="sd">    which handles fractions exactly. Not suitable for large</span>
 <span class="sd">    matrices!&quot;&quot;&quot;</span>
 
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -407,12 +407,12 @@
 
 <span class="k">def</span> <span class="nf">cutgz</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Strip the .gz ending off a string&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="cutgz"><a class="viewcode-back" href="../../index.html#pynbody.util.cutgz">[docs]</a>    <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s">&#39;.gz&#39;</span> <span class="p">:</span> <span class="k">return</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+<div class="viewcode-block" id="cutgz"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.cutgz">[docs]</a>    <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s">&#39;.gz&#39;</span> <span class="p">:</span> <span class="k">return</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
     <span class="k">else</span> <span class="p">:</span> <span class="k">return</span> <span class="n">x</span>
 
 <span class="k">class</span> <span class="nc">Registry</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A simple extension of the dict class to make the</span></div>
-<div class="viewcode-block" id="Registry"><a class="viewcode-back" href="../../index.html#pynbody.util.Registry">[docs]</a><span class="sd">    __repr__ more readable.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Registry"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.Registry">[docs]</a><span class="sd">    __repr__ more readable.&quot;&quot;&quot;</span>
 
     <span class="n">is_file</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -453,7 +453,7 @@
 
 <span class="k">class</span> <span class="nc">LazyKeyError</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;An extended exception, like KeyError, but allowing information</span>
-<div class="viewcode-block" id="LazyKeyError"><a class="viewcode-back" href="../../index.html#pynbody.util.LazyKeyError">[docs]</a><span class="sd">    about the ways in which the framework attempted to generate the</span>
+<div class="viewcode-block" id="LazyKeyError"><a class="viewcode-back" href="../../pynbody.html#pynbody.util.LazyKeyError">[docs]</a><span class="sd">    about the ways in which the framework attempted to generate the</span>
 <span class="sd">    array to be queried. *This is not currently in use within the</span>
 <span class="sd">    pynbody framework, and is kept here as part of a previous</span>
 <span class="sd">    attempt to clean up derived/lazy array backtraces*.</span>
@@ -535,7 +535,7 @@
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

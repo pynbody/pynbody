@@ -1,9 +1,21 @@
-# Cosmological module from PKDGRAV.
-# N.B.  This code is being shared with skid and the I.C. generator.
+"""
+
+pkdgrav_cosmo
+=============
+
+Cosmological module from PKDGRAV.
+
+N.B.  This code is being shared with skid and the I.C. generator.
+
+**NEEDS DOCUMENTATION**
+"""
+
 import math
 from scipy.integrate import romberg, ode
 
 class Cosmology:
+    """ docs placeholder """
+
     EPSCOSMO= 1e-7
     def __init__(self,H0=math.sqrt(8*math.pi/3),Om=0.272,L=0.728,Ob=0.0456,
                  Or=0.0,Quin=0.0,Ok=0.0): 

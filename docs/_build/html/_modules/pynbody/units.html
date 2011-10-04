@@ -146,7 +146,7 @@ class UnitsException(Exception) :
 
 class UnitBase(object) :
     """Base class for units"""
-<div class="viewcode-block" id="UnitBase"><a class="viewcode-back" href="../../index.html#pynbody.units.UnitBase">[docs]</a>    def __init__(self) :
+<div class="viewcode-block" id="UnitBase"><a class="viewcode-back" href="../../pynbody.html#pynbody.units.UnitBase">[docs]</a>    def __init__(self) :
         raise ValueError, "Cannot directly initialize abstract base class"
         pass
 
@@ -215,7 +215,7 @@ class UnitBase(object) :
 
     def ratio(self, other, **substitutions) :
         """Get the conversion ratio between this Unit and another
-<div class="viewcode-block" id="UnitBase.ratio"><a class="viewcode-back" href="../../index.html#pynbody.units.UnitBase.ratio">[docs]</a>        specified unit"""
+<div class="viewcode-block" id="UnitBase.ratio"><a class="viewcode-back" href="../../pynbody.html#pynbody.units.UnitBase.ratio">[docs]</a>        specified unit"""
 
         if isinstance(other, str) :
             other = Unit(other)
@@ -230,12 +230,12 @@ class UnitBase(object) :
 
     def in_units(self, *a, **kw) :
         """Alias for ratio"""</div>
-<div class="viewcode-block" id="UnitBase.in_units"><a class="viewcode-back" href="../../index.html#pynbody.units.UnitBase.in_units">[docs]</a>
+<div class="viewcode-block" id="UnitBase.in_units"><a class="viewcode-back" href="../../pynbody.html#pynbody.units.UnitBase.in_units">[docs]</a>
         return self.ratio(*a, **kw)
     
     def irrep(self) :
         """Return a unit equivalent to this one (may be identical) but</div>
-<div class="viewcode-block" id="UnitBase.irrep"><a class="viewcode-back" href="../../index.html#pynbody.units.UnitBase.irrep">[docs]</a>        expressed in terms of the currently defined IrreducibleUnit
+<div class="viewcode-block" id="UnitBase.irrep"><a class="viewcode-back" href="../../pynbody.html#pynbody.units.UnitBase.irrep">[docs]</a>        expressed in terms of the currently defined IrreducibleUnit
         instances."""
         return self
 
@@ -544,7 +544,7 @@ class CompositeUnit(UnitBase) :
 
 def Unit(s) :
     """Class factory for units. Given a string s, creates
-<div class="viewcode-block" id="Unit"><a class="viewcode-back" href="../../index.html#pynbody.units.Unit">[docs]</a>    a Unit object.
+<div class="viewcode-block" id="Unit"><a class="viewcode-back" href="../../pynbody.html#pynbody.units.Unit">[docs]</a>    a Unit object.
 
     The string format is:
       [&lt;scale&gt;] [&lt;unit_name&gt;][**&lt;rational_power&gt;] [[&lt;unit_name&gt;] ... ]
@@ -693,7 +693,7 @@ for a_,b_ in config_parser.items("default-array-dimensions") :
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

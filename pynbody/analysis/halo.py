@@ -1,3 +1,13 @@
+"""
+
+halo
+====
+
+Functions for dealing with and manipulating halos in simulations.
+
+
+"""
+
 from .. import filt, util, config
 from . import cosmology
 import numpy as np
@@ -5,7 +15,11 @@ import math
 
 
 def center_of_mass(sim) : 
-    """Return the centre of mass of the SimSnap"""
+    """
+
+    Return the centre of mass of the SimSnap
+
+    """
     mtot = sim["mass"].sum()
     p = np.sum(sim["mass"]*sim["pos"].transpose(), axis=1)/mtot
     v = np.sum(sim["mass"]*sim["vel"].transpose(), axis=1)/mtot
@@ -15,8 +29,12 @@ def center_of_mass(sim) :
     return p # only return position to be consistent with other functions in halo.py
 
 def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
-    """Return the center according to the shrinking-sphere method
-    of Power et al (2003)"""
+    """
+    
+    Return the center according to the shrinking-sphere method of
+    Power et al (2003)
+    
+    """
     x = sim
 
     if r is None :
@@ -33,11 +51,15 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     return com
 
 def virial_radius(sim, cen=(0,0,0), overden=178, r_max=None) :
-    """Calculate the virial radius of the halo centerd on the given
+    """
+    
+    Calculate the virial radius of the halo centerd on the given
     coordinates.
 
-    This is here defined by the sphere centerd on cen which contains a mean
-    density of overden * rho_c_0 * (1+z)^3. """
+    This is here defined by the sphere centerd on cen which contains a
+    mean density of overden * rho_c_0 * (1+z)^3.
+
+    """
 
     if r_max is None :
         r_max = (sim["x"].max()-sim["x"].min())
@@ -60,9 +82,12 @@ def potential_minimum(sim) :
     return sim["pos"][i].copy()
 
 def hybrid_center(sim, r='3 kpc', **kwargs) :
-    """Determine the center of the halo by finding the
-    shrink-sphere -center inside the specified distance
-    of the potential minimum"""
+    """
+
+    Determine the center of the halo by finding the shrink-sphere
+    -center inside the specified distance of the potential minimum
+
+    """
 
     try:
         cen_a = potential_minimum(sim)
@@ -71,7 +96,12 @@ def hybrid_center(sim, r='3 kpc', **kwargs) :
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
 def index_center(sim, **kwargs) :
-    """Determine the center of mass based on specific particles"""
+    """
+
+    Determine the center of mass based on specific particles
+
+    """
+
     if 'ind' in kwargs :
         ind = kwargs['ind']
         return center_of_mass(sim[ind])
@@ -80,18 +110,31 @@ def index_center(sim, **kwargs) :
     
 
 def center(sim, mode=None, retcen=False, **kwargs) :
-    """Determine the center of mass using the specified mode
-    and recenter the particles accordingly
+    """
 
-    Accepted values for mode are
-      'pot': potential minimum
-      'com': center of mass
-      'ssc': shrink sphere center
-      'ind': center on specific particles
+    Determine the center of mass using the specified mode and recenter
+    the particles accordingly
+
+    Accepted values for *mode* are
+
+      *pot*: potential minimum
+
+      *com*: center of mass
+
+      *ssc*: shrink sphere center
+
+      *ind*: center on specific particles
+    
     or a function returning the COM.
 
-    retcen: if True only return the center without centering
-            the snapshot (default = False)
+    **Other keywords:**
+
+    *retcen*: if True only return the center without centering the
+     snapshot (default = False)
+
+    *ind*: only used when *mode=ind* -- specifies the indices of
+     particles to be used for centering
+
     """
 
     global config

@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pynbody'
-copyright = u'2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed'
+copyright = u'2011, pynbody team (http://code.google.com/p/pynbody/people/list)'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -180,7 +180,7 @@ htmlhelp_basename = 'pynbodydoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'pynbody.tex', u'pynbody Documentation',
-   u'Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed', 'manual'),
+   u'pynbody team (http://code.google.com/p/pynbody/people/list)', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -213,5 +213,5 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'pynbody', u'pynbody Documentation',
-     [u'Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed'], 1)
+     [u'pynbody team (http://code.google.com/p/pynbody/people/list)'], 1)
 ]

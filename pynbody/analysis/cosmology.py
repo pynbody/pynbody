@@ -1,3 +1,12 @@
+"""
+
+cosmology
+=========
+
+A set of functions for common cosmological calculations. 
+
+"""
+
 import math, numpy as np
 numpy=np ## alias the alias 
 from .. import units

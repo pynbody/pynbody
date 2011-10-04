@@ -65,34 +65,34 @@
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">vr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Radial velocity&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="vr"><a class="viewcode-back" href="../../index.html#pynbody.derived.vr">[docs]</a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">]</span>
+<div class="viewcode-block" id="vr"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.vr">[docs]</a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">]</span>
 
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">v2</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Squared velocity&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="v2"><a class="viewcode-back" href="../../index.html#pynbody.derived.v2">[docs]</a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="viewcode-block" id="v2"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.v2">[docs]</a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">vt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Tangential velocity&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="vt"><a class="viewcode-back" href="../../index.html#pynbody.derived.vt">[docs]</a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;v2&#39;</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vr&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<div class="viewcode-block" id="vt"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.vt">[docs]</a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;v2&#39;</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vr&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
 
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">ke</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Specific kinetic energy&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="ke"><a class="viewcode-back" href="../../index.html#pynbody.derived.ke">[docs]</a>    <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="viewcode-block" id="ke"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.ke">[docs]</a>    <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">te</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Specific total energy&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="te"><a class="viewcode-back" href="../../index.html#pynbody.derived.te">[docs]</a>    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span><span class="o">+</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
+<div class="viewcode-block" id="te"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.te">[docs]</a>    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span><span class="o">+</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">j</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
     <span class="sd">&quot;&quot;&quot;Specific angular momentum&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="j"><a class="viewcode-back" href="../../index.html#pynbody.derived.j">[docs]</a>    <span class="n">angmom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
+<div class="viewcode-block" id="j"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.j">[docs]</a>    <span class="n">angmom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
     <span class="n">angmom</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
     <span class="k">return</span> <span class="n">angmom</span>
 
@@ -259,17 +259,17 @@
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
 	<span class="sd">&quot;&quot;&quot;Angle from the z axis, from [0:2pi]&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="theta"><a class="viewcode-back" href="../../index.html#pynbody.derived.theta">[docs]</a>	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="theta"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.theta">[docs]</a>	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">alt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
 	<span class="sd">&quot;&quot;&quot;Angle from the horizon, from [-pi/2:pi/2]&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="alt"><a class="viewcode-back" href="../../index.html#pynbody.derived.alt">[docs]</a>	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">]</span>
+<div class="viewcode-block" id="alt"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.alt">[docs]</a>	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">]</span>
 
 <span class="nd">@SimSnap.derived_quantity</span>
 <span class="k">def</span> <span class="nf">az</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
 	<span class="sd">&quot;&quot;&quot;Angle in the xy plane from the x axis, from [-pi:pi]&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="az"><a class="viewcode-back" href="../../index.html#pynbody.derived.az">[docs]</a>	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">],</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="az"><a class="viewcode-back" href="../../pynbody.html#pynbody.derived.az">[docs]</a>	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">],</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">])</span>
 </pre></div></div>
 
           </div>
@@ -309,7 +309,7 @@
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

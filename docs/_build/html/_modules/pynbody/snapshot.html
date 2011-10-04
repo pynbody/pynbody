@@ -66,7 +66,7 @@
             
 <span class="k">class</span> <span class="nc">SimSnap</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;The basic holder of data for a single simulation snapshot.</span>
-<div class="viewcode-block" id="SimSnap"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap">[docs]</a>
+<div class="viewcode-block" id="SimSnap"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap">[docs]</a>
 <span class="sd">    Should be initialized indirectly using pynbody.load.</span>
 <span class="sd">    </span>
 <span class="sd">    N.B. SimSnap is not thread-safe (when the derived-array system is</span>
@@ -213,7 +213,7 @@
 
     <span class="k">def</span> <span class="nf">halos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Tries to instantiate a halo catalogue object for the given</span>
-<div class="viewcode-block" id="SimSnap.halos"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.halos">[docs]</a><span class="sd">        snapshot, using the first available method.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.halos"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.halos">[docs]</a><span class="sd">        snapshot, using the first available method.&quot;&quot;&quot;</span>
 
         <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">halo</span>
         
@@ -228,7 +228,7 @@
 
     <span class="k">def</span> <span class="nf">is_ancestor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns true if other is a subview of self&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.is_ancestor"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.is_ancestor">[docs]</a>
+<div class="viewcode-block" id="SimSnap.is_ancestor"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.is_ancestor">[docs]</a>
         <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="bp">self</span> <span class="p">:</span>
             <span class="k">return</span> <span class="bp">True</span>
         <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span><span class="s">&#39;base&#39;</span><span class="p">)</span> <span class="p">:</span>
@@ -238,7 +238,7 @@
 
     <span class="k">def</span> <span class="nf">is_descendant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns true if self is a subview of other&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.is_descendant"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.is_descendant">[docs]</a>        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">is_ancestor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+<div class="viewcode-block" id="SimSnap.is_descendant"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.is_descendant">[docs]</a>        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">is_ancestor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ancestor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span></div>
@@ -266,7 +266,7 @@
 	    
     <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns the set intersection of this simulation view with another view</span>
-<div class="viewcode-block" id="SimSnap.intersect"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.intersect">[docs]</a><span class="sd">        of the same simulation&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.intersect"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.intersect">[docs]</a><span class="sd">        of the same simulation&quot;&quot;&quot;</span>
 
         <span class="n">anc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">anc</span><span class="o">.</span><span class="n">is_ancestor</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="p">:</span>
@@ -278,13 +278,13 @@
 
     <span class="k">def</span> <span class="nf">union</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns the set union of this simulation view with another view</span></div>
-<div class="viewcode-block" id="SimSnap.union"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.union">[docs]</a><span class="sd">        of the same simulation&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.union"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.union">[docs]</a><span class="sd">        of the same simulation&quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">union1d</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">setdiff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns the set difference of this simulation view with another view</span></div>
-<div class="viewcode-block" id="SimSnap.setdiff"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.setdiff">[docs]</a><span class="sd">        of the same simulation&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.setdiff"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.setdiff">[docs]</a><span class="sd">        of the same simulation&quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">)</span>
 
@@ -306,7 +306,7 @@
 
     <span class="k">def</span> <span class="nf">original_units</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Converts all array&#39;s units to be consistent with the units of</span>
-<div class="viewcode-block" id="SimSnap.original_units"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.original_units">[docs]</a><span class="sd">        the original file.</span>
+<div class="viewcode-block" id="SimSnap.original_units"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.original_units">[docs]</a><span class="sd">        the original file.</span>
 
 <span class="sd">        If verbose is True, the conversions are printed.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">physical_units</span><span class="p">(</span><span class="n">distance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="s">&#39;km&#39;</span><span class="p">),</span>
@@ -315,7 +315,7 @@
 
     <span class="k">def</span> <span class="nf">physical_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="s">&#39;kpc&#39;</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="s">&#39;km s^-1&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="s">&#39;Msol&#39;</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Converts all array&#39;s units to be consistent with the</span></div>
-<div class="viewcode-block" id="SimSnap.physical_units"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.physical_units">[docs]</a><span class="sd">        distance, velocity, mass basis units specified.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.physical_units"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.physical_units">[docs]</a><span class="sd">        distance, velocity, mass basis units specified.&quot;&quot;&quot;</span>
 
         <span class="k">global</span> <span class="n">config</span>
 
@@ -421,26 +421,26 @@
 
     <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Return the directly accessible array names (in memory)&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="SimSnap.keys"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.keys">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="viewcode-block" id="SimSnap.keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.keys">[docs]</a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">has_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns True if the array name is accessible (in memory)&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.has_key"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.has_key">[docs]</a>        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="viewcode-block" id="SimSnap.has_key"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.has_key">[docs]</a>        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">has_family_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns True if the array name is accessible (in memory) for at least one family&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.has_family_key"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.has_family_key">[docs]</a>        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">()</span>
+<div class="viewcode-block" id="SimSnap.has_family_key"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.has_family_key">[docs]</a>        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">()</span>
     
     <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of the actual arrays in memory&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.values"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.values">[docs]</a>        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="viewcode-block" id="SimSnap.values"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.values">[docs]</a>        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span>
             <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">x</span>
 
     <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of tuples describing the array</span></div>
-<div class="viewcode-block" id="SimSnap.items"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.items">[docs]</a><span class="sd">        names and their contents in memory&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.items"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.items">[docs]</a><span class="sd">        names and their contents in memory&quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span>
             <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
@@ -448,7 +448,7 @@
 
     <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Standard python get method, returns self[key] if</span></div>
-<div class="viewcode-block" id="SimSnap.get"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.get">[docs]</a><span class="sd">        key in self else alternative&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.get"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.get">[docs]</a><span class="sd">        key in self else alternative&quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
@@ -473,7 +473,7 @@
 
     <span class="k">def</span> <span class="nf">families</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Return the particle families which have representitives in this SimSnap.&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="SimSnap.families"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.families">[docs]</a>        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="viewcode-block" id="SimSnap.families"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.families">[docs]</a>        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">fam</span> <span class="ow">in</span> <span class="n">family</span><span class="o">.</span><span class="n">_registry</span> <span class="p">:</span>
             <span class="n">sl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">sl</span><span class="o">.</span><span class="n">start</span><span class="o">!=</span><span class="n">sl</span><span class="o">.</span><span class="n">stop</span> <span class="p">:</span>
@@ -482,7 +482,7 @@
 
     <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">ortho_tol</span><span class="o">=</span><span class="mf">1.e-8</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Transforms the snapshot according to the 3x3 matrix given.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.transform"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.transform">[docs]</a>
+<div class="viewcode-block" id="SimSnap.transform"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.transform">[docs]</a>
         <span class="c"># Check that the matrix is orthogonal</span>
         <span class="n">resid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">resid</span> <span class="o">=</span> <span class="p">(</span><span class="n">resid</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
@@ -497,21 +497,21 @@
 
     <span class="k">def</span> <span class="nf">rotate_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Rotates the snapshot about the current x-axis by &#39;angle&#39; degrees.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.rotate_x"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.rotate_x">[docs]</a>        <span class="n">angle</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
+<div class="viewcode-block" id="SimSnap.rotate_x"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.rotate_x">[docs]</a>        <span class="n">angle</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span>      <span class="mi">0</span><span class="p">,</span>             <span class="mi">0</span><span class="p">],</span>
                                   <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
                                   <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>  <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)]]))</span>
 
     <span class="k">def</span> <span class="nf">rotate_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Rotates the snapshot about the current y-axis by &#39;angle&#39; degrees.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.rotate_y"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.rotate_y">[docs]</a>        <span class="n">angle</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
+<div class="viewcode-block" id="SimSnap.rotate_y"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.rotate_y">[docs]</a>        <span class="n">angle</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>    <span class="mi">0</span><span class="p">,</span>   <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
                                   <span class="p">[</span><span class="mi">0</span><span class="p">,</span>                <span class="mi">1</span><span class="p">,</span>        <span class="mi">0</span>       <span class="p">],</span>
                                   <span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>   <span class="mi">0</span><span class="p">,</span>   <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)]]))</span>
 
     <span class="k">def</span> <span class="nf">rotate_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Rotates the snapshot about the current z-axis by &#39;angle&#39; degrees.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.rotate_z"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.rotate_z">[docs]</a>        <span class="n">angle</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
+<div class="viewcode-block" id="SimSnap.rotate_z"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.rotate_z">[docs]</a>        <span class="n">angle</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span>
                                   <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>  <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span>
                                   <span class="p">[</span>      <span class="mi">0</span><span class="p">,</span>             <span class="mi">0</span><span class="p">,</span>        <span class="mi">1</span><span class="p">]]))</span>
@@ -519,7 +519,7 @@
 
     <span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boxsize</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Wraps the positions of the particles in the box to lie between</span></div>
-<div class="viewcode-block" id="SimSnap.wrap"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.wrap">[docs]</a><span class="sd">        [-boxsize/2, boxsize/2].</span>
+<div class="viewcode-block" id="SimSnap.wrap"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.wrap">[docs]</a><span class="sd">        [-boxsize/2, boxsize/2].</span>
 
 <span class="sd">        If no boxsize is specified, self.properties[&quot;boxsize&quot;] is used.&quot;&quot;&quot;</span>
 
@@ -665,7 +665,7 @@
 
     <span class="k">def</span> <span class="nf">assert_consistent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Consistency checks, currently just checks that the length of all</span>
-<div class="viewcode-block" id="SimSnap.assert_consistent"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.assert_consistent">[docs]</a><span class="sd">        stored arrays is consistent.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.assert_consistent"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.assert_consistent">[docs]</a><span class="sd">        stored arrays is consistent.&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">array_name</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
@@ -732,7 +732,7 @@
         
     <span class="k">def</span> <span class="nf">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Return list of arrays which are not accessible from this</span>
-<div class="viewcode-block" id="SimSnap.family_keys"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.family_keys">[docs]</a><span class="sd">        view, but can be accessed from family-specific sub-views.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.family_keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.family_keys">[docs]</a><span class="sd">        view, but can be accessed from family-specific sub-views.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span> <span class="k">if</span> <span class="n">fam</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">x</span><span class="p">]]</span>
         <span class="k">else</span> <span class="p">:</span>
@@ -748,7 +748,7 @@
     
     <span class="k">def</span> <span class="nf">derivable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of arrays which can be lazy-evaluated.&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="SimSnap.derivable_keys"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.derivable_keys">[docs]</a>        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="viewcode-block" id="SimSnap.derivable_keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.derivable_keys">[docs]</a>        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">cl</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__mro__</span> <span class="p">:</span>
             <span class="k">if</span> <span class="n">cl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span> <span class="p">:</span>
                 <span class="n">res</span><span class="o">+=</span><span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
@@ -756,12 +756,12 @@
 
     <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of arrays which can be lazy-loaded from </span></div>
-<div class="viewcode-block" id="SimSnap.loadable_keys"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.loadable_keys">[docs]</a><span class="sd">        an auxiliary file.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.loadable_keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.loadable_keys">[docs]</a><span class="sd">        an auxiliary file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[]</span>
         
     <span class="k">def</span> <span class="nf">all_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of all arrays that can be either lazy-evaluated</span></div>
-<div class="viewcode-block" id="SimSnap.all_keys"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.all_keys">[docs]</a><span class="sd">        or lazy loaded from an auxiliary file.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.all_keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.all_keys">[docs]</a><span class="sd">        or lazy loaded from an auxiliary file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
 
 
@@ -843,7 +843,7 @@
 
     <span class="k">def</span> <span class="nf">is_derived_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns True if the array or family array of given name is</span>
-<div class="viewcode-block" id="SimSnap.is_derived_array"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.is_derived_array">[docs]</a><span class="sd">        auto-derived (and therefore read-only).&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.is_derived_array"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.is_derived_array">[docs]</a><span class="sd">        auto-derived (and therefore read-only).&quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_array_track</span>
     
@@ -856,7 +856,7 @@
 
     <span class="k">def</span> <span class="nf">unlink_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;If the named array is auto-derived, this destroys the link so that</span></div>
-<div class="viewcode-block" id="SimSnap.unlink_array"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.unlink_array">[docs]</a><span class="sd">        the array becomes editable but no longer auto-updates.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SimSnap.unlink_array"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.unlink_array">[docs]</a><span class="sd">        the array becomes editable but no longer auto-updates.&quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_array_track</span> <span class="p">:</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_array_track</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_derived_array_track</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span>
@@ -865,7 +865,7 @@
         
     <span class="k">def</span> <span class="nf">mean_by_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Calculate the mean by mass of the specified array&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="SimSnap.mean_by_mass"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SimSnap.mean_by_mass">[docs]</a>        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">])</span>
+<div class="viewcode-block" id="SimSnap.mean_by_mass"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SimSnap.mean_by_mass">[docs]</a>        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">])</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">*</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">m</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 
     <span class="c"># Methods for snapshot decoration</span>
@@ -975,7 +975,7 @@
 
 <span class="k">class</span> <span class="nc">SubSnap</span><span class="p">(</span><span class="n">SimSnap</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Represent a sub-view of a SimSnap, initialized by specifying a</span>
-<div class="viewcode-block" id="SubSnap"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.SubSnap">[docs]</a><span class="sd">    slice.  Arrays accessed through __getitem__ are automatically</span>
+<div class="viewcode-block" id="SubSnap"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.SubSnap">[docs]</a><span class="sd">    slice.  Arrays accessed through __getitem__ are automatically</span>
 <span class="sd">    sub-viewed using the given slice.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">_slice</span><span class="p">)</span> <span class="p">:</span>
@@ -1129,7 +1129,7 @@
 
 <span class="k">class</span> <span class="nc">IndexedSubSnap</span><span class="p">(</span><span class="n">SubSnap</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Represents a subset of the simulation particles according</span></div>
-<div class="viewcode-block" id="IndexedSubSnap"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.IndexedSubSnap">[docs]</a><span class="sd">    to an index array.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="IndexedSubSnap"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.IndexedSubSnap">[docs]</a><span class="sd">    to an index array.&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">index_array</span><span class="p">)</span> <span class="p">:</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;indexed&quot;</span>
@@ -1195,7 +1195,7 @@
 
 <span class="k">class</span> <span class="nc">FamilySubSnap</span><span class="p">(</span><span class="n">SubSnap</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Represents a one-family portion of a parent snap object&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="FamilySubSnap"><a class="viewcode-back" href="../../index.html#pynbody.snapshot.FamilySubSnap">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="FamilySubSnap"><a class="viewcode-back" href="../../pynbody.html#pynbody.snapshot.FamilySubSnap">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span> <span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">properties</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lazy_off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">lazy_off</span>
@@ -1345,7 +1345,7 @@
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

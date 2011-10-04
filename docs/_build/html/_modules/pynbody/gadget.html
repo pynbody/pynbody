@@ -105,7 +105,7 @@
 
 <span class="k">class</span> <span class="nc">GadgetBlock</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Class to describe each block.</span>
-<div class="viewcode-block" id="GadgetBlock"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetBlock">[docs]</a><span class="sd">    Each block has a start, a length, and a length-per-particle&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetBlock"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetBlock">[docs]</a><span class="sd">    Each block has a start, a length, and a length-per-particle&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">partlen</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span><span class="n">p_types</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">))</span> <span class="p">:</span>
         <span class="c">#Start of block in file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">=</span><span class="n">start</span>
@@ -163,7 +163,7 @@
     
 <span class="k">class</span> <span class="nc">GadgetHeader</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Describes the header of gadget class files; this is all our metadata, so we are going to store it inline&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="GadgetHeader"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetHeader">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">npart</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">redshift</span><span class="p">,</span> <span class="n">BoxSize</span><span class="p">,</span><span class="n">Omega0</span><span class="p">,</span> <span class="n">OmegaLambda</span><span class="p">,</span> <span class="n">HubbleParam</span><span class="p">,</span> <span class="n">num_files</span><span class="o">=</span><span class="mi">1</span> <span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="GadgetHeader"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetHeader">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">npart</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">redshift</span><span class="p">,</span> <span class="n">BoxSize</span><span class="p">,</span><span class="n">Omega0</span><span class="p">,</span> <span class="n">OmegaLambda</span><span class="p">,</span> <span class="n">HubbleParam</span><span class="p">,</span> <span class="n">num_files</span><span class="o">=</span><span class="mi">1</span> <span class="p">)</span> <span class="p">:</span>
         <span class="s">&quot;Construct a header from values, instead of a datastring.&quot;&quot;&quot;</span>
         <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span>
         <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">npart</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span>
@@ -222,7 +222,7 @@
     
     <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;This takes the header structure and returns it as a packed string&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="GadgetHeader.serialize"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetHeader.serialize">[docs]</a>        <span class="n">fmt</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&quot;IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif&quot;</span>
+<div class="viewcode-block" id="GadgetHeader.serialize"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetHeader.serialize">[docs]</a>        <span class="n">fmt</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&quot;IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif&quot;</span>
         <span class="c">#Do not attempt to include padding in the serialised data; the most common use of serialise </span>
         <span class="c">#is to write to a file and we don&#39;t want to overwrite extra data that might be present</span>
         <span class="k">if</span> <span class="n">struct</span><span class="o">.</span><span class="n">calcsize</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">256</span><span class="o">-</span><span class="mi">48</span><span class="p">:</span>
@@ -242,7 +242,7 @@
 
 <span class="k">class</span> <span class="nc">GadgetFile</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;This is a helper class.</span></div></div>
-<div class="viewcode-block" id="GadgetFile"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile">[docs]</a><span class="sd">    Should only be called by GadgetSnap.</span>
+<div class="viewcode-block" id="GadgetFile"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile">[docs]</a><span class="sd">    Should only be called by GadgetSnap.</span>
 <span class="sd">    Contains the block location dictionary for each file.</span>
 <span class="sd">    To read Gadget 1 format files, use the gadget-1-blocks config entry&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span> <span class="p">:</span>
@@ -331,7 +331,7 @@
 
     <span class="k">def</span> <span class="nf">get_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">block</span><span class="p">,</span> <span class="n">npart</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Set up the particle types in the block, with a heuristic,</span>
-<div class="viewcode-block" id="GadgetFile.get_block_types"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.get_block_types">[docs]</a><span class="sd">        which assumes that blocks are either fully present or not for a given particle type&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetFile.get_block_types"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block_types">[docs]</a><span class="sd">        which assumes that blocks are either fully present or not for a given particle type&quot;&quot;&quot;</span>
         <span class="c">#This function is horrible.</span>
         <span class="n">p_types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="n">npart</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span><span class="p">:</span>
@@ -378,7 +378,7 @@
 
     <span class="k">def</span> <span class="nf">check_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This function reads the first character of a file and, depending on its value, determines</span></div>
-<div class="viewcode-block" id="GadgetFile.check_format"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.check_format">[docs]</a><span class="sd">        whether we have a format 1 or 2 file, and whether the endianness is swapped. For the endianness,</span>
+<div class="viewcode-block" id="GadgetFile.check_format"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.check_format">[docs]</a><span class="sd">        whether we have a format 1 or 2 file, and whether the endianness is swapped. For the endianness,</span>
 <span class="sd">        it then determines the correct byteorder string to pass to struct.unpack. There is not string</span>
 <span class="sd">        for &#39;not native&#39;, so this is more complex than it needs to be&quot;&quot;&quot;</span>
         <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
@@ -408,7 +408,7 @@
 
     <span class="k">def</span> <span class="nf">read_block_foot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Unpacks the block footer, into a single integer&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.read_block_foot"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.read_block_foot">[docs]</a>        <span class="n">record_size</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<div class="viewcode-block" id="GadgetFile.read_block_foot"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.read_block_foot">[docs]</a>        <span class="n">record_size</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record_size</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span> <span class="p">:</span>
             <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Could not read block footer&quot;</span>
         <span class="p">(</span><span class="n">record_size</span><span class="p">,)</span><span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I&#39;</span><span class="p">,</span><span class="n">record_size</span><span class="p">)</span>
@@ -417,7 +417,7 @@
 
     <span class="k">def</span> <span class="nf">read_block_head</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Read the Gadget 2 &quot;block header&quot; record, ie, 8 name, length, 8.</span></div>
-<div class="viewcode-block" id="GadgetFile.read_block_head"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.read_block_head">[docs]</a><span class="sd">           Takes an open file and returns a (name, length) tuple &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetFile.read_block_head"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.read_block_head">[docs]</a><span class="sd">           Takes an open file and returns a (name, length) tuple &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="p">:</span>
             <span class="n">head</span><span class="o">=</span><span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="mi">4</span><span class="p">)</span>
             <span class="c">#If we have run out of file, we don&#39;t want an exception,</span>
@@ -446,7 +446,7 @@
 
     <span class="k">def</span> <span class="nf">get_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">,</span> <span class="n">p_toread</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get a particle range from this file, starting at p_start,</span></div>
-<div class="viewcode-block" id="GadgetFile.get_block"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.get_block">[docs]</a><span class="sd">        and reading a maximum of p_toread particles&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetFile.get_block"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block">[docs]</a><span class="sd">        and reading a maximum of p_toread particles&quot;&quot;&quot;</span>
         <span class="n">p_read</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span>
@@ -466,7 +466,7 @@
 
     <span class="k">def</span> <span class="nf">get_block_parts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get the number of particles present in a block in this file&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.get_block_parts"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.get_block_parts">[docs]</a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="GadgetFile.get_block_parts"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block_parts">[docs]</a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
         <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="p">:</span>
@@ -476,7 +476,7 @@
 
     <span class="k">def</span> <span class="nf">get_start_part</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Find particle to skip to before starting, if reading particular type&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.get_start_part"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.get_start_part">[docs]</a>        <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+<div class="viewcode-block" id="GadgetFile.get_start_part"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_start_part">[docs]</a>        <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
         <span class="k">else</span> <span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
@@ -486,7 +486,7 @@
 
     <span class="k">def</span> <span class="nf">get_block_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get the dimensionality of the block, eg, 3 for POS, 1 for most other things&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.get_block_dims"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.get_block_dims">[docs]</a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="GadgetFile.get_block_dims"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block_dims">[docs]</a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
         <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">data_type</span><span class="p">)</span>
@@ -495,7 +495,7 @@
     <span class="c">#The following functions are for writing blocks back to the file</span>
     <span class="k">def</span> <span class="nf">write_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">,</span> <span class="n">big_data</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this file, </span></div>
-<div class="viewcode-block" id="GadgetFile.write_block"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.write_block">[docs]</a><span class="sd">        an exception KeyError is thrown. If there are too many particles, ValueError is thrown. </span>
+<div class="viewcode-block" id="GadgetFile.write_block"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_block">[docs]</a><span class="sd">        an exception KeyError is thrown. If there are too many particles, ValueError is thrown. </span>
 <span class="sd">        big_data contains a reference to the data to be written. Type -1 is all types&quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cur_block</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
@@ -543,7 +543,7 @@
 
     <span class="k">def</span> <span class="nf">add_file_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocksize</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">p_types</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Add a block to the block table at the end of the file. Do not actually write anything&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.add_file_block"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.add_file_block">[docs]</a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="GadgetFile.add_file_block"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.add_file_block">[docs]</a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span><span class="s">&quot;Block &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s">&quot; already present in file. Not adding&quot;</span>
         <span class="k">def</span> <span class="nf">st</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">start</span>
@@ -560,7 +560,7 @@
 
     <span class="k">def</span> <span class="nf">write_block_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocksize</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Create a string for a Gadget-style block header, but do not actually write it, for atomicity.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.write_block_header"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.write_block_header">[docs]</a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format2</span><span class="p">:</span>
+<div class="viewcode-block" id="GadgetFile.write_block_header"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_block_header">[docs]</a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format2</span><span class="p">:</span>
             <span class="c">#This is the block header record, which we want for format two files only</span>
             <span class="n">blkheadsize</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="mi">1</span><span class="p">;</span><span class="c">#1 int and 4 chars</span>
             <span class="n">nextblock</span> <span class="o">=</span> <span class="n">blocksize</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span><span class="p">;</span><span class="c">#Relative location of next block; the extra 2 uints are for storing the headers.</span>
@@ -572,11 +572,11 @@
 
     <span class="k">def</span> <span class="nf">write_block_footer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocksize</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;(Re) write a Gadget-style block footer.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.write_block_footer"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.write_block_footer">[docs]</a>        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I&#39;</span><span class="p">,</span><span class="n">blocksize</span><span class="p">)</span>
+<div class="viewcode-block" id="GadgetFile.write_block_footer"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_block_footer">[docs]</a>        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I&#39;</span><span class="p">,</span><span class="n">blocksize</span><span class="p">)</span>
   
     <span class="k">def</span> <span class="nf">write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">head_in</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written.&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetFile.write_header"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetFile.write_header">[docs]</a>        <span class="c">#Construct new header with the passed header and overwrite npart with the file header. </span>
+<div class="viewcode-block" id="GadgetFile.write_header"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_header">[docs]</a>        <span class="c">#Construct new header with the passed header and overwrite npart with the file header. </span>
         <span class="c">#This has ref. semantics so use copy</span>
         <span class="n">head</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">head_in</span><span class="p">)</span>
         <span class="n">head</span><span class="o">.</span><span class="n">npart</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">)</span>
@@ -605,7 +605,7 @@
 
 <span class="k">class</span> <span class="nc">GadgetWriteFile</span> <span class="p">(</span><span class="n">GadgetFile</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Class for write-only snapshots, as when we are creating a new set of files from, eg, a TipsySnap.</span></div></div>
-<div class="viewcode-block" id="GadgetWriteFile"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetWriteFile">[docs]</a><span class="sd">        Should not be used directly. block_names is a list so we can specify an on-disc ordering.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetWriteFile"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetWriteFile">[docs]</a><span class="sd">        Should not be used directly. block_names is a list so we can specify an on-disc ordering.&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">npart</span><span class="p">,</span> <span class="n">block_names</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">format2</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">=</span><span class="n">header</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
@@ -630,7 +630,7 @@
 
 <span class="k">class</span> <span class="nc">WriteBlock</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Internal structure for passing data around between file and snapshot&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="WriteBlock"><a class="viewcode-back" href="../../index.html#pynbody.gadget.WriteBlock">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">),</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;    &quot;</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="WriteBlock"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.WriteBlock">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">),</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;    &quot;</span><span class="p">)</span> <span class="p">:</span>
         <span class="c">#Bytes per particle in file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">partlen</span><span class="o">=</span><span class="n">partlen</span>
         <span class="c">#Data type of block</span>
@@ -641,7 +641,7 @@
 
 <span class="k">class</span> <span class="nc">GadgetSnap</span><span class="p">(</span><span class="n">snapshot</span><span class="o">.</span><span class="n">SimSnap</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations</span></div>
-<div class="viewcode-block" id="GadgetSnap"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetSnap">[docs]</a><span class="sd">    of the blocks, which are then read by _load_array&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetSnap"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap">[docs]</a><span class="sd">    of the blocks, which are then read by _load_array&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">only_header</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">must_have_paramfile</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="p">:</span>
 
         <span class="k">global</span> <span class="n">config</span>
@@ -719,7 +719,7 @@
     
     <span class="k">def</span> <span class="nf">loadable_family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Return list of arrays which are loadable for specific families, </span>
-<div class="viewcode-block" id="GadgetSnap.loadable_family_keys"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetSnap.loadable_family_keys">[docs]</a><span class="sd">        but not for all families.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetSnap.loadable_family_keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.loadable_family_keys">[docs]</a><span class="sd">        but not for all families.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
             <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_has_loadable_array</span><span class="p">(</span><span class="n">fam</span><span class="p">,</span> <span class="n">x</span><span class="p">)]</span>
         <span class="k">else</span> <span class="p">:</span>
@@ -742,7 +742,7 @@
 
     <span class="k">def</span> <span class="nf">get_block_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get list of unique blocks in snapshot, with the types they refer to&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="GadgetSnap.get_block_list"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetSnap.get_block_list">[docs]</a>        <span class="n">b_list</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="GadgetSnap.get_block_list"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.get_block_list">[docs]</a>        <span class="n">b_list</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">:</span>
             <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="p">:</span>
                 <span class="k">if</span> <span class="n">b_list</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="p">:</span>
@@ -762,7 +762,7 @@
 
     <span class="k">def</span> <span class="nf">get_block_parts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">family</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get the number of particles present in a block, of a given type&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetSnap.get_block_parts"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetSnap.get_block_parts">[docs]</a>        <span class="n">total</span><span class="o">=</span><span class="mi">0</span>
+<div class="viewcode-block" id="GadgetSnap.get_block_parts"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.get_block_parts">[docs]</a>        <span class="n">total</span><span class="o">=</span><span class="mi">0</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">:</span>
             <span class="n">total</span><span class="o">+=</span> <span class="nb">sum</span><span class="p">([</span> <span class="n">f</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">gfam</span><span class="p">)</span> <span class="k">for</span> <span class="n">gfam</span> <span class="ow">in</span> <span class="n">gadget_type</span><span class="p">(</span><span class="n">family</span><span class="p">)])</span>
         <span class="c">#Special-case MASS</span>
@@ -772,7 +772,7 @@
 
     <span class="k">def</span> <span class="nf">check_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">head1</span><span class="p">,</span> <span class="n">head2</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Check two headers for consistency&quot;&quot;&quot;</span></div>
-<div class="viewcode-block" id="GadgetSnap.check_headers"><a class="viewcode-back" href="../../index.html#pynbody.gadget.GadgetSnap.check_headers">[docs]</a>        <span class="k">if</span> <span class="p">(</span> <span class="n">head1</span><span class="o">.</span><span class="n">time</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">time</span> <span class="ow">or</span> <span class="n">head1</span><span class="o">.</span><span class="n">redshift</span><span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">redshift</span> <span class="ow">or</span>
+<div class="viewcode-block" id="GadgetSnap.check_headers"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.check_headers">[docs]</a>        <span class="k">if</span> <span class="p">(</span> <span class="n">head1</span><span class="o">.</span><span class="n">time</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">time</span> <span class="ow">or</span> <span class="n">head1</span><span class="o">.</span><span class="n">redshift</span><span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">redshift</span> <span class="ow">or</span>
            <span class="n">head1</span><span class="o">.</span><span class="n">flag_sfr</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">flag_sfr</span> <span class="ow">or</span>
            <span class="n">head1</span><span class="o">.</span><span class="n">flag_feedback</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">flag_feedback</span> <span class="ow">or</span>
            <span class="n">head1</span><span class="o">.</span><span class="n">num_files</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">num_files</span> <span class="ow">or</span>
@@ -1098,7 +1098,7 @@
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011, Andrew Pontzen, Rok Roskar, Greg Stinson, Tom Quinn, Rory Woods, Jonathan Coles, Simeon Bird, Jo Bovy, Darren Reed.
+        &copy; Copyright 2011, pynbody team (http://code.google.com/p/pynbody/people/list).
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
     </div>
   </body>

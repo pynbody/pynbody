@@ -1,3 +1,10 @@
+"""
+
+phasediagram
+============
+
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import ticker, colors
@@ -8,7 +15,7 @@ def rho_T(sim, nbins=100, nlevels = 20, log=True, clear=True, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
-    Optional keyword arguments:
+    **Optional keywords:**
 
        *t_range*: list, array, or tuple
          size(t_range) must be 2. Specifies the temperature range.

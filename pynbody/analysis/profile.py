@@ -1,3 +1,13 @@
+"""
+
+profile
+=======
+
+A set of classes and functions for making profiles of simulation
+properties.
+
+"""
+
 import numpy as np
 import pynbody
 from .. import family, snapshot, units, array, util
@@ -17,83 +27,96 @@ class Profile:
     generates the bins and figures out which particles belong in which bin.
     Profiles are generated lazy-loaded when a given property is requested.
 
-    Input:
+    **Input**:
 
-    sim : a simulation snapshot - this can be any subclass of SimSnap
+    *sim* : a simulation snapshot - this can be any subclass of SimSnap
 
-    Optional Keywords:
+    **Optional Keywords**:
 
-    ndim (default = 2): specifies whether it's a 2D or 3D profile - in the
+    *ndim* (default = 2): specifies whether it's a 2D or 3D profile - in the
                        2D case, the bins are generated in the xy plane
 
-    type (default = 'lin'): specifies whether bins should be spaced linearly ('lin'),
+    *type* (default = 'lin'): specifies whether bins should be spaced linearly ('lin'),
                             logarithmically ('log') or contain equal numbers of
                             particles ('equaln')
 
-    min (default = min(x)): minimum value to consider
-    max (default = max(x)): maximum value to consider
-    nbins (default = 100): number of bins
+    *min* (default = min(x)): minimum value to consider
+    *max* (default = max(x)): maximum value to consider
+    *nbins* (default = 100): number of bins
 
 
-    Output:
+    **Output**:
 
     a Profile object. To find out which profiles are available, use keys().
    
-    Implemented profile functions:
+    **Implemented profile functions**:
 
-    density    : density
-    mass       : mass in each bin
-    mass_enc   : enclosed mass 
-    fourier    : provides fourier coefficients, amplitude and phase for m=0 to m=6.
-                 To access the amplitude profile of m=2 mode, do
-                 >>> p['fourier']['amp'][2,:]
-    dyntime    : dynamical time
-    g_spherical: GM_enc/r^2
-    rotation_curve_spherical: rotation curve from vc = sqrt(GM/R) - can be very wrong!
-    j_circ     : angular momentum of particles on circular orbits
-    v_cirv     : circular velocity, aka rotation curve - calculated from the midplane
-                 gravity, so this can be expensive
-    E_circ     : energy of particles on circular orbits in the midplane
-    omega      : circular orbital frequency
-    kappa      : radial orbital frequency
-    beta       : 3D velocity anisotropy parameter
-    magnitudes : magnitudes in each bin - default band = 'v' 
-    sb         : surface brightness (default band='v')
+    *density*    : density
+
+    *mass*       : mass in each bin
+
+    *mass_enc*   : enclosed mass 
+
+    *fourier* : provides fourier coefficients, amplitude and phase for
+     m=0 to m=6.  To access the amplitude profile of m=2 mode, do
+     ``p['fourier']['amp'][2,:]``
+
+    *dyntime*    : dynamical time
+
+    *g_spherical*: GM_enc/r^2
+
+    *rotation_curve_spherical*: rotation curve from vc = sqrt(GM/R) - can be very wrong!
+
+    *j_circ*     : angular momentum of particles on circular orbits
+
+    *v_circ* : circular velocity, aka rotation curve - calculated from
+     the midplane gravity, so this can be expensive
+
+    *E_circ*     : energy of particles on circular orbits in the midplane
+
+    *omega*      : circular orbital frequency
+
+    *kappa*      : radial orbital frequency
+
+    *beta*       : 3-D velocity anisotropy parameter
+
+    *magnitudes* : magnitudes in each bin - default band = 'v' 
+
+    *sb*         : surface brightness (default band='v')
     
 
-    Additional functions should use the profile_property to
-    yield the desired profile. 
+    Additional functions should use the profile_property to yield the
+    desired profile.
 
-    Lazy-loading arrays:
-    --------------------
+    **Lazy-loading arrays:** 
+    
     The Profile class will automatically compute a mass-weighted
     profile for any lazy-loadable array of its parent SimSnap object.
 
-    Dispersion:
-    -----------
+    **Dispersions:**
+    
     To obtain a dispersion profile, attach a '_disp' after the desired
     quantity name.
 
-    Derivatives:
-    ------------
-    To compute a derivative of a profile, prepend a "d_" to the profile 
-    string, as in "p['d_temp']" to get a temperature gradient. 
+    **Derivatives:**
+    
+    To compute a derivative of a profile, prepend a "d_" to the
+    profile string, as in "p['d_temp']" to get a temperature gradient.
 
-    Saving and loading previously generated profiles:
-    ------------------------------------------------- 
-    Use the write() function to write the current profiles with
-    all the necessary information to a file. Initialize a profile with
-    the load_from_file=True keyword to automatically load a previously
-    saved profile. The filename is chosen automatically and
-    corresponds to a hash generated from the positions of the
-    particles used in the profile. This is to ensure that you are
-    always looking at the same set of particles, centered in the same
-    way. It also means you *must* use the same centering method if you
-    want to reuse a saved profile.
+    **Saving and loading previously generated profiles:**
+    
+    Use the :func:`~pynbody.analysis.profile.Profile.write` function to
+    write the current profiles with all the necessary information to a
+    file. Initialize a profile with the load_from_file=True keyword to
+    automatically load a previously saved profile. The filename is
+    chosen automatically and corresponds to a hash generated from the
+    positions of the particles used in the profile. This is to ensure
+    that you are always looking at the same set of particles, centered
+    in the same way. It also means you *must* use the same centering
+    method if you want to reuse a saved profile.
 
 
-    Examples:
-    ---------
+    **Examples:**
 
     Density profile of the entire simulation: 
 
@@ -131,6 +154,7 @@ class Profile:
     -1.82734736e+01])
 
     Radial velocity dispersion profile and its gradient:
+
     >>> ps = profile.Profile(s.s, max=15)
     >>> ps['vr_disp']
     SimSnap: deriving array vr
@@ -423,6 +447,21 @@ class Profile:
 
 
     def write(self):
+        """
+        Writes all the vital information of the profile to a file.
+
+        To recover the profile, initialize a profile with the
+        load_from_file=True keyword to automatically load a previously
+        saved profile. The filename is chosen automatically and
+        corresponds to a hash generated from the positions of the
+        particles used in the profile. This is to ensure that you are
+        always looking at the same set of particles, centered in the
+        same way. It also means you *must* use the same centering
+        method if you want to reuse a saved profile.
+
+        
+        """
+
         import pickle
         
         # record all the important data except for the snapshot itself
@@ -669,13 +708,16 @@ def X(self) :
 
 
 class InclinedProfile(Profile) :
-    """Creates a profile object to be used with a snapshot inclined by
+    """
+    
+    Creates a profile object to be used with a snapshot inclined by
     some known angle to the xy plane.
 
-    In addition to the SimSnap object, it also requires the angle to initialize. 
+    In addition to the SimSnap object, it also requires the angle to
+    initialize.
 
-    Example:
-    --------
+    **Example:**
+
     >>> s = pynbody.load('sim')
     >>> pynbody.analysis.angmom.faceon(s)
     >>> s.rotate_x(60)
