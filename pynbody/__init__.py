@@ -21,9 +21,9 @@ What's available
 Pynbody handles Gadget, Gadget-HDF and Tipsy files. To load
 any of these, use
 
-f = pynbody.load(filename)
+>>> f = pynbody.load(filename)
 
-to create a pynbody.snapshot.SimSnap object f, which then acts
+to create a :class:`pynbody.snapshot.SimSnap` object f, which then acts
 as a dictionary holding the arrays inside f. For more information
 see <http://code.google.com/p/pynbody/wiki/BasicTutorial>.
 

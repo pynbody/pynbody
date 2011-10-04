@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pynbody'
-copyright = u'2011, pynbody team (http://code.google.com/p/pynbody/people/list)'
+copyright = u'2011, pynbody team <http://code.google.com/p/pynbody/people/list>)'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
