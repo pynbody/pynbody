@@ -43,8 +43,11 @@ class SimDict(dict) :
 def z(d) :
     if d["a"] is None :
         return None
-    return 1.0/d["a"] -1.0
-
+    try :
+        return 1.0/d["a"] -1.0
+    except ZeroDivisionError :
+        return None
+    
 @SimDict.setter
 def z(d,z) :
     if z is None :
