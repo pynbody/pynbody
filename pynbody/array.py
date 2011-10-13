@@ -152,8 +152,8 @@ class SimArray(np.ndarray) :
 
     @property
     def derived(self) :
-        if self.sim and self._name :
-            return self.sim.is_derived_array(self._name)
+        if self.sim and self.name :
+            return self.sim.is_derived_array(self.name)
         else :
             return False
 
@@ -162,7 +162,7 @@ class SimArray(np.ndarray) :
         if value :
             raise ValueError, "Can only unlink an array. Delete an array to force a rederivation if this is the intended effect."
         if self.derived :
-            self.sim.unlink_array(self._name)
+            self.sim.unlink_array(self.name)
 
     def __reduce__(self) :
         T = np.ndarray.__reduce__(self)
@@ -458,7 +458,7 @@ class SimArray(np.ndarray) :
 
         if self.sim is not None :
             try :
-                self.set_units_like(units._default_units[self._name])
+                self.set_units_like(units._default_units[self.name])
             except (KeyError, units.UnitsException) :
                 if not quiet: raise
         else :
@@ -495,8 +495,8 @@ class SimArray(np.ndarray) :
         """Write this array to disk according to the standard method associated
         with its base file"""
 
-        if self.sim and self._name :
-            self.sim._write_array(self.sim, self._name)
+        if self.sim and self.name :
+            self.sim._write_array(self.sim, self.name)
         else :
             raise RuntimeError, "No link to SimSnap"
 
@@ -507,8 +507,8 @@ class SimArray(np.ndarray) :
 
 def _dirty_fn(w) :
     def q(a, *y, **kw) :
-        if a.sim is not None and a._name is not None :
-            a.sim._dirty(a._name)
+        if a.sim is not None and a.name is not None :
+            a.sim._dirty(a.name)
             
         if kw!={} :
             return w(a, *y, **kw)

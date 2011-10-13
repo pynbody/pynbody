@@ -106,6 +106,7 @@ import numpy as np
 from . import backcompat
 from .backcompat import fractions
 from . import util
+import functools
 
 Fraction = fractions.Fraction
 
@@ -653,6 +654,7 @@ def takes_arg_in_units(*args, **orig_kwargs) :
     args = filter(lambda x: not hasattr(x[0], '__len__'), args)
     
     def decorator_fn(x) :
+        @functools.wraps
         def wrapper_fn(*fn_args, **fn_kwargs) :
             context = {}
             if context_arg is not None :
@@ -677,8 +679,6 @@ def takes_arg_in_units(*args, **orig_kwargs) :
 
             return x(*fn_args, **fn_kwargs)
 
-        wrapper_fn.__name__ = x.__name__
-        wrapper_fn.__doc__ = x.__doc__
         return wrapper_fn
 
     return decorator_fn
