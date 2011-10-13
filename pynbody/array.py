@@ -248,6 +248,12 @@ class SimArray(np.ndarray) :
 
 
     @property
+    def name(self) :
+        if hasattr(self.base, 'name') :
+            return self.base.name
+        return self._name
+
+    @property
     def sim(self) :
         if hasattr(self.base, 'sim') :
             return self.base.sim
