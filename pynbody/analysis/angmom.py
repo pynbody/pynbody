@@ -1,11 +1,24 @@
+"""
+
+angmom
+======
+
+"""
+
 import numpy as np
 from .. import filt, config
 from . import halo
 
 def ang_mom_vec(snap) :
-    """Return the angular momentum vector of the specified snapshot.
+    """
 
-    The return units are [mass]*[dist]*[vel] as per the units of the snapshot."""
+    Return the angular momentum vector of the specified snapshot.
+
+    The return units are [mass]*[dist]*[vel] as per the units of the
+    snapshot.
+
+    """
+    
     angmom = (snap['mass'].reshape((len(snap),1))*np.cross(snap['pos'], snap['vel'])).sum(axis=0).view(np.ndarray)
     return angmom
 
@@ -34,13 +47,17 @@ def calc_faceon_matrix(angmom_vec) :
 
 def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "5 kpc",
            cen = None, vcen=None, top=None ) :
-    """Reposition and rotate the simulation containing the halo h to
-    see h's disk edge on.
+    """
 
-    Given a simulation and a subview of that simulation (probably
-    the halo of interest), this routine centers the simulation and
-    rotates it so that the disk lies in the x-z plane. This gives
-    a side-on view for SPH images, for instance."""
+    Reposition and rotate the simulation containing the halo h to see
+    h's disk edge on.
+
+    Given a simulation and a subview of that simulation (probably the
+    halo of interest), this routine centers the simulation and rotates
+    it so that the disk lies in the x-z plane. This gives a side-on
+    view for SPH images, for instance.
+
+    """
 
     global config
 
@@ -95,12 +112,16 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
 
 
 def faceon(h, **kwargs) :
-    """Reposition and rotate the simulation containing the halo h to
-    see h's disk face on.
+    """
 
-    Given a simulation and a subview of that simulation (probably
-    the halo of interest), this routine centers the simulation and
-    rotates it so that the disk lies in the x-y plane. This gives
-    a face-on view for SPH images, for instance."""
+    Reposition and rotate the simulation containing the halo h to see
+    h's disk face on.
+
+    Given a simulation and a subview of that simulation (probably the
+    halo of interest), this routine centers the simulation and rotates
+    it so that the disk lies in the x-y plane. This gives a face-on
+    view for SPH images, for instance.
+
+    """
 
     sideon(h, calc_faceon_matrix, **kwargs)

@@ -1,3 +1,14 @@
+"""
+
+tipsy
+=====
+
+Implements classes and functions for handling tipsy files.  You rarely
+need to access this module directly as it will be invoked
+automatically via pynbody.load.
+
+"""
+
 from __future__ import with_statement # for py2.5
 
 from . import snapshot, array, util

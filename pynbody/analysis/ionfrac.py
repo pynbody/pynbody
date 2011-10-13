@@ -1,3 +1,12 @@
+""" 
+
+ionfrac
+=======
+
+calculates ionization fractions - NEEDS DOCUMENTATION
+
+"""
+
 import numpy as np
 try :
     import scipy, scipy.weave
@@ -10,6 +19,12 @@ from ..array import SimArray
 from pynbody import config
 
 def calculate(sim,ion='ovi') :
+    """
+
+    calculate -- documentation placeholder
+
+    """
+
     global config
     # ionization fractions calculated for optically thin case with
     # CLOUDY v 10.0.  J. Xavier Prochaska + Joe Hennawi have many 

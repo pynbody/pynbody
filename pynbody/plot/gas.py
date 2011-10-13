@@ -1,3 +1,12 @@
+"""
+
+gas
+===
+
+Functions for plotting gas quantities
+
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
@@ -8,22 +17,23 @@ def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
-    Optional keyword arguments:
+    **Optional keywords:**
 
-       *t_range*: list, array, or tuple
-         size(t_range) must be 2. Specifies the temperature range.
+       *t_range*: list, array, or tuple 
+          ``size(t_range)`` must be 2. Specifies the temperature range.
 
-       *rho_range*: tuple
-         size(rho_range) must be 2. Specifies the density range.
+       *rho_range:* tuple 
+          ``size(rho_range)`` must be 2. Specifies the density range.
 
-       *nbins*: int
-         number of bins to use for the 2D histogram
+       *nbins:* int 
+          number of bins to use for the 2D histogram
 
-       *nlevels*: int
-         number of levels to use for the contours
+       *nlevels:* int 
+          number of levels to use for the contours
 
-       *logscale*: boolean
-         whether to use log or linear spaced contours
+       *logscale:* boolean
+          whether to use log or linear spaced contours
+
     """
     from matplotlib import ticker, colors
 
@@ -55,9 +65,13 @@ def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
 
 def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln', 
                  clear = True, filename=None,**kwargs) :
-    """Centre on potential minimum, align so that the disk is in the
-    x-y plane, then plot the amplitude of the 2nd fourier mode as a 
-    function of radius."""
+    """
+
+    Centre on potential minimum, align so that the disk is in the
+    x-y plane, then plot the temperature profile as a 
+    function of radius.
+
+    """
 
     if center :
         angmom.sideon(sim)

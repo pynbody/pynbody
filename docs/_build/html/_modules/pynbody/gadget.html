@@ -1,0 +1,1104 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.gadget &mdash; pynbody v0.13-alpha documentation</title>
+    <link rel="stylesheet" href="../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.13-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="pynbody v0.13-alpha documentation" href="../../index.html" />
+    <link rel="up" title="pynbody" href="../pynbody.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" accesskey="U">pynbody</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pynbody.gadget</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config_parser</span>
+
+<span class="kn">import</span> <span class="nn">ConfigParser</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="c">#Needed to unpack things</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="kn">as</span> <span class="nn">path</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+
+<span class="c">#This is set here and not in a config file because too many things break </span>
+<span class="c">#if it is not 6</span>
+<span class="n">N_TYPE</span> <span class="o">=</span> <span class="mi">6</span>
+
+<span class="n">_type_map</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">family</span><span class="o">.</span><span class="n">family_names</span><span class="p">()</span> <span class="p">:</span>
+    <span class="k">try</span> <span class="p">:</span>
+        <span class="n">pp</span> <span class="o">=</span>  <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;gadget-type-mapping&#39;</span><span class="p">,</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)]</span>
+        <span class="n">qq</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">qq</span> <span class="o">&gt;=</span> <span class="n">N_TYPE</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">qq</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span><span class="s">&quot;Type specified for family &quot;</span><span class="o">+</span><span class="n">x</span><span class="o">+</span><span class="s">&quot; is out of bounds (&quot;</span><span class="o">+</span><span class="n">pp</span><span class="o">+</span><span class="s">&quot;).&quot;</span> 
+        <span class="n">_type_map</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">get_family</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span> <span class="o">=</span> <span class="n">pp</span>
+    <span class="k">except</span> <span class="n">ConfigParser</span><span class="o">.</span><span class="n">NoOptionError</span> <span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="n">_name_map</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_rev_name_map</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">try</span> <span class="p">:</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="s">&quot;gadget-name-mapping&quot;</span><span class="p">)</span> <span class="p">:</span>
+    <span class="c">#Need to do some changing of the actual specified names, </span>
+    <span class="c">#because not sure how to config_parse things with spaces in them.</span>
+        <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">_rev_name_map</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="n">_name_map</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span>
+<span class="k">except</span> <span class="n">ConfigParser</span><span class="o">.</span><span class="n">NoOptionError</span> <span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="k">def</span> <span class="nf">_translate_array_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">try</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="n">reverse</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="n">_rev_name_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="n">_name_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">name</span>
+    
+<span class="k">def</span> <span class="nf">gadget_type</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">fam</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">))</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">_type_map</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span>
+
+<span class="k">class</span> <span class="nc">GadgetBlock</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class to describe each block.</span>
+<div class="viewcode-block" id="GadgetBlock"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetBlock">[docs]</a><span class="sd">    Each block has a start, a length, and a length-per-particle&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">partlen</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span><span class="n">p_types</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">))</span> <span class="p">:</span>
+        <span class="c">#Start of block in file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">=</span><span class="n">start</span>
+        <span class="c">#Length of block in file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="o">=</span><span class="n">length</span>
+        <span class="c">#Bytes per particle in file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">partlen</span><span class="o">=</span><span class="n">partlen</span>
+        <span class="c">#Data type of block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="c">#Types of particle this block contains</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p_types</span> <span class="o">=</span> <span class="n">p_types</span>
+
+<span class="k">def</span> <span class="nf">_construct_gadget_header</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">endian</span><span class="o">=</span><span class="s">&#39;=&#39;</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;This function exists purely because python does not allow us to overload constructors.</span></div>
+<span class="sd">       Create a GadgetHeader from a byte range read from a file.&quot;&quot;&quot;</span>
+    <span class="n">npart</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+    <span class="n">mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">)</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="n">redshift</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="n">npartTotal</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">num_files</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">BoxSize</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">Omega0</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">OmegaLambda</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">HubbleParam</span><span class="o">=</span><span class="mf">0.</span>
+    <span class="n">NallHW</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">fmt</span><span class="o">=</span> <span class="n">endian</span><span class="o">+</span><span class="s">&quot;IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif48s&quot;</span>
+    <span class="k">if</span> <span class="n">struct</span><span class="o">.</span><span class="n">calcsize</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">256</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">,</span> <span class="s">&quot;There is a bug in gadget.py; the header format string is not 256 bytes&quot;</span>
+    <span class="p">(</span><span class="n">npart</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">npart</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">npart</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">npart</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">npart</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">npart</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+    <span class="n">mass</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mass</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">mass</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">mass</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">mass</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">mass</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+    <span class="n">time</span><span class="p">,</span> <span class="n">redshift</span><span class="p">,</span>  <span class="n">flag_sfr</span><span class="p">,</span> <span class="n">flag_feedback</span><span class="p">,</span>
+    <span class="n">npartTotal</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">npartTotal</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+    <span class="n">flag_cooling</span><span class="p">,</span> <span class="n">num_files</span><span class="p">,</span> <span class="n">BoxSize</span><span class="p">,</span> <span class="n">Omega0</span><span class="p">,</span> <span class="n">OmegaLambda</span><span class="p">,</span> <span class="n">HubbleParam</span><span class="p">,</span><span class="n">flag_stellarage</span><span class="p">,</span> <span class="n">flag_metals</span><span class="p">,</span>
+    <span class="n">NallHW</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">NallHW</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+    <span class="n">flag_entropy_instead_u</span><span class="p">,</span> <span class="n">flag_doubleprecision</span><span class="p">,</span> <span class="n">flag_ic_info</span><span class="p">,</span> <span class="n">lpt_scalingfactor</span><span class="p">,</span><span class="n">fill</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="n">header</span><span class="o">=</span><span class="n">GadgetHeader</span><span class="p">(</span><span class="n">npart</span><span class="p">,</span><span class="n">mass</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">redshift</span><span class="p">,</span><span class="n">BoxSize</span><span class="p">,</span><span class="n">Omega0</span><span class="p">,</span><span class="n">OmegaLambda</span><span class="p">,</span><span class="n">HubbleParam</span><span class="p">,</span><span class="n">num_files</span><span class="p">)</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_sfr</span><span class="o">=</span><span class="n">flag_sfr</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_feedback</span><span class="o">=</span><span class="n">flag_feedback</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">npartTotal</span><span class="o">=</span><span class="n">npartTotal</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_cooling</span><span class="o">=</span><span class="n">flag_cooling</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_stellarage</span><span class="o">=</span><span class="n">flag_stellarage</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_metals</span><span class="o">=</span><span class="n">flag_metals</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">NallHW</span><span class="o">=</span><span class="n">NallHW</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_entropy_instead_u</span><span class="o">=</span><span class="n">flag_entropy_instead_u</span>       
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_doubleprecision</span><span class="o">=</span><span class="n">flag_doubleprecision</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">flag_ic_info</span><span class="o">=</span><span class="n">flag_ic_info</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">lpt_scalingfactor</span><span class="o">=</span><span class="n">lpt_scalingfactor</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">endian</span><span class="o">=</span><span class="n">endian</span>
+
+    <span class="k">return</span> <span class="n">header</span>
+    
+<span class="k">class</span> <span class="nc">GadgetHeader</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Describes the header of gadget class files; this is all our metadata, so we are going to store it inline&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetHeader"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetHeader">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">npart</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">redshift</span><span class="p">,</span> <span class="n">BoxSize</span><span class="p">,</span><span class="n">Omega0</span><span class="p">,</span> <span class="n">OmegaLambda</span><span class="p">,</span> <span class="n">HubbleParam</span><span class="p">,</span> <span class="n">num_files</span><span class="o">=</span><span class="mi">1</span> <span class="p">)</span> <span class="p">:</span>
+        <span class="s">&quot;Construct a header from values, instead of a datastring.&quot;&quot;&quot;</span>
+        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span>
+        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">npart</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span>
+        <span class="c"># Mass of each particle type in this file. If zero,</span>
+        <span class="c"># particle mass stored in snapshot.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">mass</span>
+        <span class="c"># Time of snapshot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">time</span>
+        <span class="c"># Redshift of snapshot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">redshift</span> <span class="o">=</span> <span class="n">redshift</span>
+        <span class="c"># Boolean to test the presence of star formation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_sfr</span><span class="o">=</span><span class="bp">False</span>
+        <span class="c"># Boolean to test the presence of feedback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_feedback</span><span class="o">=</span><span class="bp">False</span>
+        <span class="c"># Boolean to test the presence of cooling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_cooling</span><span class="o">=</span><span class="bp">False</span>
+        <span class="c"># Number of files expected in this snapshot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_files</span><span class="o">=</span><span class="n">num_files</span>
+        <span class="c"># Box size of the simulation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">BoxSize</span><span class="o">=</span><span class="n">BoxSize</span>
+        <span class="c"># Omega_Matter. Note this is Omega_DM + Omega_Baryons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Omega0</span><span class="o">=</span><span class="n">Omega0</span>
+        <span class="c"># Dark energy density</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">OmegaLambda</span><span class="o">=</span><span class="n">OmegaLambda</span>
+        <span class="c"># Hubble parameter, in units where it is around 70.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HubbleParam</span><span class="o">=</span><span class="n">HubbleParam</span>
+        <span class="c"># Boolean to test whether stars have an age</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_stellarage</span><span class="o">=</span><span class="bp">False</span>
+        <span class="c"># Boolean to test the presence of metals</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_metals</span><span class="o">=</span><span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_entropy_instead_u</span><span class="o">=</span><span class="bp">False</span>      <span class="c"># flags that IC-file contains entropy instead of u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_doubleprecision</span><span class="o">=</span><span class="bp">False</span>  <span class="c"># flags that snapshot contains double-precision instead of single precision</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_ic_info</span><span class="o">=</span><span class="bp">False</span>
+        <span class="c"># flag to inform whether IC files are generated with Zeldovich approximation,</span>
+        <span class="c"># or whether they contain 2nd order lagrangian perturbation theory ICs.</span>
+        <span class="c">#    FLAG_ZELDOVICH_ICS     (1)   - IC file based on Zeldovich</span>
+        <span class="c">#    FLAG_SECOND_ORDER_ICS  (2)   - Special IC-file containing 2lpt masses</span>
+        <span class="c">#    FLAG_EVOLVED_ZELDOVICH (3)   - snapshot evolved from Zeldovich ICs</span>
+        <span class="c">#    FLAG_EVOLVED_2LPT      (4)   - snapshot evolved from 2lpt ICs</span>
+        <span class="c">#    FLAG_NORMALICS_2LPT    (5)   - standard gadget file format with 2lpt ICs</span>
+        <span class="c"># All other values, including 0 are interpreted as &quot;don&#39;t know&quot; for backwards compatability.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lpt_scalingfactor</span><span class="o">=</span><span class="mf">0.</span>    <span class="c"># scaling factor for 2lpt initial conditions  </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">=</span><span class="s">&quot;&quot;</span>
+        <span class="c">#Number of particles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npart</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">npart</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">npart</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="p">:</span>
+            <span class="c"># First 32-bits of total number of particles in the simulation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">npart</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="c"># Long word of the total number of particles in the simulation.</span>
+            <span class="c"># At least one version of N-GenICs sets this to something entirely different.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">npart</span><span class="o">/</span><span class="mi">2</span><span class="o">**</span><span class="mi">32</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npartTotal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">npart</span> <span class="o">-</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;This takes the header structure and returns it as a packed string&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetHeader.serialize"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetHeader.serialize">[docs]</a>        <span class="n">fmt</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&quot;IIIIIIddddddddiiIIIIIIiiddddiiIIIIIIiiif&quot;</span>
+        <span class="c">#Do not attempt to include padding in the serialised data; the most common use of serialise </span>
+        <span class="c">#is to write to a file and we don&#39;t want to overwrite extra data that might be present</span>
+        <span class="k">if</span> <span class="n">struct</span><span class="o">.</span><span class="n">calcsize</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">256</span><span class="o">-</span><span class="mi">48</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">,</span> <span class="s">&quot;There is a bug in gadget.py; the header format string is not 256 bytes&quot;</span>
+        <span class="c">#WARNING: On at least python 2.6.3 and numpy 1.3.0 on windows, castless code fails with:</span>
+        <span class="c">#SystemError: ..\Objects\longobject.c:336: bad argument to internal function</span>
+        <span class="c">#This is because self.npart, etc, has type np.uint32 and not int.</span>
+        <span class="c">#This is I think a problem with python/numpy, but cast things to ints until I can determine how widespread it is. </span>
+        <span class="n">data</span><span class="o">=</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">redshift</span><span class="p">,</span>  <span class="bp">self</span><span class="o">.</span><span class="n">flag_sfr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flag_feedback</span><span class="p">,</span>
+        <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_cooling</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_files</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">BoxSize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Omega0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">OmegaLambda</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HubbleParam</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">flag_stellarage</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flag_metals</span><span class="p">,</span>
+        <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NallHW</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_entropy_instead_u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flag_doubleprecision</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flag_ic_info</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lpt_scalingfactor</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+<span class="k">class</span> <span class="nc">GadgetFile</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;This is a helper class.</span></div></div>
+<div class="viewcode-block" id="GadgetFile"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile">[docs]</a><span class="sd">    Should only be called by GadgetSnap.</span>
+<span class="sd">    Contains the block location dictionary for each file.</span>
+<span class="sd">    To read Gadget 1 format files, use the gadget-1-blocks config entry&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span> <span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">=</span><span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">=</span><span class="s">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format2</span><span class="o">=</span><span class="bp">True</span>
+        <span class="n">t_part</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">fd</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_format</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+        <span class="c">#If format 1, load the block definitions.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_names</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;gadget-1-blocks&#39;</span><span class="p">,</span><span class="s">&quot;blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+	    <span class="bp">self</span><span class="o">.</span><span class="n">block_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_names</span><span class="p">]</span>
+	    <span class="c">#This is a counter for the fallback</span>
+	    <span class="bp">self</span><span class="o">.</span><span class="n">extra</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">block</span><span class="o">=</span><span class="n">GadgetBlock</span><span class="p">()</span>
+            <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_block_head</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
+                <span class="k">break</span>
+            <span class="c">#Do special things for the HEAD block</span>
+            <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;HEAD&quot;</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">!=</span> <span class="mi">256</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Mis-sized HEAD block in &quot;</span><span class="o">+</span><span class="n">filename</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">=</span><span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">256</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">256</span> <span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Could not read HEAD block in &quot;</span><span class="o">+</span><span class="n">filename</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">=</span><span class="n">_construct_gadget_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="p">)</span>
+                <span class="n">record_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_block_foot</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">record_size</span> <span class="o">!=</span> <span class="mi">256</span> <span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Bad record size for HEAD in &quot;</span><span class="o">+</span><span class="n">filename</span>
+                <span class="n">t_part</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="k">continue</span>
+            <span class="c">#Set the partlen, using our amazing heuristics</span>
+            <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;POS &quot;</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;VEL &quot;</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="n">t_part</span> <span class="o">*</span> <span class="mi">24</span> <span class="p">:</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">24</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+                <span class="k">else</span> <span class="p">:</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">12</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+            <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;ID  &quot;</span><span class="p">:</span>
+                <span class="c">#Heuristic for long (64-bit) IDs</span>
+                <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="n">t_part</span> <span class="o">*</span> <span class="mi">4</span> <span class="p">:</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">4</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+                <span class="k">else</span> <span class="p">:</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">8</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="n">t_part</span> <span class="o">*</span> <span class="mi">8</span> <span class="p">:</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">8</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+                <span class="k">else</span> <span class="p">:</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">4</span>
+                    <span class="n">block</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+            <span class="n">block</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="c"># Check for the case where the record size overflows an int.</span>
+            <span class="c"># If this is true, we can&#39;t get record size from the length and we just have to guess</span>
+            <span class="c"># At least the record sizes at either end should be consistently wrong.</span>
+            <span class="c"># Better hope this only happens for blocks where all particles are present.</span>
+            <span class="n">extra_len</span> <span class="o">=</span> <span class="n">t_part</span> <span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span>
+            <span class="k">if</span> <span class="n">extra_len</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span> <span class="p">:</span>
+                <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">extra_len</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">length</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">record_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_block_foot</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">record_size</span> <span class="o">!=</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Corrupt record in &quot;</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot; footer for block &quot;</span><span class="o">+</span><span class="n">name</span>
+            <span class="k">if</span> <span class="n">extra_len</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span> <span class="p">:</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">extra_len</span>
+            <span class="c"># Set up the particle types in the block. This also is a heuristic,</span>
+            <span class="c"># which assumes that blocks are either fully present or not for a given particle type</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">p_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_block_types</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="p">:</span>
+            <span class="c">#If it fails, try again with a different partlen</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="o">=</span> <span class="mi">8</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">p_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_block_types</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]]</span> <span class="o">=</span> <span class="n">block</span>
+
+        <span class="c">#and we&#39;re done.</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">get_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">block</span><span class="p">,</span> <span class="n">npart</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set up the particle types in the block, with a heuristic,</span>
+<div class="viewcode-block" id="GadgetFile.get_block_types"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block_types">[docs]</a><span class="sd">        which assumes that blocks are either fully present or not for a given particle type&quot;&quot;&quot;</span>
+        <span class="c">#This function is horrible.</span>
+        <span class="n">p_types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="n">npart</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span><span class="p">:</span>
+            <span class="n">p_types</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">p_types</span>
+        <span class="c">#Blocks which contain a single particle type</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="n">npart</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="p">:</span>
+                <span class="n">p_types</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="k">return</span> <span class="n">p_types</span>
+        <span class="c">#Blocks which contain two particle types</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="p">(</span><span class="n">npart</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="n">npart</span><span class="p">[</span><span class="n">m</span><span class="p">])</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="p">:</span>
+                    <span class="n">p_types</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="n">p_types</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="k">return</span> <span class="n">p_types</span>
+        <span class="c">#Blocks which contain three particle types</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="p">(</span><span class="n">npart</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="n">npart</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="o">+</span><span class="n">npart</span><span class="p">[</span><span class="n">l</span><span class="p">])</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="p">:</span>
+                        <span class="n">p_types</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                        <span class="n">p_types</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                        <span class="n">p_types</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                        <span class="k">return</span> <span class="n">p_types</span>
+        <span class="c">#Blocks which contain four particle types</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="p">(</span><span class="n">npart</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="n">npart</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">-</span><span class="n">npart</span><span class="p">[</span><span class="n">m</span><span class="p">])</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="p">:</span>
+                    <span class="n">p_types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+                    <span class="n">p_types</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+                    <span class="n">p_types</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+                    <span class="k">return</span> <span class="n">p_types</span>
+        <span class="c">#Blocks which contain five particle type</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N_TYPE</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="p">(</span><span class="n">npart</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span><span class="n">npart</span><span class="p">[</span><span class="n">n</span><span class="p">])</span><span class="o">*</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span> <span class="p">:</span>
+                <span class="n">p_types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+                <span class="n">p_types</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="k">return</span> <span class="n">p_types</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Could not determine particle types for block&quot;</span>
+
+
+
+    <span class="k">def</span> <span class="nf">check_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This function reads the first character of a file and, depending on its value, determines</span></div>
+<div class="viewcode-block" id="GadgetFile.check_format"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.check_format">[docs]</a><span class="sd">        whether we have a format 1 or 2 file, and whether the endianness is swapped. For the endianness,</span>
+<span class="sd">        it then determines the correct byteorder string to pass to struct.unpack. There is not string</span>
+<span class="sd">        for &#39;not native&#39;, so this is more complex than it needs to be&quot;&quot;&quot;</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">r</span><span class="p">,)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;=I&#39;</span><span class="p">,</span><span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">8</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">=</span> <span class="s">&#39;=&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">134217728</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s">&#39;little&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">=</span> <span class="s">&#39;&gt;&#39;</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">=</span> <span class="s">&#39;&lt;&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">65536</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span> <span class="o">==</span> <span class="s">&#39;little&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">=</span> <span class="s">&#39;&gt;&#39;</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">=</span> <span class="s">&#39;&lt;&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">elif</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">256</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">=</span> <span class="s">&#39;=&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;File corrupt. First integer is: &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">read_block_foot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unpacks the block footer, into a single integer&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.read_block_foot"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.read_block_foot">[docs]</a>        <span class="n">record_size</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record_size</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Could not read block footer&quot;</span>
+        <span class="p">(</span><span class="n">record_size</span><span class="p">,)</span><span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I&#39;</span><span class="p">,</span><span class="n">record_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">record_size</span>
+
+
+    <span class="k">def</span> <span class="nf">read_block_head</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Read the Gadget 2 &quot;block header&quot; record, ie, 8 name, length, 8.</span></div>
+<div class="viewcode-block" id="GadgetFile.read_block_head"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.read_block_head">[docs]</a><span class="sd">           Takes an open file and returns a (name, length) tuple &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format2</span> <span class="p">:</span>
+            <span class="n">head</span><span class="o">=</span><span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="mi">4</span><span class="p">)</span>
+            <span class="c">#If we have run out of file, we don&#39;t want an exception,</span>
+            <span class="c">#we just want a zero length empty block</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">5</span><span class="o">*</span><span class="mi">4</span> <span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="s">&quot;    &quot;</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">head</span><span class="o">=</span><span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I4sIII&#39;</span><span class="p">,</span><span class="n">head</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">head</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">8</span> <span class="ow">or</span> <span class="n">head</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">8</span> <span class="ow">or</span> <span class="n">head</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">!=</span> <span class="n">head</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="mi">8</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Corrupt header record. Possibly incorrect file format&quot;</span>
+            <span class="c">#Don&#39;t include the two &quot;record_size&quot; indicators in the total length count</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">head</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="mi">8</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">record_size</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record_size</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span> <span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="s">&quot;    &quot;</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">record_size</span><span class="p">,)</span><span class="o">=</span><span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I&#39;</span><span class="p">,</span> <span class="n">record_size</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            	<span class="bp">self</span><span class="o">.</span><span class="n">block_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Run out of block names in the config file. Using fallbacks: UNK*&quot;</span><span class="p">,</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;UNK&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="o">+=</span><span class="mi">1</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">,</span> <span class="n">p_toread</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get a particle range from this file, starting at p_start,</span></div>
+<div class="viewcode-block" id="GadgetFile.get_block"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block">[docs]</a><span class="sd">        and reading a maximum of p_toread particles&quot;&quot;&quot;</span>
+        <span class="n">p_read</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span>
+        <span class="n">p_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_start_part</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p_toread</span> <span class="o">&gt;</span> <span class="n">parts</span> <span class="p">:</span>
+            <span class="n">p_toread</span> <span class="o">=</span> <span class="n">parts</span>
+        <span class="n">fd</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">start</span><span class="o">+</span><span class="nb">int</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">partlen</span><span class="o">*</span><span class="n">p_start</span><span class="p">),</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c">#This is just so that we can get a size for the type</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="n">n_type</span> <span class="o">=</span> <span class="n">p_toread</span><span class="o">*</span><span class="n">cur_block</span><span class="o">.</span><span class="n">partlen</span><span class="o">/</span><span class="n">dt</span><span class="o">.</span><span class="n">itemsize</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cur_block</span><span class="o">.</span><span class="n">data_type</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">n_type</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">!=</span> <span class="s">&#39;=&#39;</span> <span class="p">:</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">byteswap</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">p_toread</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_block_parts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the number of particles present in a block in this file&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.get_block_parts"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block_parts">[docs]</a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="n">cur_block</span><span class="o">.</span><span class="n">length</span><span class="o">/</span><span class="n">cur_block</span><span class="o">.</span><span class="n">partlen</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="n">p_type</span><span class="p">]</span><span class="o">*</span><span class="n">cur_block</span><span class="o">.</span><span class="n">p_types</span><span class="p">[</span><span class="n">p_type</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_start_part</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Find particle to skip to before starting, if reading particular type&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.get_start_part"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_start_part">[docs]</a>        <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">p_types</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">p_type</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_block_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the dimensionality of the block, eg, 3 for POS, 1 for most other things&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.get_block_dims"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.get_block_dims">[docs]</a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="n">cur_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cur_block</span><span class="o">.</span><span class="n">partlen</span><span class="o">/</span><span class="n">dt</span><span class="o">.</span><span class="n">itemsize</span>
+    
+    <span class="c">#The following functions are for writing blocks back to the file</span>
+    <span class="k">def</span> <span class="nf">write_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">,</span> <span class="n">big_data</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Write a full block of data in this file. Any particle type can be written. If the particle type is not present in this file, </span></div>
+<div class="viewcode-block" id="GadgetFile.write_block"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_block">[docs]</a><span class="sd">        an exception KeyError is thrown. If there are too many particles, ValueError is thrown. </span>
+<span class="sd">        big_data contains a reference to the data to be written. Type -1 is all types&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cur_block</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="s">&quot;Block &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s">&quot; not in file &quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span>
+        <span class="n">p_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_start_part</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span>
+        <span class="n">MinType</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">p_types</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">MaxType</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">p_types</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">))[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c">#Have we been given the right number of particles?</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">big_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">parts</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_block_dims</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Space for &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="o">+</span><span class="s">&quot; particles of type &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">p_type</span><span class="p">)</span><span class="o">+</span><span class="s">&quot; in file &quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot;, &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">big_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s">&quot; requested.&quot;</span>
+        <span class="c">#Do we have the right type?</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="n">bt</span><span class="o">=</span><span class="n">big_data</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="k">if</span> <span class="n">bt</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="n">dt</span><span class="o">.</span><span class="n">kind</span> <span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Data of incorrect type passed to write_block&quot;</span>
+        <span class="c">#Open the file</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="bp">None</span> <span class="p">:</span> 
+            <span class="n">fd</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">,</span> <span class="s">&quot;r+b&quot;</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;r+b&quot;</span><span class="p">)</span>
+        <span class="c">#Seek to the start of the block</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">cur_block</span><span class="o">.</span><span class="n">start</span><span class="o">+</span><span class="n">cur_block</span><span class="o">.</span><span class="n">partlen</span><span class="o">*</span><span class="n">p_start</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c">#Add the block header if we are at the start of a block</span>
+        <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="n">MinType</span>  <span class="ow">or</span> <span class="n">p_type</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">write_block_header</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">cur_block</span><span class="o">.</span><span class="n">length</span><span class="p">)</span>
+            <span class="c">#Better seek back a bit first.</span>
+            <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="o">!=</span> <span class="s">&#39;=&#39;</span> <span class="p">:</span>
+            <span class="n">big_data</span><span class="o">=</span><span class="n">big_data</span><span class="o">.</span><span class="n">byteswap</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="c">#Actually write the data</span>
+        <span class="c">#Make sure to ravel it, otherwise the wrong amount will be written, </span>
+        <span class="c">#because it will also write nulls every time the first array dimension changes.</span>
+        <span class="n">d</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">big_data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span><span class="o">.</span><span class="n">tostring</span><span class="p">()</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p_type</span> <span class="o">==</span> <span class="n">MaxType</span> <span class="ow">or</span> <span class="n">p_type</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">write_block_footer</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">cur_block</span><span class="o">.</span><span class="n">length</span><span class="p">)</span>
+            <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">add_file_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocksize</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">p_types</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a block to the block table at the end of the file. Do not actually write anything&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.add_file_block"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.add_file_block">[docs]</a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span><span class="s">&quot;Block &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s">&quot; already present in file. Not adding&quot;</span>
+        <span class="k">def</span> <span class="nf">st</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">start</span>
+        <span class="c">#Get last block</span>
+        <span class="n">lb</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">st</span><span class="p">)</span>
+        <span class="c">#Make new block</span>
+        <span class="n">block</span><span class="o">=</span><span class="n">GadgetBlock</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">blocksize</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="n">partlen</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">start</span><span class="o">=</span><span class="n">lb</span><span class="o">.</span><span class="n">start</span><span class="o">+</span><span class="n">lb</span><span class="o">.</span><span class="n">length</span><span class="o">+</span><span class="mi">6</span><span class="o">*</span><span class="mi">4</span> <span class="c">#For the block header, and footer of the previous block</span>
+        <span class="k">if</span> <span class="n">p_types</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">block</span><span class="o">.</span><span class="n">p_types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">block</span><span class="o">.</span><span class="n">p_types</span> <span class="o">=</span> <span class="n">p_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">=</span><span class="n">block</span>
+
+    <span class="k">def</span> <span class="nf">write_block_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocksize</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create a string for a Gadget-style block header, but do not actually write it, for atomicity.&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.write_block_header"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_block_header">[docs]</a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format2</span><span class="p">:</span>
+            <span class="c">#This is the block header record, which we want for format two files only</span>
+            <span class="n">blkheadsize</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="mi">1</span><span class="p">;</span><span class="c">#1 int and 4 chars</span>
+            <span class="n">nextblock</span> <span class="o">=</span> <span class="n">blocksize</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span><span class="p">;</span><span class="c">#Relative location of next block; the extra 2 uints are for storing the headers.</span>
+            <span class="c">#Write format 2 header header</span>
+            <span class="n">head</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I4sII&#39;</span><span class="p">,</span><span class="n">blkheadsize</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">nextblock</span><span class="p">,</span><span class="n">blkheadsize</span><span class="p">)</span>
+        <span class="c">#Also write the record size, which we want for all files*/</span>
+        <span class="n">head</span><span class="o">+=</span><span class="bp">self</span><span class="o">.</span><span class="n">write_block_footer</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">blocksize</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">head</span>
+
+    <span class="k">def</span> <span class="nf">write_block_footer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocksize</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;(Re) write a Gadget-style block footer.&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.write_block_footer"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_block_footer">[docs]</a>        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">+</span><span class="s">&#39;I&#39;</span><span class="p">,</span><span class="n">blocksize</span><span class="p">)</span>
+  
+    <span class="k">def</span> <span class="nf">write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">head_in</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Write a file header. Overwrites npart in the argument with the npart of the file, so a consistent file is always written.&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetFile.write_header"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetFile.write_header">[docs]</a>        <span class="c">#Construct new header with the passed header and overwrite npart with the file header. </span>
+        <span class="c">#This has ref. semantics so use copy</span>
+        <span class="n">head</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">head_in</span><span class="p">)</span>
+        <span class="n">head</span><span class="o">.</span><span class="n">npart</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">write_block_header</span><span class="p">(</span><span class="s">&quot;HEAD&quot;</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">+=</span><span class="n">head</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
+        <span class="c">#a mode will ignore the file position, and w truncates the file.</span>
+        <span class="k">try</span> <span class="p">:</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;r+&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">strerror</span><span class="p">):</span>
+            <span class="c">#If we couldn&#39;t open it because it doesn&#39;t exist open it for writing.</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span> <span class="p">:</span>
+                <span class="n">fd</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w+&quot;</span><span class="p">)</span>
+            <span class="c">#If we couldn&#39;t open it for any other reason, reraise exception</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="n">err</span><span class="p">,</span><span class="n">strerror</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c">#Header always at start of file</span>
+        <span class="c">#Write header</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="c">#Seek 48 bytes forward, to skip the padding (which may contain extra data)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">48</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">write_block_footer</span><span class="p">(</span><span class="s">&quot;HEAD&quot;</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">class</span> <span class="nc">GadgetWriteFile</span> <span class="p">(</span><span class="n">GadgetFile</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class for write-only snapshots, as when we are creating a new set of files from, eg, a TipsySnap.</span></div></div>
+<div class="viewcode-block" id="GadgetWriteFile"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetWriteFile">[docs]</a><span class="sd">        Should not be used directly. block_names is a list so we can specify an on-disc ordering.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">npart</span><span class="p">,</span> <span class="n">block_names</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">format2</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">=</span><span class="n">header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endian</span><span class="o">=</span><span class="s">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format2</span><span class="o">=</span><span class="n">format2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="o">=</span><span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">npart</span><span class="p">)</span>
+        <span class="c">#Set up the positions</span>
+        <span class="n">header_size</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="k">if</span> <span class="n">format2</span> <span class="p">:</span>
+            <span class="n">header_size</span> <span class="o">+=</span> <span class="mi">3</span><span class="o">*</span><span class="mi">4</span> <span class="o">+</span> <span class="mi">4</span>
+        <span class="n">footer_size</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="c">#First block is just past the header. </span>
+        <span class="n">cur_pos</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">+</span> <span class="n">header_size</span> <span class="o">+</span> <span class="n">footer_size</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">block_names</span> <span class="p">:</span>
+            <span class="c">#Add block if present for some types</span>
+            <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="p">:</span>
+                <span class="n">b_part</span> <span class="o">=</span> <span class="n">npart</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">types</span>
+                <span class="n">b</span><span class="o">=</span><span class="n">GadgetBlock</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">cur_pos</span><span class="o">+</span><span class="n">header_size</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">block</span><span class="o">.</span><span class="n">partlen</span><span class="o">*</span><span class="n">b_part</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">block</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span><span class="n">p_types</span><span class="o">=</span><span class="n">block</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+                <span class="n">cur_pos</span> <span class="o">+=</span> <span class="n">b</span><span class="o">.</span><span class="n">length</span><span class="o">+</span><span class="n">header_size</span><span class="o">+</span><span class="n">footer_size</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">block</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span>
+
+<span class="k">class</span> <span class="nc">WriteBlock</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Internal structure for passing data around between file and snapshot&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="WriteBlock"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.WriteBlock">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">partlen</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">),</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;    &quot;</span><span class="p">)</span> <span class="p">:</span>
+        <span class="c">#Bytes per particle in file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">partlen</span><span class="o">=</span><span class="n">partlen</span>
+        <span class="c">#Data type of block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="c">#Types of particle this block contains</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span> <span class="o">=</span> <span class="n">types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+<span class="k">class</span> <span class="nc">GadgetSnap</span><span class="p">(</span><span class="n">snapshot</span><span class="o">.</span><span class="n">SimSnap</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations</span></div>
+<div class="viewcode-block" id="GadgetSnap"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap">[docs]</a><span class="sd">    of the blocks, which are then read by _load_array&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">only_header</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">must_have_paramfile</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="p">:</span>
+
+        <span class="k">global</span> <span class="n">config</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GadgetSnap</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">=</span><span class="n">filename</span>
+        <span class="n">npart</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">)</span>
+        <span class="c">#Check whether the file exists, and get the &quot;.0&quot; right</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fd</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="n">fd</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.0&quot;</span><span class="p">)</span>
+            <span class="c">#The second time if there is an exception we let it go through</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">+</span><span class="s">&quot;.0&quot;</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="s">&quot;.0&quot;</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span> <span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="c">#Read the first file and use it to get an idea of how many files we are expecting.</span>
+        <span class="n">first_file</span> <span class="o">=</span> <span class="n">GadgetFile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">first_file</span><span class="p">)</span>
+        <span class="n">files_expected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">num_files</span>
+        <span class="n">npart</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">files_expected</span><span class="p">):</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">tmp_file</span><span class="o">=</span><span class="n">GadgetFile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_headers</span><span class="p">(</span><span class="n">tmp_file</span><span class="o">.</span><span class="n">header</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span> <span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;file &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s">&quot; is not part of this snapshot set!&quot;</span><span class="p">,</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_file</span><span class="p">)</span>
+            <span class="n">npart</span><span class="o">=</span><span class="n">npart</span><span class="o">+</span><span class="n">tmp_file</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span>
+        <span class="c">#Set up things from the parent class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="n">npart</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="c">#Set up global header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span> <span class="o">=</span> <span class="n">npart</span>
+        <span class="c">#Check and fix npartTotal and NallHW if they are wrong.</span>
+        <span class="k">if</span> <span class="n">npart</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npartTotal</span><span class="o">+</span><span class="mi">2</span><span class="o">**</span><span class="mi">32</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span> <span class="o">=</span> <span class="n">npart</span><span class="o">/</span><span class="mi">2</span><span class="o">**</span><span class="mi">32</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npartTotal</span> <span class="o">=</span> <span class="n">npart</span> <span class="o">-</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npartTotal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npartTotal</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">NallHW</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_keys</span><span class="o">=</span><span class="nb">set</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c">#Set up _family_slice</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_type_map</span> <span class="p">:</span>
+            <span class="n">max_t</span><span class="o">=</span><span class="n">_type_map</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">npart</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">max_t</span><span class="p">)]</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span><span class="n">npart</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">max_t</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        
+        <span class="c">#Set up _loadable_keys</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="c">#Add default mapping to unpadded lower case if not in config file.</span>
+        <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="p">:</span> 
+            <span class="n">mm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">_rev_name_map</span> <span class="p">:</span>
+                <span class="n">_rev_name_map</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">=</span> <span class="n">mm</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">mm</span> <span class="ow">in</span> <span class="n">_name_map</span> <span class="p">:</span>
+                <span class="n">_name_map</span><span class="p">[</span><span class="n">mm</span><span class="p">]</span> <span class="o">=</span> <span class="n">nn</span>
+
+        <span class="c">#Use translated keys only</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">_translate_array_name</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span><span class="p">]</span>
+        <span class="c">#Set up block list, with attached families, as a caching mechanism</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_block_list</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
+    
+    <span class="k">def</span> <span class="nf">loadable_family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return list of arrays which are loadable for specific families, </span>
+<div class="viewcode-block" id="GadgetSnap.loadable_family_keys"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.loadable_family_keys">[docs]</a><span class="sd">        but not for all families.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_has_loadable_array</span><span class="p">(</span><span class="n">fam</span><span class="p">,</span> <span class="n">x</span><span class="p">)]</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_has_loadable_array</span><span class="p">(</span><span class="n">fam</span><span class="p">,</span> <span class="n">x</span><span class="p">)]</span>
+
+
+    <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys</span></div>
+
+    <span class="k">def</span> <span class="nf">_family_has_loadable_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns True if the array can be loaded for the specified family.</span>
+<span class="sd">        If fam is None, returns True if the array can be loaded for all families.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
+                <span class="k">return</span> <span class="n">fam</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_list</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_block_list</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">get_block_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get list of unique blocks in snapshot, with the types they refer to&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GadgetSnap.get_block_list"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.get_block_list">[docs]</a>        <span class="n">b_list</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">:</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">blocks</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="n">b_list</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="p">:</span>
+                    <span class="n">b_list</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">b</span><span class="o">.</span><span class="n">p_types</span>
+                <span class="k">else</span> <span class="p">:</span>
+                    <span class="n">b_list</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">p_types</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="c">#Special case mass. Note b_list has reference semantics.</span>
+        <span class="k">if</span> <span class="n">b_list</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&quot;MASS&quot;</span><span class="p">)</span> <span class="p">:</span>
+            <span class="n">b_list</span><span class="p">[</span><span class="s">&quot;MASS&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="c">#Translate this array into families and external names</span>
+        <span class="n">out_list</span><span class="o">=</span><span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">b</span> <span class="ow">in</span> <span class="n">b_list</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="p">:</span>
+            <span class="n">b_name</span> <span class="o">=</span> <span class="n">_translate_array_name</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">b_types</span> <span class="o">=</span> <span class="p">[</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">()</span> <span class="k">if</span> <span class="n">b</span><span class="p">[</span><span class="n">gadget_type</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="p">]</span>
+            <span class="n">out_list</span><span class="p">[</span><span class="n">b_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">b_types</span>
+        <span class="k">return</span> <span class="n">out_list</span>
+
+    <span class="k">def</span> <span class="nf">get_block_parts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">family</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the number of particles present in a block, of a given type&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetSnap.get_block_parts"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.get_block_parts">[docs]</a>        <span class="n">total</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">:</span>
+            <span class="n">total</span><span class="o">+=</span> <span class="nb">sum</span><span class="p">([</span> <span class="n">f</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">gfam</span><span class="p">)</span> <span class="k">for</span> <span class="n">gfam</span> <span class="ow">in</span> <span class="n">gadget_type</span><span class="p">(</span><span class="n">family</span><span class="p">)])</span>
+        <span class="c">#Special-case MASS</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;MASS&quot;</span> <span class="p">:</span>
+            <span class="n">total</span><span class="o">+=</span> <span class="nb">sum</span><span class="p">([</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">p</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gadget_type</span><span class="p">(</span><span class="n">family</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">total</span>
+
+    <span class="k">def</span> <span class="nf">check_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">head1</span><span class="p">,</span> <span class="n">head2</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Check two headers for consistency&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="GadgetSnap.check_headers"><a class="viewcode-back" href="../../pynbody.html#pynbody.gadget.GadgetSnap.check_headers">[docs]</a>        <span class="k">if</span> <span class="p">(</span> <span class="n">head1</span><span class="o">.</span><span class="n">time</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">time</span> <span class="ow">or</span> <span class="n">head1</span><span class="o">.</span><span class="n">redshift</span><span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">redshift</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">flag_sfr</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">flag_sfr</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">flag_feedback</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">flag_feedback</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">num_files</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">num_files</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">BoxSize</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">BoxSize</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">Omega0</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">Omega0</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">OmegaLambda</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">OmegaLambda</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">HubbleParam</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">HubbleParam</span>  <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">flag_stellarage</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">flag_stellarage</span> <span class="ow">or</span>
+           <span class="n">head1</span><span class="o">.</span><span class="n">flag_metals</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">flag_metals</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="c">#Check array quantities</span>
+        <span class="k">if</span> <span class="p">(((</span><span class="n">head1</span><span class="o">.</span><span class="n">mass</span> <span class="o">-</span> <span class="n">head2</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-5</span><span class="o">*</span><span class="n">head1</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>  <span class="ow">or</span> 
+                <span class="p">(</span><span class="n">head1</span><span class="o">.</span><span class="n">npartTotal</span> <span class="o">!=</span> <span class="n">head2</span><span class="o">.</span><span class="n">npartTotal</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">())</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="c">#  At least one version of N-GenICs writes a header file which</span>
+        <span class="c">#  ignores everything past flag_metals (!), leaving it uninitialised.</span>
+        <span class="c">#  Therefore, we can&#39;t check them.</span>
+        <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">def</span> <span class="nf">_get_array_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the type for the array given in name&quot;&quot;&quot;</span></div>
+        <span class="n">g_name</span> <span class="o">=</span> <span class="n">_translate_array_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_type_g</span><span class="p">(</span><span class="n">g_name</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_get_array_type_g</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the type for the array given in name&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">data_type</span>
+
+
+    <span class="k">def</span> <span class="nf">_get_array_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the dimensions of an array; ie, is it 3d or 1d&quot;&quot;&quot;</span>
+        <span class="n">g_name</span> <span class="o">=</span> <span class="n">_translate_array_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_block_dims</span><span class="p">(</span><span class="n">g_name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_load_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Read in data from a Gadget file.</span>
+<span class="sd">        If fam != None, loads only data for that particle family&quot;&quot;&quot;</span>
+        <span class="c">#g_name is the internal name</span>
+        <span class="n">g_name</span> <span class="o">=</span> <span class="n">_translate_array_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_has_loadable_array</span><span class="p">(</span> <span class="n">fam</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_list</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span><span class="s">&quot;Block &quot;</span><span class="o">+</span><span class="n">name</span><span class="o">+</span><span class="s">&quot; is not available for all families&quot;</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;No such array on disk&quot;</span>
+
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_dims</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">fam</span><span class="p">),]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">fam</span><span class="p">),</span> <span class="n">ndim</span><span class="p">]</span>
+
+        <span class="n">p_types</span> <span class="o">=</span> <span class="n">gadget_type</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span>
+
+        <span class="c">#Get the data. Get one type at a time and then concatenate. </span>
+        <span class="c">#A possible optimisation is to special-case loading all particles.</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_type</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">p_types</span> <span class="p">:</span>
+            <span class="c">#Special-case mass</span>
+            <span class="k">if</span> <span class="n">g_name</span> <span class="o">==</span> <span class="s">&quot;MASS&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">0.</span> <span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="n">p</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__load_array</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="s">&#39;C&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="s">&#39;C&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
+
+        <span class="c">#Decorate again, so that lazy-loading an array can also create dependent decoration arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__load_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Internal helper function for _load_array that takes a g_name and a gadget type, </span>
+<span class="sd">        gets the data from each file and returns it as one long array.&quot;&quot;&quot;</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_array_type_g</span><span class="p">(</span><span class="n">g_name</span><span class="p">))</span>
+        <span class="c">#Get a type from each file</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">:</span>
+            <span class="n">f_parts</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">f_parts</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="p">(</span><span class="n">f_read</span><span class="p">,</span> <span class="n">f_data</span><span class="p">)</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">p_type</span><span class="p">,</span> <span class="n">f_parts</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">f_read</span> <span class="o">!=</span> <span class="n">f_parts</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span><span class="s">&quot;Read of &quot;</span><span class="o">+</span><span class="n">f</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot; asked for &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">f_parts</span><span class="p">)</span><span class="o">+</span><span class="s">&quot; particles but got &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">f_read</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Check whether we can load the file as Gadget format by reading</span>
+<span class="sd">        the first 4 bytes&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fd</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fd</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="o">+</span><span class="s">&quot;.0&quot;</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+                <span class="c">#If we can&#39;t open the file, we certainly can&#39;t load it...</span>
+        <span class="p">(</span><span class="n">r</span><span class="p">,)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;=I&#39;</span><span class="p">,</span><span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c">#First int32 is 8 for a Gadget 2 file, or 256 for Gadget 1, or the byte swapped equivalent.</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">8</span> <span class="ow">or</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">134217728</span> <span class="ow">or</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">65536</span> <span class="ow">or</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">256</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Write an entire Gadget file (actually an entire set of snapshots).&quot;&quot;&quot;</span>
+        <span class="c">#If caller is not a GadgetSnap, construct the GadgetFiles, </span>
+        <span class="c">#so that format conversion works.</span>
+        <span class="n">all_keys</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">())</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">())</span>
+        <span class="sd">&quot;&quot;&quot; This code is for format conversions, but it does not work.</span>
+<span class="sd">        if self.__class__ is not GadgetSnap :</span>
+<span class="sd">            #We first need to construct some information normally found on the disc.</span>
+<span class="sd">            #Make sure we have enough files to fit the data into. The magic numbers are:</span>
+<span class="sd">            #12 - the largest block is likely to  be POS with 12 bytes per particle. </span>
+<span class="sd">            #2**31 is the largest size a gadget block can safely have, so say 2**30 for safety.</span>
+<span class="sd">            nfiles = np.ceil((self.__len__()*12.)/2**30)</span>
+<span class="sd">            #Make npart</span>
+<span class="sd">            npart = np.zeros(N_TYPE, int)</span>
+<span class="sd">            arr_name=(self.keys()+self.loadable_keys())[0]</span>
+<span class="sd">            for f in self.families() :</span>
+<span class="sd">                #Note that if we have more than one type per family, we cannot</span>
+<span class="sd">                # determine which type each individual particle is, so assume they are all the first.</span>
+<span class="sd">                npart[np.min(gadget_type(f))] = len(self[f][arr_name])</span>
+<span class="sd">            #Construct a header</span>
+<span class="sd">            # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 </span>
+<span class="sd">            self.header=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties[&quot;a&quot;],self.properties[&quot;z&quot;],self.properties[&quot;boxsize&quot;].in_units(&quot;kpc a&quot;),self.properties[&quot;omegaM0&quot;],self.properties[&quot;omegaL0&quot;],self.properties[&quot;h&quot;],nfiles)</span>
+<span class="sd">            #Construct the block_names; each block_name needs partlen, data_type, and p_types, </span>
+<span class="sd">            #as well as a name. Blocks will hit the disc in the order they are in in block_names.</span>
+<span class="sd">            #No writing format 1 files.</span>
+<span class="sd">            block_names = []</span>
+<span class="sd">            for k in all_keys :</span>
+<span class="sd">                if self.is_derived_array(k):</span>
+<span class="sd">                    continue</span>
+<span class="sd">                types = np.zeros(N_TYPE,bool)</span>
+<span class="sd">                for f in self.families() :</span>
+<span class="sd">                    try :</span>
+<span class="sd">                        with self.lazy_off :</span>
+<span class="sd">                            dtype = self[f][k].dtype</span>
+<span class="sd">                        types[gadget_type(f)] += True</span>
+<span class="sd">                        try :</span>
+<span class="sd">                            partlen = np.shape(self[f][k])[1]*dtype.itemsize</span>
+<span class="sd">                        except IndexError:</span>
+<span class="sd">                            partlen = dtype.itemsize</span>
+<span class="sd">                    except KeyError:</span>
+<span class="sd">                        pass</span>
+<span class="sd">                bb=WriteBlock(partlen, dtype=dtype, types = types, name = _translate_array_name(k).upper().ljust(4)[0:4])</span>
+<span class="sd">                block_names.append(bb)</span>
+
+<span class="sd">            #Create a list of files. </span>
+<span class="sd">            self._files = []</span>
+<span class="sd">            if nfiles &gt; 1 :</span>
+<span class="sd">                fnpart = np.array(npart/nfiles)</span>
+<span class="sd">                for i in np.arange(0,nfiles) :</span>
+<span class="sd">                    ffile=filename+&quot;.&quot;+str(i)</span>
+<span class="sd">                    if (fnpart &gt; npart).any() :</span>
+<span class="sd">                        fnpart = np.array(npart)</span>
+<span class="sd">                    npart -= fnpart</span>
+<span class="sd">                    self._files.append(GadgetWriteFile(ffile, fnpart, block_names, self.header))</span>
+<span class="sd">            else :</span>
+<span class="sd">                self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))&quot;&quot;&quot;</span>
+        <span class="c">#Write headers</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">!=</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">))</span> <span class="p">:</span>
+                    <span class="n">ffile</span> <span class="o">=</span> <span class="n">filename</span><span class="o">+</span><span class="s">&quot;.&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">write_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">,</span><span class="n">ffile</span><span class="p">)</span> 
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">write_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">,</span><span class="n">filename</span><span class="p">)</span> 
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="c">#Call write_header for every file. </span>
+            <span class="p">[</span> <span class="n">f</span><span class="o">.</span><span class="n">write_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">]</span>
+        <span class="c">#Call _write_array for every array.</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">all_keys</span> <span class="p">:</span>
+            <span class="c">#Do not write derived arrays by default</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_write_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Write a data array back to a Gadget snapshot, splitting it across files.&quot;&quot;&quot;</span>
+        <span class="c">#Make the name a four-character upper case name, possibly with trailing spaces</span>
+        <span class="n">g_name</span> <span class="o">=</span> <span class="n">_translate_array_name</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">4</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">nfiles</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">)</span>
+        <span class="c">#Find where each particle goes</span>
+        <span class="n">f_parts</span> <span class="o">=</span> <span class="p">[</span> <span class="n">f</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">]</span>
+        <span class="c">#If there is no block corresponding to this name in the file, </span>
+        <span class="c"># add it (so we can write derived arrays).</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">f_parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c">#Get p_type</span>
+            <span class="n">p_types</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_TYPE</span><span class="p">,</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="n">npart</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">fam</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">():</span>
+                <span class="n">gfam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">gadget_type</span><span class="p">(</span><span class="n">fam</span><span class="p">))</span>
+                <span class="c">#We get the particle types we want by trying to load all particle types (from memory) and seeing which ones work</span>
+                <span class="n">p_types</span><span class="p">[</span><span class="n">gfam</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">p_types</span><span class="p">[</span><span class="n">gfam</span><span class="p">]</span> <span class="p">:</span>
+                    <span class="n">ashape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">][</span><span class="n">array_name</span><span class="p">])</span>
+                    <span class="n">npart</span><span class="o">+=</span><span class="n">ashape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">p_types</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="p">:</span>
+                <span class="n">per_file</span> <span class="o">=</span> <span class="n">npart</span><span class="o">/</span><span class="n">nfiles</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">add_file_block</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">per_file</span><span class="p">,</span><span class="n">ashape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span><span class="n">p_types</span><span class="o">=</span><span class="n">p_types</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_file_block</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">npart</span><span class="o">-</span><span class="p">(</span><span class="n">nfiles</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">per_file</span><span class="p">,</span><span class="n">ashape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c">#Write blocks on a family level, so that we don&#39;t have to worry about the file-level re-ordering.</span>
+        <span class="k">for</span> <span class="n">fam</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">()</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_has_loadable_array</span><span class="p">(</span><span class="n">fam</span><span class="p">,</span> <span class="n">array_name</span><span class="p">)</span> <span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">][</span><span class="n">array_name</span><span class="p">]</span>
+                <span class="n">s</span><span class="o">=</span><span class="mi">0</span>
+                <span class="k">for</span> <span class="n">gfam</span> <span class="ow">in</span> <span class="n">gadget_type</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span> <span class="p">:</span>
+                    <span class="c">#Find where each particle goes</span>
+                    <span class="n">f_parts</span> <span class="o">=</span> <span class="p">[</span> <span class="n">f</span><span class="o">.</span><span class="n">get_block_parts</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">gfam</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_files</span> <span class="p">]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nfiles</span><span class="p">)</span> <span class="p">:</span>
+                        <span class="c">#Set up filename</span>
+                        <span class="k">if</span> <span class="n">filename</span> <span class="o">!=</span> <span class="bp">None</span> <span class="p">:</span>
+                            <span class="n">ffile</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">nfiles</span> <span class="o">==</span> <span class="mi">1</span> <span class="p">:</span>
+                                <span class="n">ffile</span> <span class="o">=</span> <span class="n">filename</span>
+                        <span class="k">else</span> <span class="p">:</span>
+                            <span class="n">ffile</span> <span class="o">=</span> <span class="bp">None</span>
+                        <span class="c">#Special-case MASS. </span>
+                        <span class="k">if</span> <span class="n">g_name</span> <span class="o">==</span> <span class="s">&quot;MASS&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">gfam</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
+                            <span class="n">nmass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">s</span><span class="p">:(</span><span class="n">s</span><span class="o">+</span><span class="n">f</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="n">gfam</span><span class="p">])])</span>
+                            <span class="c">#Warn if there are now different masses for this particle type, </span>
+                            <span class="c"># as this information cannot be represented in this snapshot.</span>
+                            <span class="k">if</span> <span class="n">nmass</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">s</span><span class="p">:(</span><span class="n">s</span><span class="o">+</span><span class="n">f</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">npart</span><span class="p">[</span><span class="n">gfam</span><span class="p">])])</span> <span class="p">:</span>
+                                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Cannot write variable masses for type &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">gfam</span><span class="p">)</span><span class="o">+</span><span class="s">&quot;, as masses are stored in the header.&quot;</span><span class="p">,</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">gfam</span><span class="p">]</span> <span class="o">!=</span> <span class="n">nmass</span> <span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">gfam</span><span class="p">]</span> <span class="o">=</span> <span class="n">nmass</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">write_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">ffile</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="p">:</span> 
+                            <span class="c">#Write data</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">write_block</span><span class="p">(</span><span class="n">g_name</span><span class="p">,</span> <span class="n">gfam</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">s</span><span class="p">:(</span><span class="n">s</span><span class="o">+</span><span class="n">f_parts</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span> <span class="n">filename</span><span class="o">=</span><span class="n">ffile</span><span class="p">)</span>
+                        <span class="n">s</span><span class="o">+=</span><span class="n">f_parts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<span class="nd">@GadgetSnap.decorator</span>
+<span class="k">def</span> <span class="nf">do_properties</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span> <span class="p">:</span></div>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">header</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">time</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">Omega0</span>
+    <span class="c">#sim.properties[&#39;omegaB0&#39;] = ... This one is non-trivial to calculate</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaL0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">OmegaLambda</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">BoxSize</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">redshift</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">HubbleParam</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="p">))</span> <span class="o">+</span> <span class="mf">0.1</span>
+    <span class="n">sim</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eps</span>
+    <span class="n">sim</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;kpc&quot;</span><span class="p">)</span>
+
+<span class="nd">@GadgetSnap.decorator</span>
+<span class="k">def</span> <span class="nf">do_units</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span> <span class="p">:</span>
+    <span class="c">#cosmo = (sim._hdf[&#39;Parameters&#39;][&#39;NumericalParameters&#39;].attrs[&#39;ComovingIntegrationOn&#39;])!=0</span>
+    <span class="n">vel_unit</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&#39;1 km s^-1&#39;</span><span class="p">)</span>
+    <span class="n">dist_unit</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&#39;1 kpc&#39;</span><span class="p">)</span>
+    <span class="c">#if cosmo :</span>
+    <span class="n">dist_unit</span><span class="o">/=</span><span class="n">units</span><span class="o">.</span><span class="n">h</span>
+
+    <span class="c">#You have: kpc s / km</span>
+    <span class="c">#You want: Gyr</span>
+    <span class="c">#* 0.97781311</span>
+    <span class="n">timeunit</span> <span class="o">=</span> <span class="n">dist_unit</span> <span class="o">/</span> <span class="n">vel_unit</span> <span class="o">*</span> <span class="mf">0.97781311</span>
+    <span class="c">#timeunit_st = (&quot;%.5g&quot;%timeunit)+&quot; Gyr&quot;</span>
+
+    <span class="n">mass_unit</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&#39;1e10 Msol&#39;</span><span class="p">)</span>
+    <span class="c">#if cosmo:</span>
+    <span class="n">mass_unit</span><span class="o">/=</span><span class="n">units</span><span class="o">.</span><span class="n">h</span>
+
+    <span class="n">denunit</span> <span class="o">=</span> <span class="n">mass_unit</span><span class="o">/</span><span class="n">dist_unit</span><span class="o">**</span><span class="mi">3</span>
+    <span class="n">denunit_st</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">denunit</span><span class="p">)</span><span class="o">+</span><span class="s">&quot; Msol kpc^-3&quot;</span>
+
+    <span class="n">potunit_st</span> <span class="o">=</span> <span class="n">vel_unit</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="k">try</span> <span class="p">:</span>
+        <span class="n">sim</span><span class="p">[</span><span class="s">&quot;phi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">potunit_st</span>
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="c">#try :</span>
+    <span class="c">#    sim.gas[&quot;smooth&quot;].units = dist_unit</span>
+    <span class="c">#except KeyError :</span>
+    <span class="c">#    pass</span>
+
+    <span class="n">sim</span><span class="o">.</span><span class="n">_file_units_system</span><span class="o">=</span><span class="p">[</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">vel_unit</span><span class="p">,</span><span class="n">dist_unit</span><span class="p">,</span><span class="n">mass_unit</span><span class="p">,</span><span class="s">&quot;K&quot;</span><span class="p">]]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">pynbody v0.13-alpha documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../pynbody.html" >pynbody</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.8.
+    </div>
+  </body>
+</html>

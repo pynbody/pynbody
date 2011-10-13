@@ -1,3 +1,12 @@
+"""
+
+luminosity
+==========
+
+Calculates luminosities -- NEEDS DOCUMENTATION
+
+"""
+
 import numpy as np
 try :
     import scipy, scipy.weave
@@ -9,6 +18,12 @@ import os
 from ..array import SimArray
 
 def calc_mags(simstars, band='v') :
+    """
+
+    calc mags -- documentation placeholder
+
+    """
+
     # find data file in PYTHONPATH
     # data is from http://stev.oapd.inaf.it/cgi-bin/cmd
     # Padova group stellar populations Marigo et al (2008), Girardi et al (2010)

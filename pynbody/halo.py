@@ -1,3 +1,16 @@
+"""
+
+halo
+====
+
+Implements halo catalogue functions. If you have a supported halo
+catalogue on disk or a halo finder installed and correctly configured,
+you can access a halo catalogue through f.halos() where f is a
+SimSnap.  
+<http://code.google.com/p/pynbody/wiki/HaloCatalogue>
+
+"""
+
 import numpy as np
 import weakref
 import os.path

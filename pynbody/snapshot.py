@@ -1,3 +1,14 @@
+"""
+snapshot
+========
+
+Implements the basic SimSnap class and also SubSnap classes which can
+represent different views of the same data.
+<http://code.google.com/p/pynbody/wiki/FiltersAndSubsims> You rarely
+need to access this module directly.
+
+"""
+
 from . import array
 from . import family, util
 from . import filt

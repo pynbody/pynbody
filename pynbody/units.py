@@ -1,19 +1,23 @@
 """
+
+units
+=====
+
 pynbody light-weight units module. A simple set of classes for tracking units.
 
 Making units
-============
+------------
 
 You can make units in two ways. Either you can create a string, and
 instantiate a Unit like this:
 
-   units.Unit("Msol kpc**-3")
-   units.Unit("2.1e12 m_p cm**-2/3")
+>>> units.Unit("Msol kpc**-3")
+>>> units.Unit("2.1e12 m_p cm**-2/3")
 
 Or you can do it within python, using the predefined Unit objects
 
-   units.Msol * units.kpc**-3
-   2.1e12 * units.m_p * units.cm**(-2,3)
+>>> units.Msol * units.kpc**-3
+>>> 2.1e12 * units.m_p * units.cm**(-2,3)
 
 In the last example, either a tuple describing a fraction or a
 Fraction instance (from the standard python module fractions) is
@@ -21,35 +25,39 @@ acceptable.
 
 
 Getting conversion ratios
-=========================
+-------------------------
 
 To convert one unit to another, use the ``ratio`` member function:
 
-   units.Msol.ratio(units.kg)  # ->  1.99e30
-   (units.Msol / units.kpc**3).ratio(units.m_p/units.cm**3) # -> 4.04e-8
+>>> units.Msol.ratio(units.kg)  
+1.99e30
+>>> (units.Msol / units.kpc**3).ratio(units.m_p/units.cm**3)
+4.04e-8
 
 If the units cannot be converted, a UnitsException is raised:
 
-   units.Msol.ratio(units.kpc)  # ->UnitsException
+>>> units.Msol.ratio(units.kpc)
+UnitsException
 
 Specifying numerical values
-===========================
+---------------------------
 
 Sometimes it's necessary to specify a numerical value in the course
 of a conversion. For instance, consider a comoving distance; this
 can be specified in pynbody units as follows:
 
-   comoving_kpc = units.kpc * units.a
+>>> comoving_kpc = units.kpc * units.a
 
 where units.a represents the scalefactor. We can attempt to convert
 this to a physical distance as follows
 
-   comoving_kpc.ratio(units.kpc)
+>>> comoving_kpc.ratio(units.kpc)
 
 but this fails, throwing a UnitsException. On the other hand we
 can specify a value for the scalefactor when we request the conversion
 
-   comoving_kpc.ratio(units.kpc, a=0.5)  # -> 0.5
+>>> comoving_kpc.ratio(units.kpc, a=0.5)
+0.5
 
 and the conversion completes with the expected result. The units
 module also defines units.h for the dimensionless hubble constant,
@@ -61,17 +69,22 @@ Any IrreducibleUnit (see below) can have a value specified in this way,
 but a and h are envisaged to be the most useful applications.
 
 Defining new base units
-=======================
+-----------------------
 
 The units module is fully extensible: you can define and name your own
 units which then integrate with all the standard functions.
+
+.. code-block:: python
 
    litre = units.NamedUnit("litre",0.001*units.m**3)
    gallon = units.NamedUnit("gallon",0.004546*units.m**3)
    gallon.ratio(litre) # 4.546
    (units.pc**3).ratio(litre) # 2.94e52
 
+
 You can even define completely new dimensions.
+
+.. code-block:: python
 
     V = units.IrreducibleUnit("V") # define a volt
     C = units.NamedUnit("C", units.J/V) # define a coulomb
@@ -79,8 +92,11 @@ You can even define completely new dimensions.
     F = units.NamedUnit("F", C/V) # Farad
     epsilon0 = 8.85418e-12 *F/units.m
 
-    (q*V).ratio("eV") # -> 1.000...
-    ((q**2)/(4*math.pi*epsilon0*units.m**2)).ratio("N") # -> 2.31e-28
+
+>>> (q*V).ratio("eV") 
+1.000
+>>> ((q**2)/(4*math.pi*epsilon0*units.m**2)).ratio("N")
+2.31e-28
 
 
 """
@@ -100,6 +116,7 @@ class UnitsException(Exception) :
 
 class UnitBase(object) :
     """Base class for units"""
+
     def __init__(self) :
         raise ValueError, "Cannot directly initialize abstract base class"
         pass
@@ -556,15 +573,19 @@ class CompositeUnit(UnitBase) :
         return candidate
 
 def Unit(s) :
-    """Class factory for units. Given a string s, creates
+    """
+    Class factory for units. Given a string s, creates
     a Unit object.
 
     The string format is:
       [<scale>] [<unit_name>][**<rational_power>] [[<unit_name>] ... ]
 
     for example:
+
       "1.e30 kg"
+
       "kpc**2"
+
       "26.2 m s**-1"
     """
 
@@ -603,21 +624,27 @@ def Unit(s) :
 
 
 def takes_arg_in_units(*args, **orig_kwargs) :
-    """Returns a decorator to create a function which auto-converts input
+    """
+    
+    Returns a decorator to create a function which auto-converts input
     to given units.
 
-    Usage:
+    **Usage:**
+    
+    .. code-block:: python
+
         @takes_arg_in_units((2, "Msol"), (1, "kpc"), ("blob", "erg"))
         def my_function(arg0, arg1, arg2, blob=22) :
            print "Arg 2 is",arg2,"Msol"
            print "Arg 1 is",arg1,"kpc"
            print "blob is",blob,"ergs"
 
-        My_function(22, "1.e30 kg", 23, blob="12 J")
 
-        This should print:
-           Input 3 is 0.5 Msol
-           Input 2 is 23 kpc
+
+    >>> My_function(22, "1.e30 kg", 23, blob="12 J")
+    Input 3 is 0.5 Msol
+    Input 2 is 23 kpc
+
     """
 
     context_arg = orig_kwargs.get('context_arg',None)

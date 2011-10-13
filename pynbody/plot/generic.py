@@ -1,3 +1,12 @@
+"""
+
+generic
+=======
+
+Flexible and general plotting functions
+
+"""
+
 import numpy as np
 from ..analysis import profile, angmom, halo
 from .. import config
@@ -8,7 +17,7 @@ def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=T
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
-    Optional keyword arguments:
+    **Optional keywords:**
 
        *x_range*: list, array, or tuple
          size(x_range) must be 2. Specifies the X range.

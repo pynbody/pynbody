@@ -4,9 +4,15 @@ from .. import sph
 from .. import units as _units
 
 def sideon_image(sim, *args, **kwargs) :
-    """Rotate the simulation so that the disc of the passed halo is
+    """
+
+    Rotate the simulation so that the disc of the passed halo is
     side-on, then make an SPH image by passing the parameters into
-    the function image"""
+    the function image
+
+    For a description of keyword arguments see :func:`~pynbody.plot.sph.image`.
+
+    """
 
     from ..analysis import angmom
     if 'center' in kwargs:
@@ -17,9 +23,15 @@ def sideon_image(sim, *args, **kwargs) :
     image(sim, *args, **kwargs)
 
 def faceon_image(sim, *args, **kwargs) :
-    """Rotate the simulation so that the disc of the passed halo is
+    """
+
+    Rotate the simulation so that the disc of the passed halo is
     side-on, then make an SPH image by passing the parameters into
-    the function image"""
+    the function image
+
+    For a description of keyword arguments see :func:`~pynbody.plot.sph.image`.
+
+    """
 
     from ..analysis import angmom
     angmom.faceon(sim)
@@ -30,18 +42,26 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=False, qtytitle=False) :
-    """Make an SPH image of the given simulation.
+    """
 
-    Keyword arguments
+    Make an SPH image of the given simulation.
 
-    qty -- The name of the array to interpolate (default 'rho')
-    width -- The overall width and height of the plot in sim['pos'] units (default 10)
-    resolution -- The number of pixels wide and tall
-    units -- The units of the output
-    av_z -- If True, the requested quantity is averaged down the line of sight
-            (default False: image is generated in the thin plane z=0)
-    z_camera -- If set, a perspective image is rendered. See pynbody.sph.image
-                for more details.
+    **Keyword arguments:**
+
+    *qty* (rho): The name of the array to interpolate
+
+    *width* (10): The overall width and height of the plot in sim['pos'] units
+
+    *resolution* (500): The number of pixels wide and tall
+
+    *units* (None): The units of the output
+
+    *av_z* (False): If True, the requested quantity is averaged down
+            the line of sight (default False: image is generated in
+            the thin plane z=0)
+
+    *z_camera* (None): If set, a perspective image is rendered. See
+                :func:`pynbody.sph.image` for more details.
     """
 
     if isinstance(units, str) :

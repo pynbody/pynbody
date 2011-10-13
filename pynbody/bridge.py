@@ -1,4 +1,7 @@
-"""pynbody bridge module.
+"""
+
+bridge
+======
 
 The bridge module has tools for connecting different outputs. For instance,
 it's possible to take a subview (e.g. a halo) from one snapshot and 'push'
@@ -6,7 +9,7 @@ it into the other. This is especially useful if the two snapshots are
 different time outputs of the same simulation.
 
 Basic usage
-===========
+-----------
 
 f1 = pynbody.load(high_redshift_file)
 f2 = pynbody.load(low_redshift_file)
@@ -22,7 +25,7 @@ h1_at_high_z = b(h_low_z[1])
 
 
 Identifying halos between different outputs
-===========================================
+-------------------------------------------
 
 You may wish to work out how a halo catalogue maps onto a halo
 catalogue for a different output. For this purpose a simple function,
@@ -36,7 +39,7 @@ major progenitor for f2.halos()[cat[i]].
 
 
 Which class to use
-==================
+------------------
 
 For files where the particle ordering is static, so that the particle with
 index i in the first snapshot also has index i in the second snapshot, use the Bridge

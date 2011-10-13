@@ -1,3 +1,13 @@
+"""
+
+gravity
+=======
+
+Functions for calculating the gravitational potential and accelerations. 
+
+"""
+
+
 from .. import units
 from .. import array
 
@@ -5,15 +15,21 @@ import math
 import numpy as np
 
 def potential(f, pos_vec, eps=None, unit=None) :
-    """Calculates the gravitational potential at the
-    specified position using all particles in the specified snapshot.
+    """
+
+    Calculates the gravitational potential at the specified position
+    using all particles in the specified snapshot.
 
     The gravitational softening length is determined by (in order of
     preference):
 
     1. The parameter eps (scalar, unit or array)
+
     2. The array f['eps']
-    3. f.properties['eps'] (scalar or unit) """
+
+    3. f.properties['eps'] (scalar or unit) 
+
+    """
 
     if eps is None :
         try :
@@ -38,15 +54,21 @@ def potential(f, pos_vec, eps=None, unit=None) :
 
     
 def accel(f, pos_vec, eps=None) :
-    """Calculates the gravitational acceleration vector at the
-    specified position using all particles in the specified snapshot.
+    """
+
+    Calculates the gravitational acceleration vector at the specified
+    position using all particles in the specified snapshot.
 
     The gravitational softening length is determined by (in order of
     preference):
 
     1. The parameter eps (scalar, unit or array)
+
     2. The array f['eps']
-    3. f.properties['eps'] (scalar or unit) """
+
+    3. f.properties['eps'] (scalar or unit) 
+
+    """
     
     if eps is None :
         try :
@@ -68,7 +90,13 @@ def accel(f, pos_vec, eps=None) :
 
 
 def midplane_rot_curve(f, rxy_points, eps = None) :
-    
+    """
+
+    Calculates the midplane rotation curve at a specified set of
+    points. Used primarily by :func:`pynbody.analysis.profile.v_circ`
+
+    """
+
     u_out = (units.G * f['mass'].units / f['pos'].units)**(1,2)
     
     vels = []
@@ -93,7 +121,13 @@ def midplane_rot_curve(f, rxy_points, eps = None) :
     return x
 
 def midplane_potential(f, rxy_points, eps = None) :
-    
+    """
+
+    Calculates the midplane potential at a specified set of
+    points. Used primarily by :func:`pynbody.analysis.profile.pot`
+
+    """
+
     u_out = units.G * f['mass'].units / f['pos'].units
     
     pots = []

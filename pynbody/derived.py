@@ -1,3 +1,14 @@
+"""
+
+derived
+=======
+
+Holds procedures for creating new arrays from existing ones, e.g. for
+getting the radial position.
+<http://code.google.com/p/pynbody/wiki/AutomagicCalculation>
+
+"""
+
 from . import snapshot
 from snapshot import SimSnap
 from . import array

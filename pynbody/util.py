@@ -1,3 +1,13 @@
+"""
+
+util
+====
+
+Various utility routines used internally by pynbody.
+
+"""
+
+
 import numpy as np
 from .backcompat import fractions
 import copy
@@ -258,8 +268,13 @@ def index_of_first(array, find) :
 
 
 def equipartition(ar, nbins, min = None, max = None) :
-    """Given an array ar, return nbins+1 monotonically increasing bin edges
-    such that the number of items in each bin is approximately equal"""
+    """
+
+    Given an array ar, return nbins+1 monotonically increasing bin
+    edges such that the number of items in each bin is approximately
+    equal.
+
+    """
 
     a_s = np.sort(ar)
 
@@ -271,13 +286,17 @@ def equipartition(ar, nbins, min = None, max = None) :
     return a_s[np.array(np.linspace(0,len(a_s)-1,nbins+1),dtype='int')]
 
 def bisect(left, right, f, epsilon=None, eta=0, verbose=False) :
-    """Finds the value x such that f(x)=0 for a monotonically
-    increasing function f, using a binary search.
+    """
 
-    The search stops when either the bounding domain is
-    smaller than epsilon (by default 10^-7 times the original
-    region) OR a value f(x) is found such that |f(x)|<eta (by default
-    eta=0, so this criterion is never satisfied). """
+    Finds the value x such that f(x)=0 for a monotonically increasing
+    function f, using a binary search.
+
+    The search stops when either the bounding domain is smaller than
+    epsilon (by default 10^-7 times the original region) OR a value
+    f(x) is found such that |f(x)|<eta (by default eta=0, so this
+    criterion is never satisfied).
+
+    """
 
     if epsilon is None :
         epsilon = (right-left)*1.e-7

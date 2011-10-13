@@ -1,18 +1,32 @@
+"""
+
+metals
+======
+
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile
 from .generic import hist2d
 
 def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
-    '''Metallicity Distribution Function
-    Usage:
-    import pynbody.plot as pp
-    pp.mdf(s,linestyle='dashed',color='k')
+    '''
 
-    Plots a metallicity distribution function to the best of matplotlib's
-    abilities.  Unfortunately, the "normed" keyword is buggy and does not
-    return a PDF.  The "density" keyword should, but it not yet supported
-    in many versions of numpy.
+    Metallicity Distribution Function
+    
+    Plots a metallicity distribution function to the best of
+    matplotlib's abilities.  Unfortunately, the "normed" keyword is
+    buggy and does not return a PDF.  The "density" keyword should,
+    but it not yet supported in many versions of numpy.
+
+    **Usage:**
+
+    >>> import pynbody.plot as pp
+    >>> pp.mdf(s,linestyle='dashed',color='k')
+
+    
     '''
     nbins=100
     if clear : plt.clf()
@@ -30,9 +44,13 @@ def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
 
 def ofefeh(sim,filename=None,**kwargs):
     '''
-    Use hist2d module to make [O/Fe] vs. [Fe/H] plot
+
+    Use the :func:`~pynbody.plot.generic.hist2d` module to make [O/Fe]
+    vs. [Fe/H] plot
+
     Some common arguments
     x_range=[-2,0.5],y_range=[-0.2,1.0]
+
     '''
     if 'subplot' in kwargs:
         hist2d(sim.star['feh'],sim.star['ofe'],filename=filename,**kwargs)

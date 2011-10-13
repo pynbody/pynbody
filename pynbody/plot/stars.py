@@ -1,17 +1,22 @@
+"""
+
+stars
+=====
+
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
+import warnings
 
 def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         subplot=False, trange=False, nbins=100, **kwargs):
-    '''star formation history
+    '''
+    star formation history
 
-    Usage:
-    import pynbody.plot as pp
-    pp.sfh(s,linestyle='dashed',color='k')
-
-    Optional keyword arguments:
+    **Optional keyword arguments:**
 
        *trange*: list, array, or tuple
          size(t_range) must be 2. Specifies the time range.
@@ -25,9 +30,19 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
        *subplot*: subplot object
          where to plot SFH
 
+       *legend*: boolean
+         whether to draw a legend or not
+
     By default, sfh will use the formation mass of the star.  In tipsy, this will be
     taken from the starlog file.  Set massform=False if you want the final (observed)
     star formation history
+
+    **Usage:**
+
+    >>> import pynbody.plot as pp
+    >>> pp.sfh(s,linestyle='dashed',color='k')
+
+    
     '''
 
     if subplot:
@@ -49,6 +64,7 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         try:
             weight = sim.star[trangefilt]['massform'].in_units('Msol') * binnorm
         except (KeyError, units.UnitsException) :
+            warnings.warn("Could not load massform array -- falling back to current stellar masses", RuntimeWarning)
             weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
     else:
         weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
@@ -71,13 +87,17 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
                diskheight='3 kpc',rmax='20 kpc', compare=True,
                radial=True,clear=True,legend=True,**kwargs):
     '''Schmidt Law
-    Usage:
-    import pynbody.plot as pp
-    pp.schmidtlaw(h[1])
 
     Plots star formation surface density vs. gas surface density including
     the observed relationships.  Currently, only plots densities found in
     radial annuli.
+
+    **Usage:**
+    
+    >>> import pynbody.plot as pp
+    >>> pp.schmidtlaw(h[1])
+
+    **needs a description of keywords**
     '''
     
     if not radial :
@@ -140,12 +160,16 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
 def oneschmidtlawpoint(sim,center=True,pretime='50 Myr',
                        diskheight='3 kpc',rmax='20 kpc',**kwargs):
     '''One Schmidt Law Point
-    Usage:
-    import pynbody.plot as pp
-    pp.oneschmidtlawpoint(h[1])
 
     Determines values for star formation surface density and gas surface 
     density for the entire galaxy based on the half mass cold gas radius.
+
+    **Usage:**
+    import pynbody.plot as pp
+    pp.oneschmidtlawpoint(h[1])
+
+
+    **needs a description of keywords**
     '''
     
     if center :
@@ -168,22 +192,32 @@ def oneschmidtlawpoint(sim,center=True,pretime='50 Myr',
 def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True, 
           clear=True, legend=True,
           label='Simulation',**kwargs) :
-    '''satellite luminosity function
-    Usage:
-    import pynbody.plot as pp
-    h = s.halos()
-    pp.satlf(h[1],linestyle='dashed',color='k')
+    '''
 
-    Options:
-    * band='v'       which Johnson band to use. available filters:  
-                     U, B, V, R, I, J, H, K
-    * filename=None  name of file to which to save output
-    * MWcompare=True whether to plot comparison lines to MW
-    * Trentham=True  whether to plot comparison lines to Trentham + Tully (2009)
-                     combined with Koposov et al (2007)
+    satellite luminosity function
 
-    By default, satlf will use the formation mass of the star.  
-    In tipsy, this will be taken from the starlog file. 
+    **Options:**
+
+    *band* ('v'): which Johnson band to use. available filters: U, B,
+    V, R, I, J, H, K
+
+    *filename* (None): name of file to which to save output
+
+    *MWcompare* (True): whether to plot comparison lines to MW
+
+    *Trentham* (True): whether to plot comparison lines to Trentham +
+                     Tully (2009) combined with Koposov et al (2007)
+
+    By default, satlf will use the formation mass of the star.  In
+    tipsy, this will be taken from the starlog file.
+
+    **Usage:**
+
+    >>> import pynbody.plot as pp
+    >>> h = s.halos()
+    >>> pp.satlf(h[1],linestyle='dashed',color='k')
+
+    
     '''
     from ..analysis import luminosity as lum
     import os
@@ -241,19 +275,28 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
 
 def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
               center=True, clear=True, filename=None, **kwargs) :
-    '''surface brightness profile
-    Usage:
-    import pynbody.plot as pp
-    h = s.halos()
-    pp.sbprofile(h[1],linestyle='dashed',color='k')
+    '''
 
-    Options:
-    * band='v'       which Johnson band to use. available filters:  
-                     U, B, V, R, I, J, H, K
-    * filename=None  name of file to which to save output
+    surface brightness profile
+    
+    **Options:**
+
+    *band* ('v'): which Johnson band to use. available filters: U, B,
+                     V, R, I, J, H, K
+
+    *filename* (None): name of file to which to save output
+
+    **needs a description of all keywords**
 
     By default, sbprof will use the formation mass of the star.  
     In tipsy, this will be taken from the starlog file. 
+
+    **Usage:**
+
+    >>> import pynbody.plot as pp
+    >>> h = s.halos()
+    >>> pp.sbprofile(h[1],linestyle='dashed',color='k')
+    
     '''
     
     if center :
@@ -279,16 +322,22 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
         filename=False,**kwargs):
     '''Stellar Mass vs. Halo Mass
-    Takes a halo catalogue and plots the member stellar masses as a function
-    of halo mass. 
+    
+    Takes a halo catalogue and plots the member stellar masses as a
+    function of halo mass.
+
+    Options: 
+
+    *filename* (None): name of file to which to save output
+    
+    **needs a description of all keyword arguments**
 
     Usage:
-    import pynbody.plot as pp
-    h = s.halos()
-    pp.guo(h,marker='+',markerfacecolor='k')
-
-    Options:
-    * filename=None  name of file to which to save output
+    
+    >>> import pynbody.plot as pp
+    >>> h = s.halos()
+    >>> pp.guo(h,marker='+',markerfacecolor='k')
+    
     '''
 
     #if 'marker' not in kwargs :

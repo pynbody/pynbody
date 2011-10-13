@@ -41,11 +41,19 @@ class SimDict(dict) :
 
 @SimDict.getter
 def z(d) :
-    return 1.0/d["a"] -1.0
-
+    if d["a"] is None :
+        return None
+    try :
+        return 1.0/d["a"] -1.0
+    except ZeroDivisionError :
+        return None
+    
 @SimDict.setter
 def z(d,z) :
-    d["a"] = 1.0/(1.0+z)
+    if z is None :
+        d["a"] = None
+    else :
+        d["a"] = 1.0/(1.0+z)
         
 
 

@@ -134,3 +134,7 @@ def test_array_write() :
 
     # will re-lazy-load
     assert all(np.abs(f['array_write_test']-f['array_read_test'])<1.e-5)
+
+def test_isolated_read() :
+    s = pynbody.load('testdata/isolated_ics.std')
+

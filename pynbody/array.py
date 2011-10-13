@@ -1,4 +1,7 @@
 """
+array
+=====
+
 Defines a shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
 
 For most purposes, the differences between numpy.ndarray and
@@ -6,84 +9,89 @@ array.SimArray are not important. However, when units are specified
 (by setting the ``units`` attribute), the behaviour is slightly
 different. In particular,
 
-* it becomes impossible to add or subtract arrays with incompatible
-dimensions
+* it becomes impossible to add or subtract arrays with incompatible dimensions
 
-   SimArray([1,2], "Mpc") + SimArray([1,2], "Msol")) # ->ValueError
+>>> SimArray([1,2], "Mpc") + SimArray([1,2], "Msol"))
+ValueError
 
 * addition or subtraction causes auto-unit conversion. For example
 
-   SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")
-
-yields ``SimArray([1.001, 1.002], "Mpc")``
+>>> SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")
+SimArray([1.001, 1.002], "Mpc")
 
 * Note that in this context the left value takes precedence in
-specifying the return units, so that reversing the order of the
-operation here would return results in kpc.
+  specifying the return units, so that reversing the order of the
+  operation here would return results in kpc.
 
 * If only one of the arrays specifies a Unit, no checking occurs and
-the unit of the returned array is assumed to be the same as the
-one specified input unit.
+  the unit of the returned array is assumed to be the same as the one
+  specified input unit.
 
 * Powers to single integer or rational powers will maintain unit
-tracking.  Powers to float or other powers will not be able to do so.
+  tracking.  Powers to float or other powers will not be able to do
+  so.
 
-   SimArray([1,2],"Msol Mpc**-3")**2 # -> SimArray([1, 4], 'Msol**2 Mpc**-6')
-   SimArray([1,2],"Msol Mpc**-3")**(1,3) # -> SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
-   # Syntax above mirrors syntax in units module, where a length-two tuple
-   # can represent a rational number, in this case one third.
+>>> SimArray([1,2],"Msol Mpc**-3")**2 
+SimArray([1, 4], 'Msol**2 Mpc**-6')
+>>> SimArray([1,2],"Msol Mpc**-3")**(1,3) 
+SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
 
-   SimArray([1.,2], "Msol Mpc**-3")**0.333 # -> SimArray([ 1.,1.26])
-   # Lost track of units
+Syntax above mirrors syntax in units module, where a length-two tuple
+can represent a rational number, in this case one third.
+
+>>> SimArray([1.,2], "Msol Mpc**-3")**0.333 
+SimArray([ 1.,1.26])  # Lost track of units
 
 
 
 Getting the array in specified units
-====================================
+------------------------------------
 
 Given an array, you can convert it in-place into units of your
 own chosing:
-  x = SimArray([1,2], "Msol")
-  x.convert_units('kg')
-  print x # ->  SimArray([  1.99e+30,   3.98e+30], 'kg')
+  
+>>> x = SimArray([1,2], "Msol")
+>>> x.convert_units('kg')
+>>> print x 
+SimArray([  1.99e+30,   3.98e+30], 'kg')
 
 Or you can leave the original array alone and get a *copy* in
 different units, correctly converted:
 
-   x = SimArray([1,2], "Msol")
-   print x.in_units("kg") # -> SimArray([  1.99e+30,   3.98e+30], 'kg')
-   print x # -> SimArray([1,2], "Msol")
+>>> x = SimArray([1,2], "Msol")
+>>> print x.in_units("kg") 
+SimArray([  1.99e+30,   3.98e+30], 'kg')
+>>> print x 
+SimArray([1,2], "Msol")
 
 If the SimArray was created by a SimSnap (which is most likely), it
 has a pointer into the SimSnap's properties so that the cosmological
 context is automatically fetched. For example, comoving -> physical
 conversions are correctly achieved:
 
-  f = pynbody.load("fname")
-  f['pos']
+>>> f = pynbody.load("fname")
+>>> f['pos']
+SimArray([[ 0.05419805, -0.0646539 , -0.15700017],
+         [ 0.05169899, -0.06193341, -0.14475258],
+         [ 0.05672406, -0.06384531, -0.15909944],
+         ...,
+         [ 0.0723075 , -0.07650762, -0.07657281],
+         [ 0.07166634, -0.07453796, -0.08020873],
+         [ 0.07165282, -0.07468577, -0.08020587]], '2.86e+04 kpc a')
 
-  SimArray([[ 0.05419805, -0.0646539 , -0.15700017],
-       [ 0.05169899, -0.06193341, -0.14475258],
-       [ 0.05672406, -0.06384531, -0.15909944],
-       ...,
-       [ 0.0723075 , -0.07650762, -0.07657281],
-       [ 0.07166634, -0.07453796, -0.08020873],
-       [ 0.07165282, -0.07468577, -0.08020587]], '2.86e+04 kpc a')
-
-  f['pos'].convert_units('kpc')
-  f['pos']
-
-   SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],
-       [ 1477.1124212 , -1769.52421398, -4135.78377699],
-       [ 1620.68592366, -1824.15000686, -4545.69387564],
-       ...,
-       [ 2065.9264273 , -2185.92982874, -2187.79225915],
-       [ 2047.60759667, -2129.6537339 , -2291.6758134 ],
-       [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
+>>> f['pos'].convert_units('kpc')
+>>> f['pos']
+SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],
+         [ 1477.1124212 , -1769.52421398, -4135.78377699],
+         [ 1620.68592366, -1824.15000686, -4545.69387564],
+         ...,
+         [ 2065.9264273 , -2185.92982874, -2187.79225915],
+         [ 2047.60759667, -2129.6537339 , -2291.6758134 ],
+         [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
 
 
 Specifying rules for ufunc's
-============================
+----------------------------
 
 In general, it's not possible to infer what the output units from a given
 ufunc should be. While numpy built-in ufuncs should be handled OK, other
@@ -99,6 +107,7 @@ array will be made into a numpy.ndarray.)
 For example, here is the code for the correct addition/subtraction
 handler:
 
+.. code-block:: python
 
     @SimArray.ufunc_rule(np.add)
     @SimArray.ufunc_rule(np.subtract)
