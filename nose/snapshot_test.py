@@ -187,3 +187,13 @@ def test_copy() :
     # copied in from IndexedSimArrays
     
     
+
+def test_mean_by_mass() :
+    f['pos'].units = 'kpc'
+    f['mass'].units = 'Msol'
+
+    assert str(f.mean_by_mass('pos').units) == 'kpc'
+
+
+def test_name_awareness() :
+    assert f['pos'].name is 'pos'
