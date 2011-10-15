@@ -850,13 +850,20 @@ class GadgetSnap(snapshot.SimSnap):
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
-        """ This code is for format conversions, but it does not work.
+        #This code supports (limited) format conversions
         if self.__class__ is not GadgetSnap :
-            #We first need to construct some information normally found on the disc.
-            #Make sure we have enough files to fit the data into. The magic numbers are:
+            #We need a filename if we are writing to a new type
+            if filename == None :
+                raise Exception,"Please specify a filename to write a new file."
+	    #Splitting the files correctly is hard; the particles need to be reordered, and
+            #we need to know which families correspond to which gadget types.
+            #So don't do it.
+            
+            #Make sure the data fits into one files. The magic numbers are:
             #12 - the largest block is likely to  be POS with 12 bytes per particle. 
-            #2**31 is the largest size a gadget block can safely have, so say 2**30 for safety.
-            nfiles = np.ceil((self.__len__()*12.)/2**30)
+            #2**31 is the largest size a gadget block can safely have
+            if self.__len__()*12. > 2**31-1:
+                raise IOError,"Data too large to fit into a single gadget file, and splitting not implemented. Cannot write."              
             #Make npart
             npart = np.zeros(N_TYPE, int)
             arr_name=(self.keys()+self.loadable_keys())[0]
@@ -866,20 +873,20 @@ class GadgetSnap(snapshot.SimSnap):
                 npart[np.min(gadget_type(f))] = len(self[f][arr_name])
             #Construct a header
             # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
-            self.header=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],nfiles)
+            gheader=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],1)
             #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
             #as well as a name. Blocks will hit the disc in the order they are in in block_names.
             #No writing format 1 files.
             block_names = []
-            for k in all_keys :
-                if self.is_derived_array(k):
+            for k in self.keys()+self.loadable_keys() :
+                if self.is_derived_array(k) or k in ["x","y","z","vx","vy","vz"]:
                     continue
                 types = np.zeros(N_TYPE,bool)
                 for f in self.families() :
                     try :
-                        with self.lazy_off :
-                            dtype = self[f][k].dtype
-                        types[gadget_type(f)] += True
+#                        with self.lazy_off :
+                        dtype = self[f][k].dtype
+                        types[np.min(gadget_type(f))] += True
                         try :
                             partlen = np.shape(self[f][k])[1]*dtype.itemsize
                         except IndexError:
@@ -888,19 +895,24 @@ class GadgetSnap(snapshot.SimSnap):
                         pass
                 bb=WriteBlock(partlen, dtype=dtype, types = types, name = _translate_array_name(k).upper().ljust(4)[0:4])
                 block_names.append(bb)
+            #Create an output file
+            out_file = GadgetWriteFile(filename, npart, block_names, gheader)
+            #Write the header
+            out_file.write_header(gheader,filename) 
+            #Write all the arrays    
+            for x in self.keys()+self.loadable_keys() :
+                #Do not write derived arrays by default
+                if not self.is_derived_array(x) and x not in ["x","y","z","vx","vy","vz"]:
+                    g_name = _translate_array_name(x).upper().ljust(4)[0:4]
+                    for fam in self.families() :
+                        try:
+                            data = self[fam][x]
+                            gfam = np.min(gadget_type(fam))
+                            out_file.write_block(g_name, gfam, data, filename=filename)
+                        except KeyError :
+                            pass
+            return
 
-            #Create a list of files. 
-            self._files = []
-            if nfiles > 1 :
-                fnpart = np.array(npart/nfiles)
-                for i in np.arange(0,nfiles) :
-                    ffile=filename+"."+str(i)
-                    if (fnpart > npart).any() :
-                        fnpart = np.array(npart)
-                    npart -= fnpart
-                    self._files.append(GadgetWriteFile(ffile, fnpart, block_names, self.header))
-            else :
-                self._files.append(GadgetWriteFile(filename, npart, block_names, self.header))"""
         #Write headers
         if filename != None :
             if np.size(self._files) > 1 :
@@ -933,7 +945,8 @@ class GadgetSnap(snapshot.SimSnap):
             npart = 0
             for fam in self.families():
                 gfam = np.min(gadget_type(fam))
-                #We get the particle types we want by trying to load all particle types (from memory) and seeing which ones work
+                #We get the particle types we want by trying to load all 
+                #particle types (from memory) and seeing which ones work
                 p_types[gfam]=self[fam].has_key(array_name)
                 if p_types[gfam] :
                     ashape = np.shape(self[fam][array_name])
