@@ -850,6 +850,7 @@ class GadgetSnap(snapshot.SimSnap):
         #If caller is not a GadgetSnap, construct the GadgetFiles, 
         #so that format conversion works.
         all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
+        all_keys = [ k for k in all_keys if not self.is_derived_array(k) and not k in ["x","y","z","vx","vy","vz"] ] 
         #This code supports (limited) format conversions
         if self.__class__ is not GadgetSnap :
             #We need a filename if we are writing to a new type
@@ -875,16 +876,21 @@ class GadgetSnap(snapshot.SimSnap):
             # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
             gheader=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],1)
             #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
-            #as well as a name. Blocks will hit the disc in the order they are in in block_names.
+            #as well as a name. Blocks will hit the disc in the order they are in all_keys.
+            #First, make pos the first block and vel the second.
+            all_keys[all_keys.index("pos")]=all_keys[0]
+            all_keys[0] = "pos"
+            all_keys[all_keys.index("vel")]=all_keys[1]
+            all_keys[1] = "vel"
             #No writing format 1 files.
             block_names = []
-            for k in self.keys()+self.loadable_keys() :
-                if self.is_derived_array(k) or k in ["x","y","z","vx","vy","vz"]:
-                    continue
+            for k in all_keys :
                 types = np.zeros(N_TYPE,bool)
                 for f in self.families() :
                     try :
-#                        with self.lazy_off :
+                        #Things can be derived for some families but not others
+                        if self[f].is_derived_array(k) :
+                            continue
                         dtype = self[f][k].dtype
                         types[np.min(gadget_type(f))] += True
                         try :
@@ -900,17 +906,18 @@ class GadgetSnap(snapshot.SimSnap):
             #Write the header
             out_file.write_header(gheader,filename) 
             #Write all the arrays    
-            for x in self.keys()+self.loadable_keys() :
-                #Do not write derived arrays by default
-                if not self.is_derived_array(x) and x not in ["x","y","z","vx","vy","vz"]:
-                    g_name = _translate_array_name(x).upper().ljust(4)[0:4]
-                    for fam in self.families() :
-                        try:
-                            data = self[fam][x]
-                            gfam = np.min(gadget_type(fam))
-                            out_file.write_block(g_name, gfam, data, filename=filename)
-                        except KeyError :
-                            pass
+            for x in all_keys :
+                g_name = _translate_array_name(x).upper().ljust(4)[0:4]
+                for fam in self.families() :
+                    try:
+                        #Things can be derived for some families but not others
+                        if self[f].is_derived_array(k) :
+                            continue
+                        data = self[fam][x]
+                        gfam = np.min(gadget_type(fam))
+                        out_file.write_block(g_name, gfam, data, filename=filename)
+                    except KeyError :
+                        pass
             return
 
         #Write headers
@@ -926,9 +933,7 @@ class GadgetSnap(snapshot.SimSnap):
             [ f.write_header(self.header) for f in self._files ]
         #Call _write_array for every array.
         for x in all_keys :
-            #Do not write derived arrays by default
-            if not self.is_derived_array(x) and x not in ["x","y","z","vx","vy","vz"]:
-                self._write_array(x, filename)
+            self._write_array(x, filename)
 
     @staticmethod
     def _write_array(self, array_name, filename=None) :
