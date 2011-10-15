@@ -930,6 +930,7 @@ class GadgetSnap(snapshot.SimSnap):
             if not self.is_derived_array(x) and x not in ["x","y","z","vx","vy","vz"]:
                 self._write_array(x, filename)
 
+    @staticmethod
     def _write_array(self, array_name, filename=None) :
         """Write a data array back to a Gadget snapshot, splitting it across files."""
         #Make the name a four-character upper case name, possibly with trailing spaces

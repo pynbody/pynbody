@@ -93,3 +93,15 @@ def test_write() :
     assert((snap3["pos"] == snap["pos"]).all())
     assert((snap3.gas["rho"] == snap.gas["rho"]).all())
     assert(snap3.check_headers(snap.header, snap3.header))
+
+def test_conversion() :
+    """Check that we can convert a file from tipsy format and load it again"""
+    snap4 = pynbody.load("testdata/g15784.lr.01024")
+    snap4.write(fmt=pynbody.gadget.GadgetSnap, filename="testdata/test_conversion.gadget")
+    snap5=pynbody.load("testdata.test_conversion.gadget")
+
+def test_write_single_array():
+    """Check that we can write a single array and read it back"""
+    snap["pos"].write()
+    snap6=pynbody.load("testdata/test_g2_snap")
+    assert((snap6["pos"] == snap["pos"]).all())
