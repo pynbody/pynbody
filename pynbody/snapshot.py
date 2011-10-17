@@ -65,8 +65,20 @@ class SimSnap(object) :
         self._persistent_objects = {}
 
         self._unifamily = None
+
         self.lazy_off = util.ExecutionControl()
+        # use 'with lazy_off :' blocks to disable all hidden/lazy behaviour
+
+        self.lazy_derive_off = util.ExecutionControl()
+        # use 'with lazy_derive_off : ' blocks to disable lazy-derivation
+        
+        self.lazy_load_off = util.ExecutionControl()
+        # use 'with lazy_load_off : ' blocks to disable lazy-loading
+
         self.auto_propagate_off = util.ExecutionControl()
+        # use 'with auto_propagate_off : ' blocks to disable auto-flagging changes
+        # (i.e. prevent lazy-evaluated arrays from auto-re-evaluating when their
+        # dependencies change)
         
         self.properties = simdict.SimDict({})
         self._file_units_system = []
@@ -113,13 +125,20 @@ class SimSnap(object) :
             except KeyError :
                 if not self.lazy_off :
                     try:
-                        self._load_array(i)
+                        if not self.lazy_load_off :
+                            self._load_array(i)
+                        else :
+                            raise IOError
+                        
                         if i in self.family_keys() :
                             self._promote_family_array(i)
+
                         return self._get_array(i)
+                    
                     except IOError :
-                        self._derive_array(i)
-                        return self._get_array(i)
+                        if not self.lazy_derive_off :
+                            self._derive_array(i)
+                            return self._get_array(i)
                         
 
                 # All available methods of getting this array have failed
@@ -939,6 +958,8 @@ class SubSnap(SimSnap) :
         self._file_units_system = base._file_units_system
         self._unifamily = base._unifamily
         self.lazy_off = self.base.lazy_off
+        self.lazy_derive_off = self.base.lazy_derive_off
+        self.lazy_load_off = self.base.lazy_load_off
         self.auto_propagate_off = self.base.auto_propagate_off
 
         if isinstance(_slice,slice) :
@@ -1091,6 +1112,9 @@ class IndexedSubSnap(SubSnap) :
         self._descriptor = "indexed"
         self.lazy_off = base.lazy_off
         self.auto_propagate_off = base.auto_propagate_off
+        self.lazy_load_off = base.lazy_load_off
+        self.lazy_derive_off = base.lazy_derive_off
+        
         self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
         if isinstance(index_array, filt.Filter) :
@@ -1156,6 +1180,9 @@ class FamilySubSnap(SubSnap) :
         self.properties = base.properties
         self.lazy_off = self.base.lazy_off
         self.auto_propagate_off = self.base.auto_propagate_off
+        self.lazy_derive_off = self.base.lazy_derive_off
+        self.lazy_load_off = self.base.lazy_load_off
+        
         self._slice = base._get_family_slice(fam)
         self._unifamily = fam
         self._descriptor = ":"+fam.name
