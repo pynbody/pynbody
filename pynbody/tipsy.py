@@ -30,7 +30,7 @@ class TipsySnap(snapshot.SimSnap) :
         super(TipsySnap,self).__init__()
         
         self._filename = util.cutgz(filename)
-	
+    
         f = util.open_(filename)
     
         if config['verbose'] : print>>sys.stderr, "TipsySnap: loading ",filename
@@ -51,52 +51,52 @@ class TipsySnap(snapshot.SimSnap) :
             self.properties['z'] = 1.0/t - 1.0
         except ZeroDivisionError:
             self.properties['z'] = None
-            
-	assert ndim==3
-	
-	self._num_particles = ng+nd+ns
-	f.read(4)
 
-	# Store slices corresponding to different particle types
-	self._family_slice[family.gas] = slice(0,ng)
-	self._family_slice[family.dm] = slice(ng, nd+ng)
-	self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
+        assert ndim==3
 
-	self._create_arrays(["pos","vel"],3)
-	self._create_arrays(["mass","eps","phi"])
-	self.gas._create_arrays(["rho","temp","metals"])
-	self.star._create_arrays(["metals","tform"])
+        self._num_particles = ng+nd+ns
+        f.read(4)
 
-	self.gas["temp"].units = "K" # we know the temperature is always in K
-	# Other units will be set by the decorators later
-	
+        # Store slices corresponding to different particle types
+        self._family_slice[family.gas] = slice(0,ng)
+        self._family_slice[family.dm] = slice(ng, nd+ng)
+        self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
-	# Load in the tipsy file in blocks.  This is the most
-	# efficient balance I can see for keeping IO contiguuous, not
-	# wasting memory, but also not having too much python <-> C
-	# interface overheads
+        self._create_arrays(["pos","vel"],3)
+        self._create_arrays(["mass","eps","phi"])
+        self.gas._create_arrays(["rho","temp","metals"])
+        self.star._create_arrays(["metals","tform"])
 
-	max_block_size = 1024 # particles
+        self.gas["temp"].units = "K" # we know the temperature is always in K
+        # Other units will be set by the decorators later
 
-	# describe the file structure as list of (num_parts, [list_of_properties]) 
-	file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
-			  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
-			  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
 
-	self._decorate()
+        # Load in the tipsy file in blocks.  This is the most
+        # efficient balance I can see for keeping IO contiguuous, not
+        # wasting memory, but also not having too much python <-> C
+        # interface overheads
+
+        max_block_size = 1024 # particles
+
+        # describe the file structure as list of (num_parts, [list_of_properties]) 
+        file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
+                  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
+                  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+
+        self._decorate()
 
         if  (not self._paramfile.has_key('achOutName')) :
-	    if must_have_paramfile :
-		raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
-	    else :
-		warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
-	    
+            if must_have_paramfile :
+                raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+            else :
+                warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
+
         time_unit = None
         try :
             time_unit = self.infer_original_units('yr')
         except units.UnitsException :
             pass
-        
+
         if self._paramfile.has_key('bComove') and int(self._paramfile['bComove'])!=0 :
             from . import analysis
             import analysis.cosmology
@@ -106,7 +106,7 @@ class TipsySnap(snapshot.SimSnap) :
             except ZeroDivisionError :
                 # no sensible redshift
                 pass
-            
+
             if self.properties['z'] is not None and self._paramfile.has_key('dMsolUnit') and self._paramfile.has_key('dKpcUnit'):
                 self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
             else :
@@ -114,41 +114,40 @@ class TipsySnap(snapshot.SimSnap) :
                 # things
                 warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
                 self.properties['time'] = t
-            
+
         else :
             # Assume a non-cosmological run
             self.properties['time'] =  t
-            
+
         if time_unit is not None :
             self.properties['time']*=time_unit
 
         if only_header == True:
             return
-	
-	for n_left, type, st in file_structure :
-	    n_done = 0
-	    self_type = self[type]
-	    while n_left>0 :
+
+        for n_left, type, st in file_structure :
+            n_done = 0
+            self_type = self[type]
+            while n_left>0 :
                 n_block = min(n_left,max_block_size)
 
-				
+
                 # Read in the block
                 if(self._byteswap):
                     g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
                 else:
-		    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
-	
-                    
-		# Copy into the correct arrays
-		for i, name in enumerate(st) :
-		    self_type[name][n_done:n_done+n_block] = g[:,i]
+                    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
 
-		# Increment total ptcls read in, decrement ptcls left of this type
-		n_left-=n_block
-		n_done+=n_block
+                # Copy into the correct arrays
+                for i, name in enumerate(st) :
+                    self_type[name][n_done:n_done+n_block] = g[:,i]
+
+                # Increment total ptcls read in, decrement ptcls left of this type
+                n_left-=n_block
+                n_done+=n_block
 
 
-	
+    
 
     def loadable_keys(self) :
         """Produce and return a list of loadable arrays for this TIPSY file."""
@@ -199,62 +198,62 @@ class TipsySnap(snapshot.SimSnap) :
     def _write(self, filename=None) :
         """Write a TIPSY file.  Just the reverse of reading a file. """
 
-	global config
-	
+        global config
+        
         with self.lazy_off : # prevent any lazy reading or evaluation
-	    
+        
             if filename is None :
-                #if self._filename[-3:] == '.gz' :
-                #    filename = self._filename[:-3]+".new.gz"
-                #else :
-                #    filename = self._filename+'.new'
-		filename = self._filename
-		
-	    if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
+                filename = self._filename
+
+            if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
 
             f = util.open_(filename, 'w')
-	    try:
-		t = self.properties['a']
-	    except KeyError :
-		warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
-		t = 0
-		
+
+            try:
+                t = self.properties['a']
+            except KeyError :
+                warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
+                t = 0
+
             n = len(self)
             ndim = 3
             ng = len(self.gas)
             nd = len(self.dark)
             ns = len(self.star)
 
-	    
-	    byteswap = getattr(self, "_byteswap", None)
-	    
-	    if byteswap: 
+
+            byteswap = getattr(self, "_byteswap", None)
+
+            if byteswap: 
                 f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
             else:
                 f.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
+
+                
             # needs to be done in blocks like reading
             # describe the file structure as list of (num_parts, [list_of_properties]) 
             file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
                               (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
                               (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+            
             max_block_size = 1024 # particles
             for n_left, type, st in file_structure :
                 n_done = 0
                 self_type = self[type]
                 while n_left>0 :
                     n_block = min(n_left,max_block_size)                   
-		    
+
                     g = np.zeros((n_block,len(st)),dtype=np.float32)
 
                     # Copy from the correct arrays
                     for i, name in enumerate(st) :
-			try:
-			    g[:,i] =np.float32(self_type[name][n_done:n_done+n_block])
-			except KeyError :
-			    pass
-			
+                        try:
+                            g[:,i] =np.float32(self_type[name][n_done:n_done+n_block])
+                        except KeyError :
+                            pass
+
                     # Write out the block
-		    if byteswap :
+                    if byteswap :
                         g.byteswap().tofile(f)
                     else:
                         g.tofile(f)
@@ -264,13 +263,14 @@ class TipsySnap(snapshot.SimSnap) :
                     n_done+=n_block
 
             f.close()
-	    if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
+            
+            if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
 
-	    for x in set(self.keys()).union(self.family_keys()) :
-		if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
-							      "eps","metals","phi", "tform"]  :
-		    TipsySnap._write_array(self, x, filename=filename+"."+x)
-		    
+            for x in set(self.keys()).union(self.family_keys()) :
+                if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
+                                                              "eps","metals","phi", "tform"]  :
+                    TipsySnap._write_array(self, x, filename=filename+"."+x)
+    
 
     @staticmethod
     def __write_block(f,ar,binary, byteswap) :
