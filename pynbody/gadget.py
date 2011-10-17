@@ -847,93 +847,95 @@ class GadgetSnap(snapshot.SimSnap):
     @staticmethod
     def _write(self, filename=None) :
         """Write an entire Gadget file (actually an entire set of snapshots)."""
-        #If caller is not a GadgetSnap, construct the GadgetFiles, 
-        #so that format conversion works.
-        all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
-        all_keys = [ k for k in all_keys if not self.is_derived_array(k) and not k in ["x","y","z","vx","vy","vz"] ] 
-        #This code supports (limited) format conversions
-        if self.__class__ is not GadgetSnap :
-            #We need a filename if we are writing to a new type
-            if filename == None :
-                raise Exception,"Please specify a filename to write a new file."
-	    #Splitting the files correctly is hard; the particles need to be reordered, and
-            #we need to know which families correspond to which gadget types.
-            #So don't do it.
-            
-            #Make sure the data fits into one files. The magic numbers are:
-            #12 - the largest block is likely to  be POS with 12 bytes per particle. 
-            #2**31 is the largest size a gadget block can safely have
-            if self.__len__()*12. > 2**31-1:
-                raise IOError,"Data too large to fit into a single gadget file, and splitting not implemented. Cannot write."              
-            #Make npart
-            npart = np.zeros(N_TYPE, int)
-            arr_name=(self.keys()+self.loadable_keys())[0]
-            for f in self.families() :
-                #Note that if we have more than one type per family, we cannot
-                # determine which type each individual particle is, so assume they are all the first.
-                npart[np.min(gadget_type(f))] = len(self[f][arr_name])
-            #Construct a header
-            # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
-            gheader=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],1)
-            #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
-            #as well as a name. Blocks will hit the disc in the order they are in all_keys.
-            #First, make pos the first block and vel the second.
-            all_keys[all_keys.index("pos")]=all_keys[0]
-            all_keys[0] = "pos"
-            all_keys[all_keys.index("vel")]=all_keys[1]
-            all_keys[1] = "vel"
-            #No writing format 1 files.
-            block_names = []
-            for k in all_keys :
-                types = np.zeros(N_TYPE,bool)
-                for f in self.families() :
-                    try :
-                        #Things can be derived for some families but not others
-                        if self[f].is_derived_array(k) :
-                            continue
-                        dtype = self[f][k].dtype
-                        types[np.min(gadget_type(f))] += True
-                        try :
-                            partlen = np.shape(self[f][k])[1]*dtype.itemsize
-                        except IndexError:
-                            partlen = dtype.itemsize
-                    except KeyError:
-                        pass
-                bb=WriteBlock(partlen, dtype=dtype, types = types, name = _translate_array_name(k).upper().ljust(4)[0:4])
-                block_names.append(bb)
-            #Create an output file
-            out_file = GadgetWriteFile(filename, npart, block_names, gheader)
-            #Write the header
-            out_file.write_header(gheader,filename) 
-            #Write all the arrays    
-            for x in all_keys :
-                g_name = _translate_array_name(x).upper().ljust(4)[0:4]
-                for fam in self.families() :
-                    try:
-                        #Things can be derived for some families but not others
-                        if self[f].is_derived_array(k) :
-                            continue
-                        data = self[fam][x]
-                        gfam = np.min(gadget_type(fam))
-                        out_file.write_block(g_name, gfam, data, filename=filename)
-                    except KeyError :
-                        pass
-            return
+        
+        with self.lazy_off :
+            #If caller is not a GadgetSnap, construct the GadgetFiles, 
+            #so that format conversion works.
+            all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
+            all_keys = [ k for k in all_keys if not self.is_derived_array(k) and not k in ["x","y","z","vx","vy","vz"] ] 
+            #This code supports (limited) format conversions
+            if self.__class__ is not GadgetSnap :
+                #We need a filename if we are writing to a new type
+                if filename == None :
+                    raise Exception,"Please specify a filename to write a new file."
+            #Splitting the files correctly is hard; the particles need to be reordered, and
+                #we need to know which families correspond to which gadget types.
+                #So don't do it.
 
-        #Write headers
-        if filename != None :
-            if np.size(self._files) > 1 :
-                for i in np.arange(0, np.size(self._files)) :
-                    ffile = filename+"."+str(i)
-                    self._files[i].write_header(self.header,ffile) 
+                #Make sure the data fits into one files. The magic numbers are:
+                #12 - the largest block is likely to  be POS with 12 bytes per particle. 
+                #2**31 is the largest size a gadget block can safely have
+                if self.__len__()*12. > 2**31-1:
+                    raise IOError,"Data too large to fit into a single gadget file, and splitting not implemented. Cannot write."              
+                #Make npart
+                npart = np.zeros(N_TYPE, int)
+                arr_name=(self.keys()+self.loadable_keys())[0]
+                for f in self.families() :
+                    #Note that if we have more than one type per family, we cannot
+                    # determine which type each individual particle is, so assume they are all the first.
+                    npart[np.min(gadget_type(f))] = len(self[f][arr_name])
+                #Construct a header
+                # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
+                gheader=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],1)
+                #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
+                #as well as a name. Blocks will hit the disc in the order they are in all_keys.
+                #First, make pos the first block and vel the second.
+                all_keys[all_keys.index("pos")]=all_keys[0]
+                all_keys[0] = "pos"
+                all_keys[all_keys.index("vel")]=all_keys[1]
+                all_keys[1] = "vel"
+                #No writing format 1 files.
+                block_names = []
+                for k in all_keys :
+                    types = np.zeros(N_TYPE,bool)
+                    for f in self.families() :
+                        try :
+                            #Things can be derived for some families but not others
+                            if self[f].is_derived_array(k) :
+                                continue
+                            dtype = self[f][k].dtype
+                            types[np.min(gadget_type(f))] += True
+                            try :
+                                partlen = np.shape(self[f][k])[1]*dtype.itemsize
+                            except IndexError:
+                                partlen = dtype.itemsize
+                        except KeyError:
+                            pass
+                    bb=WriteBlock(partlen, dtype=dtype, types = types, name = _translate_array_name(k).upper().ljust(4)[0:4])
+                    block_names.append(bb)
+                #Create an output file
+                out_file = GadgetWriteFile(filename, npart, block_names, gheader)
+                #Write the header
+                out_file.write_header(gheader,filename) 
+                #Write all the arrays    
+                for x in all_keys :
+                    g_name = _translate_array_name(x).upper().ljust(4)[0:4]
+                    for fam in self.families() :
+                        try:
+                            #Things can be derived for some families but not others
+                            if self[f].is_derived_array(k) :
+                                continue
+                            data = self[fam][x]
+                            gfam = np.min(gadget_type(fam))
+                            out_file.write_block(g_name, gfam, data, filename=filename)
+                        except KeyError :
+                            pass
+                return
+
+            #Write headers
+            if filename != None :
+                if np.size(self._files) > 1 :
+                    for i in np.arange(0, np.size(self._files)) :
+                        ffile = filename+"."+str(i)
+                        self._files[i].write_header(self.header,ffile) 
+                else :
+                    self._files[0].write_header(self.header,filename) 
             else :
-                self._files[0].write_header(self.header,filename) 
-        else :
-            #Call write_header for every file. 
-            [ f.write_header(self.header) for f in self._files ]
-        #Call _write_array for every array.
-        for x in all_keys :
-            self._write_array(x, filename)
+                #Call write_header for every file. 
+                [ f.write_header(self.header) for f in self._files ]
+            #Call _write_array for every array.
+            for x in all_keys :
+                self._write_array(x, filename)
 
     @staticmethod
     def _write_array(self, array_name, filename=None) :
