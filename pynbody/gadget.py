@@ -848,7 +848,7 @@ class GadgetSnap(snapshot.SimSnap):
     def _write(self, filename=None) :
         """Write an entire Gadget file (actually an entire set of snapshots)."""
         
-        with self.lazy_off :
+        with self.lazy_derive_off :
             #If caller is not a GadgetSnap, construct the GadgetFiles, 
             #so that format conversion works.
             all_keys=set(self.loadable_keys()).union(self.keys()).union(self.family_keys())
@@ -935,7 +935,7 @@ class GadgetSnap(snapshot.SimSnap):
                 [ f.write_header(self.header) for f in self._files ]
             #Call _write_array for every array.
             for x in all_keys :
-                self._write_array(x, filename)
+                GadgetSnap._write_array(self, x, filename)
 
     @staticmethod
     def _write_array(self, array_name, filename=None) :
