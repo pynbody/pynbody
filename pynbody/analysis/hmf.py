@@ -13,7 +13,11 @@ from .. import units
 from .. import util
 import pynbody
 import os
-import scipy, scipy.interpolate
+try :
+    import scipy, scipy.interpolate
+except ImportError :
+    pass
+
 import math
 import warnings
 import cmath
