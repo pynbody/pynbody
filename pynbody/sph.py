@@ -17,7 +17,63 @@ import scipy, scipy.weave
 from scipy.weave import inline
 import snapshot, array
 import math
+import time
+import sys
 from . import snapshot, array, config
+
+def build_tree(sim) :
+    if hasattr(sim,'kdtree') is False : 
+        import kdtree
+        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=%d'%config['sph']['tree-leafsize']
+        if config['tracktime']:
+            import time
+            start = time.clock()
+        sim.kdtree = kdtree.KDTree(sim['pos'], sim['vel'], sim['mass'], leafsize=config['sph']['tree-leafsize'])
+        if config['tracktime'] : 
+            end = time.clock()
+            print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
+        elif config['verbose'] : print>>sys.stderr, 'Tree build done.'
+        
+@snapshot.SimSnap.derived_quantity
+def smooth(self):
+    
+    build_tree(self)
+        
+    if config['verbose']: print>>sys.stderr, 'Smoothing with %d nearest neighbours'%config['sph']['smooth-particles']
+    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
+    if config['tracktime']:
+        import time
+        start = time.clock()
+
+    self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles']) 
+    
+    if config['tracktime'] : 
+        end = time.clock()
+        print>>sys.stderr, 'Smoothing done in %5.3g s'%(end-start)
+    elif config['verbose']: print>>sys.stderr, 'Smoothing done.'
+
+    return sm 
+
+@snapshot.SimSnap.derived_quantity
+def rho(self):
+
+    build_tree(self)
+       
+    if config['verbose']: print>>sys.stderr, 'Calculating density with %d nearest neighbours'%config['sph']['smooth-particles']
+    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
+
+    if config['tracktime']:
+        import time
+        start = time.clock()
+        
+    self.kdtree.populate(sm, 'rho', nn=config['sph']['smooth-particles'], smooth=self['smooth'])
+
+    if config['tracktime'] : 
+        end = time.clock()
+        print>>sys.stderr, 'Density calculation done in %5.3g s'%(end-start)
+    elif config['verbose']: print>>sys.stderr, 'Density done.'
+    
+    return sm
 
 class Kernel(object) :
     def __init__(self) :
