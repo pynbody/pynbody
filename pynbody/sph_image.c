@@ -22,6 +22,7 @@ float mid_y = (y2+y1)/2;
 #define YI_TO_Y(ypix) (pixel_dx*(ypix-ny/2)+mid_y)
 
 #else
+#define pixel_dx dx
 #define X_TO_XI(xpos) int((xpos-x1)/dx)
 #define XI_TO_X(xpix) (dx*xpix+x_start)
 #define Y_TO_YI(ypos) int((ypos-y1)/dy)
@@ -33,16 +34,27 @@ float x_start = x1+dx/2;
 float y_start = y1+dy/2;
 int n_part = x_array->dimensions[0];
 int nn=0;
+bool abort=false;
 
 using std::abs;
 using std::sqrt;
 
 
+Py_BEGIN_ALLOW_THREADS;
+
 for(int i=0; i<n_part; i++) {
+  if(abort) continue;
   float x_i=X1(i), y_i=Y1(i), z_i=Z1(i), sm_i=SM1(i), qty_i=QTY1(i)*MASS1(i)/RHO1(i);
 
+  if(i%1000==0) {
+    if(PyErr_CheckSignals()!=0)
+      abort = true;
+  }
+
 #ifdef PERSPECTIVE
-  if(z_i>0.9*z_camera) continue;
+  if(z_i>0.99*z_camera) continue;
+  if(z_i>0.8*z_camera)
+    qty_i*=exp((0.8-z_camera)/0.1);
   float pixel_dx = (z_camera-z_i)*ddx;
   
 #else
@@ -51,7 +63,8 @@ for(int i=0; i<n_part; i++) {
 
     {
  
-      if( (sm_i/dx<1 && sm_i/dy<1)) {
+#ifndef PERSPECTIVE
+      if( (sm_i/pixel_dx<1 && sm_i/pixel_dx<1)) {
       
       float z_pixel = z1;
 
@@ -64,13 +77,13 @@ for(int i=0; i<n_part; i++) {
 	RESULT2(y_pos,x_pos)+=qty_i * (KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
       
     } else {
+#endif
 
       int x_pix_start = X_TO_XI(x_i-MAX_D_OVER_H*sm_i);
       int x_pix_stop = X_TO_XI(x_i+MAX_D_OVER_H*sm_i);
       if(x_pix_start<0) x_pix_start=0;
       if(x_pix_stop>=nx) x_pix_stop=nx-1;
       float z_pixel = z1;
-
 
       for( int x_pos = x_pix_start; x_pos<=x_pix_stop; x_pos++) {
 	int y_pix_start = Y_TO_YI(y_i-MAX_D_OVER_H*sm_i);
@@ -82,10 +95,14 @@ for(int i=0; i<n_part; i++) {
 	for( int y_pos =y_pix_start ; y_pos<=y_pix_stop; y_pos++) {
 	  
 	  float y_pixel = YI_TO_Y(y_pos);
-
-	  RESULT2(y_pos,x_pos)+=qty_i*(KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
+	  float result = qty_i*(KERNEL(x_i-x_pixel, y_i-y_pixel, z_i-z_pixel ,sm_i));
+	  RESULT2(y_pos,x_pos)+=result;
 	}
       }
+#ifndef PERSPECTIVE
     }
+#endif
   }
  }
+
+Py_END_ALLOW_THREADS;
