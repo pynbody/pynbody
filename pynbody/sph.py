@@ -232,9 +232,12 @@ def threaded_render_image(s,*args, **kwargs) :
 
     if "num_threads" in kwargs :
         num_threads = kwargs['num_threads']
+        
         del kwargs['num_threads']
 
-        
+
+    kwargs['__threaded']=True # will pass into render_image
+    
     ts = []
     outputs = []
     
@@ -259,7 +262,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  y1=None, z_plane = 0.0, out_units=None, xy_units=None,
                  kernel=Kernel(),
                  z_camera=None,
-                 smooth='smooth') :
+                 smooth='smooth',
+                 __threaded=False) :
 
     """
 
@@ -371,6 +375,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     if perspective :
         z_camera = float(z_camera)
         code+="#define PERSPECTIVE 1\n"
+
+    if __threaded :
+        code+="#define THREAD 1\n"
     
     try:
         #import pyopencl as cl

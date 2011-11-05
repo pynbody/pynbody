@@ -39,17 +39,20 @@ bool abort=false;
 using std::abs;
 using std::sqrt;
 
-
+#ifdef THREAD
 Py_BEGIN_ALLOW_THREADS;
+#endif
 
 for(int i=0; i<n_part; i++) {
   if(abort) continue;
   float x_i=X1(i), y_i=Y1(i), z_i=Z1(i), sm_i=SM1(i), qty_i=QTY1(i)*MASS1(i)/RHO1(i);
 
+#ifndef THREAD
   if(i%1000==0) {
     if(PyErr_CheckSignals()!=0)
       abort = true;
   }
+#endif
 
 #ifdef PERSPECTIVE
   if(z_i>0.99*z_camera) continue;
@@ -105,4 +108,6 @@ for(int i=0; i<n_part; i++) {
   }
  }
 
+#ifdef THREAD
 Py_END_ALLOW_THREADS;
+#endif
