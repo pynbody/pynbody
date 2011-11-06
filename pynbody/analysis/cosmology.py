@@ -144,3 +144,12 @@ def rho_M(f, z=None, unit=None) :
         z = f.properties['z']
         
     return f.properties['omegaM0']*rho_crit(f,0,unit)*(1.0+z)**3
+
+def H(f) :
+    """Calculate the Hubble parameter of the universe in snapshot f"""
+    return f.properties['h']*hzoverh0(f.properties['a'], f.properties['omegaM0'])*units.Unit("100 km s^-1 Mpc^-1")
+    
+def add_hubble(f) :
+    """Add the hubble flow to velocities in snapshot f"""
+
+    f['vel']+=f['pos']*H(f)
