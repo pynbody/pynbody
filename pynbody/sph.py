@@ -35,7 +35,7 @@ def build_tree(sim) :
             print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
         elif config['verbose'] : print>>sys.stderr, 'Tree build done.'
         
-@snapshot.SimSnap.derived_quantity
+@snapshot.SimSnap.stable_derived_quantity
 def smooth(self):
     
     build_tree(self)
@@ -55,7 +55,7 @@ def smooth(self):
 
     return sm 
 
-@snapshot.SimSnap.derived_quantity
+@snapshot.SimSnap.stable_derived_quantity
 def rho(self):
 
     build_tree(self)
