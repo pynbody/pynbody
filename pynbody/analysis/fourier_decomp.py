@@ -28,7 +28,7 @@ def fourier(px, py, pm):
 
     phi = np.arctan2(py,px)
 
-    hist, binphi = np.histogram(phi, weights = pm, bins = 100)#, new = True)
+    hist, binphi = np.histogram(phi, weights = pm, bins = 100)
 
     binphi = .5*(binphi[1:]+binphi[:-1])
 
@@ -41,56 +41,52 @@ def fourier(px, py, pm):
     return c
 
 
-## def fourier_prof(prof, px, py, pm):
-##     """
+def fourier_map(p, ncell=100,mmin=0,mmax=7, rmax=10) : 
+    """
 
-##     Produce a profile of fourier decomposition of particle positions.
-##     Appends the decomposition quantities to the existing instance of
-##     Profile that is passed as the first argument.
+    Calculate an overdensity map based on the fourier expansion. 
+    
+    **Input**:
 
-##     The function assumes that the particles belong to a disk and they
-##     have been centered and aligned previously.
+    *p* :  a Profile object
 
-##     Appends the arrays c, amp, and phi to the Profile object.
+    **Optional Keywords**:
+    
+    *ncell (default = 100)* : number of cells used to create the map
+    
+    *mmin (default = 0)* : minimum m-mode to use in the reconstruction
 
-##     To get the m=2 amplitude, the amp array is accessed as
+    *mmax (default = 7)* : maximum m-mode to use in the reconstruction
 
-##     m2 = amp[2,:]
+    *rmax (default = 10)* : maximum radius to use in the reconstruction
+    
+    """
 
-##     Usage:
+    f_map = np.zeros((ncell,ncell))
+    f = p['fourier']
+    xbins = np.linspace(-rmax,rmax,ncell+1)
+    ybins = np.linspace(-rmax,rmax,ncell+1)
 
-##     >>> prof = Profile(sqrt(x**2 + y**2), nbins = 50, max = 20)
-##     >>> fourier_prof(prof, x, y, m)
-##     >>> plot(prof.midbins, prof.amp[2,:]
+    xmidbins = (xbins[:-1] + xbins[1:])/2
+    ymidbins = (ybins[:-1] + ybins[1:])/2
 
-##     """
+    for i in range(0,ncell) : 
+        
+        for j in range(0,ncell) : 
+            
+            rcell = np.sqrt(xmidbins[i]**2 + ymidbins[j]**2)
 
+            if rcell > rmax : f_map[i,j] = 0.0
+            else : 
+                
+                binind = np.nonzero(p['rbins'] > rcell)[0][0]
+                binphi = np.arctan2(ymidbins[j],xmidbins[i])
+                
+                for m in range(mmin,mmax) : 
+                    phi = f['phi'][m,binind]
 
-##     assert isinstance(prof, profile.Profile)
+                    f_map[i,j] = f_map[i,j] + f['c'][m,binind]*np.exp(1j*m*(binphi))
 
-##     # make sure the profile has a mass profile
-
-##     if not 'mass' in dir(prof):
-##         prof.massprof(pm)
-
-##     prof.phi = np.zeros((7,prof.nbins))
-##     prof.amp = np.zeros((7,prof.nbins))
-##     prof.c = np.zeros((7,prof.nbins), dtype=complex)
-
-## #    nonzero = prof.ninbin > 100
-
-##     for i, bin in enumerate(prof.bins[:-1]):
-
-##         if prof.ninbin[i] > 100:
-##             prof.c[:,i] = fourier(px[prof.binind[i]],
-##                                   py[prof.binind[i]],
-##                                   pm[prof.binind[i]], bins)
-
-
-##     im = np.imag(prof.c)
-##     re = np.real(prof.c)
-
-##     prof.c /= prof.mass
-
-##     prof.amp = np.sqrt(im**2 + re**2)
-##     prof.phi = np.arctan2(im,re)
+    
+    
+    return f_map,xmidbins,ymidbins
