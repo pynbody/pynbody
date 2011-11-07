@@ -71,56 +71,6 @@ def vcxy(self) :
     return f
 
 
-#@SimSnap.derived_quantity
-#def smooth(self) :
-#    return (self['mass']/self['rho'])**(1,3)
-
-@SimSnap.derived_quantity
-def smooth(self):
-    
-    if hasattr(self,'kdtree') is False : 
-        import kdtree
-        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=16'
-        if config['tracktime']:
-            import time
-            start = time.clock()
-        self.kdtree = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16)
-        if config['tracktime'] : 
-            end = time.clock()
-            print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
-        elif config['verbose'] : print>>sys.stderr, 'Tree build done.'
-        
-    if config['verbose']: print>>sys.stderr, 'Smoothing with 32 nearest neighbours'
-    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
-    if config['tracktime']:
-        import time
-        start = time.clock()
-
-    self.kdtree.populate(sm, 'hsm', nn=32) 
-    
-    if config['tracktime'] : 
-        end = time.clock()
-        print>>sys.stderr, 'Smoothing done in %5.3g s'%(end-start)
-    elif config['verbose']: print>>sys.stderr, 'Smoothing done.'
-
-    return sm 
-
-@SimSnap.derived_quantity
-def rho(self):
-    #return self['mass']/self['smooth']**3
-    if hasattr(self,'kdtree') is False: 
-        import kdtree
-        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=16'
-        kdt = kdtree.KDTree(self['pos'], self['vel'], self['mass'], leafsize=16) 
-        if config['verbose']: print>>sys.stderr, 'Tree build done.'
-        self.kdtree = kdt
-    
-    if config['verbose']: print>>sys.stderr, 'Calculating density with 32 nearest neighbours'
-    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
-    self.kdtree.populate(sm, 'rho', nn=32, smooth=self['smooth'])
-    
-    if config['verbose']: print>>sys.stderr, 'Density done.'
-    return sm 
 
 @SimSnap.derived_quantity
 def v_mean(self):
@@ -160,65 +110,16 @@ def v_disp(self):
 def age(self) :
     return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
 
-@SimSnap.derived_quantity
-def u_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='u')
+bands_available = ['u','b','v','r','i','j','h','k','b']
 
-@SimSnap.derived_quantity
-def b_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='b')
+for band in bands_available :
+    X = lambda s, b=str(band): analysis.luminosity.calc_mags(s,band=b)
+    X.__name__ = band+"_mag"
+    SimSnap.derived_quantity(X)
 
-@SimSnap.derived_quantity
-def v_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='v')
-
-@SimSnap.derived_quantity
-def r_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='r')
-
-@SimSnap.derived_quantity
-def i_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='i')
-
-@SimSnap.derived_quantity
-def j_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='j')
-
-@SimSnap.derived_quantity
-def h_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='h')
-
-@SimSnap.derived_quantity
-def k_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='k')
-
-@SimSnap.derived_quantity
-def B_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='b')
-
-@SimSnap.derived_quantity
-def V_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='v')
-
-@SimSnap.derived_quantity
-def R_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='r')
-
-@SimSnap.derived_quantity
-def I_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='i')
-
-@SimSnap.derived_quantity
-def J_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='j')
-
-@SimSnap.derived_quantity
-def H_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='h')
-
-@SimSnap.derived_quantity
-def K_mag(self) :
-    return analysis.luminosity.calc_mags(self,band='k')
+    X = lambda s, b=str(band): (10**(-0.4*s[b+"_mag"]))*s['rho']/s['mass']
+    X.__name__ = band+"_lum_den"
+    SimSnap.derived_quantity(X)
 
 @SimSnap.derived_quantity
 def theta(self) :

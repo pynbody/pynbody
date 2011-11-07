@@ -17,7 +17,64 @@ import scipy, scipy.weave
 from scipy.weave import inline
 import snapshot, array
 import math
+import time
+import sys
 from . import snapshot, array, config
+import threading
+
+def build_tree(sim) :
+    if hasattr(sim,'kdtree') is False : 
+        import kdtree
+        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=%d'%config['sph']['tree-leafsize']
+        if config['tracktime']:
+            import time
+            start = time.clock()
+        sim.kdtree = kdtree.KDTree(sim['pos'], sim['vel'], sim['mass'], leafsize=config['sph']['tree-leafsize'])
+        if config['tracktime'] : 
+            end = time.clock()
+            print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
+        elif config['verbose'] : print>>sys.stderr, 'Tree build done.'
+        
+@snapshot.SimSnap.stable_derived_quantity
+def smooth(self):
+    
+    build_tree(self)
+        
+    if config['verbose']: print>>sys.stderr, 'Smoothing with %d nearest neighbours'%config['sph']['smooth-particles']
+    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
+    if config['tracktime']:
+        import time
+        start = time.clock()
+
+    self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles']) 
+    
+    if config['tracktime'] : 
+        end = time.clock()
+        print>>sys.stderr, 'Smoothing done in %5.3g s'%(end-start)
+    elif config['verbose']: print>>sys.stderr, 'Smoothing done.'
+
+    return sm 
+
+@snapshot.SimSnap.stable_derived_quantity
+def rho(self):
+
+    build_tree(self)
+       
+    if config['verbose']: print>>sys.stderr, 'Calculating density with %d nearest neighbours'%config['sph']['smooth-particles']
+    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
+
+    if config['tracktime']:
+        import time
+        start = time.clock()
+        
+    self.kdtree.populate(sm, 'rho', nn=config['sph']['smooth-particles'], smooth=self['smooth'])
+
+    if config['tracktime'] : 
+        end = time.clock()
+        print>>sys.stderr, 'Density calculation done in %5.3g s'%(end-start)
+    elif config['verbose']: print>>sys.stderr, 'Density done.'
+    
+    return sm
 
 class Kernel(object) :
     def __init__(self) :
@@ -30,32 +87,38 @@ class Kernel(object) :
         # The maximum value of the displacement over the smoothing for
         # which the kernel is non-zero
 
+        self.safe = threading.Lock()
+
     def get_c_code(self) :
-        code =""
+        
+        if not hasattr(self, "_code") :
+            code =""
 
-        sample_pts = np.arange(0,2.01,0.01)
-        samples = [self.get_value(x) for x in sample_pts]
-        samples_s = str(samples)
-        samples_s = "{"+samples_s[1:-1]+"};"
-        h_str="*h"*(self.h_power-1)
-        if self.h_power==2 :
-            code+="#define Z_CONDITION(dz,h) true\n"
-        else :
-            code+="#define Z_CONDITION(dz,h) abs(dz)<MAX_D_OVER_H*(h)\n"
+            sample_pts = np.arange(0,2.01,0.01)
+            samples = [self.get_value(x) for x in sample_pts]
+            samples_s = str(samples)
+            samples_s = "{"+samples_s[1:-1]+"};"
+            h_str="*h"*(self.h_power-1)
+            if self.h_power==2 :
+                code+="#define Z_CONDITION(dz,h) true\n"
+            else :
+                code+="#define Z_CONDITION(dz,h) abs(dz)<MAX_D_OVER_H*(h)\n"
 
-        if self.h_power==2 :
-            code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy))"
-        else :
-            code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy)+(dz)*(dz))"
+            if self.h_power==2 :
+                code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy))"
+            else :
+                code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy)+(dz)*(dz))"
 
 
-        code+= """
-        const float KERNEL_VALS[] = %s
-        #define KERNEL1(d,h) (d<2*h)?KERNEL_VALS[(int)(d/(0.01*h))]/(h%s):0
-        #define KERNEL(dx,dy,dz,h) KERNEL1(DISTANCE(dx,dy,dz),h)
-        #define MAX_D_OVER_H %d
-        """%(samples_s,h_str,self.max_d)
-        return code
+            code+= """
+            const float KERNEL_VALS[] = %s
+            #define KERNEL1(d,h) (d<2*h)?KERNEL_VALS[(int)(d/(0.01*h))]/(h%s):0
+            #define KERNEL(dx,dy,dz,h) KERNEL1(DISTANCE(dx,dy,dz),h)
+            #define MAX_D_OVER_H %d
+            """%(samples_s,h_str,self.max_d)
+            self._code = code
+        
+        return self._code
 
     def get_value(self, d, h=1) :
         """Get the value of the kernel for a given smoothing length."""
@@ -74,7 +137,8 @@ class Kernel2D(Kernel) :
         self.h_power = 2
         self.max_d = k_orig.max_d
         self.k_orig = k_orig
-
+        self.safe = threading.Lock()
+        
     def get_value(self, d, h=1) :
         import scipy.integrate as integrate
         import numpy as np
@@ -92,8 +156,6 @@ class TopHatKernel(object) :
         #define Z_CONDITION(dz,h) abs(dz)<(%d*h)
         #define MAX_D_OVER_H %d"""%(self.max_d,3./(math.pi*4*self.max_d**self.h_power),self.max_d, self.max_d)
         return code
-
-
 
 def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
                            kstep=0.5, out_units=None) :
@@ -158,10 +220,50 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     
     return im
 
+def threaded_render_image(s,*args, **kwargs) :
+    """
+    Render an SPH image using multiple threads. The arguments are
+    exactly the same as those to render_image, but additionally
+    you can specify the number of threads using the keyword
+    argument *num_threads* (default 4). This should be matched
+    to the number of cores on your machine."""
+    
+    num_threads = 4
+
+    if "num_threads" in kwargs :
+        num_threads = kwargs['num_threads']
+        
+        del kwargs['num_threads']
+
+
+    kwargs['__threaded']=True # will pass into render_image
+    
+    ts = []
+    outputs = []
+    
+    for i in xrange(num_threads) :
+        s_local = s[i::num_threads]
+        args_local = [outputs, s_local]+list(args)
+        ts.append(threading.Thread(target = _render_image_bridge, args=args_local, kwargs=kwargs))
+        ts[-1].start()
+        
+    for t in ts : 
+        t.join()
+
+    return sum(outputs)
+
+def _render_image_bridge(*args, **kwargs) :
+    """Helper function for threaded_render_image; do not call directly"""
+    output_list = args[0]
+    X = render_image(*args[1:],**kwargs)
+    output_list.append(X)
+        
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  y1=None, z_plane = 0.0, out_units=None, xy_units=None,
                  kernel=Kernel(),
-                 z_camera=None) :
+                 z_camera=None,
+                 smooth='smooth',
+                 __threaded=False) :
 
     """
 
@@ -201,11 +303,18 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
      the image in the z=0 plane. Particles too close to the camera are
      also excluded.
 
+     *smooth*: The name of the array which contains the smoothing lengths
+      (default 'smooth')
+
     """
 
     import os, os.path
-
     global config
+    
+    if config["tracktime"] :
+        import time
+        in_time = time.time()
+    
 
     if y2 is None :
         if ny is not None :
@@ -224,6 +333,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     result = np.zeros((nx,ny),dtype=np.float32)
 
+    
+    
     n_part = len(snap)
 
     if xy_units is None :
@@ -233,11 +344,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     y = snap['y'].in_units(xy_units)
     z = snap['z'].in_units(xy_units)
 
-    sm = snap['smooth']
+    sm = snap[smooth]
 
     if sm.units!=x.units :
-        sm.convert_units(x.units)
+        sm = sm.in_units(x.units)
 
+    
+    
     qty_s = qty
     qty = snap[qty]
     mass = snap['mass']
@@ -249,19 +362,29 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         conv_ratio = (qty.units*mass.units/(rho.units*sm.units**kernel.h_power)).ratio(out_units,
                                                                                       **x.conversion_context())
 
+    try :
+        kernel.safe.acquire(True)
+        code = kernel.get_c_code()
+    finally :
+        kernel.safe.release()
 
-    code = kernel.get_c_code()
     perspective = z_camera is not None
 
+    
+    
     if perspective :
         z_camera = float(z_camera)
         code+="#define PERSPECTIVE 1\n"
+
+    if __threaded :
+        code+="#define THREAD 1\n"
     
     try:
-        import pyopencl as cl
-        import struct
-        import squadron
-        
+        #import pyopencl as cl
+        #import struct
+        #import squadron
+        raise ImportError
+    
         ctx = cl.create_some_context(interactive=False)
         queue = cl.CommandQueue(ctx)
 
@@ -300,6 +423,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     except ImportError :
 
+        
         code+=file(os.path.join(os.path.dirname(__file__),'sph_image.c')).read()
 
 
@@ -308,12 +432,18 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
         #qty[np.where(qty < 1e-15)] = 1e-15
 
-        if config['verbose']: print "Rendering SPH image"
+        if config['verbose']: print>>sys.stderr, "Rendering SPH image"
 
-        inline(code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
+   
+   
+        if config["tracktime"] :
+            print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
+        inline( code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
                       'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   
                       'qty', 'mass', 'rho'],verbose=2)
-        #import pdb; pdb.set_trace()
+        if config["tracktime"] :
+            print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+            
 
     result = result.view(array.SimArray)
 

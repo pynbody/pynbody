@@ -22,9 +22,9 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
-#if defined(__APPLE__)
+//#if defined(__APPLE__)
 #include <stdio.h>
-#endif
+//#endif
 #include <assert.h>
 #include "kd.h"
 #include "moments.h"

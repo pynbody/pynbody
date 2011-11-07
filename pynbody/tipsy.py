@@ -286,10 +286,10 @@ class TipsySnap(snapshot.SimSnap) :
                 ar.tofile(f)
 
         else :
-            if ar.dtype==float :
-                fmt = "%g"
-            else :
+            if issubclass(ar.dtype.type, np.integer) :
                 fmt = "%d"
+            else :
+                fmt = "%g"
             np.savetxt(f, ar, fmt=fmt)
 
     @staticmethod

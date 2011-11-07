@@ -150,9 +150,12 @@ config['default-cosmology'] = {}
 for k in config_parser.options('default-cosmology') :
     config['default-cosmology'][k] = float(config_parser.get('default-cosmology', k))
 
+config['sph'] = {}
+for k in config_parser.options('sph') :
+    config['sph'][k] = int(config_parser.get('sph', k))
 
 # Import subpackages
-from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot, gravity
+from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot, gravity, sph
 
 # The following code resolves inter-dependencies when reloading
 imp.reload(array)
@@ -169,6 +172,7 @@ imp.reload(derived)
 imp.reload(bridge)
 imp.reload(plot)
 imp.reload(gravity)
+imp.reload(sph)
 
 # from analysis import profile
 

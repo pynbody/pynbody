@@ -36,7 +36,7 @@ def calc_sideon_matrix(angmom_vec) :
 def calc_faceon_matrix(angmom_vec) :
     vec_in = np.asarray(angmom_vec)
     vec_in = vec_in/np.sum(vec_in**2).sum()**0.5
-    vec_p1 = np.cross([1,0,0],vec_in)
+    vec_p1 = np.cross([0,1,0],vec_in)
     vec_p1 = vec_p1/np.sum(vec_p1**2).sum()**0.5
     vec_p2 = np.cross(vec_in,vec_p1)
 

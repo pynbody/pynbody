@@ -766,7 +766,18 @@ class SimSnap(object) :
         if cl not in SimSnap._derived_quantity_registry :
             SimSnap._derived_quantity_registry[cl] = {}
         SimSnap._derived_quantity_registry[cl][fn.__name__]=fn
+        fn.__stable__=False
         return fn
+
+    @classmethod
+    def stable_derived_quantity(cl,fn):
+        if cl not in SimSnap._derived_quantity_registry :
+            SimSnap._derived_quantity_registry[cl] = {}
+        SimSnap._derived_quantity_registry[cl][fn.__name__]=fn
+        fn.__stable__=True
+        
+        return fn
+
 
    
         
@@ -790,13 +801,13 @@ class SimSnap(object) :
                            and name in self._derived_quantity_registry[cl] :
                         if config['verbose'] : print>>sys.stderr, "SimSnap: deriving array",name
                         with self.auto_propagate_off :
+                            fn = SimSnap._derived_quantity_registry[cl][name]
                             if fam is None :
-                                self[name] = SimSnap._derived_quantity_registry[cl][name](self)
-                                
+                                self[name] = fn(self)
                             else :
-                                self[fam][name] =  SimSnap._derived_quantity_registry[cl][name](self[fam])
+                                self[fam][name] =  fn(self[fam])
 
-                        if name not in self._derived_array_track :
+                        if name not in self._derived_array_track and not fn.__stable__ :
                                 self._derived_array_track.append(name)
                             
                         calculated = True
