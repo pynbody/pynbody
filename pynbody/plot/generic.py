@@ -11,9 +11,9 @@ import numpy as np
 from ..analysis import profile, angmom, halo
 from .. import config
 
-def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=True, 
+def hist2d(xo, yo, weights=None, mass=None, nbins=100, nlevels = 20, logscale=True, 
            xlogrange=False, ylogrange=False,filename=None, subplot=False, 
-           colorbar=False,clear=True,legend=False,scalemin=False,**kwargs):
+           colorbar=False,clear=True,legend=False,scalemin=None,scalemax=None,**kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -44,6 +44,12 @@ def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=T
 
        *colorbar*: boolean
          draw a colorbar
+         
+       *scalemin*: float
+         minimum value to use for the color scale
+
+       *scalemax*: float
+         maximum value to use for the color scale
     """
     global config
     
@@ -87,21 +93,21 @@ def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=T
     else :
         y = yo
 
-    if mass:
+    if mass is not None:
         hist, xs, ys = np.histogram2d(y, x, weights=weights*mass, bins=nbins,range=[y_range,x_range])
         hist_weight, xs, ys = np.histogram2d(y, x, weights=mass,bins=nbins,range=[y_range,x_range])
+        good = np.where(hist_weight > 0)
+        hist[good] = hist[good]/hist_weight[good]
     else:
-        hist, xs, ys = np.histogram2d(y, x, bins=nbins,range=[y_range,x_range])
-        if weights != None :
-            hist_weight, xs, ys = np.histogram2d(y, x, weights = weights,bins=nbins,range=[y_range,x_range])
-            good = np.where(hist_weight > 0)
-            hist[good] = hist_weight[good]/hist[good]
-
+        hist, xs, ys = np.histogram2d(y, x, weights=weights, bins=nbins,range=[y_range,x_range])
+        
     if logscale:
         try:
-            if not scalemin: scalemin = np.min(hist[hist>0])
+            if scalemin is None: scalemin = np.min(hist[hist>0])
+            if scalemax is None: scalemax = np.max(hist[hist>0])
+
             levels = np.logspace(np.log10(scalemin),       # there must be an
-                                 np.log10(np.max(hist)),nlevels)      # easier way to do this...
+                                 np.log10(scalemax),nlevels)      # easier way to do this...
             cont_color=colors.LogNorm()
         except ValueError:
             print 'crazy x or y range - please specify ranges'
@@ -124,8 +130,11 @@ def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=T
             cb_label = '$N$'
     
     if clear : plt.clf()
-    cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), # note that hist is strange and x/y values
-                                                          # are swapped
+    #
+    # note that hist is strange and x/y values
+    # are swapped
+    #
+    cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), 
                      hist, levels, norm=cont_color,**kwargs)
 
 
@@ -167,15 +176,31 @@ def hist2d(xo, yo, weights=None, mass=False, nbins=100, nlevels = 20, logscale=T
     return hist, xs, ys
     
 
-def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=True, 
-           xlogrange=False, ylogrange=False,filename=None,
-           colorbar=False,clear=True,**kwargs):
+
+def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None, nbins = 100, 
+                  nlevels = 20, logscale = True, xlogrange = False, ylogrange = False, 
+                  subplot = False, colorbar = False, clear = True, legend = False, 
+                  scalemin = None, scalemax = None, **kwargs) :
+
     """
-    *** DEPRECATED in favor of mass=mass keyword for hist2d ***
-    Plot 2D histogram for arbitrary arrays that get passed in.
+    Plot 2D average gaussian density estimate given values *z* at points (*x*, *y*). 
 
-    Optional keyword arguments:
+    
+    ** Input: **
 
+       *sim*: snapshot to take data from. 
+       
+       *xqty*: quantity to use for the x-axis
+
+       *yqty*: quantity to use for the y-axis
+
+    **Optional keywords:**
+    
+       *weights*: string 
+         the quantity to use for the density
+         calculation. Defaults to *None* so that just the 
+         number density is calculated.
+          
        *x_range*: list, array, or tuple
          size(x_range) must be 2. Specifies the X range.
 
@@ -195,31 +220,39 @@ def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=T
          if weights is passed, color corresponds to
          the mean value of weights in each cell
 
+       *mass*: numpy array of masses same length as x andy
+         must also have weights passed in.  If you just
+         want to weight by mass, pass the masses to weights
+
        *colorbar*: boolean
          draw a colorbar
+         
+       *scalemin*: float
+         minimum value to use for the color scale
+
+       *scalemax*: float
+         maximum value to use for the color scale
     """
-    import matplotlib.pyplot as plt
+    from fast_kde import fast_kde
+    global config
+    
+    if not subplot:
+        import matplotlib.pyplot as plt
+    else :
+        plt = subplot
     from matplotlib import ticker, colors
 
+    xo = sim[xqty]
+    yo = sim[yqty]
 
-    if kwargs.has_key('y_range'):
-        y_range = kwargs['y_range']
-        assert len(y_range) == 2
-    elif kwargs.has_key('yrange'):
-        y_range = kwargs['yrange']
-        assert len(y_range) == 2
+    if y_range is not None:  assert len(y_range) == 2
     else:
         if ylogrange:
             y_range = (np.log10(np.min(yo)),np.log10(np.max(yo)))
         else:
             y_range = (np.min(yo),np.max(yo))
-
-    if kwargs.has_key('x_range'):
-        x_range = kwargs['x_range']
-        assert len(x_range) == 2
-    elif kwargs.has_key('xrange'):
-        x_range = kwargs['xrange']
-        assert len(x_range) == 2
+    
+    if x_range is not None: assert len(x_range) == 2
     else:
         if xlogrange:
             x_range = (np.log10(np.min(xo)), np.log10(np.max(xo)))
@@ -234,16 +267,16 @@ def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=T
         y = np.log10(yo)
     else :
         y = yo
-        
-    hist, xs, ys = np.histogram2d(y, x, weights=weights*mass, bins=nbins,range=[y_range,x_range])
-    hist_weight, xs, ys = np.histogram2d(y, x, weights=mass,bins=nbins,range=[y_range,x_range])
-    good = np.where(hist_weight > 0)
-    hist[good] = hist_weight[good]/hist[good]
 
+    density = fast_kde(x0, y0, extents=(x_range,y_range),weights=weights)
+        
     if logscale:
         try:
-            levels = np.logspace(np.log10(np.min(hist[hist>0])),       # there must be an
-                                 np.log10(np.max(hist)),nlevels)      # easier way to do this...
+            if scalemin is None: scalemin = np.min(hist[hist>0])
+            if scalemax is None: scalemax = np.max(hist[hist>0])
+
+            levels = np.logspace(np.log10(scalemin),       # there must be an
+                                 np.log10(scalemax),nlevels)      # easier way to do this...
             cont_color=colors.LogNorm()
         except ValueError:
             print 'crazy x or y range - please specify ranges'
@@ -258,9 +291,6 @@ def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=T
     else:
         levels = np.linspace(np.min(hist),
                              np.max(hist), nlevels)
-        
-
-        print levels
         cont_color=None
         
         if weights != None :
@@ -269,33 +299,50 @@ def hist2d_massweight(xo, yo, mass, weights, nbins=100, nlevels = 20, logscale=T
             cb_label = '$N$'
     
     if clear : plt.clf()
-    cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), # note that hist is strange and x/y values
-                                                          # are swapped
-                     hist, levels, norm=cont_color)
+    #
+    # note that hist is strange and x/y values
+    # are swapped
+    #
+    cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), 
+                     hist, levels, norm=cont_color,**kwargs)
 
 
     if kwargs.has_key('xlabel'):
         xlabel = kwargs['xlabel']
-        plt.xlabel(xlabel)
     else :
-        if xlogrange: label='$log_{10}('+xo.units.latex()+')$'
-        else : label = '$x/' + xo.units.latex() +'$'
-        plt.xlabel(r''+label)
+        if xlogrange: xlabel=r''+'$log_{10}('+xo.units.latex()+')$'
+        else : xlabel = r''+'$x/' + xo.units.latex() +'$'
+    
+    if subplot:
+        plt.set_xlabel(xlabel)
+    else:
+        plt.xlabel(xlabel)
+
     if kwargs.has_key('ylabel'):
         ylabel = kwargs['ylabel']
-        plt.ylabel(ylabel)
     else :
-        if ylogrange: label='$log_{10}('+yo.units.latex()+')$'
-        else : label = '$y/' + yo.units.latex() +'$'
-        plt.ylabel(r''+label)
-    plt.xlim((x_range[0],x_range[1]))
-    plt.ylim((y_range[0],y_range[1]))
-    if (filename): 
-        print "Saving "+filename
-        plt.savefig(filename)
+        if ylogrange: ylabel='$log_{10}('+yo.units.latex()+')$'
+        else : ylabel = r''+'$y/' + yo.units.latex() +'$'
+    
+    if subplot:
+        plt.set_ylabel(ylabel)
+    else:
+        plt.ylabel(ylabel)
+
+    if not subplot:
+        plt.xlim((x_range[0],x_range[1]))
+        plt.ylim((y_range[0],y_range[1]))
 
     if colorbar :
         cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
         
-    return hist, xs, ys
+    if legend : plt.legend(loc=2)
 
+    if (filename): 
+        if config['verbose']: print "Saving "+filename
+        plt.savefig(filename)
+
+    return hist, xs, ys
+    
+
+                  
