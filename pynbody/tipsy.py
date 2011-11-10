@@ -404,6 +404,7 @@ class TipsySnap(snapshot.SimSnap) :
                     
             else :
                 ar = self[array_name]
+                units_out = ar.units
                 TipsySnap.__write_block(f, ar, binary, byteswap)
 
         f.close()
