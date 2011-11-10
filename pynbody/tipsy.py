@@ -296,18 +296,15 @@ class TipsySnap(snapshot.SimSnap) :
     def _write_array(self, array_name, filename=None, binary=None, byteswap=None) :
         """Write a TIPSY-ASCII file."""
 
-        
-            
-
         if binary is None :
             binary = getattr(self.ancestor,"_tipsy_arrays_binary",False)
             
         if binary and ( byteswap is None ) :
             byteswap = getattr(self.ancestor, "_byteswap", False)
 
-	if array_name in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
-			  "eps","metals","phi"] :
-	    raise RuntimeError, "Cannot write back into TIPSY file." 
+        if array_name in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
+              "eps","metals","phi"] :
+            raise RuntimeError, "Cannot write back into TIPSY file." 
 
         with self.lazy_off : # prevent any lazy reading or evaluation
             if filename is None :

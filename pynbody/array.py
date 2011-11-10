@@ -409,6 +409,15 @@ class SimArray(np.ndarray) :
         else :
             return x
 
+    def __setitem__(self, item, to) :
+        if hasattr(to,"in_units") and not hasattr(self.units,"_no_unit") and not hasattr(to.units,"_no_unit")  :
+            np.ndarray.__setitem__(self, item, to.in_units(self.units))
+        else :
+            np.ndarray.__setitem__(self, item, to)
+
+    def __setslice__(self, a,b, to) :
+        self.__setitem__(slice(a,b), to)
+        
     def prod(self, axis=None, dtype=None, out=None) :
         x = np.ndarray.prod(self, axis, dtype, out)
         if hasattr(x, 'units') and axis is not None and self.units is not None :
