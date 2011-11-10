@@ -1,7 +1,13 @@
 import pynbody
 import numpy as np
+import glob
+import os
 
 def setup() :
+    X = glob.glob("testdata/test_out.*")
+    for z in X :
+        os.unlink(z)
+        
     global f, h
     f = pynbody.load("testdata/g15784.lr.01024")
     h = f.halos()
@@ -138,3 +144,36 @@ def test_array_write() :
 def test_isolated_read() :
     s = pynbody.load('testdata/isolated_ics.std')
 
+def test_array_metadata() :
+    f1 = pynbody.load("testdata/test_out.tipsy")
+    
+    f1.gas['zog'] = np.ones(len(f1.gas))
+    f1.gas['zog'].units = "Msol kpc^-1"
+    f1.gas['zog'].write()
+
+    f1['banana'] = np.ones(len(f1))*0.5
+    f1['banana'].units = "kpc^3 Myr^-1"
+    f1['banana'].write()
+
+    del f1
+
+    f1 = pynbody.load("testdata/test_out.tipsy")
+    assert "banana" in f1.loadable_keys()
+    assert "zog" not in f1.loadable_keys()
+    assert "banana" in f1.gas.loadable_keys()
+    assert "zog" in f1.gas.loadable_keys()
+
+    try:
+        f1.star["zog"] # -> KeyError
+        assert False # Shouldn't have been able to load gas-only array zog
+    except KeyError :
+        pass
+
+    f1.gas['zog']
+    assert f1.gas['zog'][0]==1.0
+    assert f1.gas['zog'].units == "Msol kpc^-1"
+
+    f1.star['banana']
+    f1.gas['banana']
+    f1.dm['banana']
+    assert f1['banana'].units=="kpc^3 Myr^-1"
