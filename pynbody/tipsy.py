@@ -147,10 +147,7 @@ class TipsySnap(snapshot.SimSnap) :
                 n_done+=n_block
 
 
-    
-
-    def loadable_keys(self) :
-        """Produce and return a list of loadable arrays for this TIPSY file."""
+    def _update_loadable_keys(self)  :
         def is_readable_array(x) :
             try:
                 f = util.open_(x)
@@ -183,15 +180,35 @@ class TipsySnap(snapshot.SimSnap) :
                 return False
 
         import glob
-        if len(self._loadable_keys_registry) == 0 :
-            fs = map(util.cutgz,glob.glob(self._filename+".*"))
-            res =  map(lambda q: q[len(self._filename)+1:], 
-                       filter(is_readable_array, fs))
-           
+
+        fs = map(util.cutgz,glob.glob(self._filename+".*"))
+        res =  map(lambda q: q[len(self._filename)+1:], 
+                   filter(is_readable_array, fs))
+
+        # Create an empty dictionary of sets to store the loadable
+        # arrays for each family
+        rdict = dict([(x, set()) for x in self.families()])
+
+        # Now work out which families can load which arrays
+        # according to the stored metadata
+        for r in res :
+            fams = self._get_loadable_array_metadata(r)[1]
+            for x in fams or self.families() :
+                rdict[x].add(r)
+
+        self._loadable_keys_registry = rdict
             
-            self._loadable_keys_registry = res
-            
-        return self._loadable_keys_registry
+    def loadable_keys(self, fam=None) :
+        """Produce and return a list of loadable arrays for this TIPSY file."""
+        if len(self._loadable_keys_registry) is 0 :
+            self._update_loadable_keys()
+
+        if fam is not None :
+            # Return what is loadable for this family
+            return list(self._loadable_keys_registry[fam])
+        else :
+            # Return what is loadable to all families
+            return list(set.intersection(*self._loadable_keys_registry.values()))
 
     
     @staticmethod
@@ -292,10 +309,59 @@ class TipsySnap(snapshot.SimSnap) :
                 fmt = "%g"
             np.savetxt(f, ar, fmt=fmt)
 
+
+    def _get_loadable_array_metadata(self, array_name) :
+        """Given an array name, returns the metadata consisting of
+        the tuple units, families.
+
+        Returns:
+         *units*: the units of this data on disk
+         *families*: a list of family objects for which data is on disk
+                     for this array, or None if this cannot be determined"""
+
+        try:
+            f = open(self.filename+"."+array_name+".pynbody-meta")
+        except IOError :
+            u = units._default_units.get(array_name,None)
+            if u is not None :
+                u = self.infer_original_units(u)
+            return u, None
+        
+        res = {}
+        for l in f :
+            X = l.split(":")
+            if len(X)==2 :
+                res[X[0].strip()] = X[1].strip()
+
+        try:
+            u = units.Unit(res['units'])
+        except :
+            u = None
+        try:
+            fams = [family.get_family(x.strip()) for x in res['families'].split(",")]
+        except :
+            fams = None
+            
+        return u,fams
+        
+        
+    @staticmethod
+    def _write_array_metafile(self, filename, units, families) :
+        
+        f = open(filename+".pynbody-meta","w")
+        print>>f, "# This file automatically created by pynbody"
+        if not hasattr(units,"_no_unit") :
+            print>>f, "units:",units
+        print>>f, "families:",
+        for x in families :
+            print>>f,x.name,
+        
     @staticmethod
     def _write_array(self, array_name, filename=None, binary=None, byteswap=None) :
         """Write a TIPSY-ASCII file."""
 
+        units_out = None
+        
         if binary is None :
             binary = getattr(self.ancestor,"_tipsy_arrays_binary",False)
             
@@ -330,6 +396,7 @@ class TipsySnap(snapshot.SimSnap) :
                 for fam in [family.gas, family.dm, family.star] :
                     try:
                         ar = self[fam][array_name]
+                        units_out = ar.units
                     except KeyError :
                         ar = np.zeros(len(self[fam]), dtype=int)
                     
@@ -340,14 +407,22 @@ class TipsySnap(snapshot.SimSnap) :
                 TipsySnap.__write_block(f, ar, binary, byteswap)
 
         f.close()
+        families = [xfam for xfam in self.families() if array_name in self[xfam]]
+        TipsySnap._write_array_metafile(self,filename, units_out, families)
             
 
     def _load_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
+
+        fams = self._get_loadable_array_metadata(array_name)[1]
+        if fams is not None and (fam or self.families())  not in fams :
+            raise IOError, "This array is marked as available only for families %s"%fams
         
         data = self.__read_array_from_disk(array_name, fam=fam,
                                            filename=filename,
                                            packed_vector=packed_vector)
+
+        
         if fam is None: 
             self[array_name] = data
         else : 
@@ -466,10 +541,15 @@ class TipsySnap(snapshot.SimSnap) :
         self.ancestor._tipsy_arrays_binary = binary
 
         if fam is None :
-            return data.reshape(dims, order=v_order).view(array.SimArray)
+            r = data.reshape(dims, order=v_order).view(array.SimArray)
         else :
-            return data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
+            r = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
 
+        u, f = self._get_loadable_array_metadata(array_name)
+        if u is not None :
+            r.units = u
+
+        return r
         
     def read_starlog(self, fam=None) :
 	"""Read a TIPSY-starlog file."""
@@ -880,10 +960,10 @@ def param2units(sim) :
         sim.star["metals"].units = ""
 
         try :
-            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units]
+            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units, units.K]
         except KeyError :
             try :
-                sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units]
+                sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units, units.K]
             except : pass
 
 

@@ -1,3 +1,4 @@
+
 """
 snapshot
 ========
@@ -590,7 +591,7 @@ class SimSnap(object) :
             new_ar._sim = weakref.ref(self)
             new_ar._name = array_name
 
-            new_ar.set_default_units(quiet=True)
+            # new_ar.set_default_units(quiet=True)
             try:
                 self._family_arrays[array_name][family] = new_ar
             except KeyError :
@@ -619,7 +620,7 @@ class SimSnap(object) :
         new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
-        new_array.set_default_units(quiet=True)
+        # new_array.set_default_units(quiet=True)
         self._arrays[array_name] = new_array
 
         if ndim is 3 :
@@ -748,7 +749,7 @@ class SimSnap(object) :
                 res+=self._derived_quantity_registry[cl].keys()
         return res
 
-    def loadable_keys(self) :
+    def loadable_keys(self, fam=None) :
         """Returns a list of arrays which can be lazy-loaded from 
         an auxiliary file."""
         return []
@@ -1058,8 +1059,11 @@ class SubSnap(SimSnap) :
     def keys(self) :
         return self.base.keys()
 
-    def loadable_keys(self) :
-        return self.base.loadable_keys()
+    def loadable_keys(self, fam=None) :
+        if self._unifamily :
+            return self.base.loadable_keys(self._unifamily)
+        else :
+            return self.base.loadable_keys(fam)
 
     def derivable_keys(self) :
         return self.base.derivable_keys()
@@ -1085,9 +1089,6 @@ class SubSnap(SimSnap) :
 
     def family_keys(self, fam=None) :
         return self.base.family_keys(fam)
-
-    def loadable_keys(self) :
-        return self.base.loadable_keys()
 
     def _create_array(self, *args, **kwargs) :
         self.base._create_array(*args, **kwargs)
