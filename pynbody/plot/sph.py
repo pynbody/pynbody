@@ -1,3 +1,12 @@
+"""
+
+sph
+===
+
+routines for plotting smoothed quantities 
+
+"""
+
 import pylab as p
 import numpy as np
 from .. import sph

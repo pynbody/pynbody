@@ -340,9 +340,22 @@ class TipsySnap(snapshot.SimSnap) :
                 TipsySnap.__write_block(f, ar, binary, byteswap)
 
         f.close()
-        
+            
+
     def _load_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
+        
+        data = self.__read_array_from_disk(array_name, fam=fam,
+                                           filename=filename,
+                                           packed_vector=packed_vector)
+        if fam is None: 
+            self[array_name] = data
+        else : 
+            self[fam][array_name] = data
+        
+
+    def __read_array_from_disk(self, array_name, fam=None, filename = None, 
+                               packed_vector = None) :
         """Read a TIPSY-ASCII or TIPSY-BINARY auxiliary file with the
         specified name. If fam is not None, read only the particles of
         the specified family."""
@@ -450,13 +463,14 @@ class TipsySnap(snapshot.SimSnap) :
             dims = len(self)
             v_order = 'C'
 
-        if fam is None :
-            self[array_name] = data.reshape(dims, order=v_order).view(array.SimArray)
-        else :
-            self[fam][array_name] = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
-
         self.ancestor._tipsy_arrays_binary = binary
 
+        if fam is None :
+            return data.reshape(dims, order=v_order).view(array.SimArray)
+        else :
+            return data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
+
+        
     def read_starlog(self, fam=None) :
 	"""Read a TIPSY-starlog file."""
 	
