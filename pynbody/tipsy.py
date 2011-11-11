@@ -211,6 +211,80 @@ class TipsySnap(snapshot.SimSnap) :
             return list(set.intersection(*self._loadable_keys_registry.values()))
 
     
+    def _update_snapshot(self, arrays, filename=None, fam_out=[family.gas, family.dm, family.star]) :
+        """
+        Write a TIPSY file, but only updating the requested information and leaving the 
+        rest intact on disk.
+        """
+
+        global config
+        
+        try: family.gas in fam_out
+        except TypeError: fam_out = [fam_out]
+
+        with self.lazy_off : 
+            fin  = util.open_(self.filename)
+            fout = util.open_(self.filename+".tmp", "wb")
+
+            if self._byteswap: 
+                t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", fin.read(28))
+                fout.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
+            else: 
+                t, n, ndim, ng, nd, ns = struct.unpack("diiiii", fin.read(28))
+                fout.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
+
+            if family.gas   in fam_out: assert(ng == len(self[family.gas]))
+            if family.dm    in fam_out: assert(nd == len(self[family.dm]))
+            if family.star  in fam_out: assert(ns == len(self[family.star]))
+
+            max_block_size = 1024 # particles
+
+            # describe the file structure as list of (num_parts, [list_of_properties]) 
+            file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
+                              (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
+                              (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+
+
+            # do the read/write -- at each block, replace the relevant array
+
+            for n_left, fam, st in file_structure :
+                n_done = 0
+                self_fam = self[fam]
+                while n_left>0 :
+                    n_block = min(n_left,max_block_size)
+
+                    # Read in the block
+                    if(self._byteswap):
+                        g = np.fromstring(fin.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
+                    else:
+                        g = np.fromstring(fin.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
+
+                    if fam in fam_out : 
+                        # write over the relevant data
+                        for i, name in enumerate(st) :
+                            print name, arrays
+
+                            if name in arrays:
+                                try: 
+                                    g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
+                                except KeyError:
+                                    pass
+
+                    # Write out the block
+                    if self._byteswap :
+                        g.byteswap().tofile(fout)
+                    else:
+                        g.tofile(fout)
+
+                    # Increment total ptcls read in, decrement ptcls left of this type
+                    n_left-=n_block
+                    n_done+=n_block
+
+            fin.close()
+            fout.close()
+            
+            os.system("mv " + self.filename + ".tmp " + self.filename)
+
     @staticmethod
     def _write(self, filename=None) :
         """Write a TIPSY file.  Just the reverse of reading a file. """
@@ -432,6 +506,7 @@ class TipsySnap(snapshot.SimSnap) :
                             try : 
                                 ar.convert_units(aux_u)
                                 units_out = aux_u
+                                warnings.warn("Converted array units to match the auxiliary array found on disk.",RuntimeWarning)
                             except units.UnitsException : 
                                 raise IOError("Units must match the existing auxiliary array on disk.")
                     TipsySnap.__write_block(f, ar, binary, byteswap)
