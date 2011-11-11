@@ -500,12 +500,12 @@ class SimArray(np.ndarray) :
             self.units = new_unit
 
 
-    def write(self) :
+    def write(self, **kwargs) :
         """Write this array to disk according to the standard method associated
         with its base file"""
 
         if self.sim and self.name :
-            self.sim._write_array(self.sim, self.name)
+            self.sim.write_array(self.name, fam=self.family, **kwargs)
         else :
             raise RuntimeError, "No link to SimSnap"
 
@@ -727,8 +727,8 @@ class IndexedSimArray(object) :
     def convert_units(self, new_unit) :
         self.base.convert_units(new_unit)
 
-    def write(self) :
-        self.base.write()
+    def write(self, **kwargs) :
+        self.base.write(**kwargs)
 
     def prod(self) :
         return np.array(self).prod()
