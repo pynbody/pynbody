@@ -61,8 +61,7 @@ dist = setup(name = 'pynbody',
                                                 'CAMB_WMAP7'],
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
-             ext_modules = [kdmain, gravity],
-             scripts = ['scripts/doall.py']
+             ext_modules = [kdmain, gravity]
       )
 
 #if dist.have_run.get('install'):
