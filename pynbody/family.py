@@ -71,6 +71,10 @@ class Family(object) :
     def __reduce__(self) :
         return get_family, (self.name, True), {"aliases": self.aliases}
 
+    def __iter__(self) :
+        # Provided so a single family can be treated as a list of families
+        yield self
+
 
 # Instantiate the default families as specified
 # by the configuration file
