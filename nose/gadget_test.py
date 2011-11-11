@@ -22,13 +22,15 @@ def test_construct() :
 def test_loadable() :
     """Check we have found all the blocks that should be in the snapshot"""
     blocks=snap.loadable_keys()
-    expected=['nhp','smooth','nhe','u','sfr','pos','vel','id','mass','nh','rho','nheq','nhep']
-    assert (blocks == expected)
+    expected_gas=['nhp','smooth','nhe','u','sfr','pos','vel','id','mass','nh','rho','nheq','nhep']
+    expected_all = ['pos','vel','id','mass']
+    
     #Check that they have the right families
-    assert(snap.loadable_family_keys(pynbody.family.gas) == expected)
-    assert(snap.loadable_family_keys(pynbody.family.dm) == ['pos','vel','id','mass'])
-    assert(snap.loadable_family_keys(pynbody.family.star) == ['pos','vel','id','mass'])
-    assert(snap.loadable_family_keys(pynbody.family.neutrino) == [])
+    assert(snap.gas.loadable_keys() == expected_gas)
+    assert(snap.dm.loadable_keys() == expected_all)
+    assert(snap.star.loadable_keys() == expected_all)
+    assert(snap.loadable_keys() == expected_all)
+    assert(snap.neutrino.loadable_keys() == [])
 
 def test_standard_arrays() :
     """Check we can actually load some of these arrays"""
@@ -102,6 +104,6 @@ def test_conversion() :
 
 def test_write_single_array():
     """Check that we can write a single array and read it back"""
-    snap["pos"].write()
+    snap["pos"].write(overwrite=True)
     snap6=pynbody.load("testdata/test_g2_snap")
     assert((snap6["pos"] == snap["pos"]).all())

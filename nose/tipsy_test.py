@@ -7,7 +7,7 @@ def setup() :
     X = glob.glob("testdata/test_out.*")
     for z in X :
         os.unlink(z)
-        
+    
     global f, h
     f = pynbody.load("testdata/g15784.lr.01024")
     h = f.halos()
@@ -134,7 +134,7 @@ def test_write() :
 def test_array_write() :
     
     f['array_write_test'] = np.random.rand(len(f))
-    f['array_write_test'].write()
+    f['array_write_test'].write(overwrite=True)
     f['array_read_test'] = f['array_write_test']
     del f['array_write_test']
 
@@ -195,7 +195,13 @@ def test_array_update() :
 
     # test the case where bla is a snapshot-level array
 
-    f1._write_array(f1, 'bla', [pynbody.family.gas,pynbody.family.dm])
+    try:
+        f1.g['bla'].write()
+        assert False # should not be allowed to overwrite here
+    except IOError :
+        pass
+    
+    f1.write_array( 'bla', [pynbody.family.gas,pynbody.family.dm], overwrite=True)
 
     del(f1['bla'])
 
@@ -211,7 +217,7 @@ def test_array_update() :
     f1.g['bla2'].units = 'km'
     f1.s['bla2'] = np.ones(len(f1.s))
     
-    f1._write_array(f1,'bla2',[pynbody.family.gas,pynbody.family.star])
+    f1.write_array('bla2',[pynbody.family.gas,pynbody.family.star])
 
     del(f1)
 
