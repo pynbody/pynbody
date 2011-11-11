@@ -67,7 +67,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
     *av_z* (False): If True, the requested quantity is averaged down
             the line of sight (default False: image is generated in
-            the thin plane z=0)
+            the thin plane z=0, unless output units imply an integral
+            down the line of sight)
 
     *z_camera* (None): If set, a perspective image is rendered. See
                 :func:`pynbody.sph.image` for more details.
