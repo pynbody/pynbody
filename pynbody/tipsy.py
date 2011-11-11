@@ -357,7 +357,8 @@ class TipsySnap(snapshot.SimSnap) :
             print>>f,x.name,
         
     @staticmethod
-    def _write_array(self, array_name, filename=None, binary=None, byteswap=None) :
+    def _write_array(self, array_name, fam_out=None, 
+                     filename=None, binary=None, byteswap=None) :
         """Write a TIPSY-ASCII file."""
 
         units_out = None
@@ -378,28 +379,61 @@ class TipsySnap(snapshot.SimSnap) :
                     filename = self._filename[:-3]+"."+array_name+".gz"
                 else :
                     filename = self._filename+"."+array_name
+
+            # if the aux file already exists for this array, read it in
+            # and replace only the families that are needed
+
+            try : 
+                f = util.open_(filename, 'r')
+                data = self.__read_array_from_disk(array_name, filename = filename)
+                replace = True
+                f.close()
+
+            except IOError:
+                replace = False
+
             if binary :
                 f = util.open_(filename, 'wb')
+                    
                 if byteswap :
                     f.write(struct.pack(">i", len(self)))
     
                 else :
                     f.write(struct.pack("i", len(self)))
-
+                
             else :
                 f = util.open_(filename, 'w')
                 print>>f, str(len(self))
-
         
 
-            if array_name in self.family_keys() :
+            if array_name in self.family_keys() or fam_out is not None :
+
+                # if the aux file for this array already exists, get the families and units
+                if replace :
+                    aux_u, aux_f = self._get_loadable_array_metadata(array_name)
+
                 for fam in [family.gas, family.dm, family.star] :
                     try:
                         ar = self[fam][array_name]
                         units_out = ar.units
+                           
                     except KeyError :
                         ar = np.zeros(len(self[fam]), dtype=int)
                     
+                    if replace :
+                        # if we are replacing data and the current family is *not* requested
+                        # for output, then use the data from the auxiliary array on disk
+                        if fam not in fam_out :
+                            ar = data[self._get_family_slice(fam)]
+                        
+                        # if the current family array is written, then make sure it's 
+                        # in the same units as the existing auxiliary array
+                        else : 
+                            try : 
+                                ar.convert_units(aux_u)
+                                units_out = aux_u
+                            except units.UnitsException : 
+                                raise IOError("Units must match the existing auxiliary array on disk.")
                     TipsySnap.__write_block(f, ar, binary, byteswap)
                     
             else :
