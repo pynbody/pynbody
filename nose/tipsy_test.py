@@ -177,3 +177,51 @@ def test_array_metadata() :
     f1.gas['banana']
     f1.dm['banana']
     assert f1['banana'].units=="kpc^3 Myr^-1"
+
+def test_array_update() : 
+    f1 = pynbody.load("testdata/test_out.tipsy")
+    
+    f1['bla'] = np.zeros(len(f1))
+    f1['bla'].units = 'km'
+    f1['bla'].write()
+
+    del(f1['bla'])
+
+    f1['bla']
+
+    f1.g['bla'] = 1
+    f1.d['bla'] = 2
+    f1.s['bla'] = 3
+
+    # test the case where bla is a snapshot-level array
+
+    f1._write_array(f1, 'bla', [pynbody.family.gas,pynbody.family.dm])
+
+    del(f1['bla'])
+
+    f1['bla']
+
+    assert all(f1.g['bla'] == 1)
+    assert all(f1.d['bla'] == 2)
+    assert all(f1.s['bla'] == 0)
+
+    # test the case where bla2 is a family-level array
+    
+    f1.g['bla2'] = np.zeros(len(f1.g))
+    f1.g['bla2'].units = 'km'
+    f1.s['bla2'] = np.ones(len(f1.s))
+    
+    f1._write_array(f1,'bla2',[pynbody.family.gas,pynbody.family.star])
+
+    del(f1)
+
+    f1 = pynbody.load("testdata/test_out.tipsy")
+
+    assert all(f1.g['bla2'] == 0)
+    assert all(f1.s['bla2'] == 1)
+    
+
+    
+    
+    
+    
