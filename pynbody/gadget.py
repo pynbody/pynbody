@@ -685,14 +685,16 @@ class GadgetSnap(snapshot.SimSnap):
     def loadable_family_keys(self, fam=None) :
         """Return list of arrays which are loadable for specific families, 
         but not for all families."""
+        warnings.warn("loadable_family_keys functionality has now been incorporated into loadable_keys", warnings.DeprecationWarning)
+        return self.loadable_keys(fam)
+
+
+    def loadable_keys(self, fam=None) :
         if fam is not None : 
             return [x for x in self._loadable_keys if self._family_has_loadable_array(fam, x)]
         else :
-            return [x for x in self._loadable_keys if not self._family_has_loadable_array(fam, x)]
+            return [x for x in self._loadable_keys if self._family_has_loadable_array(None, x)]
 
-
-    def loadable_keys(self) :
-            return self._loadable_keys
 
     def _family_has_loadable_array(self, fam, name) :
         """Returns True if the array can be loaded for the specified family.
@@ -935,11 +937,13 @@ class GadgetSnap(snapshot.SimSnap):
                 [ f.write_header(self.header) for f in self._files ]
             #Call _write_array for every array.
             for x in all_keys :
-                GadgetSnap._write_array(self, x, filename)
+                GadgetSnap._write_array(self, x, filename=filename)
 
     @staticmethod
-    def _write_array(self, array_name, filename=None) :
+    def _write_array(self, array_name, fam=None, filename=None) :
         """Write a data array back to a Gadget snapshot, splitting it across files."""
+        write_fam = fam or self.families()
+        
         #Make the name a four-character upper case name, possibly with trailing spaces
         g_name = _translate_array_name(array_name).upper().ljust(4)[0:4]
         nfiles=np.size(self._files)
@@ -969,7 +973,7 @@ class GadgetSnap(snapshot.SimSnap):
                 self._files[-1].add_file_block(array_name, npart-(nfiles-1)*per_file,ashape[1])
 
         #Write blocks on a family level, so that we don't have to worry about the file-level re-ordering.
-        for fam in self.families() :
+        for fam in write_fam :
             if self._family_has_loadable_array(fam, array_name) :
                 data = self[fam][array_name]
                 s=0

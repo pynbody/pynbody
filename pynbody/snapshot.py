@@ -523,6 +523,50 @@ class SimSnap(object) :
     def __len__(self) :
         return self._num_particles
 
+    def write_array(self, array_name, fam=None, overwrite=False, **kwargs) :
+        """Write out the array with the specified name.
+
+        Some of the functionality is available via the :func:`pynbody.array.SimArray.write`
+        method, which calls the present function with appropriate arguments.
+
+        **args**
+
+        *array_name* - the name of the array to write
+        
+        **kwargs**
+
+        *fam* (None) - Write out only one family; or provide a list to write out a
+         set of families. """
+
+        # Determine whether this is a write or an update
+        if fam is None :
+            fam = self.families()
+
+        # It's an update if we're not fully replacing the file on
+        # disk, i.e. there exists a family f in self.families() but
+        # not in fam for which array_name is loadable
+        is_update = any([array_name in self[f].loadable_keys() and f not in fam for f in self.families()])
+
+        if not hasattr(self, "_write_array") :
+            raise IOError, "The underlying file format class does not support writing individual arrays back to disk. See http://code.google.com/p/pynbody/wiki/WritingFiles for further information."
+
+        if is_update and not hasattr(self, "_update_array") :
+            raise IOError, "The underlying file format class does not support partially updating arrays on disk. See http://code.google.com/p/pynbody/wiki/WritingFiles for further information."
+
+        # It's an overwrite if we're writing over something loadable
+        is_overwriting = any([array_name in self[f].loadable_keys() for f in fam])
+        
+        if is_overwriting and not overwrite:
+            # User didn't specifically say overwriting is OK
+            raise IOError, "This operation would overwrite existing data on disk. Call again setting overwrite=True if you want to enable this behaviour. See http://code.google.com/p/pynbody/wiki/WritingFiles for further information."
+
+        if is_update :
+            self._update_array(array_name, fam=fam, **kwargs)
+        else :
+            self._write_array(self, array_name, fam=fam, **kwargs)
+                                
+      
+
     def _create_family_array(self, array_name, family, ndim=1, dtype=None) :
         """Create a single array of dimension len(self.<family.name>) x ndim,
         with a given numpy dtype, belonging to the specified family.
@@ -590,7 +634,7 @@ class SimSnap(object) :
             new_ar = np.zeros(dims,dtype=dtype).view(array.SimArray)
             new_ar._sim = weakref.ref(self)
             new_ar._name = array_name
-
+            new_ar.family = family
             # new_ar.set_default_units(quiet=True)
             try:
                 self._family_arrays[array_name][family] = new_ar
@@ -620,6 +664,7 @@ class SimSnap(object) :
         new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
+        new_array.family = None
         # new_array.set_default_units(quiet=True)
         self._arrays[array_name] = new_array
 
@@ -641,9 +686,13 @@ class SimSnap(object) :
         
         if index is not None :
             if type(index) is slice :
-                return x[index]
+                ret = x[index]
             else :
-                return array.IndexedSimArray(x, index)
+                ret = array.IndexedSimArray(x, index)
+
+            ret.family = None
+            return ret
+        
         else :
             return x
 
@@ -1010,8 +1059,10 @@ class SubSnap(SimSnap) :
         if _subarray_immediate_mode :
             return self.base._get_array(name)[self._slice]
         else :
-            return self.base._get_array(name, util.concatenate_indexing(self._slice, index))
-        
+            ret =  self.base._get_array(name, util.concatenate_indexing(self._slice, index))
+            ret.family = self._unifamily
+            return ret
+            
     def _set_array(self, name, value, index=None) :
         self.base._set_array(name,value,util.concatenate_indexing(self._slice, index))
 
@@ -1081,8 +1132,12 @@ class SubSnap(SimSnap) :
     def _load_array(self, array_name, fam=None, **kwargs) :
         self.base._load_array(array_name, fam, **kwargs)
 
-    def _write_array(self, array_name) :
-        self.base._write_array(array_name)
+    def write_array(self, array_name, fam=None, **kwargs) :
+        fam = fam or self._unifamily
+        if not fam or self._get_family_slice(fam)!=slice(0,len(self)) :
+            raise IOError, "Array writing is available for entire simulation arrays or family-level arrays, but not for arbitrary subarrays. See http://code.google.com/p/pynbody/wiki/WritingFiles"
+        
+        self.base.write_array(array_name, fam=fam, **kwargs)
 
     def _derive_array(self, array_name, fam=None) :
         self.base._derive_array(array_name, fam)

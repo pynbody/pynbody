@@ -403,7 +403,9 @@ class TipsySnap(snapshot.SimSnap) :
         
         res = {}
         for l in f :
+ 
             X = l.split(":")
+        
             if len(X)==2 :
                 res[X[0].strip()] = X[1].strip()
 
@@ -412,7 +414,7 @@ class TipsySnap(snapshot.SimSnap) :
         except :
             u = None
         try:
-            fams = [family.get_family(x.strip()) for x in res['families'].split(",")]
+            fams = [family.get_family(x.strip()) for x in res['families'].split(" ")]
         except :
             fams = None
             
@@ -429,12 +431,56 @@ class TipsySnap(snapshot.SimSnap) :
         print>>f, "families:",
         for x in families :
             print>>f,x.name,
+        print >>f
+        f.close()
+        
+        if isinstance(self, TipsySnap) :
+            # update the loadable keys if this operation is likely to have
+            # changed them
+            self._update_loadable_keys()
+
+    def _update_array(self, array_name, fam=None,
+                      filename=None, binary=None, byteswap=None) :
+        assert fam is not None
+        
+        # If we have disk units for this array, check we can convert into them
+        
+        aux_u, aux_f = self._get_loadable_array_metadata(array_name)
+        if aux_f is None :
+            aux_f = self.families()
+            
+        if aux_u is not None :
+            for f in fam :
+                if array_name in self[f] :
+                    # check convertible
+                    try:
+                        self[f][array_name].units.in_units(aux_u)
+                    except units.UnitsException :
+                        raise IOError("Units must match the existing auxiliary array on disk.")
+
+                    
+       
+                    
+        data = self.__read_array_from_disk(array_name, filename = filename)
+
+        for f in fam :
+            if aux_u is not None :
+                data[self._get_family_slice(f)] = self[f][array_name].in_units(aux_u)
+            else :
+                data[self._get_family_slice(f)] = self[f][array_name]
+                
+        fam = list(set(aux_f).union(fam))
+        
+        self._write_array(self, array_name, fam=fam, contents = data, binary=binary,
+                          byteswap=byteswap, filename=filename)
+
         
     @staticmethod
-    def _write_array(self, array_name, fam_out=None, 
+    def _write_array(self, array_name, fam=None, contents=None,
                      filename=None, binary=None, byteswap=None) :
         """Write a TIPSY-ASCII file."""
 
+       
         units_out = None
         
         if binary is None :
@@ -445,8 +491,8 @@ class TipsySnap(snapshot.SimSnap) :
 
         if array_name in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
               "eps","metals","phi"] :
-            raise RuntimeError, "Cannot write back into TIPSY file." 
-
+            raise RuntimeError, "Cannot write back into TIPSY file."
+                  
         with self.lazy_off : # prevent any lazy reading or evaluation
             if filename is None :
                 if self._filename[-3:] == '.gz' :
@@ -457,75 +503,62 @@ class TipsySnap(snapshot.SimSnap) :
             # if the aux file already exists for this array, read it in
             # and replace only the families that are needed
 
-            try : 
-                f = util.open_(filename, 'r')
-                data = self.__read_array_from_disk(array_name, filename = filename)
-                replace = True
-                f.close()
-
-            except IOError:
-                replace = False
+            
 
             if binary :
-                f = util.open_(filename, 'wb')
+                fhand = util.open_(filename, 'wb')
                     
                 if byteswap :
-                    f.write(struct.pack(">i", len(self)))
+                    fhand.write(struct.pack(">i", len(self)))
     
                 else :
-                    f.write(struct.pack("i", len(self)))
+                    fhand.write(struct.pack("i", len(self)))
                 
             else :
-                f = util.open_(filename, 'w')
-                print>>f, str(len(self))
+                fhand = util.open_(filename, 'w')
+                print>>fhand, str(len(self))
         
 
-            if array_name in self.family_keys() or fam_out is not None :
+            if contents is None :
+                if array_name in self.family_keys() :
+                    for f in [family.gas, family.dm, family.star] :
+                        try:
+                            ar = self[f][array_name]
+                            units_out = ar.units
 
-                # if the aux file for this array already exists, get the families and units
-                if replace :
-                    aux_u, aux_f = self._get_loadable_array_metadata(array_name)
+                        except KeyError :
+                            ar = np.zeros(len(self[f]), dtype=int)
+                            
+                        TipsySnap.__write_block(fhand, ar, binary, byteswap)
 
-                for fam in [family.gas, family.dm, family.star] :
-                    try:
-                        ar = self[fam][array_name]
-                        units_out = ar.units
-                           
-                    except KeyError :
-                        ar = np.zeros(len(self[fam]), dtype=int)
-                    
-                    if replace :
-                        # if we are replacing data and the current family is *not* requested
-                        # for output, then use the data from the auxiliary array on disk
-                        if fam not in fam_out :
-                            ar = data[self._get_family_slice(fam)]
-                        
-                        # if the current family array is written, then make sure it's 
-                        # in the same units as the existing auxiliary array
-                        else : 
-                            try : 
-                                ar.convert_units(aux_u)
-                                units_out = aux_u
-                                warnings.warn("Converted array units to match the auxiliary array found on disk.",RuntimeWarning)
-                            except units.UnitsException : 
-                                raise IOError("Units must match the existing auxiliary array on disk.")
-                    TipsySnap.__write_block(f, ar, binary, byteswap)
-                    
+                else :
+                    ar = self[array_name]
+                    units_out = ar.units
+                    TipsySnap.__write_block(fhand, ar, binary, byteswap)
+
             else :
-                ar = self[array_name]
-                units_out = ar.units
-                TipsySnap.__write_block(f, ar, binary, byteswap)
+                TipsySnap.__write_block(fhand, contents, binary, byteswap)
+                units_out = contents.units
 
-        f.close()
-        families = [xfam for xfam in self.families() if array_name in self[xfam]]
-        TipsySnap._write_array_metafile(self,filename, units_out, families)
+        fhand.close()
+
+        if fam is None :
+            fam = [family.gas, family.dm, family.star]
+            
+        TipsySnap._write_array_metafile(self,filename, units_out, fam)
+        
             
 
     def _load_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
 
-        fams = self._get_loadable_array_metadata(array_name)[1]
-        if fams is not None and (fam or self.families())  not in fams :
+        fams = self._get_loadable_array_metadata(array_name)[1] or self.families()
+        
+        if (fam is None and fams is not None and len(fams)!=len(self.families())) or \
+               (fam is not None and fam not in fams) :
+            # Top line says 'you requested all families but at least one isn't available'
+            # Bottom line says 'you requested one family, but that one's not available'
+            
             raise IOError, "This array is marked as available only for families %s"%fams
         
         data = self.__read_array_from_disk(array_name, fam=fam,
