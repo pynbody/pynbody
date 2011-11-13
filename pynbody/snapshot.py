@@ -25,6 +25,7 @@ import sys
 import hashlib
 import time
 import warnings
+import threading
 
 
 from util import LazyKeyError
@@ -54,6 +55,10 @@ class SimSnap(object) :
     _loadable_keys_registry = {}
     _persistent = ["kdtree"]
 
+    # The following will be objects common to a SimSnap and all its SubSnaps
+    _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
+                  "_getting_array_lock", "properties"]
+
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
 
@@ -80,6 +85,8 @@ class SimSnap(object) :
         # use 'with auto_propagate_off : ' blocks to disable auto-flagging changes
         # (i.e. prevent lazy-evaluated arrays from auto-re-evaluating when their
         # dependencies change)
+
+        self._getting_array_lock = threading.RLock()
         
         self.properties = simdict.SimDict({})
         self._file_units_system = []
@@ -104,47 +111,48 @@ class SimSnap(object) :
         pynbody.filt submodule.)"""
 
         if isinstance(i, str) :
-            # self._assert_not_family_array(i)
-            if len(SimSnap._dependency_track)>0 :
-                SimSnap._dependency_track[-1].add(i)
+            with self._getting_array_lock :
 
-            if i in self.family_keys() :
-                if self.is_derived_array(i) :
-                    del self[i]
-                else :
-                    in_fam = []
-                    out_fam = []
-                    for x in self.families() :
-                        if i in self[x] :
-                            in_fam.append(x)
-                        else :
-                            out_fam.append(x)
-                    raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
+                if len(SimSnap._dependency_track)>0 :
+                    SimSnap._dependency_track[-1].add(i)
 
-            try:
-                return self._get_array(i)
-            except KeyError :
-                if not self.lazy_off :
-                    try:
-                        if not self.lazy_load_off :
-                            self._load_array(i)
-                        else :
-                            raise IOError
-                        
-                        if i in self.family_keys() :
-                            self._promote_family_array(i)
+                if i in self.family_keys() :
+                    if self.is_derived_array(i) :
+                        del self[i]
+                    else :
+                        in_fam = []
+                        out_fam = []
+                        for x in self.families() :
+                            if i in self[x] :
+                                in_fam.append(x)
+                            else :
+                                out_fam.append(x)
+                        raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
 
-                        return self._get_array(i)
-                    
-                    except IOError :
-                        if not self.lazy_derive_off :
-                            self._derive_array(i)
+                try:
+                    return self._get_array(i)
+                except KeyError :
+                    if not self.lazy_off :
+                        try:
+                            if not self.lazy_load_off :
+                                self._load_array(i)
+                            else :
+                                raise IOError
+
+                            if i in self.family_keys() :
+                                self._promote_family_array(i)
+
                             return self._get_array(i)
-                        
 
-                # All available methods of getting this array have failed
-                
-	    raise KeyError, "No such array %r"%i
+                        except IOError :
+                            if not self.lazy_derive_off :
+                                self._derive_array(i)
+                                return self._get_array(i)
+
+
+                    # All available methods of getting this array have failed
+
+            raise KeyError, "No such array %r"%i
 
         elif isinstance(i,slice) :
             return SubSnap(self, i)
@@ -1018,10 +1026,8 @@ class SubSnap(SimSnap) :
         self.base = base
         self._file_units_system = base._file_units_system
         self._unifamily = base._unifamily
-        self.lazy_off = self.base.lazy_off
-        self.lazy_derive_off = self.base.lazy_derive_off
-        self.lazy_load_off = self.base.lazy_load_off
-        self.auto_propagate_off = self.base.auto_propagate_off
+
+        self._inherit()
 
         if isinstance(_slice,slice) :
             # Various slice logic later (in particular taking
@@ -1052,9 +1058,13 @@ class SubSnap(SimSnap) :
         self._num_particles = len(self["pos"]) # this is highly inefficient and needs fixing
         
         self._descriptor = descriptor
-        self.properties = base.properties
 
 
+
+    def _inherit(self) :
+        for x in self._inherited :
+            setattr(self, x, getattr(self.base, x))
+            
     def _get_array(self, name, index=None) :
         if _subarray_immediate_mode :
             return self.base._get_array(name)[self._slice]
@@ -1177,10 +1187,8 @@ class IndexedSubSnap(SubSnap) :
     def __init__(self, base, index_array) :
 
         self._descriptor = "indexed"
-        self.lazy_off = base.lazy_off
-        self.auto_propagate_off = base.auto_propagate_off
-        self.lazy_load_off = base.lazy_load_off
-        self.lazy_derive_off = base.lazy_derive_off
+        self.base = base
+        self._inherit()
         
         self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
@@ -1202,12 +1210,9 @@ class IndexedSubSnap(SubSnap) :
             raise ValueError, "Index array must be monotonically increasing"
 
         self._slice = index_array
-        
-        self.properties = base.properties
         self._family_slice = {}
         self._family_indices = {}
         self._num_particles = len(index_array)
-        self.base = base
 
         # Find the locations of the family slices
         for fam in family._registry :
@@ -1244,11 +1249,8 @@ class FamilySubSnap(SubSnap) :
     """Represents a one-family portion of a parent snap object"""
     def __init__(self, base, fam) :
         self.base = base
-        self.properties = base.properties
-        self.lazy_off = self.base.lazy_off
-        self.auto_propagate_off = self.base.auto_propagate_off
-        self.lazy_derive_off = self.base.lazy_derive_off
-        self.lazy_load_off = self.base.lazy_load_off
+       
+        self._inherit()
         
         self._slice = base._get_family_slice(fam)
         self._unifamily = fam
