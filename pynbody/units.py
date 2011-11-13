@@ -232,6 +232,12 @@ class UnitBase(object) :
             raise UnitsException, "Unit names cannot contain '**' or '^' or spaces"
         _registry[st]=self
 
+    def __deepcopy__(self, memo) :
+        # This may look odd, but the units conversion will be very
+        # broken after deep-copying if we don't guarantee that a given
+        # physical unit corresponds to only one instance
+        return self
+
 
 class NoUnit(UnitBase) :
 

@@ -35,3 +35,9 @@ def test_units_parser() :
    
     
     
+def test_units_copy() :
+    # These should succeed
+
+    import copy
+    copy.copy(units.Unit("Msol kpc^-1")).ratio("kg km^-1")
+    copy.deepcopy(units.Unit("Msol kpc^-1")).ratio("kg km^-1")
