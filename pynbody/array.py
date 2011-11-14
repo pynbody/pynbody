@@ -501,8 +501,16 @@ class SimArray(np.ndarray) :
 
 
     def write(self, **kwargs) :
-        """Write this array to disk according to the standard method associated
-        with its base file"""
+        """
+        Write this array to disk according to the standard method
+        associated with its base file. This is equivalent to calling
+        
+        >>> sim.write_array('array')
+
+        See the description of
+        :func:`~pynbody.snapshot.SimSnap.write_array` for 
+        options.
+        """
 
         if self.sim and self.name :
             self.sim.write_array(self.name, fam=self.family, **kwargs)

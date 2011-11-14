@@ -532,19 +532,22 @@ class SimSnap(object) :
         return self._num_particles
 
     def write_array(self, array_name, fam=None, overwrite=False, **kwargs) :
-        """Write out the array with the specified name.
+        """
+        Write out the array with the specified name.
 
-        Some of the functionality is available via the :func:`pynbody.array.SimArray.write`
-        method, which calls the present function with appropriate arguments.
+        Some of the functionality is available via the
+        :func:`pynbody.array.SimArray.write` method, which calls the
+        present function with appropriate arguments.
 
-        **args**
+        **Input**
 
         *array_name* - the name of the array to write
         
-        **kwargs**
+        **Optional Keywords**
 
-        *fam* (None) - Write out only one family; or provide a list to write out a
-         set of families. """
+        *fam* (None) - Write out only one family; or provide a list to
+         write out a set of families. 
+         """
 
         # Determine whether this is a write or an update
         if fam is None :
