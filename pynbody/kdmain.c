@@ -106,6 +106,8 @@ PyObject *kdinit(PyObject *self, PyObject *args)
 
     int nbodies = PyArray_DIM(pos, 0);
 
+    Py_BEGIN_ALLOW_THREADS
+
     kd->nParticles = nbodies;
     kd->nDark = kd->nParticles;
     kd->nGas = 0;
@@ -124,7 +126,7 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     kd->p = (PARTICLE *)malloc(kd->nActive*sizeof(PARTICLE));
     assert(kd->p != NULL);
 
-    Py_BEGIN_ALLOW_THREADS
+    
 
     for (i=0; i < nbodies; i++)
     {
@@ -301,51 +303,63 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     PyObject *kdobj, *smxobj;
     PyObject *dest; // Nx1 Numpy array for the property
+
+    
   
     PyArg_ParseTuple(args, "OOOi", &kdobj, &smxobj, &dest, &propid);
     kd  = PyCObject_AsVoidPtr(kdobj);
     smx = PyCObject_AsVoidPtr(smxobj);
+
+    
     
     long nbodies = PyArray_DIM(dest, 0);
-    
+   
+    PyArray_Descr *descr = PyArray_DESCR(dest);
+   
+#define SET(nn, val) *((double*)PyArray_GETPTR1(dest, nn)) = val
+
+    if(descr->kind!='f' || descr->elsize!=sizeof(double)) {
+      PyErr_SetString(PyExc_TypeError, "Incorrect numpy data type to kdtree - must match C double");
+      return NULL;
+    }
+
     switch(propid)
     {
         case PROPID_HSM:
 
+          Py_BEGIN_ALLOW_THREADS
             for (i=0; i < nbodies; i++)
               {
-                Py_BEGIN_ALLOW_THREADS
-                  nCnt = smSmoothStep(smx, NULL);
-                Py_END_ALLOW_THREADS
-                  
-                PyArray_SETITEM(dest, PyArray_GETPTR1(dest, kd->p[smx->pi].iOrder), PyFloat_FromDouble(kd->p[smx->pi].fSmooth));
+                nCnt = smSmoothStep(smx, NULL);
+                SET(kd->p[smx->pi].iOrder, kd->p[smx->pi].fSmooth);
+                // *((double*)PyArray_GETPTR1(dest, kd->p[smx->pi].iOrder)) = kd->p[smx->pi].fSmooth;
               }
-
-            break;
+          Py_END_ALLOW_THREADS
+                 
+          break;
             
     case PROPID_RHO:
       
+      Py_BEGIN_ALLOW_THREADS
       for (i=0; i < nbodies; i++)
-        {
-          Py_BEGIN_ALLOW_THREADS
+        {          
             nCnt = smBallGather(smx,smx->pfBall2[i],smx->kd->p[i].r);
-          Py_END_ALLOW_THREADS
-                      
             smDensitySym(smx, i, nCnt, smx->pList,smx->fList);
+            SET(kd->p[i].iOrder, kd->p[i].fDensity);
         }
-      for (i=0; i < nbodies; i++) PyArray_SETITEM(dest, PyArray_GETPTR1(dest, kd->p[i].iOrder), 
-                                                  PyFloat_FromDouble(kd->p[i].fDensity));
+      Py_END_ALLOW_THREADS
+
       break;
       
     case PROPID_MEANVEL:
+      Py_BEGIN_ALLOW_THREADS
       for (i=0; i < nbodies; i++)
         {
-          Py_BEGIN_ALLOW_THREADS
+          
           nCnt = smBallGather(smx,smx->pfBall2[i],smx->kd->p[i].r);
-          Py_END_ALLOW_THREADS
-
           smMeanVelSym(smx, i, nCnt, smx->pList,smx->fList);
         } 
+      Py_END_ALLOW_THREADS
 
       /* using a symmetric kernel, so need to complete the smMeanVelSym for all
          particles before outputting the values */
@@ -364,24 +378,29 @@ PyObject *populate(PyObject *self, PyObject *args)
       /* when using a symmetric kernel, the dependencies (in this case mean velocity 
          and div_v have to be calculated completely before using for v_disp */      
 
+      Py_BEGIN_ALLOW_THREADS
       for (i=0; i < nbodies; i++)
         {
-          Py_BEGIN_ALLOW_THREADS
+          
           nCnt = smBallGather(smx,smx->pfBall2[i],smx->kd->p[i].r);
-          Py_END_ALLOW_THREADS
+          
 
           smMeanVelSym(smx, i, nCnt, smx->pList,smx->fList);
           smDivvSym(smx, i, nCnt, smx->pList, smx->fList);
         }
+
+
       for (i=0; i < nbodies; i++)
         {
-          Py_BEGIN_ALLOW_THREADS
+
           nCnt = smBallGather(smx,smx->pfBall2[i],smx->kd->p[i].r);
-          Py_END_ALLOW_THREADS
+
 
           smVelDispNBSym(smx, i, nCnt, smx->pList,smx->fList);
         }
       
+      Py_END_ALLOW_THREADS
+
       /* using a symmetric kernel, so need to complete the smVelDispNBSym for all
          particles before outputting the values */
 
@@ -396,7 +415,6 @@ PyObject *populate(PyObject *self, PyObject *args)
         default:
             break;
     }
-
     return Py_None;
 }
 
