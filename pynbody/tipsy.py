@@ -227,7 +227,6 @@ class TipsySnap(snapshot.SimSnap) :
         """
 
         global config
-        print "-update_snapshot",arrays,filename,fam_out
         
         with self.lazy_off : 
             fin  = util.open_(self.filename)
@@ -239,6 +238,8 @@ class TipsySnap(snapshot.SimSnap) :
             else: 
                 t, n, ndim, ng, nd, ns = struct.unpack("diiiii", fin.read(28))
                 fout.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
+
+            fin.read(4)
 
             if family.gas   in fam_out: assert(ng == len(self[family.gas]))
             if family.dm    in fam_out: assert(nd == len(self[family.dm]))
@@ -269,8 +270,7 @@ class TipsySnap(snapshot.SimSnap) :
                     if fam in fam_out : 
                         # write over the relevant data
                         for i, name in enumerate(st) :
-                            print name, arrays
-
+                            
                             if name in arrays:
                                 try: 
                                     g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
