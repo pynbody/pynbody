@@ -148,6 +148,11 @@ from .backcompat import fractions
 
 
 class SimArray(np.ndarray) :
+    """
+    Defines a shallow wrapper around numpy.ndarray for extra
+    functionality like unit-tracking.
+    """
+
     _ufunc_registry = {}
 
     @property
@@ -505,11 +510,11 @@ class SimArray(np.ndarray) :
         Write this array to disk according to the standard method
         associated with its base file. This is equivalent to calling
         
-        >>> sim.write_array('array')
+        >>> sim.gas.write_array('array')
 
-        See the description of
-        :func:`~pynbody.snapshot.SimSnap.write_array` for 
-        options.
+        in the case of writing out the array 'array' for the gas
+        particle family.  See the description of
+        :func:`pynbody.snapshot.SimSnap.write_array` for options.
         """
 
         if self.sim and self.name :
