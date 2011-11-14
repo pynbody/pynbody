@@ -21,8 +21,16 @@ import numpy as np
 import gzip
 import sys
 import warnings
+import copy
 
 class TipsySnap(snapshot.SimSnap) :
+    _basic_loadable_keys = {family.dm: set(['phi', 'pos', 'eps', 'mass', 'vel']),
+                            family.gas: set(['phi', 'temp', 'pos', 'metals', 'eps',
+                                             'mass', 'rho', 'vel']),
+                            family.star: set(['phi', 'tform', 'pos', 'metals',
+                                              'eps','mass', 'vel'])}
+
+
     def __init__(self, filename, only_header=False, must_have_paramfile=False) :
 
         global config
@@ -188,7 +196,7 @@ class TipsySnap(snapshot.SimSnap) :
         # Create an empty dictionary of sets to store the loadable
         # arrays for each family
         rdict = dict([(x, set()) for x in self.families()])
-
+        rdict.update(dict([a, copy.copy(b)] for a,b in self._basic_loadable_keys.iteritems()))
         # Now work out which families can load which arrays
         # according to the stored metadata
         for r in res :
@@ -196,6 +204,7 @@ class TipsySnap(snapshot.SimSnap) :
             for x in fams or self.families() :
                 rdict[x].add(r)
 
+                
         self._loadable_keys_registry = rdict
             
     def loadable_keys(self, fam=None) :
@@ -218,10 +227,8 @@ class TipsySnap(snapshot.SimSnap) :
         """
 
         global config
+        print "-update_snapshot",arrays,filename,fam_out
         
-        try: family.gas in fam_out
-        except TypeError: fam_out = [fam_out]
-
         with self.lazy_off : 
             fin  = util.open_(self.filename)
             fout = util.open_(self.filename+".tmp", "wb")
@@ -439,9 +446,21 @@ class TipsySnap(snapshot.SimSnap) :
             # changed them
             self._update_loadable_keys()
 
+    @staticmethod
+    def _families_in_main_file(array_name, fam=None) :
+        fam_for_default = [fX for fX, ars in TipsySnap._basic_loadable_keys.iteritems() if array_name in ars and fX in fam]
+        return fam_for_default
+    
     def _update_array(self, array_name, fam=None,
                       filename=None, binary=None, byteswap=None) :
         assert fam is not None
+
+        fam_in_main = self._families_in_main_file(array_name, fam)
+        if len(fam_in_main)>0 :
+            self._update_snapshot(array_name, fam_out=fam_in_main)
+            fam = list(set(fam).difference(fam_in_main))
+            if len(fam)==0 : return
+            
         
         # If we have disk units for this array, check we can convert into them
         
@@ -460,9 +479,16 @@ class TipsySnap(snapshot.SimSnap) :
 
                     
        
-                    
-        data = self.__read_array_from_disk(array_name, filename = filename)
+        try:            
+            data = self.__read_array_from_disk(array_name, filename = filename)
+        except IOError :
+            # doesn't really exist, probably because the other data on disk was
+            # in the main snapshot
+            self._write_array(self, array_name, fam, filename=filename, binary=binary,
+                              byteswap=byteswap)
+            return
 
+            
         for f in fam :
             if aux_u is not None :
                 data[self._get_family_slice(f)] = self[f][array_name].in_units(aux_u)
@@ -480,7 +506,15 @@ class TipsySnap(snapshot.SimSnap) :
                      filename=None, binary=None, byteswap=None) :
         """Write a TIPSY-ASCII file."""
 
-       
+        fam_in_main = TipsySnap._families_in_main_file(array_name, fam)
+        if len(fam_in_main)>0 :
+            if isinstance(self,TipsySnap) :
+                self._update_snapshot(array_name, fam_out=fam_in_main)
+                fam = list(set(fam).difference(fam_in_main))
+                if len(fam)==0 : return
+            else :
+                raise RuntimeError, "Cannot call static _write_array to write into main tipsy file."
+                          
         units_out = None
         
         if binary is None :
@@ -489,10 +523,7 @@ class TipsySnap(snapshot.SimSnap) :
         if binary and ( byteswap is None ) :
             byteswap = getattr(self.ancestor, "_byteswap", False)
 
-        if array_name in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
-              "eps","metals","phi"] :
-            raise RuntimeError, "Cannot write back into TIPSY file."
-                  
+            
         with self.lazy_off : # prevent any lazy reading or evaluation
             if filename is None :
                 if self._filename[-3:] == '.gz' :
