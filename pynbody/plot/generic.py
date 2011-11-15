@@ -17,6 +17,12 @@ def hist2d(xo, yo, weights=None, mass=None, nbins=100, nlevels = 20, logscale=Tr
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
+    ** Input: **
+
+       *x*: array
+
+       *y*: array
+
     **Optional keywords:**
 
        *x_range*: list, array, or tuple
@@ -177,10 +183,10 @@ def hist2d(xo, yo, weights=None, mass=None, nbins=100, nlevels = 20, logscale=Tr
     
 
 
-def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None, nbins = 100, 
+def gauss_density(xo, yo, weights=None, x_range = None, y_range = None, gridsize = (100,100), 
                   nlevels = 20, logscale = True, xlogrange = False, ylogrange = False, 
                   subplot = False, colorbar = False, clear = True, legend = False, 
-                  scalemin = None, scalemax = None, **kwargs) :
+                  scalemin = None, scalemax = None, filename = None, **kwargs) :
 
     """
     Plot 2D average gaussian density estimate given values *z* at points (*x*, *y*). 
@@ -188,11 +194,9 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
     
     ** Input: **
 
-       *sim*: snapshot to take data from. 
-       
-       *xqty*: quantity to use for the x-axis
+       *x*: array
 
-       *yqty*: quantity to use for the y-axis
+       *y*: array
 
     **Optional keywords:**
     
@@ -241,23 +245,24 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
     else :
         plt = subplot
     from matplotlib import ticker, colors
-
-    xo = sim[xqty]
-    yo = sim[yqty]
-
-    if y_range is not None:  assert len(y_range) == 2
+    
+    if y_range is not None :
+        if len(y_range) != 2 : 
+            raise RuntimeError("Range must be a length 2 list or array")
     else:
         if ylogrange:
-            y_range = (np.log10(np.min(yo)),np.log10(np.max(yo)))
+            y_range = [np.log10(np.min(yo)),np.log10(np.max(yo))]
         else:
-            y_range = (np.min(yo),np.max(yo))
+            y_range = [np.min(yo),np.max(yo)]
     
-    if x_range is not None: assert len(x_range) == 2
+    if x_range is not None:
+        if len(x_range) != 2 :
+            raise RuntimeError("Range must be a length 2 list or array")
     else:
         if xlogrange:
-            x_range = (np.log10(np.min(xo)), np.log10(np.max(xo)))
+            x_range = [np.log10(np.min(xo)), np.log10(np.max(xo))]
         else:
-            x_range = (np.min(xo),np.max(xo))
+            x_range = [np.min(xo),np.max(xo)]
 
     if (xlogrange):
         x = np.log10(xo)
@@ -267,13 +272,26 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
         y = np.log10(yo)
     else :
         y = yo
+        
+    ind = np.where((x > x_range[0]) & (x < x_range[1]) &
+                   (y > y_range[0]) & (y < y_range[1]))
 
-    density = fast_kde(x0, y0, extents=(x_range,y_range),weights=weights)
+    x = x[ind[0]]
+    y = y[ind[0]]
+
+    xs = np.linspace(x_range[0], x_range[1], gridsize[0]+1)
+    xs = .5*(xs[:-1]+xs[1:])
+    ys = np.linspace(y_range[0], y_range[1], gridsize[1]+1)
+    ys = .5*(ys[:-1]+ys[1:])
+    
+    if weights is not None: weights = weights[ind[0]]
+
+    density = fast_kde(x,y,weights=weights,extents=(x_range[0],x_range[1],y_range[0],y_range[1]),gridsize=gridsize)
         
     if logscale:
         try:
-            if scalemin is None: scalemin = np.min(hist[hist>0])
-            if scalemax is None: scalemax = np.max(hist[hist>0])
+            if scalemin is None: scalemin = np.min(density[density>0])
+            if scalemax is None: scalemax = np.max(density[density>0])
 
             levels = np.logspace(np.log10(scalemin),       # there must be an
                                  np.log10(scalemax),nlevels)      # easier way to do this...
@@ -289,8 +307,8 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
         else :
             cb_label = '$log_{10}(N)$'
     else:
-        levels = np.linspace(np.min(hist),
-                             np.max(hist), nlevels)
+        levels = np.linspace(np.min(density),
+                             np.max(density), nlevels)
         cont_color=None
         
         if weights != None :
@@ -303,8 +321,9 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
     # note that hist is strange and x/y values
     # are swapped
     #
-    cs = plt.contourf(.5*(ys[:-1]+ys[1:]),.5*(xs[:-1]+xs[1:]), 
-                     hist, levels, norm=cont_color,**kwargs)
+
+#    plt.imshow(density, extent = [x_range[0],x_range[1],y_range[0],y_range[1]], origin='down', aspect = np.diff(x_range)/np.diff(y_range))
+    cs = plt.contourf(xs,ys,density, levels, norm=cont_color,**kwargs)
 
 
     if kwargs.has_key('xlabel'):
@@ -329,9 +348,9 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
     else:
         plt.ylabel(ylabel)
 
-    if not subplot:
-        plt.xlim((x_range[0],x_range[1]))
-        plt.ylim((y_range[0],y_range[1]))
+#    if not subplot:
+#        plt.xlim((x_range[0],x_range[1]))
+#        plt.ylim((y_range[0],y_range[1]))
 
     if colorbar :
         cb = plt.colorbar(cs, format = "%.2f").set_label(r''+cb_label)
@@ -342,7 +361,8 @@ def gauss_density(sim, xqty, yqty, weights=None, x_range = None, y_range = None,
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
-    return hist, xs, ys
+
+    return density
     
 
                   
