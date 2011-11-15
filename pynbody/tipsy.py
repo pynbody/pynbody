@@ -286,8 +286,11 @@ class TipsySnap(snapshot.SimSnap) :
                         for i, name in enumerate(st) :
                             
                             if name in arrays:
-                                try: 
-                                    g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block].in_original_units())
+                                try:
+                                    if self[fam][name].units != 1 and self[fam][name].units != units.NoUnit(): 
+                                        g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block].in_original_units())
+                                    else : 
+                                        g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
                                 except KeyError:
                                     pass
 
