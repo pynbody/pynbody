@@ -287,7 +287,7 @@ class TipsySnap(snapshot.SimSnap) :
                             
                             if name in arrays:
                                 try: 
-                                    g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
+                                    g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block].in_original_units())
                                 except KeyError:
                                     pass
 
@@ -544,11 +544,6 @@ class TipsySnap(snapshot.SimSnap) :
                     filename = self._filename[:-3]+"."+array_name+".gz"
                 else :
                     filename = self._filename+"."+array_name
-
-            # if the aux file already exists for this array, read it in
-            # and replace only the families that are needed
-
-            
 
             if binary :
                 fhand = util.open_(filename, 'wb')

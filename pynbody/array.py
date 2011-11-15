@@ -478,6 +478,13 @@ class SimArray(np.ndarray) :
         else :
             raise RuntimeError, "No link to SimSnap"
         
+    def in_original_units(self) : 
+        """Retun a copy of this array expressed in the units
+        specified in the parameter file."""
+        
+        return self.in_units(self.sim.infer_original_units(self.units))
+            
+
     def in_units(self, new_unit, **context_overrides) :
         """Return a copy of this array expressed relative to an alternative
         unit."""
