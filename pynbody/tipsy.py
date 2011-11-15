@@ -228,6 +228,20 @@ class TipsySnap(snapshot.SimSnap) :
 
         global config
         
+        # make arrays be a list
+        if isinstance(arrays,str) : arrays = [arrays]
+
+        # check if arrays includes a 3D array
+        if 'pos' in arrays :
+            arrays.remove('pos')
+            for arr in ['x','y','z'] :
+                arrays.append(arr)
+        if 'vel' in arrays :
+            arrays.remove('vel')
+            for arr in ['vx','vy','vz'] :
+                arrays.append(arr)
+
+
         with self.lazy_off : 
             fin  = util.open_(self.filename)
             fout = util.open_(self.filename+".tmp", "wb")
