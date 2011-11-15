@@ -113,7 +113,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                                   z_camera=z_camera)
             im2 = sph.render_image(sim, "__one", width/2, resolution, kernel=kernel, 
                                    z_camera=z_camera)
-            # del sim["__one"]
+            del sim["__one"]
             
             im = im/im2
     else :
