@@ -2,6 +2,7 @@ import pynbody
 import numpy as np
 import glob
 import os
+import glob
 
 def setup() :
     X = glob.glob("testdata/test_out.*")
@@ -227,7 +228,52 @@ def test_array_update() :
     assert all(f1.s['bla2'] == 1)
     
 
+def test_update_snapshot() :
+    f = pynbody.new(dm=5,star=5,gas=10)
+
+    f['pos'] = 1
+    f['pos'].units = 'kpc'
     
+    f.write(filename='testdata/test.std',fmt=pynbody.tipsy.TipsySnap)
     
+    del(f)
+    
+    f = pynbody.load('testdata/test.std')
+    
+    f.g['pos'] = 100
+    f.g['pos'].convert_units('Mpc')
+    f.g['mass'] = 100
+    f.s['mass'] = 200
+    f.s['pos'] = 200
+    
+    # check that update_snapshot works
+    f.g['pos'].write(overwrite=True)
+    
+    del(f)
+    f = pynbody.load('testdata/test.std')
+
+    assert np.all(f.g['pos'] == 100)
+    assert np.all(f.s['pos'] == 1)
+    assert np.all(f.d['pos'] == 1)
+
+
+    f['vel'] = 1
+    f.write()
+    
+    del(f)
+    
+    f = pynbody.load('testdata/test.std')
+    
+    f.g['vx'] = 100
+    f.g['vel'].write(overwrite=True)
+    
+    del(f)
+    
+    f = pynbody.load('testdata/test.std')
+    
+    assert np.all(f.g['vx'] == 100)
+    assert np.all(f.s['vx'] == 1)
+
+    glob.os.remove('testdata/test.std*')
     
     
