@@ -118,7 +118,7 @@ import ConfigParser
 import os
 import imp
 import numpy
-
+import warnings
 # Create config dictionaries which will be required by subpackages
 # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
 # the backcompat module. This keeps things in the order they were parsed (important
@@ -155,7 +155,12 @@ for k in config_parser.options('sph') :
     config['sph'][k] = int(config_parser.get('sph', k))
 
 # Import subpackages
-from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, plot, gravity, sph
+from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, gravity, sph
+
+try: 
+    from . import plot
+except: 
+    warnings.warn("Unable to import plotting package (missing matplotlib or running from a text-only terminal? Plotting is disabled.", RuntimeWarning)
 
 # The following code resolves inter-dependencies when reloading
 imp.reload(array)
@@ -170,9 +175,13 @@ imp.reload(analysis)
 imp.reload(halo)
 imp.reload(derived)
 imp.reload(bridge)
-imp.reload(plot)
 imp.reload(gravity)
 imp.reload(sph)
+
+try : 
+    imp.reload(plot)
+except : 
+    pass
 
 # from analysis import profile
 

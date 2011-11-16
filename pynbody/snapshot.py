@@ -127,7 +127,13 @@ class SimSnap(object) :
                                 in_fam.append(x)
                             else :
                                 out_fam.append(x)
-                        raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
+                        # it's possible that we computed this array for the derived
+                        # family previously and saved it on disk 
+                        try: 
+                            for fam in out_fam : 
+                                self._load_array(i,fam=fam)
+                        except IOError: 
+                            raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
 
                 try:
                     return self._get_array(i)
@@ -532,19 +538,22 @@ class SimSnap(object) :
         return self._num_particles
 
     def write_array(self, array_name, fam=None, overwrite=False, **kwargs) :
-        """Write out the array with the specified name.
+        """
+        Write out the array with the specified name.
 
-        Some of the functionality is available via the :func:`pynbody.array.SimArray.write`
-        method, which calls the present function with appropriate arguments.
+        Some of the functionality is available via the
+        :func:`pynbody.array.SimArray.write` method, which calls the
+        present function with appropriate arguments.
 
-        **args**
+        **Input**
 
         *array_name* - the name of the array to write
         
-        **kwargs**
+        **Optional Keywords**
 
-        *fam* (None) - Write out only one family; or provide a list to write out a
-         set of families. """
+        *fam* (None) - Write out only one family; or provide a list to
+         write out a set of families. 
+         """
 
         # Determine whether this is a write or an update
         if fam is None :

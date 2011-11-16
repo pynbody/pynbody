@@ -227,7 +227,29 @@ def test_array_update() :
     assert all(f1.s['bla2'] == 1)
     
 
+def test_snapshot_update() :
+    f1 = pynbody.load("testdata/test_out.tipsy")
+    f1['pos'] = np.arange(0,len(f1)*3).reshape(len(f1),3)
+    f1['pos'].write(overwrite=True)
+    f1.gas['metals'] = np.ones(len(f1.gas))*123.
+    f1.star['metals'] = np.ones(len(f1.star))*345.
+
+    f1.gas['metals'].write(overwrite=True)
+    del f1
+
+    f2 = pynbody.load("testdata/test_out.tipsy")
+    assert (f2['pos']==np.arange(0,len(f2)*3).reshape(len(f2),3)).all()
+    assert (f2.gas['metals']==123.).all() # should have updated gas.metals
+    assert not (f2.star['metals']==345.).any() # should not have written out changes to star.metals
+
+    # this is a completion:
+    f2.dm['metals'] = np.ones(len(f2.dm))*789.1
+
+    # should now be a simulation-level array... write it out
+    f2['metals'].write(overwrite=True)
+
+    del f2['metals']
+
     
-    
-    
-    
+    f3 = pynbody.load("testdata/test_out.tipsy")
+    assert (f3.dm['metals']==789.1).all()

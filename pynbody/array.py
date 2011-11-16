@@ -148,6 +148,11 @@ from .backcompat import fractions
 
 
 class SimArray(np.ndarray) :
+    """
+    Defines a shallow wrapper around numpy.ndarray for extra
+    functionality like unit-tracking.
+    """
+
     _ufunc_registry = {}
 
     @property
@@ -473,6 +478,13 @@ class SimArray(np.ndarray) :
         else :
             raise RuntimeError, "No link to SimSnap"
         
+    def in_original_units(self) : 
+        """Retun a copy of this array expressed in the units
+        specified in the parameter file."""
+        
+        return self.in_units(self.sim.infer_original_units(self.units))
+            
+
     def in_units(self, new_unit, **context_overrides) :
         """Return a copy of this array expressed relative to an alternative
         unit."""
@@ -501,8 +513,16 @@ class SimArray(np.ndarray) :
 
 
     def write(self, **kwargs) :
-        """Write this array to disk according to the standard method associated
-        with its base file"""
+        """
+        Write this array to disk according to the standard method
+        associated with its base file. This is equivalent to calling
+        
+        >>> sim.gas.write_array('array')
+
+        in the case of writing out the array 'array' for the gas
+        particle family.  See the description of
+        :func:`pynbody.snapshot.SimSnap.write_array` for options.
+        """
 
         if self.sim and self.name :
             self.sim.write_array(self.name, fam=self.family, **kwargs)

@@ -227,8 +227,21 @@ class TipsySnap(snapshot.SimSnap) :
         """
 
         global config
-        print "-update_snapshot",arrays,filename,fam_out
         
+        # make arrays be a list
+        if isinstance(arrays,str) : arrays = [arrays]
+
+        # check if arrays includes a 3D array
+        if 'pos' in arrays :
+            arrays.remove('pos')
+            for arr in ['x','y','z'] :
+                arrays.append(arr)
+        if 'vel' in arrays :
+            arrays.remove('vel')
+            for arr in ['vx','vy','vz'] :
+                arrays.append(arr)
+
+
         with self.lazy_off : 
             fin  = util.open_(self.filename)
             fout = util.open_(self.filename+".tmp", "wb")
@@ -239,6 +252,8 @@ class TipsySnap(snapshot.SimSnap) :
             else: 
                 t, n, ndim, ng, nd, ns = struct.unpack("diiiii", fin.read(28))
                 fout.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
+
+            fin.read(4)
 
             if family.gas   in fam_out: assert(ng == len(self[family.gas]))
             if family.dm    in fam_out: assert(nd == len(self[family.dm]))
@@ -269,11 +284,13 @@ class TipsySnap(snapshot.SimSnap) :
                     if fam in fam_out : 
                         # write over the relevant data
                         for i, name in enumerate(st) :
-                            print name, arrays
-
+                            
                             if name in arrays:
-                                try: 
-                                    g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
+                                try:
+                                    if self[fam][name].units != 1 and self[fam][name].units != units.NoUnit(): 
+                                        g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block].in_original_units())
+                                    else : 
+                                        g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
                                 except KeyError:
                                     pass
 
@@ -387,7 +404,7 @@ class TipsySnap(snapshot.SimSnap) :
             if issubclass(ar.dtype.type, np.integer) :
                 fmt = "%d"
             else :
-                fmt = "%g"
+                fmt = "%e"
             np.savetxt(f, ar, fmt=fmt)
 
 
@@ -504,7 +521,7 @@ class TipsySnap(snapshot.SimSnap) :
     @staticmethod
     def _write_array(self, array_name, fam=None, contents=None,
                      filename=None, binary=None, byteswap=None) :
-        """Write a TIPSY-ASCII file."""
+        """Write the array to file."""
 
         fam_in_main = TipsySnap._families_in_main_file(array_name, fam)
         if len(fam_in_main)>0 :
@@ -530,11 +547,6 @@ class TipsySnap(snapshot.SimSnap) :
                     filename = self._filename[:-3]+"."+array_name+".gz"
                 else :
                     filename = self._filename+"."+array_name
-
-            # if the aux file already exists for this array, read it in
-            # and replace only the families that are needed
-
-            
 
             if binary :
                 fhand = util.open_(filename, 'wb')
