@@ -57,7 +57,10 @@ for(int i=0; i<n_part; i++) {
 #ifdef PERSPECTIVE
   if(z_i>0.99*z_camera) continue;
   if(z_i>0.8*z_camera)
-    qty_i*=exp((0.8-z_camera)/0.1);
+    qty_i*=exp((0.8-z_i/z_camera)/0.1);
+  if(z_i<-z_camera*3) continue;
+  if(z_i<-z_camera)
+    qty_i*=exp((1.0+z_i/z_camera));
   float pixel_dx = (z_camera-z_i)*ddx;
   
 #else
