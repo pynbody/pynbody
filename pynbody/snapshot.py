@@ -127,7 +127,13 @@ class SimSnap(object) :
                                 in_fam.append(x)
                             else :
                                 out_fam.append(x)
-                        raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
+                        # it's possible that we computed this array for the derived
+                        # family previously and saved it on disk 
+                        try: 
+                            for fam in out_fam : 
+                                self._load_array(i,fam=fam)
+                        except IOError: 
+                            raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
 
                 try:
                     return self._get_array(i)

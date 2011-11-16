@@ -404,7 +404,7 @@ class TipsySnap(snapshot.SimSnap) :
             if issubclass(ar.dtype.type, np.integer) :
                 fmt = "%d"
             else :
-                fmt = "%g"
+                fmt = "%e"
             np.savetxt(f, ar, fmt=fmt)
 
 
@@ -521,7 +521,7 @@ class TipsySnap(snapshot.SimSnap) :
     @staticmethod
     def _write_array(self, array_name, fam=None, contents=None,
                      filename=None, binary=None, byteswap=None) :
-        """Write a TIPSY-ASCII file."""
+        """Write the array to file."""
 
         fam_in_main = TipsySnap._families_in_main_file(array_name, fam)
         if len(fam_in_main)>0 :
