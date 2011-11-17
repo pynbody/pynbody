@@ -230,6 +230,10 @@ def test_array_update() :
 def test_snapshot_update() :
     f1 = pynbody.load("testdata/test_out.tipsy")
     f1['pos'] = np.arange(0,len(f1)*3).reshape(len(f1),3)
+    
+    # convert units -- the array should get written out in simulation units
+    f1.g['pos'].convert_units('Mpc')
+
     f1['pos'].write(overwrite=True)
     f1.gas['metals'] = np.ones(len(f1.gas))*123.
     f1.star['metals'] = np.ones(len(f1.star))*345.
@@ -253,3 +257,7 @@ def test_snapshot_update() :
     
     f3 = pynbody.load("testdata/test_out.tipsy")
     assert (f3.dm['metals']==789.1).all()
+
+    
+
+    
