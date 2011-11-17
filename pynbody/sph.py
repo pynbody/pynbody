@@ -331,7 +331,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
-    result = np.zeros((nx,ny),dtype=np.float32)
+    result = np.zeros((ny,nx),dtype=np.float32)
 
     
     

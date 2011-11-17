@@ -70,13 +70,13 @@ class TipsySnap(snapshot.SimSnap) :
         self._family_slice[family.dm] = slice(ng, nd+ng)
         self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
-        self._create_arrays(["pos","vel"],3)
-        self._create_arrays(["mass","eps","phi"])
-        self.gas._create_arrays(["rho","temp","metals"])
-        self.star._create_arrays(["metals","tform"])
-
-        self.gas["temp"].units = "K" # we know the temperature is always in K
-        # Other units will be set by the decorators later
+        if not only_header :
+            self._create_arrays(["pos","vel"],3)
+            self._create_arrays(["mass","eps","phi"])
+            self.gas._create_arrays(["rho","temp","metals"])
+            self.star._create_arrays(["metals","tform"])
+            self.gas["temp"].units = "K" # we know the temperature is always in K
+            # Other units will be set by the decorators later
 
 
         # Load in the tipsy file in blocks.  This is the most
@@ -99,7 +99,7 @@ class TipsySnap(snapshot.SimSnap) :
             else :
                 warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
 
-        time_unit = None
+        time_unit = units.Gyr
         try :
             time_unit = self.infer_original_units('yr')
         except units.UnitsException :
@@ -1117,7 +1117,10 @@ def param2units(sim) :
             # Assume the box size is equal to the length unit
             sim.properties['boxsize'] = units.Unit(dunit_st)
 
-        sim["vel"].units = velunit_st            
+        try :
+            sim["vel"].units = velunit_st            
+        except KeyError :
+            pass
         
         try :
             sim["phi"].units = potunit_st
@@ -1125,7 +1128,11 @@ def param2units(sim) :
         except KeyError :
             pass
 
-        sim["pos"].units = dunit_st
+        try :
+            sim["pos"].units = dunit_st
+        except KeyError :
+            pass
+        
         try :
             sim.gas["rho"].units = denunit_st
         except KeyError :
@@ -1136,15 +1143,21 @@ def param2units(sim) :
         except KeyError :
             pass
 
-        sim.star["tform"].units = timeunit_st
-
+        try :
+            sim.star["tform"].units = timeunit_st
+        except KeyError :
+            pass
+        
         try :
             sim.gas["metals"].units = ""
         except KeyError :
             pass
 
-        sim.star["metals"].units = ""
-
+        try :
+            sim.star["metals"].units = ""
+        except KeyError :
+            pass
+        
         try :
             sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units, units.K]
         except KeyError :
