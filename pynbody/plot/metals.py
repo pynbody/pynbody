@@ -9,7 +9,7 @@ metals
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile
-from .generic import hist2d, gauss_density
+from .generic import hist2d, gauss_kde
 
 def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
     '''
@@ -53,7 +53,9 @@ def ofefeh(sim,fxn=hist2d,filename=None,**kwargs):
 
     **Optional Keywords:**
 
-    *fxn*: a function with the same signature as functions in
+    *fxn*: a function with the same signature as functions
+       :func:`~pynbody.plot.generic.hist2d` and
+       :func:`~pynbody.plot.generic.gauss_kde` in
        :mod:`pynbody.plot.generic` default:
        :func:`pynbody.plot.generic.hist2d`
 
