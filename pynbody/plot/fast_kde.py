@@ -15,7 +15,8 @@ import scipy as sp
 import scipy.sparse
 import scipy.signal
 
-def fast_kde(x, y, gridsize=(200, 200), extents=None, nocorrelation=False, weights=None):
+def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100), 
+             extents=None, nocorrelation=False, weights=None, **kwargs):
     """
     Performs a gaussian kernel density estimate over a regular grid using a
     convolution of the gaussian kernel with a 2D histogram of the data.
@@ -26,13 +27,21 @@ def fast_kde(x, y, gridsize=(200, 200), extents=None, nocorrelation=False, weigh
 
     **Input**:
     
-        *x*: The x-coords of the input data points
+        *x*: array
+            The x-coords of the input data points
         
-        *y: The y-coords of the input data points
+        *y: array
+            The y-coords of the input data points
         
-        *gridsize*: (default: 200x200) A (nx,ny) tuple of the size of the output 
-            grid 
-        
+        *kern_nx*: float 
+            size (in units of *x*) of the kernel
+
+        *kern_ny*: float
+            size (in units of *y*) of the kernel
+
+        *gridsize*: (Nx , Ny) tuple (default: 200x200) 
+            Size of the output grid
+                    
         *extents*: (default: extent of input data) A (xmin, xmax, ymin, ymax)
             tuple of the extents of output grid
 
@@ -102,7 +111,13 @@ def fast_kde(x, y, gridsize=(200, 200), extents=None, nocorrelation=False, weigh
 
     # First, determine how big the kernel needs to be
     std_devs = np.diag(np.sqrt(cov))
-    kern_nx, kern_ny = np.round(scotts_factor * 2 * np.pi * std_devs)
+
+    if kern_nx is None or kern_ny is None: 
+        kern_nx, kern_ny = np.round(scotts_factor * 2 * np.pi * std_devs)
+    
+    else: 
+        kern_nx = np.round(kern_nx / dx)
+        kern_ny = np.round(kern_ny / dy)
 
     # Determine the bandwidth to use for the gaussian kernel
     inv_cov = np.linalg.inv(cov * scotts_factor**2) 

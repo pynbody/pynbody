@@ -9,7 +9,7 @@ metals
 import numpy as np
 import matplotlib.pyplot as plt
 from ..analysis import profile
-from .generic import hist2d
+from .generic import hist2d, gauss_density
 
 def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
     '''
@@ -42,19 +42,30 @@ def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
         plt.savefig(filename)
 
 
-def ofefeh(sim,filename=None,**kwargs):
+def ofefeh(sim,fxn=hist2d,filename=None,**kwargs):
     '''
 
-    Use the :func:`~pynbody.plot.generic.hist2d` module to make [O/Fe]
-    vs. [Fe/H] plot
+    Use :func:`~pynbody.plot.generic.hist2d` to make a [O/Fe] vs. [Fe/H] plot
 
-    Some common arguments
-    x_range=[-2,0.5],y_range=[-0.2,1.0]
+    **Input:** 
+
+    *sim*: snapshot to pull data from 
+
+    **Optional Keywords:**
+
+    *fxn*: a function with the same signature as functions in
+       :mod:`pynbody.plot.generic` default:
+       :func:`pynbody.plot.generic.hist2d`
+
+
+    see :func:`~pynbody.plot.generic.make_contour_plot` for other
+    plot-related keywords.
 
     '''
+    
     if 'subplot' in kwargs:
-        hist2d(sim.star['feh'],sim.star['ofe'],filename=filename,**kwargs)
+        fxn(sim.star['feh'],sim.star['ofe'],filename=filename,**kwargs)
     else:
-        hist2d(sim.star['feh'],sim.star['ofe'],filename=filename,
-               xlabel="[Fe/H]",ylabel="[O/Fe]",**kwargs)
+        fxn(sim.star['feh'],sim.star['ofe'],filename=filename,
+            xlabel="[Fe/H]",ylabel="[O/Fe]",**kwargs)
 
