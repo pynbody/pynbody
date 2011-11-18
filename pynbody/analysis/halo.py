@@ -22,11 +22,22 @@ def center_of_mass(sim) :
     """
     mtot = sim["mass"].sum()
     p = np.sum(sim["mass"]*sim["pos"].transpose(), axis=1)/mtot
-    v = np.sum(sim["mass"]*sim["vel"].transpose(), axis=1)/mtot
 
-    p.units, v.units = sim["pos"].units, sim["vel"].units # otherwise behaviour is numpy version dependent
+    p.units = sim["pos"].units # otherwise behaviour is numpy version dependent
 
     return p # only return position to be consistent with other functions in halo.py
+
+def center_of_mass_velocity(sim) :
+	"""
+
+	Return the center of mass velocity of the SimSnap
+
+	"""
+	mtot = sim["mass"].sum()
+    v = np.sum(sim["mass"]*sim["vel"].transpose(), axis=1)/mtot
+	v.units = sim["vel"].units # otherwise behaviour is numpy version dependent
+
+	return v
 
 def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
     """
