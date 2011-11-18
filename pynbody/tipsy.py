@@ -651,19 +651,21 @@ class TipsySnap(snapshot.SimSnap) :
             binary = False
             if l!=len(self) :
                 raise IOError, "Incorrect file format"
-	
-            # Inspect the first line to see whether it's float or int
-            l = "0\n"
-            while l=="0\n" : l = f.readline()
-            if "." in l or "e" in l :
-                tp = float
-            else :
-                tp = int
 
-            # Restart at head of file
-            f.seek(0)
+            tp = self._get_preferred_dtype(array_name)
+            if not tp :
+                # Inspect the first line to see whether it's float or int
+                l = "0\n"
+                while l=="0\n" : l = f.readline()
+                if "." in l or "e" in l :
+                    tp = float
+                else :
+                    tp = int
 
-            f.readline()
+                # Restart at head of file
+                f.seek(0)
+                f.readline()
+                
             data = np.fromfile(f, dtype=tp, sep="\n")
 	except ValueError :
             # this is probably a binary file
