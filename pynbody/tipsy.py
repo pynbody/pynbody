@@ -768,9 +768,9 @@ class TipsySnap(snapshot.SimSnap) :
         b(sl)['posform'] = sl['pos'][:len(self.star),:]
         b(sl)['velform'] = sl['vel'][:len(self.star),:]
         for i,x in enumerate(['x','y','z']): 
-            b(sl)[x+'form'] = b(sl)['posform'][:,i]
+            self._arrays[x+'form'] = self['posform'][:,i]
         for i,x in enumerate(['vx','vy','vz']): 
-            b(sl)[x+'form'] = b(sl)['velform'][:,i]
+            self._arrays[x+'form'] = self['velform'][:,i]
 	
     @staticmethod
     def _can_load(f) :
