@@ -621,9 +621,12 @@ class TipsySnap(snapshot.SimSnap) :
         specified name. If fam is not None, read only the particles of
         the specified family."""
 
-        if filename is None and array_name in ['massform', 'rhoform', 'tempform','phiform','nsmooth'] :
+        if filename is None and array_name in ['massform', 'rhoform', 'tempform','phiform','nsmooth', 
+                                               'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform', 
+                                               'posform', 'velform'] :
             self.read_starlog()
-            return
+            if fam is not None : return self[fam][array_name]
+            else : return self[array_name]
 
         import sys, os
 	
@@ -764,7 +767,10 @@ class TipsySnap(snapshot.SimSnap) :
         b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
         b(sl)['posform'] = sl['pos'][:len(self.star),:]
         b(sl)['velform'] = sl['vel'][:len(self.star),:]
-                
+        for i,x in enumerate(['x','y','z']): 
+            b(sl)[x+'form'] = b(sl)['posform'][:,i]
+        for i,x in enumerate(['vx','vy','vz']): 
+            b(sl)[x+'form'] = b(sl)['velform'][:,i]
 	
     @staticmethod
     def _can_load(f) :
@@ -957,7 +963,14 @@ class StarLog(snapshot.SimSnap):
         self.properties = {}
         bigstarlog = False
         
-        file_structure = np.dtype({'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8')})
+        file_structure = np.dtype({'names': ("iord","iorderGas","tform",
+                                             "x","y","z",
+                                             "vx","vy","vz",
+                                             "massform","rhoform","tempform"),
+                                   'formats':('i4','i4','f8',
+                                              'f8','f8','f8',
+                                              'f8','f8','f8',
+                                              'f8','f8','f8')})
 
         size = struct.unpack("i", f.read(4))
         if (size[0]> 1000 or size[0]<  10):
@@ -967,7 +980,17 @@ class StarLog(snapshot.SimSnap):
         iSize = size[0]
 
         if (iSize > file_structure.itemsize) :
-            file_structure = np.dtype({'names': ("iord","iorderGas","tform","x","y","z","vx","vy","vz","massform","rhoform","tempform","phiform","nsmooth"),'formats':('i4','i4','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8','f8','i4')})
+            file_structure = np.dtype({'names': ("iord","iorderGas","tform",
+                                                 "x","y","z",
+                                                 "vx","vy","vz",
+                                                 "massform","rhoform","tempform",
+                                                 "phiform","nsmooth"),
+                                       'formats':('i4','i4','f8',
+                                                  'f8','f8','f8',
+                                                  'f8','f8','f8',
+                                                  'f8','f8','f8',
+                                                  'f8','i4')})
+
             if (iSize != file_structure.itemsize and iSize != 104):
                 raise ValueError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
             else : bigstarlog = True
@@ -992,7 +1015,7 @@ class StarLog(snapshot.SimSnap):
 
         self._family_slice[family.star] = slice(0, len(indices))
         self._create_arrays(["pos","vel"],3)
-        self._create_arrays(["iord"])
+        self._create_arrays(["iord"],dtype='int32')
         self._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
         if bigstarlog :
             self._create_arrays(["phiform","nsmooth"])
@@ -1003,6 +1026,71 @@ class StarLog(snapshot.SimSnap):
 
         #self._decorate()
 
+    @staticmethod
+    def _write(self, filename=None) :
+        """Write the starlog file. """
+
+        global config
+
+        with self.lazy_off : 
+            
+            if filename is None : 
+                filename = self._filename
+                
+            if config['verbose'] : print>>sys.stderr, "StarLog: writing starlog file as",filename
+
+            f = util.open_(filename, 'w')
+
+            if 'phiform' in self.keys() :  # long starlog format
+                file_structure = np.dtype({'names': ("iord","iorderGas","tform",
+                                                     "x","y","z",
+                                                     "vx","vy","vz",
+                                                     "massform","rhoform","tempform",
+                                                     "phiform","nsmooth"),
+                                           'formats':('i4','i4','f8',
+                                                      'f8','f8','f8',
+                                                      'f8','f8','f8',
+                                                      'f8','f8','f8',
+                                                      'f8','i4')})
+            else : # short (old) starlog format
+                file_structure = np.dtype({'names': ("iord","iorderGas","tform",
+                                                     "x","y","z",
+                                                     "vx","vy","vz",
+                                                     "massform","rhoform","tempform"),
+                                           'formats':('i4','i4','f8',
+                                                      'f8','f8','f8',
+                                                      'f8','f8','f8',
+                                                      'f8','f8','f8')})
+        
+            if self._byteswap : f.write(struct.pack(">i", file_structure.itemsize))
+            else :              f.write(struct.pack("i", file_structure.itemsize))
+            
+    
+            max_block_size = 1024 # particles
+        
+            n_left = len(self)
+            n_done = 0
+
+            while n_left > 0 : 
+                n_block = min(n_left, max_block_size)
+
+                g = np.zeros(n_block, dtype=file_structure)
+
+                for arr in file_structure.names : 
+                    g[arr] = self[arr][n_done:n_done+n_block]
+                
+                if self._byteswap : 
+                    g.byteswap().tofile(f)
+                else : 
+                    g.tofile(f)
+                    
+                n_left -= n_block
+                n_done += n_block
+
+        f.close()
+
+        
+            
 
 @TipsySnap.decorator
 @StarLog.decorator
