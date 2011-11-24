@@ -1,14 +1,11 @@
 """
 
-fast_kde
-========
+util
+====
 
-A faster gaussian kernel density estimate (KDE).
-Intended for computing the KDE on a regular grid (different use case than 
-scipy's original scipy.stats.kde.gaussian_kde()).
--Joe Kington
+Utility functions for the plotting module
+
 """
-__license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
 
 import numpy as np
 import scipy as sp
@@ -18,6 +15,13 @@ import scipy.signal
 def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100), 
              extents=None, nocorrelation=False, weights=None, **kwargs):
     """
+    A faster gaussian kernel density estimate (KDE).  Intended for
+    computing the KDE on a regular grid (different use case than
+    scipy's original scipy.stats.kde.gaussian_kde()).  
+
+    Author: Joe Kington
+    License:  MIT License <http://www.opensource.org/licenses/mit-license.php>
+
     Performs a gaussian kernel density estimate over a regular grid using a
     convolution of the gaussian kernel with a 2D histogram of the data.
 
@@ -30,7 +34,7 @@ def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100),
         *x*: array
             The x-coords of the input data points
         
-        *y: array
+        *y*: array
             The y-coords of the input data points
         
         *kern_nx*: float 
@@ -55,6 +59,7 @@ def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100),
     **Output**:
         A gridded 2D kernel density estimate of the input points. 
     """
+   
     #---- Setup --------------------------------------------------------------
     x, y = np.asarray(x), np.asarray(y)
     x, y = np.squeeze(x), np.squeeze(y)
