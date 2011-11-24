@@ -313,8 +313,21 @@ class SimSnap(object) :
                              mass=self.infer_original_units('Msol'))
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol') :
-        """Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified."""
+        """
+        Converts all array's units to be consistent with the
+        distance, velocity, mass basis units specified.
+
+        Base units can be specified using keywords.
+
+        **Optional Keywords**:
+
+           *distance*: string (default = 'kpc')
+
+           *velocity*: string (default = 'km s^-1')
+
+           *mass*: string (default = 'Msol')
+            
+        """
 
         global config
 
