@@ -175,13 +175,13 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), make_plot
        *gridsize*: (int, int) (default: 100,100)
          size of grid for computing the density estimate
 
-    **Keywords passed to :func:`~pynbody.plot.generic.fast_kde`*:
+    **Keywords passed to** :func:`~pynbody.plot.util.fast_kde`:
        
        *nocorrelation*: (default: False) If True, the correlation
          between the x and y coords will be ignored when preforming
          the KDE.
          
-    **Keywords passed to :func:`~pynbody.plot.generic.make_contour_plot`**:
+    **Keywords passed to** :func:`~pynbody.plot.generic.make_contour_plot`:
 
        *x_range*: list, array, or tuple
          size(x_range) must be 2. Specifies the X range.
@@ -204,7 +204,7 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), make_plot
        *scalemax*: float
          maximum value to use for the color scale
     """
-    from fast_kde import fast_kde
+    from util import fast_kde
     from scipy.stats.kde import gaussian_kde
 
     global config
