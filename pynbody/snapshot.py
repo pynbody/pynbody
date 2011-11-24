@@ -199,7 +199,12 @@ class SimSnap(object) :
             except TypeError :
                 ndim = 1
 
-            self._create_array(name, ndim, dtype=getattr(item,'dtype',None))
+            # The dtype will be the same as an existing family array if
+            # one exists, or the dtype of the source array we are copying
+            dtype = self._get_preferred_dtype(name)
+            if dtype is None : dtype = getattr(item,'dtype', None)
+
+            self._create_array(name, ndim, dtype=dtype)
 
         # Copy in contents if the contents isn't actually pointing to
         # the same data (which will be the case following operations like
@@ -597,6 +602,21 @@ class SimSnap(object) :
                                 
       
 
+    def _get_preferred_dtype(self, array_name) :
+        """Return the 'preferred' numpy datatype for a named array.
+
+        This is mainly useful when creating family arrays for new families, to be
+        sure the datatype chosen matches"""
+        
+        if hasattr(self, 'base') :
+            return self.base._get_preferred_dtype(array_name)
+        elif array_name in self.keys() :
+            return self[array_name].dtype
+        elif array_name in self.family_keys() :
+            return self._family_arrays[array_name][self._family_arrays[array_name].keys()[0]].dtype
+        else :
+            return None
+        
     def _create_family_array(self, array_name, family, ndim=1, dtype=None) :
         """Create a single array of dimension len(self.<family.name>) x ndim,
         with a given numpy dtype, belonging to the specified family.

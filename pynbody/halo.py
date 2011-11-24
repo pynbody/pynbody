@@ -88,7 +88,7 @@ class AHFCatalogue(HaloCatalogue) :
         try:
             if config['verbose']: print "Setting grp"
             for halo in self._halos.values():
-                halo['grp'][:] = halo._halo_id
+                halo['grp'] = np.repeat([halo._halo_id],len(halo))
         except KeyError:
             print "Failed grp load: "+str(KeyError)
             pass
