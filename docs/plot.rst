@@ -8,6 +8,9 @@ Plotting
 .. automodule:: pynbody.plot.gas
    :members:
 
+.. automodule:: pynbody.plot.util
+   :members:
+
 .. automodule:: pynbody.plot.generic
    :members:
 
