@@ -140,7 +140,8 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), make_plot = True
     
 
 
-def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), make_plot = True, **kwargs) :
+def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), 
+              make_plot = True, nmin = None, nmax = None, **kwargs) :
 
     """
     Plot 2D gaussian kernel density estimate (KDE) given values at points (*x*, *y*). 
@@ -179,6 +180,9 @@ Since this function produces a density estimate, the units of the
        *gridsize*: (int, int) (default: 100,100)
          size of grid for computing the density estimate
 
+       *make_plot*: boolean (default: True)
+         whether or not to produce a plot
+         
     **Keywords passed to** :func:`~pynbody.plot.util.fast_kde`:
        
        *norm*: boolean (default: False) 
@@ -275,6 +279,9 @@ Since this function produces a density estimate, the units of the
         good = np.where(density_mass > 0)
         density[good] = density[good]/density_mass[good]
 
+        if nmin is not None : 
+            density *= density_mass > nmin
+
     else:
         # produce a weighted gaussian KDE
         if weights is not None : 
@@ -289,13 +296,17 @@ Since this function produces a density estimate, the units of the
     except AttributeError: 
         density = SimArray(density)
 
+    
+
     if make_plot : 
         make_contour_plot(density,xs,ys,**kwargs)
+        if weights is not None and mass is not None : 
+            make_contour_plot(SimArray(density_mass, mass.units),xs,ys,filled=False,clear=False,colorbar=False,colors='black',scalemin=nmin,nlevels=10)
 
     return density, xs, ys
 
 
-def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20, 
+def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20, filled = True,
                       logscale=True, xlogrange=False, ylogrange=False, subplot=False, colorbar=False,
                       clear=True,legend=False, scalemin = None, scalemax = None, filename = None, **kwargs) : 
     """
@@ -384,7 +395,9 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
     if clear : plt.clf()
     
 #    plt.imshow(density, extent = [x_range[0],x_range[1],y_range[0],y_range[1]], origin='down', aspect = np.diff(x_range)/np.diff(y_range))
-    cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,**kwargs)
+    if filled: c_func = plt.contourf
+    else : c_func = plt.contour
+    cs = c_func(xs,ys,arr, levels, norm=cont_color,**kwargs)
 
     
     if kwargs.has_key('xlabel'):
