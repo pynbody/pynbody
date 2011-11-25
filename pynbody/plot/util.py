@@ -13,7 +13,7 @@ import scipy.sparse
 import scipy.signal
 
 def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100), 
-             extents=None, nocorrelation=False, weights=None, **kwargs):
+             extents=None, nocorrelation=False, weights=None, norm = False, **kwargs):
     """
     A faster gaussian kernel density estimate (KDE).  Intended for
     computing the KDE on a regular grid (different use case than
@@ -55,6 +55,11 @@ def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100),
         *weights*: (default: None) An array of the same shape as x & y that 
             weighs each sample (x_i, y_i) by each value in weights (w_i).
             Defaults to an array of ones the same size as x & y.
+            
+        *norm*: boolean (default: False) 
+            If False, the output is only corrected for the kernel. If True,
+            the result is normalized such that the integral over the area 
+            yields 1. 
 
     **Output**:
         A gridded 2D kernel density estimate of the input points. 
@@ -149,7 +154,10 @@ def fast_kde(x, y, kern_nx = None, kern_ny = None, gridsize=(100, 100),
     # units as scipy.stats.kde.gaussian_kde's output.  
     norm_factor = 2 * np.pi * cov * scotts_factor**2
     norm_factor = np.linalg.det(norm_factor)
-    norm_factor = n * dx * dy * np.sqrt(norm_factor)
+    #norm_factor = n * dx * dy * np.sqrt(norm_factor)
+    norm_factor = np.sqrt(norm_factor)
+    
+    if norm : norm_factor *= n * dx * dy
 
     # Normalize the result
     grid /= norm_factor

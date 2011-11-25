@@ -154,7 +154,11 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), make_plot
     If both *weights* and *mass* are supplied, a mass-averaged KDE of the weights is 
     computed. 
 
-    Since this function produces a density estimate, the units of the
+    By default, norm=False is passed to :func:`~pynbody.plot.util.fast_kde` meaning
+    that the result returned *is not* normalized such that the integral over the area
+    equals one. 
+
+Since this function produces a density estimate, the units of the
     output grid are different than for the output of
     :func:`~pynbody.plot.generic.hist2d`. To get to the same units,
     you must multiply by the size of the cells.
@@ -177,6 +181,11 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), make_plot
 
     **Keywords passed to** :func:`~pynbody.plot.util.fast_kde`:
        
+       *norm*: boolean (default: False) 
+         If False, the output is only corrected for the kernel. If True,
+         the result is normalized such that the integral over the area 
+         yields 1. 
+    
        *nocorrelation*: (default: False) If True, the correlation
          between the x and y coords will be ignored when preforming
          the KDE.
@@ -345,6 +354,8 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
 
     if scalemin is None: scalemin = np.min(arr[arr>0])
     if scalemax is None: scalemax = np.max(arr[arr>0])
+
+    if 'norm' in kwargs: del(kwargs['norm'])
     
     if logscale:
         try:

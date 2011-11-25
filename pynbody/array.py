@@ -1,6 +1,6 @@
 """
-array
-=====
+**array**
+=========
 
 Defines a shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
 
@@ -44,8 +44,8 @@ SimArray([ 1.,1.26])  # Lost track of units
 
 
 
-Getting the array in specified units
-------------------------------------
+*Getting the array in specified units*
+--------------------------------------
 
 Given an array, you can convert it in-place into units of your
 own chosing:
@@ -90,8 +90,8 @@ SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],
          [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
 
 
-Specifying rules for ufunc's
-----------------------------
+*Specifying rules for ufunc's*
+------------------------------
 
 In general, it's not possible to infer what the output units from a given
 ufunc should be. While numpy built-in ufuncs should be handled OK, other
