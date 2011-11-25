@@ -172,10 +172,17 @@ Since this function produces a density estimate, the units of the
        *yo*: array
 
     **Optional keywords:**
+
+       *mass*: numpy array of same length as x and y 
+         particle masses to be used for weighting
     
        *weights*: numpy array of same length as x and y
          if weights is passed, color corresponds to
          the mean value of weights in each cell
+
+       *nmin*: float (default None)
+         if *weights* and *mass* are both specified, the mass-weighted
+         contours are only drawn where the mass exceeds *nmin*. 
           
        *gridsize*: (int, int) (default: 100,100)
          size of grid for computing the density estimate
