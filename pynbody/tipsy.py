@@ -1017,8 +1017,8 @@ class StarLog(snapshot.SimSnap):
 
         self._family_slice[family.star] = slice(0, len(indices))
         self._create_arrays(["pos","vel"],3)
-        self._create_arrays(["iord"],dtype='int32')
-        self._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
+        self._create_arrays(["iord","iorderGas"],dtype='int32')
+        self._create_arrays(["massform","rhoform","tempform","metals","tform"])
         if bigstarlog :
             self._create_arrays(["phiform","nsmooth"])
 
