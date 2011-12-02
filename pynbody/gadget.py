@@ -292,7 +292,16 @@ class GadgetFile :
 
         #and we're done.
         fd.close()
-        return
+
+        # Make a mass block if one isn't found.
+        if 'MASS' not in self.blocks:
+            block = GadgetBlock()
+            block.length = 0
+            block.start = 0
+            # In the header, mass is a double
+            block.partlen = 8
+            block.data_type = np.float64
+            self.blocks['MASS'] = block
 
     def get_block_types(self,block, npart):
         """ Set up the particle types in the block, with a heuristic,

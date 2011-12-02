@@ -107,3 +107,8 @@ def test_write_single_array():
     snap["pos"].write(overwrite=True)
     snap6=pynbody.load("testdata/test_g2_snap")
     assert((snap6["pos"] == snap["pos"]).all())
+
+def test_no_mass_block() :
+    f = pynbody.load("testdata/gadget_no_mass")
+    f['mass'] # should succeed
+    
