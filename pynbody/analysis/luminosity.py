@@ -71,3 +71,6 @@ def calc_mags(simstars, band='v') :
 def halo_mag(sim,band='v') :
     return -2.5*np.log10(np.sum(10.0**(-0.4*sim.star[band+'_mag'])))
 
+def halo_lum(sim,band='v') :
+    return np.sum(10.0**((5.8-sim.star[band+'_mag'])/2.5))
+
