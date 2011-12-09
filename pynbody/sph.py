@@ -463,3 +463,131 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     result.sim = snap
     return result
 
+def to_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
+            xy_units=None, kernel=Kernel(), smooth='smooth', __threaded=False) :
+
+    """
+
+    Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
+    scheme.
+
+    **Keyword arguments:**
+
+    *qty* ('rho'): The name of the array within the simulation to render
+
+    *nx* (x2-x1 / soft): The number of pixels wide to make the grid
+
+    *ny* (nx): The number of pixels tall to make the grid
+
+    *nz* (nx): The number of pixels deep to make the grid
+    
+    *out_units* (no conversion): The units to convert the output grid into
+
+    *xy_units*: The units for the x and y axes
+
+    *kernel*: The Kernel object to use (default Kernel(), a 3D spline kernel)
+
+     *smooth*: The name of the array which contains the smoothing lengths
+      (default 'smooth')
+
+    """
+
+    import os, os.path
+    global config
+    
+    if config["tracktime"] :
+        import time
+        in_time = time.time()
+    
+
+    x1 = np.min(snap['x'])
+    x2 = np.max(snap['x'])
+    y1 = np.min(snap['y'])
+    y2 = np.max(snap['y'])
+    z1 = np.min(snap['z'])
+    z2 = np.max(snap['z'])
+            
+    if nx is None :
+        nx = np.ceil((x2 - x1) / np.min(snap['eps']))
+    if ny is None :
+        ny = np.ceil((y2 - y1) / np.min(snap['eps']))
+    if nz is None :
+        nz = np.ceil((z2 - z1) / np.min(snap['eps']))
+
+    x1, x2, y1, y2, z1, z2 = [float(q) for q in x1,x2,y1,y2,z1,z2]
+    nx, ny, nz = [int(q) for q in nx,ny,nz]
+
+    result = np.zeros((nx,ny,nz),dtype=np.float32)
+
+    n_part = len(snap)
+
+    if xy_units is None :
+        xy_units = snap['x'].units
+
+    x = snap['x'].in_units(xy_units)
+    y = snap['y'].in_units(xy_units)
+    z = snap['z'].in_units(xy_units)
+
+    sm = snap[smooth]
+
+    if sm.units!=x.units :
+        sm = sm.in_units(x.units)
+
+    qty_s = qty
+    qty = snap[qty]
+    mass = snap['mass']
+    rho = snap['rho']
+
+    if out_units is not None :
+        # Calculate the ratio now so we don't waste time calculating
+        # the image only to throw a UnitsException later
+        conv_ratio = (qty.units*mass.units/(rho.units*sm.units**kernel.h_power)).ratio(out_units,
+                                                                                      **x.conversion_context())
+
+    try :
+        kernel.safe.acquire(True)
+        code = kernel.get_c_code()
+    finally :
+        kernel.safe.release()
+
+    if __threaded :
+        code+="#define THREAD 1\n"
+    
+       
+    code+=file(os.path.join(os.path.dirname(__file__),'sph_to_grid.c')).read()
+    
+    
+    # before inlining, the views on the arrays must be standard np.ndarray
+    # otherwise the normal numpy macros are not generated
+    x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
+        #qty[np.where(qty < 1e-15)] = 1e-15
+    
+    if config['verbose']: print>>sys.stderr, "Gridding particles"
+   
+    if config["tracktime"] :
+        print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
+    inline( code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
+                   'x1', 'x2', 'y1', 'y2', 'z1',  'z2',
+                   'qty', 'mass', 'rho'],verbose=2)
+    if config["tracktime"] :
+        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+            
+        
+    result = result.view(array.SimArray)
+
+    # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
+    # where M_u, rho_u and h_u are mass, density and smoothing units
+    # respectively. This is dimensionless, but may not be 1 if the units
+    # have been changed since load-time.
+    if out_units is None :
+        result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+
+        # The following will be the units of outputs after the above conversion is applied
+        result.units = snap[qty_s].units*snap['x'].units**(3-kernel.h_power)
+    else:
+        result*=conv_ratio
+        result.units = out_units
+
+    result.sim = snap
+    return result
+
