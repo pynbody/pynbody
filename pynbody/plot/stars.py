@@ -12,7 +12,7 @@ from .. import filt, units, config, array
 import warnings
 
 def sfh(sim,filename=None,massform=True,clear=True,legend=False,
-        subplot=False, trange=False, nbins=100, **kwargs):
+        subplot=False, trange=False, bins=100, **kwargs):
     '''
     star formation history
 
@@ -50,11 +50,13 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
     else :
         import matplotlib.pyplot as plt
 
+    if 'nbins' in kwargs: bins=kwargs['nbins']
+
     if trange:
         assert len(trange) == 2
     else:
         trange = [sim.star['tform'].in_units("Gyr").min(),sim.star['tform'].in_units("Gyr").max()]
-    binnorm = 1e-9*nbins / (trange[1] - trange[0])
+    binnorm = 1e-9*bins / (trange[1] - trange[0])
 
     trangefilt = filt.And(filt.HighPass('tform',str(trange[0])+' Gyr'), 
                           filt.LowPass('tform',str(trange[1])+' Gyr'))
@@ -70,18 +72,27 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
                                                                
     if clear : plt.clf()
-    sfhist, bins, patches = plt.hist(tforms, weights=weight, bins=nbins,
+    sfhist, thebins, patches = plt.hist(tforms, weights=weight, bins=bins,
                                      histtype='step',**kwargs)
     if not subplot:
         plt.xlabel('Time [Gyr]',fontsize='large')
         plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+
+    from pynbody.analysis import pkdgrav_cosmo as cosmo
+    c = cosmo.Cosmology(Om=0.24,L=0.76)
+    pz = plt.twiny()
+    labelzs = np.arange(5,-1,-1)
+    times = [13.7*c.Exp2Time(1.0 / (1+z))/0.36 for z in labelzs]
+    pz.set_xticks(times)
+    pz.set_xticklabels([str(x) for x in labelzs])
+    pz.set_xlabel('z')
 
     if legend: plt.legend(loc=1)
     if (filename): 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
-    return array.SimArray(sfhist, "Msol yr**-1"), array.SimArray(bins, "Gyr")
+    return array.SimArray(sfhist, "Msol yr**-1"), array.SimArray(thebins, "Gyr")
 
 def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
                diskheight='3 kpc',rmax='20 kpc', compare=True,
@@ -274,7 +285,8 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
 
 
 def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
-              center=True, clear=True, filename=None, **kwargs) :
+              center=True, clear=True, filename=None, axes=False, 
+              print_ylabel=True,**kwargs) :
     '''
 
     surface brightness profile
@@ -308,13 +320,20 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
     if config['verbose']: print "Creating profile"
     ps = profile.Profile(diskstars, type=binning)
     if config['verbose']: print "Plotting"
-    if clear : plt.clf()
     r=ps['rbins'].in_units('kpc')
-    plt.plot(r,ps['sb,'+band],'o',**kwargs)
+
+    if axes: plt=axes
+    if clear : plt.clf()
+
+    plt.plot(r,ps['sb,'+band],**kwargs)
     plt.axis([min(r),max(r),max(ps['sb,'+band]),min(ps['sb,'+band])])
-    plt.xlabel('R [kpc]')
-    plt.ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
-    if (filename): 
+    if axes:
+        if print_ylabel:
+            plt.set_ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
+    else:
+        plt.xlabel('R [kpc]')
+        plt.ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
+    if filename: 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
