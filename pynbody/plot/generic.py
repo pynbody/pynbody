@@ -8,6 +8,7 @@ Flexible and general plotting functions
 """
 
 import numpy as np
+import pynbody
 from ..analysis import profile, angmom, halo
 from .. import config
 from ..array import SimArray
@@ -64,6 +65,7 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), make_plot = True
     y_range = kwargs.get('y_range',None)
     xlogrange = kwargs.get('xlogrange', False)
     ylogrange = kwargs.get('ylogrange', False)
+    ret_im = kwargs.get('ret_im',False)
 
     if y_range is not None :
         if len(y_range) != 2 : 
@@ -128,14 +130,20 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), make_plot = True
         hist = SimArray(hist)
 
         
-    xs = SimArray(.5*(xs[:-1]+xs[1:]), x.units)
-    ys = SimArray(.5*(ys[:-1]+ys[1:]), y.units)
+    try: 
+        xs = SimArray(.5*(xs[:-1]+xs[1:]), x.units)
+        ys = SimArray(.5*(ys[:-1]+ys[1:]), y.units)
+    except AttributeError: 
+        xs = .5*(xs[:-1]+xs[1:])
+        ys = .5*(ys[:-1]+ys[1:])
 
+
+    if ret_im :
+        return make_contour_plot(hist, xs, ys, **kwargs)
 
     if make_plot : 
         make_contour_plot(hist, xs, ys, **kwargs)
 
-                
     return hist, xs, ys
     
 
@@ -234,6 +242,7 @@ Since this function produces a density estimate, the units of the
     y_range = kwargs.get('y_range',None)
     xlogrange = kwargs.get('xlogrange', False)
     ylogrange = kwargs.get('ylogrange', False)
+    ret_im = kwargs.get('ret_im',False)
 
     
     if y_range is not None :
@@ -269,9 +278,15 @@ Since this function produces a density estimate, the units of the
     x = x[ind[0]]
     y = y[ind[0]]
 
-    xs = SimArray(np.linspace(x_range[0], x_range[1], gridsize[0]+1),x.units)
+    try:
+        xs = SimArray(np.linspace(x_range[0], x_range[1], gridsize[0]+1),x.units)
+    except AttributeError:
+        xs = np.linspace(x_range[0], x_range[1], gridsize[0]+1)
     xs = .5*(xs[:-1]+xs[1:])
-    ys = SimArray(np.linspace(y_range[0], y_range[1], gridsize[1]+1),y.units)
+    try:
+        ys = SimArray(np.linspace(y_range[0], y_range[1], gridsize[1]+1),y.units)
+    except AttributeError:
+        ys = np.linspace(y_range[0], y_range[1], gridsize[1]+1)
     ys = .5*(ys[:-1]+ys[1:])
     
     extents = [x_range[0],x_range[1],y_range[0],y_range[1]]
@@ -295,15 +310,17 @@ Since this function produces a density estimate, the units of the
             weights = weights[ind[0]]
         elif mass is not None : 
             weights = mass[ind[0]]
-    
-        density = fast_kde(x, y, weights=weights, gridsize=gridsize,extents=extents, **kwargs)
+
+        density = fast_kde(x, y, weights=weights, gridsize=gridsize,
+                           extents=extents, **kwargs)
 
     try: 
         density = SimArray(density,weights.units)
     except AttributeError: 
         density = SimArray(density)
 
-    
+    if ret_im: 
+        return make_contour_plot(density,xs,ys,**kwargs)
 
     if make_plot : 
         make_contour_plot(density,xs,ys,**kwargs)
@@ -313,9 +330,11 @@ Since this function produces a density estimate, the units of the
     return density, xs, ys
 
 
-def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20, filled = True,
-                      logscale=True, xlogrange=False, ylogrange=False, subplot=False, colorbar=False,
-                      clear=True,legend=False, scalemin = None, scalemax = None, filename = None, **kwargs) : 
+def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20, 
+                      logscale=True, xlogrange=False, ylogrange=False, 
+                      subplot=False, colorbar=False, ret_im=False, cmap=None,
+                      clear=True,legend=False, scalemin = None, 
+                      scalemax = None, filename = None, **kwargs) : 
     """
     Plot a contour plot of grid *arr* corresponding to bin centers
     specified by *xs* and *ys*.  Labels the axes and colobar with
@@ -399,12 +418,16 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20, fil
         else :
             cb_label = '$N$'
     
-    if clear : plt.clf()
-    
-#    plt.imshow(density, extent = [x_range[0],x_range[1],y_range[0],y_range[1]], origin='down', aspect = np.diff(x_range)/np.diff(y_range))
-    if filled: c_func = plt.contourf
-    else : c_func = plt.contour
-    cs = c_func(xs,ys,arr, levels, norm=cont_color,**kwargs)
+    if not subplot and clear : plt.clf()
+
+    if ret_im :
+        if logscale: arr = np.log10(arr)
+        
+        return plt.imshow(arr, origin='down', vmin=scalemin, vmax=scalemax,
+                          aspect = 'auto',cmap=cmap,
+                          #aspect = np.diff(x_range)/np.diff(y_range),cmap=cmap,
+                          extent=[x_range[0],x_range[1],y_range[0],y_range[1]])
+    cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,**kwargs)
 
     
     if kwargs.has_key('xlabel'):
