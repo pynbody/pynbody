@@ -1,5 +1,6 @@
 include pynbody/default_config.ini
 include pynbody/sph_image.c
+include pynbody/sph_to_grid.c
 include pynbody/analysis/cmdlum.npz
 include pynbody/analysis/interpolate.c
 include pynbody/analysis/ionfracs.npz
