@@ -113,7 +113,7 @@ class Cuboid(Filter) :
         the cube coordinates x1,y1,z1,x2,y2,z2 are not specified they are
         determined as y1=x1; z1=x1; x2=-x1; y2=-y1; z2=-z1."""
         
-        self._desciptor="cube"
+        self._descriptor="cube"
         x1,y1,z1,x2,y2,z2 = [units.Unit(x) if isinstance(x,str) else x for x in x1,y1,z1,x2,y2,z2]
         if y1 is None :
             y1 = x1
