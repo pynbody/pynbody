@@ -463,8 +463,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     result.sim = snap
     return result
 
-def to_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
-            xy_units=None, kernel=Kernel(), smooth='smooth', __threaded=False) :
+def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
+               xy_units=None, kernel=Kernel(), smooth='smooth', __threaded=False) :
 
     """
 
