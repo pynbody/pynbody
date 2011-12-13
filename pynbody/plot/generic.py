@@ -159,11 +159,6 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100),
     that the result returned *is not* normalized such that the integral over the area
     equals one. 
 
-Since this function produces a density estimate, the units of the
-    output grid are different than for the output of
-    :func:`~pynbody.plot.generic.hist2d`. To get to the same units,
-    you must multiply by the size of the cells.
-
     
     **Input:**
 
@@ -292,11 +287,12 @@ Since this function produces a density estimate, the units of the
     else:
         # produce a weighted gaussian KDE
         if weights is not None : 
-            weights = weights[ind[0]]
+            density = fast_kde(x, y, weights=weights[ind[0]], gridsize=gridsize,extents=extents, **kwargs)
         elif mass is not None : 
-            weights = mass[ind[0]]
-    
-        density = fast_kde(x, y, weights=weights, gridsize=gridsize,extents=extents, **kwargs)
+            density = fast_kde(x, y, weights=mass[ind[0]], gridsize=gridsize,extents=extents, **kwargs)
+            density = SimArray(density, mass.units)
+        else: 
+            density = fast_kde(x, y, gridsize=gridsize,extents=extents, **kwargs)
 
     try: 
         density = SimArray(density,weights.units)
