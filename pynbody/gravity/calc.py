@@ -93,6 +93,11 @@ def treecalc(f, rs, eps= None) :
 
 def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
     
+    try : 
+        from pynbody.grav_omp import direct as direct_omp
+    except ImportError : 
+        pass
+
     if eps is None :
         try :
             eps = f['eps']
@@ -109,6 +114,7 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
 
     try:
         fn = {'direct': direct,
+              'direct_omp': direct_omp,
               'tree': treecalc,
               }[mode]
     except KeyError :
