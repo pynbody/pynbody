@@ -5,6 +5,15 @@ from distutils.sysconfig import get_python_lib
 import numpy
 import numpy.distutils.misc_util
 
+try : 
+    from Cython.Distutils import build_ext
+    build_cython = True
+    cmdclass = {'build_ext': build_ext}
+except ImportError:
+    build_cython = False
+    cmdclass = {}
+
+ext_modules = []
 libraries=[ ]
 extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
                       '-fno-omit-frame-pointer',
@@ -60,6 +69,19 @@ gravity = Extension('pynbody/pkdgrav',
                    extra_compile_args=extra_compile_args,
                    extra_link_args=extra_link_args)
 
+ext_modules += [kdmain]
+#ext_modules += [gravity]
+
+if build_cython : 
+
+    gravity_omp = Extension('pynbody.grav_omp',
+                            sources = ["pynbody/gravity/direct_omp.pyx"],
+                            include_dirs=incdir,
+                            extra_compile_args=['-fopenmp'],
+                            extra_link_args=['-fopenmp'])
+    ext_modules += [gravity_omp]
+
+
 dist = setup(name = 'pynbody',
              author = '',
              author_email = '',
@@ -80,7 +102,8 @@ dist = setup(name = 'pynbody',
                                                 'CAMB_WMAP7'],
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
-             ext_modules = [kdmain]
+             ext_modules = ext_modules,
+             cmdclass = cmdclass
       )
 
 #if dist.have_run.get('install'):
