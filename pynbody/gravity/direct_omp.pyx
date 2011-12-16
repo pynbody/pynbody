@@ -26,19 +26,20 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None):
     cdef DTYPE_t epssq = eps*eps
 
     cdef unsigned int pi, i
-    cdef double dx, dy, dz, mass_i, drsoft
+    cdef double dx, dy, dz, mass_i, drsoft, drsoft3
 
-    for pi in prange(nips,nogil=True,schedule='static') : 
+    for pi in prange(nips,nogil=True,schedule='static'):
         for i in range(n):
             mass_i = mass[i]
             dx = ipos[pi,0] - pos[i,0]
             dy = ipos[pi,1] - pos[i,1]
             dz = ipos[pi,2] - pos[i,2]
-            drsoft = sqrt(dx*dx + dy*dy + dz*dz + epssq)
-            m_by_r[pi] += mass_i / drsoft
-            m_by_r2[pi,0] += mass_i*dx / drsoft/drsoft/drsoft
-            m_by_r2[pi,1] += mass_i*dy / drsoft/drsoft/drsoft 
-            m_by_r2[pi,2] += mass_i*dz / drsoft/drsoft/drsoft 
+            drsoft = 1.0/sqrt(dx*dx + dy*dy + dz*dz + epssq)
+            drsoft3 = drsoft*drsoft*drsoft
+            m_by_r[pi] += mass_i * drsoft
+            m_by_r2[pi,0] += mass_i*dx * drsoft3
+            m_by_r2[pi,1] += mass_i*dy * drsoft3
+            m_by_r2[pi,2] += mass_i*dz * drsoft3
             
     
     m_by_r = m_by_r.view(array.SimArray)

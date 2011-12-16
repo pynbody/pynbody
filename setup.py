@@ -6,6 +6,11 @@ import numpy
 import numpy.distutils.misc_util
 
 try : 
+    import pkg_resources
+    # check that cython version is > 0.15
+    if float(pkg_resources.get_distribution("cython").version.partition(".")[2]) < 15 : 
+        raise ImportError
+    print float(pkg_resources.get_distribution("cython").version.partition(".")[2]) < 15
     from Cython.Distutils import build_ext
     build_cython = True
     cmdclass = {'build_ext': build_ext}
