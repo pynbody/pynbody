@@ -154,6 +154,8 @@ config['sph'] = {}
 for k in config_parser.options('sph') :
     config['sph'][k] = int(config_parser.get('sph', k))
 
+config['gravity_calculation_mode'] = config_parser.get('general', 'gravity_calculation_mode')
+
 # Import subpackages
 from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, analysis, halo, derived, bridge, gravity, sph
 

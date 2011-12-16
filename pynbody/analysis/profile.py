@@ -602,12 +602,12 @@ def v_circ(p) :
     if config['tracktime']:
         import time
         start = time.clock()
-        rc = gravity.midplane_rot_curve(grav_sim, p['rbins'], mode='direct').in_units(p.sim['vel'].units)
+        rc = gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
         end = time.clock()
         if config['verbose']: print 'Rotation curve calculated in %5.3g s'%(end-start)
         return rc
     else:
-        return gravity.midplane_rot_curve(grav_sim, p['rbins'], mode='direct').in_units(p.sim['vel'].units)
+        return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
 
 @Profile.profile_property
 def E_circ(p) :

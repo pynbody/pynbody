@@ -1,9 +1,12 @@
 from .. import units
 from .. import array
+from .. import config 
 
 import math
 import tree
 import numpy as np
+
+import warnings
 
 def all_direct(f, eps=None) :
     phi, acc = direct(f, f['pos'].view(np.ndarray), eps)
@@ -91,12 +94,15 @@ def treecalc(f, rs, eps= None) :
     a, p = gtree.calc(rs,eps=eps)
     return p, a
 
-def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
+def midplane_rot_curve(f, rxy_points, eps = None, mode = config['gravity_calculation_mode']) :
     
-    try : 
-        from pynbody.grav_omp import direct as direct_omp
-    except ImportError : 
-        pass
+    direct_omp = None
+
+    if mode == 'direct_omp' : 
+        try : 
+            from pynbody.grav_omp import direct as direct_omp
+        except ImportError : 
+            mode = 'direct'
 
     if eps is None :
         try :
@@ -147,8 +153,15 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode='tree') :
     x.sim = f.ancestor
     return x
 
-def midplane_potential(f, rxy_points, eps = None, mode='direct') :
-    
+def midplane_potential(f, rxy_points, eps = None, mode = config['gravity_calculation_mode']) :
+    direct_omp = None
+
+    if mode == 'direct_omp' : 
+        try : 
+            from pynbody.grav_omp import direct as direct_omp
+        except ImportError : 
+            mode = 'direct'
+
     if eps is None :
         try :
             eps = f['eps']
@@ -162,6 +175,7 @@ def midplane_potential(f, rxy_points, eps = None, mode='direct') :
     
     try:
         fn = {'direct': direct,
+              'direct_omp': direct_omp,
               'tree': tree,
               }[mode]
     except KeyError :
