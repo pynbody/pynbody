@@ -12,10 +12,25 @@ ctypedef np.double_t DTYPE_t
 cdef extern from "math.h" nogil :
       DTYPE_t sqrt(DTYPE_t)
 
+cdef extern from "omp.h" :
+     void omp_set_num_threads(int)
+
+cdef extern from "omp.h" : 
+     int omp_get_max_threads()
+
+def get_threads() : 
+    return omp_get_max_threads()
+
+def set_threads(num) : 
+    omp_set_num_threads(num)
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
-def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None): 
+def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = omp_get_max_threads()): 
+
     from cython.parallel cimport prange
+
+    omp_set_num_threads(num_threads)    
 
     cdef unsigned int nips = len(ipos)
     cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = np.float64)
