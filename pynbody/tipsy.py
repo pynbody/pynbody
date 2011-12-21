@@ -93,13 +93,13 @@ class TipsySnap(snapshot.SimSnap) :
 
         self._decorate()
 
-        if  (not self._paramfile.has_key('achOutName')) :
-            if must_have_paramfile :
-                raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
-            else :
-                warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
-
-        time_unit = units.Gyr
+        if  (not self._paramfile.has_key('dKpcUnit')) :
+	    if must_have_paramfile :
+		raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+	    else :
+		warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
+	    
+        time_unit = None
         try :
             time_unit = self.infer_original_units('yr')
         except units.UnitsException :
@@ -115,7 +115,9 @@ class TipsySnap(snapshot.SimSnap) :
                 # no sensible redshift
                 pass
 
-            if self.properties['z'] is not None and self._paramfile.has_key('dMsolUnit') and self._paramfile.has_key('dKpcUnit'):
+            if (self.properties['z'] is not None and 
+                self._paramfile.has_key('dMsolUnit') and 
+                self._paramfile.has_key('dKpcUnit')):
                 self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
             else :
                 # something has gone wrong with the cosmological side of
@@ -1249,11 +1251,16 @@ def param2units(sim) :
             pass
         
         try :
-            sim._file_units_system = [sim["vel"].units, sim["mass"].units, sim["pos"].units, units.K]
+            sim._file_units_system = [sim["vel"].units, sim.star["mass"].units, sim["pos"].units, units.K]
         except KeyError :
             try :
                 sim._file_units_system = [sim["vel"].units, sim.star["massform"].units, sim["pos"].units, units.K]
-            except : pass
+            except KeyError:
+                try:
+                    sim._file_units_system = [units.Unit(velunit_st), 
+                                              units.Unit(munit_st), 
+                                              units.Unit(dunit_st), units.K]
+                except : pass
 
 
 @StarLog.decorator
