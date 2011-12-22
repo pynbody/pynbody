@@ -93,7 +93,7 @@ dist = setup(name = 'pynbody',
              description = '',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot', 'pynbody/gravity', 'examples' ],
+                         'pynbody/plot', 'pynbody/gravity' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
