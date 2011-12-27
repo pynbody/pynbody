@@ -996,7 +996,7 @@ class StarLog(snapshot.SimSnap):
                                                   'f8','i4')})
 
             if (iSize != file_structure.itemsize and iSize != 104):
-                raise ValueError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
+                raise IOError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
             else : bigstarlog = True
             
         datasize = os.path.getsize(filename)-f.tell()
