@@ -64,7 +64,7 @@ for(int i=0; i<n_part; i++) {
 #endif
   if(z_i<-z_camera*100) continue;
   if(z_i<-z_camera)
-    qty_i/=-z_i/z_camera
+    qty_i/=-z_i/z_camera;
 // originally : qty_i*=exp((1.0+z_i/z_camera));
   float pixel_dx = (z_camera-z_i)*ddx;
 
