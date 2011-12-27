@@ -54,23 +54,32 @@ for(int i=0; i<n_part; i++) {
   }
 #endif
 
+
+
 #ifdef PERSPECTIVE
+#ifndef SMOOTH_IN_PIXELS
   if(z_i>0.99*z_camera) continue;
   if(z_i>0.8*z_camera)
     qty_i*=exp((0.8-z_i/z_camera)/0.1);
-  if(z_i<-z_camera*3) continue;
+#endif
+  if(z_i<-z_camera*100) continue;
   if(z_i<-z_camera)
-    qty_i*=exp((1.0+z_i/z_camera));
+    qty_i/=-z_i/z_camera
+// originally : qty_i*=exp((1.0+z_i/z_camera));
   float pixel_dx = (z_camera-z_i)*ddx;
+
+#ifdef SMOOTH_IN_PIXELS
+  sm_i*=pixel_dx;
+#endif
   
+  if(sm_i < pixel_dx*0.55) sm_i = pixel_dx*0.55;
+
 #else
   if(  (Z_CONDITION(z_i-z1, sm_i)) && x_i>x1-2*sm_i && x_i<x2+2*sm_i && y_i>y1-2*sm_i && y_i<y2+2*sm_i) 
 #endif
-
-    {
  
 #ifndef PERSPECTIVE
-      if( (sm_i/pixel_dx<1 && sm_i/pixel_dx<1)) {
+      if( (MAX_D_OVER_H*sm_i/pixel_dx<1 && MAX_D_OVER_H*sm_i/pixel_dx<1)) {
       
       float z_pixel = z1;
 
@@ -108,7 +117,6 @@ for(int i=0; i<n_part; i++) {
 #ifndef PERSPECTIVE
     }
 #endif
-  }
  }
 
 #ifdef THREAD
