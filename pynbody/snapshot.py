@@ -41,12 +41,7 @@ class SimSnap(object) :
     """
 
     _derived_quantity_registry = {}
-    _calculating = [] # maintains a list of currently-being-calculated lazy evaluations
-                      # to prevent circular references
-
-    _dependency_track = [] # getitem automatically adds any requested arrays to sets within
-                           # this list, which allows for automatic calculation of the dependencies
-                           # of derived arrays
+    
 
     _dependency_chain = {} # key is an array name. Value gives the set of arrays which depend on it.
     
@@ -57,7 +52,8 @@ class SimSnap(object) :
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
-                  "_getting_array_lock", "properties"]
+                  "_getting_array_lock", "properties", "_derived_array_track",
+                  "_dependency_track", "_calculating"]
 
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
@@ -68,6 +64,13 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._derived_array_track = []
+        self._calculating = [] # maintains a list of currently-being-calculated lazy evaluations
+                               # to prevent circular references
+        
+        self._dependency_track = [] # getitem automatically adds any requested arrays to sets within
+                                    # this list, which allows for automatic calculation of the dependencies
+                                    # of derived arrays
+    
         self._persistent_objects = {}
 
         self._unifamily = None
@@ -113,8 +116,8 @@ class SimSnap(object) :
         if isinstance(i, str) :
             with self._getting_array_lock :
 
-                if len(SimSnap._dependency_track)>0 :
-                    SimSnap._dependency_track[-1].add(i)
+                if len(self._dependency_track)>0 :
+                    self._dependency_track[-1].add(i)
 
                 if i in self.family_keys() :
                     if self.is_derived_array(i) :
@@ -890,18 +893,18 @@ class SimSnap(object) :
         global config
 
         calculated = False
-        if name in SimSnap._calculating :
+        if name in self._calculating :
             raise ValueError, "Circular reference in derived quantity"
         else :
             try:
-                SimSnap._calculating.append(name)
-                SimSnap._dependency_track.append(set())
+                self._calculating.append(name)
+                self._dependency_track.append(set())
                 for cl in type(self).__mro__ :
                     if cl in self._derived_quantity_registry \
                            and name in self._derived_quantity_registry[cl] :
                         if config['verbose'] : print>>sys.stderr, "SimSnap: deriving array",name
                         with self.auto_propagate_off :
-                            fn = SimSnap._derived_quantity_registry[cl][name]
+                            fn = self._derived_quantity_registry[cl][name]
                             if fam is None :
                                 self[name] = fn(self)
                             else :
@@ -911,19 +914,19 @@ class SimSnap(object) :
                                 self._derived_array_track.append(name)
                             
                         calculated = True
-                        for x in SimSnap._dependency_track[-1] :
+                        for x in self._dependency_track[-1] :
                             if x!=name :
-                                if x not in SimSnap._dependency_chain :
-                                    SimSnap._dependency_chain[x] = set()
+                                if x not in self._dependency_chain :
+                                    self._dependency_chain[x] = set()
                                 
-                                SimSnap._dependency_chain[x].add(name)
+                                self._dependency_chain[x].add(name)
                             
                         
                         break
             finally:
-                assert SimSnap._calculating[-1]==name
-                del SimSnap._calculating[-1]
-                del SimSnap._dependency_track[-1]
+                assert self._calculating[-1]==name
+                del self._calculating[-1]
+                del self._dependency_track[-1]
 
             if not calculated :
                 raise KeyError, "No derivation rule for "+name
@@ -937,8 +940,8 @@ class SimSnap(object) :
             if name in ["x","y","z"] : name ="pos"
             if name in ["vx","vy","vz"] : name ="vel"
 
-            if SimSnap._dependency_chain.has_key(name) :
-                for d_ar in SimSnap._dependency_chain[name] :
+            if self._dependency_chain.has_key(name) :
+                for d_ar in self._dependency_chain[name] :
                     if self.has_key(d_ar) or self.has_family_key(d_ar) :
                         if self.is_derived_array(d_ar) :
                             del self[d_ar]
@@ -1025,9 +1028,10 @@ class SimSnap(object) :
             
         for k in self.family_keys() :
             for fam in family._registry :
-                self_fam = self[fam]
-                if k in self_fam.keys() and not self_fam.is_derived_array(k) :
-                    new[fam][k] = self_fam[k]
+                if len(self[fam])>0 :
+                    self_fam = self[fam]
+                    if k in self_fam.keys() and not self_fam.is_derived_array(k) :
+                        new[fam][k] = self_fam[k]
 
 
         new.properties = copy.deepcopy(self.properties, memo)
