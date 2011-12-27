@@ -27,9 +27,6 @@ import time
 import warnings
 import threading
 
-
-from util import LazyKeyError
-
             
 class SimSnap(object) :
     """The basic holder of data for a single simulation snapshot.
