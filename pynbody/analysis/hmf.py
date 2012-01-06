@@ -355,30 +355,21 @@ def f_press_schechter(nu) :
 
     """
 
-    return 0.7978845 * nu * np.exp(-(nu**2)/2)
+    f = math.sqrt(2./math.pi) * nu * np.exp(-nu * nu /2.)
+    return f
 
 
-def f_sheth_tormen(nu,deltac=1.68647):
-    #   Sheth & Tormen (1999) fit (Sheth Mo & Tormen 2001)
-    # set the S-T fit parameters
-    sigma = deltac / nu
-    Anorm=0.3222       # normalization, set so all mass is in halos (integral [f nu dn]=1)
-    a=0.707  #  affects mainly the number of massive halos 
-##    a=0.75  # favored by Sheth & Tormen (2002) 
-    p=0.3
-    nu = deltac/sigma 
+def f_sheth_tormen(nu, Anorm=0.3222, a=0.707, p=0.3):
+    """   
+    Sheth & Tormen (1999) fit (see also Sheth Mo & Tormen 2001)
+    """
+    #  Anorm: normalization, set so all mass is in halos (integral [f nu dn]=1)
+    #  a: affects mainly the number of massive halo, 
+    #  a=0.75 is favored by Sheth & Tormen (2002) 
+    
     f = Anorm * math.sqrt(2.*a / math.pi) * (1. + np.power((1./a/nu/nu),p))
     f *= nu * np.exp(-a * nu * nu /2.)
     return f
-
-#def f_sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
-#    """
-#    The Sheth-Tormen kernel used by halo_mass_function.
-#    Default shape values are taken from eq 7.67 of Mo, van den Bosch
-#    and White (CUP).
-#    """    
-#    nu_bar = nu*0.84
-#    return A*(1+1./nu_bar**(q))*press_schechter(nu_bar)
 
 
 def f_jenkins(nu,deltac=1.68647):
@@ -541,11 +532,6 @@ def halo_mass_function(context,
     if isinstance(kern, str) :
         kern = {'PS': f_press_schechter,
                 'ST': f_sheth_tormen,
-                'test': f_sttest,
-                'test2': f_sttest2,
-                'test3': f_sttest3,
-                'test4': f_sttest4,
-                'test5': f_sttest5,
                 'J': f_jenkins,
                 'W': f_warren, 
                 'REEDZ': f_reed_z_evo,
