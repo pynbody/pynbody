@@ -176,7 +176,29 @@ def variance(M, f_filter=TophatFilter, powspec=PowerSpectrumCAMB, arg_is_R=False
     return v
 
 
+def estimate_neffm(M, f_filter=TophatFilter, powspec=PowerSpectrumCAMB, arg_is_R=False) :
+## this routine is opaque and inefficient 
+    dlnm = 0.01 # just needs to be small 
 
+#    if hasattr(M,'__len__') : ## why is this needed?
+#        ax =  pynbody.array.SimArray([estimate_neffm(Mi, f_filter, powspec) for Mi in M])
+#        ax.units = powspec.Pk.units/ powspec.Pk.units * powspec.k.units**3 / powspec.k.units**3  # hopefully dimensionless
+#        return ax
+
+    M2 = np.exp(np.log(M) + dlnm)
+    sig = np.sqrt(variance(M, f_filter, powspec))
+    sig2 =  np.sqrt(variance(M2, f_filter, powspec))
+            #  neff = 6 dlnsigmainv / dlnm, eq. 13 reed et al. 2007 
+    neff = 6. * (np.log(sig/sig2)) / dlnm - 3.
+
+    return neff
+
+def get_neffm(mass, sigma):
+            #  neff = 6 dlnsigmainv / dlnm - 3, eq. 13 reed et al. 2007 
+    dlnm = np.diff(np.log(mass))
+    dlnsigmainv = np.diff(np.log(1./sigma))
+    neff = 6. * dlnsigmainv / dlnm - 3.
+    return neff
 
 
 @units.takes_arg_in_units((0, "Mpc h^-1"))
@@ -326,7 +348,7 @@ def correlation_func(context, log_r_min=-3, log_r_max=2, delta_log_r=0.2,
 # Default kernels for halo mass function
 #######################################################################
 
-def press_schechter(nu) :
+def f_press_schechter(nu) :
     """
 
     The Press-Schechter kernel used by halo_mass_function
@@ -335,18 +357,98 @@ def press_schechter(nu) :
 
     return 0.7978845 * nu * np.exp(-(nu**2)/2)
 
-def sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
-    """
 
-    The Sheth-Tormen kernel used by halo_mass_function.
+def f_sheth_tormen(nu,deltac=1.68647):
+    #   Sheth & Tormen (1999) fit (Sheth Mo & Tormen 2001)
+    # set the S-T fit parameters
+    sigma = deltac / nu
+    Anorm=0.3222       # normalization, set so all mass is in halos (integral [f nu dn]=1)
+    a=0.707  #  affects mainly the number of massive halos 
+##    a=0.75  # favored by Sheth & Tormen (2002) 
+    p=0.3
+    nu = deltac/sigma 
+    f = Anorm * math.sqrt(2.*a / math.pi) * (1. + np.power((1./a/nu/nu),p))
+    f *= nu * np.exp(-a * nu * nu /2.)
+    return f
 
-    Default shape values are taken from eq 7.67 of Mo, van den Bosch
-    and White (CUP).
+#def f_sheth_tormen(nu, A=0.322, q=0.3, p=0.) :
+#    """
+#    The Sheth-Tormen kernel used by halo_mass_function.
+#    Default shape values are taken from eq 7.67 of Mo, van den Bosch
+#    and White (CUP).
+#    """    
+#    nu_bar = nu*0.84
+#    return A*(1+1./nu_bar**(q))*press_schechter(nu_bar)
 
-    """
-    
-    nu_bar = nu*0.84
-    return A*(1+1./nu_bar**(q))*press_schechter(nu_bar)
+
+def f_jenkins(nu,deltac=1.68647):
+    #  Jenkins et al (2001) fit   ##  valid for  -1.2 << ln(1/sigma) << 1.05
+    sigma = deltac / nu
+    lnsigmainv = np.log(1./sigma)
+    if ((np.any(lnsigmainv < -1.2)) or (np.any(lnsigmainv > 1.05))):
+## this warning could get annoying
+        print "jenkins mass function is outsie of valid mass range.  continuing calculations anyway."
+    f = 0.315* np.exp(-np.power( (np.fabs(lnsigmainv+0.61)), 3.8) )
+    return f
+
+def f_warren(nu,deltac=1.68647):
+    #  Warren et al. 2006  -- valid for (10**10 - 10**15 Msun/h)
+    sigma = deltac / nu
+    A = 0.7234
+    a = 1.625
+    b = 0.2538
+    c = 1.1982
+    f = A * (np.power(sigma,-a) + b) * np.exp(-c/sigma**2)
+    return f
+
+def f_reed_no_z(nu,deltac=1.68647): # universal form 
+    #  Reed et al. (2007) fit, eqn. 9 -- with no redshift depedence (simple universal form)
+    """ modified S-T fit  by the G1 gaussian term and c"""
+    sigma = deltac / nu
+    Anorm=0.3222   # normalization that all mass is in halos not strictly conserved here
+    a=0.707  #  affects mostly the number of massive halos 
+    #        a=0.75    #  favored by Sheth & Tormen (2002) 
+    p=0.3
+    c = 1.08
+    nu = deltac/sigma 
+    lnsigmainv = np.log(1./sigma)
+    G1 = np.exp(-np.power((lnsigmainv - 0.4),2) / (2.*0.6*0.6) )
+    f = Anorm * np.sqrt(2.*a / np.pi) * (1. + np.power((1./a/nu/nu),p) + 0.2*G1)
+    f *= nu * np.exp(-c*a * nu*nu /2.)
+    return f
+
+def f_reed_z_evo(nu,neff,deltac=1.68647): # non-universal form
+    #  Reed et al. (2007) fit, eqn. 11 -- with redshift depedence for accuracy at z >~ z_reion
+    """ modified S-T fit  by the n_eff dependence and the G1 and G2 gaussian terms and c 
+    where   P(k) proportional to k_halo**(n_eff)  and  
+    k_halo = Mhalo / r_halo_precollapse.  
+    eqn 13 of Reed et al 2007   estimtes neff = 6 d ln(1/sigma(M))/ d ln M  - 3 """
+    sigma = deltac / nu
+    Anorm=0.3222    #  normalization that all mass is in halos not strictly conserved here
+    a=0.707    #  affects mostly the number of massive halos 
+    #   a=0.75    #  favored by Sheth & Tormen (2002) 
+    p=0.3
+    c = 1.08 
+    nu = deltac/sigma 
+    lnsigmainv = np.log(1./sigma)
+    G1 = np.exp(- np.power((lnsigmainv - 0.4),2) / (2.*0.6*0.6) )
+    G2 = np.exp(- np.power((lnsigmainv - 0.75),2) / (2.*0.2*0.2) )
+    f = Anorm * np.sqrt(2.*a / np.pi)*(1. + np.power((1./a/nu/nu),p)+0.6*G1+0.4*G2)
+    f *= nu * np.exp(-c*a * nu*nu /2. - 0.03/(neff+3)**2 * np.power(nu,0.6))
+    return f
+
+
+def f_bhattacharya(nu,red,deltac=1.68647):  ## 
+    # Bhattacharya et al. 2010  -- 6x10**11 - 310**15 Msun/h  z=0-2
+    sigma = deltac / nu
+    A = 0.333 / pow((1.+red),0.11)
+    a = 0.788 / pow((1.+red),0.01)
+    p = 0.807 / pow((1.+red),0.0)
+    q = 1.795 / pow((1.+red),0.0)
+    f = A * np.sqrt(2./ np.pi) * (1. + np.power((1./a/nu/nu),p))
+    f *= np.power(nu*math.sqrt(a),q) * np.exp(-a * nu * nu /2.)
+    return f
+
 
 #######################################################################
 # Bias functions
@@ -428,14 +530,30 @@ def halo_mass_function(context,
     that delta_log_M=0.1 gives more than enough accuracy, but you
     should check for your own use case.
        
+
+    Recommended m.f. for friends-of-friends linking length 0.2 particle sep.:
+    z <~ 2 : bhattacharya  
+    z >~ 5 : reed_universal (no redshift dependence)
+           : or reed_evolving (w/redshift dependence for additional accuracy) 
+            
     """
 
     if isinstance(kern, str) :
-        kern = {'PS': press_schechter,
-                'ST': sheth_tormen}[kern]
+        kern = {'PS': f_press_schechter,
+                'ST': f_sheth_tormen,
+                'test': f_sttest,
+                'test2': f_sttest2,
+                'test3': f_sttest3,
+                'test4': f_sttest4,
+                'test5': f_sttest5,
+                'J': f_jenkins,
+                'W': f_warren, 
+                'REEDZ': f_reed_z_evo,
+                'REEDU': f_reed_no_z, # Reed et al 2007 without redshift dependence
+                'B': f_bhattacharya}[kern]
     
     rho_bar = cosmology.rho_M(context, unit="Msol Mpc^-3 h^2")
-
+    red = context.properties['z']  ## redshift is always set by simulation
 
     M = np.arange(log_M_min, log_M_max, delta_log_M)
     M_mid = np.arange(log_M_min+delta_log_M/2, log_M_max-delta_log_M/2, delta_log_M)
@@ -444,7 +562,7 @@ def halo_mass_function(context,
         pspec = pspec(context)
 
         
-    sig = variance(10**M, pspec._default_filter, pspec)
+    sig = variance(10**M, pspec._default_filter, pspec) ## sigma(m)**2
     
     nu = delta_crit/np.sqrt(sig)
     nu.units = "1"
@@ -453,10 +571,20 @@ def halo_mass_function(context,
     
     d_ln_nu_d_ln_M = np.diff(np.log10(nu))/delta_log_M
 
+
     dM = np.diff(10**M)
 
-    # eq 7.46, Mo, van den Bosch and White
-    out = (rho_bar/(10**M_mid)) * kern(nu_mid) * d_ln_nu_d_ln_M * math.log(10.) * context.properties['a']**3
+
+    if (kern == f_reed_z_evo):
+##    neff = estimate_neffm(M)
+        neff = get_neffm(10.**M,sig**0.5)
+        out = (rho_bar/(10**M_mid)) * kern(nu_mid,neff) * d_ln_nu_d_ln_M * math.log(10.) * context.properties['a']**3
+    elif (kern == f_bhattacharya):
+       # eq 7.46, Mo, van den Bosch and White
+        out = (rho_bar/(10**M_mid)) * kern(nu_mid,red) * d_ln_nu_d_ln_M * math.log(10.) * context.properties['a']**3
+    else:
+        # eq 7.46, Mo, van den Bosch and White
+        out = (rho_bar/(10**M_mid)) * kern(nu_mid) * d_ln_nu_d_ln_M * math.log(10.) * context.properties['a']**3
     out.units = "Mpc^-3 h^3 a^-3"
     out.sim = context
 
@@ -467,7 +595,7 @@ def halo_mass_function(context,
     # interpolate sigma for output checking purposes
     sig = (sig[1:]+sig[:-1])/2
 
-    return M_mid, sig, out
+    return M_mid, np.sqrt(sig), out
 
 @units.takes_arg_in_units((1, "Msol h^-1"), context_arg=0)
 def halo_bias(context, M, kern=cole_kaiser_bias, pspec = PowerSpectrumCAMB,
