@@ -703,7 +703,7 @@ class SimSnap(object) :
         util.set_array_if_not_same(self._family_arrays[name][family],
                                    value, index)
 
-    def _create_array(self, array_name, ndim=1, dtype=None) :
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros = True) :
         """Create a single array of dimension len(self) x ndim, with
         a given numpy dtype"""
         if ndim==1 :
@@ -711,7 +711,11 @@ class SimSnap(object) :
         else :
             dims = (self._num_particles, ndim)
 
-        new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
+        if zeros : 
+            new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
+        else :
+            new_array = np.empty(dims,dtype=dtype).view(array.SimArray)
+
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
         new_array.family = None
@@ -751,11 +755,11 @@ class SimSnap(object) :
         util.set_array_if_not_same(self._arrays[name], value, index)
         
         
-    def _create_arrays(self, array_list, ndim=1, dtype=None) :
+    def _create_arrays(self, array_list, ndim=1, dtype=None, zeros=True) :
         """Create a set of arrays of dimension len(self) x ndim, with
         a given numpy dtype."""
         for array in array_list :
-            self._create_array(array, ndim, dtype)
+            self._create_array(array, ndim, dtype, zeros)
 
     def assert_consistent(self) :
         """Consistency checks, currently just checks that the length of all
@@ -1331,7 +1335,7 @@ class FamilySubSnap(SubSnap) :
         except KeyError :
             return self.base._get_family_array(name, self._unifamily, index)
 
-    def _create_array(self, array_name, ndim=1, dtype=None) :
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros=True) :
         # Array creation now maps into family-array creation in the parent
         self.base._create_family_array(array_name, self._unifamily, ndim, dtype)
 
