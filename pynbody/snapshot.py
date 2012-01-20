@@ -196,8 +196,10 @@ class SimSnap(object) :
             # a particle-specific array
             try:
                 ndim = len(ax[0])
-            except TypeError :
+            except TypeError:
                 ndim = 1
+            except IndexError:
+                ndim = ax.shape[-1] if len(ax.shape) > 1 else 1
 
             # The dtype will be the same as an existing family array if
             # one exists, or the dtype of the source array we are copying
