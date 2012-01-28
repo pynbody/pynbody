@@ -61,25 +61,25 @@ pickle.dump({'z':s.properties['z'],
                        'vc':rcpro['rotation_curve_spherical'].in_units('km s^-1'),
                        'fourier':rcpro['fourier']},
              'sb':{'r':sbprof['rbins'].in_units('kpc'), 
-                   'sb':sbprof['sb,I']}
+                   'sb':sbprof['sb,i']}
              },
             open(simname+'.data','w'))#, pickle.HIGHEST_PROTOCOL)
 
 ### Make plots
 try:
-    pp.schmidtlaw(h[1],filename=simname+'.schmidt.png',center=False)
     pp.sbprofile(h[1],filename=simname+'.sbprof.png',center=False)
-    pp.sfh(h[1],filename=simname+'.sfh.png',nbins=1000)
+    pp.sfh(h[1],filename=simname+'.sfh.png',nbins=500)
     pp.rotation_curve(h[1],filename=simname+'.rc.png',quick=True,
                       max='40 kpc',center=False)
     pp.rotation_curve(h[1],filename=simname+'.rcparts.png',quick=True,
                       parts=True, legend=True, max='40 kpc',center=False)
     pp.rho_T(h[1],filename=simname+'.phase.png')
-    pp.ofefeh(h[1], filename=simname+'.ofefeh.png',
+    pp.ofefeh(h[1].stars, filename=simname+'.ofefeh.png',
               x_range=[-3,0.3],y_range=[-0.5,1.0])
-    pp.mdf(h[1],filename=simname+'.mdf.png', range=[-4,0.5])
+    pp.mdf(h[1].stars,filename=simname+'.mdf.png', range=[-4,0.5])
     pp.density_profile(h[1].dark,filename=simname+'.dmprof.png',center=False)
     pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
+    pp.schmidtlaw(h[1],filename=simname+'.schmidt.png',center=False)
     pp.satlf(h[1],filename=simname+'.satlf.png')
 except:
     pass
@@ -104,12 +104,6 @@ try:
     s.gas['hiden'].units = s.gas['rho'].units
     pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,center=False,filename=simname+'.hi500kpc.png',vmin=14,vmax=22)
     pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'.hi250kpc.png',vmin=14,vmax=22)
-    oviif = pynbody.analysis.ionfrac.calculate(s.gas)
-    s.gas['oviden'] = s.gas['rho']*s.gas['OxMassFrac']*oviif
-    s.gas['oviden'].units = s.gas['rho'].units
-    pynbody.plot.sideon_image(s.gas[notdiskf],qty='oviden',units='16 m_p cm^-2',
-                              width=500, center=False,filename=simname+'.ovi.png')
-
 except:
     pass
 
