@@ -71,13 +71,14 @@ class TipsySnap(snapshot.SimSnap) :
         self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
         if not only_header :
-            self._create_arrays(["pos","vel"],3)
-            self._create_arrays(["mass","eps","phi"])
-            self.gas._create_arrays(["rho","temp","metals"])
-            self.star._create_arrays(["metals","tform"])
+            self._create_arrays(["pos","vel"],3,zeros=False)
+            self._create_arrays(["mass","eps","phi"],zeros=False)
+            self.gas._create_arrays(["rho","temp","metals"],zeros=False)
+            self.star._create_arrays(["metals","tform"],zeros=False)
             self.gas["temp"].units = "K" # we know the temperature is always in K
             # Other units will be set by the decorators later
 
+        self._decorate()
 
         # Load in the tipsy file in blocks.  This is the most
         # efficient balance I can see for keeping IO contiguuous, not
@@ -87,11 +88,31 @@ class TipsySnap(snapshot.SimSnap) :
         max_block_size = 1024 # particles
 
         # describe the file structure as list of (num_parts, [list_of_properties]) 
-        file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
-                  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
-                  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+        # by default all fields are floats -- we look at the param file to determine
+        # whether we should expect some doubles 
 
-        self._decorate()
+        if self._paramfile.get('bDoublePos',0) : 
+            ptype = 'd'
+        else : 
+            ptype = 'f'
+
+        if self._paramfile.get('bDoubleVel',0) : 
+            vtype = 'd'
+        else : 
+            vtype = 'f'
+
+        
+        g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+        d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+        s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+
+        file_structure = ((ng,family.gas,g_dtype),
+                          (nd,family.dm,d_dtype),
+                          (ns,family.star,s_dtype))
+
 
         if  (not self._paramfile.has_key('dKpcUnit')) :
 	    if must_have_paramfile :
@@ -141,16 +162,17 @@ class TipsySnap(snapshot.SimSnap) :
             while n_left>0 :
                 n_block = min(n_left,max_block_size)
 
+                st_len = st.itemsize
 
                 # Read in the block
+                buf = np.fromstring(f.read(st_len*n_block),dtype=st)
+                
                 if(self._byteswap):
-                    g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
-                else:
-                    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
-
+                    buf = buf.byteswap()
+                
                 # Copy into the correct arrays
-                for i, name in enumerate(st) :
-                    self_type[name][n_done:n_done+n_block] = g[:,i]
+                for name in st.names :
+                    self_type[name][n_done:n_done+n_block] = buf[name]
 
                 # Increment total ptcls read in, decrement ptcls left of this type
                 n_left-=n_block
@@ -996,7 +1018,7 @@ class StarLog(snapshot.SimSnap):
                                                   'f8','i4')})
 
             if (iSize != file_structure.itemsize and iSize != 104):
-                raise ValueError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
+                raise IOError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
             else : bigstarlog = True
             
         datasize = os.path.getsize(filename)-f.tell()
