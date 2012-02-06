@@ -513,7 +513,6 @@ def fourier(self):
     """
     Generate a profile of fourier coefficients, amplitudes and phases
     """
-    from . import fourier_decomp
     if pynbody.config['verbose'] : print 'Profile: fourier()'
 
     f = {'c': np.zeros((7, self.nbins),dtype=complex),
@@ -522,9 +521,13 @@ def fourier(self):
 
     for i in range(self.nbins):
         if self._profiles['n'][i] > 100:
-            f['c'][:,i] = fourier_decomp.fourier(self.sim['x'][self.binind[i]],
-                                                 self.sim['y'][self.binind[i]],
-                                                 self.sim['mass'][self.binind[i]])
+            phi = np.arctan2(self.sim['y'][self.binind[i]], self.sim['x'][self.binind[i]])
+            for m in range(7) : 
+                f['c'][m,i] = np.sum(self.sim['mass'][self.binind[i]]*np.exp(1j*m*phi))
+
+#fourier_decomp.fourier(self.sim['x'][self.binind[i]],
+                              #                   self.sim['y'][self.binind[i]],
+                              #                   self.sim['mass'][self.binind[i]])
 
 
     f['c'][:,self['mass']>0] /= self['mass'][self['mass']>0]
