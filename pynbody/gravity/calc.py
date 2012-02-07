@@ -102,6 +102,7 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode = config['gravity_calcula
         try : 
             from pynbody.grav_omp import direct as direct_omp
         except ImportError : 
+            warnings.warn("OpenMP gravity nt able to load -- using single cpu", RuntimeWarning)
             mode = 'direct'
 
     if eps is None :

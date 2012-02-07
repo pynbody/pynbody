@@ -154,6 +154,9 @@ config['sph'] = {}
 for k in config_parser.options('sph') :
     config['sph'][k] = int(config_parser.get('sph', k))
 
+config['threading'] = config_parser.get('general', 'threading')
+config['number_of_threads'] = config_parser.get('general', 'number_of_threads')
+
 config['gravity_calculation_mode'] = config_parser.get('general', 'gravity_calculation_mode')
 
 # Import subpackages
