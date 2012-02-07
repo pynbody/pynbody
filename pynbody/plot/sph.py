@@ -9,7 +9,7 @@ routines for plotting smoothed quantities
 
 import pylab as p
 import numpy as np
-from .. import sph
+from .. import sph, config
 from .. import units as _units
 
 def sideon_image(sim, *args, **kwargs) :
@@ -50,7 +50,7 @@ def faceon_image(sim, *args, **kwargs) :
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None, center=False,
-          title=False, qtytitle=False) :
+          title=False, qtytitle=False, threaded=False, number_of_threads=None) :
     """
 
     Make an SPH image of the given simulation.
@@ -74,6 +74,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 :func:`pynbody.sph.image` for more details.
     """
 
+    global config
+
     if isinstance(units, str) :
         units = _units.Unit(units)
 
@@ -81,6 +83,19 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
     kernel = sph.Kernel()
 
+    # use multi-threading?
+    if threaded: 
+        rfunc = sph.threaded_render_image
+        
+        if number_of_threads is None : 
+            number_of_threads = config["number_of_threads"]
+        if number_of_threads < 0: 
+            import multiprocessing
+            number_of_threads = multiprocessing.cpu_count()
+        kwargs = {'num_threads': number_of_threads}
+    else : 
+        rfunc = sph.render_image
+        kwargs = {}
 
     perspective = z_camera is not None
     if perspective and not av_z: kernel = sph.Kernel2D()
@@ -95,8 +110,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
             sim[qty].units.ratio(units/(sim['x'].units), **sim[qty].conversion_context())
 
             kernel = sph.Kernel2D() # if we get to this point, we want a projected image
-
-
+    
     if av_z :
         if isinstance(kernel, sph.Kernel2D) :
             raise _units.UnitsException("Units already imply projected image; can't also average over line-of-sight!")
@@ -109,16 +123,17 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
             sim["__one"]=np.ones_like(sim[qty])
             sim["__one"].units="1"
-            im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
-                                  z_camera=z_camera)
-            im2 = sph.render_image(sim, "__one", width/2, resolution, kernel=kernel, 
-                                   z_camera=z_camera)
+            im = rfunc(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
+                       z_camera=z_camera, **kwargs)
+            im2 = rfunc(sim, "__one", width/2, resolution, kernel=kernel, 
+                        z_camera=z_camera, **kwargs)
             del sim["__one"]
             
             im = im/im2
     else :
 
-        im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel,  z_camera = z_camera)
+        im = rfunc(sim,qty,width/2,resolution,out_units=units, 
+                   kernel = kernel,  z_camera = z_camera, **kwargs)
 
     if log :
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
