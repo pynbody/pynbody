@@ -25,7 +25,8 @@ class Cosmology:
         else :
             self.dOmegaM   = Om
             self.dLambda   = L
-
+        
+        self.dHubble0 = H0
         self.dOmegab   = Ob
         self.dOmegaRad = Or
         self.dQuintess  = Quin
