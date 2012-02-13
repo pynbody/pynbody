@@ -17,11 +17,15 @@ class Cosmology:
     """ docs placeholder """
 
     EPSCOSMO= 1e-7
-    def __init__(self,H0=math.sqrt(8*math.pi/3),Om=0.272,L=0.728,Ob=0.0456,
+    def __init__(self,sim = None, H0=math.sqrt(8*math.pi/3),Om=0.272,L=0.728,Ob=0.0456,
                  Or=0.0,Quin=0.0,Ok=0.0): 
-        self.dHubble0  = H0
-        self.dOmegaM   = Om
-        self.dLambda   = L
+        if sim is not None : 
+            self.dOmegaM   = sim.properties['omegaM0']
+            self.dLambda   = sim.properties['omegaL0']
+        else :
+            self.dOmegaM   = Om
+            self.dLambda   = L
+
         self.dOmegab   = Ob
         self.dOmegaRad = Or
         self.dQuintess  = Quin
