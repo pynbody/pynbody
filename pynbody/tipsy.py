@@ -1320,11 +1320,11 @@ def load_paramfile(sim) :
                 except IndexError, ValueError :
                     pass
 
-                if len(sim._paramfile)>1 :
-                    sim._paramfile["filename"] = filename
-                    done = True
+            if len(sim._paramfile)>1 :
+                sim._paramfile["filename"] = filename
+                done = True
                     
-                if done : break
+        if done : break
 
             
 @TipsySnap.decorator
