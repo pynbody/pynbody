@@ -93,9 +93,9 @@ class TipsySnap(snapshot.SimSnap) :
                 if 'gas'  not in take: ng = 0
                 if 'dm'   not in take: nd = 0
                 if 'star' not in take: ns = 0
-                work[family.gas]  = chunk.chunk(0,ng)
-                work[family.dm]   = chunk.chunk(0,nd)
-                work[family.star] = chunk.chunk(0,ns)
+                work[family.gas]  = chunk.Chunk(0,ng)
+                work[family.dm]   = chunk.Chunk(0,nd)
+                work[family.star] = chunk.Chunk(0,ns)
 
             # Dictionary of families with either id lists or chunks
             if isinstance(take, (types.DictType)):
