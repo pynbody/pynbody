@@ -90,6 +90,30 @@ def age(f, z=None, unit='Gyr') :
 
     return age*conv
 
+def redshift(f, time) : 
+    """ 
+    Calculate the redshift given a snapshot and a time since Big Bang
+    in Gyr.
+
+    Uses scipy.optimize.newton to do the root finding. 
+
+
+    **Input**:
+
+    *f*: SimSnap with cosmological parameters defined
+
+    *time*: time since the Big Bang in Gyr for which a redshift should
+     be returned
+
+    """
+
+    from scipy.optimize import newton
+
+    def func(x,sim,time) : 
+        return age(sim,x) - time
+
+    return newton(func,1,args=(f,time))
+
 
 def rho_crit(f, z=None, unit=None) :
     """Calculate the critical density of the universe in
