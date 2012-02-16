@@ -88,7 +88,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         rfunc = sph.threaded_render_image
         
         if number_of_threads is None : 
-            number_of_threads = config["number_of_threads"]
+            number_of_threads = int(config["number_of_threads"])
         if number_of_threads < 0: 
             import multiprocessing
             number_of_threads = multiprocessing.cpu_count()
