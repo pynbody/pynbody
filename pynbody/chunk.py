@@ -1,6 +1,7 @@
 from __future__ import division
 import random
 import math
+import numpy as np
 
 class Chunk:
     def __init__(self, *args, **kwargs):
@@ -39,10 +40,10 @@ class Chunk:
             assert random > 0
 
         if self.ids is not None:
-            assert amax(ids) < max_stop
+            assert np.amax(self.ids) < max_stop
             if self.random is not None:
-                if self.random < 1: self.random = int(self.random * len(ids))
-                self.ids = random.sample(ids, self.random)
+                if self.random < 1: self.random = int(self.random * len(self.ids))
+                self.ids = random.sample(self.ids, self.random)
                 self.ids.sort()
             self.len = len(self.ids)
         else:
