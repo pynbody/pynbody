@@ -50,7 +50,8 @@ def faceon_image(sim, *args, **kwargs) :
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None, center=False,
-          title=False, qtytitle=False, threaded=False, number_of_threads=None) :
+          title=False, qtytitle=False, colorbar = True, 
+          threaded=False, number_of_threads=None, subplot = None) :
     """
 
     Make an SPH image of the given simulation.
@@ -75,6 +76,11 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     """
 
     global config
+
+    if subplot is None : 
+        plt = p
+    else : 
+        plt = subplot
 
     if isinstance(units, str) :
         units = _units.Unit(units)
@@ -127,7 +133,12 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                        z_camera=z_camera, **kwargs)
             im2 = rfunc(sim, "__one", width/2, resolution, kernel=kernel, 
                         z_camera=z_camera, **kwargs)
-            del sim["__one"]
+            
+            top = sim
+            while hasattr(top,'base') : 
+                top = top.base
+                                
+            del top["__one"]
             
             im = im/im2
     else :
@@ -139,13 +150,17 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    if clear : p.clf()
+    if clear and subplot is None : plt.clf()
     
-    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax, cmap=cmap)
+    plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax, cmap=cmap)
 
     u_st = sim['pos'].units.latex()
-    p.xlabel("$x/%s$"%u_st)
-    p.ylabel("$y/%s$"%u_st)
+    if subplot is None: 
+        plt.xlabel("$x/%s$"%u_st)
+        plt.ylabel("$y/%s$"%u_st)
+    else : 
+        plt.set_xlabel("$x/%s$"%u_st)
+        plt.set_ylabel("$y/%s$"%u_st)
 
     if units is None :
         units = im.units
@@ -156,13 +171,15 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     else :
         units = "$"+units.latex()+"$"
 
-    if qtytitle:
-        p.colorbar().set_label(qtytitle)
-    else:
-        p.colorbar().set_label(units)
+    if colorbar: 
+        if qtytitle:
+            p.colorbar().set_label(qtytitle)
+        else:
+            p.colorbar().set_label(units)
 
     if title:
-        p.title(title)
+        plt.title(title)
+        
 
     if filename:
         p.savefig(filename)
