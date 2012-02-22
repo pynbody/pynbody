@@ -522,12 +522,12 @@ def fourier(self):
     for i in range(self.nbins):
         if self._profiles['n'][i] > 100:
             phi = np.arctan2(self.sim['y'][self.binind[i]], self.sim['x'][self.binind[i]])
+            mass = self.sim['mass'][self.binind[i]]
+            
+            hist, binphi = np.histogram(phi,weights=mass,bins=100)
+            binphi = .5*(binphi[1:]+binphi[:-1])
             for m in range(7) : 
-                f['c'][m,i] = np.sum(self.sim['mass'][self.binind[i]]*np.exp(1j*m*phi))
-
-#fourier_decomp.fourier(self.sim['x'][self.binind[i]],
-                              #                   self.sim['y'][self.binind[i]],
-                              #                   self.sim['mass'][self.binind[i]])
+                f['c'][m,i] = np.sum(hist*np.exp(-1j*m*binphi))
 
 
     f['c'][:,self['mass']>0] /= self['mass'][self['mass']>0]
