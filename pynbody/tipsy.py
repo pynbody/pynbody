@@ -73,7 +73,6 @@ class TipsySnap(snapshot.SimSnap) :
         assert ndim==3
 
 
-        self._num_particles = ng+nd+ns
         f.read(4)
 
         ng_orig = ng
@@ -169,6 +168,7 @@ class TipsySnap(snapshot.SimSnap) :
             nd = family_len[family.dm]
             ns = family_len[family.star]
 
+        self._num_particles = ng+nd+ns
 
         # Store slices corresponding to different particle types
         self._family_slice[family.gas] = slice(0,ng)
