@@ -592,12 +592,12 @@ def v_circ(p) :
 
     
     # If this is a cosmological run, go up to the halo level
-    if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-        while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-            grav_sim = grav_sim.base
+    #if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+    #        grav_sim = grav_sim.base
     
-    elif hasattr(grav_sim,'base') : 
-        grav_sim = grav_sim.base
+    #elif hasattr(grav_sim,'base') : 
+    #    grav_sim = grav_sim.base
     
     if config['tracktime']:
         import time
