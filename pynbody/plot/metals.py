@@ -7,11 +7,10 @@ metals
 
 
 import numpy as np
-import matplotlib.pyplot as plt
 from ..analysis import profile
 from .generic import hist2d, gauss_kde
 
-def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
+def mdf(sim,filename=None,clear=True,range=[-5,0.3],axes=False,**kwargs):
     '''
 
     Metallicity Distribution Function
@@ -29,20 +28,25 @@ def mdf(sim,filename=None,clear=True,range=[-5,0.3],**kwargs):
     
     '''
     nbins=100
-    if clear : plt.clf()
-    metpdf, bins = np.histogram(sim.star['feh'],weights=sim.star['mass'],
+    if axes:
+        plt=axes
+    else:
+        import matplotlib.pyplot as plt
+        if clear : plt.clf()
+        plt.xlabel('[Fe / H]')
+        plt.ylabel('PDF')
+
+    metpdf, bins = np.histogram(sim['feh'],weights=sim['mass'],
                                 bins=nbins,normed=True,range=range,**kwargs)#density=True,
     midpoints = 0.5*(bins[:-1] + bins[1:])
 
     plt.plot(midpoints,metpdf)
-    plt.xlabel('[Fe / H]')
-    plt.ylabel('PDF')
     if (filename): 
         print "Saving "+filename
         plt.savefig(filename)
 
 
-def ofefeh(sim,fxn=hist2d,filename=None,**kwargs):
+def ofefeh(sim,fxn=gauss_kde,filename=None,**kwargs):
     '''
 
     Use :func:`~pynbody.plot.generic.hist2d` to make a [O/Fe] vs. [Fe/H] plot
@@ -66,8 +70,8 @@ def ofefeh(sim,fxn=hist2d,filename=None,**kwargs):
     '''
     
     if 'subplot' in kwargs:
-        fxn(sim.star['feh'],sim.star['ofe'],filename=filename,**kwargs)
+        fxn(sim['feh'],sim['ofe'],filename=filename,**kwargs)
     else:
-        fxn(sim.star['feh'],sim.star['ofe'],filename=filename,
+        fxn(sim['feh'],sim['ofe'],filename=filename,
             xlabel="[Fe/H]",ylabel="[O/Fe]",**kwargs)
 
