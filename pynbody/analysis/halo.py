@@ -120,6 +120,29 @@ def index_center(sim, **kwargs) :
         raise RuntimeError("Need to supply indices for centering")
     
 
+def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
+    # Use stars from inner 1kpc to calculate center of velocity
+    if config['verbose'] :
+        print "Finding halo velocity center..."
+    cen = sim.star[filt.Sphere(cen_size)]
+    if len(cen)<5 :
+        # fall-back to DM
+        cen = sim.dm[filt.Sphere(cen_size)]
+    if len(cen)<5 :
+        # fall-back to gas
+        cen = sim.gas[filt.Sphere(cen_size)]
+    if len(cen)<5 :
+        # very weird snapshot, or mis-centering!
+        raise ValueError, "Insufficient particles around center to get velocity"
+
+    vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
+    vcen.units = cen['vel'].units
+    if config['verbose'] :
+        print "vcen=",vcen
+
+    if retcen:  return vcen
+    else:  sim["vel"]-=vcen
+
 def center(sim, mode=None, retcen=False, **kwargs) :
     """
 
