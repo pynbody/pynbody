@@ -119,6 +119,17 @@ class GadgetHDFSnap(snapshot.SimSnap) :
     @staticmethod
     def _write(self, filename=None) :
         raise RuntimeError, "Not implemented"
+
+	global config
+	
+        with self.lazy_off : # prevent any lazy reading or evaluation
+	    
+            if filename is None :
+		filename = self._filename
+		
+	    if config['verbose'] : print>>sys.stderr, "GadgetHDF: writing main file as",filename
+
+            self._hdf_out = h5py.File(filename,"w")
         
     def _write_array(self, array_name, filename=None) :
         raise RuntimeError, "Not implemented"
