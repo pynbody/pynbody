@@ -7,17 +7,7 @@ import pynbody.units as units
 import pynbody.analysis.profile as profile
 import sys, os, glob, pickle
 
-tfile = sys.argv[1]
-sim,step = tfile.split('.')
-if not os.path.exists(step):   os.mkdir(step)
-simname = step+'/'+sim+'.'+step
-if not os.path.exists(simname): os.system('ln -s ../'+tfile+' '+simname)
-if not os.path.exists(simname+'.OxMassFrac'): 
-    os.system('ln -s ../'+tfile+'.OxMassFrac '+simname+'.OxMassFrac')
-if not os.path.exists(simname+'.FeMassFrac'): 
-    os.system('ln -s ../'+tfile+'.FeMassFrac '+simname+'.FeMassFrac')
-if not os.path.exists(simname+'.HI'): 
-    os.system('ln -s ../'+tfile+'.HI '+simname+'.HI')
+simname = sys.argv[1]
 
 s = pynbody.load(simname)
 h = s.halos()
@@ -75,7 +65,8 @@ try:
                       parts=True, legend=True, max='40 kpc',center=False)
     pp.rho_T(h[1],filename=simname+'.phase.png')
     pp.ofefeh(h[1].stars, filename=simname+'.ofefeh.png',
-              x_range=[-3,0.3],y_range=[-0.5,1.0])
+              weights=h[1].stars['mass'].in_units('Msol'), scalemin=1e3,
+              scalemax=1e6, x_range=[-3,0.3],y_range=[-0.5,1.0])
     pp.mdf(h[1].stars,filename=simname+'.mdf.png', range=[-4,0.5])
     pp.density_profile(h[1].dark,filename=simname+'.dmprof.png',center=False)
     pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
@@ -106,10 +97,3 @@ try:
     pynbody.plot.sideon_image(s.gas,qty='hiden',units='m_p cm^-2',width=500,center=False,filename=simname+'.hi250kpc.png',vmin=14,vmax=22)
 except:
     pass
-
-os.system('rm '+simname)
-os.system('rm '+simname+'.OxMassFrac')
-os.system('rm '+simname+'.FeMassFrac')
-os.system('rm '+simname+'.HI')
-if os.path.exists(simname+'.log'): 
-    os.system('rm '+simname+'.log')
