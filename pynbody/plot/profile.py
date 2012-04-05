@@ -48,11 +48,13 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
         v = pro['v_circ'].in_units(v_units)
 
     if axes: p=axes
-    if clear : p.clf()
+    else: 
+        import pylab as p
+        if clear : p.clf()
 
-    p.plot(r, v, label='total',**kwargs)
 
     if parts :
+        p.plot(r, v, label='total',**kwargs)
         gpro = profile.Profile(sim.gas, type=bin_spacing, nbins = nbins,
                                min = min_r, max = max_r)
         dpro = profile.Profile(sim.dark, type=bin_spacing, nbins = nbins,
@@ -70,7 +72,10 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
         p.plot(r,gv,"--",label="gas")
         p.plot(r,dv,label="dark")
         p.plot(r,sv,linestyle="dotted",label="star")
+    else:
+        p.plot(r, v,**kwargs)
 
+    
 
     if yrange :
         p.axis([min_r,units.Unit(max_r).in_units(r.units),yrange[0],yrange[1]])
@@ -85,7 +90,8 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
     if (filename): 
         print "Saving "+filename
         p.savefig(filename)
-
+    
+    return r,v
 
 def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
                     pretime='2 Gyr',r_units='kpc', bin_spacing = 'equaln', 
@@ -159,19 +165,29 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     
     if center :
         if config['verbose']: print "Centering"
-        halo.center(sim)
+        halo.center(sim,mode='ssc')
 
     if config['verbose']: print "Creating profile"
-    ps = profile.Profile(sim,dim=3,type='log')
+    if 'min' in kwargs:
+        ps = profile.Profile(sim,ndim=3,type='log',nbins=40,min=kwargs['min'])
+        del kwargs['min']
+    else:
+        ps = profile.Profile(sim,ndim=3,type='log',nbins=40)
     if config['verbose']: print "Plotting"
     if clear : plt.clf()
+    critden = (units.Unit('100 km s^-1 Mpc^-1')*sim.properties['h'])**2 /8.0/np.pi/units.G
     r=ps['rbins'].in_units('kpc')
+    den=ps['density'].in_units(critden)
     if linestyle:
-        plt.loglog(r,ps['density'],linestyle=linestyle,**kwargs)
+        plt.errorbar(r,den,yerr=den/np.sqrt(ps['n']),
+                     linestyle=linestyle,**kwargs)
     else:
-        plt.loglog(r,ps['density'],'o',**kwargs)
+        plt.errorbar(r,den,yerr=den/np.sqrt(ps['n']),
+                     fmt='o',**kwargs)
+    plt.yscale('log')
+    plt.xscale('log')
     plt.xlabel('r [kpc]')
-    plt.ylabel('Density [$'+ps['density'].units.latex()+'$]')
+    plt.ylabel(r'$\rho / \rho_{cr}$')#+den.units.latex()+'$]')
     if (filename): 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
