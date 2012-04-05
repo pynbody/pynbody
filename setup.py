@@ -13,7 +13,7 @@ try :
     from Cython.Distutils import build_ext
     build_cython = True
     cmdclass = {'build_ext': build_ext}
-except ImportError:
+except:
     build_cython = False
     cmdclass = {}
 
@@ -89,7 +89,7 @@ if build_cython :
 dist = setup(name = 'pynbody',
              author = '',
              author_email = '',
-             version = '0.13alpha',
+             version = '0.14alpha',
              description = '',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
@@ -98,7 +98,8 @@ dist = setup(name = 'pynbody',
 # care of their compilation for now
 # could make a separate extension for them in future
              package_data={'pynbody': ['default_config.ini', 
-                                       'sph_image.c','sph_to_grid.c'],
+                                       'sph_image.c','sph_to_grid.c',
+                                       'sph_spectra.c'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'ionfracs.npz',
                                                 'interpolate.c',
