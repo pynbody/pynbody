@@ -50,7 +50,9 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
     else :
         import matplotlib.pyplot as plt
 
-    if 'nbins' in kwargs: bins=kwargs['nbins']
+    if 'nbins' in kwargs: 
+        bins=kwargs['nbins']
+        del kwargs['nbins']
 
     if trange:
         assert len(trange) == 2
@@ -75,16 +77,25 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
     sfhist, thebins, patches = plt.hist(tforms, weights=weight, bins=bins,
                                      histtype='step',**kwargs)
     if not subplot:
+        plt.ylim(0.0,1.2*np.max(sfhist))
         plt.xlabel('Time [Gyr]',fontsize='large')
         plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]',fontsize='large')
+    else:
+        plt.set_ylim(0.0,1.2*np.max(sfhist))
 
+    # Make both axes have the same start and end point.
+    if subplot: x0,x1 = plt.get_xlim()
+    else: x0,x1 = plt.gca().get_xlim()
     from pynbody.analysis import pkdgrav_cosmo as cosmo
-    c = cosmo.Cosmology(Om=0.24,L=0.76)
+    c = cosmo.Cosmology()
     pz = plt.twiny()
-    labelzs = np.arange(5,-1,-1)
-    times = [13.7*c.Exp2Time(1.0 / (1+z))/0.36 for z in labelzs]
+    labelzs = np.arange(5,int(sim.properties['z'])-1,-1)
+    times = [13.7*c.Exp2Time(1.0 / (1+z))/c.Exp2Time(1) for z in labelzs]
+    print times
+    print labelzs
     pz.set_xticks(times)
     pz.set_xticklabels([str(x) for x in labelzs])
+    pz.set_xlim(x0, x1)
     pz.set_xlabel('z')
 
     if legend: plt.legend(loc=1)
@@ -285,8 +296,8 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
 
 
 def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
-              center=True, clear=True, filename=None, axes=False, 
-              print_ylabel=True,**kwargs) :
+              center=True, clear=True, filename=None, axes=False, fit_exp=False,
+              print_ylabel=True, fit_sersic=False, **kwargs) :
     '''
 
     surface brightness profile
@@ -323,10 +334,35 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
     r=ps['rbins'].in_units('kpc')
 
     if axes: plt=axes
+    else: import matplotlib.pyplot as plt
     if clear : plt.clf()
 
-    plt.plot(r,ps['sb,'+band],**kwargs)
-    plt.axis([min(r),max(r),max(ps['sb,'+band]),min(ps['sb,'+band])])
+    plt.plot(r,ps['sb,'+band],linewidth=2,**kwargs)
+    plt.ylim(max(ps['sb,'+band]),min(ps['sb,'+band]))
+    if fit_exp:
+        exp_inds = np.where(r.in_units('kpc') > fit_exp)
+        expfit = np.polyfit(np.array(r[exp_inds]), 
+                          np.array(ps['sb,'+band][exp_inds]), 1)
+        # 1.0857 is how many magnitudes a 1/e decrease is
+        print "h: ",1.0857/expfit[0],"  u_0:",expfit[1]
+        fit = np.poly1d(expfit)
+        if 'label' in kwargs:
+            del kwargs['label']
+        if 'linestyle' in kwargs:
+            del kwargs['linestyle']
+        plt.plot(r,fit(r),linestyle='dashed',**kwargs)
+    if fit_sersic:
+        sersic_inds = np.where(r.in_units('kpc') < fit_sersic)
+        sersicfit = np.polyfit(np.log10(np.array(r[sersic_inds])),
+                               np.array(ps['sb,'+band][sersic_inds]), 1)
+        fit = np.poly1d(sersicfit)
+        print "n: ",sersicfit[0],"  other: ",sersicfit[1]
+        if 'label' in kwargs:
+            del kwargs['label']
+        if 'linestyle' in kwargs:
+            del kwargs['linestyle']
+        plt.plot(r,fit(r),linestyle='dashed',**kwargs)
+        #import pdb; pdb.set_trace()
     if axes:
         if print_ylabel:
             plt.set_ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
