@@ -816,9 +816,13 @@ class TipsySnap(snapshot.SimSnap) :
         if filename is None and array_name in ['massform', 'rhoform', 'tempform','phiform','nsmooth', 
                                                'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform', 
                                                'posform', 'velform'] :
-            self.read_starlog()
-            if fam is not None : return self[fam][array_name]
-            else : return self[array_name]
+
+            try : 
+                self.read_starlog()
+                if fam is not None : return self[fam][array_name]
+                else : return self[array_name]
+            except IOError: 
+                pass
 
         import sys, os
     

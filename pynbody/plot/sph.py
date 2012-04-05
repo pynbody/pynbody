@@ -35,7 +35,7 @@ def faceon_image(sim, *args, **kwargs) :
     """
 
     Rotate the simulation so that the disc of the passed halo is
-    side-on, then make an SPH image by passing the parameters into
+    face-on, then make an SPH image by passing the parameters into
     the function image
 
     For a description of keyword arguments see :func:`~pynbody.plot.sph.image`.
