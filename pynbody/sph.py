@@ -19,7 +19,7 @@ import snapshot, array
 import math
 import time
 import sys
-from . import snapshot, array, config
+from . import snapshot, array, config, units
 import threading
 
 def build_tree(sim) :
@@ -591,3 +591,122 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
     result.sim = snap
     return result
 
+
+def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
+            element='H', ion='I',
+            xy_units=units.Unit('kpc'), vel_units = units.Unit('km s^-1'),
+            smooth='smooth', __threaded=False) :
+
+    """
+
+    Render an SPH spectrum using a (mass/rho)-weighted 'scatter'
+    scheme of all the particles that have a smoothing length within
+    2 h_sm of the position.
+
+    **Keyword arguments:**
+
+    *qty* ('rho'): The name of the array within the simulation to render
+
+    *x1* (0.0): The x-coordinate of the line of sight.
+
+    *y1* (0.0): The y-coordinate of the line of sight.
+
+    *v1* (-400.0): The minimum velocity of the spectrum
+
+    *v2* (400.0): The maximum velocity of the spectrum
+
+    *nvel* (500): The number of resolution elements in spectrum
+
+    *xy_units* ('kpc'): The units for the x and y axes
+
+    *smooth*: The name of the array which contains the smoothing lengths
+      (default 'smooth')
+
+    """
+
+    import os, os.path
+    global config
+    
+    if config["tracktime"] :
+        import time
+        in_time = time.time()
+    
+    kernel=Kernel2D()
+            
+    if v1 is None:
+        v1 = -v2
+    dvel = (v2 - v1) / nvel
+    v1, v2, dvel, nvel = [float(q) for q in v1,v2,dvel,nvel]
+    vels = np.arange(v1+0.5*dvel, v2, dvel)
+
+    tau = np.zeros((nvel),dtype=np.float32)
+    
+    n_part = len(snap)
+
+    if xy_units is None :
+        xy_units = snap['x'].units
+
+    x = snap['x'].in_units(xy_units) - x1
+    y = snap['y'].in_units(xy_units) - y1
+    vz = snap['vz'].in_units(vel_units)
+    temp = snap['temp'].in_units(units.Unit('K'))
+
+    sm = snap[smooth]
+
+    if sm.units!=x.units :
+        sm = sm.in_units(x.units)
+
+    nucleons = {'H':1, 'He':4, 'Li':6, 'C':12, 'N':14, 'O':16, 'Mg':24, 'Si':28,
+                'S':32, 'Ca':40, 'Fe':56}
+    nnucleons = nucleons[element]
+    
+    qty_s = qty
+    qty = snap[qty]
+    mass = snap['mass']
+    rho = snap['rho']
+
+    conv_ratio = (qty.units*mass.units/(rho.units*sm.units**kernel.h_power)).ratio(str(nnucleons)+' m_p cm^-2', **x.conversion_context())
+
+    try :
+        kernel.safe.acquire(True)
+        code = kernel.get_c_code()
+    finally :
+        kernel.safe.release()
+
+    if __threaded :
+        code+="#define THREAD 1\n"
+    
+        
+    code+=file(os.path.join(os.path.dirname(__file__),'sph_spectra.c')).read()
+
+    # before inlining, the views on the arrays must be standard np.ndarray
+    # otherwise the normal numpy macros are not generated
+    x,y,vz,temp,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,vz,temp,sm,qty, mass, rho]
+
+    if config['verbose']: print>>sys.stderr, "Constructing SPH spectrum"
+
+    if config["tracktime"] :
+        print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
+    #import pdb; pdb.set_trace()
+    inline( code, ['tau', 'nvel', 'x', 'y', 'vz', 'temp', 'sm', 'v1', 'v2',
+                   'nnucleons','qty', 'mass', 'rho'],verbose=2)
+
+    if config["tracktime"] :
+        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+
+    mass_e = 9.10938188e-28
+    e = 4.803206e-10
+    c = 2.99792458e10
+    pi = 3.14159267
+    tauconst = pi*e*e / mass_e / c / np.sqrt(pi)
+    oscwav0 = 1031.9261*0.13250*1e-8
+    tau = tauconst*oscwav0*tau*conv_ratio
+    #tau = tau*conv_ratio
+    print "tauconst: %g oscwav0: %g"%(tauconst,oscwav0)
+    print "tauconst*oscwav0: %g"%(tauconst*oscwav0)
+    print "conv_ratio: %g"%conv_ratio
+    print "max(N): %g"%(np.max(tau))
+    tau = tau.view(array.SimArray)
+
+    tau.sim = snap
+    return vels, tau
