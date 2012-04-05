@@ -883,6 +883,12 @@ def feh(self) :
     return np.log10(self['FeMassFrac']/self['hydrogen']) - np.log10(XSOLFe/XSOLH)
 
 @TipsySnap.derived_quantity
+def oxh(self) :
+    minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
+    self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)]=minox
+    return np.log10(self['OxMassFrac']/self['hydrogen']) - np.log10(XSOLO/XSOLH)
+
+@TipsySnap.derived_quantity
 def ofe(self) :
     minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
     self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)]=minox
