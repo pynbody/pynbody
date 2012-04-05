@@ -25,6 +25,7 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
     **needs documentation/description of the keyword arguments**
     
     """
+    import pylab as p
 
     if center :
         angmom.faceon(sim)

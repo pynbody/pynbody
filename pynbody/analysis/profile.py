@@ -320,13 +320,13 @@ class Profile:
             return self._profiles[name]
         
         elif name[0:2]=="d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys() :
-            if np.diff(self['dr']).all() < 1e-13 : 
-                if pynbody.config['verbose'] : print 'Profile: '+name+'/dR'
-                self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
-                self._profiles[name] = self._profiles[name] / self['dr'].units
-                return self._profiles[name]
-            else :
-                raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
+#            if np.diff(self['dr']).all() < 1e-13 : 
+            if pynbody.config['verbose'] : print 'Profile: '+name+'/dR'
+            self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
+            self._profiles[name] = self._profiles[name] / self['dr'].units
+            return self._profiles[name]
+            #else :
+            #    raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
 
         else :
             raise KeyError, name+" is not a valid profile"
@@ -513,7 +513,6 @@ def fourier(self):
     """
     Generate a profile of fourier coefficients, amplitudes and phases
     """
-    from . import fourier_decomp
     if pynbody.config['verbose'] : print 'Profile: fourier()'
 
     f = {'c': np.zeros((7, self.nbins),dtype=complex),
@@ -522,9 +521,13 @@ def fourier(self):
 
     for i in range(self.nbins):
         if self._profiles['n'][i] > 100:
-            f['c'][:,i] = fourier_decomp.fourier(self.sim['x'][self.binind[i]],
-                                                 self.sim['y'][self.binind[i]],
-                                                 self.sim['mass'][self.binind[i]])
+            phi = np.arctan2(self.sim['y'][self.binind[i]], self.sim['x'][self.binind[i]])
+            mass = self.sim['mass'][self.binind[i]]
+            
+            hist, binphi = np.histogram(phi,weights=mass,bins=100)
+            binphi = .5*(binphi[1:]+binphi[:-1])
+            for m in range(7) : 
+                f['c'][m,i] = np.sum(hist*np.exp(-1j*m*binphi))
 
 
     f['c'][:,self['mass']>0] /= self['mass'][self['mass']>0]
@@ -652,9 +655,9 @@ def omega(p) :
 def kappa(p) :
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
     if pynbody.config['verbose'] : print 'Profile: kappa()'
-    #dOmegadR = np.gradient(p['omega']**2, p['dr'][0])
-    #dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
-    return np.sqrt(p['rbins']*p['d_omega'] + 4*p['omega']**2)
+    dOmegadR = np.gradient(p['omega']**2, p['dr'][0])
+    dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
+    return np.sqrt(p['rbins']*dOmegadR + 4*p['omega']**2)
 
 @Profile.profile_property
 def beta(p) :
@@ -736,3 +739,60 @@ class InclinedProfile(Profile) :
 
         # define the minor axis
         self._properties['rbins_min'] = np.cos(np.radians(self.angle))*self['rbins']
+
+
+class VerticalProfile(Profile) : 
+    """
+
+    Creates a profile object that uses the absolute value of the z-coordinate for binning. 
+
+    **Input**: 
+    
+    *sim*: snapshot to make a profile from
+
+    *rmin*: minimum radius for particle selection in kpc
+     
+    *rmax*: maximum radius for particle selection in kpc
+
+    *zmax*: maximum height to consider in kpc
+
+    **Optional Keywords**: 
+
+    *ndim*: if ndim=2, an edge-on projected profile is produced,
+     i.e. density is in units of mass/pc^2. If ndim=3 a volume
+     profile is made, i.e. density is in units of mass/pc^3.
+
+    """
+
+    def _calculate_x(self, sim) : 
+        return array.SimArray(np.abs(sim['z']),sim['z'].units)
+
+    def __init__(self,sim,rmin,rmax,zmax,load_from_file = False, ndim = 3, type = 'lin', **kwargs): 
+        
+        self.rmin = rmin
+        self.rmax = rmax
+        self.zmax = zmax
+
+        # create a snapshot that only includes the section of disk we're interested in
+        assert ndim in [2,3]
+        if ndim == 3: 
+            sub_sim = sim[pynbody.filt.Disc(rmax,zmax) & ~pynbody.filt.Disc(rmin,zmax)]
+        else: 
+            sub_sim = sim[(pynbody.filt.BandPass('x',rmin,rmax) | 
+                          pynbody.filt.BandPass('x',-rmax,-rmin)) &
+                          pynbody.filt.BandPass('z', -zmax,zmax)]
+
+        Profile.__init__(self,sub_sim,load_from_file=load_from_file,ndim=ndim,type=type,**kwargs)
+
+
+    def _setup_bins(self) : 
+        Profile._setup_bins(self)
+
+        dr = self.rmax - self.rmin
+
+        if self.ndim == 2: 
+            self._binsize = (self['bin_edges'][1:]-self['bin_edges'][:-1])*dr
+        else : 
+            area = array.SimArray(np.pi*(self.rmax**2-self.rmin**2),"kpc^2")
+            self._binsize = (self['bin_edges'][1:]-self['bin_edges'][:-1])*area
+        

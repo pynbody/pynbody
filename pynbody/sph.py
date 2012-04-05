@@ -144,7 +144,6 @@ class Kernel2D(Kernel) :
         import numpy as np
         return 2*integrate.quad(lambda z : self.k_orig.get_value(np.sqrt(z**2+d**2), h), 0, h)[0]
 
-
 class TopHatKernel(object) :
     def __init__(self) :
         self.h_power = 3
@@ -263,6 +262,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  kernel=Kernel(),
                  z_camera=None,
                  smooth='smooth',
+                 smooth_in_pixels = False,
                  __threaded=False) :
 
     """
@@ -306,6 +306,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
      *smooth*: The name of the array which contains the smoothing lengths
       (default 'smooth')
 
+     *smooth_in_pixels*: If True, the smoothing array contains the smoothing
+       length in image pixels, rather than in real distance units (default False)
+
     """
 
     import os, os.path
@@ -346,9 +349,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     sm = snap[smooth]
 
-    if sm.units!=x.units :
+    if sm.units!=x.units and not smooth_in_pixels:
         sm = sm.in_units(x.units)
-
     
     
     qty_s = qty
@@ -378,6 +380,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
     if __threaded :
         code+="#define THREAD 1\n"
+
+    if smooth_in_pixels :
+        code+="#define SMOOTH_IN_PIXELS 1\n"
     
     try:
         #import pyopencl as cl

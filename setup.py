@@ -7,6 +7,7 @@ import numpy.distutils.misc_util
 
 try : 
     import pkg_resources
+    import cython
     # check that cython version is > 0.15
     if float(pkg_resources.get_distribution("cython").version.partition(".")[2]) < 15 : 
         raise ImportError
@@ -93,7 +94,7 @@ dist = setup(name = 'pynbody',
              description = '',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot', 'pynbody/gravity', 'examples' ],
+                         'pynbody/plot', 'pynbody/gravity' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future

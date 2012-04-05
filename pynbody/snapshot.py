@@ -27,9 +27,6 @@ import time
 import warnings
 import threading
 
-
-from util import LazyKeyError
-
             
 class SimSnap(object) :
     """The basic holder of data for a single simulation snapshot.
@@ -41,12 +38,7 @@ class SimSnap(object) :
     """
 
     _derived_quantity_registry = {}
-    _calculating = [] # maintains a list of currently-being-calculated lazy evaluations
-                      # to prevent circular references
-
-    _dependency_track = [] # getitem automatically adds any requested arrays to sets within
-                           # this list, which allows for automatic calculation of the dependencies
-                           # of derived arrays
+    
 
     _dependency_chain = {} # key is an array name. Value gives the set of arrays which depend on it.
     
@@ -57,7 +49,8 @@ class SimSnap(object) :
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
-                  "_getting_array_lock", "properties"]
+                  "_getting_array_lock", "properties", "_derived_array_track",
+                  "_dependency_track", "_calculating"]
 
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
@@ -68,6 +61,13 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._derived_array_track = []
+        self._calculating = [] # maintains a list of currently-being-calculated lazy evaluations
+                               # to prevent circular references
+        
+        self._dependency_track = [] # getitem automatically adds any requested arrays to sets within
+                                    # this list, which allows for automatic calculation of the dependencies
+                                    # of derived arrays
+    
         self._persistent_objects = {}
 
         self._unifamily = None
@@ -113,8 +113,8 @@ class SimSnap(object) :
         if isinstance(i, str) :
             with self._getting_array_lock :
 
-                if len(SimSnap._dependency_track)>0 :
-                    SimSnap._dependency_track[-1].add(i)
+                if len(self._dependency_track)>0 :
+                    self._dependency_track[-1].add(i)
 
                 if i in self.family_keys() :
                     if self.is_derived_array(i) :
@@ -196,8 +196,10 @@ class SimSnap(object) :
             # a particle-specific array
             try:
                 ndim = len(ax[0])
-            except TypeError :
+            except TypeError:
                 ndim = 1
+            except IndexError:
+                ndim = ax.shape[-1] if len(ax.shape) > 1 else 1
 
             # The dtype will be the same as an existing family array if
             # one exists, or the dtype of the source array we are copying
@@ -703,7 +705,7 @@ class SimSnap(object) :
         util.set_array_if_not_same(self._family_arrays[name][family],
                                    value, index)
 
-    def _create_array(self, array_name, ndim=1, dtype=None) :
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros = True) :
         """Create a single array of dimension len(self) x ndim, with
         a given numpy dtype"""
         if ndim==1 :
@@ -711,7 +713,11 @@ class SimSnap(object) :
         else :
             dims = (self._num_particles, ndim)
 
-        new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
+        if zeros : 
+            new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
+        else :
+            new_array = np.empty(dims,dtype=dtype).view(array.SimArray)
+
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
         new_array.family = None
@@ -751,11 +757,11 @@ class SimSnap(object) :
         util.set_array_if_not_same(self._arrays[name], value, index)
         
         
-    def _create_arrays(self, array_list, ndim=1, dtype=None) :
+    def _create_arrays(self, array_list, ndim=1, dtype=None, zeros=True) :
         """Create a set of arrays of dimension len(self) x ndim, with
         a given numpy dtype."""
         for array in array_list :
-            self._create_array(array, ndim, dtype)
+            self._create_array(array, ndim, dtype, zeros)
 
     def assert_consistent(self) :
         """Consistency checks, currently just checks that the length of all
@@ -890,18 +896,18 @@ class SimSnap(object) :
         global config
 
         calculated = False
-        if name in SimSnap._calculating :
+        if name in self._calculating :
             raise ValueError, "Circular reference in derived quantity"
         else :
             try:
-                SimSnap._calculating.append(name)
-                SimSnap._dependency_track.append(set())
+                self._calculating.append(name)
+                self._dependency_track.append(set())
                 for cl in type(self).__mro__ :
                     if cl in self._derived_quantity_registry \
                            and name in self._derived_quantity_registry[cl] :
                         if config['verbose'] : print>>sys.stderr, "SimSnap: deriving array",name
                         with self.auto_propagate_off :
-                            fn = SimSnap._derived_quantity_registry[cl][name]
+                            fn = self._derived_quantity_registry[cl][name]
                             if fam is None :
                                 self[name] = fn(self)
                             else :
@@ -911,19 +917,19 @@ class SimSnap(object) :
                                 self._derived_array_track.append(name)
                             
                         calculated = True
-                        for x in SimSnap._dependency_track[-1] :
+                        for x in self._dependency_track[-1] :
                             if x!=name :
-                                if x not in SimSnap._dependency_chain :
-                                    SimSnap._dependency_chain[x] = set()
+                                if x not in self._dependency_chain :
+                                    self._dependency_chain[x] = set()
                                 
-                                SimSnap._dependency_chain[x].add(name)
+                                self._dependency_chain[x].add(name)
                             
                         
                         break
             finally:
-                assert SimSnap._calculating[-1]==name
-                del SimSnap._calculating[-1]
-                del SimSnap._dependency_track[-1]
+                assert self._calculating[-1]==name
+                del self._calculating[-1]
+                del self._dependency_track[-1]
 
             if not calculated :
                 raise KeyError, "No derivation rule for "+name
@@ -937,8 +943,8 @@ class SimSnap(object) :
             if name in ["x","y","z"] : name ="pos"
             if name in ["vx","vy","vz"] : name ="vel"
 
-            if SimSnap._dependency_chain.has_key(name) :
-                for d_ar in SimSnap._dependency_chain[name] :
+            if self._dependency_chain.has_key(name) :
+                for d_ar in self._dependency_chain[name] :
                     if self.has_key(d_ar) or self.has_family_key(d_ar) :
                         if self.is_derived_array(d_ar) :
                             del self[d_ar]
@@ -1025,9 +1031,10 @@ class SimSnap(object) :
             
         for k in self.family_keys() :
             for fam in family._registry :
-                self_fam = self[fam]
-                if k in self_fam.keys() and not self_fam.is_derived_array(k) :
-                    new[fam][k] = self_fam[k]
+                if len(self[fam])>0 :
+                    self_fam = self[fam]
+                    if k in self_fam.keys() and not self_fam.is_derived_array(k) :
+                        new[fam][k] = self_fam[k]
 
 
         new.properties = copy.deepcopy(self.properties, memo)
@@ -1330,7 +1337,7 @@ class FamilySubSnap(SubSnap) :
         except KeyError :
             return self.base._get_family_array(name, self._unifamily, index)
 
-    def _create_array(self, array_name, ndim=1, dtype=None) :
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros=True) :
         # Array creation now maps into family-array creation in the parent
         self.base._create_family_array(array_name, self._unifamily, ndim, dtype)
 

@@ -67,30 +67,85 @@ def linear_growth_factor(f,z=None):  ##  this is just a wrapper for pynbody.
 
 
 def age(f, z=None, unit='Gyr') :
-    """Calculate the age of the universe in the snapshot f
+    """
+    Calculate the age of the universe in the snapshot f
     by integrating the Friedmann equation.
 
     The output is given in the specified units. If a redshift
     z is specified, it is used in place of the redshift in the
-    output f."""
+    output f.
+
+    **Input**:
+    
+    *f*: SimSnap
+
+    **Optional Keywords**:
+    
+    *z (None)*: desired redshift. Can be a single number, a list, or a
+    numpy.ndarray.
+
+    *unit ('Gyr')*: desired units for age output
+
+    """
 
     import scipy, scipy.integrate
 
     if z is None :
         z = f.properties['z']
 
-    a = 1.0/(1.0+z)
+
     h0 = f.properties['h']
     omM = f.properties['omegaM0']
     omL = f.properties['omegaL0']
 
     conv = units.Unit("0.01 s Mpc km^-1").ratio(unit, **f.conversion_context())
 
-    age = scipy.integrate.quad(_a_dot_recip,0,a, (h0, omM, omL))[0]
+    def get_age(x) : 
+        x = 1.0/(1.0 + x)
+        return scipy.integrate.quad(_a_dot_recip,0,x, (h0, omM, omL))[0]*conv
 
-    return age*conv
+    if isinstance(z,np.ndarray) or isinstance(z,list): 
+        return np.array(map(get_age,z))
+    else : 
+        return get_age(z)
+
+def redshift(f, time) : 
+    """ 
+    Calculate the redshift given a snapshot and a time since Big Bang
+    in Gyr.
+
+    Uses scipy.optimize.newton to do the root finding if number of
+    elements in the time array is less than 1000, otherwise uses a linear
+    interpolation.
 
 
+    **Input**:
+
+    *f*: SimSnap with cosmological parameters defined
+
+    *time*: time since the Big Bang in Gyr for which a redshift should
+     be returned. float, list, or numpy.ndarray
+
+    """
+
+    from scipy.optimize import newton
+    from scipy.interpolate import interp1d
+    from .. import array
+
+    def func(x,sim,time) : 
+        return age(sim,x) - time
+
+    if isinstance(time,list) or isinstance(time,np.ndarray):
+        if len(time) > 1000 : 
+            zs = np.logspace(3,-10,1000)
+            ages = age(f,zs)
+            i = interp1d(ages,zs)
+            return i(time)
+        else : 
+            return np.array(map(lambda x: newton(func,1,args=(f,x)),time))
+    else : 
+        return newton(func,1,args=(f,time))
+    
 def rho_crit(f, z=None, unit=None) :
     """Calculate the critical density of the universe in
     the snapshot f.

@@ -9,7 +9,7 @@ routines for plotting smoothed quantities
 
 import pylab as p
 import numpy as np
-from .. import sph
+from .. import sph, config
 from .. import units as _units
 
 def sideon_image(sim, *args, **kwargs) :
@@ -35,7 +35,7 @@ def faceon_image(sim, *args, **kwargs) :
     """
 
     Rotate the simulation so that the disc of the passed halo is
-    side-on, then make an SPH image by passing the parameters into
+    face-on, then make an SPH image by passing the parameters into
     the function image
 
     For a description of keyword arguments see :func:`~pynbody.plot.sph.image`.
@@ -87,6 +87,19 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
     kernel = sph.Kernel()
 
+    # use multi-threading?
+    if threaded: 
+        rfunc = sph.threaded_render_image
+        
+        if number_of_threads is None : 
+            number_of_threads = int(config["number_of_threads"])
+        if number_of_threads < 0: 
+            import multiprocessing
+            number_of_threads = multiprocessing.cpu_count()
+        kwargs = {'num_threads': number_of_threads}
+    else : 
+        rfunc = sph.render_image
+        kwargs = {}
 
     perspective = z_camera is not None
     if perspective and not av_z: kernel = sph.Kernel2D()
@@ -101,8 +114,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
             sim[qty].units.ratio(units/(sim['x'].units), **sim[qty].conversion_context())
 
             kernel = sph.Kernel2D() # if we get to this point, we want a projected image
-
-
+    
     if av_z :
         if isinstance(kernel, sph.Kernel2D) :
             raise _units.UnitsException("Units already imply projected image; can't also average over line-of-sight!")
@@ -115,16 +127,22 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
             sim["__one"]=np.ones_like(sim[qty])
             sim["__one"].units="1"
-            im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
-                                  z_camera=z_camera)
-            im2 = sph.render_image(sim, "__one", width/2, resolution, kernel=kernel, 
-                                   z_camera=z_camera)
-            del sim["__one"]
+            im = rfunc(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
+                       z_camera=z_camera, **kwargs)
+            im2 = rfunc(sim, "__one", width/2, resolution, kernel=kernel, 
+                        z_camera=z_camera, **kwargs)
+            
+            top = sim
+            while hasattr(top,'base') : 
+                top = top.base
+                                
+            del top["__one"]
             
             im = im/im2
     else :
 
-        im = sph.render_image(sim,qty,width/2,resolution,out_units=units, kernel = kernel,  z_camera = z_camera)
+        im = rfunc(sim,qty,width/2,resolution,out_units=units, 
+                   kernel = kernel,  z_camera = z_camera, **kwargs)
 
     if log :
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()

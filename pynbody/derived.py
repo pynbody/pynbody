@@ -61,6 +61,11 @@ def j(self) :
     return angmom
 
 @SimSnap.derived_quantity
+def jz(self):
+    """z-component of the angular momentum"""
+    return self['j'][:,2]
+
+@SimSnap.derived_quantity
 def vrxy(self):
     return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['rxy']
 

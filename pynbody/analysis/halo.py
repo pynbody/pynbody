@@ -158,7 +158,10 @@ def center(sim, mode=None, retcen=False, **kwargs) :
       *ssc*: shrink sphere center
 
       *ind*: center on specific particles
-    
+
+      *hyb*: for sane halos, returns the same as ssc, but works faster by
+             starting iteration near potential minimum
+
     or a function returning the COM.
 
     **Other keywords:**
@@ -169,6 +172,8 @@ def center(sim, mode=None, retcen=False, **kwargs) :
     *ind*: only used when *mode=ind* -- specifies the indices of
      particles to be used for centering
 
+    *vel*: if True, translate velocities so that the velocity of the
+    central 1kpc is zeroed
     """
 
     global config
@@ -187,5 +192,8 @@ def center(sim, mode=None, retcen=False, **kwargs) :
     if retcen:  return fn(sim, **kwargs)
     else:
         cen = fn(sim, **kwargs)
-        sim["pos"]-=cen
+        sim.ancestor["pos"]-=cen
 
+    if vel :
+        vcen = sim[filt.Sphere("1 kpc")].mean_by_mass("vel")
+        sim.ancestor["vel"]-=vcen

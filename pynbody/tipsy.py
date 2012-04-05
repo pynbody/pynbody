@@ -10,11 +10,13 @@ automatically via pynbody.load.
 """
 
 from __future__ import with_statement # for py2.5
+from __future__ import division
 
 from . import snapshot, array, util
 from . import family
 from . import units
 from . import config, config_parser
+from . import chunk
 
 import struct, os
 import numpy as np
@@ -22,6 +24,8 @@ import gzip
 import sys
 import warnings
 import copy
+import types
+import math
 
 class TipsySnap(snapshot.SimSnap) :
     _basic_loadable_keys = {family.dm: set(['phi', 'pos', 'eps', 'mass', 'vel']),
@@ -31,12 +35,18 @@ class TipsySnap(snapshot.SimSnap) :
                                               'eps','mass', 'vel'])}
 
 
-    def __init__(self, filename, only_header=False, must_have_paramfile=False) :
+    def __init__(self, filename, **kwargs):
 
         global config
 
         super(TipsySnap,self).__init__()
-        
+
+        only_header = kwargs.get('only_header', False)
+        must_have_paramfile = kwargs.get('must_have_paramfile', False)
+        take = kwargs.get('take', None)
+
+        self.partial_load = take is not None
+
         self._filename = util.cutgz(filename)
     
         f = util.open_(filename)
@@ -62,8 +72,103 @@ class TipsySnap(snapshot.SimSnap) :
 
         assert ndim==3
 
-        self._num_particles = ng+nd+ns
+
         f.read(4)
+
+        ng_orig = ng
+        nd_orig = nd
+        ns_orig = ns
+
+        # The take keyword may change the number of particles for each
+        # family so we need to take care of this now.
+        if take is not None:
+            family_len = {family.gas: ng,
+                          family.dm: nd,
+                          family.star: ns}
+            work = {}
+
+            # List of families
+            if isinstance(take, (types.ListType, types.TupleType)):
+                if 'gas'  not in take: ng = 0
+                if 'dm'   not in take: nd = 0
+                if 'star' not in take: ns = 0
+                work[family.gas]  = chunk.Chunk(0,ng)
+                work[family.dm]   = chunk.Chunk(0,nd)
+                work[family.star] = chunk.Chunk(0,ns)
+
+            # Dictionary of families with either id lists or chunks
+            if isinstance(take, (types.DictType)):
+                for k,v in take.iteritems():
+                    k = family.get_family(k)
+                    if isinstance(v, np.ndarray):
+                        assert np.amax(v) < family_len[k]
+                        work[k] = chunk.Chunk(ids=v)
+                    elif isinstance(v, chunk.Chunk):
+                        work[k] = v
+                    else:
+                        assert 0, 'Bad type'
+
+            def split_slice(s, start, size):
+                if not (s.start <= start < s.stop):
+                    return None
+                if not (s.start <= stop < s.stop):
+                    return None
+                if start > stop: 
+                    return None
+
+                new_start = ((start - s.start) // s.step) * s.step + s.start - start
+                new_stop  = new_start + size
+                return new_start, s.step, new_stop
+
+
+            # A chunk
+            if isinstance(take, chunk.Chunk):
+                assert 0, 'Not supported.'
+
+                take.init(ng+d+ns)
+
+                # may result in a few missing particles...
+                if take.random is not None:
+                    if nd: work[family.dm] = chunk.Chunk(random=take.random//n)
+                    if ng: work[family.dg] = chunk.Chunk(random=take.random//n)
+                    if ns: work[family.ds] = chunk.Chunk(random=take.random//n)
+
+
+                s = slice(take.start, take.stop, take.step)
+
+                if s.start < ng: 
+                    start, stop, step = split_slice(s, take.start, ng)
+                    work[family.gas] = chunk.Chunk(start, stop, step)
+                    
+                start = step*(ng//step + 1)
+
+                work[family.dm]   = chunk.Chunk(0,nd)
+                work[family.star] = chunk.Chunk(0,ns)
+                assert 0
+                work = take
+
+            # A list of particles
+            if isinstance(take, np.ndarray):
+                work = chunk.Chunk(ids=take)
+
+            # Functions
+            if isinstance(take, types.FunctionType):
+                assert 0
+                warnings.warn("Can't handle functions for 'take' keyword")
+                take = None
+
+            for k,v in family_len.iteritems():
+                if work.has_key(k):
+                    work[k].init(max_stop=v)
+                    family_len[k] = len(work[k])
+                else:
+                    family_len[k] = 0
+
+            ng = family_len[family.gas]
+            nd = family_len[family.dm]
+            ns = family_len[family.star]
+
+        self._num_particles = ng+nd+ns
 
         # Store slices corresponding to different particle types
         self._family_slice[family.gas] = slice(0,ng)
@@ -71,13 +176,14 @@ class TipsySnap(snapshot.SimSnap) :
         self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
 
         if not only_header :
-            self._create_arrays(["pos","vel"],3)
-            self._create_arrays(["mass","eps","phi"])
-            self.gas._create_arrays(["rho","temp","metals"])
-            self.star._create_arrays(["metals","tform"])
+            self._create_arrays(["pos","vel"],3,zeros=False)
+            self._create_arrays(["mass","eps","phi"],zeros=False)
+            self.gas._create_arrays(["rho","temp","metals"],zeros=False)
+            self.star._create_arrays(["metals","tform"],zeros=False)
             self.gas["temp"].units = "K" # we know the temperature is always in K
             # Other units will be set by the decorators later
 
+        self._decorate()
 
         # Load in the tipsy file in blocks.  This is the most
         # efficient balance I can see for keeping IO contiguuous, not
@@ -87,18 +193,41 @@ class TipsySnap(snapshot.SimSnap) :
         max_block_size = 1024 # particles
 
         # describe the file structure as list of (num_parts, [list_of_properties]) 
-        file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
-                  (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
-                  (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
+        # by default all fields are floats -- we look at the param file to determine
+        # whether we should expect some doubles 
 
-        self._decorate()
+        if self._paramfile.get('bDoublePos',0) : 
+            ptype = 'd'
+        else : 
+            ptype = 'f'
 
-        if  (not self._paramfile.has_key('dKpcUnit')) :
-	    if must_have_paramfile :
-		raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
-	    else :
-		warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
-	    
+        if self._paramfile.get('bDoubleVel',0) : 
+            vtype = 'd'
+        else : 
+            vtype = 'f'
+
+        
+        g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+        d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+        s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+
+        g_offs = 32
+        d_offs = g_offs + ng_orig * g_dtype.itemsize
+        s_offs = d_offs + nd_orig * d_dtype.itemsize
+
+        file_structure = ((ng,ng_orig, g_offs, family.gas,g_dtype),
+                          (nd,nd_orig, d_offs, family.dm,d_dtype),
+                          (ns,ns_orig, s_offs, family.star,s_dtype))
+
+        if not self._paramfile.has_key('dKpcUnit'):
+            if must_have_paramfile :
+                raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+            else :
+                warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
+        
         time_unit = None
         try :
             time_unit = self.infer_original_units('yr')
@@ -135,27 +264,88 @@ class TipsySnap(snapshot.SimSnap) :
         if only_header == True:
             return
 
-        for n_left, type, st in file_structure :
-            n_done = 0
-            self_type = self[type]
-            while n_left>0 :
-                n_block = min(n_left,max_block_size)
+        if not take:
+            for n_left, n_orig, offs, type, st in file_structure :
+                n_done = 0
+                self_type = self[type]
+                while n_left>0 :
+                    n_block = min(n_left,max_block_size)
 
+                    st_len = st.itemsize
 
-                # Read in the block
-                if(self._byteswap):
-                    g = np.fromstring(f.read(len(st)*n_block*4),'f').byteswap().reshape((n_block,len(st)))
+                    # Read in the block
+                    buf = np.fromstring(f.read(st_len*n_block),dtype=st)
+                    
+                    if self._byteswap:
+                        buf = buf.byteswap()
+                    
+                    # Copy into the correct arrays
+                    for name in st.names :
+                        self_type[name][n_done:n_done+n_block] = buf[name]
+
+                    # Increment total ptcls read in, decrement ptcls left of this type
+                    n_left-=n_block
+                    n_done+=n_block
+        else:
+            for n_left, n_orig, offs, type, st in file_structure :
+                if not work.has_key(type):
+                    continue
+
+                self_type = self[type]
+                st_len = st.itemsize
+
+                n_block = 0         # size of the block in particles
+                block_offs = 0      # offset within the currently read block
+                family_offs = 0     # particle offset from the start of the family
+
+                # If all the work is contiguous we can be more efficient by
+                # copying an entire block into the array instead of picking out
+                # individual elements.
+                if work[type].ids is None:
+                    n_orig = min(n_orig, work[type].stop)
+                    n_done = 0
+
+                    family_offs = work[type].start
+
+                    n_left = n_orig - family_offs
+                    while n_left > 0:
+
+                        # This seek must be in the loop, particulary if the
+                        # step size is larger than max_block_size.
+                        f.seek(offs + family_offs*st_len)
+
+                        # Read in the block
+                        n_block = min(n_left, max_block_size)
+                        buf = np.fromstring(f.read(n_block*st_len),dtype=st)
+                        if self._byteswap:
+                            buf = buf.byteswap()
+
+                        slice_len = int(math.ceil(n_block / work[type].step))
+
+                        # Copy into the correct arrays
+                        for name in st.names :
+                            self_type[name][n_done:n_done+slice_len] = buf[name][::work[type].step]
+
+                        family_offs += work[type].step * slice_len
+                        n_done += slice_len
+                        n_left = n_orig - family_offs
                 else:
-                    g = np.fromstring(f.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
+                    for i,pdelta in enumerate(work[type].pdeltas()):
+                        block_offs  += pdelta
+                        family_offs += pdelta
 
-                # Copy into the correct arrays
-                for i, name in enumerate(st) :
-                    self_type[name][n_done:n_done+n_block] = g[:,i]
+                        if block_offs >= n_block:
+                            f.seek(offs + family_offs*st_len)
+                            n_block = min(n_orig - family_offs, max_block_size)
+                            # Read in the block
+                            buf = np.fromstring(f.read(n_block*st_len),dtype=st)
+                            if self._byteswap:
+                                buf = buf.byteswap()
+                            block_offs = 0
 
-                # Increment total ptcls read in, decrement ptcls left of this type
-                n_left-=n_block
-                n_done+=n_block
-
+                        # Copy into the correct arrays
+                        for name in st.names :
+                            self_type[name][i] = buf[name][block_offs]
 
     def _update_loadable_keys(self)  :
         def is_readable_array(x) :
@@ -626,18 +816,22 @@ class TipsySnap(snapshot.SimSnap) :
         if filename is None and array_name in ['massform', 'rhoform', 'tempform','phiform','nsmooth', 
                                                'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform', 
                                                'posform', 'velform'] :
-            self.read_starlog()
-            if fam is not None : return self[fam][array_name]
-            else : return self[array_name]
+
+            try : 
+                self.read_starlog()
+                if fam is not None : return self[fam][array_name]
+                else : return self[array_name]
+            except IOError: 
+                pass
 
         import sys, os
-	
-	# N.B. this code is a bit inefficient for loading
-	# family-specific arrays, because it reads in the whole array
-	# then slices it.  But of course the memory is only wasted
-	# while still inside this routine, so it's only really the
-	# wasted time that's a problem.
-	
+    
+        # N.B. this code is a bit inefficient for loading
+        # family-specific arrays, because it reads in the whole array
+        # then slices it.  But of course the memory is only wasted
+        # while still inside this routine, so it's only really the
+        # wasted time that's a problem.
+    
         # determine whether the array exists in a file
         
         if filename is None :
@@ -651,8 +845,8 @@ class TipsySnap(snapshot.SimSnap) :
         if config['verbose'] : print>>sys.stderr, "TipsySnap: attempting to load auxiliary array",filename
         # if we get here, we've got the file - try loading it
   
-	try :
-	    l = int(f.readline())
+        try :
+            l = int(f.readline())
             binary = False
             if l!=len(self) :
                 raise IOError, "Incorrect file format"
@@ -672,7 +866,7 @@ class TipsySnap(snapshot.SimSnap) :
                 f.readline()
                 
             data = np.fromfile(f, dtype=tp, sep="\n")
-	except ValueError :
+        except ValueError :
             # this is probably a binary file
             binary = True
             f.seek(0)
@@ -745,8 +939,8 @@ class TipsySnap(snapshot.SimSnap) :
         return r
         
     def read_starlog(self, fam=None) :
-	"""Read a TIPSY-starlog file."""
-	
+        """Read a TIPSY-starlog file."""
+    
         import sys, os, glob, pynbody.bridge
         x = os.path.abspath(self._filename)
         done = False
@@ -775,11 +969,11 @@ class TipsySnap(snapshot.SimSnap) :
             self._arrays[x+'form'] = self['posform'][:,i]
         for i,x in enumerate(['vx','vy','vz']): 
             self._arrays[x+'form'] = self['velform'][:,i]
-	
+    
     @staticmethod
     def _can_load(f) :
-	# to implement!
-	return True
+        # to implement!
+        return True
 
 # caculate the number fraction YH, YHe as a function of metalicity. Cosmic 
 # production rate of helium relative to metals (in mass)  
@@ -1002,7 +1196,7 @@ class StarLog(snapshot.SimSnap):
                                                   'f8','i4')})
 
             if (iSize != file_structure.itemsize and iSize != 104):
-                raise ValueError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
+                raise IOError, "Unknown starlog structure iSize:"+str(iSize)+", file_structure itemsize:"+str(file_structure.itemsize)
             else : bigstarlog = True
             
         datasize = os.path.getsize(filename)-f.tell()
@@ -1112,34 +1306,34 @@ def load_paramfile(sim) :
     filename=None
     for i in xrange(2) :
         x = os.path.dirname(x)
-	l = glob.glob(os.path.join(x,"*.param"))
+        l = glob.glob(os.path.join(x,"*.param"))
 
-	for filename in l :
-	    # Attempt the loading of information
-	    try :
-		f = file(filename)
-	    except IOError :
+        for filename in l :
+            # Attempt the loading of information
+            try :
+                f = file(filename)
+            except IOError :
                 l = glob.glob(os.path.join(x,"../*.param"))
                 try : 
                     for filename in l:
                         f = file(filename)
                 except IOError:
                     continue
-	    
             
+                
             for line in f :
-		try :
+                try :
                     if line[0]!="#" :
                         s = line.split("#")[0].split()
                         sim._paramfile[s[0]] = " ".join(s[2:])
-                                
-		except IndexError, ValueError :
-		    pass
+                                    
+                except IndexError, ValueError :
+                    pass
 
             if len(sim._paramfile)>1 :
                 sim._paramfile["filename"] = filename
                 done = True
-                
+                    
         if done : break
 
             
@@ -1165,7 +1359,6 @@ def param2units(sim) :
             dunit = float(sim._paramfile["dKpcUnit"])
         except KeyError :
             pass
-
 
         if munit is None or dunit is None :
             if hub!=None:

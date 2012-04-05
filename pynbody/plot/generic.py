@@ -427,7 +427,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
                           aspect = 'auto',cmap=cmap,
                           #aspect = np.diff(x_range)/np.diff(y_range),cmap=cmap,
                           extent=[x_range[0],x_range[1],y_range[0],y_range[1]])
-    cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,**kwargs)
+    cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,cmap=cmap,**kwargs)
 
     
     if kwargs.has_key('xlabel'):
@@ -482,3 +482,58 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
     
 
                   
+def fourier_map(sim, nbins = 100, nmin = 1000, nphi=100, mmin=1, mmax=7, rmax=10, 
+                levels = [.01,.05,.1,.2], subplot = None, ret = False, **kwargs) : 
+    """
+
+    Plot an overdensity map generated from a Fourier expansion of the
+    particle distribution. A :func:`~pynbody.analysis.profile.Profile`
+    is made and passed to :func:`~pynbody.plot.util.inv_fourier` to
+    obtain an overdensity map. The map is plotted using the usual
+    matplotlib.contour. 
+    
+    **Input**:
+
+    *sim* :  a :func:`~pynbody.snapshot.SimSnap` object
+
+    **Optional Keywords**:
+    
+    *nbins* (100) : number of radial bins to use for the profile
+
+    *nmin* (1000) : minimum number of particles required per bin 
+
+    *nphi* (100)  : number of azimuthal bins to use for the map
+
+    *mmin* (1)    : lowest multiplicity Fourier component
+
+    *mmax* (7)    : highest multiplicity Fourier component
+
+    *rmax* (10)   : maximum radius to use when generating the profile
+
+    *levels* [0.01,0.05,0.1,0.2] : tuple of levels for plotting contours
+    
+    *subplot* (None) : Axes object on which to plot the contours
+    
+    """
+    from . import util
+
+    if subplot is None : 
+        import matplotlib.pylab as plt
+
+    else : 
+        plt = subplot
+
+    p = pynbody.analysis.profile.Profile(sim,max=rmax,nbins=nbins)
+    phi,phi_inv = util.inv_fourier(p,nmin,mmin,mmax,nphi)
+
+    rr,pp = np.meshgrid(p['rbins'],phi)
+
+    xx = (rr*np.cos(pp)).T
+    yy = (rr*np.sin(pp)).T
+
+    plt.contour(xx,yy,phi_inv,levels,**kwargs)
+    
+    if ret: 
+        return xx,yy,phi_inv
+
+

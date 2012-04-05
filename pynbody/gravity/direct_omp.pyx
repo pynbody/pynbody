@@ -2,7 +2,7 @@
 
 
 cimport cython  
-from pynbody import units, array
+from pynbody import units, array, config
 import numpy as np
 cimport numpy as np
 
@@ -18,19 +18,37 @@ cdef extern from "omp.h" :
 cdef extern from "omp.h" : 
      int omp_get_max_threads()
 
+cdef extern from "omp.h" : 
+     int omp_get_num_procs()
+
 def get_threads() : 
     return omp_get_max_threads()
 
 def set_threads(num) : 
     omp_set_num_threads(num)
 
+def get_cpus() : 
+    return omp_get_num_procs()
+
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
-def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = omp_get_max_threads()): 
+def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
 
     from cython.parallel cimport prange
 
-    omp_set_num_threads(num_threads)    
+    global config
+
+    if num_threads == 0 : 
+        num_threads = np.int(config["number_of_threads"])
+
+    if num_threads < 0: 
+        num_threads = get_cpus()
+
+    if num_threads > get_cpus() : 
+        num_threads = get_cpus()
+
+    set_threads(num_threads)    
 
     cdef unsigned int nips = len(ipos)
     cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = np.float64)
