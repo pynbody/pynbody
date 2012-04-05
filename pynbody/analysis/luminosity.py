@@ -64,7 +64,7 @@ def calc_mags(simstars, band='v') :
                  'age_star','metals','n_stars','mag_grid','output_mags'])
     try :
         return output_mags - 2.5*np.log10(simstars['massform'].in_units('Msol'))
-    except KeyError:
+    except KeyError, ValueError:
         return output_mags - 2.5*np.log10(simstars['mass'].in_units('Msol'))
 
 
@@ -74,3 +74,32 @@ def halo_mag(sim,band='v') :
 def halo_lum(sim,band='v') :
     return np.sum(10.0**((5.8-sim.star[band+'_mag'])/2.5))
 
+def half_light_r(sim,band='v'):
+    import pynbody, pynbody.filt as f
+    half_l = halo_lum(sim,band=band) * 0.5
+    #print "half_l: %g"%half_l
+    max_high_r = np.max(sim.star['r'])
+    test_r = 0.5*max_high_r
+    testrf = f.LowPass('r',test_r)
+    min_low_r = 0.0
+    test_l = halo_lum(sim[testrf],band=band)
+    it=0
+    while ((np.abs(test_l - half_l)/half_l) > 0.01):
+        it = it+1
+        if (it > 20):
+            break
+        #error = np.abs(test_l - half_l)/half_l
+        #print "iteration: %d error: %6.2g test_l: %g test_r: %g"%(it,error,test_l,test_r)
+        if (test_l > half_l):
+            test_r = 0.5*(min_low_r + test_r)
+        else :
+            test_r = (test_r + max_high_r)*0.5
+        testrf = f.LowPass('r',test_r)
+        test_l = halo_lum(sim[testrf],band=band)
+
+        if (test_l > half_l):
+            max_high_r = test_r
+        else :
+            min_low_r = test_r
+        
+    return test_r*sim.star['r'].units
