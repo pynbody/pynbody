@@ -29,7 +29,7 @@ def sideon_image(sim, *args, **kwargs) :
             angmom.sideon(sim)
     else :
         angmom.sideon(sim)
-    image(sim, *args, **kwargs)
+    return image(sim, *args, **kwargs)
 
 def faceon_image(sim, *args, **kwargs) :
     """
@@ -44,13 +44,14 @@ def faceon_image(sim, *args, **kwargs) :
 
     from ..analysis import angmom
     angmom.faceon(sim)
-    image(sim, *args, **kwargs)
+    return image(sim, *args, **kwargs)
 
 
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None, center=False,
-          title=False, qtytitle=False) :
+          title=False, qtytitle=False, show_cbar=True, subplot=False,
+          noplot = False, ret_im=False) :
     """
 
     Make an SPH image of the given simulation.
@@ -73,6 +74,11 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     *z_camera* (None): If set, a perspective image is rendered. See
                 :func:`pynbody.sph.image` for more details.
     """
+
+    if subplot:
+        p = subplot
+    else :
+        import pylab as p
 
     if isinstance(units, str) :
         units = _units.Unit(units)
@@ -124,13 +130,19 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    if clear : p.clf()
-    
-    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), vmin=vmin, vmax=vmax, cmap=cmap)
+    if clear and not subplot : p.clf()
+
+    if ret_im:
+        return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+                 vmin=vmin, vmax=vmax, cmap=cmap)
+
+    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+             vmin=vmin, vmax=vmax, cmap=cmap)
 
     u_st = sim['pos'].units.latex()
-    p.xlabel("$x/%s$"%u_st)
-    p.ylabel("$y/%s$"%u_st)
+    if not subplot:
+        p.xlabel("$x/%s$"%u_st)
+        p.ylabel("$y/%s$"%u_st)
 
     if units is None :
         units = im.units
@@ -141,13 +153,48 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     else :
         units = "$"+units.latex()+"$"
 
-    if qtytitle:
-        p.colorbar().set_label(qtytitle)
-    else:
-        p.colorbar().set_label(units)
+    if not subplot and show_cbar:
+        if qtytitle: p.colorbar().set_label(qtytitle)
+        else:        p.colorbar().set_label(units)
+    # colorbar doesn't work wtih subplot:  mappable is NoneType
+    #elif show_cbar:
+    #    import matplotlib.pyplot as mpl
+    #    if qtytitle: mpl.colorbar().set_label(qtytitle)
+    #    else:        mpl.colorbar().set_label(units)
 
     if title:
-        p.title(title)
+        if subplot:
+            p.set_title(title)
+        else:
+            p.title(title)
+            
 
     if filename:
         p.savefig(filename)
+
+    return im
+
+def image_radial_profile(im, bins=100):
+
+    xsize, ysize = np.shape(im)
+    x = np.arange(-xsize/2, xsize/2)
+    y = np.arange(-ysize/2, ysize/2)
+    xs, ys = np.meshgrid(x,y)
+    rs = np.sqrt(xs**2 + ys**2)
+    hist, bin_edges = np.histogram(rs,bins=bins)
+    inds = np.digitize(rs.flatten(), bin_edges)
+    ave_vals = np.zeros(bin_edges.size)
+    max_vals = np.zeros(bin_edges.size)
+    min_vals = np.zeros(bin_edges.size)
+    for i in np.arange(bin_edges.size):
+        try:
+            min_vals[i] = np.min(10**(im.flatten()[np.where(inds == i)]))
+        except ValueError:
+            min_vals[i] = float('nan')
+        ave_vals[i] = np.mean(10**(im.flatten()[np.where(inds == i)]))
+        try:
+            max_vals[i] = np.max(10**(im.flatten()[np.where(inds == i)]))
+        except ValueError:
+            max_vals[i] = float('nan')
+
+    return ave_vals, min_vals, max_vals, bin_edges
