@@ -110,7 +110,8 @@ def v_disp(self):
 def age(self) :
     return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
 
-bands_available = ['u','b','v','r','i','j','h','k','b']
+bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
+                   'J','H','K']
 
 for band in bands_available :
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s,band=b)
