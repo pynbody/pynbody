@@ -45,8 +45,8 @@ def calc_faceon_matrix(angmom_vec) :
     return matr
 
 
-def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "5 kpc",
-           cen = None, vcen=None, top=None ) :
+def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", 
+           disk_size = "5 kpc", cen = None, vcen=None, top=None, **kwargs ) :
     """
 
     Reposition and rotate the simulation containing the halo h to see
@@ -71,36 +71,22 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", disk_size = "
     if cen is None :
         if config['verbose'] :
             print "Finding halo center..."
-        cen = halo.center(h,retcen=True) # or h['pos'][h['phi'].argmin()]
+        cen = halo.center(h,retcen=True,**kwargs) # or h['pos'][h['phi'].argmin()]
         if config['verbose'] :
             print "cen=",cen
 
     top['pos']-=cen
 
     if vcen is None :
-        # Use stars from inner 1kpc to calculate center of velocity
-        if config['verbose'] :
-            print "Finding halo velocity center..."
-        cen = h.star[filt.Sphere(cen_size)]
-        if len(cen)<5 :
-            # fall-back to DM
-            cen = h.dm[filt.Sphere(cen_size)]
-        if len(cen)<5 :
-            # fall-back to gas
-            cen = h.gas[filt.Sphere(cen_size)]
-        if len(cen)<5 :
-            # very weird snapshot, or mis-centering!
-            raise ValueError, "Insufficient particles around center to get velocity"
-
-        vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
-        vcen.units = cen['vel'].units
-        if config['verbose'] :
-            print "vcen=",vcen
+        vcen = halo.vel_center(h,retcen=True)
 
     top['vel']-=vcen
 
     # Use gas from inner 10kpc to calculate angular momentum vector
-    cen = h.gas[filt.Sphere(disk_size)]
+    if (len(h.gas) > 0):
+        cen = h.gas[filt.Sphere(disk_size)]
+    else:
+        cen = h[filt.Sphere(disk_size)]
 
     if config['verbose'] :
         print "Calculating angular momentum vector..."
