@@ -90,7 +90,7 @@ def direct(f, ipos, eps= None) :
     return -m_by_r, -m_by_r2
 
 def treecalc(f, rs, eps= None) :
-    gtree = tree.GravTree(f['pos'].view(np.ndarray),f['mass'].view(np.ndarray),eps=np.min(eps))
+    gtree = tree.GravTree(f['pos'].view(np.ndarray),f['mass'].view(np.ndarray),eps=f['eps'], rs=rs)
     a, p = gtree.calc(rs,eps=eps)
     return p, a
 
