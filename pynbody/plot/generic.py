@@ -525,3 +525,57 @@ def fourier_map(sim, nbins = 100, nmin = 1000, nphi=100, mmin=1, mmax=7, rmax=10
         return xx,yy,phi_inv
 
 
+def prob_plot(x,y,weight,nbins=(100,100),extent=None,axes=None,**kwargs) : 
+    """ 
+
+    Make a plot of the probability of y given x, i.e. p(y|x). The
+    values are normalized such that the integral along each column is
+    one.
+
+    **Input**: 
+
+    *x*: primary binning axis
+
+    *y*: secondary binning axis
+
+    *weight*: weights array
+
+    *nbins*: tuple of length 2 specifying the number of bins in each direction
+
+    *extent*: tuple of length 4 speciphysical extent of the axes
+     (xmin,xmax,ymin,ymax)
+
+    **Optional Keywords**:
+
+    all optional keywords are passed on to the imshow() command
+
+    """
+
+    import matplotlib.pylab as plt
+
+    assert(len(nbins)==2)
+    grid = np.zeros(nbins)
+
+    if extent is None : 
+        extent = (min(x),max(x),min(y),max(y))
+
+    xbinedges = np.linspace(extent[0],extent[1],nbins[0]+1)
+    ybinedges = np.linspace(extent[2],extent[3],nbins[1]+1)
+    
+
+    for i in xrange(nbins[0]) : 
+        
+        ind = np.where((x > xbinedges[i])&(x < xbinedges[i+1]))[0]
+        h, bins = np.histogram(y[ind],weights=weight[ind], bins = ybinedges, density = True)
+        grid[:,i] = h
+
+    if axes is None: 
+        im = plt.imshow(grid,extent=extent,origin='lower',**kwargs)
+
+    else : 
+        im = axes.imshow(grid,extent=extent,origin='lower',**kwargs)
+
+    cb = plt.colorbar(im,format='%.2f')
+    cb.set_label(r'$P(y|x)$')
+    
+    return grid, xbinedges, ybinedges
