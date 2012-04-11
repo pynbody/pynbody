@@ -143,7 +143,7 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
     if retcen:  return vcen
     else:  sim["vel"]-=vcen
 
-def center(sim, mode=None, retcen=False, **kwargs) :
+def center(sim, mode=None, retcen=False, vel=True, **kwargs) :
     """
 
     Determine the center of mass using the specified mode and recenter
@@ -195,5 +195,4 @@ def center(sim, mode=None, retcen=False, **kwargs) :
         sim.ancestor["pos"]-=cen
 
     if vel :
-        vcen = sim[filt.Sphere("1 kpc")].mean_by_mass("vel")
-        sim.ancestor["vel"]-=vcen
+        vel_center(sim, cen_size = "1 kpc")
