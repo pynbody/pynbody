@@ -61,7 +61,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
             print com,r,len(x)
     return com
 
-def virial_radius(sim, cen=(0,0,0), overden=178, r_max=None) :
+def virial_radius(sim, cen=None, overden=178, r_max=None) :
     """
     
     Calculate the virial radius of the halo centerd on the given
@@ -75,18 +75,26 @@ def virial_radius(sim, cen=(0,0,0), overden=178, r_max=None) :
     if r_max is None :
         r_max = (sim["x"].max()-sim["x"].min())
     else :
-        sim = sim[filt.Sphere(r_max,cen)]
-
+        if cen is not None :
+            sim = sim[filt.Sphere(r_max,cen)]
+        else :
+            sim = sim[filt.Sphere(r_max)]
 
     r_min = 0.0
 
-    sim["r"] = ((sim["pos"]-cen)**2).sum(axis=1)**(1,2)
+    if cen is not None :
+        sim['pos']-=cen
+        
+    # sim["r"] = ((sim["pos"]-cen)**2).sum(axis=1)**(1,2)
 
     rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
     target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
 
-    return util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
+    result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
+    if cen is not None :
+        sim['pos']+=cen
 
+    return result
 
 def potential_minimum(sim) :
     i = sim["phi"].argmin()
