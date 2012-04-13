@@ -51,7 +51,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=False, qtytitle=False, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False) :
+          noplot = False, ret_im=False, threaded=True,
+          number_of_threads=None) :
     """
 
     Make an SPH image of the given simulation.
@@ -124,7 +125,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 aunits = units*sim['z'].units
             else :
                 aunits = None
-
+            
             sim["__one"]=np.ones_like(sim[qty])
             sim["__one"].units="1"
             im = rfunc(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
