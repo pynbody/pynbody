@@ -70,7 +70,10 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     *av_z* (False): If True, the requested quantity is averaged down
             the line of sight (default False: image is generated in
             the thin plane z=0, unless output units imply an integral
-            down the line of sight)
+            down the line of sight). If a string, the requested quantity
+            is averaged down the line of sight weighted by the av_z
+            array (e.g. use 'rho' for density-weighted quantity;
+            the default results when av_z=True are volume-weighted).
 
     *z_camera* (None): If set, a perspective image is rendered. See
                 :func:`pynbody.sph.image` for more details.
@@ -125,21 +128,35 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 aunits = units*sim['z'].units
             else :
                 aunits = None
-            
-            sim["__one"]=np.ones_like(sim[qty])
-            sim["__one"].units="1"
+
+            if isinstance(av_z, str) :
+                sim["__prod"] = sim[av_z]*sim[qty]
+                qty = "__prod"
+            else :
+                av_z = "__one"
+                sim["__one"]=np.ones_like(sim[qty])
+                sim["__one"].units="1"
+                
+                
             im = rfunc(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
                        z_camera=z_camera, **kwargs)
-            im2 = rfunc(sim, "__one", width/2, resolution, kernel=kernel, 
+            im2 = rfunc(sim, av_z, width/2, resolution, kernel=kernel, 
                         z_camera=z_camera, **kwargs)
             
-            top = sim
-            while hasattr(top,'base') : 
-                top = top.base
-                                
-            del top["__one"]
-            
+            top = sim.ancestor
+
+            try:
+                del top["__one"]
+            except KeyError :
+                pass
+
+            try:
+                del top["__prod"]
+            except KeyError :
+                pass
+
             im = im/im2
+         
     else :
 
         im = rfunc(sim,qty,width/2,resolution,out_units=units, 
