@@ -140,8 +140,8 @@ class AHFCatalogue(HaloCatalogue) :
             # switching back to gas, dark, star
             for i in xrange(nparts) : 
                 if self.isnew:
-                    key,value=f.readline().split()
-                    if (value == '0'): key=int(key)-nds
+                    key,value=[int(i) for i in f.readline().split()]
+                    if (key > nds): key=int(key)-nds
                     else: key=int(key)+ng
                 else :
                     key=f.readline()
@@ -180,6 +180,7 @@ class AHFCatalogue(HaloCatalogue) :
         f = util.open_(filename)
         nhalos = int(f.readline())  # number of halos?  no, some crazy number
                                     # that we will ignore
+        #import pdb; pdb.set_trace()
         for i in xrange(len(self._halos)) :
             try:
                 haloid, nsubhalos = [int(x) for x in f.readline().split()]
@@ -204,23 +205,18 @@ class AHFCatalogue(HaloCatalogue) :
         # find AHFstep
         for directory in os.environ["PATH"].split(os.pathsep) :
             ahfs = glob.glob(os.path.join(directory,"AHF*"))
-            if (len(ahfs) == 1):
-                if (os.path.basename(ahfs[0]) == 'AHFstep'):
-                    isAHFstep=True
+            for iahf, ahf in enumerate(ahfs):
+                # if there are more AHF*'s than 1, it's not the last one, and
+                # it's AHFstep, then continue, otherwise it's OK.
+                if ((len(ahfs)>1) & (iahf != len(ahfs)-1) & 
+                    (os.path.basename(ahf) == 'AHFstep')): 
+                    continue
                 else: 
-                    isAHFstep=False
+                    groupfinder=ahf
                     break
-            if (len(ahfs) > 1):
-                for iahf, ahf in enumerate(ahfs):
-                    if (iahf == len(ahfs)-1): 
-                        groupfinder=ahf
-                        if (os.path.basename(ahfs[0]) == 'AHFstep'):
-                            isAHFstep=True
-                    if (os.path.basename(ahf) == 'AHFstep'): continue
-                    else: 
-                        isAHFstep=False
-                        groupfinder=ahf
-                        break
+
+        if (os.path.basename(groupfinder) == 'AHFstep'):  isAHFstep=True
+        else:  isAHFstep=False
         #build units file
         if isAHFstep:
             f = open('tipsy.info','w')
@@ -231,7 +227,7 @@ class AHFCatalogue(HaloCatalogue) :
             f.write(str(sim['mass'].units.ratio(units.Msol))+"\n")
             f.close()
             # make input file
-            f = open('AHFstep.in','w')
+            f = open('AHF.in','w')
             f.write(sim._filename+" "+typecode+" 1\n")
             f.write(sim._filename+"\n256\n5\n5\n0\n0\n0\n0\n")
             f.close()
@@ -243,15 +239,16 @@ class AHFCatalogue(HaloCatalogue) :
             f.write('ic_filetype = '+typecode+"\n")
             f.write('outfile_prefix = '+sim._filename+"\n")
             f.write('LgridDomain = 256\n')
-            lgridmax = int(2**np.ceil(np.log2(1.0 / np.min(sim['eps']))))
+            # hardcoded maximum 131072 might not be necessary
+            lgridmax = np.min([int(2**np.floor(np.log2(1.0 / np.min(sim['eps'])))),131072])
             f.write('LgridMax = '+str(lgridmax)+'\n')
             f.write('NperDomCell = 5\n')
             f.write('NperRefCell = 5\n')
             f.write('VescTune = 1.5\n')
             f.write('NminPerHalo = 50\n')
-            f.write('RhoVir = 0\n')
+            f.write('RhoVir = 1\n')
             f.write('Dvir = -1\n')
-            f.write('MaxGatherRad = 20.0\n\n')
+            f.write('MaxGatherRad = 10.0\n\n')
             f.write('[TIPSY]\n')
             f.write('TIPSY_OMEGA0 = '+str(sim.properties['omegaM0'])+"\n")
             f.write('TIPSY_LAMBDA0 = '+str(sim.properties['omegaL0'])+"\n")
