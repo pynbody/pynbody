@@ -51,7 +51,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z = False, filename=False, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=False, qtytitle=False, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False) :
+          noplot = False, ret_im=False, threaded=False) :
     """
 
     Make an SPH image of the given simulation.
@@ -75,6 +75,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 :func:`pynbody.sph.image` for more details.
     """
 
+    global config
     if subplot:
         p = subplot
     else :
