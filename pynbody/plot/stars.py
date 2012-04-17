@@ -87,12 +87,10 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
     if subplot: x0,x1 = plt.get_xlim()
     else: x0,x1 = plt.gca().get_xlim()
     from pynbody.analysis import pkdgrav_cosmo as cosmo
-    c = cosmo.Cosmology()
+    c = cosmo.Cosmology(sim=sim)
     pz = plt.twiny()
     labelzs = np.arange(5,int(sim.properties['z'])-1,-1)
     times = [13.7*c.Exp2Time(1.0 / (1+z))/c.Exp2Time(1) for z in labelzs]
-    print times
-    print labelzs
     pz.set_xticks(times)
     pz.set_xticklabels([str(x) for x in labelzs])
     pz.set_xlim(x0, x1)
@@ -211,7 +209,7 @@ def oneschmidtlawpoint(sim,center=True,pretime='50 Myr',
     return xsigma, ysigma
 
 
-def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True, 
+def satlf(sim,band='v',filename=None, MWcompare=True, Trentham=True, 
           clear=True, legend=True,
           label='Simulation',**kwargs) :
     '''
@@ -245,17 +243,18 @@ def satlf(sim,band='V',filename=None, MWcompare=True, Trentham=True,
     import os
 
     halomags = []
-    try :
-        for haloid in sim.properties['children'] :
-            if (sim._halo_catalogue.contains(haloid)) :
-                halo = sim._halo_catalogue[haloid]
-                try:
-                    halo.properties[band+'_mag'] = lum.halo_mag(halo,band=band)
+    #try :
+    for haloid in sim.properties['children'] :
+        if (sim._halo_catalogue.contains(haloid)) :
+            halo = sim._halo_catalogue[haloid]
+            try:
+                halo.properties[band+'_mag'] = lum.halo_mag(halo,band=band)
+                if np.isfinite(halo.properties[band+'_mag']):
                     halomags.append(halo.properties[band+'_mag'])
-                except IndexError:
-                    pass  # no stars in satellite
-    except KeyError:
-        raise KeyError, str(sim)+' properties have no children key as a halo type would'
+            except IndexError:
+                pass  # no stars in satellite
+    #except KeyError:
+        #raise KeyError, str(sim)+' properties have no children key as a halo type would'
     
     if clear : plt.clf()
     plt.semilogy(sorted(halomags),np.arange(len(halomags))+1, label=label,
@@ -338,7 +337,10 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
     if clear : plt.clf()
 
     plt.plot(r,ps['sb,'+band],linewidth=2,**kwargs)
-    plt.ylim(max(ps['sb,'+band]),min(ps['sb,'+band]))
+    if axes:
+        plt.set_ylim(max(ps['sb,'+band]),min(ps['sb,'+band]))
+    else:
+        plt.ylim(max(ps['sb,'+band]),min(ps['sb,'+band]))
     if fit_exp:
         exp_inds = np.where(r.in_units('kpc') > fit_exp)
         expfit = np.polyfit(np.array(r[exp_inds]), 

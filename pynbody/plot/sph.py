@@ -79,6 +79,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 :func:`pynbody.sph.image` for more details.
     """
 
+    global config
     if subplot:
         p = subplot
     else :
