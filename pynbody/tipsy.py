@@ -529,7 +529,7 @@ class TipsySnap(snapshot.SimSnap) :
             ns = len(self.star)
 
 
-            byteswap = getattr(self, "_byteswap", None)
+            byteswap = getattr(self, "_byteswap", sys.byteorder=="little")
 
             if byteswap: 
                 f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
