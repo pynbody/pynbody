@@ -41,9 +41,16 @@ class Profile:
                             particles ('equaln')
 
     *min* (default = min(x)): minimum value to consider
+
     *max* (default = max(x)): maximum value to consider
+
     *nbins* (default = 100): number of bins
 
+    *calc_x* (default = None): function to use to calculate the value
+     for binning. If None it defaults to the radial distance from
+     origin (in either 2 or 3 dimensions), ut you can specify this
+     function to return any value you want for making profiles along
+     arbitrary axes.
 
     **Output**:
 
@@ -97,6 +104,10 @@ class Profile:
     
     To obtain a dispersion profile, attach a '_disp' after the desired
     quantity name.
+
+    **RMS:**
+    
+    The root-mean-square of a quantity can be obtained by using a '_rms' suffix
 
     **Derivatives:**
     
@@ -174,14 +185,15 @@ class Profile:
     def _calculate_x(self, sim) :
         return ((sim['pos'][:,0:self.ndim]**2).sum(axis = 1))**(1,2)
 
-    def __init__(self, sim, load_from_file = False, ndim = 2, type = 'lin', **kwargs):
+    def __init__(self, sim, load_from_file = False, ndim = 2, type = 'lin', calc_x = None, **kwargs):
 
         generate_new = True
-
+        if calc_x is None : 
+            calc_x = self._calculate_x
         self.sim = sim
         self.type = type
         self.ndim = ndim
-        self._x = self._calculate_x(sim)
+        self._x = calc_x(sim)
         x = self._x
 
         if load_from_file :
@@ -334,15 +346,15 @@ class Profile:
     def _auto_profile(self, name, dispersion=False, rms=False) :
         result = np.zeros(self.nbins)
         for i in range(self.nbins):
+            subs = self.sim[self.binind[i]]
             if dispersion :
-                sq_mean = ((self.sim[name][self.binind[i]]**2)*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i]
-                mean_sq = ((self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i])**2
-
+                sq_mean = (subs[name]**2*subs['mass']).sum()/self['mass'][i]
+                mean_sq = ((subs[name]*subs['mass']).sum()/self['mass'][i])**2
                 result[i] = math.sqrt(sq_mean - mean_sq)
             elif rms : 
-                result[i] = np.sqrt(((self.sim[name][self.binind[i]]**2)*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i])
+                result[i] = np.sqrt((subs[name]**2*subs['mass']).sum()/self['mass'][i])
             else :
-                result[i] = (self.sim[name][self.binind[i]]*self.sim['mass'][self.binind[i]]).sum()/self['mass'][i]
+                result[i] = (subs[name]*subs['mass']).sum()/self['mass'][i]
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units
@@ -709,6 +721,47 @@ def X(self) :
     kcrit = 2.*np.pi/lambda_crit
     return (kcrit*self['rbins']/2).in_units("")
 
+
+@Profile.profile_property
+def jtot(self) : 
+    """
+    Magnitude of the total angular momentum 
+    """
+    jtot = np.zeros(self.nbins)
+    
+    for i in range(self.nbins) : 
+        subs = self.sim[self.binind[i]]
+        jx = (subs['j'][:,0]*subs['mass']).sum()/self['mass'][i]
+        jy = (subs['j'][:,1]*subs['mass']).sum()/self['mass'][i]
+        jz = (subs['j'][:,2]*subs['mass']).sum()/self['mass'][i]
+        
+        jtot[i] = np.sqrt(jx**2+jy**2+jz**2)
+
+    return jtot
+
+@Profile.profile_property
+def j_theta(self): 
+    """
+    Angle that the angular momentum vector of the bin makes with respect to the x-axis.
+    """
+
+    return np.arccos(self['jz']/self['jtot'])
+
+@Profile.profile_property
+def j_phi(self): 
+    """
+    Angle that the angular momentum vector of the bin makes with the xy-plane.
+    """
+    j_phi = np.zeros(self.nbins)
+
+    for i in range(self.nbins) : 
+        subs = self.sim[self.binind[i]]
+        jx = (subs['j'][:,0]*subs['mass']).sum()/self['mass'][i]
+        jy = (subs['j'][:,1]*subs['mass']).sum()/self['mass'][i]
+        j_phi[i] = np.arctan(jy,jx)
+    
+    return j_phi
+    
 
 class InclinedProfile(Profile) :
     """
