@@ -513,7 +513,7 @@ class GadgetFile :
             fd.write(data)
         
         if self.endian != '=' :
-            big_data=big_data.byteswap(True)
+            big_data=big_data.byteswap(False)
 
         #Actually write the data
         #Make sure to ravel it, otherwise the wrong amount will be written, 
