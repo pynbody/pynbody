@@ -594,7 +594,7 @@ class GadgetWriteFile (GadgetFile) :
     def __init__(self, filename, npart, block_names, header, format2=True) :
         self.header=header
         self._filename = filename
-        self.endian=''
+        self.endian='=' # write with default endian of this system
         self.format2=format2
         self.blocks={}
         self.header.npart = np.array(npart)
@@ -898,7 +898,9 @@ class GadgetSnap(snapshot.SimSnap):
                     npart[np.min(gadget_type(f))] = len(self[f][arr_name])
                 #Construct a header
                 # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 
-                gheader=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],self.properties["boxsize"].in_units("kpc a"),self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],1)
+                gheader=GadgetHeader(npart,np.zeros(N_TYPE,float),self.properties["a"],self.properties["z"],
+                                     self.properties["boxsize"].in_units(self['pos'].units, **self.conversion_context()),
+                                     self.properties["omegaM0"],self.properties["omegaL0"],self.properties["h"],1)
                 #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
                 #as well as a name. Blocks will hit the disc in the order they are in all_keys.
                 #First, make pos the first block and vel the second.
