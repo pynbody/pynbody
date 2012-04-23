@@ -83,6 +83,17 @@ class GadgetBlock :
         #Types of particle this block contains
         self.p_types = p_types
 
+def _output_order_gadget(all_keys) :
+
+    out = []
+    out_dregs = copy.copy(all_keys)
+    for X in map(str.strip,config_parser.get('gadget-default-output', 'field-ordering').split(',')) :
+        if X in out_dregs :
+            del out_dregs[out_dregs.index(X)]
+            out.append(X)
+
+    return out+out_dregs
+    
 def _construct_gadget_header(data,endian='=') :
     """This function exists purely because python does not allow us to overload constructors.
        Create a GadgetHeader from a byte range read from a file."""
@@ -891,10 +902,16 @@ class GadgetSnap(snapshot.SimSnap):
                 #Construct the block_names; each block_name needs partlen, data_type, and p_types, 
                 #as well as a name. Blocks will hit the disc in the order they are in all_keys.
                 #First, make pos the first block and vel the second.
-                all_keys[all_keys.index("pos")]=all_keys[0]
-                all_keys[0] = "pos"
-                all_keys[all_keys.index("vel")]=all_keys[1]
-                all_keys[1] = "vel"
+
+                
+                
+                #all_keys[all_keys.index("pos")]=all_keys[0]
+                #all_keys[0] = "pos"
+                #all_keys[all_keys.index("vel")]=all_keys[1]
+                #all_keys[1] = "vel"
+
+                all_keys = _output_order_gadget(all_keys)
+                
                 #No writing format 1 files.
                 block_names = []
                 for k in all_keys :
