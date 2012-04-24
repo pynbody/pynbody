@@ -827,8 +827,10 @@ class GadgetSnap(snapshot.SimSnap):
 
         if fam is None :
             self[name] = data.reshape(dims,order='C').view(array.SimArray)
+            self[name].set_default_units(quiet=True)
         else :
             self[fam][name] = data.reshape(dims,order='C').view(array.SimArray)
+            self[fam][name].set_default_units(quiet=True)
 
 
     def __load_array(self, g_name, p_type) :
@@ -1048,34 +1050,18 @@ def do_properties(sim) :
 @GadgetSnap.decorator
 def do_units(sim) :
     #cosmo = (sim._hdf['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
+    
     vel_unit = units.Unit('1 km s^-1')
     dist_unit = units.Unit('1 kpc')
-    #if cosmo :
-    dist_unit/=units.h
-
-    #You have: kpc s / km
-    #You want: Gyr
-    #* 0.97781311
-    timeunit = dist_unit / vel_unit * 0.97781311
-    #timeunit_st = ("%.5g"%timeunit)+" Gyr"
-
     mass_unit = units.Unit('1e10 Msol')
     #if cosmo:
     mass_unit/=units.h
-
+    dist_unit/=units.h
+    vel_unit*=units.a**(1,2)
+    
     denunit = mass_unit/dist_unit**3
     denunit_st = str(denunit)+" Msol kpc^-3"
 
-    potunit_st = vel_unit**2
 
-    try :
-        sim["phi"].units = potunit_st
-    except KeyError :
-        pass
-
-    #try :
-    #    sim.gas["smooth"].units = dist_unit
-    #except KeyError :
-    #    pass
 
     sim._file_units_system=[units.Unit(x) for x in [vel_unit,dist_unit,mass_unit,"K"]]
