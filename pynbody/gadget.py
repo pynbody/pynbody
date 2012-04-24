@@ -1051,17 +1051,10 @@ def do_properties(sim) :
 def do_units(sim) :
     #cosmo = (sim._hdf['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
     
-    vel_unit = units.Unit('1 km s^-1')
-    dist_unit = units.Unit('1 kpc')
-    mass_unit = units.Unit('1e10 Msol')
-    #if cosmo:
-    mass_unit/=units.h
-    dist_unit/=units.h
-    vel_unit*=units.a**(1,2)
+    vel_unit = config_parser.get('gadget-units', 'vel')
+    dist_unit = config_parser.get('gadget-units', 'pos')
+    mass_unit = config_parser.get('gadget-units', 'mass')
     
-    denunit = mass_unit/dist_unit**3
-    denunit_st = str(denunit)+" Msol kpc^-3"
-
 
 
     sim._file_units_system=[units.Unit(x) for x in [vel_unit,dist_unit,mass_unit,"K"]]
