@@ -154,7 +154,7 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, ma
     
 
 
-def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), 
+def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), nbins = None,
               make_plot = True, nmin = None, nmax = None, **kwargs) :
 
     """
@@ -200,6 +200,9 @@ Since this function produces a density estimate, the units of the
           
        *gridsize*: (int, int) (default: 100,100)
          size of grid for computing the density estimate
+
+       *nbins*: int
+         number of bins for the histogram - if specified, gridsize is set to (nbins,nbins)
 
        *make_plot*: boolean (default: True)
          whether or not to produce a plot
@@ -278,6 +281,9 @@ Since this function produces a density estimate, the units of the
     else :
         y = yo
         
+    if nbins is not None:
+        gridsize = (nbins,nbins)
+
     ind = np.where((x > x_range[0]) & (x < x_range[1]) &
                    (y > y_range[0]) & (y < y_range[1]))
 
