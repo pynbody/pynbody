@@ -36,11 +36,11 @@ def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
     if rho_units is None: 
         rho_units = sim['rho'].units
 
-    if kwargs.has_key('t_range'):
+    if t_range is not None:
         kwargs['y_range'] = kwargs['t_range']
         assert len(kwargs['y_range']) == 2
 
-    if kwargs.has_key('rho_range'):
+    if rho_range is not None:
         kwargs['x_range'] = kwargs['rho_range']
         assert len(kwargs['x_range']) == 2
     else:
