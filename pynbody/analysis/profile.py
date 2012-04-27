@@ -50,7 +50,8 @@ class Profile:
      for binning. If None it defaults to the radial distance from
      origin (in either 2 or 3 dimensions), ut you can specify this
      function to return any value you want for making profiles along
-     arbitrary axes.
+     arbitrary axes. Depening on your function, the units of certain
+     profiles (such as density) might not make sense.
 
     **Output**:
 
@@ -176,6 +177,11 @@ class Profile:
     >>> p['d_vr_disp']
     SimArray([  21.71365764,   41.11802081,   75.61694836,  105.28110255,
     2.664999  ,   -2.27668148,   -8.54033931,   -1.21577105], '1.01e+00 km s**-1 kpc**-1')
+    
+
+    Using another quantity for binning:
+
+    >>> ps = profile.Profile(s.s, calc_x = lambda x: s.s['rform'])
     
     """
 
