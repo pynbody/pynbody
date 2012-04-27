@@ -13,13 +13,13 @@ from ..analysis import profile, angmom, halo
 from .generic import hist2d
 from ..units import Unit
 
-def rho_T(sim, rho_units="m_p cm**-3", rho_range = None, t_range = None, **kwargs):
+def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
     **Optional keywords:**
 
-       *rho_units*: specify the density units (default = 'm_p cm^-3')
+       *rho_units*: specify the density units (default is the same units as the current 'rho' array)
 
        *t_range*: list, array, or tuple 
           ``size(t_range)`` must be 2. Specifies the temperature range.
@@ -32,6 +32,9 @@ def rho_T(sim, rho_units="m_p cm**-3", rho_range = None, t_range = None, **kwarg
 
     """
     from matplotlib import ticker, colors
+
+    if rho_units is None: 
+        rho_units = sim['rho'].units
 
     if kwargs.has_key('t_range'):
         kwargs['y_range'] = kwargs['t_range']
