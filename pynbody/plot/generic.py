@@ -14,7 +14,7 @@ from .. import config
 from ..array import SimArray
 from ..units import NoUnit
 
-def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), make_plot = True, **kwargs):
+def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, make_plot = True, **kwargs):
     """
     Plot 2D histogram for arbitrary arrays that get passed in.
 
@@ -34,6 +34,9 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), make_plot = True
 
        *gridsize*: (int, int) (default (100,100)) 
          number of bins to use for the 2D histogram
+
+       *nbins*: int
+         number of bins for the histogram - if specified, gridsize is set to (nbins,nbins)
 
        *nlevels*: int
          number of levels to use for the contours
@@ -97,6 +100,9 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), make_plot = True
     else :
         y = yo
     
+    if nbins is not None: 
+        gridsize = (nbins,nbins)
+
     ind = np.where((x > x_range[0]) & (x < x_range[1]) &
                    (y > y_range[0]) & (y < y_range[1]))
 

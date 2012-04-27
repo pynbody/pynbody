@@ -13,11 +13,13 @@ from ..analysis import profile, angmom, halo
 from .generic import hist2d
 from ..units import Unit
 
-def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
+def rho_T(sim, rho_units="m_p cm**-3", rho_range = None, t_range = None, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
     **Optional keywords:**
+
+       *rho_units*: specify the density units (default = 'm_p cm^-3')
 
        *t_range*: list, array, or tuple 
           ``size(t_range)`` must be 2. Specifies the temperature range.
@@ -25,14 +27,8 @@ def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
        *rho_range:* tuple 
           ``size(rho_range)`` must be 2. Specifies the density range.
 
-       *nbins:* int 
-          number of bins to use for the 2D histogram
+    See :func:`~pynbody.plot.generic.hist2d` for other plotting keyword options
 
-       *nlevels:* int 
-          number of levels to use for the contours
-
-       *logscale:* boolean
-          whether to use log or linear spaced contours
 
     """
     from matplotlib import ticker, colors
@@ -51,7 +47,7 @@ def rho_T(sim, rho_units="m_p cm**-3", **kwargs):
         xlabel = kwargs['xlabel']
         del kwargs['xlabel']
     else:
-        xlabel=r'log$_{10}$($n$/$'+Unit(rho_units).latex()+'$)'
+        xlabel=r'log$_{10}$($\rho$/$'+Unit(rho_units).latex()+'$)'
 
     if 'ylabel' in kwargs:
         ylabel = kwargs['ylabel']
