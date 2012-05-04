@@ -100,8 +100,8 @@ class AHFCatalogue(HaloCatalogue) :
         except KeyError:
             print "Failed grp load: "+str(KeyError)
             pass
-        #except IndexError:
-        #    print "IndexError"+str(IndexError)
+        except IndexError:
+            print "IndexError"+str(IndexError)
 
     def _get_halo(self, i) :
         if self.base is None :
@@ -185,6 +185,8 @@ class AHFCatalogue(HaloCatalogue) :
             try:
                 haloid, nsubhalos = [int(x) for x in f.readline().split()]
                 self._halos[haloid+1].properties['children'] = [int(x)+1 for x in f.readline().split()]
+            except KeyError:
+                pass
             except ValueError:
                 break
         f.close()
@@ -246,15 +248,15 @@ class AHFCatalogue(HaloCatalogue) :
             f.write('NperRefCell = 5\n')
             f.write('VescTune = 1.5\n')
             f.write('NminPerHalo = 50\n')
-            f.write('RhoVir = 1\n')
-            f.write('Dvir = -1\n')
+            f.write('RhoVir = 0\n') # 0:rho_crit, 1:rho_back
+            f.write('Dvir = 200\n')  # -1: AHF decides
             f.write('MaxGatherRad = 10.0\n\n')
             f.write('[TIPSY]\n')
             f.write('TIPSY_OMEGA0 = '+str(sim.properties['omegaM0'])+"\n")
             f.write('TIPSY_LAMBDA0 = '+str(sim.properties['omegaL0'])+"\n")
             f.write('TIPSY_BOXSIZE = '+str(sim['pos'].units.ratio(units.kpc,a=1)/1000.0 * sim.properties['h'])+"\n")
             f.write('TIPSY_VUNIT = '+str(sim['vel'].units.ratio(units.km/units.s,a=1))+"\n")
-            f.write('TIPSY_MUNIT = '+str(sim['mass'].units.ratio(units.Msol))+"\n")
+            f.write('TIPSY_MUNIT = '+str(sim['mass'].units.ratio(units.Msol)* sim.properties['h'])+"\n")
             f.write('TIPSY_EUNIT = 0.03\n')
         f.close()
 
