@@ -141,7 +141,7 @@ class AHFCatalogue(HaloCatalogue) :
             for i in xrange(nparts) : 
                 if self.isnew:
                     key,value=[int(i) for i in f.readline().split()]
-                    if (key > nds): key=int(key)-nds
+                    if (key >= nds): key=int(key)-nds
                     else: key=int(key)+ng
                 else :
                     key=f.readline()
