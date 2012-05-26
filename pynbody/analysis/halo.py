@@ -149,13 +149,14 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
         print "vcen=",vcen
 
     if retcen:  return vcen
-    else:  sim["vel"]-=vcen
+    else:  sim.ancestor["vel"]-=vcen
 
 def center(sim, mode=None, retcen=False, vel=True, **kwargs) :
     """
 
-    Determine the center of mass using the specified mode and recenter
-    the particles accordingly
+    Determine the center of mass of the given particles using the
+    specified mode, then recenter the particles (of the entire
+    ancestor snapshot) accordingly
 
     Accepted values for *mode* are
 
