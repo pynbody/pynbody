@@ -3,6 +3,9 @@ import random
 import math
 import numpy as np
 
+
+print "I am chunk.py.  I have not single a comment........  Why am I here?"
+
 class Chunk:
     def __init__(self, *args, **kwargs):
         pass
@@ -20,7 +23,7 @@ class Chunk:
         assert (self.step is not None 
             or  self.random is not None
             or  self.ids is not None)
-        
+
 
     def init(self, max_stop):
 
