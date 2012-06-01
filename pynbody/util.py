@@ -285,7 +285,7 @@ def equipartition(ar, nbins, min = None, max = None) :
 
     return a_s[np.array(np.linspace(0,len(a_s)-1,nbins+1),dtype='int')]
 
-def bisect(left, right, f, epsilon=None, eta=0, verbose=False) :
+def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200) :
     """
 
     Finds the value x such that f(x)=0 for a monotonically increasing
@@ -301,22 +301,25 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False) :
     if epsilon is None :
         epsilon = (right-left)*1.e-7
 
+    for i in xrange(niter_max) :
 
-    if (right-left)< epsilon :
-        return (right+left)/2
+        if (right-left)< epsilon :
+            return (right+left)/2
 
-    mid = (left+right)/2
-    z = f(mid)
+        mid = (left+right)/2
+        z = f(mid)
 
-    if verbose :
-        print left, mid, right, z
+        if verbose :
+            print left, mid, right, z
 
-    if (abs(z)<eta) :
-        return mid
-    elif(z<0) :
-        return bisect(mid, right, f, epsilon, eta, verbose)
-    else :
-        return bisect(left, mid, f, epsilon, eta, verbose)
+        if (abs(z)<eta) :
+            return mid
+        elif(z<0) :
+            left = mid
+        else :
+            right = mid
+            
+    raise ValueError, "Bisection algorithm did not converge"
 
 def gauss_jordan(out) :
     """A simple Gauss-Jordan matrix inverter. This is provided so that

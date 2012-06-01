@@ -152,6 +152,13 @@ class UnitBase(object) :
     def __rmul__(self, m) :
         return CompositeUnit(m, [self], [1]).simplify()
 
+    def __add__(self, m) :
+       scale = m.in_units(self) if hasattr(m, 'in_units') else m
+       return self*(1.0+scale)
+
+    def __sub__(self, m) :
+       return self+(-m)
+    
     def __repr__(self) :
         return 'Unit("'+str(self)+'")'
 
