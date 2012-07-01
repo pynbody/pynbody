@@ -612,10 +612,7 @@ class TipsySnap(snapshot.SimSnap) :
         try:
             f = open(self.filename+"."+array_name+".pynbody-meta")
         except IOError :
-            u = units._default_units.get(array_name,None)
-            if u is not None :
-                u = self.infer_original_units(u)
-            return u, None
+            return self._default_units_for(array_name), None
         
         res = {}
         for l in f :
