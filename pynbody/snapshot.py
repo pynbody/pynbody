@@ -26,6 +26,7 @@ import hashlib
 import time
 import warnings
 import threading
+import re
 
             
 class SimSnap(object) :
@@ -52,11 +53,52 @@ class SimSnap(object) :
                   "_getting_array_lock", "properties", "_derived_array_track",
                   "_dependency_track", "_calculating"]
 
+    # These 3D arrays get four views automatically created, one reflecting the
+    # full Nx3 data, the others reflecting Nx1 slices of it
+    #
+    # TO DO: This should probably be read in from a config file
+    _split_arrays = {'pos': ('x','y','z'),
+                     'vel': ('vx','vy','vz')}
+
+  
+    @classmethod
+    def _array_name_1D_to_ND(self, name) :
+        """Map a 1D array name to a corresponding 3D array name, or return None
+        if no such mapping is possible.
+
+        e.g. 'vy' -> 'vel'; 'acc_z' -> 'acc'; 'mass' -> None"""
+        for k,v in self._split_arrays.iteritems() :
+            if name in v :
+                return k
+
+        generic_match = re.findall("([A-z]+)_[xyz]$", name)
+        if len(generic_match) is 1 and generic_match[0] not in self._split_arrays :
+            return generic_match[0]
+
+        return None
+
+    @classmethod
+    def _array_name_ND_to_1D(self, array_name) :
+        """Give the 3D array names derived from a 3D array.
+
+        This routine makes no attempt to establish whether the array
+        name passed in should indeed be a 3D array. It just returns
+        the 1D slice names on the assumption that it is. This is an
+        important distinction between this procedure and the reverse
+        mapping as implemented by _array_name_1D_to_ND."""
+        
+        if array_name in self._split_arrays :
+            array_name_1D = self._split_arrays[array_name]
+        else :
+            array_name_1D = [array_name+"_"+i for i in 'x','y','z']
+
+        return array_name_1D
+
     def __init__(self) :
         """Initialize an empty, zero-length SimSnap."""
 
 
-        self._arrays = {'pos': array.SimArray([]), 'vel': array.SimArray([])}
+        self._arrays = {}
         self._num_particles = 0
         self._family_slice = {}
         self._family_arrays = {}
@@ -131,7 +173,7 @@ class SimSnap(object) :
                         # family previously and saved it on disk 
                         try: 
                             for fam in out_fam : 
-                                self._load_array(i,fam=fam)
+                                self.__load_array_with_ND_catch(i,fam=fam)
                         except IOError: 
                             raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
 
@@ -141,7 +183,7 @@ class SimSnap(object) :
                     if not self.lazy_off :
                         try:
                             if not self.lazy_load_off :
-                                self._load_array(i)
+                                self.__load_array_with_ND_catch(i)
                             else :
                                 raise IOError
 
@@ -377,6 +419,16 @@ class SimSnap(object) :
         d = dimensions.dimensional_project(self._file_units_system+["a","h"])
         new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(self._file_units_system, d)])
         return new_unit
+    
+    def _default_units_for(self, array_name) :
+        """Attempt to construct and return the units for the named array
+        on disk, using what we know about the purpose of arrays (in config.ini)
+        and the original unit system (via infer_original_units)."""
+        u = units._default_units.get(array_name,None)
+        if u is not None :
+            u = self.infer_original_units(u)
+        return u
+    
 
     def __delitem__(self, name) :
         if name in self._family_arrays :
@@ -489,6 +541,12 @@ class SimSnap(object) :
 
     def _load_array(self, array_name, fam=None) :
         raise IOError, "No lazy-loading implemented"
+
+    def __load_array_with_ND_catch(self, array_name, fam=None) :
+        """Normally just calls _load_array for the appropriate subclass, but also
+        automatically loads the whole ND array if this is a subview of an ND array"""
+        array_name = self._array_name_1D_to_ND(array_name) or array_name
+        self._load_array(array_name, fam)
 
     def families(self) :
         """Return the particle families which have representitives in this SimSnap."""
@@ -708,6 +766,13 @@ class SimSnap(object) :
     def _create_array(self, array_name, ndim=1, dtype=None, zeros = True) :
         """Create a single array of dimension len(self) x ndim, with
         a given numpy dtype"""
+
+        # Does this actually correspond to a slice into a 3D array?
+        NDname =  self._array_name_1D_to_ND(array_name)
+        if NDname :
+            self._create_array(NDname, ndim=3, dtype=dtype, zeros=zeros)
+            return
+        
         if ndim==1 :
             dims = self._num_particles
         else :
@@ -725,15 +790,14 @@ class SimSnap(object) :
         self._arrays[array_name] = new_array
 
         if ndim is 3 :
-            array_name_prefix = array_name+"_"
-            if array_name=="pos" : array_name_prefix=""
-            if array_name=="vel" : array_name_prefix="v"
+            array_name_1D = self._array_name_ND_to_1D(array_name)
 
-            for i,a in enumerate(["x", "y", "z"]) :
-                self._arrays[array_name_prefix+a] = new_array[:,i]
-                self._arrays[array_name_prefix+a]._name = array_name_prefix+a
-            
+            for i,a in enumerate(array_name_1D) :
+                self._arrays[a] = new_array[:,i]
+                self._arrays[a]._name = a
 
+   
+                
     def _get_array(self, name, index=None) :
         x = self._arrays[name]
         if x.derived :
@@ -1179,6 +1243,7 @@ class SubSnap(SimSnap) :
         return self.base.derivable_keys()
     
     def infer_original_units(self, *args) :
+        """Return the units on disk for a quantity with the specified dimensions"""
         return self.base.infer_original_units(*args)
 
     def _get_family_slice(self, fam) :
@@ -1186,7 +1251,7 @@ class SubSnap(SimSnap) :
             util.intersect_slices(self._slice,self.base._get_family_slice(fam),len(self.base)))
         return sl
 
-
+    
 
     def _load_array(self, array_name, fam=None, **kwargs) :
         self.base._load_array(array_name, fam, **kwargs)
