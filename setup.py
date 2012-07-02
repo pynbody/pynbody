@@ -90,7 +90,7 @@ if build_cython :
 dist = setup(name = 'pynbody',
              author = '',
              author_email = '',
-             version = '0.15alpha',
+             version = '0.16alpha',
              description = '',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
