@@ -424,6 +424,7 @@ class SimSnap(object) :
         """Attempt to construct and return the units for the named array
         on disk, using what we know about the purpose of arrays (in config.ini)
         and the original unit system (via infer_original_units)."""
+        array_name = self._array_name_1D_to_ND(array_name) or array_name
         u = units._default_units.get(array_name,None)
         if u is not None :
             u = self.infer_original_units(u)
@@ -699,6 +700,12 @@ class SimSnap(object) :
         
         """
 
+        NDname =  self._array_name_1D_to_ND(array_name)
+        if NDname :
+            self._create_family_array(NDname, family, ndim=3, dtype=dtype)
+            return
+        
+
         self_families = self.families()
  
         if len(self_families)==1 and family in self_families :
@@ -745,11 +752,20 @@ class SimSnap(object) :
             new_ar._sim = weakref.ref(self)
             new_ar._name = array_name
             new_ar.family = family
-            # new_ar.set_default_units(quiet=True)
-            try:
-                self._family_arrays[array_name][family] = new_ar
-            except KeyError :
-                self._family_arrays[array_name] = dict({family : new_ar})
+
+            def sfa(n, v) :
+                try:
+                    self._family_arrays[n][family] = v
+                except KeyError :
+                    self._family_arrays[n] = dict({family : v})
+
+            sfa(array_name, new_ar)
+
+            if ndim is 3 :
+                array_name_1D = self._array_name_ND_to_1D(array_name)
+                for i,a in enumerate(array_name_1D) :
+                    sfa(a, new_ar[:,i])
+                    self._family_arrays[a][family]._name = a
 
                 
             
@@ -873,6 +889,9 @@ class SimSnap(object) :
         the specified name. Copy in any data from family-level arrays
         of the same name."""
 
+        if ndim==1 and self._array_name_1D_to_ND(name) :
+            return self._promote_family_array(self._array_name_1D_to_ND(name), 3, dtype)
+        
         if dtype is None :
             try :
                 x = self._family_arrays[name].keys()[0]
@@ -890,6 +909,9 @@ class SimSnap(object) :
             for fam in self._family_arrays[name] :
                 self._arrays[name][self._get_family_slice(fam)] = self._family_arrays[name][fam]
             del self._family_arrays[name]
+            if ndim==3 :
+                for v in self._array_name_ND_to_1D(name) :
+                    del self._family_arrays[v]
             
         except KeyError :
             pass
