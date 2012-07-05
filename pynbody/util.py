@@ -17,6 +17,7 @@ import os
 import scipy
 import threading
 import sys
+import time
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
