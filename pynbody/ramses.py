@@ -55,7 +55,7 @@ def _skip_fortran(f, n=1) :
         assert alen==alen2
         
 def _read_fortran_series(f, dtype) :
-    q = np.zeros(1,dtype=dtype)
+    q = np.empty(1,dtype=dtype)
     for i in xrange(len(dtype.fields)) :
         q[0][i] = _read_fortran(f, dtype[i], 1)
     return q[0]
@@ -81,6 +81,7 @@ ramses_hydro_header = np.dtype([('ncpu', 'i4'), ('nvarh', 'i4'), ('ndim', 'i4'),
                                 ('nboundary', 'i4'), ('gamma', 'f8')])
 
 particle_blocks = map(str.strip,config_parser.get('ramses',"particle-blocks").split(","))
+particle_format = map(str.strip,config_parser.get('ramses',"particle-format").split(","))
 
 hydro_blocks = map(str.strip,config_parser.get('ramses',"hydro-blocks").split(","))
 
@@ -88,7 +89,8 @@ class RamsesSnap(snapshot.SimSnap) :
     def __init__(self, dirname, **kwargs) :
         """Initialize a RamsesSnap. Extra kwargs supported:
 
-         *cpus* : a list of the CPU IDs to load in. If not set, load all CPU's data.
+         *cpus* : a list of the CPU IDs to load. If not set, load all CPU's data.
+         *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
          """
 
         warnings.warn("RamsesSnap is in development and may not behave well", RuntimeWarning)
@@ -111,13 +113,14 @@ class RamsesSnap(snapshot.SimSnap) :
             self._cpus = range(1, self.ncpu+1)
 
         self._maxlevel = kwargs.get('maxlevel',None)
-        
-        ndm = self._count_dm_particles()
+
+        ndm, nstar = self._count_particles()
         ngas = self._count_gas_cells()
         
         self._num_particles = ndm+ngas
         self._family_slice[family.dm] = slice(0, ndm)
-        self._family_slice[family.gas] = slice(ndm, ndm+ngas)
+        self._family_slice[family.star] = slice(ndm, ndm+nstar)
+        self._family_slice[family.gas] = slice(ndm+nstar, ndm+nstar+ngas)
         
         self._decorate()
 
@@ -146,15 +149,20 @@ class RamsesSnap(snapshot.SimSnap) :
     def _hydro_filename(self, cpu_id) :
         return self._filename+"/hydro_"+self._timestep_id+".out"+_cpu_id(cpu_id)
 
-    def _count_dm_particles(self) :
-
+    def _count_particles(self) :
+        """Returns ndm, nstar where ndm is the number of dark matter particles
+        and nstar is the number of star particles."""
+        
         npart = 0
+        nstar = 0
 
         for i in self._cpus :
             f = file(self._particle_filename(i))
-            npart+=_read_fortran_series(f, ramses_particle_header)['npart']
-
-        return npart
+            header = _read_fortran_series(f, ramses_particle_header)
+            npart+=header['npart']
+            nstar+=header['nstar']
+     
+        return npart,0
 
     def _count_gas_cells(self) :
         ncell = 0
@@ -184,10 +192,13 @@ class RamsesSnap(snapshot.SimSnap) :
             f = file(self._amr_filename(cpu))
             header = _read_fortran_series(f, ramses_amr_header)
             _skip_fortran(f, 13)
+           
             n_per_level = _read_fortran(f, _int_type, header['nlevelmax']*header['ncpu']).reshape(( header['nlevelmax'], header['ncpu']))
             _skip_fortran(f,1)
             if header['nboundary']>0 :
-                _skip_fortran(f,3)
+                _skip_fortran(f,2)
+                n_per_level_boundary = _read_fortran(f, _int_type, header['nlevelmax']*header['nboundary']).reshape(( header['nlevelmax'], header['nboundary']))
+                 
             _skip_fortran(f,2)
             if self._info['ordering type']=='bisection' :
                 _skip_fortran(f, 5)
@@ -200,7 +211,9 @@ class RamsesSnap(snapshot.SimSnap) :
                 # loop through those CPUs with grid data (includes ghost regions)
                 for cpuf in 1+np.where(n_per_level[level,:]!=0)[0] :
                     #print "CPU=",cpu,"CPU on disk=",cpuf,"npl=",n_per_level[level,cpuf-1]
+                    
                     if cpuf==cpu :
+ 
                         # this is the data we want
                         _skip_fortran(f,3) # grid, next, prev index
 
@@ -218,14 +231,21 @@ class RamsesSnap(snapshot.SimSnap) :
                         if level==self._maxlevel :
                             refine[:] = 0
 
+                       
                         yield (x0,y0,z0),refine,cpuf,level
-
+           
                             
                     else :
+                 
                         # skip ghost regions from other CPUs
                         _skip_fortran(f,3+self._ndim+1+2*self._ndim+3*2**self._ndim)
 
-    
+                if header['nboundary']>0 :
+                    for boundaryf in np.where(n_per_level_boundary[level, :]!=0)[0] :
+                        
+                        _skip_fortran(f,3+self._ndim+1+2*self._ndim+3*2**self._ndim)
+
+
 
 
         
@@ -243,13 +263,15 @@ class RamsesSnap(snapshot.SimSnap) :
         subgrid_x-=0.5
         subgrid_y-=0.5
         subgrid_z-=0.5
+
+        boxlen = self._info['boxlen']
         
         for (x0,y0,z0), refine, cpu, level in self._level_iterator() :
-            dx = self._info['boxlen']*0.5**(level+1)
+            dx = boxlen*0.5**(level+1)
              
-            x0 = x0+dx*subgrid_x
-            y0 = y0+dx*subgrid_y
-            z0 = z0+dx*subgrid_z
+            x0 = boxlen*x0+dx*subgrid_x
+            y0 = boxlen*y0+dx*subgrid_y
+            z0 = boxlen*z0+dx*subgrid_z
 
             mark = np.where(refine==0)
     
@@ -290,20 +312,23 @@ class RamsesSnap(snapshot.SimSnap) :
             f = file(self._hydro_filename(cpu))
             header = _read_fortran_series(f, ramses_hydro_header)
  
-            if header['nvarh']!=nvar :
+            if header['nvarh']<nvar :
                 # This should probably be an IOError, but then it would be obscured by
                 # silent lazy-loading failure...?
                 raise RuntimeError, "Number of hydro variables does not correspond to config.ini specification (expected %d, got %d in file)"%(nvar, header['nvarh'])
+            elif header['nvarh']>nvar :
+                warnings.warn("More hydro variables are in this RAMSES dump than are defined in config.ini", RuntimeWarning)
         
             for level in xrange(self._maxlevel or header['nlevelmax']) :
                 
                 for cpuf in xrange(1,header['ncpu']+1) :
                     flevel = _read_fortran(f, 'i4')[0]
-                    assert flevel-1==level
                     ncache = _read_fortran(f, 'i4')[0]
-               
+                    assert flevel-1==level
+                    
                     if ncache>0 :
                         if cpuf==cpu :
+                            
                             coords, refine, gi_cpu, gi_level =  grid_info_iter.next()
                             mark = np.where(refine==0)
 
@@ -313,46 +338,68 @@ class RamsesSnap(snapshot.SimSnap) :
                         if cpuf==cpu and len(mark[0])>0 :
                             for icel in xrange(2**self._ndim) :
                                 i0 = i1
-                                i1 = i0+len(refine[icel])-refine[icel].sum()
+                                i1 = i0+(refine[icel]==0).sum()
                                 for ar in dims :
                                     ar[i0:i1] = _read_fortran(f, _float_type, ncache)[(refine[icel]==0)]
 
+                                
+                                _skip_fortran(f, (header['nvarh']-nvar))
+
                         else :
-                            _skip_fortran(f, 2**self._ndim*len(dims))
+                            _skip_fortran(f, (2**self._ndim)*header['nvarh'])
+
+                for boundary in xrange(header['nboundary']) :
+                    flevel = _read_fortran(f, 'i4')[0]
+                    ncache = _read_fortran(f, 'i4')[0]
+                    if ncache>0 :
+                        _skip_fortran(f, (2**self._ndim)*header['nvarh'])
 
         if config['verbose'] :
             print>>sys.stderr, "done"
 
                               
-    def _load_dm_block(self, blockname) :
+    def _load_particle_block(self, blockname) :
         offset = particle_blocks.index(blockname)
-        ind0 = 0
+        _type = np.dtype(particle_format[offset])
+        ind0_dm = 0
+        ind0_star = 0
 
+        if blockname not in self.dm :
+            self.dm._create_array(blockname, dtype=_type)
+        if blockname not in self.star :
+            self.star._create_array(blockname, dtype=_type)
+        
         for i in self._cpus :
             f = file(self._particle_filename(i))
             header = _read_fortran_series(f, ramses_particle_header)
-            skip_size = header['npart']*_float_type.itemsize+2*_head_type.itemsize
+
+            _skip_fortran(f, offset)
+
+            print header['npart']-header['nstar']
             
-            f.seek(skip_size*offset,1)
-            ind1 = ind0+header['npart']
-  
-            self.dm[blockname][ind0:ind1]=_read_fortran(f, _float_type, header['npart'])
+            ind1_dm = ind0_dm+header['npart']
+            ind1_star = ind0_star+header['nstar']
+            
+            data = _read_fortran(f, _type, header['npart'])
+            
+            self.dm[blockname][ind0_dm:ind1_dm]=data
+            #self.star[blockname][ind0_star:ind1_star] = data[-header['nstar']:]
             f.close()
-            ind0 = ind1
+            
+            ind0_dm = ind1_dm
+            ind0_star = ind1_star
             
     def _load_array(self, array_name, fam=None) :
        
-        if fam is family.dm :
+        if fam is family.dm or fam is family.star :
             # Framework always calls with 3D name. Ramses particle blocks are
             # stored as 1D slices.
             if array_name in self._split_arrays :
                 for array_1D in self._array_name_ND_to_1D(array_name) :
                     self._load_array(array_1D, fam)
 
-            elif array_name in particle_blocks and fam is family.dm :
-                if array_name not in self.dm :
-                    self.dm._create_array(array_name)
-                self._load_dm_block(array_name)
+            elif array_name in particle_blocks :
+                self._load_particle_block(array_name)
             else :
                 raise IOError, "No such array on disk"
         elif fam is family.gas :
