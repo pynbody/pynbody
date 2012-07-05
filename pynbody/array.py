@@ -472,7 +472,7 @@ class SimArray(np.ndarray) :
 
         if self.sim is not None :
             try :
-                self.set_units_like(units._default_units[self.name])
+                self.units = self.sim._default_units_for(self.name)
             except (KeyError, units.UnitsException) :
                 if not quiet: raise
         else :
