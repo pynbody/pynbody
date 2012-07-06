@@ -919,7 +919,7 @@ class SimSnap(object) :
             except IndexError :
                 pass
                     
-        dmap = [name in i for i in self._family_derived_array_track.itervalues()]
+        dmap = [name in self._family_derived_array_track[i] for i in self._family_arrays[name]]
         some_derived = any(dmap)
         all_derived = all(dmap)
 
@@ -1075,11 +1075,17 @@ class SimSnap(object) :
     def is_derived_array(self, name, fam=None) :
         """Returns True if the array or family array of given name is
         auto-derived (and therefore read-only)."""
+        fam = fam or self._unifamily
         if fam :
-            return name in self._family_derived_array_track[fam]
-        else :
+            return (name in self._family_derived_array_track[fam]) or name in self._derived_array_track
+        elif name in self.keys() :
             return name in self._derived_array_track
-       
+        elif name in self.family_keys() :
+           return all([name in self._family_derived_array_track[i] for i in self._family_arrays[name]])
+        else :
+            return False
+
+                    
     def unlink_array(self, name) :
         """If the named array is auto-derived, this destroys the link so that
         the array becomes editable but no longer auto-updates."""
