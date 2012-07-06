@@ -85,6 +85,8 @@ particle_format = map(str.strip,config_parser.get('ramses',"particle-format").sp
 
 hydro_blocks = map(str.strip,config_parser.get('ramses',"hydro-blocks").split(","))
 
+particle_distinguisher = map(str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
+
 class RamsesSnap(snapshot.SimSnap) :
     def __init__(self, dirname, **kwargs) :
         """Initialize a RamsesSnap. Extra kwargs supported:
@@ -152,17 +154,29 @@ class RamsesSnap(snapshot.SimSnap) :
     def _count_particles(self) :
         """Returns ndm, nstar where ndm is the number of dark matter particles
         and nstar is the number of star particles."""
+
+        distinguisher_field = int(particle_distinguisher[0])
+        distinguisher_type = np.dtype(particle_distinguisher[1])
         
         npart = 0
         nstar = 0
+
+        self._star_mask = []
+        self._nstar = []
 
         for i in self._cpus :
             f = file(self._particle_filename(i))
             header = _read_fortran_series(f, ramses_particle_header)
             npart+=header['npart']
-            nstar+=header['nstar']
-     
-        return npart,0
+
+            _skip_fortran(f,distinguisher_field)
+            data = _read_fortran(f,distinguisher_type,header['npart'])
+            self._star_mask.append((data!=0))
+            self._nstar.append((data!=0).sum())
+            nstar+=self._nstar[-1]
+            
+
+        return npart-nstar,nstar
 
     def _count_gas_cells(self) :
         ncell = 0
@@ -369,23 +383,22 @@ class RamsesSnap(snapshot.SimSnap) :
         if blockname not in self.star :
             self.star._create_array(blockname, dtype=_type)
         
-        for i in self._cpus :
+        for i, star_mask, nstar in zip(self._cpus, self._star_mask, self._nstar) :
             f = file(self._particle_filename(i))
             header = _read_fortran_series(f, ramses_particle_header)
 
             _skip_fortran(f, offset)
-
-            print header['npart']-header['nstar']
             
-            ind1_dm = ind0_dm+header['npart']
-            ind1_star = ind0_star+header['nstar']
+            ind1_dm = ind0_dm+header['npart']-nstar
+            ind1_star = ind0_star+nstar
             
             data = _read_fortran(f, _type, header['npart'])
             
-            self.dm[blockname][ind0_dm:ind1_dm]=data
-            #self.star[blockname][ind0_star:ind1_star] = data[-header['nstar']:]
+            self.dm[blockname][ind0_dm:ind1_dm]=data[~star_mask]
+            self.star[blockname][ind0_star:ind1_star]=data[star_mask]
+         
             f.close()
-            
+
             ind0_dm = ind1_dm
             ind0_star = ind1_star
             
