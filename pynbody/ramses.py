@@ -119,7 +119,7 @@ class RamsesSnap(snapshot.SimSnap) :
         ndm, nstar = self._count_particles()
         ngas = self._count_gas_cells()
         
-        self._num_particles = ndm+ngas
+        self._num_particles = ndm+ngas+nstar
         self._family_slice[family.dm] = slice(0, ndm)
         self._family_slice[family.star] = slice(ndm, ndm+nstar)
         self._family_slice[family.gas] = slice(ndm+nstar, ndm+nstar+ngas)
