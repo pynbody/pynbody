@@ -50,7 +50,7 @@ class SimSnap(object) :
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
-                  "_getting_array_lock", "properties", "_derived_array_track",
+                  "_getting_array_lock", "properties", "_derived_array_track", "_family_derived_array_track",
                   "_dependency_track", "_calculating"]
 
     # These 3D arrays get four views automatically created, one reflecting the
@@ -70,7 +70,7 @@ class SimSnap(object) :
         for k,v in self._split_arrays.iteritems() :
             if name in v :
                 return k
-
+            
         generic_match = re.findall("([A-z]+)_[xyz]$", name)
         if len(generic_match) is 1 and generic_match[0] not in self._split_arrays :
             return generic_match[0]
@@ -103,6 +103,11 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._derived_array_track = []
+        
+        self._family_derived_array_track = {}
+        for i in family._registry :
+            self._family_derived_array_track[i]=[]
+            
         self._calculating = [] # maintains a list of currently-being-calculated lazy evaluations
                                # to prevent circular references
         
@@ -435,11 +440,17 @@ class SimSnap(object) :
         if name in self._family_arrays :
             assert name not in self._arrays # mustn't have simulation-level array of this name
             del self._family_arrays[name]
+            
+            for v in self._family_derived_array_track.itervalues() :
+                if name in v :
+                    del v[v.index(name)]
+                
         else :
             del self._arrays[name]
-
-        if name in self._derived_array_track :
-            del self._derived_array_track[self._derived_array_track.index(name)]
+            if name in self._derived_array_track :
+                del self._derived_array_track[self._derived_array_track.index(name)]
+            
+        
 
     def _get_persist(self, hash, name) :
         try :
@@ -547,7 +558,8 @@ class SimSnap(object) :
         """Normally just calls _load_array for the appropriate subclass, but also
         automatically loads the whole ND array if this is a subview of an ND array"""
         array_name = self._array_name_1D_to_ND(array_name) or array_name
-        self._load_array(array_name, fam)
+        with self.lazy_off :
+            self._load_array(array_name, fam)
 
     def families(self) :
         """Return the particle families which have representitives in this SimSnap."""
@@ -752,7 +764,7 @@ class SimSnap(object) :
             new_ar._sim = weakref.ref(self)
             new_ar._name = array_name
             new_ar.family = family
-
+            
             def sfa(n, v) :
                 try:
                     self._family_arrays[n][family] = v
@@ -774,6 +786,10 @@ class SimSnap(object) :
         del self._family_arrays[array_name][family]
         if len(self._family_arrays[array_name])==0 :
             del self._family_arrays[array_name]
+            
+        derive_track = self._family_derived_array_track[family]
+        if array_name in derive_track :
+            del derive_track[derive_track.index(array_name)]
 
     def _set_family_array(self, name, family, value, index=None) :
         util.set_array_if_not_same(self._family_arrays[name][family],
@@ -902,7 +918,11 @@ class SimSnap(object) :
                     
             except IndexError :
                 pass
-            
+                    
+        dmap = [name in i for i in self._family_derived_array_track.itervalues()]
+        some_derived = any(dmap)
+        all_derived = all(dmap)
+
         if name not in self._arrays :
             self._create_array(name, ndim=ndim, dtype=dtype)
         try:
@@ -915,6 +935,15 @@ class SimSnap(object) :
             
         except KeyError :
             pass
+
+        if some_derived :
+            if all_derived :
+                self._derived_array_track.append(name)
+            else :
+                warnings.warn("Conjoining derived and non-derived arrays. Assuming result is non-derived, so no further updates will be made.", RuntimeWarning)
+            for v in self._family_derived_array_track.itervalues() :
+                if name in v :
+                    del v[v.index(name)]
         
     def family_keys(self, fam=None) :
         """Return list of arrays which are not accessible from this
@@ -996,11 +1025,16 @@ class SimSnap(object) :
                             fn = self._derived_quantity_registry[cl][name]
                             if fam is None :
                                 self[name] = fn(self)
+                                dtrack = self._derived_array_track
                             else :
                                 self[fam][name] =  fn(self[fam])
+                                dtrack = self._family_derived_array_track[fam]
+                                
+                            if name not in dtrack and not fn.__stable__ :
+                                dtrack.append(name)
+                                
 
-                        if name not in self._derived_array_track and not fn.__stable__ :
-                                self._derived_array_track.append(name)
+                       
                             
                         calculated = True
                         for x in self._dependency_track[-1] :
@@ -1038,19 +1072,14 @@ class SimSnap(object) :
                 
 
 
-    def is_derived_array(self, name) :
+    def is_derived_array(self, name, fam=None) :
         """Returns True if the array or family array of given name is
         auto-derived (and therefore read-only)."""
-
-        return name in self._derived_array_track
-    
-        """if self.has_key(name) :
-            return self[name].derived
-        elif self._family_arrays.has_key(name) :
-            return any([x.derived for x in self._family_arrays[name].values()])
+        if fam :
+            return name in self._family_derived_array_track[fam]
         else :
-            return False"""
-
+            return name in self._derived_array_track
+       
     def unlink_array(self, name) :
         """If the named array is auto-derived, this destroys the link so that
         the array becomes editable but no longer auto-updates."""
