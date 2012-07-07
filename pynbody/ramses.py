@@ -40,7 +40,9 @@ def _read_fortran(f, dtype, n=1) :
     alen = np.fromfile(f, _head_type, 1)
     if alen!=length :
         raise IOError, "Unexpected FORTRAN block length %d!=%d"%(alen,length)
+   
     data = np.fromfile(f, dtype, n)
+    
     alen = np.fromfile(f, _head_type, 1)
     if alen!=length :
         raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d"%(alen,length)
@@ -57,7 +59,15 @@ def _skip_fortran(f, n=1) :
 def _read_fortran_series(f, dtype) :
     q = np.empty(1,dtype=dtype)
     for i in xrange(len(dtype.fields)) :
-        q[0][i] = _read_fortran(f, dtype[i], 1)
+        data = _read_fortran(f, dtype[i], 1)
+
+        # I really don't understand why the following acrobatic should
+        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
+        if hasattr(data[0],"__len__") :
+            q[0][i][:] = data[0]
+        else :
+            q[0][i] = data[0]
+
     return q[0]
 
 def _timestep_id(basename) :
@@ -220,6 +230,9 @@ class RamsesSnap(snapshot.SimSnap) :
                 _skip_fortran(f, 1)
             _skip_fortran(f, 3)
 
+            offset = np.array(header['ng'],dtype='f8')/2
+            offset-=0.5
+            
             for level in xrange(self._maxlevel or header['nlevelmax']) :
     
                 # loop through those CPUs with grid data (includes ghost regions)
@@ -245,7 +258,8 @@ class RamsesSnap(snapshot.SimSnap) :
                         if level==self._maxlevel :
                             refine[:] = 0
 
-                       
+                        x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
+                        
                         yield (x0,y0,z0),refine,cpuf,level
            
                             
