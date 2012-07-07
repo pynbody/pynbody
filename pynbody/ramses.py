@@ -441,6 +441,22 @@ class RamsesSnap(snapshot.SimSnap) :
                 self._load_gas_vars()
             else :
                 raise IOError, "No such array on disk"
+        elif fam is None and array_name in ['pos','vel'] :
+            # synchronized loading of pos/vel information
+            if 'pos' not in self :
+                self._create_array('pos',3)
+            if 'vel' not in self :
+                self._create_array('vel',3)
+            if 'smooth' not in self.gas :
+                self.gas._create_array('smooth')
+
+            self._load_gas_pos()
+            self._load_array('vel', family.dm)
+            self._load_array('pos', family.dm)
+        elif fam is None and array_name is 'mass' :
+            self._create_array('mass')
+            self._load_particle_block('mass')
+            self.gas['mass'] = mass(self.gas)
             
 
         self_fam = self[fam] if fam else self
