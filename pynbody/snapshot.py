@@ -558,8 +558,7 @@ class SimSnap(object) :
         """Normally just calls _load_array for the appropriate subclass, but also
         automatically loads the whole ND array if this is a subview of an ND array"""
         array_name = self._array_name_1D_to_ND(array_name) or array_name
-        with self.lazy_off :
-            self._load_array(array_name, fam)
+        self._load_array(array_name, fam)
 
     def families(self) :
         """Return the particle families which have representitives in this SimSnap."""
@@ -1039,13 +1038,15 @@ class SimSnap(object) :
                                 result = fn(self)
                                 ndim = result.shape[-1] if len(result.shape)>1 else 1
                                 self._create_array(name,ndim,dtype=result.dtype,derived=not fn.__stable__)
-                                self._get_array(name,always_writable=True)[:]=result
-
+                                write_array = self._get_array(name,always_writable=True)
                             else :
                                 result = fn(self[fam])
                                 ndim = result.shape[-1] if len(result.shape)>1 else 1
                                 self[fam]._create_array(name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                                self[fam]._get_array(name,always_writable=True)[:] = result
+                                write_array = self[fam]._get_array(name,always_writable=True)
+
+                            write_array[:]=result
+                            if units.has_units(result) : write_array.units = result.units
      
                             
                         calculated = True
