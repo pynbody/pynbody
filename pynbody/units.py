@@ -725,3 +725,10 @@ _default_units = {}
 for a_,b_ in config_parser.items("default-array-dimensions") :
     _default_units[a_] = Unit(b_)
 
+
+def has_units(obj) :
+   """Returns True if the specified object has a meaningful units attribute"""
+   if hasattr(obj, 'units') and isinstance(obj.units, UnitBase) :
+      return not hasattr(obj.units, '_no_unit')
+   else :
+      return False
