@@ -561,12 +561,16 @@ class SimSnap(object) :
         self._load_array(array_name, fam)
 
     def families(self) :
-        """Return the particle families which have representitives in this SimSnap."""
+        """Return the particle families which have representitives in this SimSnap.
+        The families are ordered by their appearance in the snapshot."""
         out = []
+        start = {}
         for fam in family._registry :
             sl = self._get_family_slice(fam)
             if sl.start!=sl.stop :
                 out.append(fam)
+                start[fam] = (sl.start)
+        out.sort(key=start.__getitem__)
         return out
 
     def transform(self, matrix, ortho_tol=1.e-8) :
@@ -880,6 +884,15 @@ class SimSnap(object) :
             return self._family_slice[fam]
         except KeyError :
             return slice(0,0 )
+
+    def _family_index(self) :
+        """Return an array giving the family number of each particle in this snapshot,
+        something like 0,0,0,0,1,1,2,2,2, ... where 0 means self.families()[0] etc"""
+
+        ind = np.empty((len(self),),dtype=int)
+        for i,f in enumerate(self.families()) :
+            ind[self._get_family_slice(f)] = i
+        return ind
 
     def _assert_not_family_array(self, name) :
         """Raises a ValueError if the specified array name is connected to
@@ -1388,10 +1401,11 @@ class IndexedSubSnap(SubSnap) :
         else :
             index_array = np.asarray(index_array)
 
-        # Check the index array is monotonically increasing
+        findex = base._family_index()[index_array]
+        # Check the family index array is monotonically increasing
         # If not, the family slices cannot be implemented
-        if not all(np.diff(index_array)>0) :
-            raise ValueError, "Index array must be monotonically increasing"
+        if not all(np.diff(findex)>=0) :
+            raise ValueError, "Families must retain the same ordering in the SubSnap"
 
         self._slice = index_array
         self._family_slice = {}
@@ -1399,6 +1413,15 @@ class IndexedSubSnap(SubSnap) :
         self._num_particles = len(index_array)
 
         # Find the locations of the family slices
+        for i, fam in enumerate(base.families()) :
+            ids = np.where(findex==i)[0]
+            if len(ids)>0 :
+                new_slice = slice(ids.min(),ids.max()+1)
+                self._family_slice[fam] = new_slice
+                self._family_indices[fam] = np.asarray(index_array[new_slice])-base._get_family_slice(fam).start
+
+        """
+        # old code for monotonically increasing arrays only
         for fam in family._registry :
             base_slice = base._get_family_slice(fam)
             start = util.index_of_first(index_array,base_slice.start)
@@ -1406,7 +1429,7 @@ class IndexedSubSnap(SubSnap) :
             new_slice=slice(start,stop)
             self._family_slice[fam] = new_slice
             self._family_indices[fam] = np.asarray(index_array[new_slice])-base_slice.start
-
+        """
 
     def _get_family_slice(self, fam) :
         # A bit messy: jump out the SubSnap inheritance chain
