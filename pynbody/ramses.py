@@ -493,6 +493,7 @@ def translate_info(sim) :
     l_unit = sim._info['unit_l']*units.Unit("cm")
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
+    sim.properties['time'] = sim._info['time'] * t_unit
 
     sim._file_units_system = [d_unit, t_unit, l_unit]
 
