@@ -457,6 +457,8 @@ class RamsesSnap(snapshot.SimSnap) :
             self._create_array('mass')
             self._load_particle_block('mass')
             self.gas['mass'] = mass(self.gas)
+        else :
+            raise IOError, "No such array on disk"
             
 
         self_fam = self[fam] if fam else self
