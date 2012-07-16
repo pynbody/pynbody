@@ -139,14 +139,17 @@ class OrderBridge(Bridge) :
     defined to be the same if and only if
     start[order_array][i_start] == start[order_array][i_end].
 
-    order_array must be monotonically increasing in both ends
-    of the bridge.
+    If monotonic is True, order_array must be monotonically increasing
+    in both ends of the bridge (and this is not checked for you). If
+    monotonic is False, the bridging is slower but this is the
+    failsafe option.
     """
 
-    def __init__(self, start, end, order_array="iord") :
+    def __init__(self, start, end, order_array="iord", monotonic=True) :
         self._start = weakref.ref(start)
         self._end = weakref.ref(end)
         self._order_array = order_array
+        self.monotonic = monotonic
 
     def is_same(self, i1, i2) :
 
@@ -176,6 +179,13 @@ class OrderBridge(Bridge) :
         iord_to = np.asarray(to_[self._order_array]).view(np.ndarray)
         iord_from = np.asarray(s[self._order_array]).view(np.ndarray)
 
+
+        if not self.monotonic :
+            iord_map_to = np.argsort(iord_to)
+            iord_map_from = np.argsort(iord_from)
+            iord_to = iord_to[iord_map_to]
+            iord_from = iord_from[iord_map_from]
+            
         output_index = np.zeros(len(iord_from)+1, dtype=int)
 
         code = """
@@ -205,5 +215,8 @@ class OrderBridge(Bridge) :
         inline(code, ['iord_to', 'iord_from', 'output_index'])
 
         output_index = output_index[1:output_index[0]+1]
+
+        if not self.monotonic :
+            output_index = iord_map_to[output_index[np.argsort(iord_map_from)]]
 
         return to_[output_index]
