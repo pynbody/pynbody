@@ -115,6 +115,8 @@ _registry = {}
 class UnitsException(Exception) :
     pass
 
+
+   
 class UnitBase(object) :
     """Base class for units"""
 
@@ -292,24 +294,37 @@ class NoUnit(UnitBase) :
 
 no_unit = NoUnit()
 
+
+def _resurrect_named_unit(unit_name, unit_latex, represents) :
+    if unit_name in _registry :
+        return _registry[unit_name]
+    else :
+        if represents is None :
+            nu = IrreducibleUnit(unit_name)
+        else :
+            nu= NamedUnit(unit_name, represents)
+            nu._latex = unit_latex
+        return nu
+     
 class IrreducibleUnit(UnitBase) :
     def __init__(self, st) :
         self._st_rep = st
         self._register_unit(st)
 
-
+    def __reduce__(self) :
+        return (_resurrect_named_unit, (self._st_rep, None, None))
+       
     def __str__(self) :
         return self._st_rep
 
-    def latex(self) :
-        return r"\mathrm{"+self._st_rep+"}"
+    def latex(self) : return r"\mathrm{"+self._st_rep+"}"
 
     def irrep(self) :
         return CompositeUnit(1, [self], [1])
 
 
 class NamedUnit(UnitBase) :
-    def __init__(self, st, represents) :
+   def __init__(self, st, represents) :
         self._st_rep = st
         if isinstance(represents, str) :
             represents = Unit(represents)
@@ -317,16 +332,20 @@ class NamedUnit(UnitBase) :
         self._represents = represents
         self._register_unit(st)
 
-    def __str__(self) :
-        return self._st_rep
 
-    def latex(self) :
-        if hasattr(self,'_latex') :
-            return self._latex
-        return r"\mathrm{"+self._st_rep+"}"
+   def __reduce__(self) :
+      return (_resurrect_named_unit, (self._st_rep, getattr(self, '_latex', None), self._represents))
 
-    def irrep(self) :
-        return self._represents.irrep()
+   def __str__(self) :
+      return self._st_rep
+
+   def latex(self) :
+      if hasattr(self,'_latex') :
+         return self._latex
+      return r"\mathrm{"+self._st_rep+"}"
+      
+   def irrep(self) :
+      return self._represents.irrep()
 
 
 class CompositeUnit(UnitBase) :
