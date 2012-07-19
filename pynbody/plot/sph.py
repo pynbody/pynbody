@@ -52,7 +52,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
           z_camera=None, clear = True, cmap=None, center=False,
           title=False, qtytitle=False, show_cbar=True, subplot=False,
           noplot = False, ret_im=False, threaded=True,
-          number_of_threads=None) :
+          number_of_threads=None, **kwargs) :
     """
 
     Make an SPH image of the given simulation.
@@ -78,12 +78,13 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     *z_camera* (None): If set, a perspective image is rendered. See
                 :func:`pynbody.sph.image` for more details.
     """
+    import matplotlib.pylab as plt
 
     global config
     if subplot:
         p = subplot
     else :
-        import pylab as p
+        p = plt.subplot(111)
 
     if isinstance(units, str) :
         units = _units.Unit(units)
@@ -167,19 +168,19 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    if clear and not subplot : p.clf()
+    if clear and not subplot : p.figure.clf()
 
     if ret_im:
-        return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+        return plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
                  vmin=vmin, vmax=vmax, cmap=cmap)
 
-    p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-             vmin=vmin, vmax=vmax, cmap=cmap)
+    ims = plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+                   vmin=vmin, vmax=vmax, cmap=cmap)
 
     u_st = sim['pos'].units.latex()
-    if not subplot:
-        p.xlabel("$x/%s$"%u_st)
-        p.ylabel("$y/%s$"%u_st)
+    #if not subplot:
+    plt.xlabel("$x/%s$"%u_st)
+    plt.ylabel("$y/%s$"%u_st)
 
     if units is None :
         units = im.units
@@ -190,9 +191,9 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     else :
         units = "$"+units.latex()+"$"
 
-    if not subplot and show_cbar:
-        if qtytitle: p.colorbar().set_label(qtytitle)
-        else:        p.colorbar().set_label(units)
+    if show_cbar:
+        if qtytitle: plt.colorbar(ims).set_label(qtytitle)
+        else:        plt.colorbar(ims).set_label(units)
     # colorbar doesn't work wtih subplot:  mappable is NoneType
     #elif show_cbar:
     #    import matplotlib.pyplot as mpl
@@ -200,14 +201,12 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     #    else:        mpl.colorbar().set_label(units)
 
     if title:
-        if subplot:
-            p.set_title(title)
-        else:
-            p.title(title)
-            
-
+        p.set_title(title)
+        
     if filename:
         p.savefig(filename)
+
+    plt.draw()
 
     return im
 

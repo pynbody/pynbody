@@ -748,7 +748,7 @@ def jtot(self) :
 @Profile.profile_property
 def j_theta(self): 
     """
-    Angle that the angular momentum vector of the bin makes with respect to the x-axis.
+    Angle that the angular momentum vector of the bin makes with respect to the xy-plane.
     """
 
     return np.arccos(self['jz']/self['jtot'])
@@ -756,7 +756,7 @@ def j_theta(self):
 @Profile.profile_property
 def j_phi(self): 
     """
-    Angle that the angular momentum vector of the bin makes with the xy-plane.
+    Angle that the angular momentum vector of the bin makes with the x-axis in the xy plane.
     """
     j_phi = np.zeros(self.nbins)
 

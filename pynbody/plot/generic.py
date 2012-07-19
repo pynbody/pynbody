@@ -109,8 +109,9 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, ma
     x = x[ind[0]]
     y = y[ind[0]]
     
-    
+    draw_contours = False
     if weights is not None and mass is not None: 
+        draw_contours = True
         weights = weights[ind[0]]
         mass = mass[ind[0]]
 
@@ -149,6 +150,8 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, ma
 
     if make_plot : 
         make_contour_plot(hist, xs, ys, **kwargs)
+        if draw_contours:
+            make_contour_plot(SimArray(density_mass, mass.units),xs,ys,filled=False,clear=False,colorbar=False,colors='black',scalemin=nmin,nlevels=10)
 
     return hist, xs, ys
     
@@ -166,15 +169,14 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), nbins = N
     
     If a *mass* array is supplied, a mass density is computed. 
 
-    If both *weights* and *mass* are supplied, a mass-averaged KDE of
-    the weights is computed.
+    If both *weights* and *mass* are supplied, a mass-averaged KDE of the weights is 
+    computed. 
 
-    By default, norm=False is passed to
-    :func:`~pynbody.plot.util.fast_kde` meaning that the result
-    returned *is not* normalized such that the integral over the area
-    equals one.
+    By default, norm=False is passed to :func:`~pynbody.plot.util.fast_kde` meaning
+    that the result returned *is not* normalized such that the integral over the area
+    equals one. 
 
-    Since this function produces a density estimate, the units of the
+Since this function produces a density estimate, the units of the
     output grid are different than for the output of
     :func:`~pynbody.plot.generic.hist2d`. To get to the same units,
     you must multiply by the size of the cells.
@@ -303,11 +305,10 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), nbins = N
     ys = .5*(ys[:-1]+ys[1:])
     
     extents = [x_range[0],x_range[1],y_range[0],y_range[1]]
-
-    draw_contour = False
-
+    
+    draw_contours = False
     if weights is not None and mass is not None: 
-        draw_contour = True
+        draw_contours = True
         weights = weights[ind[0]]
         mass = mass[ind[0]]
         
@@ -340,7 +341,7 @@ def gauss_kde(xo, yo, weights=None, mass = None, gridsize = (100,100), nbins = N
 
     if make_plot : 
         make_contour_plot(density,xs,ys,**kwargs)
-        if draw_contour:
+        if draw_contours:
             make_contour_plot(SimArray(density_mass, mass.units),xs,ys,filled=False,clear=False,colorbar=False,colors='black',scalemin=nmin,nlevels=10)
 
     return density, xs, ys
@@ -350,7 +351,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
                       logscale=True, xlogrange=False, ylogrange=False, 
                       subplot=False, colorbar=False, ret_im=False, cmap=None,
                       clear=True,legend=False, scalemin = None, 
-                      scalemax = None, filename = None, filled=True, **kwargs) : 
+                      scalemax = None, filename = None, **kwargs) : 
     """
     Plot a contour plot of grid *arr* corresponding to bin centers
     specified by *xs* and *ys*.  Labels the axes and colobar with
@@ -443,10 +444,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
                           aspect = 'auto',cmap=cmap,
                           #aspect = np.diff(x_range)/np.diff(y_range),cmap=cmap,
                           extent=[x_range[0],x_range[1],y_range[0],y_range[1]])
-    if filled: 
-        cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,cmap=cmap,**kwargs)
-    else:
-        cs = plt.contour(xs,ys,arr, levels, norm=cont_color,cmap=cmap,**kwargs)
+    cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,cmap=cmap,**kwargs)
 
     
     if kwargs.has_key('xlabel'):
