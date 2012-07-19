@@ -109,8 +109,9 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, ma
     x = x[ind[0]]
     y = y[ind[0]]
     
-    
+    draw_contours = False
     if weights is not None and mass is not None: 
+        draw_contours = True
         weights = weights[ind[0]]
         mass = mass[ind[0]]
 
@@ -149,6 +150,8 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, ma
 
     if make_plot : 
         make_contour_plot(hist, xs, ys, **kwargs)
+        if draw_contours:
+            make_contour_plot(SimArray(density_mass, mass.units),xs,ys,filled=False,clear=False,colorbar=False,colors='black',scalemin=nmin,nlevels=10)
 
     return hist, xs, ys
     
@@ -302,8 +305,10 @@ Since this function produces a density estimate, the units of the
     ys = .5*(ys[:-1]+ys[1:])
     
     extents = [x_range[0],x_range[1],y_range[0],y_range[1]]
-
+    
+    draw_contours = False
     if weights is not None and mass is not None: 
+        draw_contours = True
         weights = weights[ind[0]]
         mass = mass[ind[0]]
         
@@ -336,7 +341,7 @@ Since this function produces a density estimate, the units of the
 
     if make_plot : 
         make_contour_plot(density,xs,ys,**kwargs)
-        if weights is not None and mass is not None : 
+        if draw_contours:
             make_contour_plot(SimArray(density_mass, mass.units),xs,ys,filled=False,clear=False,colorbar=False,colors='black',scalemin=nmin,nlevels=10)
 
     return density, xs, ys
