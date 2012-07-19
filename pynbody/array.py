@@ -158,7 +158,7 @@ class SimArray(np.ndarray) :
     @property
     def derived(self) :
         if self.sim and self.name :
-            return self.sim.is_derived_array(self.name)
+            return self.sim.is_derived_array(self.name, getattr(self,'family',None))
         else :
             return False
 
@@ -187,6 +187,9 @@ class SimArray(np.ndarray) :
             units = data.units
             sim = data.sim
 
+        if hasattr(data, 'family') :
+            new.family = data.family
+
         if isinstance(units, str) :
             units = _units.Unit(units)
 
@@ -205,6 +208,8 @@ class SimArray(np.ndarray) :
             self._units = obj.units
             self._sim = obj._sim
             self._name = obj._name
+            if hasattr(obj, 'family') :
+                self.family = obj.family
         else :
             self._units = None
             self._sim = lambda : None
@@ -472,7 +477,7 @@ class SimArray(np.ndarray) :
 
         if self.sim is not None :
             try :
-                self.set_units_like(units._default_units[self.name])
+                self.units = self.sim._default_units_for(self.name)
             except (KeyError, units.UnitsException) :
                 if not quiet: raise
         else :

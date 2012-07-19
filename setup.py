@@ -88,10 +88,11 @@ if build_cython :
 
 
 dist = setup(name = 'pynbody',
-             author = '',
-             author_email = '',
-             version = '0.15alpha',
-             description = '',
+             author = 'The pynbody team',
+             author_email = 'pynbody@googlegroups.com',
+             version = '0.16alpha',
+             description = 'Light-weight astronomical N-body/SPH analysis for python',
+             url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
                          'pynbody/plot', 'pynbody/gravity' ],
@@ -109,7 +110,15 @@ dist = setup(name = 'pynbody',
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
              ext_modules = ext_modules,
-             cmdclass = cmdclass
+             cmdclass = cmdclass,
+             classifiers = ["Development Status :: 3 - Alpha",
+                            "Intended Audience :: Developers",
+                            "Intended Audience :: Science/Research",
+                            "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+                            "Programming Language :: Python :: 2",
+                            "Topic :: Scientific/Engineering :: Astronomy",
+                            "Topic :: Scientific/Engineering :: Visualization"]
+                            
       )
 
 #if dist.have_run.get('install'):

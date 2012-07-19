@@ -41,3 +41,12 @@ def test_units_copy() :
     import copy
     copy.copy(units.Unit("Msol kpc^-1")).ratio("kg km^-1")
     copy.deepcopy(units.Unit("Msol kpc^-1")).ratio("kg km^-1")
+
+def test_units_pickle() :
+    import pickle
+    pick = lambda x : pickle.loads(pickle.dumps(x))
+    
+    assert pick(units.km) is units.km # named 
+    assert pick(units.m) is units.m # irreducible
+    assert pick(units.Unit("km s^-1 Msol^-5"))==units.Unit("km s^-1 Msol^-5")
+    

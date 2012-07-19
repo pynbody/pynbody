@@ -29,7 +29,7 @@ Getting conversion ratios
 
 To convert one unit to another, use the ``ratio`` member function:
 
->>> units.Msol.ratio(units.kg)  
+>>> units.Msol.ratio(units.kg)
 1.99e30
 >>> (units.Msol / units.kpc**3).ratio(units.m_p/units.cm**3)
 4.04e-8
@@ -93,7 +93,7 @@ You can even define completely new dimensions.
     epsilon0 = 8.85418e-12 *F/units.m
 
 
->>> (q*V).ratio("eV") 
+>>> (q*V).ratio("eV")
 1.000
 >>> ((q**2)/(4*math.pi*epsilon0*units.m**2)).ratio("N")
 2.31e-28
@@ -101,7 +101,8 @@ You can even define completely new dimensions.
 
 """
 
-import re, keyword
+import re
+import keyword
 import numpy as np
 from . import backcompat
 from .backcompat import fractions
@@ -112,87 +113,89 @@ Fraction = fractions.Fraction
 
 _registry = {}
 
-class UnitsException(Exception) :
+
+class UnitsException(Exception):
     pass
 
-class UnitBase(object) :
+
+class UnitBase(object):
     """Base class for units"""
 
-    def __init__(self) :
-        raise ValueError, "Cannot directly initialize abstract base class"
+    def __init__(self):
+        raise ValueError("Cannot directly initialize abstract base class")
         pass
 
-    def __pow__(self, p) :
-        if isinstance(p, tuple) :
-            p = Fraction(p[0],p[1])
+    def __pow__(self, p):
+        if isinstance(p, tuple):
+            p = Fraction(p[0], p[1])
         return CompositeUnit(1, [self], [p]).simplify()
 
-    def __div__(self, m) :
-        if hasattr(m, "_no_unit") :
+    def __div__(self, m):
+        if hasattr(m, "_no_unit"):
             return NoUnit()
 
-        if isinstance(m, UnitBase) :
+        if isinstance(m, UnitBase):
             return CompositeUnit(1, [self, m], [1, -1]).simplify()
-        else :
-            return CompositeUnit(1.0/m, [self], [1]).simplify()
+        else:
+            return CompositeUnit(1.0 / m, [self], [1]).simplify()
 
-    def __rdiv__(self, m) :
+    def __rdiv__(self, m):
         return CompositeUnit(m, [self], [-1]).simplify()
 
-    def __mul__(self, m) :
-        if hasattr(m, "_no_unit") :
+    def __mul__(self, m):
+        if hasattr(m, "_no_unit"):
             return NoUnit()
-        elif hasattr(m, "units") :
-            return m*self
-        elif isinstance(m, UnitBase) :
-            return CompositeUnit(1, [self, m], [1,1]).simplify()
-        else :
+        elif hasattr(m, "units"):
+            return m * self
+        elif isinstance(m, UnitBase):
+            return CompositeUnit(1, [self, m], [1, 1]).simplify()
+        else:
             return CompositeUnit(m, [self], [1]).simplify()
 
-    def __rmul__(self, m) :
+    def __rmul__(self, m):
         return CompositeUnit(m, [self], [1]).simplify()
 
-    def __add__(self, m) :
-       scale = m.in_units(self) if hasattr(m, 'in_units') else m
-       return self*(1.0+scale)
+    def __add__(self, m):
+        scale = m.in_units(self) if hasattr(m, 'in_units') else m
+        return self * (1.0 + scale)
 
-    def __sub__(self, m) :
-       return self+(-m)
-    
-    def __repr__(self) :
-        return 'Unit("'+str(self)+'")'
+    def __sub__(self, m):
+        return self + (-m)
 
-    def __eq__(self, other) :
+    def __repr__(self):
+        return 'Unit("' + str(self) + '")'
+
+    def __eq__(self, other):
         try:
-            return self.ratio(other)==1.
-        except UnitsException :
+            return self.ratio(other) == 1.
+        except UnitsException:
             return False
 
-    def __ne__(self, other) :
-        return not (self==other)
+    def __ne__(self, other):
+        return not (self == other)
 
-    def __lt__(self, other) :
-        return self.ratio(other)<1.
+    def __lt__(self, other):
+        return self.ratio(other) < 1.
 
-    def __gt__(self, other) :
-        return self.ratio(other)>1.
+    def __gt__(self, other):
+        return self.ratio(other) > 1.
 
-    def __le__(self, other) :
-        return self.ratio(other)<=1.
+    def __le__(self, other):
+        return self.ratio(other) <= 1.
 
-    def __ge__(self, other) :
-        return self.ratio(other)>=1.
+    def __ge__(self, other):
+        return self.ratio(other) >= 1.
 
-    def __neg__(self) :
-        return self*(-1)
+    def __neg__(self):
+        return self * (-1)
 
-    def simplify(self) :
+    def simplify(self):
         return self
 
-    def is_dimensionless(self) :
+    def is_dimensionless(self):
         return False
 
-    def ratio(self, other, **substitutions) :
+    def ratio(self, other, **substitutions):
         """Get the conversion ratio between this Unit and another
         specified unit.
 
@@ -209,194 +212,212 @@ class UnitBase(object) :
         3.1028701506345152e-08
         """
 
-        if isinstance(other, str) :
+        if isinstance(other, str):
             other = Unit(other)
 
-        if hasattr(other, "_no_unit") :
-            raise UnitsException, "Unknown units"
+        if hasattr(other, "_no_unit"):
+            raise UnitsException("Unknown units")
 
-        try :
-            return (self/other).dimensionless_constant(**substitutions)
-        except UnitsException :
-            raise UnitsException, "Not convertible"
+        try:
+            return (self / other).dimensionless_constant(**substitutions)
+        except UnitsException:
+            raise UnitsException("Not convertible")
 
-    def in_units(self, *a, **kw) :
+    def in_units(self, *a, **kw):
         """Alias for ratio"""
 
         return self.ratio(*a, **kw)
-    
-    def irrep(self) :
+
+    def irrep(self):
         """Return a unit equivalent to this one (may be identical) but
         expressed in terms of the currently defined IrreducibleUnit
         instances."""
         return self
 
-    def _register_unit(self, st) :
-        if st in _registry :
-            raise UnitsException, "Unit with this name already exists"
-        if "**" in st or "^" in st or " " in st :
+    def _register_unit(self, st):
+        if st in _registry:
+            raise UnitsException("Unit with this name already exists")
+        if "**" in st or "^" in st or " " in st:
             # will cause problems for simple string parser in Unit() factory
             raise UnitsException, "Unit names cannot contain '**' or '^' or spaces"
-        _registry[st]=self
+        _registry[st] = self
 
-    def __deepcopy__(self, memo) :
+    def __deepcopy__(self, memo):
         # This may look odd, but the units conversion will be very
         # broken after deep-copying if we don't guarantee that a given
         # physical unit corresponds to only one instance
         return self
 
 
-class NoUnit(UnitBase) :
+class NoUnit(UnitBase):
 
-    def __init__(self) :
+    def __init__(self):
         self._no_unit = True
 
-    def ratio(self, other, **substitutions) :
-        if isinstance(other, NoUnit) :
+    def ratio(self, other, **substitutions):
+        if isinstance(other, NoUnit):
             return 1
-        else :
-            raise UnitsException, "Unknown units"
+        else:
+            raise UnitsException("Unknown units")
 
-    def dimensional_project(self, *args) :
-        raise UnitsException, "Unknown units"
+    def dimensional_project(self, *args):
+        raise UnitsException("Unknown units")
 
-    def is_dimensionless(self) :
+    def is_dimensionless(self):
         return True
 
-    def simplify(self) :
+    def simplify(self):
         return self
 
-    def __pow__(self, a) :
+    def __pow__(self, a):
         return self
 
-    def __div__(self, a) :
+    def __div__(self, a):
         return self
 
-    def __rdiv__(self, a) :
+    def __rdiv__(self, a):
         return self
 
-    def __mul__(self, a) :
+    def __mul__(self, a):
         return self
 
-    def __rmul__(self, a) :
+    def __rmul__(self, a):
         return self
 
-    def __repr__(self) :
+    def __repr__(self):
         return "NoUnit()"
 
-    def latex(self) :
+    def latex(self):
         return ""
 
-    def irrep(self) :
+    def irrep(self):
         return self
 
 no_unit = NoUnit()
 
-class IrreducibleUnit(UnitBase) :
-    def __init__(self, st) :
+
+def _resurrect_named_unit(unit_name, unit_latex, represents):
+    if unit_name in _registry:
+        return _registry[unit_name]
+    else:
+        if represents is None:
+            nu = IrreducibleUnit(unit_name)
+        else:
+            nu = NamedUnit(unit_name, represents)
+            nu._latex = unit_latex
+        return nu
+
+
+class IrreducibleUnit(UnitBase):
+    def __init__(self, st):
         self._st_rep = st
         self._register_unit(st)
 
+    def __reduce__(self):
+        return (_resurrect_named_unit, (self._st_rep, None, None))
 
-    def __str__(self) :
+    def __str__(self):
         return self._st_rep
 
-    def latex(self) :
-        return r"\mathrm{"+self._st_rep+"}"
+    def latex(self):
+        return r"\mathrm{" + self._st_rep + "}"
 
-    def irrep(self) :
+    def irrep(self):
         return CompositeUnit(1, [self], [1])
 
 
-class NamedUnit(UnitBase) :
-    def __init__(self, st, represents) :
+class NamedUnit(UnitBase):
+    def __init__(self, st, represents):
         self._st_rep = st
-        if isinstance(represents, str) :
+        if isinstance(represents, str):
             represents = Unit(represents)
-            
+
         self._represents = represents
         self._register_unit(st)
 
-    def __str__(self) :
+    def __reduce__(self):
+        return (_resurrect_named_unit, (self._st_rep, getattr(self, '_latex', None), self._represents))
+
+    def __str__(self):
         return self._st_rep
 
-    def latex(self) :
-        if hasattr(self,'_latex') :
+    def latex(self):
+        if hasattr(self, '_latex'):
             return self._latex
-        return r"\mathrm{"+self._st_rep+"}"
+        return r"\mathrm{" + self._st_rep + "}"
 
-    def irrep(self) :
+    def irrep(self):
         return self._represents.irrep()
 
 
-class CompositeUnit(UnitBase) :
-    def __init__(self, scale, bases, powers) :
+class CompositeUnit(UnitBase):
+    def __init__(self, scale, bases, powers):
         """Initialize a composite unit.
 
         Direct use of this function is not recommended. Instead use the
         factory function Unit(...)."""
-        
-        if scale==1. :
+
+        if scale == 1.:
             scale = 1
 
         self._scale = scale
         self._bases = bases
         self._powers = powers
 
-    def latex(self) :
+    def latex(self):
         """Returns a LaTeX representation of this unit.
 
         Prefactors are converted into exponent notation. Named units by default
         are represented by the string '\mathrm{unit_name}', although this can
         be overriden in the pynbody configuration files or by setting
         unit_name._latex."""
-        
-        if self._scale!=1 :
-            x = ("%.2e"%self._scale).split('e')
+
+        if self._scale != 1:
+            x = ("%.2e" % self._scale).split('e')
             s = x[0]
             ex = x[1].lstrip('0+')
-            if len(ex)>0 and ex[0]=='-':
-                ex = '-'+(ex[1:]).lstrip('0')
-            if ex!='' : s+=r"\times 10^{"+ex+"}"
-        else :
+            if len(ex) > 0 and ex[0] == '-':
+                ex = '-' + (ex[1:]).lstrip('0')
+            if ex != '':
+                s += r"\times 10^{" + ex + "}"
+        else:
             s = ""
 
-        for b,p in zip(self._bases, self._powers) :
-            if s!="" :
-                s+=r"\,"+b.latex()
-            else :
+        for b, p in zip(self._bases, self._powers):
+            if s != "":
+                s += r"\," + b.latex()
+            else:
                 s = b.latex()
 
-            if p!=1 :
-                s+="^{"
-                s+=str(p)
-                s+="}"
+            if p != 1:
+                s += "^{"
+                s += str(p)
+                s += "}"
         return s
 
+    def __str__(self):
+        s = None
+        if len(self._bases) == 0:
+            return "%.2e" % self._scale
 
-    def __str__(self) :
-        s=None
-        if len(self._bases)==0 :
-            return "%.2e"%self._scale
+        if self._scale != 1:
+            s = "%.2e" % self._scale
 
-        if self._scale!=1 :
-            s = "%.2e"%self._scale
-
-        for b,p in zip(self._bases, self._powers) :
-            if s is not None :
-                s+=" "+str(b)
-            else :
+        for b, p in zip(self._bases, self._powers):
+            if s is not None:
+                s += " " + str(b)
+            else:
                 s = str(b)
 
-            if p!=1 :
-                s+="**"
-                if isinstance(p,Fraction) :
-                    s+=str(p)
-                else :
-                    s+=str(p)
+            if p != 1:
+                s += "**"
+                if isinstance(p, Fraction):
+                    s += str(p)
+                else:
+                    s += str(p)
         return s
 
-    def _expand(self, expand_to_irrep=False) :
+    def _expand(self, expand_to_irrep=False):
         """Internal routine to expand any pointers to composite units
         into direct pointers to the base units. If expand_to_irrep is
         True, everything is expressed in irreducible units.
@@ -405,68 +426,62 @@ class CompositeUnit(UnitBase) :
 
         trash = []
 
-
-
-        for i,(b,p) in enumerate(zip(self._bases, self._powers)) :
-            if isinstance(b,NamedUnit) and expand_to_irrep :
+        for i, (b, p) in enumerate(zip(self._bases, self._powers)):
+            if isinstance(b, NamedUnit) and expand_to_irrep:
                 b = b._represents.irrep()
 
-            if isinstance(b,CompositeUnit) :
-                if expand_to_irrep :
+            if isinstance(b, CompositeUnit):
+                if expand_to_irrep:
                     b = b.irrep()
 
                 trash.append(i)
-                self._scale*=b._scale**p
-                for b_sub, p_sub in zip(b._bases, b._powers) :
+                self._scale *= b._scale ** p
+                for b_sub, p_sub in zip(b._bases, b._powers):
                     self._bases.append(b_sub)
-                    self._powers.append(p_sub*p)
+                    self._powers.append(p_sub * p)
 
         trash.sort()
-        for offset,i in enumerate(trash) :
-            del self._bases[i-offset]
-            del self._powers[i-offset]
+        for offset, i in enumerate(trash):
+            del self._bases[i - offset]
+            del self._powers[i - offset]
 
-
-    def _gather(self) :
+    def _gather(self):
         """Internal routine to gather together powers of the same base
         units, then order the base units by their power (descending)"""
 
         trash = []
         bases = list(set(self._bases))
-        powers = [sum([p for bi,p in zip(self._bases, self._powers)
-                       if bi is b]) \
+        powers = [sum([p for bi, p in zip(self._bases, self._powers)
+                       if bi is b])
                   for b in bases]
 
-        bp = sorted(filter(lambda x : x[0]!=0,
+        bp = sorted(filter(lambda x: x[0] != 0,
                            zip(powers, bases)),
                     reverse=True,
                     key=lambda x: x[0])
                     # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
 
-        if len(bp)!=0 :
-            self._powers, self._bases = map(list,zip(*bp))
-        else :
-            self._powers, self._bases = [],[]
+        if len(bp) != 0:
+            self._powers, self._bases = map(list, zip(*bp))
+        else:
+            self._powers, self._bases = [], []
 
-
-
-
-    def copy(self) :
+    def copy(self):
         """Create a copy which is 'shallow' in the sense that it
         references exactly the same underlying base units, but where
         the list of those units can be manipulated separately."""
         return CompositeUnit(self._scale, self._bases[:], self._powers[:])
 
-    def __copy__(self) :
+    def __copy__(self):
         """For compatibility with python copy module"""
         return self.copy()
 
-    def simplify(self) :
+    def simplify(self):
         self._expand()
         self._gather()
         return self
 
-    def irrep(self) :
+    def irrep(self):
         """Return a new unit which represents this unit expressed
         solely in terms of IrreducibleUnit bases."""
         x = self.copy()
@@ -474,45 +489,45 @@ class CompositeUnit(UnitBase) :
         x._gather()
         return x
 
-    def is_dimensionless(self) :
+    def is_dimensionless(self):
         """Returns true if this unit actually translates into a scalar
         quantity."""
         x = self.irrep()
-        if len(x._powers)==0 :
+        if len(x._powers) == 0:
             return True
 
-    def dimensionless_constant(self, **substitutions) :
+    def dimensionless_constant(self, **substitutions):
         """If this unit is dimensionless, return its scalar quantity.
 
         Direct use of this function is not recommended. It is generally
         better to use the ratio function instead.
-        
+
         Provide keyword arguments to set values for named IrreducibleUnits --
         see the ratio function for more information."""
-        
+
         x = self.irrep()
         c = x._scale
-        for xb, xp in zip(x._bases, x._powers) :
-            if str(xb) in substitutions :
-                c*=substitutions[str(xb)]**xp
-            else :
-                raise UnitsException, "Not dimensionless"
+        for xb, xp in zip(x._bases, x._powers):
+            if str(xb) in substitutions:
+                c *= substitutions[str(xb)] ** xp
+            else:
+                raise UnitsException("Not dimensionless")
 
         return c
 
-    def _power_of(self, base) :
-        if base in self._bases :
+    def _power_of(self, base):
+        if base in self._bases:
             return self._powers[self._bases.index(base)]
-        else :
+        else:
             return 0
 
-    def dimensional_project(self, basis_units) :
+    def dimensional_project(self, basis_units):
         """Work out how to express the dimensions of this unit relative to the
         specified list of basis units.
 
         This is used by the framework when making inferences about sensible units to
         use in various situations.
-        
+
         For example, you can represent a length as an energy divided by a force:
 
            >>> Unit("23 kpc").dimensional_project(["J", "N"])
@@ -527,23 +542,22 @@ class CompositeUnit(UnitBase) :
 
            >>> Unit("23 kpc").dimensional_project(["J", "N", "kpc"])
            UnitsException: Basis units are not linearly independent
-        
+
         """
 
         vec_irrep = [Unit(x).irrep() for x in basis_units]
         me_irrep = self.irrep()
         bases = set(me_irrep._bases)
-        for vec in vec_irrep :
+        for vec in vec_irrep:
             bases.update(vec._bases)
 
         bases = list(bases)
 
-        matrix = np.zeros((len(bases),len(vec_irrep)),dtype=Fraction)
+        matrix = np.zeros((len(bases), len(vec_irrep)), dtype=Fraction)
 
-        for base_i, base in enumerate(bases) :
-            for vec_i, vec in enumerate(vec_irrep) :
-                matrix[base_i,vec_i] = vec._power_of(base)
-
+        for base_i, base in enumerate(bases):
+            for vec_i, vec in enumerate(vec_irrep):
+                matrix[base_i, vec_i] = vec._power_of(base)
 
         # The matrix calculated above describes the transformation M
         # such that v = M.d where d is the sought-after powers of the
@@ -555,38 +569,38 @@ class CompositeUnit(UnitBase) :
         # which is d = (M^T M)^(-1) M^T v.
         #
         # If the solution to that does not solve v = M.d, there is no
-        # admissable solution to v=M.d, i.e. the supplied base vectors do not span
+        # admissable solution to v=M.d, i.e. the supplied base vectors do not
+        # span
         # the requires space.
         #
-        # If (M^T M) is singular, the vectors are not linearly independent, so any
+        # If (M^T M) is singular, the vectors are not linearly independent, so
+        # any
         # solution would not be unique.
+        M_T_M = np.dot(matrix.transpose(), matrix)
 
-
-
-        M_T_M = np.dot(matrix.transpose(),matrix)
-
-        try :
+        try:
             M_T_M_inv = util.rational_matrix_inv(M_T_M)
-        except np.linalg.linalg.LinAlgError :
-            raise UnitsException, "Basis units are not linearly independent"
+        except np.linalg.linalg.LinAlgError:
+            raise UnitsException("Basis units are not linearly independent")
 
         my_powers = [me_irrep._power_of(base) for base in bases]
 
-
-        candidate= np.dot(M_T_M_inv, np.dot(matrix.transpose(), my_powers))
+        candidate = np.dot(M_T_M_inv, np.dot(matrix.transpose(), my_powers))
 
         # Because our method involves a loss of information (multiplying
-        # by M^T), we could get a spurious solution. Check this is not the case...
+        # by M^T), we could get a spurious solution. Check this is not the
+        # case...
 
-
-        if any(np.dot(matrix, candidate)!=my_powers) :
+        if any(np.dot(matrix, candidate) != my_powers):
             # Spurious solution, meaning the base vectors did not span the
             # units required in the first place.
-            raise UnitsException, "Basis units do not span dimensions of specified unit"
+            raise UnitsException(
+                "Basis units do not span dimensions of specified unit")
 
         return candidate
 
-def Unit(s) :
+
+def Unit(s):
     """
     Class factory for units. Given a string s, creates
     a Unit object.
@@ -610,24 +624,23 @@ def Unit(s) :
     try:
         scale = float(x[0])
         del x[0]
-    except (ValueError, IndexError) :
+    except (ValueError, IndexError):
         scale = 1.0
 
     units = []
     powers = []
 
-
-    for com in x :
-        if "**" in com or "^" in com :
+    for com in x:
+        if "**" in com or "^" in com:
             s = com.split("**" if "**" in com else "^")
-            try :
+            try:
                 u = _registry[s[0]]
-            except KeyError :
-                raise ValueError, "Unknown unit "+s[0]
+            except KeyError:
+                raise ValueError("Unknown unit " + s[0])
             p = Fraction(s[1])
-            if p.denominator is 1 :
+            if p.denominator is 1:
                 p = p.numerator
-        else :
+        else:
             u = _registry[com]
             p = 1
 
@@ -637,14 +650,14 @@ def Unit(s) :
     return CompositeUnit(scale, units, powers)
 
 
-def takes_arg_in_units(*args, **orig_kwargs) :
+def takes_arg_in_units(*args, **orig_kwargs):
     """
-    
+
     Returns a decorator to create a function which auto-converts input
     to given units.
 
     **Usage:**
-    
+
     .. code-block:: python
 
         @takes_arg_in_units((2, "Msol"), (1, "kpc"), ("blob", "erg"))
@@ -661,34 +674,36 @@ def takes_arg_in_units(*args, **orig_kwargs) :
 
     """
 
-    context_arg = orig_kwargs.get('context_arg',None)
-    
-    kwargs = filter(lambda x: hasattr(x[0],'__len__'), args)
+    context_arg = orig_kwargs.get('context_arg', None)
+
+    kwargs = filter(lambda x: hasattr(x[0], '__len__'), args)
     args = filter(lambda x: not hasattr(x[0], '__len__'), args)
-    
-    def decorator_fn(x) :
+
+    def decorator_fn(x):
         @functools.wraps
-        def wrapper_fn(*fn_args, **fn_kwargs) :
+        def wrapper_fn(*fn_args, **fn_kwargs):
             context = {}
-            if context_arg is not None :
+            if context_arg is not None:
                 context = fn_args[context_arg].conversion_context()
-                
+
             fn_args = list(fn_args)
 
-            for arg_num, arg_units in args :
+            for arg_num, arg_units in args:
 
-                if isinstance(fn_args[arg_num],str) :
+                if isinstance(fn_args[arg_num], str):
                     fn_args[arg_num] = Unit(fn_args[arg_num])
 
-                if hasattr(fn_args[arg_num], "in_units") :
-                    fn_args[arg_num] = fn_args[arg_num].in_units(arg_units,**context)
+                if hasattr(fn_args[arg_num], "in_units"):
+                    fn_args[arg_num] = fn_args[
+                        arg_num].in_units(arg_units, **context)
 
-            for arg_name, arg_units in kwargs :
-                if isinstance(fn_kwargs[arg_name],str) :
+            for arg_name, arg_units in kwargs:
+                if isinstance(fn_kwargs[arg_name], str):
                     fn_kwargs[arg_name] = Unit(fn_kwargs[arg_name])
 
-                if hasattr(fn_kwargs[arg_name], "in_units") :
-                    fn_kwargs[arg_name] = fn_kwargs[arg_name].in_units(arg_units, **context)
+                if hasattr(fn_kwargs[arg_name], "in_units"):
+                    fn_kwargs[arg_name] = fn_kwargs[
+                        arg_name].in_units(arg_units, **context)
 
             return x(*fn_args, **fn_kwargs)
 
@@ -697,31 +712,41 @@ def takes_arg_in_units(*args, **orig_kwargs) :
     return decorator_fn
 
 
-from . import  config_parser
+from . import config_parser
 
-def __is_clean_name(s) :
-    if re.search('[^0-9a-zA-Z_]',s) : return False
-    if re.search('^[^a-zA-Z_]+',s) : return False
-    if keyword.iskeyword(s) : return False
+
+def __is_clean_name(s):
+    if re.search('[^0-9a-zA-Z_]', s):
+        return False
+    if re.search('^[^a-zA-Z_]+', s):
+        return False
+    if keyword.iskeyword(s):
+        return False
     return True
 
-for new_unit_name in map(str.strip,config_parser.get('irreducible-units', 'names').split(",")) :
+for new_unit_name in map(str.strip, config_parser.get('irreducible-units', 'names').split(",")):
     new_unit = IrreducibleUnit(new_unit_name)
-    if __is_clean_name(new_unit_name) :
+    if __is_clean_name(new_unit_name):
         globals()[new_unit_name] = new_unit
 
-for new_unit_name, new_unit_definition in config_parser.items("named-units") :
+for new_unit_name, new_unit_definition in config_parser.items("named-units"):
     new_unit = NamedUnit(new_unit_name, new_unit_definition)
-    if __is_clean_name(new_unit_name) :
+    if __is_clean_name(new_unit_name):
         globals()[new_unit_name] = new_unit
 
-for unit_name, latex in config_parser.items("units-latex") :
+for unit_name, latex in config_parser.items("units-latex"):
     _registry[unit_name]._latex = latex
-    
 
-    
+
 _default_units = {}
 
-for a_,b_ in config_parser.items("default-array-dimensions") :
+for a_, b_ in config_parser.items("default-array-dimensions"):
     _default_units[a_] = Unit(b_)
 
+
+def has_units(obj):
+    """Returns True if the specified object has a meaningful units attribute"""
+    if hasattr(obj, 'units') and isinstance(obj.units, UnitBase):
+        return not hasattr(obj.units, '_no_unit')
+    else:
+        return False

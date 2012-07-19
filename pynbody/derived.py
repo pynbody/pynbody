@@ -61,6 +61,12 @@ def j(self) :
     return angmom
 
 @SimSnap.derived_quantity
+def j2(self) :
+    """Square of the specific angular momentum"""
+
+    return (self['j']**2).sum(axis=1)
+
+@SimSnap.derived_quantity
 def jz(self):
     """z-component of the angular momentum"""
     return self['j'][:,2]

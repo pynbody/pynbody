@@ -1,10 +1,17 @@
+"""
+
+chunk
+=====
+
+Methods for describing parts of files to load
+
+"""
+
 from __future__ import division
 import random
 import math
 import numpy as np
 
-
-print "I am chunk.py.  I have not single a comment........  Why am I here?"
 
 class Chunk:
     def __init__(self, *args, **kwargs):

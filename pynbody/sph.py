@@ -19,8 +19,9 @@ import snapshot, array
 import math
 import time
 import sys
-from . import snapshot, array, config, units
+from . import snapshot, array, config, units, util
 import threading
+
 
 def build_tree(sim) :
     if hasattr(sim,'kdtree') is False : 
@@ -443,7 +444,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
    
         if config["tracktime"] :
             print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
-        inline( code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
+        util.threadsafe_inline( code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
                       'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   
                       'qty', 'mass', 'rho'],verbose=2)
         if config["tracktime"] :
@@ -571,7 +572,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
    
     if config["tracktime"] :
         print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
-    inline( code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
+    util.threadsafe_inline( code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
                    'x1', 'x2', 'y1', 'y2', 'z1',  'z2',
                    'qty', 'mass', 'rho'],verbose=2)
     if config["tracktime"] :
@@ -693,7 +694,7 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     if config["tracktime"] :
         print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
     #import pdb; pdb.set_trace()
-    inline( code, ['tau', 'nvel', 'x', 'y', 'vz', 'temp', 'sm', 'v1', 'v2',
+    util.threadsafe_inline( code, ['tau', 'nvel', 'x', 'y', 'vz', 'temp', 'sm', 'v1', 'v2',
                    'nnucleons','qty', 'mass', 'rho'],verbose=2)
 
     if config["tracktime"] :

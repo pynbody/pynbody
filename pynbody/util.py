@@ -14,6 +14,10 @@ import copy
 import gzip
 import struct
 import os
+import scipy
+import threading
+import sys
+import time
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
@@ -489,3 +493,41 @@ def gamma_inc(a, z,eps=3.e-7):
     else:
         return scipy.special.gamma(a)-_gcf(a,z,eps)
         
+
+
+#
+# THREAD-SAFE VERSION OF scipy.weave.inline
+#
+    
+compile_lock = threading.Lock()
+
+def threadsafe_inline(*args, **kwargs) :
+    """When scipy.weave.inline is called, it may trigger a compile. We
+    only want one compilation to be going on at once, otherwise nasty
+    race conditions arise. This function wraps scipy.weave.inline to
+    be thread-safe."""
+    
+    call_frame = sys._getframe().f_back
+    if 'local_dict' not in kwargs :
+        kwargs['local_dict'] = call_frame.f_locals
+    if 'global_dict' not in kwargs :
+        kwargs['global_dict'] = call_frame.f_globals
+        
+    tid = threading.currentThread().name
+    while args[0] not in scipy.weave.inline_tools.function_cache :
+        # We need a compilation, so try to acquire the compile lock
+        if compile_lock.acquire(False) :
+            # acquired lock
+            try:
+                ret = scipy.weave.inline(*args,**kwargs)
+            finally:
+                compile_lock.release()
+            return ret
+        else :
+            # didn't acquire lock. Wait a while
+            time.sleep(1)
+
+    # When we reach this point, we know no compilation will be
+    # triggered, so go ahead and call
+    return scipy.weave.inline(*args, **kwargs)
+    
