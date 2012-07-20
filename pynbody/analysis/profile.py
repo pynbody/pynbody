@@ -278,7 +278,7 @@ class Profile:
         # self['rbins'].sim = self.sim
 
         # Width of the bins
-        self._properties['dr'] = np.diff(self['rbins'])
+        self._properties['dr'] = np.gradient(self['rbins'])
 
         self.binind = []
         if len(self._x) > 0:
