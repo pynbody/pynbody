@@ -44,6 +44,7 @@ class TipsySnap(snapshot.SimSnap) :
         only_header = kwargs.get('only_header', False)
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
         take = kwargs.get('take', None)
+        verbose = kwargs.get('verbose', config['verbose'])
 
         self.partial_load = take is not None
 
@@ -51,7 +52,7 @@ class TipsySnap(snapshot.SimSnap) :
     
         f = util.open_(filename)
     
-        if config['verbose'] : print>>sys.stderr, "TipsySnap: loading ",filename
+        if verbose : print>>sys.stderr, "TipsySnap: loading ",filename
 
         t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
         if (ndim > 3 or ndim < 1):
@@ -60,6 +61,8 @@ class TipsySnap(snapshot.SimSnap) :
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
         else :
             self._byteswap=False
+
+        assert ndim==3
             
         # In non-cosmological simulations, what is t? Is it physical
         # time?  In which case, we need some way of telling what we
@@ -969,7 +972,12 @@ class TipsySnap(snapshot.SimSnap) :
     
     @staticmethod
     def _can_load(f) :
-        # to implement!
+        try:
+            check = TipsySnap(f, only_header=True, verbose=False)
+            del check
+        except :
+            return False
+        
         return True
 
 # caculate the number fraction YH, YHe as a function of metalicity. Cosmic 
