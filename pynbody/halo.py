@@ -276,7 +276,7 @@ class AHFCatalogue(HaloCatalogue) :
 
     def _load_ahf_particles(self,filename) :
         f = util.open_(filename)
-        if filename.split("z")[0][-1] is "." : self.isnew = True
+        if filename.split("z")[-2][-1] is "." : self.isnew = True
         else : self.isnew = False
         # tried readlines, which is fast, but the time is spent in the
         # for loop below, so sticking with this (hopefully) more readable 
