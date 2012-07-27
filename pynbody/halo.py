@@ -223,7 +223,13 @@ class HaloCatalogue(object) :
 
 
 class AHFCatalogue(HaloCatalogue) :
-    def __init__(self, sim) :
+    def __init__(self, sim, make_grp=None) :
+        """Initialize an AHFCatalogue. Takes an extra kwarg, make_grp;
+        if this is set to True a 'grp' array is created in the
+        underlying snapshot specifying the lowest level halo that any
+        given particle belongs to. If it is False, no such array is created;
+        if None, the behaviour is determined by the configuration system."""
+        
         import os.path
         if not self._can_load(sim) :
             self._run_ahf(sim)
@@ -256,7 +262,10 @@ class AHFCatalogue(HaloCatalogue) :
 
         self._setup_children()
 
-        if config_parser.getboolean('AHFCatalogue', 'AutoGrp') :
+        if make_grp is None :
+            make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp') 
+
+        if make_grp :
             self.make_grp()
 
         if config_parser.getboolean('AHFCatalogue', 'AutoPid') :
