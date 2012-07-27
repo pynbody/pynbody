@@ -17,7 +17,8 @@ import os.path
 import glob
 import re
 import copy
-from . import snapshot, util, config
+import sys
+from . import snapshot, util, config, config_parser
 
 class Halo(snapshot.IndexedSubSnap) :
     def __init__(self, halo_id, halo_catalogue, *args) :
@@ -236,39 +237,55 @@ class AHFCatalogue(HaloCatalogue) :
             pass
         self._nhalos=i
         f.close()
-        if config['verbose']: print "Loading particles"
+        
+        if config['verbose']: print "AHFCatalogue: loading particles...",
+        sys.stdout.flush()
+        
         self._load_ahf_particles(self._ahfBasename+'particles')
-        if config['verbose']: print "Loading halos"
+        
+        if config['verbose']: print "halos...",
+        sys.stdout.flush()
+        
         self._load_ahf_halos(self._ahfBasename+'halos')
-        if config['verbose']: print "Loading substructure"
-        try:
-            self._load_ahf_substructure(self._ahfBasename+'substructure')
-        except IOError:
-            print "Failed substructure load: "+str(IOError)
-            pass
-        try:
-            if config['verbose']: print "Setting grp"
-            for halo in self._halos.values():
-                halo['grp'] = np.repeat([halo._halo_id],len(halo))
-        except KeyError:
-            print "Failed grp load: "+str(KeyError)
-            pass
-        except IndexError:
-            print "IndexError"+str(IndexError)
 
+
+        if os.path.isfile(self._ahfBasename+'substructure') :
+            if config['verbose']: print "substructure...",
+            sys.stdout.flush()
+            self._load_ahf_substructure(self._ahfBasename+'substructure')
+
+        self._setup_children()
+
+        if config_parser.getboolean('AHFCatalogue', 'AutoGrp') :
+            self.make_grp()
+
+        if config_parser.getboolean('AHFCatalogue', 'AutoPid') :
+            sim['pid'] = np.arange(0,len(sim))
+
+        if config['verbose']: print "done!"
+ 
+
+        
+    def make_grp(self, name='grp') :
+        for halo in self._halos.values():
+            halo[name] = np.repeat([halo._halo_id],len(halo))
+
+    def _setup_children(self) :
+        for i in xrange(self._nhalos) :
+            self._halos[i+1].properties['children'] = []
+
+        for i in xrange(self._nhalos) :
+            host =  self._halos[i+1].properties['hostHalo']
+            if host>-1 :
+                self._halos[host+1].properties['children'].append(i+1)
+                
+        
     def _get_halo(self, i) :
         if self.base is None :
             raise RuntimeError, "Parent SimSnap has been deleted"
 
-        # XXX how do we lazy load particles (and only do it once)?
-        # in other words, WHEN do we lazy load particles?
-        #if (not self._particles_loaded) :
-        #    self._particles_loaded = True
-            
-        #x = self.base[self._halos[i]]
-        x = self._halos[i]
-        x._descriptor = "halo_"+str(i)
-        return x
+        return self._halos[i]
+    
 
     @property
     def base(self) :
@@ -319,8 +336,12 @@ class AHFCatalogue(HaloCatalogue) :
             """
             
             self._halos[h+1] = Halo( h+1, self, self.base, sorted_pids_in_halo)
+
             # store halo member particle IDs for each halo
-            self._halos[h+1]['pid'] = np.array(sorted_pids_in_halo) 
+            # self._halos[h+1]['pid'] = np.array(sorted_pids_in_halo)
+            
+            self._halos[h+1]._descriptor = "halo_"+str(h+1)
+            
         f.close()
 
     def _load_ahf_halos(self,filename) :
