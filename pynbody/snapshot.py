@@ -889,9 +889,15 @@ class SimSnap(object) :
         """Return an array giving the family number of each particle in this snapshot,
         something like 0,0,0,0,1,1,2,2,2, ... where 0 means self.families()[0] etc"""
 
-        ind = np.empty((len(self),),dtype=int)
+        if hasattr(self,"_family_index_cached") :
+            return self._family_index_cached
+        
+        ind = np.empty((len(self),),dtype='int8')
         for i,f in enumerate(self.families()) :
             ind[self._get_family_slice(f)] = i
+
+        self._family_index_cached = ind
+        
         return ind
 
     def _assert_not_family_array(self, name) :
