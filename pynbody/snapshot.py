@@ -264,17 +264,17 @@ class SimSnap(object) :
     def _inclusion_hash(self) :
         return 'base'
 
-    def halos(self, *args) :
+    def halos(self, *args, **kwargs) :
         """Tries to instantiate a halo catalogue object for the given
         snapshot, using the first available method."""
 
         from . import halo
         
         for c in config['halo-class-priority']:
-            if c._can_load(self) : return c(self, *args)
+            if c._can_load(self) : return c(self, *args, **kwargs)
 
         for c in config['halo-class-priority']:
-            if c._can_run(self) : return c(self, *args)
+            if c._can_run(self) : return c(self, *args, **kwargs)
 
         raise RuntimeError("No halo catalogue found for %r"%str(self))
 
