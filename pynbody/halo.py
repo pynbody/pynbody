@@ -284,10 +284,25 @@ class AHFCatalogue(HaloCatalogue) :
             nhalos=int(f.readline())
         else: 
             nhalos = self._nhalos
+
+
         ng = len(self.base.gas)
         nds = len(self.base.dark) + len(self.base.star)
         for h in xrange(nhalos) :
             nparts = int(f.readline())
+            if self.isnew :
+                data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
+                hi_mask = data>=nds
+                data[np.where(hi_mask)]-=nds
+                data[np.where(~hi_mask)]+=ng
+            else :
+                data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
+
+            data.sort()
+            sorted_pids_in_halo = data
+                
+
+            """ # old code
             keys = {}
             # wow,  AHFstep has the audacity to switch the id order to dark,star,gas
             # switching back to gas, dark, star
@@ -301,6 +316,8 @@ class AHFCatalogue(HaloCatalogue) :
                     value = 0
                 keys[int(key)]=int(value)
             sorted_pids_in_halo = sorted(keys.keys())
+            """
+            
             self._halos[h+1] = Halo( h+1, self, self.base, sorted_pids_in_halo)
             # store halo member particle IDs for each halo
             self._halos[h+1]['pid'] = np.array(sorted_pids_in_halo) 
@@ -323,7 +340,7 @@ class AHFCatalogue(HaloCatalogue) :
             if(key == 'c') : keys[i] = 'c_axis'
             if(key == 'Mvir') : keys[i] = 'mass'
         for h, line in enumerate(f) :
-            values = [float(x) for x in line.split()]
+            values = [float(x) if '.' in x or 'e' in x else int(x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as well
             for i,key in enumerate(keys) :
                 if self.isnew:
