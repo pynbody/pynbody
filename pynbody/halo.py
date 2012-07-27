@@ -275,7 +275,7 @@ class AHFCatalogue(HaloCatalogue) :
             self._halos[i+1].properties['children'] = []
 
         for i in xrange(self._nhalos) :
-            host =  self._halos[i+1].properties['hostHalo']
+            host =  self._halos[i+1].properties.get('hostHalo',-2)
             if host>-1 :
                 self._halos[host+1].properties['children'].append(i+1)
                 
@@ -308,13 +308,26 @@ class AHFCatalogue(HaloCatalogue) :
         for h in xrange(nhalos) :
             nparts = int(f.readline())
             if self.isnew :
-                data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
+                if isinstance(f,file) :
+                    data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
+                else :
+                    # unfortunately with gzipped files there does not
+                    # seem to be an efficient way to load nparts lines
+                    data = np.zeros(nparts, dtype=int)
+                    for i in xrange(nparts) :
+                        data[i] = int(f.readline().split()[0])
+                        
                 hi_mask = data>=nds
                 data[np.where(hi_mask)]-=nds
                 data[np.where(~hi_mask)]+=ng
             else :
-                data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
-
+                if isinstance(f, file) :
+                    data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
+                else :
+                    # see comment above on gzipped files
+                    data = np.zeros(nparts, dtype=int)
+                    for i in xrange(nparts) :
+                        data[i] = int(f.readline())
             data.sort()
             sorted_pids_in_halo = data
                 
@@ -361,7 +374,7 @@ class AHFCatalogue(HaloCatalogue) :
             if(key == 'c') : keys[i] = 'c_axis'
             if(key == 'Mvir') : keys[i] = 'mass'
         for h, line in enumerate(f) :
-            values = [float(x) if '.' in x or 'e' in x else int(x) for x in line.split()]
+            values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as well
             for i,key in enumerate(keys) :
                 if self.isnew:
