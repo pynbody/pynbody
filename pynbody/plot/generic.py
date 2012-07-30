@@ -454,15 +454,16 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
             if xlogrange: xlabel=r''+'$log_{10}('+xs.units.latex()+')$'
             else : xlabel = r''+'$x/' + xs.units.latex() +'$'
         except AttributeError:
-            xlabel = False
-    
-    try:
-        if subplot and xlabel:
-            plt.set_xlabel(xlabel)
-        else:
-            plt.xlabel(xlabel)
-    except:
-        pass
+            xlabel = None
+
+    if xlabel :
+        try:
+            if subplot :
+                plt.set_xlabel(xlabel)
+            else:
+                plt.xlabel(xlabel)
+        except:
+            pass
 
     if kwargs.has_key('ylabel'):
         ylabel = kwargs['ylabel']
@@ -471,16 +472,18 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
             if ylogrange: ylabel='$log_{10}('+ys.units.latex()+')$'
             else : ylabel = r''+'$y/' + ys.units.latex() +'$'
         except AttributeError:
-            ylabel=False
-    
-    try:
-        if subplot :
-            plt.set_ylabel(ylabel)
-        else:
-            plt.ylabel(ylabel)
-    except:
-        pass
+            ylabel=None
 
+    if ylabel :
+        try:
+            if subplot :
+                plt.set_ylabel(ylabel)
+            else:
+                plt.ylabel(ylabel)
+        except:
+            pass
+
+    
 #    if not subplot:
 #        plt.xlim((x_range[0],x_range[1]))
 #        plt.ylim((y_range[0],y_range[1]))
