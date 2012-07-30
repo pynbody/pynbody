@@ -223,7 +223,13 @@ class HaloCatalogue(object) :
 
 
 class AHFCatalogue(HaloCatalogue) :
-    def __init__(self, sim) :
+    def __init__(self, sim, make_grp=None) :
+        """Initialize an AHFCatalogue. Takes an extra kwarg, make_grp;
+        if this is set to True a 'grp' array is created in the
+        underlying snapshot specifying the lowest level halo that any
+        given particle belongs to. If it is False, no such array is created;
+        if None, the behaviour is determined by the configuration system."""
+        
         import os.path
         if not self._can_load(sim) :
             self._run_ahf(sim)
@@ -256,7 +262,10 @@ class AHFCatalogue(HaloCatalogue) :
 
         self._setup_children()
 
-        if config_parser.getboolean('AHFCatalogue', 'AutoGrp') :
+        if make_grp is None :
+            make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp') 
+
+        if make_grp :
             self.make_grp()
 
         if config_parser.getboolean('AHFCatalogue', 'AutoPid') :
@@ -275,7 +284,7 @@ class AHFCatalogue(HaloCatalogue) :
             self._halos[i+1].properties['children'] = []
 
         for i in xrange(self._nhalos) :
-            host =  self._halos[i+1].properties['hostHalo']
+            host =  self._halos[i+1].properties.get('hostHalo',-2)
             if host>-1 :
                 self._halos[host+1].properties['children'].append(i+1)
                 
@@ -308,13 +317,26 @@ class AHFCatalogue(HaloCatalogue) :
         for h in xrange(nhalos) :
             nparts = int(f.readline())
             if self.isnew :
-                data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
+                if isinstance(f,file) :
+                    data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
+                else :
+                    # unfortunately with gzipped files there does not
+                    # seem to be an efficient way to load nparts lines
+                    data = np.zeros(nparts, dtype=int)
+                    for i in xrange(nparts) :
+                        data[i] = int(f.readline().split()[0])
+                        
                 hi_mask = data>=nds
                 data[np.where(hi_mask)]-=nds
                 data[np.where(~hi_mask)]+=ng
             else :
-                data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
-
+                if isinstance(f, file) :
+                    data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
+                else :
+                    # see comment above on gzipped files
+                    data = np.zeros(nparts, dtype=int)
+                    for i in xrange(nparts) :
+                        data[i] = int(f.readline())
             data.sort()
             sorted_pids_in_halo = data
                 
@@ -361,7 +383,7 @@ class AHFCatalogue(HaloCatalogue) :
             if(key == 'c') : keys[i] = 'c_axis'
             if(key == 'Mvir') : keys[i] = 'mass'
         for h, line in enumerate(f) :
-            values = [float(x) if '.' in x or 'e' in x else int(x) for x in line.split()]
+            values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as well
             for i,key in enumerate(keys) :
                 if self.isnew:
@@ -399,17 +421,24 @@ class AHFCatalogue(HaloCatalogue) :
         #   typecode = '60' or '61'                                             
         import pynbody.units as units
         # find AHFstep
-        for directory in os.environ["PATH"].split(os.pathsep) :
-            ahfs = glob.glob(os.path.join(directory,"AHF*"))
-            for iahf, ahf in enumerate(ahfs):
-                # if there are more AHF*'s than 1, it's not the last one, and
-                # it's AHFstep, then continue, otherwise it's OK.
-                if ((len(ahfs)>1) & (iahf != len(ahfs)-1) & 
-                    (os.path.basename(ahf) == 'AHFstep')): 
-                    continue
-                else: 
-                    groupfinder=ahf
-                    break
+        
+        groupfinder = config_parser.get('AHFCatalogue','Path')
+
+        if groupfinder=='None' :
+            for directory in os.environ["PATH"].split(os.pathsep) :
+                ahfs = glob.glob(os.path.join(directory,"AHF*"))
+                for iahf, ahf in enumerate(ahfs):
+                    # if there are more AHF*'s than 1, it's not the last one, and
+                    # it's AHFstep, then continue, otherwise it's OK.
+                    if ((len(ahfs)>1) & (iahf != len(ahfs)-1) & 
+                        (os.path.basename(ahf) == 'AHFstep')): 
+                        continue
+                    else: 
+                        groupfinder=ahf
+                        break
+
+        if not os.path.exists(groupfinder) :
+            raise RuntimeError, "Path to AHF (%s) is invalid"%groupfinder
 
         if (os.path.basename(groupfinder) == 'AHFstep'):  isAHFstep=True
         else:  isAHFstep=False
@@ -465,9 +494,14 @@ class AHFCatalogue(HaloCatalogue) :
 
     @staticmethod
     def _can_run(sim) :
-        for directory in os.environ["PATH"].split(os.pathsep) :
-            if (len(glob.glob(os.path.join(directory,"AHF*"))) > 0):
-                return True
+        if config_parser.getboolean('AHFCatalogue', 'AutoRun') :
+            if config_parser.get('AHFCatalogue', 'Path')=='None' :
+                for directory in os.environ["PATH"].split(os.pathsep) :
+                    if (len(glob.glob(os.path.join(directory,"AHF*"))) > 0):
+                        return True
+            else :
+                path = config_parser.get('AHFCatalogue', 'Path')
+                return os.path.exists(path) 
         return False
 
 class AmigaGrpCatalogue(HaloCatalogue) :
