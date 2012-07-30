@@ -421,17 +421,24 @@ class AHFCatalogue(HaloCatalogue) :
         #   typecode = '60' or '61'                                             
         import pynbody.units as units
         # find AHFstep
-        for directory in os.environ["PATH"].split(os.pathsep) :
-            ahfs = glob.glob(os.path.join(directory,"AHF*"))
-            for iahf, ahf in enumerate(ahfs):
-                # if there are more AHF*'s than 1, it's not the last one, and
-                # it's AHFstep, then continue, otherwise it's OK.
-                if ((len(ahfs)>1) & (iahf != len(ahfs)-1) & 
-                    (os.path.basename(ahf) == 'AHFstep')): 
-                    continue
-                else: 
-                    groupfinder=ahf
-                    break
+        
+        groupfinder = config_parser.get('AHFCatalogue','Path')
+
+        if groupfinder=='None' :
+            for directory in os.environ["PATH"].split(os.pathsep) :
+                ahfs = glob.glob(os.path.join(directory,"AHF*"))
+                for iahf, ahf in enumerate(ahfs):
+                    # if there are more AHF*'s than 1, it's not the last one, and
+                    # it's AHFstep, then continue, otherwise it's OK.
+                    if ((len(ahfs)>1) & (iahf != len(ahfs)-1) & 
+                        (os.path.basename(ahf) == 'AHFstep')): 
+                        continue
+                    else: 
+                        groupfinder=ahf
+                        break
+
+        if not os.path.exists(groupfinder) :
+            raise RuntimeError, "Path to AHF (%s) is invalid"%groupfinder
 
         if (os.path.basename(groupfinder) == 'AHFstep'):  isAHFstep=True
         else:  isAHFstep=False
@@ -487,9 +494,14 @@ class AHFCatalogue(HaloCatalogue) :
 
     @staticmethod
     def _can_run(sim) :
-        for directory in os.environ["PATH"].split(os.pathsep) :
-            if (len(glob.glob(os.path.join(directory,"AHF*"))) > 0):
-                return True
+        if config_parser.getboolean('AHFCatalogue', 'AutoRun') :
+            if config_parser.get('AHFCatalogue', 'Path')=='None' :
+                for directory in os.environ["PATH"].split(os.pathsep) :
+                    if (len(glob.glob(os.path.join(directory,"AHF*"))) > 0):
+                        return True
+            else :
+                path = config_parser.get('AHFCatalogue', 'Path')
+                return os.path.exists(path) 
         return False
 
 class AmigaGrpCatalogue(HaloCatalogue) :
