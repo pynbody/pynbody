@@ -477,15 +477,6 @@ class AHFCatalogue(HaloCatalogue) :
                 'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
                 'eunit': 0.03 # surely this can't be right?
                 })
-          
-            """
-            f.write('[TIPSY]\n')
-            f.write('TIPSY_OMEGA0 = '+str()+"\n")
-            f.write('TIPSY_LAMBDA0 = '+str()+"\n")
-            f.write('TIPSY_BOXSIZE = '+str(sim['pos'].units.ratio(units.kpc,a=1)/1000.0 * sim.properties['h'])+"\n")
-            f.write('TIPSY_VUNIT = '+str(sim['vel'].units.ratio(units.km/units.s,a=1))+"\n")
-            f.write('TIPSY_MUNIT = '+str(sim['mass'].units.ratio(units.Msol)* sim.properties['h'])+"\n")
-            f.write('TIPSY_EUNIT = 0.03\n')"""
                 
             f.close()
 
