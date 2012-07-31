@@ -259,8 +259,8 @@ class AHFCatalogue(HaloCatalogue) :
             if config['verbose']: print "substructure...",
             sys.stdout.flush()
             self._load_ahf_substructure(self._ahfBasename+'substructure')
-
-        self._setup_children()
+        else :
+            self._setup_children()
 
         if make_grp is None :
             make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp') 
@@ -286,8 +286,10 @@ class AHFCatalogue(HaloCatalogue) :
         for i in xrange(self._nhalos) :
             host =  self._halos[i+1].properties.get('hostHalo',-2)
             if host>-1 :
-                self._halos[host+1].properties['children'].append(i+1)
-                
+                try:
+                    self._halos[host+1].properties['children'].append(i+1)
+                except KeyError :
+                    pass
         
     def _get_halo(self, i) :
         if self.base is None :
