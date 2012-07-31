@@ -207,12 +207,13 @@ config['halo-class-priority'] = [_halo_classes_dict[x] for x in config['halo-cla
 def load(filename, *args, **kwargs) :
     """Loads a file using the appropriate class, returning a SimSnap
     instance."""
+   
     for c in config['snap-class-priority'] :
         if c._can_load(filename) :
             if config['verbose'] : print "Attempting to load as",c
             return c(filename,*args,**kwargs)
 
-    raise RuntimeError("File format not understood")
+    raise IOError("File %r: format not understood or does not exist"%filename)
 
 
 from snapshot import _new as new
