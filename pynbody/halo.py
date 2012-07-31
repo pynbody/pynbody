@@ -416,7 +416,7 @@ class AHFCatalogue(HaloCatalogue) :
 
     def _run_ahf(self, sim) :
         # if (sim is pynbody.tipsy.TipsySnap) :
-	typecode='90'
+	typecode=90
         #elif (sim is pynbody.gadget.GadgetSnap):                               
         #   typecode = '60' or '61'                                             
         import pynbody.units as units
@@ -453,39 +453,46 @@ class AHFCatalogue(HaloCatalogue) :
             f.close()
             # make input file
             f = open('AHF.in','w')
-            f.write(sim._filename+" "+typecode+" 1\n")
+            f.write(sim._filename+" "+str(typecode)+" 1\n")
             f.write(sim._filename+"\n256\n5\n5\n0\n0\n0\n0\n")
             f.close()
         else:
             # make input file
             f = open('AHF.in','w')
-            f.write('[AHF]\n')
-            f.write('ic_filename = '+sim._filename+"\n")
-            f.write('ic_filetype = '+typecode+"\n")
-            f.write('outfile_prefix = '+sim._filename+"\n")
-            f.write('LgridDomain = 256\n')
+            
+            lgmax = np.min([int(2**np.floor(np.log2(1.0 / np.min(sim['eps'])))),131072])
             # hardcoded maximum 131072 might not be necessary
-            lgridmax = np.min([int(2**np.floor(np.log2(1.0 / np.min(sim['eps'])))),131072])
-            f.write('LgridMax = '+str(lgridmax)+'\n')
-            f.write('NperDomCell = 5\n')
-            f.write('NperRefCell = 5\n')
-            f.write('VescTune = 1.5\n')
-            f.write('NminPerHalo = 50\n')
-            f.write('RhoVir = 0\n') # 0:rho_crit, 1:rho_back
-            f.write('Dvir = 200\n')  # -1: AHF decides
-            f.write('MaxGatherRad = 10.0\n\n')
+            
+            print >>f, config_parser.get('AHFCatalogue', 'Config', vars = {
+                'filename': sim._filename,
+                'typecode': typecode,
+                'gridmax': lgmax
+                })
+
+            print >>f, config_parser.get('AHFCatalogue', 'ConfigTipsy', vars = {
+                'omega0': sim.properties['omegaM0'],
+                'lambda0': sim.properties['omegaL0'],
+                'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
+                'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
+                'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
+                'eunit': 0.03 # surely this can't be right?
+                })
+          
+            """
             f.write('[TIPSY]\n')
-            f.write('TIPSY_OMEGA0 = '+str(sim.properties['omegaM0'])+"\n")
-            f.write('TIPSY_LAMBDA0 = '+str(sim.properties['omegaL0'])+"\n")
+            f.write('TIPSY_OMEGA0 = '+str()+"\n")
+            f.write('TIPSY_LAMBDA0 = '+str()+"\n")
             f.write('TIPSY_BOXSIZE = '+str(sim['pos'].units.ratio(units.kpc,a=1)/1000.0 * sim.properties['h'])+"\n")
             f.write('TIPSY_VUNIT = '+str(sim['vel'].units.ratio(units.km/units.s,a=1))+"\n")
             f.write('TIPSY_MUNIT = '+str(sim['mass'].units.ratio(units.Msol)* sim.properties['h'])+"\n")
-            f.write('TIPSY_EUNIT = 0.03\n')
-        f.close()
+            f.write('TIPSY_EUNIT = 0.03\n')"""
+                
+            f.close()
 
         if (not os.path.exists(sim._filename)):
             os.system("gunzip "+sim._filename+".gz")
         # determine parallel possibilities
+
 
         if os.path.exists(groupfinder) :
             # run it
