@@ -86,3 +86,199 @@ class Chunk:
 
     def contiguous(self):
         return self.ids is None and self.step == 1
+
+
+
+
+class LoadControl(object) :
+    """LoadControl provides the logic required for partial loading."""
+    
+    def __init__(self, family_slice, max_chunk, clauses) :
+        """Initialize a LoadControl object.
+
+        *Inputs:*
+
+          *family_slice*: a dictionary of family slices describing the contiguous
+            layout of families on disk
+
+          *max_chunk*: the guaranteed maximum chunk of data to load in a single
+            read operation. Larger values are likely more efficient, but also require
+            bigger temporary buffers in your reader code.
+
+          *clauses*: a dictionary describing the type of partial loading to implement.
+            If this dictionary is empty, all data is loaded. Otherwise it can contain
+            'ids', a list of ids to load.
+
+         """
+        
+            
+        self._disk_family_slice = family_slice
+        self._generate_family_order()
+
+        if clauses is None  :
+            clauses = {}
+            
+        # generate simulation-level ID list
+        if 'ids' in clauses :
+            self._ids = np.asarray(clauses['ids'])
+        else :
+            self._ids = None # no partial loading!
+            
+        self.generate_family_id_lists()
+        self._generate_mem_slice()
+
+        self.mem_num_particles = self.mem_family_slice[self._ordered_families[-1]].stop
+        self.disk_num_particles = self._disk_family_slice[self._ordered_families[-1]].stop
+        
+        self._generate_chunks(max_chunk)
+
+    def _scan_for_next_stop(self, ids, offset_start, id_maximum) :
+        try:
+            firstel = np.nonzero(ids[offset_start:]>id_maximum)[0][0]
+            return firstel+offset_start
+        except IndexError :
+            return len(ids)
+
+    def generate_family_id_lists(self) :
+
+        if self._ids is None :
+            self._family_ids = None
+            return
+        
+        self._family_ids = {}
+        offset = 0
+        stop = 0
+        for fam in self._ordered_families :
+            sl = self._disk_family_slice[fam]
+            self._family_ids[fam] = self._ids[(self._ids>=sl.start)*(self._ids<sl.stop)]-sl.start
+
+    def _generate_family_order(self) :
+        famlist = []
+        for fam, sl in self._disk_family_slice.iteritems() :
+            famlist.append((fam, sl.start))
+
+        famlist.sort(key=lambda x: x[1])
+        self._ordered_families = [x[0] for x in famlist]
+        
+    def _generate_mem_slice(self) :
+        if self._ids is None :
+            self.mem_family_slice = self._disk_family_slice
+            return
+            
+        self.mem_family_slice = {}
+        stop = 0
+        for current_family in self._ordered_families :
+        
+            start=stop
+            stop=stop+len(self._family_ids[current_family])
+            self.mem_family_slice[current_family]= slice(start,stop)
+
+    def _generate_null_chunks(self, max_chunk) :
+        """Generate internal chunk map in the special case that we are loading
+        all data"""
+
+        self._family_chunks = {}
+
+        for current_family in self._ordered_families :
+            self._family_chunks[current_family] = []
+            disk_sl = self._disk_family_slice[current_family]
+            for i0 in xrange(0,disk_sl.stop-disk_sl.start,max_chunk) :
+                nread = min(disk_sl.stop-disk_sl.start-i0, max_chunk)
+                buf_sl = slice(0,nread)
+                mem_sl = slice(i0, i0+nread)
+
+                self._family_chunks[current_family].append((nread, buf_sl, mem_sl))
+                
+    def _generate_chunks(self, max_chunk) :
+        """Generate internal chunk map, with maximum load chunk of specified number
+        of entries, and with chunks that do not cross family boundaries."""
+
+        if self._ids is None :
+            self._generate_null_chunks(max_chunk)
+            return
+
+        self._family_chunks = {}
+
+        for current_family in self._ordered_families :
+            self._family_chunks[current_family] = []
+            disk_sl = self._disk_family_slice[current_family]
+            ids = self._family_ids[current_family]
+            i = 0
+
+            disk_ptr = 0
+            mem_ptr = 0
+            #print current_family, disk_sl.stop
+
+            while disk_ptr<disk_sl.stop-disk_sl.start :
+                disk_ptr_end = disk_ptr+min(disk_sl.stop-disk_sl.start-disk_ptr, max_chunk-1)
+                j = self._scan_for_next_stop(ids, i, disk_ptr_end-1)
+
+                nread_disk = disk_ptr_end - disk_ptr
+
+                assert (ids[i:j]<disk_ptr_end).all()
+                
+                if i!=j :
+                    mem_slice = slice(mem_ptr, mem_ptr+j-i)
+                else :
+                    mem_slice = None
+                    
+                disk_mask = ids[i:j]-disk_ptr
+                
+                #print mem_slice, (j-i), len(disk_mask), disk_ptr, disk_ptr_end, nread_disk
+                
+                mem_ptr = mem_ptr+j-i
+                i = j
+                disk_ptr = disk_ptr_end
+
+                self._family_chunks[current_family].append((nread_disk, disk_mask, mem_slice))
+                
+        
+    def iterate(self, families_on_disk, families_in_memory) :
+        """Provide an iterator which yields step-by-step instructions
+        for partial-loading an array with the specified families stored
+        on disk into a memory array containing the specified families.
+
+        Each output consists of *readlen*, *file_index*, *memory_index*.
+        A typical read loop should be as follows:
+
+        for readlen, buffer_index, memory_index in ctl.iterate(fams_on_disk, fams_in_mem) :
+          data = read_entries(count=readlen)
+          if file_index is not None :
+            target_array[memory_index] = data[buffer_index]
+
+        Obviously this can be optimized, for instance to skip through
+        file data when file_index is None rather than read and discard it.
+            
+        **Input:** :
+
+          *families_on_disk*: list of families for which the array exists on disk
+          *families_in_memory*: list of families to target in memory
+    
+
+          """
+
+
+        mem_offset = 0
+
+        
+        for current_family in self._ordered_families :
+            if current_family not in families_on_disk :
+                assert current_family not in families_in_memory
+            else :
+                if current_family in families_in_memory :
+                    for nread_disk, disk_mask, mem_slice in self._family_chunks[current_family] :
+                        if mem_slice is None :
+                            yield nread_disk, None, None
+                        else :
+                            mem_slice_offset = slice(mem_slice.start+mem_offset, mem_slice.stop+mem_offset)
+                            yield nread_disk, disk_mask, mem_slice_offset
+                        
+                    mem_fs = self.mem_family_slice[current_family]
+                    mem_offset+=mem_fs.stop-mem_fs.start
+                else :
+                    for nread_disk, disk_mask, mem_slice in self._family_chunks[current_family] :
+                        yield nread_disk, None, None
+            
+                
+
+        
