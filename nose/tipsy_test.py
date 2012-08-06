@@ -103,13 +103,13 @@ def test_units() :
     print f['vel'].units
     print f['phi'].units
     print f.gas['rho'].units
-    print f.star['tform'].units
+    print f.star['tform'].units.in_units("Gyr")
 
     assert str(f['pos'].units)=="6.85e+04 kpc a"
-    assert str(f['vel'].units)=="1.73e+03 km s**-1 a"
-    assert str(f['phi'].units)=="2.98e+06 km**2 s**-2 a**-1"
+    assert str(f['vel'].units)=="1.73e+03 km a s**-1"
+    assert str(f['phi'].units)=="2.98e+06 km**2 a**-1 s**-2"
     assert str(f.gas['rho'].units)=="1.48e+02 Msol kpc**-3 a**-3"
-    assert str(f.star['tform'].units)=="3.88e+01 Gyr"
+    assert abs(f.star['tform'].units.in_units("Gyr")-38.775)<0.001
 
 
 def test_halo_unit_conversion() :
