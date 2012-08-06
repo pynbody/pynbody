@@ -32,7 +32,8 @@ class TipsySnap(snapshot.SimSnap) :
                             family.gas: set(['phi', 'temp', 'pos', 'metals', 'eps',
                                              'mass', 'rho', 'vel']),
                             family.star: set(['phi', 'tform', 'pos', 'metals',
-                                              'eps','mass', 'vel'])}
+                                              'eps','mass', 'vel']),
+                            None: set(['phi', 'pos', 'eps', 'mass', 'vel']) }
 
 
     def __init__(self, filename, **kwargs):
@@ -132,25 +133,52 @@ class TipsySnap(snapshot.SimSnap) :
             
         f = util.open_(self._filename)
         f.seek(32)
-        
-        self._create_arrays(["pos","vel"],3,zeros=False)
-        self._create_arrays(["mass","eps","phi"],zeros=False)
-        self.gas._create_arrays(["rho","temp","metals"],zeros=False)
-        self.star._create_arrays(["metals","tform"],zeros=False)
-        self.gas["temp"].units = "K"
+
+        write = []
+
+        for w, ndim in ("pos", 3), ("vel", 3), ("mass", 1), ("eps", 1), ("phi", 1) :
+            if w not in self.keys() :
+                self._create_array(w, ndim, zeros=False)
+                write.append(w)
+                
+        for w in "rho", "temp" :
+            if w not in self.gas.keys() :
+                self.gas._create_array(w, zeros=False)
+                write.append(w)
+
+        if ("metals" not in self.gas.keys()) and ("metals" not in self.star.keys()) :
+            self.gas._create_array("metals", zeros=False)
+            self.star._create_array("metals", zeros=False)
+            write.append("metals")
+
+        if "tform" not in self.star.keys() :
+            self.star._create_array("tform", zeros=False)
+            write.append("tform")
+            
+        if "temp" in write :
+            self.gas["temp"].units = "K"
 
         for k in "pos", "vel", "mass", "eps", "phi" :
-            self[k].set_default_units()
+            if k in write :
+                self[k].set_default_units()
 
-        self['phi'].units=self['phi'].units*units.a**-3 # messy :-(
+        if "phi" in write :
+            self['phi'].units=self['phi'].units*units.a**-3 # messy :-(
             
-        for k in "rho", "temp", "metals" :
-            self.gas[k].set_default_units()
+        for k in "rho", "temp", "metals":
+            if k in write :
+                self.gas[k].set_default_units()
 
-        for k in "metals", "tform" :
-            self.star[k].set_default_units()
-            
-            
+        for k in "metals", "tform":
+            if k in write :
+                self.star[k].set_default_units()
+
+        if "pos" in write :
+            write+=['x','y','z']
+
+        if "vel" in write :
+            write+=['vx','vy','vz']
+        
         for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)) :
             self_fam = self[fam]
             for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam]) :
@@ -165,7 +193,9 @@ class TipsySnap(snapshot.SimSnap) :
                 if mem_index is not None :
                     # Copy into the correct arrays
                     for name in dtype.names :
-                        self_fam[name][mem_index] = buf[name][buf_index]
+                        if name in write :
+                            self_fam[name][mem_index] = buf[name][buf_index]
+                       
 
 
     def _update_loadable_keys(self)  :
@@ -209,7 +239,7 @@ class TipsySnap(snapshot.SimSnap) :
         # Create an empty dictionary of sets to store the loadable
         # arrays for each family
         rdict = dict([(x, set()) for x in self.families()])
-        rdict.update(dict([a, copy.copy(b)] for a,b in self._basic_loadable_keys.iteritems()))
+        rdict.update(dict([a, copy.copy(b)] for a,b in self._basic_loadable_keys.iteritems() if a is not None ))
         # Now work out which families can load which arrays
         # according to the stored metadata
         for r in res :
@@ -610,6 +640,10 @@ class TipsySnap(snapshot.SimSnap) :
 
     def _load_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
+
+        if array_name in self._basic_loadable_keys[fam] :
+            self._load_main_file()
+            return
 
         fams = self._get_loadable_array_metadata(array_name)[1] or self.families()
         
