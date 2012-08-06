@@ -43,6 +43,9 @@ class TipsySnap(snapshot.SimSnap) :
         super(TipsySnap,self).__init__()
 
         only_header = kwargs.get('only_header', False)
+        if only_header :
+            warnings.warn("only_header kwarg is deprecated: all loading in TipsySnap is now lazy by default", RuntimeWarning)
+            
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
         take = kwargs.get('take', None)
         verbose = kwargs.get('verbose', config['verbose'])
@@ -123,8 +126,6 @@ class TipsySnap(snapshot.SimSnap) :
 
         del f
 
-        if not only_header :
-            self._load_main_file()
 
 
     def _load_main_file(self) :
