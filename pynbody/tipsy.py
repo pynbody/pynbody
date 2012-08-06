@@ -64,17 +64,7 @@ class TipsySnap(snapshot.SimSnap) :
 
         assert ndim==3
             
-        # In non-cosmological simulations, what is t? Is it physical
-        # time?  In which case, we need some way of telling what we
-        # are dealing with and setting properties accordingly.
-        self.properties['a'] = t
-        try:
-            self.properties['z'] = 1.0/t - 1.0
-        except ZeroDivisionError:
-            self.properties['z'] = None
-
-        assert ndim==3
-
+        self._header_t = t
 
         f.read(4)
 
@@ -87,17 +77,9 @@ class TipsySnap(snapshot.SimSnap) :
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
    
-        if not only_header :
-            self._create_arrays(["pos","vel"],3,zeros=False)
-            self._create_arrays(["mass","eps","phi"],zeros=False)
-            self.gas._create_arrays(["rho","temp","metals"],zeros=False)
-            self.star._create_arrays(["metals","tform"],zeros=False)
-            self.gas["temp"].units = "K" # we know the temperature is always in K
-            # Other units will be set by the decorators later
+       
 
         self._decorate()
-
-       
 
         # describe the file structure as list of (num_parts, [list_of_properties]) 
         # by default all fields are floats -- we look at the param file to determine
@@ -114,12 +96,12 @@ class TipsySnap(snapshot.SimSnap) :
             vtype = 'f'
 
         
-        g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
-                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
-        d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
-                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
-        s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
-                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+        self._g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+        self._d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+        self._s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
 
         
         if not self._paramfile.has_key('dKpcUnit'):
@@ -134,44 +116,49 @@ class TipsySnap(snapshot.SimSnap) :
         except units.UnitsException :
             pass
 
-        if self._paramfile.has_key('bComove') and int(self._paramfile['bComove'])!=0 :
-            from . import analysis
-            import analysis.cosmology
-            self.properties['a'] = t
-            try :
-                self.properties['z'] = 1.0/t - 1.0
-            except ZeroDivisionError :
-                # no sensible redshift
-                pass
-
-            if (self.properties['z'] is not None and 
-                self._paramfile.has_key('dMsolUnit') and 
-                self._paramfile.has_key('dKpcUnit')):
-                self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
-            else :
-                # something has gone wrong with the cosmological side of
-                # things
-                warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
-                self.properties['time'] = t
-
-        else :
-            # Assume a non-cosmological run
-            self.properties['time'] =  t
 
         if time_unit is not None :
             self.properties['time']*=time_unit
 
-        if only_header == True:
-            return
+        del f
 
-        for fam, dtype in ((family.gas, g_dtype), (family.dm, d_dtype), (family.star, s_dtype)) :
+        if not only_header :
+            self._load_main_file()
+
+
+    def _load_main_file(self) :
+
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: loading data from main file"
+            
+        f = util.open_(self._filename)
+        f.seek(32)
+        
+        self._create_arrays(["pos","vel"],3,zeros=False)
+        self._create_arrays(["mass","eps","phi"],zeros=False)
+        self.gas._create_arrays(["rho","temp","metals"],zeros=False)
+        self.star._create_arrays(["metals","tform"],zeros=False)
+        self.gas["temp"].units = "K"
+
+        for k in "pos", "vel", "mass", "eps", "phi" :
+            self[k].set_default_units()
+
+        self['phi'].units=self['phi'].units*units.a**-3 # messy :-(
+            
+        for k in "rho", "temp", "metals" :
+            self.gas[k].set_default_units()
+
+        for k in "metals", "tform" :
+            self.star[k].set_default_units()
+            
+            
+        for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)) :
             self_fam = self[fam]
             for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam]) :
                 # Read in the block
                 st_len = dtype.itemsize
-                
+
                 buf = np.fromstring(f.read(st_len*readlen),dtype=dtype)
-                  
+
                 if self._byteswap:
                     buf = buf.byteswap()
 
@@ -179,7 +166,6 @@ class TipsySnap(snapshot.SimSnap) :
                     # Copy into the correct arrays
                     for name in dtype.names :
                         self_fam[name][mem_index] = buf[name][buf_index]
-
 
 
     def _update_loadable_keys(self)  :
@@ -1197,6 +1183,8 @@ def load_paramfile(sim) :
                     
         if done : break
 
+
+
             
 @TipsySnap.decorator
 @StarLog.decorator
@@ -1323,6 +1311,37 @@ def param2units(sim) :
                 except : pass
 
 
+
+@TipsySnap.decorator
+def settime(sim) :
+    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
+        from . import analysis
+        import analysis.cosmology
+        t = sim._header_t
+        sim.properties['a'] = t
+        try :
+            sim.properties['z'] = 1.0/t - 1.0
+        except ZeroDivisionError :
+            # no sensible redshift
+            pass
+
+        if (sim.properties['z'] is not None and 
+            sim._paramfile.has_key('dMsolUnit') and 
+            sim._paramfile.has_key('dKpcUnit')):
+            sim.properties['time'] =  analysis.cosmology.age(sim, unit=sim.infer_original_units('yr'))
+        else :
+            # something has gone wrong with the cosmological side of
+            # things
+            warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
+            sim.properties['time'] = t
+
+    else :
+        # Assume a non-cosmological run
+            sim.properties['time'] =  t
+
+    
+    sim.properties['a'] = t
+    
 @StarLog.decorator
 def slparam2units(sim) :
     with sim.lazy_off :
