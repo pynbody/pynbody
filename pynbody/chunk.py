@@ -114,13 +114,10 @@ class LoadControl(object) :
             
         self._disk_family_slice = family_slice
         self._generate_family_order()
-
-        if clauses is None  :
-            clauses = {}
             
         # generate simulation-level ID list
-        if 'ids' in clauses :
-            self._ids = np.asarray(clauses['ids'])
+        if hasattr(clauses, "__len__") :
+            self._ids = np.asarray(clauses)
         else :
             self._ids = None # no partial loading!
             
