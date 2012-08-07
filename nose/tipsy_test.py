@@ -229,6 +229,7 @@ def test_array_update() :
 
 def test_snapshot_update() :
     f1 = pynbody.load("testdata/test_out.tipsy")
+    f1['pos']
     f1['pos'] = np.arange(0,len(f1)*3).reshape(len(f1),3)
     
     # convert units -- the array should get written out in simulation units
