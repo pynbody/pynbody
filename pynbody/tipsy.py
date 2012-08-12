@@ -1370,12 +1370,14 @@ def settime(sim) :
             warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
             sim.properties['time'] = t
 
+        sim.properties['a'] = t
+        
     else :
         # Assume a non-cosmological run
-            sim.properties['time'] =  t
+            sim.properties['time'] =  sim._header_t
 
     
-    sim.properties['a'] = t
+            
     
 @StarLog.decorator
 def slparam2units(sim) :
