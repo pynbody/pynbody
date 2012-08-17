@@ -32,7 +32,7 @@ import ConfigParser
 
 import struct, os
 import numpy as np
-
+import functools
 import sys
 
 try :
@@ -62,6 +62,10 @@ def _translate_array_name(name, reverse=False) :
             return _name_map[name]
     except KeyError :
         return name
+
+def _append_if_array(to_list, name, obj) :
+    if not hasattr(obj, 'keys') :
+        to_list.append(name)
     
 class GadgetHDFSnap(snapshot.SimSnap) :
     def __init__(self, filename) :
@@ -91,7 +95,9 @@ class GadgetHDFSnap(snapshot.SimSnap) :
                 name = n
                 l+=self._hdf[name]['Coordinates'].shape[0]
             self._family_slice[x] = slice(sl_start,sl_start+l)
-            self._loadable_keys = self._loadable_keys.union(set(self._hdf[name].keys()))
+            k = self._get_hdf_allarray_keys(self._hdf[name])
+            
+            self._loadable_keys = self._loadable_keys.union(set(k))
             sl_start+=l
 
         self._loadable_keys = [_translate_array_name(x, reverse=True) for x in self._loadable_keys]
@@ -110,7 +116,7 @@ class GadgetHDFSnap(snapshot.SimSnap) :
         else :        
             translated_name = _translate_array_name(name)
             for n in _type_map[fam] :
-                if translated_name not in self._hdf[n].keys() : return False
+                if translated_name not in self._get_hdf_allarray_keys(self._hdf[n]) : return False
             return True
 
     def loadable_keys(self) :
@@ -133,6 +139,21 @@ class GadgetHDFSnap(snapshot.SimSnap) :
         
     def _write_array(self, array_name, filename=None) :
         raise RuntimeError, "Not implemented"
+
+    @staticmethod
+    def _get_hdf_allarray_keys(group) :
+        """Return all HDF array keys underneath group (includes nested groups)"""
+        k = []
+        group.visititems(functools.partial(_append_if_array, k))
+        return k
+    
+    @staticmethod
+    def _get_hdf_dataset(particle_group, hdf_name) :
+        """Return the HDF dataset resolving /'s into nested groups"""
+        ret = particle_group
+        for tpart in hdf_name.split("/") :
+            ret = ret[tpart]
+        return ret
         
     def _load_array(self, array_name, fam=None) :
         if not self._family_has_loadable_array( fam, array_name) :
@@ -168,7 +189,7 @@ class GadgetHDFSnap(snapshot.SimSnap) :
             for f in fams :
                 i0 = 0
                 for t in _type_map[f] :
-                    dataset = self._hdf[t][translated_name]
+                    dataset = self._get_hdf_dataset(self._hdf[t], translated_name)
                     i1 = i0+len(dataset)
                     dataset.read_direct(self[f][array_name][i0:i1])
 	
