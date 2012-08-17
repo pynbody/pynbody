@@ -435,21 +435,20 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
 
         # before inlining, the views on the arrays must be standard np.ndarray
         # otherwise the normal numpy macros are not generated
-        x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
+        x,y,z,sm,qty, mass, rho = [np.asarray(q, dtype=float) for q in x,y,z,sm,qty, mass, rho]
         #qty[np.where(qty < 1e-15)] = 1e-15
 
         if config['verbose']: print>>sys.stderr, "Rendering SPH image"
 
-   
-   
         if config["tracktime"] :
             print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
         util.threadsafe_inline( code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
                       'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   
                       'qty', 'mass', 'rho'],verbose=2)
+        
         if config["tracktime"] :
             print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
-            
+
 
     result = result.view(array.SimArray)
 
