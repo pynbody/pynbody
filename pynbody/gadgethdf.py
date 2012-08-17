@@ -33,6 +33,7 @@ import ConfigParser
 import struct, os
 import numpy as np
 import functools
+import warnings
 import sys
 
 try :
@@ -74,13 +75,14 @@ class GadgetHDFSnap(snapshot.SimSnap) :
         super(GadgetHDFSnap,self).__init__()
         
         self._filename = filename
-	try:
-	    self._hdf = h5py.File(filename)
-	except IOError :
-	    # IOError here can be caused if no append access is available
-	    # so explicitly open as read-only
-	    self._hdf = h5py.File(filename,"r")
-	    
+
+        if not h5py.is_hdf5(filename) :
+            h1 = h5py.File(filename+".0.hdf5")
+            numfiles = h1['Header'].attrs['NumFilesPerSnapshot']
+            self._hdf = [h5py.File(filename+"."+str(i)+".hdf5", "r") for i in xrange(numfiles)]
+        else :
+            self._hdf = [h5py.File(filename,"r")]
+
         self._family_slice = {}
 
         self._loadable_keys = set([])
@@ -93,10 +95,11 @@ class GadgetHDFSnap(snapshot.SimSnap) :
             l = 0
             for n in _type_map[x] :
                 name = n
-                l+=self._hdf[name]['Coordinates'].shape[0]
+                for hdf in self._hdf :
+                    l+=hdf[name]['Coordinates'].shape[0]
             self._family_slice[x] = slice(sl_start,sl_start+l)
-            k = self._get_hdf_allarray_keys(self._hdf[name])
             
+            k = self._get_hdf_allarray_keys(self._hdf[0][name])
             self._loadable_keys = self._loadable_keys.union(set(k))
             sl_start+=l
 
@@ -116,7 +119,7 @@ class GadgetHDFSnap(snapshot.SimSnap) :
         else :        
             translated_name = _translate_array_name(name)
             for n in _type_map[fam] :
-                if translated_name not in self._get_hdf_allarray_keys(self._hdf[n]) : return False
+                if translated_name not in self._get_hdf_allarray_keys(self._hdf[0][n]) : return False
             return True
 
     def loadable_keys(self) :
@@ -165,13 +168,15 @@ class GadgetHDFSnap(snapshot.SimSnap) :
                 famx = self._family_slice.keys()[0]
 
             translated_name = _translate_array_name(array_name)
-            
-            assert len(self._hdf[_type_map[famx][0]][translated_name].shape)<=2
-            dy = 1
-            if len(self._hdf[_type_map[famx][0]][translated_name].shape)>1 :
-                dy = self._hdf[_type_map[famx][0]][translated_name].shape[1]
 
-            dtype = self._hdf[_type_map[famx][0]][translated_name].dtype
+            hdf0 = self._hdf[0]
+            
+            assert len(hdf0[_type_map[famx][0]][translated_name].shape)<=2
+            dy = 1
+            if len(hdf0[_type_map[famx][0]][translated_name].shape)>1 :
+                dy = hdf0[_type_map[famx][0]][translated_name].shape[1]
+
+            dtype = hdf0[_type_map[famx][0]][translated_name].dtype
             
             if fam is None :
                 self._create_array(array_name, dy, dtype=dtype)
@@ -189,22 +194,28 @@ class GadgetHDFSnap(snapshot.SimSnap) :
             for f in fams :
                 i0 = 0
                 for t in _type_map[f] :
-                    dataset = self._get_hdf_dataset(self._hdf[t], translated_name)
-                    i1 = i0+len(dataset)
-                    dataset.read_direct(self[f][array_name][i0:i1])
+                    for hdf in self._hdf :
+                        dataset = self._get_hdf_dataset(hdf[t], translated_name)
+                        i1 = i0+len(dataset)
+                        dataset.read_direct(self[f][array_name][i0:i1])
+                        i0=i1
 	
     @staticmethod
     def _can_load(f) :
         try :
-            if h5py.is_hdf5(f) :
+            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5") :
                 return True
+            else :
+                return False
         except AttributeError :
+            if "hdf5" in f :
+                warnings.warn("It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
         
 
 @GadgetHDFSnap.decorator
 def do_properties(sim) :
-    atr = sim._hdf['Header'].attrs
+    atr = sim._hdf[0]['Header'].attrs
     sim.properties['a'] = atr['ExpansionFactor']
     sim.properties['time'] = units.Gyr*atr['Time_GYR']
     sim.properties['omegaM0'] = atr['Omega0']
@@ -216,8 +227,8 @@ def do_properties(sim) :
 
 @GadgetHDFSnap.decorator
 def do_units(sim) :
-    cosmo = (sim._hdf['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
-    atr = sim._hdf['Units'].attrs
+    cosmo = (sim._hdf[0]['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
+    atr = sim._hdf[0]['Units'].attrs
     vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
     dist_unit = atr['UnitLength_in_cm']*units.cm
     if cosmo :
