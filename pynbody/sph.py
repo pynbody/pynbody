@@ -13,7 +13,7 @@ For most users, the function of interest will be :func:`~pynbody.sph.render_imag
 """
 
 import numpy as np
-import scipy, scipy.weave
+import scipy, scipy.weave, scipy.ndimage
 from scipy.weave import inline
 import snapshot, array
 import math
@@ -264,6 +264,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  z_camera=None,
                  smooth='smooth',
                  smooth_in_pixels = False,
+                 smooth_range=None,
+                 force_quiet=False,
+                 approximate_fast=False,
                  __threaded=False) :
 
     """
@@ -310,12 +313,47 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
      *smooth_in_pixels*: If True, the smoothing array contains the smoothing
        length in image pixels, rather than in real distance units (default False)
 
+     *smooth_range*: either None or a tuple of integers (lo,hi). If
+       the latter, only particles with smoothing lengths between
+       lo<smooth<hi pixels will be rendered.
+
+     *approximate_fast*: if True, render high smoothing length particles at
+       progressively lower resolution, resample and sum
+
+     *force_quiet*: if True, all text output suppressed
     """
 
+    track_time = config["tracktime"] and not force_quiet
+    verbose = config["verbose"] and not force_quiet
+    
+    if approximate_fast :
+    
+        reren = lambda subsamp_nx, subsamp_ny, subsamp_sm_range : \
+            render_image(snap, qty, x2, subsamp_nx, y2, subsamp_ny, x1,  y1, z_plane, out_units, xy_units,
+                         kernel, z_camera,
+                         smooth,
+                         smooth_in_pixels, subsamp_sm_range, True, False, __threaded)
+
+        if ny==None : ny=nx
+        base = reren(nx, ny, (1,2))
+        sub=1
+        max_i = int(np.floor(np.log2(nx/64)))
+        for i in xrange(max_i) :
+            sub*=2
+            rn = (1,2)
+            if i==max_i-1 :
+                rn = (1,10000)
+            if verbose :
+                print "Iteration",i,"res",nx/sub
+            new_im = reren(nx/sub, ny/sub, (1,2))
+            base+=scipy.ndimage.interpolation.zoom(new_im, sub)
+        return base
+    
+            
     import os, os.path
     global config
     
-    if config["tracktime"] :
+    if track_time :
         import time
         in_time = time.time()
     
@@ -334,6 +372,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         y1 = -y2
 
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
+
+    if smooth_range is not None :
+        smooth_lo = int(smooth_range[0])
+        smooth_hi = int(smooth_range[1])
+    else :
+        smooth_lo = 0
+        smooth_hi = 0
 
     result = np.zeros((ny,nx),dtype=np.float32)
 
@@ -378,7 +423,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     if perspective :
         z_camera = float(z_camera)
         code+="#define PERSPECTIVE 1\n"
-
+    if smooth_range is not None :
+        code+="#define SMOOTH_RANGE 1\n"
+        
     if __threaded :
         code+="#define THREAD 1\n"
 
@@ -438,15 +485,15 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
         x,y,z,sm,qty, mass, rho = [np.asarray(q, dtype=float) for q in x,y,z,sm,qty, mass, rho]
         #qty[np.where(qty < 1e-15)] = 1e-15
 
-        if config['verbose']: print>>sys.stderr, "Rendering SPH image"
+        if verbose: print>>sys.stderr, "Rendering SPH image"
 
-        if config["tracktime"] :
+        if track_time:
             print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
         util.threadsafe_inline( code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
                       'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   
-                      'qty', 'mass', 'rho'],verbose=2)
+                      'qty', 'mass', 'rho', 'smooth_lo' ,'smooth_hi'],verbose=2)
         
-        if config["tracktime"] :
+        if track_time:
             print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
 
 

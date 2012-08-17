@@ -43,9 +43,13 @@ using std::sqrt;
 Py_BEGIN_ALLOW_THREADS;
 #endif
 
+int smooth_lo_i = smooth_lo;
+int smooth_hi_i = smooth_hi;
+
 for(int i=0; i<n_part; i++) {
   if(abort) continue;
   float x_i=X1(i), y_i=Y1(i), z_i=Z1(i), sm_i=SM1(i), qty_i=QTY1(i)*MASS1(i)/RHO1(i);
+
 
 #ifndef THREAD
   if(i%1000==0) {
@@ -74,10 +78,19 @@ for(int i=0; i<n_part; i++) {
   
   if(sm_i < pixel_dx*0.55) sm_i = pixel_dx*0.55;
 
+#ifdef SMOOTH_RANGE
+    if((sm_i<pixel_dx*smooth_lo) || (sm_i>pixel_dx*smooth_hi)) continue;
+#endif
+
 #else
+#ifdef SMOOTH_RANGE
+    if((sm_i<pixel_dx*smooth_lo) || (sm_i>pixel_dx*smooth_hi)) continue;
+#endif
   if(  (Z_CONDITION(z_i-z1, sm_i)) && x_i>x1-2*sm_i && x_i<x2+2*sm_i && y_i>y1-2*sm_i && y_i<y2+2*sm_i) 
 #endif
  
+
+
 #ifndef PERSPECTIVE
       if( (MAX_D_OVER_H*sm_i/pixel_dx<1 && MAX_D_OVER_H*sm_i/pixel_dx<1)) {
       

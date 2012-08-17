@@ -102,10 +102,10 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         if number_of_threads < 0: 
             import multiprocessing
             number_of_threads = multiprocessing.cpu_count()
-        kwargs = {'num_threads': number_of_threads}
+        kwargs.update({'num_threads': number_of_threads})
     else : 
         rfunc = sph.render_image
-        kwargs = {}
+        
 
     perspective = z_camera is not None
     if perspective and not av_z: kernel = sph.Kernel2D()
