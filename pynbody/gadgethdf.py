@@ -94,11 +94,11 @@ class GadgetHDFSnap(snapshot.SimSnap) :
         self._filename = filename
 
         if not h5py.is_hdf5(filename) :
-            h1 = h5py.File(filename+".0.hdf5")
+            h1 = h5py.File(filename+".0.hdf5", "r")
             numfiles = h1['Header'].attrs['NumFilesPerSnapshot']
             self._hdf = [h5py.File(filename+"."+str(i)+".hdf5", "r") for i in xrange(numfiles)]
         else :
-            self._hdf = [h5py.File(filename,"r")]
+            self._hdf = [h5py.File(filename, "r")]
 
         self._family_slice = {}
 
