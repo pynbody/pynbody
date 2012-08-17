@@ -67,6 +67,23 @@ def _translate_array_name(name, reverse=False) :
 def _append_if_array(to_list, name, obj) :
     if not hasattr(obj, 'keys') :
         to_list.append(name)
+
+class DummyHDFData(object) :
+    """A stupid class to allow emulation of mass arrays for particles
+    whose mass is in the header"""
+    def __init__(self, value, length) :
+        self.value = value
+        self.length = length
+        self.shape = (length, )
+        self.dtype = np.dtype(float)
+
+    def __len__(self) :
+        return self.length
+
+    def read_direct(self, target) :
+        target[:] = self.value
+
+
     
 class GadgetHDFSnap(snapshot.SimSnap) :
     def __init__(self, filename) :
@@ -112,7 +129,9 @@ class GadgetHDFSnap(snapshot.SimSnap) :
     def _family_has_loadable_array(self, fam, name) :
         """Returns True if the array can be loaded for the specified family.
         If fam is None, returns True if the array can be loaded for all families."""
-        
+
+        if name=="mass" : return True
+            
         if fam is None :
             return all([self._family_has_loadable_array(fam_x, name) for fam_x in self._family_slice])
                 
@@ -122,7 +141,7 @@ class GadgetHDFSnap(snapshot.SimSnap) :
                 if translated_name not in self._get_hdf_allarray_keys(self._hdf[0][n]) : return False
             return True
 
-    def loadable_keys(self) :
+    def loadable_keys(self, fam=None) :
         return self._loadable_keys
 
     @staticmethod
@@ -152,7 +171,18 @@ class GadgetHDFSnap(snapshot.SimSnap) :
     
     @staticmethod
     def _get_hdf_dataset(particle_group, hdf_name) :
-        """Return the HDF dataset resolving /'s into nested groups"""
+        """Return the HDF dataset resolving /'s into nested groups, and returning
+        an apparent Mass array even if the mass is actually stored in the header"""
+        
+        if hdf_name=="Mass" :
+            try:
+                pgid = int(particle_group.name[-1])
+                mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
+                if mtab>0 :
+                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0])
+            except (IndexError, KeyError) :
+                pass
+                
         ret = particle_group
         for tpart in hdf_name.split("/") :
             ret = ret[tpart]
@@ -170,13 +200,15 @@ class GadgetHDFSnap(snapshot.SimSnap) :
             translated_name = _translate_array_name(array_name)
 
             hdf0 = self._hdf[0]
-            
-            assert len(hdf0[_type_map[famx][0]][translated_name].shape)<=2
-            dy = 1
-            if len(hdf0[_type_map[famx][0]][translated_name].shape)>1 :
-                dy = hdf0[_type_map[famx][0]][translated_name].shape[1]
 
-            dtype = hdf0[_type_map[famx][0]][translated_name].dtype
+            dset0 = self._get_hdf_dataset(hdf0[_type_map[famx][0]], translated_name)
+            
+            assert len(dset0.shape)<=2
+            dy = 1
+            if len(dset0.shape)>1 :
+                dy = dset0.shape[1]
+
+            dtype = dset0.dtype
             
             if fam is None :
                 self._create_array(array_name, dy, dtype=dtype)
@@ -224,6 +256,9 @@ def do_properties(sim) :
     sim.properties['boxsize'] = atr['BoxSize']
     sim.properties['z'] = (1./sim.properties['a'])-1
     sim.properties['h'] = atr['HubbleParam']
+    for s in sim._hdf[0]['Header'].attrs :
+        if s not in ['ExpansionFactor', 'Time_GYR', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam'] :
+            sim.properties[s] = sim._hdf[0]['Header'].attrs[s]
 
 @GadgetHDFSnap.decorator
 def do_units(sim) :
