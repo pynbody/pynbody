@@ -345,8 +345,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                 rn = (1,10000)
             if verbose :
                 print "Iteration",i,"res",nx/sub
-            new_im = reren(nx/sub, ny/sub, (1,2))
-            base+=scipy.ndimage.interpolation.zoom(new_im, sub)
+            new_im = reren(nx/sub, ny/sub, rn)
+            
+            base+=scipy.ndimage.interpolation.zoom(new_im, sub, order=1)
         return base
     
             
