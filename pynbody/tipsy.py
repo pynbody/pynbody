@@ -76,7 +76,7 @@ class TipsySnap(snapshot.SimSnap) :
                                    family.dm  : slice(ng, nd+ng),
                                    family.star: slice(nd+ng, ng+nd+ns)})
 
-        self._load_control = chunk.LoadControl(disk_family_slice, 1024, take)
+        self._load_control = chunk.LoadControl(disk_family_slice, 10240, take)
         
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
@@ -179,13 +179,20 @@ class TipsySnap(snapshot.SimSnap) :
 
         if "vel" in write :
             write+=['vx','vy','vz']
+
+        max_item_size = max([q.itemsize for q in self._g_dtype, self._d_dtype, self._s_dtype])
+        tbuf = bytearray(max_item_size*10240)
         
         for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)) :
             self_fam = self[fam]
-            for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam]) :
+            st_len = dtype.itemsize
+            for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam], multiskip=True) :
                 # Read in the block
-                st_len = dtype.itemsize
-
+                
+                if mem_index is None :
+                    f.seek(st_len*readlen,1)
+                    continue
+                
                 buf = np.fromstring(f.read(st_len*readlen),dtype=dtype)
 
                 if self._byteswap:

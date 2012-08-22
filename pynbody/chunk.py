@@ -230,7 +230,7 @@ class LoadControl(object) :
                 self._family_chunks[current_family].append((nread_disk, disk_mask, mem_slice))
                 
         
-    def iterate(self, families_on_disk, families_in_memory) :
+    def iterate(self, families_on_disk, families_in_memory, multiskip=False) :
         """Provide an iterator which yields step-by-step instructions
         for partial-loading an array with the specified families stored
         on disk into a memory array containing the specified families.
@@ -250,13 +250,15 @@ class LoadControl(object) :
 
           *families_on_disk*: list of families for which the array exists on disk
           *families_in_memory*: list of families to target in memory
-    
+          *multiskip*: if True, skip commands (i.e. entries with file_index=None)
+             can have readlen greater than the block length
 
           """
 
 
         mem_offset = 0
 
+        skip_accumulation = 0
         
         for current_family in self._ordered_families :
             if current_family not in families_on_disk :
@@ -265,8 +267,14 @@ class LoadControl(object) :
                 if current_family in families_in_memory :
                     for nread_disk, disk_mask, mem_slice in self._family_chunks[current_family] :
                         if mem_slice is None :
-                            yield nread_disk, None, None
+                            if multiskip :
+                                skip_accumulation+=nread_disk
+                            else :
+                                yield nread_disk, None, None
                         else :
+                            if skip_accumulation>0 :
+                                yield skip_accumulation, None, None
+                                skip_accumulation=0
                             mem_slice_offset = slice(mem_slice.start+mem_offset, mem_slice.stop+mem_offset)
                             yield nread_disk, disk_mask, mem_slice_offset
                         
