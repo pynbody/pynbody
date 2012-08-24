@@ -288,6 +288,10 @@ class LoadControl(object) :
         skip_accumulation = 0
         
         for current_family in self._ordered_families :
+            if skip_accumulation>0 :
+                yield skip_accumulation, None, None
+                skip_accumulation=0
+                 
             if current_family not in families_on_disk :
                 assert current_family not in families_in_memory
             else :
