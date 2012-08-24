@@ -11,7 +11,7 @@ from __future__ import division
 import random
 import math
 import numpy as np
-
+import scipy, scipy.weave
 
 class Chunk:
     def __init__(self, *args, **kwargs):
@@ -129,12 +129,39 @@ class LoadControl(object) :
         
         self._generate_chunks(max_chunk)
 
-    def _scan_for_next_stop(self, ids, offset_start, id_maximum) :
-        try:
-            firstel = np.nonzero(ids[offset_start:]>id_maximum)[0][0]
-            return firstel+offset_start
-        except IndexError :
+    @staticmethod
+    def _scan_for_next_stop(ids, offset_start, id_maximum) :
+        if ids[-1]<=id_maximum :
             return len(ids)
+        if ids[0]>id_maximum :
+            return 0
+     
+       
+        code = """
+        int left, right, mid, iter=0;
+        left = offset_start;
+        right = Nids[0]-1;
+        mid = (left+right)/2;
+        while((ids[mid-1]>id_maximum) || (ids[mid]<=id_maximum)) {
+            if (ids[mid]<=id_maximum)
+               left = mid;
+            else
+               right = mid-1;
+            mid = (left+right+1)/2;
+            iter+=1;
+            if(iter>1000) break;           
+        }
+        return_val = mid;
+        if(iter>1000) return_val=-1;
+        """
+
+        mid = scipy.weave.inline(code, ['ids', 'offset_start', 'id_maximum'])
+        assert mid!=-1
+
+    
+        return mid
+    
+        
 
     def generate_family_id_lists(self) :
 
