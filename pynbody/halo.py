@@ -400,6 +400,11 @@ class AHFCatalogue(HaloCatalogue) :
             if(key == 'b') : keys[i] = 'b_axis'
             if(key == 'c') : keys[i] = 'c_axis'
             if(key == 'Mvir') : keys[i] = 'mass'
+
+        if self.isnew :
+            # fix for column 0 being a non-column in some versions of the AHF output
+            if keys[0]=='#' : keys=keys[1:]
+                
         for h, line in enumerate(f) :
             values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as well
