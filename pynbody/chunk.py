@@ -131,6 +131,8 @@ class LoadControl(object) :
 
     @staticmethod
     def _scan_for_next_stop(ids, offset_start, id_maximum) :
+        if len(ids)==0 :
+            return 0
         if ids[-1]<=id_maximum :
             return len(ids)
         if ids[0]>id_maximum :
