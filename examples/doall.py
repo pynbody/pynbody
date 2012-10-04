@@ -17,12 +17,13 @@ i=1
 while len(h[i].star) <2: i=i+1
 pynbody.analysis.angmom.faceon(h[1])
 s.physical_units()
-Jtot = np.sum(((h[1]['j']**2).sum(axis=1))**(1,2) * h[1]['mass'])
+Jtot = np.sqrt(((np.multiply(h[1]['j'].transpose(),h[1]['mass']).sum(axis=1))**2).sum())
 W = np.sum(h[1]['phi']*h[1]['mass'])
 K = np.sum(h[1]['ke']*h[1]['mass'])
 absE = np.fabs(W+K)
 mvir=np.sum(h[1]['mass'].in_units('Msol'))
 rvir=np.max(h[1]['r'].in_units('kpc'))
+rvir.units=units.Unit('kpc')
 # 3D density profile
 rhoprof = profile.Profile(h[1],dim=3,type='log')
 # Rotation curve
@@ -48,7 +49,7 @@ pickle.dump({'z':s.properties['z'],
 #             'mpseudob': np.sum(h[1].star[np.where(dec == 5)]['mass'].in_units('Msol')),
              'mgashot': np.sum(h[1].gas[filt.HighPass('temp',1e5)]['mass'].in_units('Msol')),
              'mgascool': np.sum(h[1].gas[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')),
-             'Jtot':Jtot,'lambda':Jtot / np.sqrt(5.0/3.0*mvir**3 * rvir),
+             'Jtot':Jtot,'lambda':(Jtot / np.sqrt(2*np.power(mvir,3)*rvir*units.G)).in_units('1'),
              'denprof':{'r':rhoprof['rbins'].in_units('kpc'), 
                         'den':rhoprof['density']},
              'rotcur':{'r':rcpro['rbins'].in_units('kpc'), 
