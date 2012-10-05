@@ -335,9 +335,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                          smooth_in_pixels, subsamp_sm_range, True, False, __threaded)
 
         if ny==None : ny=nx
-        base = reren(nx, ny, (1,2))
+        base = reren(nx, ny, (0,2))
         sub=1
-        max_i = int(np.floor(np.log2(nx/64)))
+        max_i = int(np.floor(np.log2(nx/16)))
         for i in xrange(max_i) :
             sub*=2
             rn = (1,2)
@@ -347,7 +347,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                 print "Iteration",i,"res",nx/sub
             new_im = reren(nx/sub, ny/sub, rn)
             
-            base+=scipy.ndimage.interpolation.zoom(new_im, sub, order=1)
+            base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)
         return base
     
             
