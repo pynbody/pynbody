@@ -3,7 +3,46 @@
 chunk
 =====
 
-Methods for describing parts of files to load
+Methods for describing parts of files to load.
+
+This module provides generalized logic for getting parts of sequential data off disk.
+It is for internal use. If you want to write a loader that supports partial loading,
+it will make it a lot easier.
+
+The steps for loading particle data are as follows
+
+1. Set up a description of the particles you have on disk. This is a dictionary
+mapping a family type to a slice, e.g.
+
+  on_disk = {pynbody.family.dm: slice(0,100), pynbody.family.gas: slice(100, 150)}
+
+describes a file with 100 dark matter particles followed by 50 gas particles.
+
+
+2. Create a LoadControl object as defined in this module.
+
+ load_control = pynbody.chunk.LoadControl(on_disk, chunk_size, take)
+
+Here,
+
+ * on_disk is the dictionary you set up in the last step.
+
+ * chunk_size is the maximum number of particles you are willing to load off
+  disk at once these will have to be stored in a temporary array, so you don't
+  want it to be too large; but also reading a small number of large chunks is
+  more efficient, so you don't want it to be too small. No careful experimentation
+  has been done with this, but chunk_sizes of around 10000 seem to work OK.
+
+ * take describes what to load in. Currently this is either None (= load the whole file)
+   or a list of ids (= load the specified particles). However this may be expanded
+   in future to a more comprehensive syntax. The idea is your code will not have to
+   change when this happens, and will automatically support more advanced partial loading
+   specifications.
+
+3. Load your particle data. The load_control object has an iterate method. This returns
+step-by-step instructions that take you through the file, specifying what to keep and what
+to throw away in a simple-to-use fashion. See the help for LoadControl.iterate for details
+on how to implement this final step.
 
 """
 
