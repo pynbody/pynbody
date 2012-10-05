@@ -32,7 +32,8 @@ class TipsySnap(snapshot.SimSnap) :
                             family.gas: set(['phi', 'temp', 'pos', 'metals', 'eps',
                                              'mass', 'rho', 'vel']),
                             family.star: set(['phi', 'tform', 'pos', 'metals',
-                                              'eps','mass', 'vel'])}
+                                              'eps','mass', 'vel']),
+                            None: set(['phi', 'pos', 'eps', 'mass', 'vel']) }
 
 
     def __init__(self, filename, **kwargs):
@@ -42,6 +43,9 @@ class TipsySnap(snapshot.SimSnap) :
         super(TipsySnap,self).__init__()
 
         only_header = kwargs.get('only_header', False)
+        if only_header :
+            warnings.warn("only_header kwarg is deprecated: all loading in TipsySnap is now lazy by default", RuntimeWarning)
+            
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
         take = kwargs.get('take', None)
         verbose = kwargs.get('verbose', config['verbose'])
@@ -64,136 +68,22 @@ class TipsySnap(snapshot.SimSnap) :
 
         assert ndim==3
             
-        # In non-cosmological simulations, what is t? Is it physical
-        # time?  In which case, we need some way of telling what we
-        # are dealing with and setting properties accordingly.
-        self.properties['a'] = t
-        try:
-            self.properties['z'] = 1.0/t - 1.0
-        except ZeroDivisionError:
-            self.properties['z'] = None
-
-        assert ndim==3
-
+        self._header_t = t
 
         f.read(4)
 
-        ng_orig = ng
-        nd_orig = nd
-        ns_orig = ns
+        disk_family_slice = dict({family.gas : slice(0, ng),
+                                   family.dm  : slice(ng, nd+ng),
+                                   family.star: slice(nd+ng, ng+nd+ns)})
 
-        # The take keyword may change the number of particles for each
-        # family so we need to take care of this now.
-        if take is not None:
-            family_len = {family.gas: ng,
-                          family.dm: nd,
-                          family.star: ns}
-            work = {}
-
-            # List of families
-            if isinstance(take, (types.ListType, types.TupleType)):
-                if 'gas'  not in take: ng = 0
-                if 'dm'   not in take: nd = 0
-                if 'star' not in take: ns = 0
-                work[family.gas]  = chunk.Chunk(0,ng)
-                work[family.dm]   = chunk.Chunk(0,nd)
-                work[family.star] = chunk.Chunk(0,ns)
-
-            # Dictionary of families with either id lists or chunks
-            if isinstance(take, (types.DictType)):
-                for k,v in take.iteritems():
-                    k = family.get_family(k)
-                    if isinstance(v, np.ndarray):
-                        assert np.amax(v) < family_len[k]
-                        work[k] = chunk.Chunk(ids=v)
-                    elif isinstance(v, chunk.Chunk):
-                        work[k] = v
-                    else:
-                        assert 0, 'Bad type'
-
-            def split_slice(s, start, size):
-                if not (s.start <= start < s.stop):
-                    return None
-                if not (s.start <= stop < s.stop):
-                    return None
-                if start > stop: 
-                    return None
-
-                new_start = ((start - s.start) // s.step) * s.step + s.start - start
-                new_stop  = new_start + size
-                return new_start, s.step, new_stop
-
-
-            # A chunk
-            if isinstance(take, chunk.Chunk):
-                assert 0, 'Not supported.'
-
-                take.init(ng+d+ns)
-
-                # may result in a few missing particles...
-                if take.random is not None:
-                    if nd: work[family.dm] = chunk.Chunk(random=take.random//n)
-                    if ng: work[family.dg] = chunk.Chunk(random=take.random//n)
-                    if ns: work[family.ds] = chunk.Chunk(random=take.random//n)
-
-
-                s = slice(take.start, take.stop, take.step)
-
-                if s.start < ng: 
-                    start, stop, step = split_slice(s, take.start, ng)
-                    work[family.gas] = chunk.Chunk(start, stop, step)
-                    
-                start = step*(ng//step + 1)
-
-                work[family.dm]   = chunk.Chunk(0,nd)
-                work[family.star] = chunk.Chunk(0,ns)
-                assert 0
-                work = take
-
-            # A list of particles
-            if isinstance(take, np.ndarray):
-                work = chunk.Chunk(ids=take)
-
-            # Functions
-            if isinstance(take, types.FunctionType):
-                assert 0
-                warnings.warn("Can't handle functions for 'take' keyword")
-                take = None
-
-            for k,v in family_len.iteritems():
-                if work.has_key(k):
-                    work[k].init(max_stop=v)
-                    family_len[k] = len(work[k])
-                else:
-                    family_len[k] = 0
-
-            ng = family_len[family.gas]
-            nd = family_len[family.dm]
-            ns = family_len[family.star]
-
-        self._num_particles = ng+nd+ns
-
-        # Store slices corresponding to different particle types
-        self._family_slice[family.gas] = slice(0,ng)
-        self._family_slice[family.dm] = slice(ng, nd+ng)
-        self._family_slice[family.star] = slice(nd+ng, ng+nd+ns)
-
-        if not only_header :
-            self._create_arrays(["pos","vel"],3,zeros=False)
-            self._create_arrays(["mass","eps","phi"],zeros=False)
-            self.gas._create_arrays(["rho","temp","metals"],zeros=False)
-            self.star._create_arrays(["metals","tform"],zeros=False)
-            self.gas["temp"].units = "K" # we know the temperature is always in K
-            # Other units will be set by the decorators later
+        self._load_control = chunk.LoadControl(disk_family_slice, 10240, take)
+        
+        self._family_slice = self._load_control.mem_family_slice
+        self._num_particles = self._load_control.mem_num_particles
+   
+       
 
         self._decorate()
-
-        # Load in the tipsy file in blocks.  This is the most
-        # efficient balance I can see for keeping IO contiguuous, not
-        # wasting memory, but also not having too much python <-> C
-        # interface overheads
-
-        max_block_size = 1024 # particles
 
         # describe the file structure as list of (num_parts, [list_of_properties]) 
         # by default all fields are floats -- we look at the param file to determine
@@ -210,21 +100,14 @@ class TipsySnap(snapshot.SimSnap) :
             vtype = 'f'
 
         
-        g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
-                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
-        d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
-                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
-        s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
-                              'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+        self._g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+        self._d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+        self._s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
 
-        g_offs = 32
-        d_offs = g_offs + ng_orig * g_dtype.itemsize
-        s_offs = d_offs + nd_orig * d_dtype.itemsize
-
-        file_structure = ((ng,ng_orig, g_offs, family.gas,g_dtype),
-                          (nd,nd_orig, d_offs, family.dm,d_dtype),
-                          (ns,ns_orig, s_offs, family.star,s_dtype))
-
+        
         if not self._paramfile.has_key('dKpcUnit'):
             if must_have_paramfile :
                 raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
@@ -237,118 +120,91 @@ class TipsySnap(snapshot.SimSnap) :
         except units.UnitsException :
             pass
 
-        if self._paramfile.has_key('bComove') and int(self._paramfile['bComove'])!=0 :
-            from . import analysis
-            import analysis.cosmology
-            self.properties['a'] = t
-            try :
-                self.properties['z'] = 1.0/t - 1.0
-            except ZeroDivisionError :
-                # no sensible redshift
-                pass
-
-            if (self.properties['z'] is not None and 
-                self._paramfile.has_key('dMsolUnit') and 
-                self._paramfile.has_key('dKpcUnit')):
-                self.properties['time'] =  analysis.cosmology.age(self, unit=time_unit)
-            else :
-                # something has gone wrong with the cosmological side of
-                # things
-                warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
-                self.properties['time'] = t
-
-        else :
-            # Assume a non-cosmological run
-            self.properties['time'] =  t
 
         if time_unit is not None :
             self.properties['time']*=time_unit
 
-        if only_header == True:
-            return
+        del f
 
-        if not take:
-            for n_left, n_orig, offs, type, st in file_structure :
-                n_done = 0
-                self_type = self[type]
-                while n_left>0 :
-                    n_block = min(n_left,max_block_size)
 
-                    st_len = st.itemsize
 
-                    # Read in the block
-                    buf = np.fromstring(f.read(st_len*n_block),dtype=st)
-                    
-                    if self._byteswap:
-                        buf = buf.byteswap()
-                    
-                    # Copy into the correct arrays
-                    for name in st.names :
-                        self_type[name][n_done:n_done+n_block] = buf[name]
+    def _load_main_file(self) :
 
-                    # Increment total ptcls read in, decrement ptcls left of this type
-                    n_left-=n_block
-                    n_done+=n_block
-        else:
-            for n_left, n_orig, offs, type, st in file_structure :
-                if not work.has_key(type):
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: loading data from main file"
+            
+        f = util.open_(self._filename)
+        f.seek(32)
+
+        write = []
+
+        for w, ndim in ("pos", 3), ("vel", 3), ("mass", 1), ("eps", 1), ("phi", 1) :
+            if w not in self.keys() :
+                self._create_array(w, ndim, zeros=False)
+                write.append(w)
+                
+        for w in "rho", "temp" :
+            if w not in self.gas.keys() :
+                self.gas._create_array(w, zeros=False)
+                write.append(w)
+
+        if ("metals" not in self.gas.keys()) and ("metals" not in self.star.keys()) :
+            self.gas._create_array("metals", zeros=False)
+            self.star._create_array("metals", zeros=False)
+            write.append("metals")
+
+        if "tform" not in self.star.keys() :
+            self.star._create_array("tform", zeros=False)
+            write.append("tform")
+            
+        if "temp" in write :
+            self.gas["temp"].units = "K"
+
+        for k in "pos", "vel", "mass", "eps", "phi" :
+            if k in write :
+                self[k].set_default_units()
+
+        if "phi" in write :
+            self['phi'].units=self['phi'].units*units.a**-3 # messy :-(
+            
+        for k in "rho", "temp", "metals":
+            if k in write :
+                self.gas[k].set_default_units()
+
+        for k in "metals", "tform":
+            if k in write :
+                self.star[k].set_default_units()
+
+        if "pos" in write :
+            write+=['x','y','z']
+
+        if "vel" in write :
+            write+=['vx','vy','vz']
+
+        max_item_size = max([q.itemsize for q in self._g_dtype, self._d_dtype, self._s_dtype])
+        tbuf = bytearray(max_item_size*10240)
+        
+        for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)) :
+            self_fam = self[fam]
+            st_len = dtype.itemsize
+            for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam], multiskip=True) :
+                # Read in the block
+                
+                if mem_index is None :
+                    f.seek(st_len*readlen,1)
                     continue
+                
+                buf = np.fromstring(f.read(st_len*readlen),dtype=dtype)
 
-                self_type = self[type]
-                st_len = st.itemsize
+                if self._byteswap:
+                    buf = buf.byteswap()
 
-                n_block = 0         # size of the block in particles
-                block_offs = 0      # offset within the currently read block
-                family_offs = 0     # particle offset from the start of the family
+                if mem_index is not None :
+                    # Copy into the correct arrays
+                    for name in dtype.names :
+                        if name in write :
+                            self_fam[name][mem_index] = buf[name][buf_index]
+                       
 
-                # If all the work is contiguous we can be more efficient by
-                # copying an entire block into the array instead of picking out
-                # individual elements.
-                if work[type].ids is None:
-                    n_orig = min(n_orig, work[type].stop)
-                    n_done = 0
-
-                    family_offs = work[type].start
-
-                    n_left = n_orig - family_offs
-                    while n_left > 0:
-
-                        # This seek must be in the loop, particulary if the
-                        # step size is larger than max_block_size.
-                        f.seek(offs + family_offs*st_len)
-
-                        # Read in the block
-                        n_block = min(n_left, max_block_size)
-                        buf = np.fromstring(f.read(n_block*st_len),dtype=st)
-                        if self._byteswap:
-                            buf = buf.byteswap()
-
-                        slice_len = int(math.ceil(n_block / work[type].step))
-
-                        # Copy into the correct arrays
-                        for name in st.names :
-                            self_type[name][n_done:n_done+slice_len] = buf[name][::work[type].step]
-
-                        family_offs += work[type].step * slice_len
-                        n_done += slice_len
-                        n_left = n_orig - family_offs
-                else:
-                    for i,pdelta in enumerate(work[type].pdeltas()):
-                        block_offs  += pdelta
-                        family_offs += pdelta
-
-                        if block_offs >= n_block:
-                            f.seek(offs + family_offs*st_len)
-                            n_block = min(n_orig - family_offs, max_block_size)
-                            # Read in the block
-                            buf = np.fromstring(f.read(n_block*st_len),dtype=st)
-                            if self._byteswap:
-                                buf = buf.byteswap()
-                            block_offs = 0
-
-                        # Copy into the correct arrays
-                        for name in st.names :
-                            self_type[name][i] = buf[name][block_offs]
 
     def _update_loadable_keys(self)  :
         def is_readable_array(x) :
@@ -391,7 +247,7 @@ class TipsySnap(snapshot.SimSnap) :
         # Create an empty dictionary of sets to store the loadable
         # arrays for each family
         rdict = dict([(x, set()) for x in self.families()])
-        rdict.update(dict([a, copy.copy(b)] for a,b in self._basic_loadable_keys.iteritems()))
+        rdict.update(dict([a, copy.copy(b)] for a,b in self._basic_loadable_keys.iteritems() if a is not None ))
         # Now work out which families can load which arrays
         # according to the stored metadata
         for r in res :
@@ -421,6 +277,9 @@ class TipsySnap(snapshot.SimSnap) :
         rest intact on disk.
         """
 
+        if self.partial_load :
+            raise RuntimeError, "Writing back to partially loaded files not yet supported"
+        
         global config
         
         # make arrays be a list
@@ -664,6 +523,9 @@ class TipsySnap(snapshot.SimSnap) :
                       filename=None, binary=None, byteswap=None) :
         assert fam is not None
 
+        if self.partial_load :
+            raise RuntimeError, "Writing back to partially loaded files not yet supported"
+        
         fam_in_main = self._families_in_main_file(array_name, fam)
         if len(fam_in_main)>0 :
             self._update_snapshot(array_name, fam_out=fam_in_main)
@@ -787,6 +649,10 @@ class TipsySnap(snapshot.SimSnap) :
     def _load_array(self, array_name, fam=None, filename = None,
                     packed_vector = None) :
 
+        if array_name in self._basic_loadable_keys[fam] :
+            self._load_main_file()
+            return
+
         fams = self._get_loadable_array_metadata(array_name)[1] or self.families()
         
         if (fam is None and fams is not None and len(fams)!=len(self.families())) or \
@@ -848,24 +714,25 @@ class TipsySnap(snapshot.SimSnap) :
         try :
             l = int(f.readline())
             binary = False
-            if l!=len(self) :
+            if l!=self._load_control.disk_num_particles :
                 raise IOError, "Incorrect file format"
 
-            tp = self._get_preferred_dtype(array_name)
-            if not tp :
+            dtype = self._get_preferred_dtype(array_name)
+            if not dtype :
                 # Inspect the first line to see whether it's float or int
                 l = "0\n"
                 while l=="0\n" : l = f.readline()
                 if "." in l or "e" in l or l[:-1]=="inf" :
-                    tp = float
+                    dtype = float
                 else :
-                    tp = int
+                    dtype = int
 
                 # Restart at head of file
                 f.seek(0)
                 f.readline()
-                
-            data = np.fromfile(f, dtype=tp, sep="\n")
+
+            loadblock = lambda count : np.fromfile(f, dtype=dtype, sep="\n", count=count)
+            # data = np.fromfile(f, dtype=tp, sep="\n")
         except ValueError :
             # this is probably a binary file
             binary = True
@@ -877,23 +744,25 @@ class TipsySnap(snapshot.SimSnap) :
             else:
                 l = struct.unpack("i", f.read(4))[0]
 
-            if l!=len(self) :
+            if l!=self._load_control.disk_num_particles :
                 raise IOError, "Incorrect file format"
 
             # Set data format to be read (float or int) based on config
             int_arrays = map(str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
-            if array_name in int_arrays : fmt = 'i'
-            else: fmt = 'f'
+            if array_name in int_arrays : dtype = 'i'
+            else: dtype = 'f'
 
             # Read longest data array possible.  
             # Assume byteswap since most will be.
             if self._byteswap:
-                data = np.fromstring(f.read(3*len(self)*4),fmt).byteswap()
+                loadblock = lambda count : np.fromstring(f.read(count*4), dtype=dtype, count=count).byteswap()
+                # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
             else:
-                data = np.fromstring(f.read(3*len(self)*4),fmt)
-            if len(f.read(4))!= 0:
-                raise IOError, "Incorrect file format"
-            
+                loadblock = lambda count : np.fromstring(f.read(count*4), dtype=dtype, count=count)
+                # data = np.fromstring(f.read(3*len(self)*4),dtype)
+           
+
+        """
         ndim = len(data)/len(self)
 
         if ndim*len(self)!=len(data) :
@@ -925,12 +794,27 @@ class TipsySnap(snapshot.SimSnap) :
             dims = len(self)
             v_order = 'C'
 
-        self.ancestor._tipsy_arrays_binary = binary
-
         if fam is None :
             r = data.reshape(dims, order=v_order).view(array.SimArray)
         else :
             r = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
+        """
+        ndim = 1
+
+        self.ancestor._tipsy_arrays_binary = binary
+
+        all_fam = [family.dm, family.gas, family.star]
+        if fam is None :
+            fam = all_fam
+            r = np.empty(len(self), dtype=dtype).view(array.SimArray)
+        else :
+            r = np.empty(len(self[fam]), dtype=dtype).view(array.SimArray)
+            
+        for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam) :
+            buf = loadblock(readlen)
+            if mem_index is not None :
+                r[mem_index] = buf[buf_index]
+     
 
         u, f = self._get_loadable_array_metadata(array_name)
         if u is not None :
@@ -1341,6 +1225,8 @@ def load_paramfile(sim) :
                     
         if done : break
 
+
+
             
 @TipsySnap.decorator
 @StarLog.decorator
@@ -1467,6 +1353,39 @@ def param2units(sim) :
                 except : pass
 
 
+
+@TipsySnap.decorator
+def settime(sim) :
+    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
+        from . import analysis
+        import analysis.cosmology
+        t = sim._header_t
+        sim.properties['a'] = t
+        try :
+            sim.properties['z'] = 1.0/t - 1.0
+        except ZeroDivisionError :
+            # no sensible redshift
+            pass
+
+        if (sim.properties['z'] is not None and 
+            sim._paramfile.has_key('dMsolUnit') and 
+            sim._paramfile.has_key('dKpcUnit')):
+            sim.properties['time'] =  analysis.cosmology.age(sim, unit=sim.infer_original_units('yr'))
+        else :
+            # something has gone wrong with the cosmological side of
+            # things
+            warnings.warn("Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
+            sim.properties['time'] = t
+
+        sim.properties['a'] = t
+        
+    else :
+        # Assume a non-cosmological run
+            sim.properties['time'] =  sim._header_t
+
+    
+            
+    
 @StarLog.decorator
 def slparam2units(sim) :
     with sim.lazy_off :

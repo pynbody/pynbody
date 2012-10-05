@@ -20,6 +20,11 @@ import copy
 import sys
 from . import snapshot, util, config, config_parser
 
+class DummyHalo(object) :
+    def __init__(self) :
+        self.properties = {}
+
+
 class Halo(snapshot.IndexedSubSnap) :
     def __init__(self, halo_id, halo_catalogue, *args) :
         super(Halo, self).__init__(*args)
@@ -223,19 +228,27 @@ class HaloCatalogue(object) :
 
 
 class AHFCatalogue(HaloCatalogue) :
-    def __init__(self, sim, make_grp=None) :
-        """Initialize an AHFCatalogue. Takes an extra kwarg, make_grp;
-        if this is set to True a 'grp' array is created in the
-        underlying snapshot specifying the lowest level halo that any
-        given particle belongs to. If it is False, no such array is created;
-        if None, the behaviour is determined by the configuration system."""
-        
+    def __init__(self, sim, make_grp=None, dummy=False) :
+        """Initialize an AHFCatalogue.
+
+        **kwargs** :
+         *make_grp*: if True a 'grp' array is created in the
+           underlying snapshot specifying the lowest level halo that any
+           given particle belongs to. If it is False, no such array is created;
+           if None, the behaviour is determined by the configuration system.
+
+         *dummy*: if True, the particle file is not loaded, and all halos
+           returned are just dummies (with the correct properties dictionary
+           loaded). Use load_copy to get the actual data in this case. """
+ 
         import os.path
         if not self._can_load(sim) :
             self._run_ahf(sim)
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
-       
+
+        self._dummy = dummy
+        
         self._ahfBasename = util.cutgz(glob.glob(sim._filename+'*z*halos*')[0])[:-5]
         
         f = util.open_(self._ahfBasename+'halos')
@@ -302,70 +315,74 @@ class AHFCatalogue(HaloCatalogue) :
     def base(self) :
         return self._base()
 
-    def _load_ahf_particles(self,filename) :
-        f = util.open_(filename)
-        if filename.split("z")[-2][-1] is "." : self.isnew = True
-        else : self.isnew = False
-        # tried readlines, which is fast, but the time is spent in the
-        # for loop below, so sticking with this (hopefully) more readable 
+
+    def load_copy(self, i) :
+        """Load the a fresh SimSnap with only the particle in halo i"""
+
+        from . import load
+        
+        f = util.open_(self._ahfBasename+'particles')
+      
         if self.isnew:
             nhalos=int(f.readline())
         else: 
             nhalos = self._nhalos
 
 
+        for h in xrange(i) :
+            ids = self._load_ahf_particle_block(f)
+            
+        f.close()
+
+        return load(self.base.filename, take=ids)
+
+    def _load_ahf_particle_block(self, f) :
+        """Load the particles for the next halo described in particle file f"""
         ng = len(self.base.gas)
         nds = len(self.base.dark) + len(self.base.star)
-        for h in xrange(nhalos) :
-            nparts = int(f.readline())
-            if self.isnew :
-                if isinstance(f,file) :
-                    data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
-                else :
-                    # unfortunately with gzipped files there does not
-                    # seem to be an efficient way to load nparts lines
-                    data = np.zeros(nparts, dtype=int)
-                    for i in xrange(nparts) :
-                        data[i] = int(f.readline().split()[0])
-                        
-                hi_mask = data>=nds
-                data[np.where(hi_mask)]-=nds
-                data[np.where(~hi_mask)]+=ng
+        nparts = int(f.readline())
+        if self.isnew :
+            if isinstance(f,file) :
+                data = (np.fromfile(f, dtype=int, sep=" ", count = nparts*2).reshape(nparts,2))[:,0]
             else :
-                if isinstance(f, file) :
-                    data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
-                else :
-                    # see comment above on gzipped files
-                    data = np.zeros(nparts, dtype=int)
-                    for i in xrange(nparts) :
-                        data[i] = int(f.readline())
-            data.sort()
-            sorted_pids_in_halo = data
-                
+                # unfortunately with gzipped files there does not
+                # seem to be an efficient way to load nparts lines
+                data = np.zeros(nparts, dtype=int)
+                for i in xrange(nparts) :
+                    data[i] = int(f.readline().split()[0])
 
-            """ # old code
-            keys = {}
-            # wow,  AHFstep has the audacity to switch the id order to dark,star,gas
-            # switching back to gas, dark, star
-            for i in xrange(nparts) : 
-                if self.isnew:
-                    key,value=[int(i) for i in f.readline().split()]
-                    if (key >= nds): key=int(key)-nds
-                    else: key=int(key)+ng
-                else :
-                    key=f.readline()
-                    value = 0
-                keys[int(key)]=int(value)
-            sorted_pids_in_halo = sorted(keys.keys())
-            """
+            hi_mask = data>=nds
+            data[np.where(hi_mask)]-=nds
+            data[np.where(~hi_mask)]+=ng
+        else :
+            if isinstance(f, file) :
+                data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
+            else :
+                # see comment above on gzipped files
+                data = np.zeros(nparts, dtype=int)
+                for i in xrange(nparts) :
+                    data[i] = int(f.readline())
+        data.sort()
+        return data
             
-            self._halos[h+1] = Halo( h+1, self, self.base, sorted_pids_in_halo)
+    def _load_ahf_particles(self,filename) :
+        f = util.open_(filename)
+        if filename.split("z")[-2][-1] is "." : self.isnew = True
+        else : self.isnew = False
+      
+        if self.isnew:
+            nhalos=int(f.readline())
+        else: 
+            nhalos = self._nhalos
 
-            # store halo member particle IDs for each halo
-            # self._halos[h+1]['pid'] = np.array(sorted_pids_in_halo)
-            
-            self._halos[h+1]._descriptor = "halo_"+str(h+1)
-            
+        if not self._dummy :
+            for h in xrange(nhalos) :
+                self._halos[h+1] = Halo( h+1, self, self.base, self._load_ahf_particle_block(f))
+                self._halos[h+1]._descriptor = "halo_"+str(h+1)
+        else :
+            for h in xrange(nhalos) :
+                self._halos[h+1] = DummyHalo()
+
         f.close()
 
     def _load_ahf_halos(self,filename) :
@@ -384,6 +401,11 @@ class AHFCatalogue(HaloCatalogue) :
             if(key == 'b') : keys[i] = 'b_axis'
             if(key == 'c') : keys[i] = 'c_axis'
             if(key == 'Mvir') : keys[i] = 'mass'
+
+        if self.isnew :
+            # fix for column 0 being a non-column in some versions of the AHF output
+            if keys[0]=='#' : keys=keys[1:]
+                
         for h, line in enumerate(f) :
             values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as well
