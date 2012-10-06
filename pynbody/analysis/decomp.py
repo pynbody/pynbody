@@ -100,13 +100,13 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     if config['verbose'] : print>>sys.stderr, "Making disk rotation curve..."
     
     # Now make a rotation curve for the disk. We'll take everything
-    # inside a vertical height of 500pc.
+    # inside a vertical height of eps*3
 
-    d = h[filt.Disc('1 Mpc', '500 pc')]
+    d = h[filt.Disc('1 Mpc', h['eps'].min()*3)]
     
     try :
         
-        
+        # attempt to load rotation curve off disk
         r, v_c = np.loadtxt(h.ancestor.filename+".rot."+str(h.properties["halo_id"]), skiprows=1, unpack=True)
         
         pro_d = profile.Profile(d, nbins=100, type='log')
@@ -128,10 +128,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         pro_d._profiles['v_circ'] = v_c
         pro_d.v_circ_loaded = True
         
-    except :#IOError,KeyError :
+    except :
         pro_d = profile.Profile(d, nbins=100, type='log') #.D()
-    
-    
+        # Nasty hack follows to force the full halo to be used in calculating the
+        # gravity (otherwise get incorrect rotation curves)
+        pro_d._profiles['v_circ'] = profile.v_circ(pro_d, h)  
+                                                    
     pro_phi = pro_d['phi']
     #import pdb; pdb.set_trace()
     # offset the potential as for the te array

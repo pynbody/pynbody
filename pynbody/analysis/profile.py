@@ -597,7 +597,7 @@ def j_circ(p) :
 
 
 @Profile.profile_property
-def v_circ(p) :
+def v_circ(p, grav_sim=None) :
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
     in the midplane - can be expensive"""
 
@@ -606,7 +606,7 @@ def v_circ(p) :
 
     global config
 
-    grav_sim = p.sim
+    grav_sim = grav_sim or p.sim
 
     if pynbody.config['verbose'] : 
         print 'Profile: v_circ() -- warning, disk must be in the x-y plane'
