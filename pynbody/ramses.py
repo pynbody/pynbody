@@ -407,10 +407,13 @@ class RamsesSnap(snapshot.SimSnap) :
             ind1_star = ind0_star+nstar
             
             data = _read_fortran(f, _type, header['npart'])
-            
-            self.dm[blockname][ind0_dm:ind1_dm]=data[~star_mask]
-            self.star[blockname][ind0_star:ind1_star]=data[star_mask]
-         
+
+            if len(star_mask)>0 :
+                self.dm[blockname][ind0_dm:ind1_dm]=data[~star_mask]
+                self.star[blockname][ind0_star:ind1_star]=data[star_mask]
+            else :
+                self.dm[blockname][ind0_dm:ind1_dm]=data
+                
             f.close()
 
             ind0_dm = ind1_dm
