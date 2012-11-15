@@ -108,7 +108,7 @@ def v_disp(self):
     if config['verbose']: print 'Calculating velocity dispersion with %d nearest neighbours' % nsmooth
 
     sm = array.SimArray(np.empty(len(self['pos'])), self['vel'].units)
-    kdt.populate(sm, 'v_disp', nn=nsmooth, smooth=self['smooth'], rho=self['rho']) 
+    self.kdtree.populate(sm, 'v_disp', nn=nsmooth, smooth=self['smooth'], rho=self['rho']) 
     if config['verbose']: print 'Velocity dispersion done.'
 
     return sm 
