@@ -109,7 +109,8 @@ def midplane_rot_curve(f, rxy_points, eps = None, mode = config['gravity_calcula
         try :
             eps = f['eps']
         except KeyError :
-            eps = f.properties['eps']
+            eps = np.zeros(len(f))
+            eps += f.properties['eps']
             
     if isinstance(eps, str) :
         eps = units.Unit(eps)
