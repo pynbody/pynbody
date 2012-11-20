@@ -84,7 +84,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     if subplot:
         p = subplot
     else :
-        p = plt.subplot(111)
+        p = plt
 
     if isinstance(units, str) :
         units = _units.Unit(units)
@@ -168,7 +168,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    if clear and not subplot : p.figure.clf()
+    if clear and not subplot : p.clf()
 
     if ret_im:
         return plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
@@ -208,10 +208,12 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         
     if filename:
         p.savefig(filename)
-
+        
+    
     plt.draw()
+    plt.show()
 
-    return im
+    return im,p
 
 def image_radial_profile(im, bins=100):
 
