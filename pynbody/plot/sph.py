@@ -48,10 +48,10 @@ def faceon_image(sim, *args, **kwargs) :
 
 
 def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
-          vmin=None, vmax=None, av_z = False, filename=False, 
+          vmin=None, vmax=None, av_z = False, filename=None, 
           z_camera=None, clear = True, cmap=None, center=False,
-          title=False, qtytitle=False, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False, threaded=True,
+          title=None, qtytitle=None, show_cbar=True, subplot=False,
+          noplot = False, ret_im=False, threaded=True, fill_nan = True, fill_val=0.0,
           number_of_threads=None, **kwargs) :
     """
 
@@ -77,6 +77,36 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
     *z_camera* (None): If set, a perspective image is rendered. See
                 :func:`pynbody.sph.image` for more details.
+
+    *filename* (None): if set, the image will be saved in a file
+
+    *clear* (True): whether to call clf() on the axes first
+
+    *cmap* (None): user-supplied colormap instance
+
+    *title* (None): plot title
+
+    *qtytitle* (None): colorbar quantity title 
+
+    *show_cbar* (True): whether to plot the colorbar
+
+    *subplot* (False): the user can supply a AxesSubPlot instance on
+    which the image will be shown
+    
+    *noplot* (False): do not display the image, just return the image array
+    
+    *ret_im* (False): return the image instance returned by imshow
+
+    *threaded* (True): use the multi-threaded version of the image routines
+
+    *number_of_threads* (None) : if set, specify the number of threads for 
+    the multi-threaded routines; otherwise the pynbody.config default is used
+
+    *fill_nan* (True): if any of the image values are NaN, replace with fill_val
+
+    *fill_val* (0.0): the fill value to use when replacing NaNs
+    
+    
     """
     import matplotlib.pylab as plt
 
@@ -164,6 +194,9 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         im = rfunc(sim,qty,width/2,resolution,out_units=units, 
                    kernel = kernel,  z_camera = z_camera, **kwargs)
 
+    if fill_nan : 
+        im[np.isnan(im)] = fill_val
+
     if log :
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
@@ -195,18 +228,18 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         units = "$"+units.latex()+"$"
 
     if show_cbar:
-        if qtytitle: plt.colorbar(ims).set_label(qtytitle)
-        else:        plt.colorbar(ims).set_label(units)
+        if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
+        else:                    plt.colorbar(ims).set_label(units)
     # colorbar doesn't work wtih subplot:  mappable is NoneType
     #elif show_cbar:
     #    import matplotlib.pyplot as mpl
     #    if qtytitle: mpl.colorbar().set_label(qtytitle)
     #    else:        mpl.colorbar().set_label(units)
 
-    if title:
+    if title is not None:
         p.set_title(title)
         
-    if filename:
+    if filename is not None:
         p.savefig(filename)
         
     

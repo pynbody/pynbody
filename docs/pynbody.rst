@@ -28,6 +28,9 @@
    .. automodule:: pynbody.kdtree
       :members:
 
+   .. automodule:: pynbody.ramses
+      :members:
+      
    .. automodule:: pynbody.snapshot
       :members:
 
