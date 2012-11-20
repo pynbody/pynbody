@@ -174,13 +174,16 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
         return plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
                  vmin=vmin, vmax=vmax, cmap=cmap)
 
-    ims = plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+    ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
                    vmin=vmin, vmax=vmax, cmap=cmap)
 
     u_st = sim['pos'].units.latex()
-    #if not subplot:
-    plt.xlabel("$x/%s$"%u_st)
-    plt.ylabel("$y/%s$"%u_st)
+    if not subplot:
+        plt.xlabel("$x/%s$"%u_st)
+        plt.ylabel("$y/%s$"%u_st)
+    else :
+        p.set_xlabel("$x/%s$"%u_st)
+        p.set_ylabel("$y/%s$"%u_st)
 
     if units is None :
         units = im.units
