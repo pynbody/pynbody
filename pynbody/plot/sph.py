@@ -213,7 +213,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     plt.draw()
     plt.show()
 
-    return im,p
+    return im
 
 def image_radial_profile(im, bins=100):
 
