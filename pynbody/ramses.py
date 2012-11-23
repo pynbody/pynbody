@@ -127,7 +127,10 @@ class RamsesSnap(snapshot.SimSnap) :
         self._maxlevel = kwargs.get('maxlevel',None)
 
         ndm, nstar = self._count_particles()
-        ngas = self._count_gas_cells()
+
+        has_gas = os.path.exists(self._hydro_filename(1)) or kwargs.get('force_gas',False)
+        
+        ngas = self._count_gas_cells() if has_gas else 0
         
         self._num_particles = ndm+ngas+nstar
         self._family_slice[family.dm] = slice(0, ndm)
