@@ -857,7 +857,7 @@ class TipsySnap(snapshot.SimSnap) :
     @staticmethod
     def _can_load(f) :
         try:
-            check = TipsySnap(f, only_header=True, verbose=False)
+            check = TipsySnap(f, verbose=False)
             del check
         except :
             return False
