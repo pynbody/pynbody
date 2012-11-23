@@ -456,7 +456,9 @@ class RamsesSnap(snapshot.SimSnap) :
             if 'smooth' not in self.gas :
                 self.gas._create_array('smooth')
 
-            self._load_gas_pos()
+            if len(self.gas) > 0 :
+                self._load_gas_pos()
+                
             self._load_array('vel', family.dm)
             self._load_array('pos', family.dm)
         elif fam is None and array_name is 'mass' :
