@@ -14,9 +14,6 @@ Plotting
 .. automodule:: pynbody.plot.metals
    :members:
 
-.. automodule:: pynbody.plot.phasediagram
-   :members:
-
 .. automodule:: pynbody.plot.profile
    :members:
 
