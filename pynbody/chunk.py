@@ -220,9 +220,10 @@ class LoadControl(object) :
     def _generate_family_order(self) :
         famlist = []
         for fam, sl in self._disk_family_slice.iteritems() :
-            famlist.append((fam, sl.start))
+            famlist.append((fam, sl.start, sl.stop))
 
         famlist.sort(key=lambda x: x[1])
+        famlist.sort(key=lambda x: x[2])
         self._ordered_families = [x[0] for x in famlist]
         
     def _generate_mem_slice(self) :
