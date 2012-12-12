@@ -28,7 +28,7 @@ import warnings
 import threading
 import re
 
-            
+
 class SimSnap(object) :
     """The basic holder of data for a single simulation snapshot.
 
@@ -103,7 +103,7 @@ class SimSnap(object) :
         self._family_slice = {}
         self._family_arrays = {}
         self._derived_array_track = []
-        
+        self._autoconvert=None
         self._family_derived_array_track = {}
         for i in family._registry :
             self._family_derived_array_track[i]=[]
@@ -184,7 +184,7 @@ class SimSnap(object) :
                         # family previously and saved it on disk 
                         try: 
                             for fam in out_fam : 
-                                self.__load_array_with_ND_catch(i,fam=fam)
+                                self.__load_array_with_magic(i,fam=fam)
                         except IOError: 
                             raise KeyError, """%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s."""%(i,in_fam,out_fam)
 
@@ -194,7 +194,7 @@ class SimSnap(object) :
                     if not self.lazy_off :
                         try:
                             if not self.lazy_load_off :
-                                self.__load_array_with_ND_catch(i)
+                                self.__load_array_with_magic(i)
                             else :
                                 raise IOError
 
@@ -370,9 +370,32 @@ class SimSnap(object) :
         If verbose is True, the conversions are printed."""
         self.physical_units(distance=self.infer_original_units('km'),
                              velocity=self.infer_original_units('km s^-1'),
-                             mass=self.infer_original_units('Msol'))
+                             mass=self.infer_original_units('Msol'), persistent=False)
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol') :
+    def _autoconvert_array_unit(self, ar, dims=None, ucut=3) :
+        """Given an array ar, convert its units such that the new units span
+        dims[:ucut]. dims[ucut:] are evaluated in the conversion (so will be things like
+        a, h etc).
+
+        If dims is None, use the internal autoconvert state to perform the conversion."""
+        
+        if dims is None :
+            dims = self.ancestor._autoconvert
+        if dims is None :
+            return
+        if ar.units is not None :
+            try:
+                d = ar.units.dimensional_project(dims)
+            except units.UnitsException :
+                return
+
+            new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, d[:ucut])])
+            if new_unit!=ar.units :
+                if config['verbose'] :
+                    print ar._name,ar.units,"->",new_unit
+                ar.convert_units(new_unit)
+
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True) :
         """
         Converts all array's units to be consistent with the
         distance, velocity, mass basis units specified.
@@ -386,6 +409,8 @@ class SimSnap(object) :
            *velocity*: string (default = 'km s^-1')
 
            *mass*: string (default = 'Msol')
+
+           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
             
         """
 
@@ -398,18 +423,7 @@ class SimSnap(object) :
             all+=self._family_arrays[x].values()
 
         for ar in all :
-            while isinstance(ar.base, array.SimArray) : ar = ar.base
-            if ar.units is not None :
-                try :
-                    d = ar.units.dimensional_project(dims)
-                except units.UnitsException :
-                    continue
-
-                new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, d[:3])])
-                if new_unit!=ar.units :
-                    if config['verbose'] :
-                        print ar._name,ar.units,"->",new_unit
-                    ar.convert_units(new_unit)
+            self._autoconvert_array_unit(ar.ancestor, dims)
 
         for k in self.properties.keys() :
             v = self.properties[k]
@@ -423,6 +437,11 @@ class SimSnap(object) :
                 if config['verbose'] :
                     print k,":",v,"-->",new_unit
                 self.properties[k] = new_unit
+
+        if persistent :
+            self._autoconvert =dims
+        else :
+            self._autoconvert=None
             
 
     def infer_original_units(self, dimensions) :
@@ -560,12 +579,40 @@ class SimSnap(object) :
     def _load_array(self, array_name, fam=None) :
         raise IOError, "No lazy-loading implemented"
 
-    def __load_array_with_ND_catch(self, array_name, fam=None) :
-        """Normally just calls _load_array for the appropriate subclass, but also
-        automatically loads the whole ND array if this is a subview of an ND array"""
+    def __load_array_with_magic(self, array_name, fam=None) :
+        """Calls _load_array for the appropriate subclass, but also attempts to convert
+        units of anything that gets loaded and automatically loads the whole ND array
+        if this is a subview of an ND array"""
         array_name = self._array_name_1D_to_ND(array_name) or array_name
-        self._load_array(array_name, fam)
 
+        # keep a record of every array in existence before load (in case it
+        # triggers loading more than we expected, e.g. coupled pos/vel fields etc)
+        anc = self.ancestor
+
+        pre_keys = set(anc.keys())
+
+        # the following function builds a dictionary mapping families to a set of the
+        # named arrays defined for them. 
+        fk = lambda : dict([(fam, set([k for k in anc._family_arrays.keys() if fam in anc._family_arrays[k]]))
+                             for fam in family._registry])
+        pre_fam_keys = fk()
+
+        self._load_array(array_name, fam)
+     
+        # Find out what was loaded
+        new_keys = set(anc.keys())-pre_keys
+        new_fam_keys = fk()
+        for fam in new_fam_keys :
+            new_fam_keys[fam] =  new_fam_keys[fam]-pre_fam_keys[fam]
+        
+        # Attempt to convert what was loaded into friendly units
+        for v in new_keys :
+            anc._autoconvert_array_unit(self[v])
+        for f, vals in new_fam_keys.iteritems() :
+            for v in vals :
+                anc._autoconvert_array_unit(self[f][v])
+       
+        
     def families(self) :
         """Return the particle families which have representitives in this SimSnap.
         The families are ordered by their appearance in the snapshot."""
