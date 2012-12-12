@@ -265,4 +265,15 @@ def test_snapshot_update() :
 
     
 
-    
+def test_unit_persistence() :
+    f1 = pynbody.load("testdata/g15784.lr.01024")
+    f1['pos']
+    f1.physical_units()
+    assert f1['pos'].units=='kpc'
+    del f1['pos']
+    f1['pos']
+    assert f1['pos'].units=='kpc'
+    del f1['pos']
+    f1.original_units()
+    f1['pos']
+    assert f1['pos'].units!='kpc'
