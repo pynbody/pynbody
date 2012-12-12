@@ -51,7 +51,7 @@ class SimSnap(object) :
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
                   "_getting_array_lock", "properties", "_derived_array_track", "_family_derived_array_track",
-                  "_dependency_track", "_calculating"]
+                  "_dependency_track", "_calculating", "immediate_mode"]
 
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it
@@ -132,6 +132,12 @@ class SimSnap(object) :
         # use 'with auto_propagate_off : ' blocks to disable auto-flagging changes
         # (i.e. prevent lazy-evaluated arrays from auto-re-evaluating when their
         # dependencies change)
+
+        self.immediate_mode = util.ExecutionControl()
+        # use 'with immediate_mode: ' to always return actual numpy arrays, rather
+        # than IndexedSubArrays which point to sub-parts of numpy arrays
+        
+
 
         self._getting_array_lock = threading.RLock()
         
@@ -1268,7 +1274,7 @@ class SubSnap(SimSnap) :
             setattr(self, x, getattr(self.base, x))
             
     def _get_array(self, name, index=None, always_writable=False) :
-        if _subarray_immediate_mode :
+        if _subarray_immediate_mode or self.immediate_mode :
             return self.base._get_array(name,None,always_writable)[self._slice]
         else :
             ret =  self.base._get_array(name, util.concatenate_indexing(self._slice, index),always_writable)
@@ -1284,7 +1290,7 @@ class SubSnap(SimSnap) :
                                  util.intersect_slices(self._slice, base_family_slice, len(self.base)))
         sl = util.concatenate_indexing(sl, index)
 
-        if _subarray_immediate_mode :
+        if _subarray_immediate_mode or self.immediate_mode :
             return self.base._get_family_array(name, fam,None,always_writable)[sl]
         else :
             return self.base._get_family_array(name, fam, sl,always_writable)
