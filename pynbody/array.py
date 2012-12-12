@@ -156,6 +156,11 @@ class SimArray(np.ndarray) :
     _ufunc_registry = {}
 
     @property
+    def ancestor(self) :
+        """Provides the basemost SimArray that an IndexedSimArray is based on."""
+        return self
+    
+    @property
     def derived(self) :
         if self.sim and self.name :
             return self.sim.is_derived_array(self.name, getattr(self,'family',None))
@@ -677,6 +682,10 @@ class IndexedSimArray(object) :
     @property
     def derived(self) :
         return self.base.derived
+
+    @property
+    def ancestor(self) :
+        return self.base.ancestor
     
     def __init__(self, array, ptr) :
         self.base = array
