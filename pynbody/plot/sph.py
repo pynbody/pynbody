@@ -139,6 +139,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
     perspective = z_camera is not None
     if perspective and not av_z: kernel = sph.Kernel2D()
+
     
     if units is not None :
         try :
@@ -162,13 +163,15 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 aunits = None
 
             if isinstance(av_z, str) :
+                if units is not None: 
+                    aunits = units*sim[av_z].units*sim['z'].units
                 sim["__prod"] = sim[av_z]*sim[qty]
                 qty = "__prod"
+                
             else :
                 av_z = "__one"
                 sim["__one"]=np.ones_like(sim[qty])
                 sim["__one"].units="1"
-                
                 
             im = rfunc(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
                        z_camera=z_camera, **kwargs)
@@ -186,7 +189,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 del top["__prod"]
             except KeyError :
                 pass
-
+    
             im = im/im2
          
     else :
