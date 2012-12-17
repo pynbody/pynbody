@@ -274,6 +274,9 @@ def test_unit_persistence() :
     f1['pos']
     assert f1['pos'].units=='kpc'
     del f1['pos']
+    f1[[4,6,10]]['pos'] # test for fail when autoconverting on subarrays
+    assert f1['pos'].units=='kpc'
+    del f1['pos']
     f1.original_units()
     f1['pos']
     assert f1['pos'].units!='kpc'
