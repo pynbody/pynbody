@@ -392,7 +392,7 @@ class SimSnap(object) :
             new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, d[:ucut])])
             if new_unit!=ar.units :
                 if config['verbose'] :
-                    print ar._name,ar.units,"->",new_unit
+                    print ar.name,ar.units,"->",new_unit
                 ar.convert_units(new_unit)
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True) :
@@ -607,10 +607,10 @@ class SimSnap(object) :
         
         # Attempt to convert what was loaded into friendly units
         for v in new_keys :
-            anc._autoconvert_array_unit(self[v])
+            anc._autoconvert_array_unit(anc[v])
         for f, vals in new_fam_keys.iteritems() :
             for v in vals :
-                anc._autoconvert_array_unit(self[f][v])
+                anc._autoconvert_array_unit(anc[f][v])
        
         
     def families(self) :
