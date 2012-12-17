@@ -197,3 +197,12 @@ def test_mean_by_mass() :
 
 def test_name_awareness() :
     assert f['pos'].name is 'pos'
+
+
+def test_immediate_mode() :
+    with f.immediate_mode :
+        assert isinstance(f[[1,6,10]]['x'], pynbody.array.SimArray)
+        test_val = f[[1,6,10]]['x']
+    assert isinstance(f[[1,6,10]]['x'], pynbody.array.IndexedSimArray)
+    assert (test_val==f[[1,6,10]]['x']).all()
+    

@@ -97,6 +97,9 @@ def test_loadable_array() :
     assert abs(f['HeI'][::100000]-HeI_correct).sum()<1.e-10
     
     
+
+def _assert_unit(u, targ, eps=0.01) :
+    assert abs(u.ratio(targ)-1.0)<eps
     
 def test_units() :
     print f['pos'].units
@@ -105,11 +108,12 @@ def test_units() :
     print f.gas['rho'].units
     print f.star['tform'].units.in_units("Gyr")
 
-    assert str(f['pos'].units)=="6.85e+04 kpc a"
-    assert str(f['vel'].units)=="1.73e+03 km a s**-1"
-    assert str(f['phi'].units)=="2.98e+06 km**2 a**-1 s**-2"
-    assert str(f.gas['rho'].units)=="1.48e+02 Msol kpc**-3 a**-3"
-    assert abs(f.star['tform'].units.in_units("Gyr")-38.775)<0.001
+    
+    _assert_unit(f['pos'].units,"6.85e+04 kpc a")
+    _assert_unit(f['vel'].units,"1.73e+03 km a s**-1")
+    _assert_unit(f['phi'].units,"2.98e+06 km**2 a**-1 s**-2")
+    _assert_unit(f.gas['rho'].units,"1.48e+02 Msol kpc**-3 a**-3")
+    _assert_unit(f.star['tform'].units,"38.76 Gyr")
 
 
 def test_halo_unit_conversion() :
@@ -261,4 +265,15 @@ def test_snapshot_update() :
 
     
 
-    
+def test_unit_persistence() :
+    f1 = pynbody.load("testdata/g15784.lr.01024")
+    f1['pos']
+    f1.physical_units()
+    assert f1['pos'].units=='kpc'
+    del f1['pos']
+    f1['pos']
+    assert f1['pos'].units=='kpc'
+    del f1['pos']
+    f1.original_units()
+    f1['pos']
+    assert f1['pos'].units!='kpc'
