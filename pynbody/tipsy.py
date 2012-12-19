@@ -161,18 +161,18 @@ class TipsySnap(snapshot.SimSnap) :
 
         for k in "pos", "vel", "mass", "eps", "phi" :
             if k in write :
-                self[k].set_default_units()
+                self[k].set_default_units(quiet=True)
 
         if "phi" in write :
             self['phi'].units=self['phi'].units*units.a**-3 # messy :-(
             
         for k in "rho", "temp", "metals":
             if k in write :
-                self.gas[k].set_default_units()
+                self.gas[k].set_default_units(quiet=True)
 
         for k in "metals", "tform":
             if k in write :
-                self.star[k].set_default_units()
+                self.star[k].set_default_units(quiet=True)
 
         if "pos" in write :
             write+=['x','y','z']
@@ -1203,6 +1203,8 @@ def load_paramfile(sim) :
                 f = file(filename)
             except IOError :
                 l = glob.glob(os.path.join(x,"../*.param"))
+                if l==[] :
+                    continue
                 try : 
                     for filename in l:
                         f = file(filename)
