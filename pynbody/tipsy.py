@@ -17,6 +17,7 @@ from . import family
 from . import units
 from . import config, config_parser
 from . import chunk
+from . import nchilada
 
 import struct, os
 import numpy as np
@@ -1187,6 +1188,7 @@ class StarLog(snapshot.SimSnap):
 
 @TipsySnap.decorator
 @StarLog.decorator
+@nchilada.NchiladaSnap.decorator
 def load_paramfile(sim) :
     import sys, os, glob
     x = os.path.abspath(sim._filename)
@@ -1232,6 +1234,7 @@ def load_paramfile(sim) :
             
 @TipsySnap.decorator
 @StarLog.decorator
+@nchilada.NchiladaSnap.decorator
 def param2units(sim) :
     with sim.lazy_off :
         import sys, math, os, glob

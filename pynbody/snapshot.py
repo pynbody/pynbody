@@ -28,6 +28,7 @@ import warnings
 import threading
 import re
 
+from units import has_units
 
 class SimSnap(object) :
     """The basic holder of data for a single simulation snapshot.
@@ -597,8 +598,15 @@ class SimSnap(object) :
                              for fam in family._registry])
         pre_fam_keys = fk()
 
-        self._load_array(array_name, fam)
-     
+        if fam is not None :
+            self._load_array(array_name, fam)
+        else :
+            try:
+                self._load_array(array_name, fam)
+            except IOError :
+                for fam_x in self.families() :
+                    self._load_array(array_name, fam_x)
+                    
         # Find out what was loaded
         new_keys = set(anc.keys())-pre_keys
         new_fam_keys = fk()
@@ -1003,6 +1011,7 @@ class SimSnap(object) :
         some_derived = any(dmap)
         all_derived = all(dmap)
 
+
         if derived : some_derived=True
         if not derived : all_derived=False
 
@@ -1010,7 +1019,22 @@ class SimSnap(object) :
             self._create_array(name, ndim=ndim, dtype=dtype,derived=all_derived)
         try:
             for fam in self._family_arrays[name] :
-                self._arrays[name][self._get_family_slice(fam)] = self._family_arrays[name][fam]
+                if has_units(self._family_arrays[name][fam]) and not has_units(self._arrays[name]) :
+                    self._arrays[name].units = self._family_arrays[name][fam].units
+                    # inherits the units from the first dimensional family array found.
+                    # Note that future copies, once the units are set, invoke the correct conversion
+                    # and raise a UnitsException if such a conversion is impossible. 
+
+                try:
+                    self._arrays[name][self._get_family_slice(fam)] = self._family_arrays[name][fam]
+                except units.UnitsException:
+                    # There is a problem getting everything into the same units. The trouble is
+                    # that having got here if we let the exception propagate, we're going to
+                    # end up with the SimSnap in an inconsistent state. So force the copy
+                    # ignoring the units and raise a warning
+                    warnings.warn("When conjoining family arrays to create a snapshot level array, the units could not be unified. You will now have a snapshot-level array %r with inconsistent unit information"%name)
+                    self._arrays[name].base[self._get_family_slice(fam)] = self._family_arrays[name][fam].base
+                                            
             del self._family_arrays[name]
             if ndim==3 :
                 for v in self._array_name_ND_to_1D(name) :
