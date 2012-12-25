@@ -17,6 +17,7 @@ instructions and tutorials, see the `wiki pages
 .. toctree::
    :maxdepth: 2
    
+   Tutorials <tutorials/tutorials>   
    Framework classes <pynbody>
    Analysis <analysis>
    Plotting <plot>
