@@ -309,11 +309,11 @@ class LoadControl(object) :
 
         for readlen, buffer_index, memory_index in ctl.iterate(fams_on_disk, fams_in_mem) :
           data = read_entries(count=readlen)
-          if file_index is not None :
+          if memory_index is not None :
             target_array[memory_index] = data[buffer_index]
 
         Obviously this can be optimized, for instance to skip through
-        file data when file_index is None rather than read and discard it.
+        file data when memory_index is None rather than read and discard it.
             
         **Input:** :
 

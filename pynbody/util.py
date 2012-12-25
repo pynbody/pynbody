@@ -18,6 +18,8 @@ import scipy
 import threading
 import sys
 import time
+from . import config_parser
+import ConfigParser
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
@@ -531,3 +533,33 @@ def threadsafe_inline(*args, **kwargs) :
     # triggered, so go ahead and call
     return scipy.weave.inline(*args, **kwargs)
     
+
+
+#
+# name mapping used by gadget and nchilada snapshots
+#
+
+def setup_name_maps(config_name, gadget_blocks=False) :
+    _name_map = {}
+    _rev_name_map = {}
+    try :
+        for a, b in config_parser.items(config_name) :
+            if gadget_blocks : a=a.upper().ljust(4)
+            _rev_name_map[a] = b
+            _name_map[b] = a
+    except ConfigParser.NoOptionError :
+        pass
+
+    return _name_map, _rev_name_map
+
+def name_map_function(_name_map, _rev_name_map) :
+    def _translate_array_name(name, reverse=False) :
+        try :
+            if reverse :
+                return _rev_name_map[name]
+            else :
+                return _name_map[name]
+        except KeyError :
+            return name
+
+    return _translate_array_name

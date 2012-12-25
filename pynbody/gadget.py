@@ -14,6 +14,7 @@ from . import snapshot,array, units
 from . import family
 from . import config
 from . import config_parser
+from . import util
 
 import ConfigParser
 
@@ -41,26 +42,9 @@ for x in family.family_names() :
     except ConfigParser.NoOptionError :
         pass
 
-_name_map = {}
-_rev_name_map = {}
-try :
-    for a, b in config_parser.items("gadget-name-mapping") :
-    #Need to do some changing of the actual specified names, 
-    #because not sure how to config_parse things with spaces in them.
-        a=a.upper().ljust(4)
-        _rev_name_map[a] = b
-        _name_map[b] = a
-except ConfigParser.NoOptionError :
-    pass
+_name_map, _rev_name_map = util.setup_name_maps('gadget-name-mapping', gadget_blocks=True)
+_translate_array_name = util.name_map_function(_name_map, _rev_name_map)
 
-def _translate_array_name(name, reverse=False) :
-    try :
-        if reverse :
-            return _rev_name_map[name]
-        else :
-            return _name_map[name]
-    except KeyError :
-        return name
     
 def gadget_type(fam) :
     if fam == None:

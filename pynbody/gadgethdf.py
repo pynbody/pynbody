@@ -49,20 +49,8 @@ for x in family.family_names() :
     except ConfigParser.NoOptionError :
         pass
 
-_name_map = {}
-_rev_name_map = {}
-for a, b in config_parser.items("gadgethdf-name-mapping") :
-    _rev_name_map[a] = b
-    _name_map[b] = a
-
-def _translate_array_name(name, reverse=False) :
-    try :
-        if reverse :
-            return _rev_name_map[name]
-        else :
-            return _name_map[name]
-    except KeyError :
-        return name
+_name_map, _rev_name_map = util.setup_name_maps('gadgethdf-name-mapping')
+_translate_array_name = util.name_map_function(_name_map, _rev_name_map)
 
 def _append_if_array(to_list, name, obj) :
     if not hasattr(obj, 'keys') :
