@@ -484,49 +484,49 @@ def halo_mass_function(context,
 
     **Args:**
 
-       *context (SimSnap):* The snapshot from which to pull the
-          cosmological context (includes sigma8 normalization and
-          growth function integrations, but does not currently affect
-          transfer function)
+    *context (SimSnap):* The snapshot from which to pull the
+    cosmological context (includes sigma8 normalization and growth
+    function integrations, but does not currently affect transfer
+    function)
 
     **Kwargs:**
+    
+    *log_M_min:* The minimum halo mass (Msol h^-1) to consider
+    
+    *log_M_max:* The maximum halo mass (Msol h^-1) to consider
+    
+    *delta_log_M:* The bin spacing of halo masses (see warning below)
+    
+    *kern:* The kernel function which dictates what type of mass
+    function to calculate; or a string ("PS" or "ST") for one
+    of the defaults
 
-       *log_M_min:* The minimum halo mass (Msol h^-1) to consider
-
-       *log_M_max:* The maximum halo mass (Msol h^-1) to consider
-
-       *delta_log_M:* The bin spacing of halo masses (see warning below)
-
-       *kern:* The kernel function which dictates what type of mass
-             function to calculate; or a string ("PS" or "ST") for one
-             of the defaults
-
-       *pspec:* A power spectrum object (which also defines the window
-             function); default is a WMAP7 cosmology calculated by
-             CAMB, and a top hat window
-
-       *delta_crit:* The critical overdensity for collapse
+    *pspec:* A power spectrum object (which also defines the window
+    function); default is a WMAP7 cosmology calculated by
+    CAMB, and a top hat window
+    
+    *delta_crit:* The critical overdensity for collapse
 
     **Returns:**       
 
-       *M:* The centre of the mass bins, in Msol h^-1
-
-       *sigma:* The linear variance of the corresponding sphere
-
-       *N:* The abundance of halos of that mass (Mpc^-3 h^3 comoving,
-        per decade of mass)
-
+    *M:* The centre of the mass bins, in Msol h^-1
+    
+    *sigma:* The linear variance of the corresponding sphere
+    
+    *N:* The abundance of halos of that mass (Mpc^-3 h^3 comoving,
+    per decade of mass)
+    
     Because numerical derivatives are involved, the value of
     delta_log_M affects the accuracy. Numerical experiments suggest
     that delta_log_M=0.1 gives more than enough accuracy, but you
     should check for your own use case.
-       
-
+    
+    
     Recommended m.f. for friends-of-friends linking length 0.2 particle sep.:
     z <~ 2 : bhattacharya  
     z >~ 5 : reed_universal (no redshift dependence)
-           : or reed_evolving (w/redshift dependence for additional accuracy) 
-            
+    : or reed_evolving (w/redshift dependence for additional accuracy) 
+    
     """
 
     if isinstance(kern, str) :

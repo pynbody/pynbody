@@ -23,8 +23,6 @@ Analysis
 .. automodule:: pynbody.analysis.hmf
    :members:
 
-   .. autofunction:: pynbody.analysis.hmf.halo_bias
-
 .. automodule:: pynbody.analysis.ionfrac
    :members:
 
