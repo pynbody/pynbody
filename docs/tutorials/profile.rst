@@ -24,7 +24,4 @@ Simple example for calculating a density profile:
    :include-source:
 
 
-.. ipython::
-   In [6]: s = pynbody.load('/home/itp/roskar/pynbody_src/nose/testdata/g15784.lr.01024.gz')
-   In [7]: h = s.halos()
   
