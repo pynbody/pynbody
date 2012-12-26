@@ -62,7 +62,6 @@ class NchiladaSnap(snapshot.SimSnap) :
             d[our_fam] = d_f
 
     def _setup_slices(self, take=None) :
-        super(NchiladaSnap,self).__init__()
         disk_family_slice = {}
         i=0
         # for each family, find an array (any array) to determine length and
@@ -77,6 +76,7 @@ class NchiladaSnap(snapshot.SimSnap) :
         self._num_particles = self._load_control.mem_num_particles
         
     def __init__(self, filename) :
+        super(NchiladaSnap,self).__init__()
         self._dom_sim = xml.dom.minidom.parse(os.path.join(filename, "description.xml")).getElementsByTagName('simulation')[0]
         self._filename = filename
         self._update_loadable_keys()
