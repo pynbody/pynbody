@@ -11,7 +11,7 @@ the code functionality.
 
 
 
-.. toctree:: :maxdepth: 2
+.. toctree:: 
 
-   Making profiles <profile>
+   Profiles <profile>
    Rotation curves <rotation_curve>

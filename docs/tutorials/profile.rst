@@ -39,11 +39,44 @@ Automatically-generated profiles
 
 Many profiling functions are already implemented -- see the
 :func:`~pynbody.analysis.profile.Profile` documentation for a full
-list. Additionally, *any* array can be 'profiled'. For example, if
-[Fe/H] is a derived field 'feh', then we can plot a metallicity
-profile:
+list. Additionally, *any* existing array can be 'profiled'. For
+example, if [Fe/H] is a derived field 'feh', then plotting a
+metallicity profile is as simple as: 
 
 >>> plt.plot(ps['rbins'],ps['feh'])
 
 If the array doesn't exist but is deriveable (check with
-``s.s.derivable_keys()``), it is automatically calculated.
+``s.derivable_keys()``), it is automatically calculated.
+
+You can define your own profiling functions in your code by using the
+``Profile.profile_property`` decorator::
+
+   @pynbody.analysis.profile.Profile.profile_property
+    def random(self):
+        """
+        Generate a random profile
+        """
+	import numpy as np
+        return np.random.rand(self.nbins)
+
+
+Calculating Derivatives and Dispersions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can calculate derivatives of profiles automatically. For instance,
+you might be interested in d phi / dr if you're looking at a
+disk. This is as easy as attaching a ``d_`` to the profile name. For
+example:
+
+>>> p = Profile(s)
+>>> p['phi'] # returns the potential profile
+>>> p['d_phi'] # returns d phi / dr from p["phi"]
+
+Similarly straightforward is the calculation of dispersions and
+root-mean-square values. You simply need to attach a ``_disp`` or
+``_rms`` as a suffix to the profile name:
+
+>>> p['vr_disp']
+>>> p['z_rms']
+
+

@@ -1,8 +1,8 @@
 import pynbody
 import matplotlib.pylab as plt
-
+from os import environ
 # load the snapshot and set to physical units
-s = pynbody.load('/home/itp/roskar/pynbody_src/nose/testdata/g15784.lr.01024.gz')
+s = pynbody.load('%s/nose/testdata/g15784.lr.01024.gz'%environ['PYNBODY_SRC'])
 
 # load the halos
 h = s.halos()
