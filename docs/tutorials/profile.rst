@@ -1,9 +1,21 @@
 .. profile tutorial
 
 
-
 Profiles in Pynbody
 ===================
+
+
+Radial Density Profile 
+----------------------
+Simple example for calculating a density profile: 
+
+.. plot:: tutorials/example_code/density_profile.py
+   :include-source:
+
+
+
+The Profile Class 
+-----------------
 
 The :func:`~pynbody.analysis.profile.Profile` class is meant to be a
 general-purpose class to satisfy all simulation profiling
@@ -18,12 +30,7 @@ bins etc. Importantly, it also stores lists of particle indices
 corresponding to each bin, so you can easily identify where the
 particles belong.
 
-Radial Density Profile 
-----------------------
-Simple example for calculating a density profile: 
 
-.. plot:: tutorials/example_code/density_profile.py
-   :include-source:
 
 
   
