@@ -21,11 +21,13 @@ import math
 class Profile:
     """
 
-    A basic profile class for arbitrary profiles. Stores information about bins etc.
+    A basic profile class for arbitrary profiles. Stores information
+    about bins etc.
 
-    Made to work with the pynbody SimSnap instances. The constructor only
-    generates the bins and figures out which particles belong in which bin.
-    Profiles are generated lazy-loaded when a given property is requested.
+    Made to work with the pynbody SimSnap instances. The constructor
+    only generates the bins and figures out which particles belong in
+    which bin.  Profiles are generated lazy-loaded when a given
+    property is requested.
 
     **Input**:
 
@@ -73,7 +75,8 @@ class Profile:
 
     *g_spherical*: GM_enc/r^2
 
-    *rotation_curve_spherical*: rotation curve from vc = sqrt(GM/R) - can be very wrong!
+    *rotation_curve_spherical*: rotation curve from vc = sqrt(GM/R) -
+     can be very wrong!
 
     *j_circ*     : angular momentum of particles on circular orbits
 
@@ -117,15 +120,16 @@ class Profile:
 
     **Saving and loading previously generated profiles:**
     
-    Use the :func:`~pynbody.analysis.profile.Profile.write` function to
-    write the current profiles with all the necessary information to a
-    file. Initialize a profile with the load_from_file=True keyword to
-    automatically load a previously saved profile. The filename is
-    chosen automatically and corresponds to a hash generated from the
-    positions of the particles used in the profile. This is to ensure
-    that you are always looking at the same set of particles, centered
-    in the same way. It also means you *must* use the same centering
-    method if you want to reuse a saved profile.
+    Use the :func:`~pynbody.analysis.profile.Profile.write` function
+    to write the current profiles with all the necessary information
+    to a file. Initialize a profile with the load_from_file=True
+    keyword to automatically load a previously saved profile. The
+    filename is chosen automatically and corresponds to a hash
+    generated from the positions of the particles used in the
+    profile. This is to ensure that you are always looking at the same
+    set of particles, centered in the same way. It also means you
+    *must* use the same centering method if you want to reuse a saved
+    profile.
 
 
     **Examples:**

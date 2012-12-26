@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Pynbody Reference Documentation
+Pynbody Documentation
 ===============================
 
 This is the reference documentation for `pynbody
@@ -14,9 +14,21 @@ instructions and tutorials, see the `wiki pages
 <http://code.google.com/p/pynbody/wiki/WelcomeToPynbody?tm=6>`_.
 
 
+Tutorials
+------------
+
 .. toctree::
    :maxdepth: 2
    
+   Tutorials <tutorials/tutorials>   
+
+
+Reference
+-------------
+
+.. toctree::
+   :maxdepth: 2
+
    Framework classes <pynbody>
    Analysis <analysis>
    Plotting <plot>
