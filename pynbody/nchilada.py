@@ -51,7 +51,7 @@ class NchiladaSnap(snapshot.SimSnap) :
         self._loadable_keys_registry = {}
         d = self._loadable_keys_registry
         fams = self._dom_sim.getElementsByTagName('family')
-        for f in fams :
+        for f in sorted(fams) :
             fam_name = f.attributes['name'].value
             our_fam = family.get_family(fam_name)
             d_f = {}
