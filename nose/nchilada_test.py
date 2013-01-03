@@ -86,9 +86,11 @@ def setup() :
    
     
 def test_get() :
+    global correct_pos_3000, x_pos_3000
     current = f['pos'][::3000]
     print repr(current)
     print f._family_slice
+    x_pos_3000 = current
     assert (np.abs(current-correct_pos_3000).mean()<1.e-6)
 
 
@@ -121,5 +123,5 @@ def test_array_completion_unit_sanity() :
     f.gas['pos'].convert_units("Mpc")
     f.star['pos'].convert_units("pc")
 
-    assert (np.abs(f['pos'][::3000]-correct_pos_3000).mean()<1.e-6)
+    assert (np.abs(f['pos'][::3000]-x_pos_3000).mean()<1.e-6)
     
