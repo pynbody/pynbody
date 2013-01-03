@@ -75,6 +75,12 @@ class Family(object) :
         # Provided so a single family can be treated as a list of families
         yield self
 
+    def __str__(self) :
+	return self.name
+
+    def __cmp__(self, other) :
+	return cmp(str(self),str(other))
+
 
 # Instantiate the default families as specified
 # by the configuration file
