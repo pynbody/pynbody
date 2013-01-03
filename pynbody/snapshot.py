@@ -267,10 +267,6 @@ class SimSnap(object) :
         # += etc, since these call __setitem__).
         self._set_array(name, ax, index)
 
-    @property
-    def _inclusion_hash(self) :
-        return 'base'
-
     def halos(self, *args, **kwargs) :
         """Tries to instantiate a halo catalogue object for the given
         snapshot, using the first available method."""
@@ -1230,7 +1226,16 @@ class SimSnap(object) :
 
 
     # Equality testing
-    
+
+    @property
+    def _inclusion_hash(self) :
+        try :
+            return self.__inclusion_hash
+        except AttributeError :
+            index_list  = self.get_index_list(self.ancestor)
+            hash = hashlib.md5(index_list.data)
+            self.__inclusion_hash = hash.digest()
+            return self.__inclusion_hash
 
     def __eq__(self, other) :
         """Equality test for Snapshots. Returns true if both sides of the
@@ -1384,17 +1389,6 @@ class SubSnap(SimSnap) :
     @property
     def _filename(self) :
         return self.base._filename+":"+self._descriptor
-
-    @property
-    def _inclusion_hash(self) :
-        try :
-            return self.__inclusion_hash
-        except AttributeError :
-            index_list  = self.get_index_list(self.ancestor)
-            hash = hashlib.md5(index_list.data)
-            self.__inclusion_hash = hash.digest()
-            return self.__inclusion_hash
-
 
     def keys(self) :
         return self.base.keys()
