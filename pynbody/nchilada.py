@@ -66,7 +66,8 @@ class NchiladaSnap(snapshot.SimSnap) :
         i=0
         # for each family, find an array (any array) to determine length and
         # set up a logical map of particles on disk
-        for f, ars in self._loadable_keys_registry.iteritems() :
+        for f in sorted(self._loadable_keys_registry.keys()) :
+            ars = self._loadable_keys_registry[f]
             tf = file(ars.values()[0])
             _, nbod, _, _ = self._load_header(tf)
             disk_family_slice[f] = slice(i, i+nbod)
