@@ -1237,14 +1237,16 @@ class SimSnap(object) :
             self.__inclusion_hash = hash.digest()
             return self.__inclusion_hash
 
+    def __hash__(self) :
+        return hash((object.__hash__(self.ancestor), self._inclusion_hash))
+   
+        
     def __eq__(self, other) :
         """Equality test for Snapshots. Returns true if both sides of the
         == operator point to the same data."""
         
         if self is other : return True
-        
-        if self.ancestor!=other.ancestor : return False
-        return self._inclusion_hash==other._inclusion_hash
+        return hash(self)==hash(other)
 
 
 
