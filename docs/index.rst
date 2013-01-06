@@ -18,7 +18,7 @@ Tutorials
 ------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    
    Tutorials <tutorials/tutorials>   
 
@@ -27,7 +27,7 @@ Reference
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    Framework classes <pynbody>
    Analysis <analysis>

@@ -37,6 +37,8 @@ extensions = ['sphinx.ext.autodoc',
               'matplotlib.sphinxext.mathmpl',
               'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive',
+              'ipython_console_highlighting',
+              'ipython_directive',
               'inheritance_diagram',
               'numpydoc']
 
@@ -54,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pynbody'
-copyright = u'2011, pynbody team <http://code.google.com/p/pynbody/people/list>)'
+copyright = u'2011-13, pynbody team <http://code.google.com/p/pynbody/people/list>)'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

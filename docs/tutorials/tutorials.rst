@@ -13,5 +13,6 @@ the code functionality.
 
 .. toctree:: 
 
+   Basic data access <data_access>
    Profiles <profile>
    Rotation curves <rotation_curve>
