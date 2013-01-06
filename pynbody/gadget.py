@@ -1027,9 +1027,9 @@ def do_properties(sim) :
     sim.properties['boxsize'] = h.BoxSize
     sim.properties['z'] = h.redshift
     sim.properties['h'] = h.HubbleParam
-    eps = np.zeros(len(sim)) + 0.1
+    """eps = np.zeros(len(sim)) + 0.1
     sim['eps'] = eps
-    sim['eps'].units = units.Unit("kpc")
+    sim['eps'].units = units.Unit("kpc")"""
 
 @GadgetSnap.decorator
 def do_units(sim) :
