@@ -3,18 +3,25 @@
 units
 =====
 
-pynbody light-weight units module. A simple set of classes for tracking units.
+The pynbody units module consists of a set of classes for tracking units.
+
+It relates closely to the :mod:`~pynbody.array` module, which defines
+an extension to numpy arrays which carries unit information.
 
 Making units
 ------------
 
-You can make units in two ways. Either you can create a string, and
+Units are generated and used at various points through the pynbody
+framework. Quite often the functions where users interact with units
+simply accept strings.
+
+You can also make units yourself in two ways. Either you can create a string, and
 instantiate a Unit like this:
 
 >>> units.Unit("Msol kpc**-3")
 >>> units.Unit("2.1e12 m_p cm**-2/3")
 
-Or you can do it within python, using the predefined Unit objects
+Or you can do it within python, using the named Unit objects
 
 >>> units.Msol * units.kpc**-3
 >>> 2.1e12 * units.m_p * units.cm**(-2,3)
@@ -119,7 +126,8 @@ class UnitsException(Exception):
 
 
 class UnitBase(object):
-    """Base class for units"""
+    """Base class for units. To instantiate a unit, call the :func:`pynbody.units.Unit`
+    factory function."""
 
     def __init__(self):
         raise ValueError("Cannot directly initialize abstract base class")
