@@ -31,12 +31,53 @@ import re
 from units import has_units
 
 class SimSnap(object) :
-    """The basic holder of data for a single simulation snapshot.
+    """The class for managing simulation snapshots.
 
-    Should be initialized indirectly using pynbody.load.
-    
-    N.B. SimSnap is not thread-safe (when the derived-array system is
-    invoked).
+    For most purposes, SimSnaps should be initialized through
+    :func:`~pynbody.load` or :func:`~pynbody.new`.
+
+    For a basic tutorial explaining how to load a file as a SimSnap
+    see :doc:`tutorials/data_access`.
+
+    *Getting arrays or subsnaps*
+
+    Once a :class:`SimSnap` object ``f`` is instantiated, it can
+    be used in various ways. The most common operation is to
+    access something with the code ``f[x]``.  Depending on the
+    type of ``x``, various behaviours result:
+
+    - If ``x`` is a string, the array named by ``x`` is returned. If
+      no such array exists, the framework attempts to load or
+      derive an array of that name (in that order). If this is
+      unsuccessful, a `KeyError` is raised.
+
+    - If ``x`` is a python `slice` (e.g. ``f[5:100:3]``) or an array of
+      integers (e.g. ``f[[1,5,100,200]]``) a subsnap containing only the
+      mentioned particles is returned. 
+
+      See :doc:`tutorials/data_access` for more information.
+
+    - If ``x`` is a numpy array of booleans, it is interpreted as a mask and
+      a subsnap containing only those particles for which x[i] is True.
+      This means that f[condition] is a shortcut for f[np.where(condition)].
+
+    - If ``x`` is a :class:`pynbody.filt.Filter` object, a subsnap
+      containing only the particles which pass the filter condition
+      is returned.
+
+      See :doc:`tutorials/data_access` for more information.
+
+    - If ``x`` is a :class:`pynbody.family.Family` object, a subsnap
+      containing only the particles in that family is returned. In practice
+      for most code it is more convenient to write e.g. ``f.dm`` in place of
+      the equivalent syntax f[pynbody.family.dm].
+
+    *Getting metadata*
+
+    The property `filename` gives the filename of a snapshot.
+
+    There is also a `properties` dictionary which
+    contains further metadata about the snapshot. See :ref:`subsnaps`.
     """
 
     _derived_quantity_registry = {}
@@ -96,7 +137,11 @@ class SimSnap(object) :
         return array_name_1D
 
     def __init__(self) :
-        """Initialize an empty, zero-length SimSnap."""
+        """Initialize an empty, zero-length SimSnap.
+
+        For most purposes SimSnaps should instead be initialized through
+       :func:`~pynbody.load` or :func:`~pynbody.new`.
+       """
 
 
         self._arrays = {}
@@ -147,22 +192,8 @@ class SimSnap(object) :
         
 
     def __getitem__(self, i) :
-        """Return either a specific array or a subview of this simulation.
-
-        s[string] -> return array of name string
-
-        s[slice] -> return an object which returns subarrays of this
-        object with the specified slicing
-
-        s[numpy.where(...)] -> return an object which represents the
-        subset of particles specified by the where clause
-
-        s[family] ->  return a subview with only the particles belonging
-        to the specified family.
-        
-        s[filt] -> return an object which represents
-        the particles satisfying the filter requirements. (See
-        pynbody.filt submodule.)"""
+        """Return either a specific array or a subview of this simulation. See
+        the class documentation (:class:`SimSnap`) for more information."""
 
         if isinstance(i, str) :
             with self._getting_array_lock :
@@ -218,6 +249,11 @@ class SimSnap(object) :
             return SubSnap(self, i)
         elif isinstance(i, family.Family) :
             return FamilySubSnap(self, i)
+        elif isinstance(i, np.ndarray) and np.issubdtype(np.bool, i.dtype)  :
+            if len(i.shape)>1 or i.shape[0]>len(self) :
+                raise ValueError, "Incorrect shape for masking array"
+            else :
+                return self[np.where(i)]
         elif isinstance(i, (list, tuple, np.ndarray, filt.Filter)) :
             return IndexedSubSnap(self, i)
         elif isinstance(i, int) or isinstance(i, np.int32) or isinstance(i, np.int64) :
@@ -362,9 +398,7 @@ class SimSnap(object) :
 
     def original_units(self) :
         """Converts all array's units to be consistent with the units of
-        the original file.
-
-        If verbose is True, the conversions are printed."""
+        the original file."""
         self.physical_units(distance=self.infer_original_units('km'),
                              velocity=self.infer_original_units('km s^-1'),
                              mass=self.infer_original_units('Msol'), persistent=False)
@@ -389,7 +423,7 @@ class SimSnap(object) :
             new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, d[:ucut])])
             if new_unit!=ar.units :
                 if config['verbose'] :
-                    print ar.name,ar.units,"->",new_unit
+                    print>>sys.stderr,"SimSnap: converting",ar.name,"units from",ar.units,"to",new_unit
                 ar.convert_units(new_unit)
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True) :
@@ -431,8 +465,6 @@ class SimSnap(object) :
                     continue
                 new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(dims, new_unit[:3])])
                 new_unit*=v.ratio(new_unit, **self.conversion_context())
-                if config['verbose'] :
-                    print k,":",v,"-->",new_unit
                 self.properties[k] = new_unit
 
         if persistent :
