@@ -15,8 +15,9 @@ This can be many-to-one (many gadget particle types mapping into one
 pynbody family), but only datasets which are common to all gadget types
 will be available from pynbody.
 
-Currently spanned files are not supported (i.e. only the contents of
-one file will be loaded).
+Spanned files are supported. To load a range of files snap.0, snap.1, ... snap.n,
+pass the filename 'snap'. If you pass snap.0, only that particular file will
+be loaded.
 """
 
 
