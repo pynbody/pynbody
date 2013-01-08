@@ -346,7 +346,9 @@ class RamsesSnap(snapshot.SimSnap) :
             if header['nvarh']<nvar :
                 # This should probably be an IOError, but then it would be obscured by
                 # silent lazy-loading failure...?
-                raise RuntimeError, "Number of hydro variables does not correspond to config.ini specification (expected %d, got %d in file)"%(nvar, header['nvarh'])
+                warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)"%(nvar, header['nvarh']), RuntimeWarning)
+                nvar = header['nvarh']
+                dims = dims[:nvar]
             elif header['nvarh']>nvar :
                 warnings.warn("More hydro variables are in this RAMSES dump than are defined in config.ini", RuntimeWarning)
         
@@ -421,10 +423,37 @@ class RamsesSnap(snapshot.SimSnap) :
 
             ind0_dm = ind1_dm
             ind0_star = ind1_star
+
+    def _load_particle_cpuid(self) :
+        ind0_dm = 0
+        ind0_star = 0
+        for i, star_mask, nstar in zip(self._cpus, self._star_mask, self._nstar) :
+            f = file(self._particle_filename(i))
+            header = _read_fortran_series(f, ramses_particle_header)
+            f.close()
+            ind1_dm = ind0_dm+header['npart']-nstar
+            ind1_star = ind0_star+nstar
+            self.dm['cpu'][ind0_dm:ind1_dm] = i
+            self.star['cpu'][ind0_star:ind1_star] = i
+            ind0_dm, ind0_star = ind1_dm, ind1_star
+
+    def _load_gas_cpuid(self) :
+        gas_cpu_ar = self.gas['cpu']
+        i1 = 0
+        for coords, refine, cpu, level in self._level_iterator() :
+            for cell in xrange(2**self._ndim) :
+                i0 = i1
+                i1 = i0+(refine[cell]==0).sum()
+                gas_cpu_ar[i0:i1] = cpu
             
+             
     def _load_array(self, array_name, fam=None) :
-       
-        if fam is family.dm or fam is family.star :
+        if array_name=='cpu' :
+            self['cpu'] = np.zeros(len(self), dtype=int)
+            self._load_particle_cpuid()
+            self._load_gas_cpuid()
+            
+        elif fam is family.dm or fam is family.star :
             # Framework always calls with 3D name. Ramses particle blocks are
             # stored as 1D slices.
             if array_name in self._split_arrays :
