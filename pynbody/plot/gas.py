@@ -34,7 +34,7 @@ def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
     from matplotlib import ticker, colors
 
     if rho_units is None: 
-        rho_units = sim['rho'].units
+        rho_units = sim.gas['rho'].units
 
     if t_range is not None:
         kwargs['y_range'] = t_range
