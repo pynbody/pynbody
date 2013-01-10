@@ -44,6 +44,8 @@ Subpackages
     Allows connections to be made between two different
     SimSnap objects in various ways. 
     <http://code.google.com/p/pynbody/wiki/SameSimulationDifferentOutputs>
+
+:mod:`~pynbody.simdict`
     
 :mod:`~pynbody.derived`
     Holds procedures for creating new arrays from existing
@@ -119,6 +121,8 @@ import os
 import imp
 import numpy
 import warnings
+import sys
+
 # Create config dictionaries which will be required by subpackages
 # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
 # the backcompat module. This keeps things in the order they were parsed (important
@@ -211,7 +215,7 @@ def load(filename, *args, **kwargs) :
    
     for c in config['snap-class-priority'] :
         if c._can_load(filename) :
-            if config['verbose'] : print "Attempting to load as",c
+            if config['verbose'] : print>>sys.stderr, "Loading using backend",str(c)
             return c(filename,*args,**kwargs)
 
     raise IOError("File %r: format not understood or does not exist"%filename)
