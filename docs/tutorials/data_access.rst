@@ -34,12 +34,14 @@ Change into the `nose` folder (see the note above if you can't find
 this) so the test files are easy to access. Then launch `ipython`. At
 the prompt, type ``import pynbody``. If all is installed correctly,
 this should silently succeed, and you are ready to use `pynbody`
-commands. Here's an example.
+commands. Here's an example. We'll also load the `numpy` module as it
+provides some functions we'll make use of later.
 
 .. ipython::
 
  In [1]: import pynbody
 
+ In [1]: import numpy as np 
 
  In [2]: f = pynbody.load("testdata/test_g2_snap")
  Attempting to load as <class 'pynbody.gadget.GadgetSnap'>
@@ -212,6 +214,13 @@ So, we can get the density of the gas particles like this:
          8.53409521e-09,   7.41017736e-09,   1.40517520e-09], dtype=float32, '1.00e+10 h**2 Msol kpc**-3')
 
 
+.. note:: The :class:`~pynbody.array.SimArray` objects are actually
+ `numpy` arrays with some added functionality (such as unit tracking,
+ discussed below). Numerical operations are very nearly as fast as
+ their numpy equivalents. However, if you want to squeeze the
+ performance of your code, you can always get a vanilla numpy array by
+ using the `numpy` view mechanism,
+ e.g. ``f.gas['rho'].view(type=numpy.ndarray)``
 
 Keeping on top of units
 -----------------------------------------------------
@@ -221,7 +230,7 @@ You might have noticed in the output from the above experiments that
 `pynbody` keeps track of unit information whenever it can.
 
 .. warning:: It's worth understanding exactly where pynbody gets this
- information from, so you can anticipate when it might be wrong.  In the case
+ information from, in case anything goes wrong. In the case
  of `Ramses`, and `Gadget-HDF` files the unit information is stored
  within your snapshot, and pynbody takes advantage of this. For
  old-style `Gadget` snapshots, the default cosmological gadget setup is
@@ -234,7 +243,7 @@ array by accessing the ``units`` property:
 
 .. ipython::
 
- In [16]: f['pos'].units
+ In [16]: f['mass'].units
  Out[16]: Unit("kpc h**-1")
 
 However, it's usually more helpful to simply convert your arrays into
@@ -293,7 +302,133 @@ future; for example:
        [ 40.75585556,  59.44286728,  44.24484634],
        [ 38.38396454,  68.63973236,  46.01428986]], dtype=float32, 'km s**-1')
 
+Finally, note that a new array generated from a 
+unary or binary operation will inherit the correct units. For example
 
+.. ipython::
+
+ In [55]: 5*f['vel']
+ Out[55]: 
+ SimArray([[ 139.69146729,   24.9185257 ,  -50.0443306 ],
+       [  76.80781555,   28.92986298,   21.81578064],
+       [ -41.78659439,  -14.44262886,  114.0495224 ],
+       ..., 
+       [ 138.74588013,  428.00875854,   77.66218567],
+       [ 203.77928162,  297.21432495,  221.22422791],
+       [ 191.91983032,  343.19866943,  230.07144165]], dtype=float32, 'km s**-1')
+
+ In [56]: (f['vel']**2).units 
+ Out[56]: 
+ SimArray([[  780.54821777,    24.83731651,   100.17740631],
+       [  235.97764587,    33.47747803,    19.03713226],
+       [   69.84477997,     8.3435812 ,   520.29174805],
+       ..., 
+       [  770.01678467,  7327.66015625,   241.25660706],
+       [ 1661.03979492,  3533.45458984,  1957.60644531],
+       [ 1473.32873535,  4711.41308594,  2117.31494141]], dtype=float32, 'km**2 s**-2')
+
+ 
+ In [57]: np.sqrt(((f['vel']**2).sum(axis=1)*f['mass'])).units
+ Out[57]: 
+
+
+For more information see the reference documentation for
+:class:`pynbody.units`.
+
+.. _subsnaps:
+
+Subsnaps
+--------
+
+An important concept within `pynbody` is that of a subsnap. These are
+objects that look just like a :class:`~pynbody.snapshot.SimSnap` but actually only point
+at a subset of the particles within a `parent`. Subsnaps are always
+instances of the :class:`~pynbody.snapshot.SubSnap` class.
+
+You've already seen some examples of subsnaps, actually. When you
+accessed ``f.gas`` or ``f.dm``, you're given back a subsnap pointing
+at only those particles. However, subsnaps can be used in a much more
+general way. For example, you can use python's normal array slicing
+operations. Here we take every tenth particle:
+
+.. ipython::
+
+ In [24]: every_tenth = f[::10]
+
+ In [25]: len(every_tenth)
+ Out[25]: 820
+
+In common with python's normal mode of working, this does not copy any
+data, it merely creates another pointer into the existing data. As an
+example, let's modify the position of one of our particles in the
+new view:
+
+.. ipython::
+
+  In [30]: every_tenth['pos'][1]
+  Out[30]: SimArray([ 505.03970337,  439.98474121,  272.89904785], dtype=float32, 'kpc')
+
+  In [27]: every_tenth['pos'][1] = [1,2,3]
+
+  In [28]: every_tenth['pos'][1]
+  Out[28]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
+
+This change is reflected in the main snapshot.
+
+.. ipython::
+
+  In [33]: f['pos'][10]
+  Out[33]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
+
+.. note:: If you're used to numpy's flexible indexing abilities, you
+ might like to note that, typically, ``f[array_name][index] ==
+ f[index][array_name]``. The difference is that applying the index to
+ the whole snapshot is more flexible and can lead to simpler code. In
+ particular, ``numpy_array[index]`` may involve copying data whereas
+ ``f[index]`` never does; it always returns a new object pointing back at
+ the old one.
+
+You can pass in an array of boolean values representing
+whether each successive particle should be included (`True`) or not
+(`False`).  This allows the use of `numpy`'s comparison
+operators. For example:
+
+.. ipython::
+
+ In [40]: f_slab = f[(f['x']>1000)&(f['x']<2000)]
+ Out[40]: None
+ 
+ In [41]: f_slab['x'].min()
+ Out[41]: SimArray(1000.4244995117188, dtype=float32)
+ 
+ In [42]: f_slab['x'].max()
+ Out[42]: SimArray(1999.713134765625, dtype=float32)
+ 
+ In [43]: f['x'].min()
+ Out[43]: SimArray(0.16215670108795166, dtype=float32)
+ 
+ In [44]: f['x'].max()
+ Out[44]: SimArray(4225.29345703125, dtype=float32)
+
+
+Here `f_slab` is pointing at only those particles which have
+x-coordinates between 1000 and 2000.
+
+Note that subsnaps really do behave exactly like snapshots. So, for
+instance, you can pick out sub-subsnaps or sub-sub-subsnaps. 
+
+.. ipython::
+
+ In [45]: len(f_slab.dm)
+ 
+ In [46]: len(f_slab.dm[::10])
+ 
+ In [48]: f_slab[[100,105,252]].gas['pos']
+
+ .. note:: Under most circumstances there is very little performance
+ penalty to using SubSnaps. However in performance-critical code it is
+ worth understanding the difference between SubSnaps and
+ IndexedSubSnaps 
 
 Conclusion
 -----------
