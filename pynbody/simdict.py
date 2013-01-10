@@ -1,16 +1,41 @@
 """
-simdict module
+**simdict**
+===========
 
-Defines an augmented dictionary class for SimSnap properties where
-entries need to be managed e.g.  for defining default entries, or
-for ensuring consistency between equivalent properties like
+This submodule defines an augmented dictionary class
+(:class:`SimDict`) for :class:`~pynbody.snapshot.SimSnap` properties
+where entries need to be managed e.g.  for defining default entries,
+or for ensuring consistency between equivalent properties like
 redshift and scalefactor.
+
+By default, a :class:`SimDict` automatically converts between
+redshift ('z') and scalefactor ('a') and implements default entries
+for cosmological values listed in the [default-cosmology] section of
+the `pynbody` configuration files.
+
+Adding further properties
+-------------------------
+
+To add further properties use the SimDict.getter and SimDict.setter decorators.
+For instance, to add a property 'X_copy' which just reflects the value of the
+property 'X', you would use the following code:
+
+.. code-block:: python
+
+ @SimDict.getter
+ def X_copy(d) :
+     return d['X']
+
+ @SimDict.setter
+ def X_copy(d, value) :
+     d['X'] = value
+   
 """
 
 import warnings
 from . import config
 
-
+__all__ = ['SimDict']
 
 class SimDict(dict) :
     _getters = {}
@@ -18,10 +43,12 @@ class SimDict(dict) :
 
     @staticmethod
     def getter(f) :
+        """Define a getter function for all SimDicts"""
         SimDict._getters[f.__name__] = f
 
     @staticmethod
     def setter(f) :
+        """Define a setter function for all SimDicts"""
         SimDict._setters[f.__name__] = f
         
     def __getitem__(self, k) :
@@ -69,3 +96,5 @@ def default_fn(name, value) :
 
 for k in config['default-cosmology'] :
     SimDict.getter(default_fn(k, config['default-cosmology'][k]))
+
+
