@@ -21,7 +21,7 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
        *trange*: list, array, or tuple
          size(t_range) must be 2. Specifies the time range.
 
-       *nbins*: int
+       *bins*: int
          number of bins to use for the SFH
 
        *massform*: bool
@@ -49,6 +49,8 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
         plt = subplot
     else :
         import matplotlib.pyplot as plt
+    
+    if "nbins" in kwargs: bins = kwargs['nbins']
 
     if 'nbins' in kwargs: 
         bins=kwargs['nbins']
@@ -376,6 +378,49 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
         plt.savefig(filename)
 
 
+def moster(xmasses,z):
+    hmp = np.log10(xmasses)
+    # from Moster et al (2010)                                                  
+    M10a=11.590470
+    M11a=1.194913
+    R10a=0.035113
+    R11a=-0.024729
+    B10a=1.376177
+    B11a=-0.825820
+    G10a=0.608170
+    G11a=0.329275
+
+    M10e = 0.236067
+    M11e = 0.353477
+    R10e = 0.00577173
+    R11e = 0.00693815
+    B10e = 0.19344
+    B11e = 0.285018
+    G10e = 0.0993274
+    G11e = 0.212919
+
+    a = 1.0/(z+1.0)
+    m1 = M10a+M11a*(1.0-a)
+    r  = R10a+R11a*(1.0-a)
+    b  = B10a+B11a*(1.0-a)
+    g  = G10a+G11a*(1.0-a)
+    smp= hmp+np.log10(2.0*r)-np.log10((10.0**(hmp-m1))**(-b)+(10.0**(hmp-m1))**
+(g))
+    eta = np.exp(np.log(10.)*(hmp-m1))
+    alpha = eta**(-b)+eta**g
+    dmdm10 = (g*eta**g+b*eta**(-b))/alpha
+    dmdm11 = (g*eta**g+b*eta**(-b))/alpha*(1.0-a)
+    dmdr10 = np.log10(np.exp(1.0))/r
+    dmdr11 = np.log10(np.exp(1.0))/r*(1.0-a)
+    dmdb10 = np.log10(np.exp(1.0))/alpha*np.log(eta)*eta**(-b)
+    dmdb11 = np.log10(np.exp(1.0))/alpha*np.log(eta)*eta**(-b)*(1.0-a)
+    dmdg10 = -np.log10(np.exp(1.0))/alpha*np.log(eta)*eta**g
+    dmdg11 = -np.log10(np.exp(1.0))/alpha*np.log(eta)*eta**g*(1.0-a)
+    sigma = np.sqrt(dmdm10*dmdm10*M10e*M10e+dmdm11*dmdm11*M11e*M11e+dmdr10*dmdr10*R10e*R10e+dmdr11*dmdr11*R11e*R11e+dmdb10*dmdb10*B10e*B10e+dmdb11*dmdb11*B11e
+*B11e+dmdg10*dmdg10*G10e*G10e+dmdg11*dmdg11*G11e*G11e)
+    return 10**smp, 10**sigma
+
+
 def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
         filename=False,**kwargs):
     '''Stellar Mass vs. Halo Mass
@@ -424,25 +469,11 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
             # from Sawala et al (2011) + Guo et al (2009)
             ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
         else :
-            # from Moster et al (2010)
-            mM0 = 0.0282
-            beta = -1.057
-            gamma = 0.5560
-            M1 = 10**(11.884)
-            mu = 0.019
-            nu = -0.72
-            gamma1 = -0.26
-            beta1 = 0.17
-            z=halo[1].properties['z']
-
-            M1_z = 10**(np.log10(M1)*(z+1)**mu)
-            mM0_z = mM0*(z+1)**nu
-            gamma_z = gamma*(z+1)**gamma1
-            beta_z  = beta+ beta1*z
-            
-            ratio = 2.0*mM0_z/((xmasses/M1_z)**beta_z + (xmasses/M1_z)**gamma_z)
-            ystarmasses = ratio*xmasses
-        plt.loglog(xmasses,ystarmasses,linestyle='dashed',label='Moster et al (2009)')
+            ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
+        plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+                         y2=np.array(ystarmasses)*np.array(errors),
+                         facecolor='#BBBBBB',color='#BBBBBB')
+        plt.loglog(xmasses,ystarmasses,label='Moster et al (2012)')
 
     if baryfrac :
         xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
