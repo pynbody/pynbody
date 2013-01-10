@@ -1,2 +1,4 @@
+build/
+pynbody/gravity/direct_omp.c
 ./*\.pyc$
 ./*\.swp$

@@ -912,7 +912,7 @@ def mu(sim) :
     
     x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
     
-    x.units = 1/units.m_p
+    x.units = units.m_p**-1
     return x
     
 @TipsySnap.derived_quantity
