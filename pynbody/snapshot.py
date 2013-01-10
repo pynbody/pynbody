@@ -3,10 +3,9 @@
 snapshot
 ========
 
-Implements the basic SimSnap class and also SubSnap classes which can
-represent different views of the same data.
-<http://code.google.com/p/pynbody/wiki/FiltersAndSubsims> You rarely
-need to access this module directly.
+This module implements the  :class:`~pynbody.snapshot.SimSnap` class which manages and stores snapshot data.
+It also implements the :class:`~pynbody.snapshot.SubSnap` class (and relatives) which 
+represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 
 """
 
@@ -189,7 +188,40 @@ class SimSnap(object) :
         
         self.properties = simdict.SimDict({})
         self._file_units_system = []
+
+    ############################################
+    # THE BASICS: SIMPLE INFORMATION
+    ############################################
         
+    @property
+    def filename(self) :
+        return self._filename
+
+    def __len__(self) :
+        return self._num_particles
+
+    def __repr__(self) :
+        if self._filename!="" :
+            return "<SimSnap \""+self._filename+"\" len="+str(len(self))+">"
+        else :
+            return "<SimSnap len="+str(len(self))+">"
+
+    def families(self) :
+        """Return the particle families which have representitives in this SimSnap.
+        The families are ordered by their appearance in the snapshot."""
+        out = []
+        start = {}
+        for fam in family._registry :
+            sl = self._get_family_slice(fam)
+            if sl.start!=sl.stop :
+                out.append(fam)
+                start[fam] = (sl.start)
+        out.sort(key=start.__getitem__)
+        return out
+        
+    ############################################
+    # THE BASICS: GETTING AND SETTING
+    ############################################
 
     def __getitem__(self, i) :
         """Return either a specific array or a subview of this simulation. See
@@ -263,6 +295,7 @@ class SimSnap(object) :
 
 
     def __setitem__(self, name, item) :
+        """Set the contents of an array in this snapshot"""
         if self.is_derived_array(name) and not self.auto_propagate_off :
             raise RuntimeError, "Derived array is not writable"
         
@@ -303,20 +336,172 @@ class SimSnap(object) :
         # += etc, since these call __setitem__).
         self._set_array(name, ax, index)
 
-    def halos(self, *args, **kwargs) :
-        """Tries to instantiate a halo catalogue object for the given
-        snapshot, using the first available method."""
 
-        from . import halo
+    def __delitem__(self, name) :
+        if name in self._family_arrays :
+            assert name not in self._arrays # mustn't have simulation-level array of this name
+            del self._family_arrays[name]
+            
+            for v in self._family_derived_array_track.itervalues() :
+                if name in v :
+                    del v[v.index(name)]
+                
+        else :
+            del self._arrays[name]
+            if name in self._derived_array_track :
+                del self._derived_array_track[self._derived_array_track.index(name)]
+
+
+
+    def _get_persist(self, hash, name) :
+        try :
+            return self._persistent_objects[hash][name]
+        except :
+            return None
+
+    def _set_persist(self, hash, name, obj=None) :
+        if hash not in self._persistent_objects :
+            self._persistent_objects[hash] = {}
+        self._persistent_objects[hash][name] = obj
+
+    def __getattr__(self, name) :
+        """This function overrides the behaviour of f.X where f is a SimSnap object.
+
+        It serves two purposes; first, it provides the family-handling behaviour
+        which makes f.dm equivalent to f[pynbody.family.dm]. Second, it implements
+        persistent objects -- properties which are shared between two equivalent SubSnaps."""
+        if name in SimSnap._persistent :
+            obj = self.ancestor._get_persist(self._inclusion_hash, name)
+            if obj : return obj
+
+        try:
+            return self[family.get_family(name)]
+        except ValueError :
+            pass
         
-        for c in config['halo-class-priority']:
-            if c._can_load(self) : return c(self, *args, **kwargs)
+        raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
 
-        for c in config['halo-class-priority']:
-            if c._can_run(self) : return c(self, *args, **kwargs)
 
-        raise RuntimeError("No halo catalogue found for %r"%str(self))
+    def __setattr__(self, name, val) :
+        """This function overrides the behaviour of setting f.X where f is a SimSnap object.
 
+        It serves two purposes; first it prevents overwriting of family names (so you can't
+        write to, for instance, f.dm). Second, it implements persistent objects -- properties
+        which are shared between two equivalent SubSnaps."""
+        if name in family.family_names() : raise AttributeError, "Cannot assign family name "+name
+
+        if name in SimSnap._persistent :
+            self.ancestor._set_persist(self._inclusion_hash, name, val)
+        else :
+            return object.__setattr__(self, name, val)
+
+    def __delattr__(self, name) :
+        """This function allows persistent objects (as shared between two equivalent SubSnaps)
+        to be permanently deleted."""
+        if name in SimSnap._persistent :
+            obj = self.ancestor._get_persist(self._inclusion_hash, name)
+            if obj : 
+                self.ancestor._set_persist(self._inclusion_hash, name, None)
+                try :
+                    object.__delattr__(self, name)
+                except AttributeError :
+                    pass
+                return
+        object.__delattr__(self, name)
+
+
+
+    ############################################
+    # DICTIONARY EMULATION FUNCTIONS
+    ############################################
+    
+    def keys(self) :
+        """Return the directly accessible array names (in memory)"""
+        return self._arrays.keys()
+
+    def has_key(self, name) :
+        """Returns True if the array name is accessible (in memory)"""
+        return name in self.keys()
+    
+    def values(self) :
+        """Returns a list of the actual arrays in memory"""
+        x = []
+        for k in self.keys() :
+            x.append(self[k])
+        return x
+
+    def items(self) :
+        """Returns a list of tuples describing the array
+        names and their contents in memory"""
+        x = []
+        for k in self.keys() :
+            x.append((k,self[k]))
+        return x
+
+    def get(self, key, alternative=None) :
+        """Standard python get method, returns self[key] if
+        key in self else alternative"""
+        try:
+            return self[key]
+        except KeyError :
+            return alternative
+
+    def iterkeys(self) :
+        for k in self.keys() :
+            yield k
+
+    __iter__ = iterkeys
+
+    def itervalues(self) :
+        for k in self :
+            yield self[k]
+
+    def iteritems(self) :
+        for k in self :
+            yield (k, self[k])
+
+    ############################################
+    # DICTIONARY-LIKE FUNCTIONS
+    # (not in the normal interface for dictionaries,
+    # but serving similar purposes)
+    ############################################
+            
+    def has_family_key(self, name) :
+        """Returns True if the array name is accessible (in memory) for at least one family"""
+        return name in self.family_keys()
+
+    def loadable_keys(self, fam=None) :
+        """Returns a list of arrays which can be lazy-loaded from 
+        an auxiliary file."""
+        return []
+
+    def derivable_keys(self) :
+        """Returns a list of arrays which can be lazy-evaluated."""
+        res = []
+        for cl in type(self).__mro__ :
+            if cl in self._derived_quantity_registry :
+                res+=self._derived_quantity_registry[cl].keys()
+        return res
+
+    def all_keys(self) :
+        """Returns a list of all arrays that can be either lazy-evaluated
+        or lazy loaded from an auxiliary file."""
+        return self.derivable_keys() + self.loadable_keys()
+
+    def family_keys(self, fam=None) :
+        """Return list of arrays which are not accessible from this
+        view, but can be accessed from family-specific sub-views.
+
+        If *fam* is not None, only those keys applying to the specific
+        family will be returned (equivalent to self.fam.keys())."""
+        if fam is not None :
+            return [x for x in self._family_arrays if fam in self._family_arrays[x]]
+        else :
+            return self._family_arrays.keys()
+    
+    ############################################
+    # ANCESTRY FUNCTIONS
+    ############################################
 
     def is_ancestor(self, other) :
         """Returns true if other is a subview of self"""
@@ -334,28 +519,34 @@ class SimSnap(object) :
 
     @property
     def ancestor(self) :
+        """The original SimSnap from which this view is derived (potentially self)"""
         if hasattr(self, 'base') :
             return self.base.ancestor
         else :
             return self
 
-    @property
-    def filename(self) :
-        return self._filename
+    def get_index_list(self, relative_to, of_particles=None ) :
+        """Get a list specifying the index of the particles in this view relative
+        to the ancestor *relative_to*, such that relative_to[get_index_list(relative_to)]==self."""
 
-    def write(self, fmt=None, filename=None) :
-        if filename is None and "<" in self.filename :
-            raise RuntimeError, 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))'
+        # Implementation for base snapshot
+        
+        if self is not relative_to :
+            raise RuntimeError, "Not a descendant of the specified simulation"
+        if of_particles is None :
+            of_particles = np.arange(len(self))
+
+        return of_particles
+
+    
+
+    
 
 
-        if fmt is None :
-            if not hasattr(self, "_write") :
-                raise RuntimeError, 'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)'
-            
-            self._write(self, filename)
-        else :
-            fmt._write(self, filename)
-	    
+    ############################################
+    # SET-LIKE OPERATIONS FOR SUBSNAPS
+    ############################################
+    
     def intersect(self, other, op=np.intersect1d) :
         """Returns the set intersection of this simulation view with another view
         of the same simulation"""
@@ -380,15 +571,16 @@ class SimSnap(object) :
 
         return self.intersect(other, op=np.setdiff1d)
 
-    def get_index_list(self, relative_to, of_particles=None ) :
-        if self is not relative_to :
-            raise RuntimeError, "Not a descendant of the specified simulation"
-        if of_particles is None :
-            of_particles = np.arange(len(self))
+    
 
-        return of_particles
-
+    ############################################
+    # UNIT MANIPULATION
+    ############################################
+    
     def conversion_context(self) :
+        """Return a dictionary containing a (scalefactor) and h
+        (Hubble constant in canonical units) for this snapshot, ready for
+        passing into unit conversion functions."""
         d = {}
         wanted = ['a','h']
         for x in wanted :
@@ -397,7 +589,7 @@ class SimSnap(object) :
         return d
 
     def original_units(self) :
-        """Converts all array's units to be consistent with the units of
+        """Converts all arrays'units to be consistent with the units of
         the original file."""
         self.physical_units(distance=self.infer_original_units('km'),
                              velocity=self.infer_original_units('km s^-1'),
@@ -474,6 +666,8 @@ class SimSnap(object) :
             
 
     def infer_original_units(self, dimensions) :
+        """Given a unit (or string) `dimensions`, returns a unit with the same
+        physical dimensions which is in the unit schema of the current file."""
         dimensions = units.Unit(dimensions)
         d = dimensions.dimensional_project(self._file_units_system+["a","h"])
         new_unit = reduce(lambda x,y: x*y, [a**b for a,b in zip(self._file_units_system, d)])
@@ -490,122 +684,38 @@ class SimSnap(object) :
         return u
     
 
-    def __delitem__(self, name) :
-        if name in self._family_arrays :
-            assert name not in self._arrays # mustn't have simulation-level array of this name
-            del self._family_arrays[name]
-            
-            for v in self._family_derived_array_track.itervalues() :
-                if name in v :
-                    del v[v.index(name)]
-                
-        else :
-            del self._arrays[name]
-            if name in self._derived_array_track :
-                del self._derived_array_track[self._derived_array_track.index(name)]
-            
-        
 
-    def _get_persist(self, hash, name) :
-        try :
-            return self._persistent_objects[hash][name]
-        except :
-            return None
-
-    def _set_persist(self, hash, name, obj=None) :
-        if hash not in self._persistent_objects :
-            self._persistent_objects[hash] = {}
-        self._persistent_objects[hash][name] = obj
-
-    def __getattr__(self, name) :
-        """Implements getting particles of a specified family name"""
-
-
-        if name in SimSnap._persistent :
-            obj = self.ancestor._get_persist(self._inclusion_hash, name)
-            if obj : return obj
-
-        try:
-            return self[family.get_family(name)]
-        except ValueError :
-            pass
-        
-        raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
-
-
-    def __setattr__(self, name, val) :
-        """Raise an error if an attempt is made to overwrite
-        existing families"""
-        if name in family.family_names() : raise AttributeError, "Cannot assign family name "+name
-
-        if name in SimSnap._persistent :
-            self.ancestor._set_persist(self._inclusion_hash, name, val)
-        else :
-            return object.__setattr__(self, name, val)
-
-    def __delattr__(self, name) :
-        if name in SimSnap._persistent :
-            obj = self.ancestor._get_persist(self._inclusion_hash, name)
-            if obj : 
-                self.ancestor._set_persist(self._inclusion_hash, name, None)
-                try :
-                    object.__delattr__(self, name)
-                except AttributeError :
-                    pass
-                return
-        object.__delattr__(self, name)
-
-
-    def keys(self) :
-        """Return the directly accessible array names (in memory)"""
-        return self._arrays.keys()
-
-    def has_key(self, name) :
-        """Returns True if the array name is accessible (in memory)"""
-        return name in self.keys()
-
-    def has_family_key(self, name) :
-        """Returns True if the array name is accessible (in memory) for at least one family"""
-        return name in self.family_keys()
+    ############################################
+    # HALO CATALOGUES
+    ############################################
     
-    def values(self) :
-        """Returns a list of the actual arrays in memory"""
-        x = []
-        for k in self.keys() :
-            x.append(self[k])
-        return x
+    def halos(self, *args, **kwargs) :
+        """Tries to instantiate a halo catalogue object for the given
+        snapshot, using the first available method (as defined in the
+        configuration files)."""
 
-    def items(self) :
-        """Returns a list of tuples describing the array
-        names and their contents in memory"""
-        x = []
-        for k in self.keys() :
-            x.append((k,self[k]))
-        return x
+        from . import halo
+        
+        for c in config['halo-class-priority']:
+            if c._can_load(self) : return c(self, *args, **kwargs)
 
-    def get(self, key, alternative=None) :
-        """Standard python get method, returns self[key] if
-        key in self else alternative"""
-        try:
-            return self[key]
-        except KeyError :
-            return alternative
+        for c in config['halo-class-priority']:
+            if c._can_run(self) : return c(self, *args, **kwargs)
 
-    def iterkeys(self) :
-        for k in self.keys() :
-            yield k
+        raise RuntimeError("No halo catalogue found for %r"%str(self))        
 
-    __iter__ = iterkeys
-
-    def itervalues(self) :
-        for k in self :
-            yield self[k]
-
-    def iteritems(self) :
-        for k in self :
-            yield (k, self[k])
+   
+    ############################################
+    # HELPER FUNCTIONS FOR LAZY LOADING
+    ############################################
 
     def _load_array(self, array_name, fam=None) :
+        """This function is called by the framework to load an array
+        from disk and should be overloaded by child classes.
+
+        If *fam* is not None, the array should be loaded only for the
+        specified family.
+        """
         raise IOError, "No lazy-loading implemented"
 
     def __load_array_with_magic(self, array_name, fam=None) :
@@ -649,18 +759,9 @@ class SimSnap(object) :
                 anc._autoconvert_array_unit(anc[f][v])
        
         
-    def families(self) :
-        """Return the particle families which have representitives in this SimSnap.
-        The families are ordered by their appearance in the snapshot."""
-        out = []
-        start = {}
-        for fam in family._registry :
-            sl = self._get_family_slice(fam)
-            if sl.start!=sl.stop :
-                out.append(fam)
-                start[fam] = (sl.start)
-        out.sort(key=start.__getitem__)
-        return out
+    ############################################
+    # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
+    ############################################
 
     def transform(self, matrix, ortho_tol=1.e-8) :
         """Transforms the snapshot according to the 3x3 matrix given."""
@@ -674,7 +775,6 @@ class SimSnap(object) :
             ar = self[x]
             if len(ar.shape)==2 and ar.shape[1]==3 :
                 self[x] = np.dot(matrix, ar.transpose()).transpose()
-
 
 
     def rotate_x(self, angle):
@@ -717,9 +817,26 @@ class SimSnap(object) :
 
 
 
-    def __len__(self) :
-        return self._num_particles
+    
 
+
+    ############################################
+    # WRITING FUNCTIONS
+    ############################################
+
+    def write(self, fmt=None, filename=None) :
+        if filename is None and "<" in self.filename :
+            raise RuntimeError, 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))'
+
+
+        if fmt is None :
+            if not hasattr(self, "_write") :
+                raise RuntimeError, 'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)'
+            
+            self._write(self, filename)
+        else :
+            fmt._write(self, filename)
+            
     def write_array(self, array_name, fam=None, overwrite=False, **kwargs) :
         """
         Write out the array with the specified name.
@@ -766,7 +883,10 @@ class SimSnap(object) :
             self._write_array(self, array_name, fam=fam, **kwargs)
                                 
       
-
+    ############################################
+    # LOW-LEVEL ARRAY MANIPULATION
+    ############################################
+            
     def _get_preferred_dtype(self, array_name) :
         """Return the 'preferred' numpy datatype for a named array.
 
@@ -781,10 +901,59 @@ class SimSnap(object) :
             return self._family_arrays[array_name][self._family_arrays[array_name].keys()[0]].dtype
         else :
             return None
+
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros = True, derived=False) :
+        """Create a single snapshot-level array of dimension len(self) x ndim, with
+        a given numpy dtype.
+
+        *kwargs*:
+
+          - *ndim*: the number of dimensions for each particle
+          - *dtype*: a numpy datatype for the new array
+          - *zeros*: if True, zeros the array (which takes a bit of time); otherwise
+            the array is uninitialized
+          - *derived*: if True, this new array will be flagged as a derived array
+            which makes it read-only
+            
+        """
+
+        # Does this actually correspond to a slice into a 3D array?
+        NDname =  self._array_name_1D_to_ND(array_name)
+        if NDname :
+            self._create_array(NDname, ndim=3, dtype=dtype, zeros=zeros, derived=derived)
+            return
         
+        if ndim==1 :
+            dims = self._num_particles
+        else :
+            dims = (self._num_particles, ndim)
+
+        if zeros : 
+            new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
+        else :
+            new_array = np.empty(dims,dtype=dtype).view(array.SimArray)
+
+        new_array._sim = weakref.ref(self)
+        new_array._name = array_name
+        new_array.family = None
+        # new_array.set_default_units(quiet=True)
+        self._arrays[array_name] = new_array
+
+        if derived :
+            if array_name not in self._derived_array_track :
+                self._derived_array_track.append(array_name)
+                
+        if ndim is 3 :
+            array_name_1D = self._array_name_ND_to_1D(array_name)
+
+            for i,a in enumerate(array_name_1D) :
+                self._arrays[a] = new_array[:,i]
+                self._arrays[a]._name = a
+                
     def _create_family_array(self, array_name, family, ndim=1, dtype=None, derived=False) :
         """Create a single array of dimension len(self.<family.name>) x ndim,
-        with a given numpy dtype, belonging to the specified family.
+        with a given numpy dtype, belonging to the specified family. For arguments
+        other than *family*, see the documentation for :func:`~pynbody.snapshot.SimSnap._create_array`.
 
         Warning: Do not assume that the family array will be available after
         calling this funciton, because it might be a 'completion' of existing
@@ -799,7 +968,7 @@ class SimSnap(object) :
         'bla' in sim.keys() # -> True
         'bla' in sim.family_keys() # -> False
         
-        sim[gas]['bla'] *is* guaranteed to exist however, it just might
+        sim[gas]['bla'] *is* guaranteed to exist, however, it just might
         be a view on a simulation-length array.
         
         """
@@ -879,6 +1048,7 @@ class SimSnap(object) :
             
         
     def _del_family_array(self, array_name, family) :
+        """Delete the array with the specified name for the specified family"""
         del self._family_arrays[array_name][family]
         if len(self._family_arrays[array_name])==0 :
             del self._family_arrays[array_name]
@@ -887,51 +1057,15 @@ class SimSnap(object) :
         if array_name in derive_track :
             del derive_track[derive_track.index(array_name)]
 
-    def _set_family_array(self, name, family, value, index=None) :
-        util.set_array_if_not_same(self._family_arrays[name][family],
-                                   value, index)
-
-    def _create_array(self, array_name, ndim=1, dtype=None, zeros = True, derived=False) :
-        """Create a single array of dimension len(self) x ndim, with
-        a given numpy dtype"""
-
-        # Does this actually correspond to a slice into a 3D array?
-        NDname =  self._array_name_1D_to_ND(array_name)
-        if NDname :
-            self._create_array(NDname, ndim=3, dtype=dtype, zeros=zeros, derived=derived)
-            return
-        
-        if ndim==1 :
-            dims = self._num_particles
-        else :
-            dims = (self._num_particles, ndim)
-
-        if zeros : 
-            new_array = np.zeros(dims,dtype=dtype).view(array.SimArray)
-        else :
-            new_array = np.empty(dims,dtype=dtype).view(array.SimArray)
-
-        new_array._sim = weakref.ref(self)
-        new_array._name = array_name
-        new_array.family = None
-        # new_array.set_default_units(quiet=True)
-        self._arrays[array_name] = new_array
-
-        if derived :
-            if array_name not in self._derived_array_track :
-                self._derived_array_track.append(array_name)
-                
-        if ndim is 3 :
-            array_name_1D = self._array_name_ND_to_1D(array_name)
-
-            for i,a in enumerate(array_name_1D) :
-                self._arrays[a] = new_array[:,i]
-                self._arrays[a]._name = a
-                
-            
-   
-                
+      
     def _get_array(self, name, index=None, always_writable=False) :
+        """Get the array of the specified *name*, optionally
+        for only the particles specified by *index*.
+
+        If *always_writable* is True, the returned array is
+        writable. Otherwise, it is still normally writable, but
+        not if the array is flagged as derived by the framework."""
+        
         x = self._arrays[name]
         if x.derived and not always_writable :
             x = x.view()
@@ -949,22 +1083,51 @@ class SimSnap(object) :
         else :
             return x
 
+    def _get_family_array(self, name, fam, index=None,always_writable=False) :
+        """Get the family-level array with specified *name* for the family *fam*,
+        optionally for only the particles specified by *index* (relative to the
+        family slice).
+
+        If *always_writable* is True, the returned array is writable. Otherwise
+        it is still normally writable, but not if the array is flagged as derived
+        by the framework.
+        """
+
+        try:
+            x = self._family_arrays[name][fam]
+        except KeyError :
+            raise KeyError("No array "+name+" for family "+fam.name)
+
+        if x.derived and not always_writable :
+            x = x.view()
+            x.flags['WRITEABLE'] = False
+
+        if index is not None :
+            if type(index) is slice :
+                x = x[index]
+            else :
+                x = array.IndexedSimArray(x, index)
+
+        return x
 
     def _set_array(self, name, value, index=None) :
+        """Update the contents of the snapshot-level array to that
+        specified by *value*. If *index* is not None, update only that
+        subarray specified."""
         util.set_array_if_not_same(self._arrays[name], value, index)
-        
-        
+
+    def _set_family_array(self, name, family, value, index=None) :
+        """Update the contents of the family-level array to that
+        specified by *value*. If *index* is not None, update only that
+        subarray specified."""
+        util.set_array_if_not_same(self._family_arrays[name][family],
+                                   value, index)
+                
     def _create_arrays(self, array_list, ndim=1, dtype=None, zeros=True) :
-        """Create a set of arrays of dimension len(self) x ndim, with
+        """Create a set of arrays *array_list* of dimension len(self) x ndim, with
         a given numpy dtype."""
         for array in array_list :
             self._create_array(array, ndim, dtype, zeros)
-
-    def assert_consistent(self) :
-        """Consistency checks, currently just checks that the length of all
-        stored arrays is consistent."""
-        for array_name in self.keys() :
-            assert len(self[array_name]) == len(self)
 
     def _get_family_slice(self, fam) :
         """Turn a specified Family object into a concrete slice which describes
@@ -995,26 +1158,7 @@ class SimSnap(object) :
         if name in self.family_keys() :
             raise KeyError, "Array "+name+" is a family-level property"
 
-    def _get_family_array(self, name, fam, index=None,always_writable=False) :
-        """Retrieve the array with specified name for the given particle family
-        type."""
-
-        try:
-            x = self._family_arrays[name][fam]
-        except KeyError :
-            raise KeyError("No array "+name+" for family "+fam.name)
-
-        if x.derived and not always_writable :
-            x = x.view()
-            x.flags['WRITEABLE'] = False
-
-        if index is not None :
-            if type(index) is slice :
-                x = x[index]
-            else :
-                x = array.IndexedSimArray(x, index)
-
-        return x
+    
 
     def _promote_family_array(self, name, ndim=1, dtype=None, derived=False) :
         """Create a simulation-level array (if it does not exist) with
@@ -1080,42 +1224,18 @@ class SimSnap(object) :
                 if name in v :
                     del v[v.index(name)]
         
-    def family_keys(self, fam=None) :
-        """Return list of arrays which are not accessible from this
-        view, but can be accessed from family-specific sub-views."""
-        if fam is not None :
-            return [x for x in self._family_arrays if fam in self._family_arrays[x]]
-        else :
-            return self._family_arrays.keys()
+    
 
-
-    def __repr__(self) :
-        if self._filename!="" :
-            return "<SimSnap \""+self._filename+"\" len="+str(len(self))+">"
-        else :
-            return "<SimSnap len="+str(len(self))+">"
 
     
-    def derivable_keys(self) :
-        """Returns a list of arrays which can be lazy-evaluated."""
-        res = []
-        for cl in type(self).__mro__ :
-            if cl in self._derived_quantity_registry :
-                res+=self._derived_quantity_registry[cl].keys()
-        return res
 
-    def loadable_keys(self, fam=None) :
-        """Returns a list of arrays which can be lazy-loaded from 
-        an auxiliary file."""
-        return []
-        
-    def all_keys(self) :
-        """Returns a list of all arrays that can be either lazy-evaluated
-        or lazy loaded from an auxiliary file."""
-        return self.derivable_keys() + self.loadable_keys()
+    
+    
 
 
-    # Methods for derived arrays
+    ############################################
+    # DERIVED ARRAY SYSTEM
+    ############################################
 
     @classmethod
     def derived_quantity(cl,fn):
@@ -1134,14 +1254,13 @@ class SimSnap(object) :
         
         return fn
 
-
-   
         
     def _derive_array(self, name, fam=None) :
         """Calculate and store, for this SnapShot, the derivable array 'name'.
-
+        If *fam* is not None, derive only for the specified family.
+        
         This searches the registry of @X.derived_quantity functions
-        for all X in the inheritance path of the current class. The first
+        for all X in the inheritance path of the current class. 
         """
         global config
 
@@ -1196,10 +1315,7 @@ class SimSnap(object) :
         quantities which depend on it"""
 
         if not self.auto_propagate_off :
-            # Nasty hack:
-            if name in ["x","y","z"] : name ="pos"
-            if name in ["vx","vy","vz"] : name ="vel"
-
+            name = self._array_name_1D_to_ND(name) or name
             if self._dependency_chain.has_key(name) :
                 for d_ar in self._dependency_chain[name] :
                     if self.has_key(d_ar) or self.has_family_key(d_ar) :
@@ -1232,16 +1348,23 @@ class SimSnap(object) :
         else :
             raise RuntimeError, "Not a derived array"
         
+    
+    ############################################
+    # CONVENIENCE FUNCTIONS
+    ############################################
+
     def mean_by_mass(self, name) :
-        """Calculate the mean by mass of the specified array"""
+        """Calculate the mean by mass of the specified array."""
         m = np.asanyarray(self["mass"])
         ret = (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
         ret.units = self[name].units
 
         return ret
-    
-    # Methods for snapshot decoration
 
+    ############################################
+    # SNAPSHOT DECORATION
+    ############################################
+    
     @classmethod
     def decorator(cl, fn) :
         if not SimSnap._decorator_registry.has_key(cl) :
@@ -1256,8 +1379,9 @@ class SimSnap(object) :
                 for fn in self._decorator_registry[cl] :
                     fn(self)
 
-
-    # Equality testing
+    ############################################
+    # HASHING AND EQUALITY TESTING
+    ############################################
 
     @property
     def _inclusion_hash(self) :
@@ -1281,7 +1405,10 @@ class SimSnap(object) :
         return hash(self)==hash(other)
 
 
-
+    ############################################
+    # COPYING
+    ############################################
+    
     def __deepcopy__(self, memo=None) :
         create_args = {}
         for fam in family._registry :
@@ -1313,20 +1440,6 @@ class SimSnap(object) :
 
 
 
-"""
-# No longer required - defaults now implemnted within SimDict
-
-@SimSnap.decorator
-def default_cosmology(sim) :
-    missing = [k for k in config['default-cosmology'] if k not in sim.properties]
-    if len(missing)>0 :
-        
-        warnings.warn("At least some cosmological parameters missing. Assuming defaults for: %s."%\
-                          ", ".join(missing),
-                       RuntimeWarning)
-        sim.properties.update([(k,config['default-cosmology'][k]) for k in missing])
-        
-"""
 
 _subarray_immediate_mode = False
 # Set this to True to always get copies of data when indexing is
