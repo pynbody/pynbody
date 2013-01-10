@@ -4,6 +4,9 @@
    .. automodule:: pynbody.array
       :members:
 
+   .. automodule:: pynbody.simdict
+       :members:
+
    .. automodule:: pynbody.bridge
       :members:
 
