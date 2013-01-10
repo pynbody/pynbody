@@ -197,6 +197,9 @@ class UnitBase(object):
     def __neg__(self):
         return self * (-1)
 
+    def __float__(self) :
+        return 1.
+
     def simplify(self):
         return self
 
@@ -424,6 +427,9 @@ class CompositeUnit(UnitBase):
                 else:
                     s += str(p)
         return s
+
+    def __float__(self) :
+        return float(self._scale)
 
     def _expand(self, expand_to_irrep=False):
         """Internal routine to expand any pointers to composite units
