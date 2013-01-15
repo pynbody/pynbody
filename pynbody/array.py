@@ -141,6 +141,7 @@ handler:
 
 import numpy as np
 import weakref
+import os
 from . import units as units
 _units = units
 from .backcompat import property
@@ -380,10 +381,12 @@ class SimArray(np.ndarray) :
         return self._generic_add(x, np.subtract)
 
     def __iadd__(self, x) :
-        return self._generic_add(x, np.ndarray.__iadd__)
+        self._generic_add(x, np.ndarray.__iadd__)
+        return self
 
     def __isub__(self, x) :
-        return self._generic_add(x, np.ndarray.__isub__)
+        self._generic_add(x, np.ndarray.__isub__)
+        return self
 
     def __pow__(self, x) :
         numerical_x = x
@@ -539,6 +542,14 @@ class SimArray(np.ndarray) :
         else :
             raise RuntimeError, "No link to SimSnap"
 
+    def __del__(self) :
+        """Clean up disk if this was made from a named
+        shared array"""
+
+        if getattr(self, '_shared_del', False) :
+            os.unlink(self._shared_fname)
+            
+        
 
 
 # Now add dirty bit setters to all the operations which are known
@@ -794,3 +805,61 @@ for x in set(np.ndarray.__dict__).union(SimArray.__dict__) :
     w = getattr(SimArray, x)
     if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(w, '__call__') :
         setattr(IndexedSimArray, x, _wrap_fn(w))
+
+
+
+
+
+############################################################
+# SUPPORT FOR SHARING ARRAYS BETWEEN PROCESSES
+############################################################
+
+import ctypes
+import multiprocessing, multiprocessing.sharedctypes
+import tempfile
+
+_all_ctypes = [v for k, v in ctypes.__dict__.iteritems() if k[:2]=="c_" and k!="c_buffer"]
+_dtype_to_ctype_dict = {}
+for x in _all_ctypes :
+    _dtype_to_ctype_dict[np.dtype(x)] = x
+
+
+def _dtype_to_ctype(dtype) :
+    """Given a numpy dtype, returns a matching ctype. (The reverse
+    operation can be accomplished just by np.dtype(ctype))."""
+    global _dtype_to_ctype_dict
+    dtype = np.dtype(dtype)
+    if dtype in _dtype_to_ctype_dict :
+        return _dtype_to_ctype_dict[dtype]
+
+    raise TypeError, "No matching ctype found for specified numpy dtype"
+
+def _array_factory(dims, dtype, zeros, shared) :
+    """Create an array of dimensions *dims* with the given numpy *dtype*.
+    If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
+    is True, the returned array uses shared memory so can be efficiently
+    shared across processes."""
+    if shared :
+        ctype = _dtype_to_ctype(dtype)
+        size = reduce(lambda x,y:x*y, dims)
+        fname = tempfile.mktemp()
+        ret_ar = np.memmap(fname, dtype=dtype, mode='w+', shape=dims).view(SimArray)
+        ret_ar._shared_fname = fname
+        ret_ar._shared_del = True
+    else :
+        if zeros :
+            ret_ar = np.zeros(dims, dtype=dtype).view(SimArray)
+        else :
+            ret_ar = np.empty(dims, dtype=dtype).view(SimArray)
+    return ret_ar
+
+def _shared_array_deconstruct(ar) :
+    assert hasattr(ar,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
+    return ar.dtype, ar.shape, ar._shared_fname
+
+def _shared_array_reconstruct(X) :
+    dtype, dims, fname = X
+    new_ar =  np.memmap(fname, dtype=dtype, shape=dims, mode='r+').view(SimArray)
+    new_ar._shared_fname = fname
+    new_ar._shared_del = False
+    return new_ar

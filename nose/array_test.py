@@ -86,3 +86,17 @@ def test_iop_units() :
 
     assert (y==[3,5,7,9]).all()
     
+
+
+def test_iop_sanity() :
+    x = SA([1,2,3,4])
+    x_id = id(x)
+    x+=1
+    assert id(x)==x_id
+    x-=1
+    assert id(x)==x_id
+    x*=2
+    assert id(x)==x_id
+    x/=2
+    assert id(x)==x_id
+    

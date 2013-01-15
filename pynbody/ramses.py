@@ -70,6 +70,7 @@ def _read_fortran_series(f, dtype) :
 
     return q[0]
 
+
 def _timestep_id(basename) :
     try:
         return re.findall("output_([0-9]*)/*$", basename)[0]
@@ -98,6 +99,8 @@ hydro_blocks = map(str.strip,config_parser.get('ramses',"hydro-blocks").split(",
 particle_distinguisher = map(str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
 
 class RamsesSnap(snapshot.SimSnap) :
+    reader_pool = None
+    
     def __init__(self, dirname, **kwargs) :
         """Initialize a RamsesSnap. Extra kwargs supported:
 
@@ -105,6 +108,9 @@ class RamsesSnap(snapshot.SimSnap) :
          *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
          """
 
+        if RamsesSnap.reader_pool is None :
+            RamsesSnap.reader_pool = multiprocessing.Pool(2)
+            
         warnings.warn("RamsesSnap is in development and may not behave well", RuntimeWarning)
         
         global config
@@ -299,7 +305,7 @@ class RamsesSnap(snapshot.SimSnap) :
         
         for (x0,y0,z0), refine, cpu, level in self._level_iterator() :
             dx = boxlen*0.5**(level+1)
-             
+            
             x0 = boxlen*x0+dx*subgrid_x
             y0 = boxlen*y0+dx*subgrid_y
             z0 = boxlen*z0+dx*subgrid_z
