@@ -435,11 +435,23 @@ class SimArray(np.ndarray) :
 
     def __setslice__(self, a,b, to) :
         self.__setitem__(slice(a,b), to)
+    #@_u(np.min)
+    #@_u(np.max)
+    #@_u(np.ptp)
+
+    def cumsum(self, axis=None, dtype=None, out=None) :
+        print(self,axis,dtype,out)
+        x = np.ndarray.cumsum(self, axis, dtype, out)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units**self.shape[0]
+        return x
         
     def prod(self, axis=None, dtype=None, out=None) :
         x = np.ndarray.prod(self, axis, dtype, out)
         if hasattr(x, 'units') and axis is not None and self.units is not None :
             x.units = self.units**self.shape[axis]
+        if hasattr(x, 'units') and axis is None and self.units is not None :
+            x.units = self.units
         return x
 
     def sum(self, *args, **kwargs) :
@@ -455,7 +467,25 @@ class SimArray(np.ndarray) :
         return x
 
     def mean_by_mass(self, *args, **kwargs) :
-	return self.sim.mean_by_mass(self.name)
+        return self.sim.mean_by_mass(self.name)
+
+    def max(self, *args, **kwargs) :
+        x = np.ndarray.max(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
+
+    def min(self, *args, **kwargs) :
+        x = np.ndarray.min(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
+
+    def ptp(self, *args, **kwargs) :
+        x = np.ndarray.ptp(self, *args, **kwargs)
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
     
     def std(self, *args, **kwargs) :
         x = np.ndarray.std(self, *args, **kwargs)

@@ -15,6 +15,7 @@ from . import array
 from . import analysis
 from . import sph
 from . import config
+from . import units
 import numpy as np
 import sys
 
@@ -143,3 +144,10 @@ def alt(self) :
 def az(self) :
 	"""Angle in the xy plane from the x axis, from [-pi:pi]"""
 	return np.arctan2(self['y'],self['x'])
+
+@SimSnap.derived_quantity
+def cs(self):
+    mu = np.zeros(len(self))
+    mu[np.where(self['temp']>=1e4)[0]] = 0.59
+    mu[np.where(self['temp']<1e4)[0]] = 1.3
+    return np.sqrt(5.0*units.k*self['temp'] / mu/units.m_p)
