@@ -107,7 +107,7 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
 
 def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
                diskheight='3 kpc',rmax='20 kpc', compare=True,
-               radial=True,clear=True,legend=True,**kwargs):
+               radial=True,clear=True,legend=True,bins=10,**kwargs):
     '''Schmidt Law
 
     Plots star formation surface density vs. gas surface density including
@@ -119,7 +119,30 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
     >>> import pynbody.plot as pp
     >>> pp.schmidtlaw(h[1])
 
-    **needs a description of keywords**
+    **Optional keyword arguments:**
+
+       *center*: bool
+         center and align the input simulation faceon.
+
+       *filename*: string
+         Name of output file
+
+       *pretime* (default='50 Myr'): age of stars to consider for SFR
+
+       *diskheight* (default='3 kpc'): height of gas and stars above
+          and below disk considered for SF and gas densities.
+         
+       *rmax* (default='20 kpc'): radius of disk considered
+
+       *compare* (default=True):  whether to include Kennicutt (1998) and
+            Bigiel+ (2008) for comparison
+
+       *radial* (default=True):  should bins be annuli or a rectangular grid?
+
+       *bins* (default=10):  How many radial bins should there be?
+
+       *legend*: boolean
+         whether to draw a legend or not
     '''
     
     if not radial :
@@ -142,8 +165,8 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
 
     # calculate surface densities
     if radial :
-        ps = profile.Profile(diskstars[youngstars],nbins=10)
-        pg = profile.Profile(diskgas,nbins=10)
+        ps = profile.Profile(diskstars[youngstars],nbins=bins)
+        pg = profile.Profile(diskgas,nbins=bins)
     else :
         # make bins 2 kpc
         nbins = rmax * 2 / binsize

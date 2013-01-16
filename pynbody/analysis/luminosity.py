@@ -18,9 +18,25 @@ import os
 from ..array import SimArray
 
 def calc_mags(simstars, band='v') :
-    """
+    """Calculating visible magnitudes
 
-    calc mags -- documentation placeholder
+    Using Padova Simple stellar populations (SSPs) from Girardi
+    http://stev.oapd.inaf.it/cgi-bin/cmd
+    Marigo+ (2008), Girardi+ (2010)
+
+    pynbody includes a grid of SSP luminosities for many bandpasses for
+    various stellar ages and metallicities.  This function linearly 
+    interpolates to the desired value and returns the value as a magnitude.
+
+    **Usage:**
+
+    >>> import pynbody
+    >>> pynbody.analysis.luminosity.calc_mags(h[1].s)
+
+    **Optional keyword arguments:**
+
+       *band* (default='v'): Which observed bandpass magnitude in which 
+            magnitude should be calculated
 
     """
 
@@ -69,15 +85,54 @@ def calc_mags(simstars, band='v') :
 
 
 def halo_mag(sim,band='v') :
+    """Calculating halo magnitude
+
+    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed
+    in simulation, converts those magnitudes back to luminosities, adds
+    those luminosities, then converts that luminosity back to magnitudes,
+    which are returned.
+
+    **Usage:**
+
+    >>> import pynbody
+    >>> pynbody.analysis.luminosity.halo_mag(h[1].s)
+
+    **Optional keyword arguments:**
+
+       *band* (default='v'): Which observed bandpass magnitude in which 
+            magnitude should be calculated
+    """
     if (len(sim.star) > 0):
         return -2.5*np.log10(np.sum(10.0**(-0.4*sim.star[band+'_mag'])))
     else:
         return np.nan
 
 def halo_lum(sim,band='v') :
+    """Calculating halo luminosiy
+
+    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed
+    in simulation, converts those magnitudes back to luminosities, adds
+    those luminosities, which are returned.
+
+    **Usage:**
+
+    >>> import pynbody
+    >>> pynbody.analysis.luminosity.halo_mag(h[1].s)
+
+    **Optional keyword arguments:**
+
+       *band* (default='v'): Which observed bandpass magnitude in which 
+            magnitude should be calculated
+    """
     return np.sum(10.0**((5.8-sim.star[band+'_mag'])/2.5))
 
 def half_light_r(sim,band='v'):
+    '''Calculate half light radius
+    
+    Calculates entire luminosity of simulation, finds half that, sorts
+    stars by distance from halo center, and finds out inside which radius
+    the half luminosity is reached.
+    '''
     import pynbody, pynbody.filt as f
     half_l = halo_lum(sim,band=band) * 0.5
     #print "half_l: %g"%half_l
