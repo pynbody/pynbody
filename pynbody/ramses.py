@@ -125,6 +125,27 @@ def _cpui_count_particles(filename) :
     nstar_this = (data!=0).sum()
     return npart_this, nstar_this, my_mask
 
+
+def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_star, _type, star_mask, nstar) :
+    f = file(filename)
+    header = _read_fortran_series(f, ramses_particle_header)
+
+    _skip_fortran(f, offset)
+
+    ind1_dm = ind0_dm+header['npart']-nstar
+    ind1_star = ind0_star+nstar
+
+    data = _read_fortran(f, _type, header['npart'])
+
+    if len(star_mask)>0 :
+        dm_ar[ind0_dm:ind1_dm]=data[~star_mask]
+        star_ar[ind0_star:ind1_star]=data[star_mask]
+    else :
+        dm_ar[ind0_dm:ind1_dm]=data
+
+    f.close()
+
+
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
     f = file(amr_filename, 'rb')
     header = _read_fortran_series(f, ramses_amr_header)
@@ -375,14 +396,23 @@ class RamsesSnap(snapshot.SimSnap) :
         npart = 0
         nstar = 0
 
+        dm_i0 = 0
+        star_i0 = 0
+        
         self._star_mask = []
         self._nstar = []
+        self._dm_i0 = []
+        self._star_i0 = []
 
         results = remote_map(self.reader_pool,
                              _cpui_count_particles,
                              [self._particle_filename(i) for i in self._cpus])
         
         for npart_this, nstar_this, my_mask in results :
+            self._dm_i0.append(dm_i0)
+            self._star_i0.append(star_i0)
+            dm_i0+=(npart_this-nstar_this)
+            star_i0+=nstar_this
             npart+=npart_this
             nstar+=nstar_this
             
@@ -478,28 +508,24 @@ class RamsesSnap(snapshot.SimSnap) :
             self.dm._create_array(blockname, dtype=_type)
         if blockname not in self.star :
             self.star._create_array(blockname, dtype=_type)
+
+        dm_ar = self.dm[blockname]
+        star_ar = self.star[blockname]
         
-        for i, star_mask, nstar in zip(self._cpus, self._star_mask, self._nstar) :
-            f = file(self._particle_filename(i))
-            header = _read_fortran_series(f, ramses_particle_header)
+        remote_map(self.reader_pool,
+                   _cpui_load_particle_block,
+                   [self._particle_filename(i) for i in self._cpus],
+                   [dm_ar]*len(self._cpus),
+                   [star_ar]*len(self._cpus),
+                   [offset]*len(self._cpus),
+                   self._dm_i0,
+                   self._star_i0,
+                   [_type]*len(self._cpus),
+                   self._star_mask,
+                   self._nstar)
+        
 
-            _skip_fortran(f, offset)
-            
-            ind1_dm = ind0_dm+header['npart']-nstar
-            ind1_star = ind0_star+nstar
-            
-            data = _read_fortran(f, _type, header['npart'])
-
-            if len(star_mask)>0 :
-                self.dm[blockname][ind0_dm:ind1_dm]=data[~star_mask]
-                self.star[blockname][ind0_star:ind1_star]=data[star_mask]
-            else :
-                self.dm[blockname][ind0_dm:ind1_dm]=data
-                
-            f.close()
-
-            ind0_dm = ind1_dm
-            ind0_star = ind1_star
+    
 
     def _load_particle_cpuid(self) :
         ind0_dm = 0
