@@ -1,6 +1,8 @@
 .. pynbody tutorials main index
 
 
+.. _tutorials:
+
 Pynbody Tutorials
 =================
 

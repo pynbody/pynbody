@@ -1,8 +1,9 @@
 .. data_access tutorial
 
+.. _data-access:
 
 Getting started: basic data access
-====================================
+==================================
 
 The following example shows how to load a file, determine various
 attributes, access some data and make use of unit information. 
@@ -19,7 +20,7 @@ attributes, access some data and make use of unit information.
 
 
 First steps
---------------
+-----------
 
 .. note:: Before you start make sure `pynbody` is properly
  installed. See <https://code.google.com/p/pynbody/wiki/Installation>
@@ -73,7 +74,7 @@ holder for data. The data will be loaded from disk as and when you
 request it.
 
 Finding out something about the file
-------------------------------
+------------------------------------
 
 Let's start to inspect the file we've opened. The standard python operator ``len`` can be used to query the number
 of particles in the file:
@@ -131,7 +132,7 @@ the Hubble constant in standard units (100 km/s/Mpc).
 
 
 Retrieving data
-------------------------------------------
+---------------
 
 Like ``f.properties``, ``f`` itself also behaves like a python
 dictionary. The standard python method
@@ -223,7 +224,7 @@ So, we can get the density of the gas particles like this:
  e.g. ``f.gas['rho'].view(type=numpy.ndarray)``
 
 Keeping on top of units
------------------------------------------------------
+-----------------------
 
 
 You might have noticed in the output from the above experiments that
