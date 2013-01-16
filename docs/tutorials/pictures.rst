@@ -14,7 +14,7 @@ Integrated Density
 ------------------
 Simple example for displaying density integrated along the line of site
 
-.. plot:: tutorials/example_code/temperature_slice.py
+.. plot:: tutorials/example_code/density_integrated.py
    :include-source:
 
 Temperature Slice
@@ -22,7 +22,7 @@ Temperature Slice
 Simple example for displaying a slice of some other quantity (Temperature 
 in this case)
 
-.. plot:: tutorials/example_code/density_integrated.py
+.. plot:: tutorials/example_code/temperature_slice.py
    :include-source:
 
 Creating images using :func:`~pynbody.plot.sph.image`
