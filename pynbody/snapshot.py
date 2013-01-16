@@ -164,6 +164,8 @@ class SimSnap(object) :
 
         self._unifamily = None
 
+	self._shared_arrays = False # If True, when new arrays are created they are in shared memory by default
+
         self.lazy_off = util.ExecutionControl()
         # use 'with lazy_off :' blocks to disable all hidden/lazy behaviour
 
@@ -904,7 +906,7 @@ class SimSnap(object) :
 
    
         
-    def _create_array(self, array_name, ndim=1, dtype=None, zeros = True, derived=False, shared=False) :
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros = True, derived=False, shared=None) :
         """Create a single snapshot-level array of dimension len(self) x ndim, with
         a given numpy dtype.
 
@@ -931,6 +933,9 @@ class SimSnap(object) :
         else :
             dims = (self._num_particles, ndim)
 
+	if shared is None :
+	    shared = self._shared_arrays
+	    
         new_array = array._array_factory(dims, dtype, zeros, shared)
 
         new_array._sim = weakref.ref(self)
@@ -950,7 +955,7 @@ class SimSnap(object) :
                 self._arrays[a] = new_array[:,i]
                 self._arrays[a]._name = a
                 
-    def _create_family_array(self, array_name, family, ndim=1, dtype=None, derived=False, shared=False) :
+    def _create_family_array(self, array_name, family, ndim=1, dtype=None, derived=False, shared=None) :
         """Create a single array of dimension len(self.<family.name>) x ndim,
         with a given numpy dtype, belonging to the specified family. For arguments
         other than *family*, see the documentation for :func:`~pynbody.snapshot.SimSnap._create_array`.
@@ -1020,7 +1025,8 @@ class SimSnap(object) :
             self._promote_family_array(array_name, ndim=ndim,derived=derived,shared=shared)
 
         else :
-        
+            if shared is None :
+		shared = self._shared_arrays
             new_ar = array._array_factory(dims, dtype, False, shared)
             new_ar._sim = weakref.ref(self)
             new_ar._name = array_name
@@ -1160,7 +1166,7 @@ class SimSnap(object) :
 
     
 
-    def _promote_family_array(self, name, ndim=1, dtype=None, derived=False,shared=False) :
+    def _promote_family_array(self, name, ndim=1, dtype=None, derived=False,shared=None) :
         """Create a simulation-level array (if it does not exist) with
         the specified name. Copy in any data from family-level arrays
         of the same name."""
@@ -1719,7 +1725,7 @@ class FamilySubSnap(SubSnap) :
         except KeyError :
             return self.base._get_family_array(name, self._unifamily, index,always_writable)
 
-    def _create_array(self, array_name, ndim=1, dtype=None, zeros=True,derived=False, shared=False) :
+    def _create_array(self, array_name, ndim=1, dtype=None, zeros=True,derived=False, shared=None) :
         # Array creation now maps into family-array creation in the parent
         self.base._create_family_array(array_name, self._unifamily, ndim, dtype,derived, shared)
 

@@ -577,7 +577,7 @@ class SimArray(np.ndarray) :
         shared array"""
 
         if getattr(self, '_shared_del', False) :
-            os.unlink(self._shared_fname)
+            _shared_array_unlink(self)
             
         
 
@@ -844,36 +844,53 @@ for x in set(np.ndarray.__dict__).union(SimArray.__dict__) :
 # SUPPORT FOR SHARING ARRAYS BETWEEN PROCESSES
 ############################################################
 
-import ctypes
-import multiprocessing, multiprocessing.sharedctypes
-import tempfile
+try:
+    import ctypes
+    import multiprocessing, multiprocessing.sharedctypes
+    import tempfile
+    import functools
+    import os
+    import time
+    import random
+    import mmap
+    import posix_ipc
+except ImportError:
+    posix_ipc = None
 
-_all_ctypes = [v for k, v in ctypes.__dict__.iteritems() if k[:2]=="c_" and k!="c_buffer"]
-_dtype_to_ctype_dict = {}
-for x in _all_ctypes :
-    _dtype_to_ctype_dict[np.dtype(x)] = x
-
-
-def _dtype_to_ctype(dtype) :
-    """Given a numpy dtype, returns a matching ctype. (The reverse
-    operation can be accomplished just by np.dtype(ctype))."""
-    global _dtype_to_ctype_dict
-    dtype = np.dtype(dtype)
-    if dtype in _dtype_to_ctype_dict :
-        return _dtype_to_ctype_dict[dtype]
-
-    raise TypeError, "No matching ctype found for specified numpy dtype"
 
 def _array_factory(dims, dtype, zeros, shared) :
     """Create an array of dimensions *dims* with the given numpy *dtype*.
     If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
     is True, the returned array uses shared memory so can be efficiently
     shared across processes."""
-    if shared :
-        ctype = _dtype_to_ctype(dtype)
-        size = reduce(lambda x,y:x*y, dims)
-        fname = tempfile.mktemp()
-        ret_ar = np.memmap(fname, dtype=dtype, mode='w+', shape=dims).view(SimArray)
+    if not hasattr(dims, '__len__') :
+        dims  = (dims,)
+        
+    if shared and posix_ipc :
+        random.seed(os.getpid()*time.time())
+        fname = "pynbody-"+("".join([random.choice('abcdefghijklmnopqrstuvwxyz') for i in xrange(10)]))
+        print "create shmem",fname
+
+        # memmaps of zero length seem not to be permitted, so have to
+        # make zero length arrays a special case
+        zero_size = False
+        if dims[0]==0 :
+            zero_size=True
+            dims = (1,)+dims[1:]
+        if hasattr(dims, '__len__') :
+            size = reduce(np.multiply, dims)
+        else :
+            size = dims
+        
+            
+        mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+        # fd, fname = tempfile.mkstemp()
+        # ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)
+        mapfile = mmap.mmap(mem.fd, mem.size)
+        ret_ar = np.frombuffer(mapfile, dtype=dtype, count=size).reshape(dims).view(SimArray)
+        if zero_size :
+            ret_ar = ret_ar[1:]
+        mem.close_fd()
         ret_ar._shared_fname = fname
         ret_ar._shared_del = True
     else :
@@ -883,13 +900,100 @@ def _array_factory(dims, dtype, zeros, shared) :
             ret_ar = np.empty(dims, dtype=dtype).view(SimArray)
     return ret_ar
 
-def _shared_array_deconstruct(ar) :
-    assert hasattr(ar,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
-    return ar.dtype, ar.shape, ar._shared_fname
 
-def _shared_array_reconstruct(X) :
-    dtype, dims, fname = X
-    new_ar =  np.memmap(fname, dtype=dtype, shape=dims, mode='r+').view(SimArray)
-    new_ar._shared_fname = fname
-    new_ar._shared_del = False
-    return new_ar
+if posix_ipc :
+    
+    class _deconstructed_shared_array(tuple) :
+        pass
+
+    def _shared_array_deconstruct(ar, transfer_ownership=False) :
+        """Deconstruct an array backed onto shared memory into something that can be
+        passed between processes efficiently. If *transfer_ownership* is True,
+        also transfers responsibility for deleting the underlying memory (if this
+        process has it) to the reconstructing process."""
+        
+        assert isinstance(ar, SimArray)
+        ar_base = ar
+        while isinstance(ar_base.base, SimArray) :
+            ar_base = ar_base.base
+            
+        assert hasattr(ar_base,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
+        
+        ownership_out = transfer_ownership and ar_base._shared_del
+        if transfer_ownership :
+            ar_base._shared_del=False
+
+        offset = ar.__array_interface__['data'][0]-ar_base.__array_interface__['data'][0]
+            
+        return _deconstructed_shared_array((ar.dtype, ar.shape, ar_base._shared_fname, ownership_out,
+                                            offset, ar.strides))
+
+    def _shared_array_reconstruct(X) :
+        dtype, dims, fname, ownership, offset, strides = X
+        mem = posix_ipc.SharedMemory(fname)
+        mapfile = mmap.mmap(mem.fd, mem.size)
+        size = reduce(np.multiply, dims)
+        # new_ar =  np.memmap(mem.fd, dtype=dtype, shape=dims, mode='r+').view(SimArray)
+        new_ar = np.frombuffer(mapfile, dtype=dtype, count=size, offset=offset).reshape(dims).view(SimArray)
+        new_ar.strides = strides
+        mem.close_fd()
+        new_ar._shared_fname = fname
+        new_ar._shared_del = ownership
+        return new_ar
+
+    def _shared_array_unlink(X) :
+        # os.unlink(X._shared_fname)
+        posix_ipc.unlink_shared_memory(X._shared_fname)
+
+    def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
+        """Works through items in input, deconstructing any shared memory arrays
+        into transferrable references"""
+        output = []
+        for item in input :
+            if isinstance(item, SimArray) :
+                item = _shared_array_deconstruct(item, transfer_ownership)
+            elif isinstance(item, list) or isinstance(item,tuple) :
+                item = _recursive_shared_array_deconstruct(item, transfer_ownership)
+            output.append(item)
+        return output
+
+    def _recursive_shared_array_reconstruct(input) :
+        """Works through items in input, reconstructing any shared memory arrays
+        from transferrable references"""
+        output = []
+        for item in input :
+            if isinstance(item, _deconstructed_shared_array) :
+                item = _shared_array_reconstruct(item)
+            elif isinstance(item, list) or isinstance(item,tuple) :
+                item = _recursive_shared_array_reconstruct(item)
+            output.append(item)
+        return output
+
+    def shared_array_remote(fn) :
+        """A decorator for functions returning a new function that is
+        suitable for use remotely. Inputs to and outputs from the function
+        can be transferred efficiently if they are backed onto shared
+        memory. Ownership of any shared memory returned by the function
+        is transferred."""
+
+        @functools.wraps(fn)
+        def new_fn(args, **kwargs) :
+            assert hasattr(args,'__len__'), "Function must be called from remote_map to use shared arrays"
+            assert args[0]=='__pynbody_remote_array__', "Function must be called from remote_map to use shared arrays"
+            args = _recursive_shared_array_reconstruct(args)
+            output = fn(*args[1:],**kwargs)
+            return _recursive_shared_array_deconstruct([output], True)[0]
+        new_fn.__pynbody_remote_array__ = True
+
+        return new_fn
+
+    def remote_map(pool, fn, *iterables) :
+        """A replacement for python's in-built map function, sending out tasks
+        to the pool and performing the magic required to transport shared memory arrays
+        correctly. The function *fn* must be wrapped with the *shared_array_remote*
+        decorator to interface correctly with this magic."""
+
+        assert getattr(fn, '__pynbody_remote_array__',False), "Function must be wrapped with shared_array_remote to use shared arrays"
+        iterables_deconstructed = _recursive_shared_array_deconstruct(iterables)
+        results = pool.map(fn, zip(['__pynbody_remote_array__']*len(iterables_deconstructed[0]),*iterables_deconstructed))
+        return _recursive_shared_array_reconstruct(results)
