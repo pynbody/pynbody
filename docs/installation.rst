@@ -236,8 +236,10 @@ Code source repository.  Pynbody uses the version control program
 `mercurial <http://mercurial.selenic.com/wiki/Download>`_
 
 1. Install mercurial 
+ 
   * Linux: ``yum install mercurial``  
   * Mac OS: download the `.dmg` and double click
+
 2. Create your own clone of the pynbody source: ``hg clone https://pynbody.googlecode.com/hg/ pynbody``, as described in the `Source tab <http://code.google.com/p/pynbody/source/checkout>`_
 
 .. warning:: There is a 150 MB test file that downloads, so checking
