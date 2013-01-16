@@ -213,8 +213,12 @@ def oneschmidtlawpoint(sim,center=True,pretime='50 Myr',
     import pynbody.plot as pp
     pp.oneschmidtlawpoint(h[1])
 
+       *pretime* (default='50 Myr'): age of stars to consider for SFR
 
-    **needs a description of keywords**
+       *diskheight* (default='3 kpc'): height of gas and stars above
+          and below disk considered for SF and gas densities.
+         
+       *rmax* (default='20 kpc'): radius of disk considered
     '''
     
     if center :
@@ -326,10 +330,30 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 
     surface brightness profile
     
+    **Usage:**
+
+    >>> import pynbody.plot as pp
+    >>> h = s.halos()
+    >>> pp.sbprofile(h[1],exp_fit=3,linestyle='dashed',color='k')
+
     **Options:**
 
     *band* ('v'): which Johnson band to use. available filters: U, B,
                      V, R, I, J, H, K
+
+    *fit_exp*(False): Fits straight exponential line outside radius specified.
+
+    *fit_sersic*(False): Fits Sersic profile outside radius specified.
+
+    *diskheight('3 kpc')*
+    *rmax('20 kpc')*:  Size of disk to be profiled
+
+    *binning('equaln')*:  How show bin sizes be determined? based on 
+          pynbody.analysis.profile
+
+    *center(True)*:  Automatically align face on and center?
+
+    *axes(False)*: In which axes (subplot) should it be plotted?
 
     *filename* (None): name of file to which to save output
 
@@ -337,12 +361,6 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 
     By default, sbprof will use the formation mass of the star.  
     In tipsy, this will be taken from the starlog file. 
-
-    **Usage:**
-
-    >>> import pynbody.plot as pp
-    >>> h = s.halos()
-    >>> pp.sbprofile(h[1],linestyle='dashed',color='k')
     
     '''
     
@@ -402,6 +420,17 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 
 
 def moster(xmasses,z):
+    '''Based on Moster+ (2012) return what stellar mass corresponds to the
+    halo mass passed in.
+
+    **Usage**
+    
+    xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+    ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
+    plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+                         y2=np.array(ystarmasses)*np.array(errors),
+                         facecolor='#BBBBBB',color='#BBBBBB')
+    '''
     hmp = np.log10(xmasses)
     # from Moster et al (2010)                                                  
     M10a=11.590470
@@ -451,18 +480,20 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
     Takes a halo catalogue and plots the member stellar masses as a
     function of halo mass.
 
-    Options: 
-
-    *filename* (None): name of file to which to save output
-    
-    **needs a description of all keyword arguments**
-
     Usage:
     
     >>> import pynbody.plot as pp
     >>> h = s.halos()
     >>> pp.guo(h,marker='+',markerfacecolor='k')
     
+    **Options:**
+
+    *compare* (True): Should comparison line be plotted?
+         If compare = 'guo', Guo+ (2010) plotted instead of Moster+ (2012)
+
+    *baryfrac* (False):  Should line be drawn for cosmic baryon fraction?
+
+    *filename* (None): name of file to which to save output
     '''
 
     #if 'marker' not in kwargs :
