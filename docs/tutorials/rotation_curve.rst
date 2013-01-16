@@ -75,4 +75,15 @@ gravity code. We can fix this, and if your machine has more cores you can tell i
 Now all gravity calculations will use the parallel gravity calculation
 on 30 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
-:func:`~pynbody.plot.image`.
+:func:`pynbody.plot.sph.image`.
+
+If you want to make your configuration changes permanent, create a file called ``.pynbodyrc`` in your home directory with the lines
+
+:: 
+
+   gravity_calculation_mode: direct_omp
+   number_of_threads: 30
+
+
+See the file ``default_config.ini`` in the pynbody source distribution
+for other options.
