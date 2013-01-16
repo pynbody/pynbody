@@ -16,3 +16,4 @@ the code functionality.
    Basic data access <data_access>
    Profiles <profile>
    Rotation curves <rotation_curve>
+   Making Pictures <pictures>
