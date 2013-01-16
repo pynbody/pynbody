@@ -125,7 +125,7 @@ def _cpui_count_particles(filename) :
     nstar_this = (data!=0).sum()
     return npart_this, nstar_this, my_mask
 
-
+@remote_exec
 def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_star, _type, star_mask, nstar) :
     f = file(filename)
     header = _read_fortran_series(f, ramses_particle_header)
