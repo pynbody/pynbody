@@ -907,6 +907,9 @@ if posix_ipc :
     class _deconstructed_shared_array(tuple) :
         pass
 
+    class RemoteKeyboardInterrupt(Exception) :
+        pass
+
     def _shared_array_deconstruct(ar, transfer_ownership=False) :
         """Deconstruct an array backed onto shared memory into something that can be
         passed between processes efficiently. If *transfer_ownership* is True,
@@ -979,11 +982,14 @@ if posix_ipc :
 
         @functools.wraps(fn)
         def new_fn(args, **kwargs) :
-            assert hasattr(args,'__len__'), "Function must be called from remote_map to use shared arrays"
-            assert args[0]=='__pynbody_remote_array__', "Function must be called from remote_map to use shared arrays"
-            args = _recursive_shared_array_reconstruct(args)
-            output = fn(*args[1:],**kwargs)
-            return _recursive_shared_array_deconstruct([output], True)[0]
+            try:
+                assert hasattr(args,'__len__'), "Function must be called from remote_map to use shared arrays"
+                assert args[0]=='__pynbody_remote_array__', "Function must be called from remote_map to use shared arrays"
+                args = _recursive_shared_array_reconstruct(args)
+                output = fn(*args[1:],**kwargs)
+                return _recursive_shared_array_deconstruct([output], True)[0]
+            except KeyboardInterrupt :
+                raise RemoteKeyboardInterrupt()
         new_fn.__pynbody_remote_array__ = True
 
         return new_fn
@@ -996,5 +1002,8 @@ if posix_ipc :
 
         assert getattr(fn, '__pynbody_remote_array__',False), "Function must be wrapped with shared_array_remote to use shared arrays"
         iterables_deconstructed = _recursive_shared_array_deconstruct(iterables)
-        results = pool.map(fn, zip(['__pynbody_remote_array__']*len(iterables_deconstructed[0]),*iterables_deconstructed))
+        try:
+            results = pool.map(fn, zip(['__pynbody_remote_array__']*len(iterables_deconstructed[0]),*iterables_deconstructed))
+        except RemoteKeyboardInterrupt :
+            raise KeyboardInterrupt
         return _recursive_shared_array_reconstruct(results)
