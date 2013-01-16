@@ -888,11 +888,12 @@ def _array_factory(dims, dtype, zeros, shared) :
         # ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)
         mapfile = mmap.mmap(mem.fd, mem.size)
         ret_ar = np.frombuffer(mapfile, dtype=dtype, count=size).reshape(dims).view(SimArray)
+        ret_ar._shared_fname = fname
+        ret_ar._shared_del = True
         if zero_size :
             ret_ar = ret_ar[1:]
         mem.close_fd()
-        ret_ar._shared_fname = fname
-        ret_ar._shared_del = True
+        
     else :
         if zeros :
             ret_ar = np.zeros(dims, dtype=dtype).view(SimArray)

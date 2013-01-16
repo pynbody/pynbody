@@ -511,7 +511,11 @@ class RamsesSnap(snapshot.SimSnap) :
 
         dm_ar = self.dm[blockname]
         star_ar = self.star[blockname]
-        
+        if len(star_ar)==0 :
+            star_ar = np.array(star_ar)
+        if len(dm_ar)==0 :
+            dm_ar=np.array(dm_ar)
+            
         remote_map(self.reader_pool,
                    _cpui_load_particle_block,
                    [self._particle_filename(i) for i in self._cpus],
