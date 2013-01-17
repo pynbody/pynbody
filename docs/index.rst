@@ -19,7 +19,7 @@ happy to provide further assistance via our
 Installation
 ------------
 
-Consult the :doc:`installation` documentation for instruction on how
+Consult the :doc:`installation` documentation for instructions on how
 to get going.
 
 

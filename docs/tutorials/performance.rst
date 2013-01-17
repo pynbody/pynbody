@@ -225,7 +225,7 @@ So in summary, the template code at the start of this document advocates:
 
 
 Overheads of raw SimArrays
--------------------------
+--------------------------
 
 .. note::
 
