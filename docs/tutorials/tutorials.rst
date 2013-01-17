@@ -19,3 +19,13 @@ the code functionality.
    Profiles <profile>
    Rotation curves <rotation_curve>
    Making Pictures <pictures>
+
+
+Advanced tutorials
+===============
+
+These tutorials are likely to be of interest only in special cases.
+
+.. toctree::
+
+   Performance issues <performance>

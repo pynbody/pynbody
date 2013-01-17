@@ -8,24 +8,31 @@ for N-body and SPH astrophysical simulations.
 Getting help
 ------------
 
-Help for pynbody comes in two forms
+Documentation for `pynbody` is maintained in two forms.
 
- 1. The wiki, which is recommended for new users, at
-      <http://tinyurl.com/pynbody>
- 2. docstrings in the code for reference, which can be accessed
-    using the standard help() function
+ 1. Tutorial-style documentation, which can be
+    accessed :ref:`here <tutorials>`. If you are viewing this help from
+    within python, please visit http://www.itp.uzh.ch/~roskar/pynbody/docs/.
+ 2. Reference documentation within the code, which can be accessed
+    using the standard python help() function, the ipython ? operator,
+    or online.
+
+There is also a `user group <https://groups.google.com/forum/?fromgroups=#!forum/pynbody-users>`_
+where the developers are happy to help with any problems you encounter.
+
+
 
 What's available
 ----------------
 
-Pynbody handles Gadget, Gadget-HDF and Tipsy files. To load
+Pynbody handles Gadget, Gadget-HDF, Tipsy, Nchilada and Ramses files. To load
 any of these, use
 
 >>> f = pynbody.load(filename)
 
 to create a :class:`pynbody.snapshot.SimSnap` object *f*, which then acts
 as a dictionary holding the arrays inside *f*. For more information
-see <http://code.google.com/p/pynbody/wiki/BasicTutorial>.
+see :ref:`data-access`.
 
 Configuration
 -------------
