@@ -1,6 +1,6 @@
 """
-**simdict**
-===========
+simdict
+=======
 
 This submodule defines an augmented dictionary class
 (:class:`SimDict`) for :class:`~pynbody.snapshot.SimSnap` properties

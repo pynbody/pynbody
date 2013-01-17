@@ -1,6 +1,6 @@
 """
-**array**
-=========
+array
+=====
 
 Defines a shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
 

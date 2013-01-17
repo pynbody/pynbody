@@ -11,14 +11,16 @@ installation experience is swift and painless. If you encounter issues
 during the installation process, please let us know right away. Once
 you complete the installation, don't forget to read the
 :ref:`getting-help` section. Finally, if you decide you like pynbody
-and you end up using it for your scientific work, please see the
-:ref:`acknowledging-pynbody` bit at the very end. Enjoy!
+and you end up using it for your scientific work, please see 
+:ref:`acknowledging-pynbody`. Enjoy!
 
 
 If you are already a regular python/numpy/scipy user
 ----------------------------------------------------
 
-1. If you have have `setuptools <http://pypi.python.org/pypi/setuptools>`_ installed, just type ``easy_install pynbody``.
+1. If you have have `setuptools <http://pypi.python.org/pypi/setuptools>`_ installed, just type ``easy_install pynbody``. 
+
+.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
 2. Follow the instructions in the :ref:`install-pynbody` section
 
@@ -74,14 +76,20 @@ You might also want
   * Installing `h5py <http://code.google.com/p/h5py/>`_ will allow you
     to work with Gadget HDF snapshots. See the :ref:`h5py-ref` below.
 
+.. _distutils:
+
 Setup Python Distutils
 ----------------------
 
 As the webpage `adding to python
 <http://docs.python.org/install/index.html>`_ describes, standard
-python packages are installed using distutils. Once you follow the
-simple steps below, installing *most* python packages is simple and
-straightforward. 
+python packages are installed using distutils. By default, this is
+done in the `site-packages` directory that resides wherever python is
+installed. If you do not have root permissions, then you will not be
+able to install packages there, so you need to tell python to install
+them somewhere else (your home directory is a fine option). The steps
+below describe how to make this happen, and once you've configured it
+properly installing *most* python packages will be a breeze.
 
 1. Create a directory where python packages will be installed.  We
 recommend ``${HOME}/python``.  
@@ -285,34 +293,6 @@ NEVER commit before you pull!  It creates a painful situation.
    pynbody.prefix = https://pynbody.googlecode.com/hg
    pynbody.username = foo
    pynbody.password = bar
-
-
-.. _getting-help:
-
-Reporting Issues and Getting Help
----------------------------------
-
-The first place you'll want to look is the :ref:`tutorials` page. We
-really value feedback from users, especially when things are not
-working correctly because this is the best way for us to correct
-bugs. This is a community effort so please let us know if you find
-strange behavior or if you have ideas for improvements. The best way
-to do this is via the `Issues page
-<http://code.google.com/p/pynbody/issues/list>`_ on the `Pynbody
-Google Code site <http://code.google.com/p/pynbody/>`_. If you use the
-code regularly for your projects, consider becoming a contributor!
-
-.. _acknowledging-pynbody:
-
-Acknowledging Pynbody in Scientific Publications
-------------------------------------------------
-
-Pynbody development is an open-source, community effort. The only way
-to make it as robust as possible is to have a wide user-base and this
-is only possible by spreading the word. We currently do not have a
-paper that you could cite, but we ask that if you use pynbody in
-preparing a scientific publication, you mention it either as a
-footnote in the text or in the ackowledgments section. Thank you.
 
 
 .. _h5py-ref:

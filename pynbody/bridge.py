@@ -1,7 +1,7 @@
 """
 
-**bridge**
-==========
+bridge
+======
 
 The bridge module has tools for connecting different outputs. For instance,
 it's possible to take a subview (e.g. a halo) from one snapshot and 'push'

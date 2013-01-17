@@ -26,7 +26,7 @@ in this case)
    :include-source:
 
 Creating images using :func:`~pynbody.plot.sph.image`
-----------------------------------------------------
+-----------------------------------------------------
 
 The :func:`~pynbody.plot.sph.image` function is a general purpose function 
 for creating an x-y map of a value from your :func:`~pynbody.snapshot.SimSnap` 
@@ -50,7 +50,9 @@ Common issues
 :func:`~pynbody.plot.sph.image` is prone to a number of common errors 
 when being used by new users. Probably the most common is
 
-ValueError: zero-size array to minimum.reduce without identity
+::
+
+   ValueError: zero-size array to minimum.reduce without identity
 
 This can come about in a number of circumstances, but essentially it 
 means that there were not enough particles in the region that was being 
@@ -62,7 +64,9 @@ cause a problem).
 
 Another common error is the following:
 
-TypeError: 'int' object does not support item assignment
+:: 
+
+   TypeError: 'int' object does not support item assignment
 
 which occurs when the returned image from the kernel is a singular value 
 rather than an array. In this case, the issue was because the kernel did 

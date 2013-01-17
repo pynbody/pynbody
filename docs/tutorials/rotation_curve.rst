@@ -41,25 +41,7 @@ configuration like this:
  In [2]: import pynbody
 
  In [3]: pynbody.config
- Out[3]: 
- {'centering-scheme': 'pot',
-  'default-cosmology': {'a': 1.0,
-  'h': 0.70399999999999996,
-  'omegaL0': 0.72799999999999998,
-  'omegaM0': 0.27200000000000002,
-  'sigma8': 0.80900000000000005},
-  'gravity_calculation_mode': 'direct',
-  'halo-class-priority': [pynbody.halo.AmigaGrpCatalogue,
-   pynbody.halo.AHFCatalogue],
-  'number_of_threads': '4',
-  'snap-class-priority': [pynbody.ramses.RamsesSnap,
-   pynbody.gadget.GadgetSnap,
-   pynbody.gadgethdf.GadgetHDFSnap,
-   pynbody.tipsy.TipsySnap],
-  'sph': {'smooth-particles': 32, 'tree-leafsize': 16},
-  'threading': 'True',
-  'tracktime': True,
-  'verbose': True}
+
 
 Here we see two options: ``gravity_calculation_mode = 'direct'`` and
 ``number_of_threads = 4``. The second option tells pynbody to use 4
