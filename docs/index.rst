@@ -6,12 +6,14 @@
 Pynbody Documentation
 ===============================
 
-This is the reference documentation for `pynbody
+Welcome to the documentation for `pynbody
 <http://code.google.com/p/pynbody/>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
-simulations. For other documentation, including installation
-instructions and tutorials, see the `wiki pages
-<http://code.google.com/p/pynbody/wiki/WelcomeToPynbody?tm=6>`_.
+simulations. We recommend you get started by reading about
+:ref:`pynbody-installation` and trying the :ref:`tutorials`. We are
+happy to provide further assistance via our
+`user group email list
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. 
 
 
 
