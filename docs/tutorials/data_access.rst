@@ -426,15 +426,34 @@ instance, you can pick out sub-subsnaps or sub-sub-subsnaps.
  
  In [48]: f_slab[[100,105,252]].gas['pos']
 
- .. note:: Under most circumstances there is very little performance
- penalty to using SubSnaps. However in performance-critical code it is
- worth understanding the difference between SubSnaps and
- IndexedSubSnaps 
+.. note:: Under most circumstances there is very little performance
+ penalty to using a `SubSnap`. However in performance-critical code it
+ is worth understanding a little more about what's going on under the
+ hood. See :ref:`performance`.
 
-Conclusion
+Filters
 -----------
 
-We've scratched the surface of the capabilities of `pynbody`. 
+Another way you can select a subset of particles is to use a
+`filter`. This can lead to more readable code than the equivalent
+explicitly written condition. For example, to pick out a sphere
+centered on the origin, you can use:
 
-..note:: We should insert pointers to other tutorials here
+.. ipython::
 
+ In [71]: from pynbody.filt import *
+
+ In [72]: f_sphere = f[Sphere('10 kpc')]
+
+
+For a list of filters, see  :py:mod:`pynbody.filt`.
+
+
+Where next?
+-----------
+
+This concludes the tutorial for basic use of `pynbody`. Further
+:ref:`tutorials <tutorials>` for specific tasks are available. We are
+happy to provide further assistance via our
+`user group email list
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. 
