@@ -20,6 +20,7 @@ the code functionality.
    Rotation curves <rotation_curve>
    Making Pictures <pictures>
    Group finding <halos>
+   Processing Snapshots <processing>
 
 Advanced tutorials
 ===============
