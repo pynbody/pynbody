@@ -19,7 +19,7 @@ the code functionality.
    Profiles <profile>
    Rotation curves <rotation_curve>
    Making Pictures <pictures>
-
+   Group finding <halos>
 
 Advanced tutorials
 ===============
