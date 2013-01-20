@@ -563,9 +563,13 @@ class IpythonDirective(Directive):
         #check time stamp?
         seen_docs = [i for i in os.listdir(tempfile.tempdir)
             if i.startswith('seen_doc')]
+        if not hasattr(self.shell, "_docs") :
+            self.shell._docs = []
+            
         if seen_docs:
             fname = os.path.join(tempfile.tempdir, seen_docs[0])
             docs = open(fname).read().split('\n')
+            docs = self.shell._docs # AP modification - seems more reliable (?!)
             if not self.state.document.current_source in docs:
                 self.shell.IP.history_manager.reset()
                 self.shell.IP.execution_count = 1
@@ -597,7 +601,8 @@ class IpythonDirective(Directive):
             fout = open(fname, 'a')
             fout.write(self.state.document.current_source+'\n')
             fout.close()
-
+            self.shell._docs.append(self.state.document.current_source) # AP modification
+            
         return rgxin, rgxout, promptin, promptout
 
 
