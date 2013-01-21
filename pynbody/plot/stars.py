@@ -425,9 +425,10 @@ def moster(xmasses,z):
 
     **Usage**
     
-    xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
-    ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
-    plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+       >>> from pynbody.plot.stars import moster
+       >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+       >>> ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
+       >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
                          y2=np.array(ystarmasses)*np.array(errors),
                          facecolor='#BBBBBB',color='#BBBBBB')
     '''

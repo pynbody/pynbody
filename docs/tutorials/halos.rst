@@ -44,7 +44,7 @@ SnapShot. The first one which returns True gets instantiated.
 Partial loading the Halos versus full load
 -------------------------------------------
 
-By default, partial loading (i.e. `lazy loading') is used when loading simulation files.  This means that the command h=s.halos() does not actually load halo information until needed.  Sometimes the simulation snapshot or the halo _particles file is very large, and is not desirable or possible to load everything into memory.  Hence, partial loading can be very useful.  The _particles file is needed to find out which particles belong to a particular halo.  
+By default, partial loading (i.e. 'lazy loading') is used when loading simulation files.  This means that the command h=s.halos() does not actually load halo information until needed.  Sometimes the simulation snapshot or the halo _particles file is very large, and is not desirable or possible to load everything into memory.  Hence, partial loading can be very useful.  The _particles file is needed to find out which particles belong to a particular halo.  
 
 In the following example only particles from a single halo are loaded:
 
@@ -81,10 +81,11 @@ This can be useful if one wants to analyze the halo catalog without needing any 
 Write halo catalog (i.e. convert AHF outfiles to tipsy format)
 --------------------------------------------------------------
 
-Tipsy is a particle viewer.  A tipsy format file can be useful for quick viewing in tipsy to check
-whether the AHF halo finder did anything sensible. Write the (ahf)
-halo catalog to disk. Former idl users might notice that this produces outfiles
-similar to `Alyson's idl script'. 
+Tipsy is a particle viewer.  A tipsy format file can be useful for
+quick viewing in tipsy to check whether the AHF halo finder did
+anything sensible. Write the (ahf) halo catalog to disk. Former idl
+users might notice that this produces outfiles similar to 'Alyson's
+idl script'.
 
 The 3 written file types are: 
 1- .gtp (tipsy file with halos as star particles). 
@@ -131,7 +132,7 @@ In directory with AHF outputs, where there should be a _halos file, a _particles
 .. note:: If a .grp file is not needed, it can be skipped by using s.halos() instead of s.halos(make_grp=True) (and then also skipping the s['grp].write().  The reason to skip the _grp file creation is that for simulations with large particle numbers, the _particles file read through, which is triggered by s['grp'].write() (with partial loading enabled), can be quite slow when the _particles file is large.
 
 
-pynbody computes the `hubble' constant by default -- specifying avoids rounding errors in converting halo positions, which might be important for some applications, as in:
+pynbody computes the 'hubble' constant by default -- specifying avoids rounding errors in converting halo positions, which might be important for some applications, as in:
 >>> h.writetipsy(s,h,"test.gtp",hubble=0.7)  
 >>> h.writestat(s,h,"test.stat",hubble=0.7) 
 
