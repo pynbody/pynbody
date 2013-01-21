@@ -3,7 +3,7 @@
 .. _performance:
 
 Performance optimisation in pynbody
-==================================
+===================================
 
 `Pynbody` is built on top of `numpy`, which means that learning how to optimize `numpy` 
 array manipulations is the most important route to writing efficient code; see http://scipy-lectures.github.com/advanced/optimizing/index.html

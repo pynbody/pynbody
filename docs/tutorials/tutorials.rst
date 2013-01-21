@@ -23,7 +23,7 @@ the code functionality.
    Processing Snapshots <processing>
 
 Advanced tutorials
-===============
+==================
 
 These tutorials are likely to be of interest only in special cases.
 
