@@ -63,7 +63,7 @@ DESCRIBE HOW................
 
 
 Halos only usage (if no simulation snapshot present) - Does this work?)
----------------------------------------------------------------
+-----------------------------------------------------------------------
 >>> s=pynbody.new()
 >>> s.properties  # prints the default properties just loaded (can be changed by e.g. s.properties['h']=.73)
 >>> s._filename="simulation_snapshot_name_without_the_ahf_suffixes"
@@ -115,7 +115,7 @@ The  _particles files requires an extra step to sort out headers.  Get the total
 
 
 Now convert to tipsy If serial/OpenMP AHF (or after above file concatenations made if MPI):
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note:: If AHF was run using MPI, first concatnate the AHF processor outfiles into a single outfile set, as described above.
 
