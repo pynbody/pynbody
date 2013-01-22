@@ -10,7 +10,8 @@ array manipulations is the most important route to writing efficient code; see h
 for an introduction.
 
 However there are a few issues which are specific to `pynbody`. By far the most important of these
-that we have come across is the overheads incurred by using `SubSnap`s which is explained
+that we have come across is the overheads incurred by using `SubSnap`s
+which are explained
 below.
 
 
