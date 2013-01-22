@@ -419,6 +419,7 @@ class Registry(dict) :
 class ExecutionControl(object) :
     def __init__(self) :
         self.count = 0
+        self.on_exit = None
 
     def __enter__(self) :
         self.count+=1
@@ -426,7 +427,9 @@ class ExecutionControl(object) :
     def __exit__(self, *excp) :
         self.count-=1
         assert self.count>=0
-
+        if self.count==0 and self.on_exit is not None :
+            self.on_exit()
+            
     def __nonzero__(self) :
         return self.count>0
 
