@@ -2,8 +2,6 @@
 Analysis
 ========
 
-.. toctree:: 
-   :maxdepth: 2
 
 .. automodule:: pynbody.analysis.angmom
    :members:

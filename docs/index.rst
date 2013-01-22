@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+
 Pynbody Documentation
 ===============================
 
@@ -95,7 +96,7 @@ Reference
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    Simulation loaders <loaders>
    Essential generic modules <essentials>   

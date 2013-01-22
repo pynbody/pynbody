@@ -215,7 +215,9 @@ Install pynbody
 ---------------
 
 You should be able to type, in your shell, `easy_install pynbody` and
-everything will happen automatically.
+everything will happen automatically. 
+
+.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
 If you don't have `easy_install` or want to do it manually:
 
