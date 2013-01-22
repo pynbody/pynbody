@@ -92,7 +92,7 @@ class SimSnap(object) :
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
                   "_getting_array_lock", "properties", "_derived_array_track", "_family_derived_array_track",
-                  "_dependency_track", "_calculating", "immediate_mode"]
+                  "_dependency_track", "_calculating", "immediate_mode", "delay_promotion"]
 
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it
@@ -183,9 +183,16 @@ class SimSnap(object) :
         self.immediate_mode = util.ExecutionControl()
         # use 'with immediate_mode: ' to always return actual numpy arrays, rather
         # than IndexedSubArrays which point to sub-parts of numpy arrays
+
+
+        self.delay_promotion = util.ExecutionControl()
+        # use 'with delay_promotion: ' to prevent any family arrays being promoted
+        # into simulation arrays (which can cause confusion because the array returned
+        # from create_family_array might have properties you don't expect)
+
+        self.delay_promotion.on_exit = lambda : self._delayed_array_promotions()
+        self.__delayed_promotions = []
         
-
-
         self._getting_array_lock = threading.RLock()
         
         self.properties = simdict.SimDict({})
@@ -738,27 +745,32 @@ class SimSnap(object) :
                              for fam in family._registry])
         pre_fam_keys = fk()
 
-        if fam is not None :
-            self._load_array(array_name, fam)
-        else :
-            try:
+        with self.delay_promotion :
+            # delayed promotion is required here, otherwise units get messed up when
+            # a simulation array gets promoted mid-way through our loading process.
+            #
+            # see the gadget unit test, test_unit_persistence
+            if fam is not None :
                 self._load_array(array_name, fam)
-            except IOError :
-                for fam_x in self.families() :
-                    self._load_array(array_name, fam_x)
-                    
-        # Find out what was loaded
-        new_keys = set(anc.keys())-pre_keys
-        new_fam_keys = fk()
-        for fam in new_fam_keys :
-            new_fam_keys[fam] =  new_fam_keys[fam]-pre_fam_keys[fam]
-        
-        # Attempt to convert what was loaded into friendly units
-        for v in new_keys :
-            anc._autoconvert_array_unit(anc[v])
-        for f, vals in new_fam_keys.iteritems() :
-            for v in vals :
-                anc._autoconvert_array_unit(anc[f][v])
+            else :
+                try:
+                    self._load_array(array_name, fam)
+                except IOError :
+                    for fam_x in self.families() :
+                        self._load_array(array_name, fam_x)
+
+            # Find out what was loaded
+            new_keys = set(anc.keys())-pre_keys
+            new_fam_keys = fk()
+            for fam in new_fam_keys :
+                new_fam_keys[fam] =  new_fam_keys[fam]-pre_fam_keys[fam]
+
+            # Attempt to convert what was loaded into friendly units
+            for v in new_keys :
+                anc._autoconvert_array_unit(anc[v])
+            for f, vals in new_fam_keys.iteritems() :
+                for v in vals :
+                    anc._autoconvert_array_unit(anc[f][v])
        
         
     ############################################
@@ -1022,32 +1034,35 @@ class SimSnap(object) :
         if all([x in fams for x in self_families]) :
             # If, once we created this array, *all* families would have
             # this array, just create a simulation-level array
-            self._promote_family_array(array_name, ndim=ndim,derived=derived,shared=shared)
+            if self._promote_family_array(array_name, ndim=ndim,derived=derived,shared=shared) is not None :
+                return None
 
-        else :
-            if shared is None :
-		shared = self._shared_arrays
-            new_ar = array._array_factory(dims, dtype, False, shared)
-            new_ar._sim = weakref.ref(self)
-            new_ar._name = array_name
-            new_ar.family = family
+        # if we get here, either the array cannot be promoted to simulation level, or that would
+        # not be appropriate, so actually go ahead and create the family array
             
-            def sfa(n, v) :
-                try:
-                    self._family_arrays[n][family] = v
-                except KeyError :
-                    self._family_arrays[n] = dict({family : v})
+        if shared is None :
+            shared = self._shared_arrays
+        new_ar = array._array_factory(dims, dtype, False, shared)
+        new_ar._sim = weakref.ref(self)
+        new_ar._name = array_name
+        new_ar.family = family
 
-            sfa(array_name, new_ar)
-            if derived :
-                if array_name not in self._family_derived_array_track[family] :
-                    self._family_derived_array_track[family].append(array_name)
-                    
-            if ndim is 3 :
-                array_name_1D = self._array_name_ND_to_1D(array_name)
-                for i,a in enumerate(array_name_1D) :
-                    sfa(a, new_ar[:,i])
-                    self._family_arrays[a][family]._name = a
+        def sfa(n, v) :
+            try:
+                self._family_arrays[n][family] = v
+            except KeyError :
+                self._family_arrays[n] = dict({family : v})
+
+        sfa(array_name, new_ar)
+        if derived :
+            if array_name not in self._family_derived_array_track[family] :
+                self._family_derived_array_track[family].append(array_name)
+
+        if ndim is 3 :
+            array_name_1D = self._array_name_ND_to_1D(array_name)
+            for i,a in enumerate(array_name_1D) :
+                sfa(a, new_ar[:,i])
+                self._family_arrays[a][family]._name = a
                     
 
                 
@@ -1165,7 +1180,13 @@ class SimSnap(object) :
             raise KeyError, "Array "+name+" is a family-level property"
 
     
+    def _delayed_array_promotions(self) :
+        """Called automatically to catch up with pending array promotions"""
+        for x in self.__delayed_promotions :
+            self._promote_family_array(*x)
 
+        self.__delayed_promotions = []
+        
     def _promote_family_array(self, name, ndim=1, dtype=None, derived=False,shared=None) :
         """Create a simulation-level array (if it does not exist) with
         the specified name. Copy in any data from family-level arrays
@@ -1173,7 +1194,13 @@ class SimSnap(object) :
 
         if ndim==1 and self._array_name_1D_to_ND(name) :
             return self._promote_family_array(self._array_name_1D_to_ND(name), 3, dtype)
-        
+
+        if self.delay_promotion :
+            # if array isn't already scheduled for promotion, do so now
+            if not any([x[0]==name for x in self.__delayed_promotions]) :
+               self.__delayed_promotions.append([name, ndim, dtype, derived, shared])
+            return None
+
         if dtype is None :
             try :
                 x = self._family_arrays[name].keys()[0]
@@ -1229,6 +1256,8 @@ class SimSnap(object) :
             for v in self._family_derived_array_track.itervalues() :
                 if name in v :
                     del v[v.index(name)]
+                    
+        return self._arrays[name]
         
     
 
