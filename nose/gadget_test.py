@@ -111,4 +111,37 @@ def test_write_single_array():
 def test_no_mass_block() :
     f = pynbody.load("testdata/gadget_no_mass")
     f['mass'] # should succeed
-    
+
+def test_unit_persistence() :
+    f = pynbody.load("testdata/test_g2_snap")
+
+    # f2 is the comparison case - just load the whole
+    # position array and convert it, simple    
+    f2 = pynbody.load("testdata/test_g2_snap")
+    f2['pos']
+    f2.physical_units()
+
+  
+    f.gas['pos']
+    f.physical_units()
+    assert (f.gas['pos']==f2.gas['pos']).all()
+
+    # the following lazy-loads should lead to the data being
+    # auto-converted
+    f.dm['pos']
+    assert (f.gas['pos']==f2.gas['pos']).all()
+    assert (f.dm['pos']==f2.dm['pos']).all()
+
+    # the final one is the tricky one because this will trigger
+    # an array promotion and hence internally inconsistent units
+    f.star['pos']
+
+    assert (f.star['pos']==f2.star['pos']).all()
+
+    # also check it hasn't messed up the other bits of the array!
+    assert (f.gas['pos']==f2.gas['pos']).all()
+    assert (f.dm['pos']==f2.dm['pos']).all()
+        
+     
+    assert (f['pos']==f2['pos']).all()
+
