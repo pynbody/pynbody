@@ -4,20 +4,22 @@
 Processing Snapshots with Pynbody
 =================================
 
-How I use pynbody
------------------
-One typical use for scripting software like python is to automate common
-tasks.  I find it extremely useful to run a standard series of analysis routines
-to produce small png files on the cluster where I'm running simulations.
-That way, I can quickly download the 1 MB of images rather than the 
-~1 GB snapshot files to find out how my simulation is progressing.
+Using pynbody as a batch system
+----------------------------
 
-I also create a `.data` file using the python pickle module.  This includes
-fundamental properties of the snapshot like the mass of stars, hot gas,
-cold gas, radial profiles, a rotation curve.  That way, when you want to 
-make future plots comparing snapshots from different times or different
-parameter choices, you only have to use pickle to quickly open the 50 kB
-data file instead of opening the 1 GB snapshot file.
+One typical use for scripting software like python is to automate common
+tasks.  You can use `pynbody` to run a standard series of analysis
+routines -- for instance to produce small png files on the cluster where you're running simulations.
+That way, you can just download 1 MB of images rather than the 
+~1 GB snapshot files to find out how a simulation is progressing.
+
+Going a step further, you might also create a `.data` file using the
+python pickle module, giving fundamental properties of the
+snapshot like the mass of stars, hot gas, cold gas, radial profiles, a
+rotation curve.  That way, when you want to make future plots
+comparing snapshots from different times or different parameter
+choices, you only have to use pickle to quickly open the 50 kB data
+file instead of opening the 1 GB snapshot file.
 
 
 doall.py
