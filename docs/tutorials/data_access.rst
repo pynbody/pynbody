@@ -8,7 +8,7 @@ Getting started: basic data access
 The following example shows how to load a file, determine various
 attributes, access some data and make use of unit information. 
 
-.. note:: Unlike other `pynbody` tutorials, here we will discuss an
+.. note:: This tutorial discusses an
   interactive session rather than a script. This is only cosmetically
   different; the commands discussed here can of course all be used in
   a script too. We will use the `ipython` interpreter which offers a
@@ -26,12 +26,10 @@ First steps
  installed. See <https://code.google.com/p/pynbody/wiki/Installation>
  for more information. You will also need the standard `pynbody` test
  files, so that you can load the exact same data as used to write the
- tutorial. These files are in the `nose` folder alongside the unit tests. You already have these if you used `mercurial` to fetch the
- latest version; otherwise you'll need to download them separately
- here: <https://code.google.com/p/pynbody/downloads/list>
- (`nose.tar.gz`).
+ tutorial. You need to download these separately here: <https://code.google.com/p/pynbody/downloads/list>
+ (`testdata.tar.gz`).
 
-Change into the `nose` folder (see the note above if you can't find
+Change into the `testdata` folder (see the note above if you can't find
 this) so the test files are easy to access. Then launch `ipython`. At
 the prompt, type ``import pynbody``. If all is installed correctly,
 this should silently succeed, and you are ready to use `pynbody`
