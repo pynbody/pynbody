@@ -1,0 +1,5 @@
+build
+_build
+*.pyc
+direct_omp.c
+testdata

@@ -16,6 +16,7 @@ the code functionality.
 .. toctree:: 
 
    Basic data access <data_access>
+   Snapshot manipulation <snapshot_manipulation>
    Profiles <profile>
    Rotation curves <rotation_curve>
    Making Pictures <pictures>

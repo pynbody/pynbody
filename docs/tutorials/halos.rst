@@ -1,6 +1,8 @@
 .. profile tutorial
 
 
+.. _halo_tutorial:
+
 Halo loading in Pynbody
 =======================
 
