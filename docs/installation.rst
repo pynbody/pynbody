@@ -17,10 +17,13 @@ and you end up using it for your scientific work, please see
 
 If you are already a regular python/numpy/scipy user
 ----------------------------------------------------
+Either:
 
 1. If you have have `setuptools <http://pypi.python.org/pypi/setuptools>`_ installed, just type ``easy_install pynbody``. 
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
+
+Or:
 
 2. Follow the instructions in the :ref:`install-pynbody` section
 
@@ -262,7 +265,7 @@ that you spend some time getting familiar with it. The `git documentation <http:
 Updating Code
 ^^^^^^^^^^^^^
 
-Remember that the `master` branch is the master branch -- it is the
+Remember that the `master` branch is the
 code that everyone else receives when they do a fresh clone of the
 repository. It is therefore recommended that any development work is
 done in a separate branch that is merged back into the main branch
