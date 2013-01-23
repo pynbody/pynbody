@@ -983,12 +983,16 @@ if posix_ipc :
         @functools.wraps(fn)
         def new_fn(args, **kwargs) :
             try:
+                import signal
                 assert hasattr(args,'__len__'), "Function must be called from remote_map to use shared arrays"
                 assert args[0]=='__pynbody_remote_array__', "Function must be called from remote_map to use shared arrays"
                 args = _recursive_shared_array_reconstruct(args)
+                signal.signal(signal.SIGINT, signal.SIG_DFL)
                 output = fn(*args[1:],**kwargs)
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
                 return _recursive_shared_array_deconstruct([output], True)[0]
             except KeyboardInterrupt :
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
                 raise RemoteKeyboardInterrupt()
         new_fn.__pynbody_remote_array__ = True
 
