@@ -242,59 +242,66 @@ Staying on the bleeding edge
 ----------------------------
 
 To get the most recent code, you can check the code out of our Google
-Code source repository.  Pynbody uses the version control program
-`mercurial <http://mercurial.selenic.com/wiki/Download>`_
+Code source repository.  Pynbody uses `git <http://git-scm.com/>`_ for 
+development. 
 
-1. Install mercurial 
+0. `git` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
+
+1. Install `git` 
  
-  * Linux: ``yum install mercurial``  
-  * Mac OS: download the `.dmg` and double click
+	get the appropriate binary from http://git-scm.com/downloads and install
 
-2. Create your own clone of the pynbody source: ``hg clone https://pynbody.googlecode.com/hg/ pynbody``, as described in the `Source tab <http://code.google.com/p/pynbody/source/checkout>`_
+2. see the `instructions on Google Code <https://code.google.com/p/pynbody/source/checkout>`_. 
 
-.. warning:: There is a 150 MB test file that downloads, so checking
- out the code will take a while the first time you do it.
+3. to get the newest from the repository, run ``git pull``.
+
+If you plan on joining the development efforts and you are unfamiliar with git, we recommend
+that you spend some time getting familiar with it. The `git documentation <http://git-scm.com/doc>`_ is quite good and it's worth a read through Chapter 3 on branching.  
+
 
 Updating Code
 ^^^^^^^^^^^^^
 
+Remember that the `master` branch is the master branch -- it is the
+code that everyone else receives when they do a fresh clone of the
+repository. It is therefore recommended that any development work is
+done in a separate branch that is merged back into the main branch
+only when it has been satisfactorily checked. See `What a Branch Is
+<http://git-scm.com/book/en/Git-Branching-What-a-Branch-Is>`_ and a
+primer on `Basic Branching and Merging
+<http://git-scm.com/book/en/Git-Branching-Basic-Branching-and-Merging>`_
+in the git documentation. This `description of a workflow
+<http://sandofsky.com/blog/git-workflow.html>`_ that discusses tidying
+up development branches before merging into the master branch is a
+good read. 
+
 We are in pretty active development stage at the moment, so it's
-always a good idea to update your code.  The way you do it is not
-quite ``hg update`` a la cvs.  You have to
-
-::
-
-   hg pull
-   hg update
+always a good idea to keep your code updated. If you want to see what
+everyone else has been commiting, you can see the `graph on the google
+code site <https://code.google.com/p/pynbody/source/list>`_.
 
 
-If you have worked on files that get updated in the repository since
-your last pull, you will have to merge.  If the merge tool doesn't
-work automatically, then you will be forced to resolve the conflicts
-yourself.  Once you have resolved the conflicts, you need to mark the
-file as resolved with ``hg resolve -m``
+Nose tests
+^^^^^^^^^^
 
-Then, if you make changes, you can commit them to your local
-repository with ``hg commit`` and then push them to this repository
-with ``hg push``.
+The root directory of the pynbody distribution includes a ``nose``
+directory, where the unit (nose) tests reside. In order to run them, you'll need to download the ``testdata`` bundle from the `downloads section <https://code.google.com/p/pynbody/downloads/list>`_ of the pynbody site. 
 
-NEVER commit before you pull!  It creates a painful situation.
 
-.. note:: Google has created a new password for you `here
- <http://code.google.com/hosting/settings>`_.  You use your gmail
- address minus the "@gmail.com" as your username.  You can put
- something like the following lines into a ``~/.hgrc`` you create to make
- this happen automatically:
+Building your own documentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-::
+You obviously know where to find the documentation since you are
+reading it. But if you wanted to build your own flavor of it or if you
+want to contribute to the documentation, go to ``docs`` in the root
+directory. You will need to install `Sphinx <http://sphinx-doc.org/>`_
+to build the docs, and this is usually most easily done with
+``easy_install sphinx`` if you have distutils properly
+configured. Once you have `sphinx` installed, you can simply run
+``make html`` in the ``docs`` directory to build the html version or
+make latexpdf to generate a pdf file, for example. All builds are
+found in ``_build``.
 
-   [ui]
-   username = Foo Bar <foo@bar.com>
-
-   [auth]
-   pynbody.prefix = https://pynbody.googlecode.com/hg
-   pynbody.username = foo
-   pynbody.password = bar
 
 
 .. _h5py-ref:
