@@ -122,7 +122,7 @@ In the face-on orientation, we may wish to make a profile:
 
  In [29]: plt.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]')
 
-.. image:: images/resized.png
+.. image:: images/snapshot_manipulation_f3.png
 
 
 See the :doc:`profile` tutorial or the
