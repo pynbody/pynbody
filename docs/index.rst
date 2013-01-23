@@ -84,12 +84,16 @@ footnote in the text or in the ackowledgments section. Thank you.
 
 
 Tutorials
-------------
+---------
+
+The tutorials are not a complete guide to Pynbody, but they will help
+new users get started, as well as provide some more in-depth
+information for the seasoned users.
 
 .. toctree::
    :maxdepth: 2
 
-   Tutorials <tutorials/tutorials>   
+   Pynbody tutorials <tutorials/tutorials>   
 
 
 Reference
