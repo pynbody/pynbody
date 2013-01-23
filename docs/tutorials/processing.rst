@@ -1,7 +1,7 @@
 .. processing tutorial
 
 
-Processing Snapshots with Pynbody
+Batch-processing Snapshots with Pynbody
 =================================
 
 Using pynbody as a batch system
