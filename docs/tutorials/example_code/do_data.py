@@ -1,39 +1,8 @@
-import numpy as np
-import pynbody
-import pynbody.plot as pp
-import pynbody.plot.sph
-import pynbody.filt as filt
-import pynbody.units as units
-import pynbody.analysis.profile as profile
-import sys, os, glob, pickle
-
-simname = sys.argv[1]
-pp.plt.ion()
-
-s = pynbody.load(simname)
-h = s.halos()
-diskf = filt.Disc('40 kpc','2 kpc')
-notdiskf = filt.Not(filt.Disc('40 kpc','3 kpc'))
-i=1
-if (len(sys.argv) > 2):
-    photiords = np.genfromtxt(sys.argv[2],dtype='i8')
-    frac = np.float(len(np.where(np.in1d(photiords,h[i]['iord']))[0]))/len(photiords)
-    print 'i: %d frac: %.2f'%(i,frac)
-    while(((frac) < 0.5) & (i<100)): 
-        i=i+1
-        frac = np.float(len(np.where(np.in1d(photiords,h[i]['iord']))[0]))/len(photiords)
-        print 'i: %d frac: %.2f'%(i,frac)
-else:
-    while len(h[i].star) <2: i=i+1
-
-if (i==100): sys.exit()
-pynbody.analysis.angmom.faceon(h[i])
-s.physical_units()
-Jtot = np.sqrt(((np.multiply(h[i]['j'].transpose(),h[i]['mass']).sum(axis=1))**2).sum())
-W = np.sum(h[i]['phi']*h[i]['mass'])
-K = np.sum(h[i]['ke']*h[i]['mass'])
-absE = np.fabs(W+K)
-mvir=np.sum(h[i]['mass'].in_units('Msol'))
+Jtot = np.sqrt(((np.multiply(h[i]['j'].transpose(),h[i]['mass']).sum(axis=1))**2).sum())            # calculate angular momentum
+W = np.sum(h[i]['phi']*h[i]['mass']) # halo potential energy
+K = np.sum(h[i]['ke']*h[i]['mass'])  # halo kinetic energy
+absE = np.fabs(W+K)    # total halo energy
+mvir=np.sum(h[i]['mass'].in_units('Msol'))  # virial mass
 rvir=pynbody.array.SimArray(np.max(h[i]['r'].in_units('kpc')),'kpc')
 # 3D density profile
 rhoprof = profile.Profile(h[i],dim=3,type='log')
@@ -69,5 +38,5 @@ pickle.dump({'z':s.properties['z'],
              'sb':{'r':sbprof['rbins'].in_units('kpc'), 
                    'sb':sbprof['sb,i']}
              },
-            open(simname+'.data','w'))#, pickle.HIGHEST_PROTOCOL)
+            open(simname+'.data','w'), pickle.HIGHEST_PROTOCOL)
 
