@@ -24,8 +24,7 @@ doall.py
 --------
 Example script that does a lot of generic analysis of a cosmological galaxy simulation: 
 
-.. plot:: tutorials/example_code/doall.py
-   :include-source:
+.. literalinclude:: tutorials/example_code/doall.py
 
 
 
