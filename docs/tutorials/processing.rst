@@ -22,19 +22,27 @@ data file instead of opening the 1 GB snapshot file.
 
 doall.py
 --------
-Example script that does a lot of generic analysis of a cosmological galaxy simulation: 
+There is an example script in pynbody/examples called doall.py that does 
+a lot of generic analysis of a cosmological galaxy simulation.  To go through
+it piece by piece, let's look at the three main sections, the part that 
+stores data, the part that makes some standard plots and the part the part
+that makes the images: 
 
-.. literalinclude:: example_code/doall.py
 
+Pickling Data
+^^^^^^^^^^^^^
 
+.. literalinclude:: example_code/do_data.py
 
 Standard plots
 ^^^^^^^^^^^^^^
 
+.. literalinclude:: example_code/do_plots.py
 
 
-pickling data
-^^^^^^^^^^^^^
+Standard Images
+^^^^^^^^^^^^^^^
 
+.. literalinclude:: example_code/do_plots.py
 
 
