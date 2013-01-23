@@ -53,24 +53,35 @@ and this guess is then refined using the `shrinking sphere` method
 (see the documentation for :func:`~pynbody.analysis.halo.center` for
 more details).
 
+If you want to check which coordinates pynbody finds for the center,
+supply :func:`~pynbody.analysis.halo.center` with the ``retcen``
+keyword and change the positions manually. This is useful for
+comparing the results of different centering schemes, when accurate
+center determination is essential:
+
+::
+
+  cen = pynbody.analysis.halo.center(h[1],mode='hyb',retcen=True)
+ 
+  s['pos'] -= cen
+
+
+  
+
 We can take a look at what we have at the center now: 
 
 .. ipython::
 
  In [5]: s.physical_units()
  
- In [9]: pynbody.plot.image(s.g, width=100)
+ @savefig snapshot_manipulation_fig1.png width=5in
+ In [9]: pynbody.plot.image(s.g, width=100);
 
-Which gives something like: 
-
-.. image:: images/snapshot_manipulation_f1.png
-
-.. note:: see the :doc:`pictures` tutorial for more examples of making images.
+.. note:: see the :doc:`pictures` tutorial for more examples and help regarding images. 
 
 
 Aligning the Snapshot
 ---------------------
-
 
 In this example, the disk seems to be aligned more or less face-on,
 but lets say we want it edge-on:
@@ -79,9 +90,9 @@ but lets say we want it edge-on:
 
  In [12]: pynbody.analysis.angmom.sideon(h[1], cen=(0,0,0))
 
- In [13]: pynbody.plot.image(s.g, width=100)
+ @savefig snapshot_manipulation_fig2.png width=5in
+ In [13]: pynbody.plot.image(s.g, width=100);
 
-.. image:: images/snapshot_manipulation_f2.png
 
 Note that the function :func:`~pynbody.analysis.angmom.sideon` will
 actually by default center the snapshot first, unless you feed it the
@@ -90,7 +101,7 @@ earlier. It then calculates the angular momentum vector in a sphere
 around the center and rotates the snapshot such that the angular
 momentum vector is parallel to the `y`-axis. If, instead, you'd like
 the disk face-on, you can call the equivalent
-:func:`pynbody.analysis.angmom.faceon` instead. Alternatively, if you
+:func:`pynbody.analysis.angmom.faceon`. Alternatively, if you
 want to just rotate the snapshot by arbitrary angles, the
 :class:`~pynbody.snapshot.SimSnap` class includes functions
 :func:`~pynbody.snapshot.SimSnap.rotate_x`,
@@ -114,16 +125,16 @@ In the face-on orientation, we may wish to make a profile:
  
  In [25]: import matplotlib.pylab as plt
 
- In [25]: plt.plot(p['rbins'], p['density'])
+ In [25]: plt.clf()
 
- In [26]: plt.semilogy()
+ In [25]: plt.plot(p['rbins'], p['density']);
 
- In [28]: plt.xlabel('$R$ [kpc]')
+ In [26]: plt.semilogy();
 
- In [29]: plt.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]')
+ In [28]: plt.xlabel('$R$ [kpc]');
 
-.. image:: images/snapshot_manipulation_f3.png
-
+ @savefig snapshot_manipulation_fig3.png width=5in
+ In [29]: plt.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]');
 
 See the :doc:`profile` tutorial or the
 :class:`~pynbody.analysis.profile.Profile` documentation for more
