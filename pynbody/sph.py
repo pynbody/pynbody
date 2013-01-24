@@ -290,7 +290,7 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     
     return im
 
-def threaded_render_image(s,*args, **kwargs) :
+def _threaded_render_image(s,*args, **kwargs) :
     """
     Render an SPH image using multiple threads.
 
@@ -300,17 +300,13 @@ def threaded_render_image(s,*args, **kwargs) :
     file, probably 4. It should probably match the number of cores on your
     machine. """
     
-    num_threads = config['number_of_threads']
-
-    if "num_threads" in kwargs :
-        num_threads = kwargs['num_threads']
-        
-        del kwargs['num_threads']
+    
+    num_threads = kwargs['num_threads']
+    del kwargs['num_threads']
 
     verbose = kwargs.get('verbose', config['verbose'])
     
     kwargs['__threaded']=True # will pass into render_image
-    kwargs['force_quiet']=True
     
     ts = []
     outputs = []
@@ -331,10 +327,10 @@ def threaded_render_image(s,*args, **kwargs) :
 def _render_image_bridge(*args, **kwargs) :
     """Helper function for threaded_render_image; do not call directly"""
     output_list = args[0]
-    X = render_image(*args[1:],**kwargs)
+    X = _render_image(*args[1:],**kwargs)
     output_list.append(X)
-        
-def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
+
+def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, 
                  y1=None, z_plane = 0.0, out_units=None, xy_units=None,
                  kernel=Kernel(),
                  z_camera=None,
@@ -343,10 +339,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  smooth_range=None,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
-                 __threaded=False) :
-
+                 threaded=_threaded_image) :
     """
-
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
 
@@ -396,8 +390,33 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
      *approximate_fast*: if True, render high smoothing length particles at
        progressively lower resolution, resample and sum
 
-     *force_quiet*: if True, all text output suppressed
+     *verbose*: if True, all text output suppressed
+
+     *threaded*: if False (or None), render on a single core. Otherwise,
+      the number of threads to use (defaults to a value specified in your
+      configuration files).
     """
+
+    if threaded :
+        return _threaded_render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+                               out_units, xy_units, kernel, z_camera, smooth,
+                               smooth_in_pixels, smooth_range, True, 
+                               approximate_fast, num_threads=threaded)
+    else :
+        return _render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+                               out_units, xy_units, kernel, z_camera, smooth,
+                               smooth_in_pixels, smooth_range, False, 
+                               approximate_fast)
+
+
+        
+def _render_image(snap, qty, x2, nx, y2, ny, x1, 
+                 y1, z_plane, out_units, xy_units, kernel, z_camera,
+                 smooth, smooth_in_pixels, smooth_range, force_quiet,
+                 approximate_fast, __threaded=False) :
+
+    """The single-threaded image rendering core function. External calls
+    should be made to the render_image function."""
 
     track_time = config["tracktime"] and not force_quiet
     verbose = config["verbose"] and not force_quiet
@@ -405,7 +424,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
     if approximate_fast :
     
         reren = lambda subsamp_nx, subsamp_ny, subsamp_sm_range : \
-            render_image(snap, qty, x2, subsamp_nx, y2, subsamp_ny, x1,  y1, z_plane, out_units, xy_units,
+            _render_image(snap, qty, x2, subsamp_nx, y2, subsamp_ny, x1,  y1, z_plane, out_units, xy_units,
                          kernel, z_camera,
                          smooth,
                          smooth_in_pixels, subsamp_sm_range, True, False, __threaded)

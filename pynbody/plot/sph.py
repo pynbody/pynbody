@@ -51,8 +51,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z = False, filename=None, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False, threaded=True, fill_nan = True, fill_val=0.0,
-          number_of_threads=None, **kwargs) :
+          noplot = False, ret_im=False, fill_nan = True, fill_val=0.0,
+          **kwargs) :
     """
 
     Make an SPH image of the given simulation.
@@ -97,9 +97,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     
     *ret_im* (False): return the image instance returned by imshow
 
-    *threaded* (True): use the multi-threaded version of the image routines
-
-    *number_of_threads* (None) : if set, specify the number of threads for 
+    *num_threads* (None) : if set, specify the number of threads for 
     the multi-threaded routines; otherwise the pynbody.config default is used
 
     *fill_nan* (True): if any of the image values are NaN, replace with fill_val
@@ -122,21 +120,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     width = float(width)
 
     kernel = sph.Kernel()
-
-    # use multi-threading?
-    if threaded: 
-        rfunc = sph.threaded_render_image
-        
-        if number_of_threads is None : 
-            number_of_threads = int(config["number_of_threads"])
-        if number_of_threads < 0: 
-            import multiprocessing
-            number_of_threads = multiprocessing.cpu_count()
-        kwargs.update({'num_threads': number_of_threads})
-    else : 
-        rfunc = sph.render_image
-        
-
+ 
     perspective = z_camera is not None
     if perspective and not av_z: kernel = sph.Kernel2D()
 
@@ -173,10 +157,10 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
                 sim["__one"]=np.ones_like(sim[qty])
                 sim["__one"].units="1"
                 
-            im = rfunc(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
-                       z_camera=z_camera, **kwargs)
-            im2 = rfunc(sim, av_z, width/2, resolution, kernel=kernel, 
-                        z_camera=z_camera, **kwargs)
+            im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
+                                          z_camera=z_camera, **kwargs)
+            im2 = sph.render_image(sim, av_z, width/2, resolution, kernel=kernel, 
+                                           z_camera=z_camera, **kwargs)
             
             top = sim.ancestor
 
@@ -194,8 +178,8 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
          
     else :
 
-        im = rfunc(sim,qty,width/2,resolution,out_units=units, 
-                   kernel = kernel,  z_camera = z_camera, **kwargs)
+        im = sph.render_image(sim,qty,width/2,resolution,out_units=units, 
+                                      kernel = kernel,  z_camera = z_camera, **kwargs)
 
     if fill_nan : 
         im[np.isnan(im)] = fill_val
