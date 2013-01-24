@@ -114,8 +114,18 @@ face-on orientation:
 
  In [21]: s.rotate_x(90)
 
-.. note:: All of the snapshot manipulation functions described above operate on the *entire* simulation, even if you only pass in a :class:`~pynbody.snapshot.SubSnap`. So, for example, ``s.g.rotate_x(90)`` is equivalent to ``s.rotate_x(90)``.
-
+.. note:: High-level snapshot manipulation functions defined in
+  ``pynbody.analysis`` typically transform the *entire* simulation,
+  even if you only pass in a :class:`~pynbody.snapshot.SubSnap`. This 
+  is because you normally want to *calculate* the transform
+  from a subset of particles, but *apply* the transform to the full
+  simulation (e.g. when centering on a particular halo). So, for
+  instance, ``pynbody.analysis.angmom.sideon(h[1])`` calculates the
+  transforms for halo 1, but then applies them to the entire snapshot.
+  However, *core* routines (i.e. those that are not part of the
+  ``pynbody.analysis`` module) typically operate on exactly what you 
+  ask them to, so ``s.g.rotate_x(90)`` rotates only the gas while
+  ``s.rotate_x(90)`` rotates the entire simulation.
 
 In the face-on orientation, we may wish to make a profile: 
 
