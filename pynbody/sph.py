@@ -19,63 +19,133 @@ import snapshot, array
 import math
 import time
 import sys
-from . import snapshot, array, config, units, util
+from . import snapshot, array, config, units, util, config_parser
 import threading
+import kdtree
 
+_threaded_smooth = config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
+_threaded_image = config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
+_approximate_image = config_parser.getboolean('sph','approximate-fast-images')
+
+
+def _thread_map(func, *args) :
+    threads = []
+    for arg_this in zip(*args) :
+        threads.append(threading.Thread(target=func, args=arg_this))
+        threads[-1].start()
+    for t in threads:
+        while t.is_alive() :
+            # just calling t.join() with no timeout can make it harder to
+            # debug deadlocks!
+            t.join(1.0)
 
 def build_tree(sim) :
-    if hasattr(sim,'kdtree') is False : 
-        import kdtree
-        if config['verbose']: print>>sys.stderr, 'Building tree with leafsize=%d'%config['sph']['tree-leafsize']
-        if config['tracktime']:
-            import time
-            start = time.clock()
-        sim.kdtree = kdtree.KDTree(sim['pos'], sim['vel'], sim['mass'], leafsize=config['sph']['tree-leafsize'])
-        if config['tracktime'] : 
-            end = time.clock()
-            print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
-        elif config['verbose'] : print>>sys.stderr, 'Tree build done.'
+    if hasattr(sim,'kdtree') is False :
+        # n.b. getting the following arrays through the full framework is
+        # not possible because it can cause a deadlock if the build_tree
+        # has been triggered by getting an array in the calling thread.
+        pos, vel, mass = sim._get_array('pos'), sim._get_array('vel'), sim._get_array('mass')
+        sim.kdtree = kdtree.KDTree(pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
+    
+def _tree_decomposition(obj) :
+    return [obj[i::_threaded_smooth] for i in range(_threaded_smooth)]
+
+def _get_tree_objects(sim) :
+    return map(getattr,_tree_decomposition(sim),['kdtree']*_threaded_smooth)
+
+def build_tree_or_trees(sim) :
+    global _threaded_smooth
+    
+    if not _threaded_smooth :
+        if hasattr(sim,'kdtree') : return
+    else :
+        bits = _tree_decomposition(sim)
+        if all(map(hasattr, bits, ['kdtree']*len(bits))) : return
+    
+    if config['verbose'] :
+        if _threaded_smooth :
+            print>>sys.stderr, 'Building %d trees with leafsize=%d'%(_threaded_smooth,config['sph']['tree-leafsize'])
+        else :
+            print>>sys.stderr, 'Building tree with leafsize=%d'%config['sph']['tree-leafsize']
+
+    if config['tracktime'] :
+        import time
+        start = time.clock()
+
+    if _threaded_smooth is not None :
+        # trigger any necessary 'lazy' activity from this thread,
+        # it won't be available to the individual worker threads
+        sim['pos'], sim['vel'], sim['mass']
+        
+        _thread_map(build_tree, bits)
+    else :
+        build_tree(sim)
+
+    if config['tracktime'] :
+        end = time.clock()
+        print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
+    elif config['verbose'] and verbose: print>>sys.stderr, 'Tree build done.'
+
         
 @snapshot.SimSnap.stable_derived_quantity
 def smooth(self):
+    build_tree_or_trees(self)
     
-    build_tree(self)
-        
     if config['verbose']: print>>sys.stderr, 'Smoothing with %d nearest neighbours'%config['sph']['smooth-particles']
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
     if config['tracktime']:
         import time
-        start = time.clock()
+        start = time.time()
 
-    self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles']) 
+    if _threaded_smooth is not None :
+        _thread_map(kdtree.KDTree.populate,
+                    _get_tree_objects(self),
+                    _tree_decomposition(sm),
+                    ['hsm']*_threaded_smooth,
+                    [config['sph']['smooth-particles']]*_threaded_smooth)
+        
+        sm/=_threaded_smooth**0.3333
+    
+            
+    else :
+        self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles']) 
     
     if config['tracktime'] : 
-        end = time.clock()
-        print>>sys.stderr, 'Smoothing done in %5.3g s'%(end-start)
+        end = time.time()
+        print>>sys.stderr, 'Smoothing done in %5.3gs'%(end-start)
     elif config['verbose']: print>>sys.stderr, 'Smoothing done.'
 
     return sm 
 
 @snapshot.SimSnap.stable_derived_quantity
 def rho(self):
-
-    build_tree(self)
-       
+    build_tree_or_trees(self)
     if config['verbose']: print>>sys.stderr, 'Calculating density with %d nearest neighbours'%config['sph']['smooth-particles']
-    sm = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
+    rho = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
 
+    smooth = self['smooth']
+    
     if config['tracktime']:
         import time
-        start = time.clock()
-        
-    self.kdtree.populate(sm, 'rho', nn=config['sph']['smooth-particles'], smooth=self['smooth'])
+        start = time.time()
 
+    if _threaded_smooth is  None :
+        self.kdtree.populate(rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
+    else :
+        _thread_map(kdtree.KDTree.populate,
+                    _get_tree_objects(self),
+                    _tree_decomposition(rho),
+                    ['rho']*_threaded_smooth,
+                    [config['sph']['smooth-particles']]*_threaded_smooth,
+                    _tree_decomposition(smooth))
+        rho*=_threaded_smooth
+        
     if config['tracktime'] : 
-        end = time.clock()
+        end = time.time()
         print>>sys.stderr, 'Density calculation done in %5.3g s'%(end-start)
     elif config['verbose']: print>>sys.stderr, 'Density done.'
     
-    return sm
+    return rho
 
 class Kernel(object) :
     def __init__(self) :
@@ -222,25 +292,31 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
 
 def threaded_render_image(s,*args, **kwargs) :
     """
-    Render an SPH image using multiple threads. The arguments are
-    exactly the same as those to render_image, but additionally
-    you can specify the number of threads using the keyword
-    argument *num_threads* (default 4). This should be matched
-    to the number of cores on your machine."""
+    Render an SPH image using multiple threads.
+
+    The arguments are exactly the same as those to render_image, but
+    additionally you can specify the number of threads using the
+    keyword argument *num_threads*. The default is given by your configuration
+    file, probably 4. It should probably match the number of cores on your
+    machine. """
     
-    num_threads = 4
+    num_threads = config['number_of_threads']
 
     if "num_threads" in kwargs :
         num_threads = kwargs['num_threads']
         
         del kwargs['num_threads']
 
-
+    verbose = kwargs.get('verbose', config['verbose'])
+    
     kwargs['__threaded']=True # will pass into render_image
+    kwargs['force_quiet']=True
     
     ts = []
     outputs = []
-    
+
+    if verbose : print "Rendering image on %d threads..."%num_threads
+        
     for i in xrange(num_threads) :
         s_local = s[i::num_threads]
         args_local = [outputs, s_local]+list(args)
@@ -266,7 +342,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, \
                  smooth_in_pixels = False,
                  smooth_range=None,
                  force_quiet=False,
-                 approximate_fast=False,
+                 approximate_fast=_approximate_image,
                  __threaded=False) :
 
     """
