@@ -247,9 +247,7 @@ development.
 
 0. `git` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
 
-1. Install `git` 
- 
-	get the appropriate binary from http://git-scm.com/downloads and install
+1. get the appropriate binary from http://git-scm.com/downloads and install `git`
 
 2. see the `instructions on Google Code <https://code.google.com/p/pynbody/source/checkout>`_. 
 
