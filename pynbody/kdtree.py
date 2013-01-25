@@ -6,7 +6,6 @@ KDTree
 Provides access to nearest neighbour lists and smoothing lengths.
 
 """
-
 from . import kdmain
 
 class KDTree:
@@ -41,16 +40,14 @@ class KDTree:
 
     def populate(self, dest, property, nn=None, smooth=None, rho=None):
         if nn is None: nn = 64
-
         if (smooth is not None) and (rho is not None):
             smx = kdmain.nn_start(self.kdtree, int(nn), smooth, rho)
         elif smooth is not None:
             smx = kdmain.nn_start(self.kdtree, int(nn), smooth)
         else :
             smx = kdmain.nn_start(self.kdtree, int(nn))
-        
+            
         kdmain.populate(self.kdtree, smx, dest, int(self.propid[property]))
-        
         kdmain.nn_stop(self.kdtree, smx)
         
         

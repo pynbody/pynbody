@@ -170,13 +170,16 @@ particles.
        [ 2863.65112305,  2938.05444336,  1980.06152344]], dtype=float32, 'kpc h**-1')
 
 
-.. note:: Array names are standardized across all file
+
+.. note::
+
+ Array names are standardized across all file
  formats. For instance, even if you load a Gadget-HDF file -- which
  internally refers to the position array as `coordinates` -- you
  still access that array from pynbody by the name ``pos``. The
  intention is that code never needs to be adapted simply because you
  have switched file format. However the name mapping is fully
- configurable (see <configuration>) should you wish to adopt
+ :ref:`configurable <configuration>` should you wish to adopt
  different conventions.
 
 Some arrays are stored only for certain families. For example,
