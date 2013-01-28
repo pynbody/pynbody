@@ -52,6 +52,8 @@ import math
 import numpy as np
 import scipy, scipy.weave
 
+from . import util
+
 class Chunk:
     def __init__(self, *args, **kwargs):
         pass
@@ -298,6 +300,73 @@ class LoadControl(object) :
 
                 self._family_chunks[current_family].append((nread_disk, disk_mask, mem_slice))
                 
+
+    def iterate_with_interrupts(self, families_on_disk, families_in_memory,
+                                disk_interrupt_points, disk_interrupt_fn, multiskip=False) :
+        """Performs the same function as
+        :func:`~pynbody.chunk.LoadControl.iterate` but additionally
+        takes a list of exact file offsets *disk_interrupt_points* at
+        which to interrupt the loading process and call a
+        user-specified function *disk_interrupt_fn*.
+
+        **Input:** :
+          *disk_interrupt_points*: a list (or other iterable) of disk offsets
+            (must be in ascending order) at which to call the interrupt function
+          *disk_interrupt_fn*: a function which takes the file offset as an argument,
+            and is called precisely at the point that the disk interrupt point is reached
+            
+          See func:`~pynbody.chunk.LoadControl.iterate` for other arguments.
+
+          """
+
+        fpos = 0
+        i = 0
+        next_dip = disk_interrupt_points[i]
+        for nread_disk, disk_slice, mem_slice in self.iterate(families_on_disk, families_in_memory, multiskip) :
+            while next_dip and fpos+nread_disk>next_dip :
+
+                # an interrupt falls in the middle of our slice
+                # work out what to read first
+                len_pre = next_dip - fpos
+                d_slice_pre = util.concatenate_indexing(slice(0,len_pre),disk_slice)
+                len_m_pre = util.indexing_length(d_slice_pre)
+                m_slice_pre = util.concatenate_indexing(mem_slice, slice(0, len_m_pre))
+
+                # work out what to read second
+                len_post = nread_disk-len_pre
+                d_slice_post = util.concatenate_indexing(slice(len_pre, nread_disk), disk_slice)
+                
+        
+                # that's the disk slice relative to having read the whole thing continuously.
+                # Offset to reflect what we've missed.
+
+                if isinstance(d_slice_post, slice) :
+                    d_slice_post = slice(d_slice_post.start-len_pre, d_slice_post.stop-len_pre, d_slice_post.step)
+                else :
+                    d_slice_post-=len_pre
+                    
+                len_m_post = util.indexing_length(d_slice_post)
+                m_slice_post = util.concatenate_indexing(mem_slice, slice(len_m_pre, len_m_pre+len_m_post))
+
+                yield len_pre, d_slice_pre, m_slice_pre
+                fpos+=len_pre
+                disk_interrupt_fn(disk_interrupt_points[i])
+
+                # prepare for next interrupt
+
+                i+=1
+                if len(disk_interrupt_points)>i :
+                    next_dip = disk_interrupt_points[i]
+                else :
+                    next_dip = None
+
+                # update 'input' to reflect post reading slice (may still need further
+                # decomposition)
+                nread_disk, disk_slice, mem_slice = len_post, d_slice_post, m_slice_post
+ 
+            
+            yield nread_disk, disk_slice, mem_slice
+            fpos+=nread_disk
         
     def iterate(self, families_on_disk, families_in_memory, multiskip=False) :
         """Provide an iterator which yields step-by-step instructions
