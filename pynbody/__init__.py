@@ -174,7 +174,7 @@ config['number_of_threads'] = int(config_parser.get('general', 'number_of_thread
 config['gravity_calculation_mode'] = config_parser.get('general', 'gravity_calculation_mode')
 
 # Import subpackages
-from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, ramses, analysis, halo, derived, bridge, gravity, sph, nchilada
+from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, ramses, genic, analysis, halo, derived, bridge, gravity, sph, nchilada
 
 try: 
     from . import plot
@@ -198,6 +198,7 @@ imp.reload(derived)
 imp.reload(bridge)
 imp.reload(gravity)
 imp.reload(sph)
+imp.reload(genic)
 
 try : 
     imp.reload(plot)
@@ -209,7 +210,7 @@ except :
 
 # This is our definitive list of classes which are able to
 # load snapshots
-_snap_classes = [gadgethdf.GadgetHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap, tipsy.TipsySnap, ramses.RamsesSnap]
+_snap_classes = [gadgethdf.GadgetHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap, tipsy.TipsySnap, ramses.RamsesSnap, genic.GenICSnap]
 
 # Turn the config strings for snapshot/halo classes into lists of
 # actual classes
