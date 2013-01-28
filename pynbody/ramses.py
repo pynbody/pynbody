@@ -17,6 +17,9 @@ from . import family
 from . import units
 from . import config, config_parser
 from . import chunk
+from . import util
+
+from util import read_fortran, read_fortran_series, skip_fortran
 
 import struct, os
 import numpy as np
@@ -56,47 +59,10 @@ if not multiprocess:
 
 
 
-_head_type = np.dtype('i4')
+
 _float_type = np.dtype('f8')
 _int_type = np.dtype('i4')
 
-def _read_fortran(f, dtype, n=1) :
-    if not isinstance(dtype, np.dtype) :
-        dtype = np.dtype(dtype)
-        
-    length = n * dtype.itemsize
-    alen = np.fromfile(f, _head_type, 1)
-    if alen!=length :
-        raise IOError, "Unexpected FORTRAN block length %d!=%d"%(alen,length)
-   
-    data = np.fromfile(f, dtype, n)
-    
-    alen = np.fromfile(f, _head_type, 1)
-    if alen!=length :
-        raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d"%(alen,length)
-
-    return data
-
-def _skip_fortran(f, n=1) :
-    for i in xrange(n) :
-        alen = np.fromfile(f, _head_type, 1)
-        f.seek(alen,1)
-        alen2 = np.fromfile(f, _head_type, 1)
-        assert alen==alen2
-        
-def _read_fortran_series(f, dtype) :
-    q = np.empty(1,dtype=dtype)
-    for i in xrange(len(dtype.fields)) :
-        data = _read_fortran(f, dtype[i], 1)
-
-        # I really don't understand why the following acrobatic should
-        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
-        if hasattr(data[0],"__len__") :
-            q[0][i][:] = data[0]
-        else :
-            q[0][i] = data[0]
-
-    return q[0]
 
 
 def _timestep_id(basename) :
@@ -116,10 +82,10 @@ def _cpui_count_particles(filename) :
     distinguisher_type = np.dtype(particle_distinguisher[1])
 
     f = file(filename)
-    header = _read_fortran_series(f, ramses_particle_header)
+    header = read_fortran_series(f, ramses_particle_header)
     npart_this = header['npart']
-    _skip_fortran(f,distinguisher_field)
-    data = _read_fortran(f,distinguisher_type,header['npart'])
+    skip_fortran(f,distinguisher_field)
+    data = read_fortran(f,distinguisher_type,header['npart'])
     
     my_mask = (data!=0)
     nstar_this = (data!=0).sum()
@@ -128,14 +94,14 @@ def _cpui_count_particles(filename) :
 @remote_exec
 def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_star, _type, star_mask, nstar) :
     f = file(filename)
-    header = _read_fortran_series(f, ramses_particle_header)
+    header = read_fortran_series(f, ramses_particle_header)
 
-    _skip_fortran(f, offset)
+    skip_fortran(f, offset)
 
     ind1_dm = ind0_dm+header['npart']-nstar
     ind1_star = ind0_star+nstar
 
-    data = _read_fortran(f, _type, header['npart'])
+    data = read_fortran(f, _type, header['npart'])
 
     if len(star_mask)>0 :
         dm_ar[ind0_dm:ind1_dm]=data[~star_mask]
@@ -148,21 +114,21 @@ def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_st
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
     f = file(amr_filename, 'rb')
-    header = _read_fortran_series(f, ramses_amr_header)
-    _skip_fortran(f, 13)
+    header = read_fortran_series(f, ramses_amr_header)
+    skip_fortran(f, 13)
 
-    n_per_level = _read_fortran(f, _int_type, header['nlevelmax']*header['ncpu']).reshape(( header['nlevelmax'], header['ncpu']))
-    _skip_fortran(f,1)
+    n_per_level = read_fortran(f, _int_type, header['nlevelmax']*header['ncpu']).reshape(( header['nlevelmax'], header['ncpu']))
+    skip_fortran(f,1)
     if header['nboundary']>0 :
-        _skip_fortran(f,2)
-        n_per_level_boundary = _read_fortran(f, _int_type, header['nlevelmax']*header['nboundary']).reshape(( header['nlevelmax'], header['nboundary']))
+        skip_fortran(f,2)
+        n_per_level_boundary = read_fortran(f, _int_type, header['nlevelmax']*header['nboundary']).reshape(( header['nlevelmax'], header['nboundary']))
 
-    _skip_fortran(f,2)
+    skip_fortran(f,2)
     if bisection_order :
-        _skip_fortran(f, 5)
+        skip_fortran(f, 5)
     else :
-        _skip_fortran(f, 1)
-    _skip_fortran(f, 3)
+        skip_fortran(f, 1)
+    skip_fortran(f, 3)
 
     offset = np.array(header['ng'],dtype='f8')/2
     offset-=0.5
@@ -176,18 +142,18 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
             if cpuf==cpu :
 
                 # this is the data we want
-                _skip_fortran(f,3) # grid, next, prev index
+                skip_fortran(f,3) # grid, next, prev index
 
                 # store the coordinates in temporary arrays. We only want
                 # to copy it if the cell is not refined
-                x0,y0,z0 = [_read_fortran(f, _float_type, n_per_level[level,cpu-1]) for ar in range(ndim)]
+                x0,y0,z0 = [read_fortran(f, _float_type, n_per_level[level,cpu-1]) for ar in range(ndim)]
 
-                _skip_fortran(f,1 # father index
+                skip_fortran(f,1 # father index
                               + 2*ndim # nbor index
                               + 2*(2**ndim) # son index,cpumap,refinement map
                               )
 
-                refine = np.array([_read_fortran(f,_int_type,n_per_level[level,cpu-1]) for i in xrange(2**ndim)])
+                refine = np.array([read_fortran(f,_int_type,n_per_level[level,cpu-1]) for i in xrange(2**ndim)])
 
                 if level==maxlevel :
                     refine[:] = 0
@@ -200,12 +166,12 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
             else :
 
                 # skip ghost regions from other CPUs
-                _skip_fortran(f,3+ndim+1+2*ndim+3*2**ndim)
+                skip_fortran(f,3+ndim+1+2*ndim+3*2**ndim)
 
         if header['nboundary']>0 :
             for boundaryf in np.where(n_per_level_boundary[level, :]!=0)[0] :
 
-                        _skip_fortran(f,3+ndim+1+2*ndim+3*2**ndim)
+                        skip_fortran(f,3+ndim+1+2*ndim+3*2**ndim)
 
 @remote_exec
 def _cpui_count_gas_cells(level_iterator_args) :
@@ -251,7 +217,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1) :
     grid_info_iter = _cpui_level_iterator(*lia)
 
     f = file(filename)
-    header = _read_fortran_series(f, ramses_hydro_header)
+    header = read_fortran_series(f, ramses_hydro_header)
 
     if header['nvarh']<nvar :
         warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)"%(nvar, header['nvarh']), RuntimeWarning)
@@ -263,8 +229,8 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1) :
     for level in xrange(maxlevel or header['nlevelmax']) :
 
         for cpuf in xrange(1,header['ncpu']+1) :
-            flevel = _read_fortran(f, 'i4')[0]
-            ncache = _read_fortran(f, 'i4')[0]
+            flevel = read_fortran(f, 'i4')[0]
+            ncache = read_fortran(f, 'i4')[0]
             assert flevel-1==level
 
             if ncache>0 :
@@ -281,19 +247,19 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1) :
                         i0 = i1
                         i1 = i0+(refine[icel]==0).sum()
                         for ar in dims :
-                            ar[i0:i1] = _read_fortran(f, _float_type, ncache)[(refine[icel]==0)]
+                            ar[i0:i1] = read_fortran(f, _float_type, ncache)[(refine[icel]==0)]
 
 
-                        _skip_fortran(f, (header['nvarh']-nvar))
+                        skip_fortran(f, (header['nvarh']-nvar))
 
                 else :
-                    _skip_fortran(f, (2**ndim)*header['nvarh'])
+                    skip_fortran(f, (2**ndim)*header['nvarh'])
 
         for boundary in xrange(header['nboundary']) :
-            flevel = _read_fortran(f, 'i4')[0]
-            ncache = _read_fortran(f, 'i4')[0]
+            flevel = read_fortran(f, 'i4')[0]
+            ncache = read_fortran(f, 'i4')[0]
             if ncache>0 :
-                _skip_fortran(f, (2**ndim)*header['nvarh'])
+                skip_fortran(f, (2**ndim)*header['nvarh'])
                 
                         
 ramses_particle_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('npart', 'i4'),
@@ -536,7 +502,7 @@ class RamsesSnap(snapshot.SimSnap) :
         ind0_star = 0
         for i, star_mask, nstar in zip(self._cpus, self._star_mask, self._nstar) :
             f = file(self._particle_filename(i))
-            header = _read_fortran_series(f, ramses_particle_header)
+            header = read_fortran_series(f, ramses_particle_header)
             f.close()
             ind1_dm = ind0_dm+header['npart']-nstar
             ind1_star = ind0_star+nstar
