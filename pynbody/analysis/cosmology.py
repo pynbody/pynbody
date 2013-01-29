@@ -22,11 +22,11 @@ def hzoverh0(a, omegam0):
     """ returns: H(a) / H0  = [omegam/a**3 + (1-omegam)]**0.5 """
     return numpy.sqrt(omegam0*numpy.power(a,-3) + (1.-omegam0))
 
-def _lingrowthintegral(a,omegam0):   
+def _lingrowthintegrand(a,omegam0):   
     """ (e.g. eq. 8 in lukic et al. 2008)   returns: da / [a*H(a)/H0]**3 """
     return numpy.power((a * hzoverh0(a,omegam0)),-3)
 
-def _lingrowthfac(red,omegam0,omegal0):
+def _lingrowthfac(red,omegam0,omegal0, return_norm=False):
     """
     returns: linear growth factor, b(a) normalized to 1 at z=0, good for flat lambda only
     a = 1/1+z
@@ -39,33 +39,84 @@ def _lingrowthfac(red,omegam0,omegal0):
     
     import scipy.integrate
 
-    if ((omegam0 + omegal0) != 1.):
-        print "WARNING -- omegam + lambda not equal 1, solution NOT VALID"
+    if (abs(omegam0 + omegal0-1.) >1.e-4):
+        raise RuntimeError, "Linear growth factors can only be calculated for flat cosmologies"
     
     a = 1/(1.+red)
     
     ## 1st calc. for z=z
-    lingrowth = scipy.integrate.quad(_lingrowthintegral,0.,a, (omegam0))[0]
+    lingrowth = scipy.integrate.quad(_lingrowthintegrand,0.,a, (omegam0))[0]
     lingrowth *= 5./2. * omegam0 * hzoverh0(a,omegam0)
 
     ## then calc. for z=0 (for normalization)
     a0 = 1.
-    lingrowtha0 =  scipy.integrate.quad(_lingrowthintegral,0.,a0, (omegam0))[0]
+    lingrowtha0 =  scipy.integrate.quad(_lingrowthintegrand,0.,a0, (omegam0))[0]
     lingrowtha0 *= 5./2. * omegam0  * hzoverh0(a0,omegam0)
 
     lingrowthfactor = lingrowth / lingrowtha0
-    return lingrowthfactor
+    if return_norm :
+        return lingrowthfactor, lingrowtha0
+    else :
+        return lingrowthfactor
+    
+def linear_growth_factor(f,z=None):
+    """Calculate the linear growth factor b(a), normalized to 1
+    at z=0, for the cosmology of snapshot f.
 
-
-def linear_growth_factor(f,z=None):  ##  this is just a wrapper for pynbody.
-    ## returns: linear growth factor, b(a) normalized to 1 at z=0, good for flat lambda only
+    The output is dimensionless. If a redshift z is
+    specified, it is used in place of the redshift in
+    output f.
+    """
     if z is None :
         z = f.properties['z']
     omegam0 = f.properties['omegaM0']
     omegal0 = f.properties['omegaL0']
     return _lingrowthfac(z,omegam0,omegal0)
 
+def rate_linear_growth(f, z=None, unit='h Gyr^-1') :
+    """Calculate the linear growth rate b'(a), normalized
+    to 1 at z=0, for the cosmology of snapshot f.
 
+    The output is in 'h Gyr^-1' by default. If a redshift z is specified,
+    it is used in place of the redshift in output f."""
+
+    if z is None :
+        z = f.properties['z']
+    a = 1./(1.+z)
+    omegam0 = f.properties['omegaM0']
+    omegal0 = f.properties['omegaL0']
+    
+    
+    b,X = _lingrowthfac(z,omegam0,omegal0,return_norm=True)
+    I = _lingrowthintegrand(a,omegam0)
+    
+    term1 = -(1.5*omegam0 * a**-3)*b / math.sqrt(1.-omegam0 + omegam0*a**-3)
+    term2 = (2.5*omegam0) * hzoverh0(a, omegam0)**2 * a * I / X
+
+
+    res = units.h * (term1+term2) * 100. * units.Unit("km s^-1 Mpc^-1")
+
+    return res.in_units(unit, **f.conversion_context())
+
+def _test_rate_linear_growth(f, z=None, unit='h Gyr^-1') :
+    # coded up by AP to test linear growth *rate* equation above
+    if z is None :
+        z = f.properties['z']
+    a0 = 1./(1.+z)
+    a1 = a0*0.999
+    z0=1./a0-1
+    z1=1./a1-1
+    
+    b0 = linear_growth_factor(f,z0)
+    b1 = linear_growth_factor(f,z1)
+
+    db = b1-b0
+
+    unit = units.Unit(unit)
+    dt = age(f, z1, unit**-1)-age(f,z0, unit**-1)
+
+    return db/dt
+    
 def age(f, z=None, unit='Gyr') :
     """
     Calculate the age of the universe in the snapshot f

@@ -62,3 +62,12 @@ def test_bisect() :
     """Unit test for bisection algorithm"""
 
     assert abs(pynbody.util.bisect(0.,1., lambda x: x**2-0.04)-0.20) < 1.e-6
+
+def test_slice_length() :
+    N = np.arange(100)
+
+    for end in xrange(100) :
+        for start in xrange(end) :
+            for step in xrange(1,10) :
+                S = slice(0,end,step)
+                assert len(N[S]) == pynbody.util.indexing_length(S)

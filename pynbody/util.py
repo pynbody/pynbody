@@ -226,6 +226,17 @@ def concatenate_indexing(i1, i2) :
     else :
         raise TypeError, "Don't know how to chain these index types"
 
+def indexing_length(sl_or_ar) :
+    """Given either an array or slice, return len(ar[sl_or_ar]) for any
+    array ar which is large enough that the slice does not overrun it."""
+
+    if isinstance(sl_or_ar, slice) :
+        step = sl_or_ar.step or 1
+        diff = (sl_or_ar.stop-sl_or_ar.start)
+        return diff/step + (diff%step>0)
+    else :
+        return len(sl_or_ar)
+
 def arrays_are_same(a1, a2) :
     """Returns True if a1 and a2 are numpy views pointing to the exact
     same underlying data; False otherwise."""
@@ -433,6 +444,9 @@ class ExecutionControl(object) :
     def __nonzero__(self) :
         return self.count>0
 
+    def __repr__(self) :
+        return "<ExecutionControl: %s>"%('True' if self.count>0 else 'False')
+
 
 
 
@@ -566,3 +580,49 @@ def name_map_function(_name_map, _rev_name_map) :
             return name
 
     return _translate_array_name
+
+
+
+#############################################
+# fortran reading facilities for ramses etc
+#############################################
+
+_head_type = np.dtype('i4')
+
+def read_fortran(f, dtype, n=1) :
+    if not isinstance(dtype, np.dtype) :
+        dtype = np.dtype(dtype)
+        
+    length = n * dtype.itemsize
+    alen = np.fromfile(f, _head_type, 1)
+    if alen!=length :
+        raise IOError, "Unexpected FORTRAN block length %d!=%d"%(alen,length)
+   
+    data = np.fromfile(f, dtype, n)
+    
+    alen = np.fromfile(f, _head_type, 1)
+    if alen!=length :
+        raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d"%(alen,length)
+
+    return data
+
+def skip_fortran(f, n=1) :
+    for i in xrange(n) :
+        alen = np.fromfile(f, _head_type, 1)
+        f.seek(alen,1)
+        alen2 = np.fromfile(f, _head_type, 1)
+        assert alen==alen2
+        
+def read_fortran_series(f, dtype) :
+    q = np.empty(1,dtype=dtype)
+    for i in xrange(len(dtype.fields)) :
+        data = read_fortran(f, dtype[i], 1)
+
+        # I really don't understand why the following acrobatic should
+        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
+        if hasattr(data[0],"__len__") :
+            q[0][i][:] = data[0]
+        else :
+            q[0][i] = data[0]
+
+    return q[0]

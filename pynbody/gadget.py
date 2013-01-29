@@ -52,7 +52,7 @@ def gadget_type(fam) :
     else :
         return _type_map[fam]
 
-class GadgetBlock :
+class GadgetBlock(object) :
     """Class to describe each block.
     Each block has a start, a length, and a length-per-particle"""
     def __init__(self, start=0, length=0,partlen=0,dtype=np.float32,p_types=np.zeros(N_TYPE,bool)) :
@@ -79,8 +79,7 @@ def _output_order_gadget(all_keys) :
     return out+out_dregs
     
 def _construct_gadget_header(data,endian='=') :
-    """This function exists purely because python does not allow us to overload constructors.
-       Create a GadgetHeader from a byte range read from a file."""
+    """Create a GadgetHeader from a byte range read from a file."""
     npart = np.zeros(N_TYPE, dtype=np.uint32)
     mass = np.zeros(N_TYPE)
     time = 0.
@@ -121,7 +120,7 @@ def _construct_gadget_header(data,endian='=') :
 
     return header
     
-class GadgetHeader :
+class GadgetHeader(object) :
     """Describes the header of gadget class files; this is all our metadata, so we are going to store it inline"""
     def __init__ (self,npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda, HubbleParam, num_files=1 ) :
         "Construct a header from values, instead of a datastring."""
@@ -200,11 +199,10 @@ class GadgetHeader :
         self.flag_entropy_instead_u, self.flag_doubleprecision, self.flag_ic_info, self.lpt_scalingfactor)
         return data
 
-class GadgetFile :
-    """This is a helper class.
-    Should only be called by GadgetSnap.
-    Contains the block location dictionary for each file.
-    To read Gadget 1 format files, use the gadget-1-blocks config entry"""
+class GadgetFile(object) :
+    """Gadget file management class. Users should access gadget files through
+    :class:`~pynbody.gadget.GadgetSnap`."""
+
     def __init__(self, filename) :
         self._filename=filename
         self.blocks = {}
