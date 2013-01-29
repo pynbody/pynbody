@@ -76,12 +76,12 @@ class NchiladaSnap(snapshot.SimSnap) :
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
         
-    def __init__(self, filename) :
+    def __init__(self, filename, take=None) :
         super(NchiladaSnap,self).__init__()
         self._dom_sim = xml.dom.minidom.parse(os.path.join(filename, "description.xml")).getElementsByTagName('simulation')[0]
         self._filename = filename
         self._update_loadable_keys()
-        self._setup_slices()
+        self._setup_slices(take=take)
         self._decorate()
 
     def loadable_keys(self, fam=None) :
