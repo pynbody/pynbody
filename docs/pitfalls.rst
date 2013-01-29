@@ -24,5 +24,6 @@ need to assign units before you use it.  The easiest way to do this is with
 
  In [1]: s.physical_units()
 
-if your simulation is called ``s``.
+if your simulation is called ``s``.  If you don't do this, python will likely
+try to make an image with no data and tell you about it in a long error message.
 
