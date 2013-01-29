@@ -51,6 +51,7 @@ import random
 import math
 import numpy as np
 import scipy, scipy.weave
+import copy
 
 from . import util
 
@@ -325,33 +326,56 @@ class LoadControl(object) :
         for nread_disk, disk_slice, mem_slice in self.iterate(families_on_disk, families_in_memory, multiskip) :
             while next_dip and fpos+nread_disk>next_dip :
 
+                #print "ORIGINAL:",nread_disk, disk_slice, mem_slice,"starts@",fpos
+                #print "   INTERRUPT AT:",next_dip
+
+                
                 # an interrupt falls in the middle of our slice
                 # work out what to read first
                 len_pre = next_dip - fpos
-                d_slice_pre = util.concatenate_indexing(slice(0,len_pre),disk_slice)
-                len_m_pre = util.indexing_length(d_slice_pre)
-                m_slice_pre = util.concatenate_indexing(mem_slice, slice(0, len_m_pre))
 
-                # work out what to read second
-                len_post = nread_disk-len_pre
-                d_slice_post = util.concatenate_indexing(slice(len_pre, nread_disk), disk_slice)
-                
-        
-                # that's the disk slice relative to having read the whole thing continuously.
-                # Offset to reflect what we've missed.
+                if disk_slice is not None :
+                    d_slice_pre = util.concatenate_indexing(slice(0,len_pre),disk_slice)
+                    len_m_pre = util.indexing_length(d_slice_pre)
+                    m_slice_pre = util.concatenate_indexing(mem_slice, slice(0, len_m_pre))
 
-                if isinstance(d_slice_post, slice) :
-                    d_slice_post = slice(d_slice_post.start-len_pre, d_slice_post.stop-len_pre, d_slice_post.step)
+                    # work out what to read second
+                    len_post = nread_disk-len_pre
+                    d_slice_post = copy.copy(util.concatenate_indexing(disk_slice, slice(len_m_pre, util.indexing_length(mem_slice))))
+                    # the copy above is necessary to ensure we don't end up inadvertently modifying
+                    # list of offsets somewhere else
+
+
+                    # that's the disk slice relative to having read the whole thing continuously.
+                    # Offset to reflect what we've missed.
+
+                    if isinstance(d_slice_post, slice) :
+                        d_slice_post = slice(d_slice_post.start-len_pre, d_slice_post.stop-len_pre, d_slice_post.step)
+                    else :
+                        d_slice_post-=len_pre
+
+                    len_m_post = util.indexing_length(d_slice_post)
+                    m_slice_post = util.concatenate_indexing(mem_slice, slice(len_m_pre, len_m_pre+len_m_post))
+
+                    if util.indexing_length(d_slice_post)==0 :
+                        d_slice_post=None
+                        m_slice_post=None
+
+                    if util.indexing_length(d_slice_pre)==0 :
+                        d_slice_pre=None
+                        m_slice_pre=None
+                        
                 else :
-                    d_slice_post-=len_pre
+                    d_slice_pre = None
+                    m_slice_pre = None
+                    len_post = nread_disk-len_pre
                     
-                len_m_post = util.indexing_length(d_slice_post)
-                m_slice_post = util.concatenate_indexing(mem_slice, slice(len_m_pre, len_m_pre+len_m_post))
 
+                #print "PRE-INTERRUPT:",len_pre,d_slice_pre,m_slice_pre
                 yield len_pre, d_slice_pre, m_slice_pre
                 fpos+=len_pre
                 disk_interrupt_fn(disk_interrupt_points[i])
-
+                
                 # prepare for next interrupt
 
                 i+=1
@@ -363,7 +387,9 @@ class LoadControl(object) :
                 # update 'input' to reflect post reading slice (may still need further
                 # decomposition)
                 nread_disk, disk_slice, mem_slice = len_post, d_slice_post, m_slice_post
- 
+                
+                    
+                #print "POST-INTERRUPT:",nread_disk, disk_slice, mem_slice,"continues@",fpos
             
             yield nread_disk, disk_slice, mem_slice
             fpos+=nread_disk
