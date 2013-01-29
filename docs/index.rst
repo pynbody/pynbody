@@ -44,6 +44,15 @@ easy as putting a `?` at the end of a command:
    In [2]: pynbody.load? 
 
 
+Common Pitfalls
+^^^^^^^^^^^^^^^
+
+We are compiling a list of common problems users might experience. If
+you just installed pynbody and upon trying some fancy analysis it
+greeted you with a complicated error message, the fix might be
+described in :doc:`pitfalls`.
+
+
 Pynbody Users Group
 ^^^^^^^^^^^^^^^^^^^
 
@@ -62,12 +71,17 @@ Reporting Issues
 
 We really value feedback from users, especially when things are not
 working correctly because this is the best way for us to correct
-bugs. This is a community effort so please let us know if you find
-strange behavior or if you have ideas for improvements. The best way
-to do this is via the `Issues page
-<http://code.google.com/p/pynbody/issues/list>`_ on the `Pynbody
-Google Code site <http://code.google.com/p/pynbody/>`_. If you use the
-code regularly for your projects, consider becoming a contributor!
+bugs. Please let us know if you find strange behavior or if you have
+ideas for improvements. The best way to do this is via the `users
+group
+<`https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_
+or the `issues page <http://code.google.com/p/pynbody/issues/list>`_ on
+the `Pynbody Google Code site
+<http://code.google.com/p/pynbody/>`_. The documentation in particular
+is in a state of flux so if you find an error in any of the tutorials
+let us know asap. If you use the code regularly for your projects,
+consider becoming a contributor and join the `developer group
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev>`_
 
 
 .. _acknowledging-pynbody:
@@ -77,10 +91,13 @@ Acknowledging Pynbody in Scientific Publications
 
 Pynbody development is an open-source, community effort. The only way
 to make it as robust as possible is to have a wide user-base and this
-is only possible by spreading the word. We currently do not have a
-paper that you could cite, but we ask that if you use pynbody in
-preparing a scientific publication, you mention it either as a
-footnote in the text or in the ackowledgments section. Thank you.
+is only possible by spreading the word. We ask that if you use pynbody
+in preparing a scientific publication, you mention it either as a
+footnote in the text or in the acknowledgments section with a
+statement like:
+
+`We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
+for this paper.`
 
 
 Tutorials
@@ -101,7 +118,7 @@ Reference
 
 .. toctree::
    :maxdepth: 3
-
+   
    Simulation loaders <loaders>
    Essential generic modules <essentials>   
    Convenience modules <convenience>
