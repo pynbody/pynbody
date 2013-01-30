@@ -7,9 +7,6 @@ Generic Convenience Modules
 .. automodule:: pynbody.bridge
    :members:
 
-.. automodule:: pynbody.derived
-   :members:
-
 .. automodule:: pynbody.filt
    :members:
 

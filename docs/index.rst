@@ -122,6 +122,7 @@ Reference
    Simulation loaders <loaders>
    Essential generic modules <essentials>   
    Convenience modules <convenience>
+   Derived quantities <derived>
    Analysis modules <analysis>
    Plotting modules <plot>
 
