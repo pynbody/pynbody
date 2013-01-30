@@ -40,7 +40,14 @@ GrafIC    Yes        Yes               No         No               [4]_
    `GrafIC <http://web.mit.edu/edbert/>`_ or Prunet et al's `MPGrafIC <ftp://ftp.iap.fr/pub/from_users/prunet>`_.
 
 
+The end-user rarely needs to worry about the implementation of
+different loaders, as all types of simulations are loaded with
+:func:`pynbody.load` and the type is determined automatically. 
+
+
 .. automodule:: pynbody.tipsy
+
+.. autoclass:: pynbody.tipsy.TipsySnap
    :members:
 
 .. automodule:: pynbody.gadget
@@ -49,6 +56,5 @@ GrafIC    Yes        Yes               No         No               [4]_
 .. automodule:: pynbody.gadgethdf
    :members:
 
-.. automodule 
 .. automodule:: pynbody.ramses
    :members:
