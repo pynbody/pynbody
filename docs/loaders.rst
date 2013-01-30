@@ -41,7 +41,6 @@ GrafIC    Yes        Yes               No         No               [4]_
 
 
 .. automodule:: pynbody.tipsy
-   :members:
 
 .. automodule:: pynbody.gadget
    :members:
@@ -49,6 +48,5 @@ GrafIC    Yes        Yes               No         No               [4]_
 .. automodule:: pynbody.gadgethdf
    :members:
 
-.. automodule 
 .. automodule:: pynbody.ramses
    :members:

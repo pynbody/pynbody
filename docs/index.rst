@@ -96,8 +96,8 @@ in preparing a scientific publication, you mention it either as a
 footnote in the text or in the acknowledgments section with a
 statement like:
 
-`We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
-for this paper.`
+**We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
+for this paper.**
 
 
 Tutorials
