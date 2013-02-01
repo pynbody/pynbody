@@ -29,12 +29,12 @@ First steps
  tutorial. You need to download these separately here: <https://code.google.com/p/pynbody/downloads/list>
  (`testdata.tar.gz`).
 
-Change into the `testdata` folder (see the note above if you can't find
-this) so the test files are easy to access. Then launch `ipython`. At
-the prompt, type ``import pynbody``. If all is installed correctly,
-this should silently succeed, and you are ready to use `pynbody`
-commands. Here's an example. We'll also load the `numpy` module as it
-provides some functions we'll make use of later.
+After you have extracted the testdata folder (e.g. with ``tar -xzf
+testdata.tar.gz``), launch `ipython`. At the prompt, type ``import
+pynbody``. If all is installed correctly, this should silently
+succeed, and you are ready to use `pynbody` commands. Here's an
+example. We'll also load the `numpy` module as it provides some
+functions we'll make use of later.
 
 .. ipython::
 
