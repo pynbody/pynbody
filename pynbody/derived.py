@@ -151,3 +151,19 @@ def cs(self):
     mu[np.where(self['temp']>=1e4)[0]] = 0.59
     mu[np.where(self['temp']<1e4)[0]] = 1.3
     return np.sqrt(5.0*units.k*self['temp'] / mu/units.m_p)
+
+
+
+@SimSnap.derived_quantity
+def zeldovich_offset(self) :
+    """The position offset in the current snapshot according to
+    the Zel'dovich approximation applied to the current velocities.
+    (Only useful in the generation or analysis of initial conditions.)"""
+    from . import analysis
+    bdot_by_b = analysis.cosmology.rate_linear_growth(self, unit='km Mpc^-1 s^-1')/analysis.cosmology.linear_growth_factor(self)
+
+    a = self.properties['a']
+    
+    offset = self['vel']/(a*bdot_by_b)
+    offset.units=self['vel'].units/units.Unit('km Mpc^-1 s^-1 a^-1')
+    return offset
