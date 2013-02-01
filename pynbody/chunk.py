@@ -369,6 +369,8 @@ class LoadControl(object) :
                     d_slice_pre = None
                     m_slice_pre = None
                     len_post = nread_disk-len_pre
+                    d_slice_post = None
+                    m_slice_post = None
                     
 
                 #print "PRE-INTERRUPT:",len_pre,d_slice_pre,m_slice_pre
