@@ -5,16 +5,16 @@ Code-specific loaders
 care of loading files in different formats. Unfortunately not all of
 these have the same capabilities; see below.
 
-========= ========== ================= ========== ================ ===================================
-Filetype  Can load?  Partial loading?  Can save?  Partial saving?  Notes
-========= ========== ================= ========== ================ ===================================
-Tipsy     Yes        Yes               Yes        No
-Gadget    Yes        No [1]_           Yes        No
-GadgetHDF Yes        No [1]_           No         No               [2]_
-Ramses    Yes        No [1]_           No         No               [3]_
+========= ========== ================= ========== ================= ===================================
+Filetype  Can load?  Partial loading?  Can save?  Array-level save? Notes
+========= ========== ================= ========== ================= ===================================
+Tipsy     Yes        Yes               Yes        Yes
+Gadget    Yes        No [1]_           Yes        Yes
+GadgetHDF Yes        No [1]_           No         No                [2]_
+Ramses    Yes        No [1]_           No         No                [3]_
 NChilada  Yes        Yes               No         No
-GrafIC    Yes        Yes               No         No               [4]_
-========= ========== ================= ========== ================ ===================================
+GrafIC    Yes        Yes               No         No                [4]_
+========= ========== ================= ========== ================= ===================================
 
 .. [1] Currently these modules do not support the standard partial
    loading mechanism. However they do allow you to load only certain
@@ -41,14 +41,13 @@ GrafIC    Yes        Yes               No         No               [4]_
 
 
 .. automodule:: pynbody.tipsy
-   :members:
 
 .. automodule:: pynbody.gadget
-   :members:
 
 .. automodule:: pynbody.gadgethdf
-   :members:
 
-.. automodule 
+.. automodule:: pynbody.nchilada
+
 .. automodule:: pynbody.ramses
-   :members:
+
+.. automodule:: pynbody.grafic
