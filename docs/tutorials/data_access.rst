@@ -23,7 +23,7 @@ First steps
 -----------
 
 .. note:: Before you start make sure `pynbody` is properly
- installed. See <https://code.google.com/p/pynbody/wiki/Installation>
+ installed. See :ref:`pynbody-installation`
  for more information. You will also need the standard `pynbody` test
  files, so that you can load the exact same data as used to write the
  tutorial. You need to download these separately here: <https://code.google.com/p/pynbody/downloads/list>
