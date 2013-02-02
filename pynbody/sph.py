@@ -21,7 +21,10 @@ import time
 import sys
 from . import snapshot, array, config, units, util, config_parser
 import threading
-import kdtree
+try:
+    import kdtree
+except ImportError :
+    raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
 
 _threaded_smooth = config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
 _threaded_image = config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
