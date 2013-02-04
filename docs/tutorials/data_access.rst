@@ -15,7 +15,7 @@ attributes, access some data and make use of unit information.
   much richer interactive environment over the vanilla `python`
   interpreter. However, you can type exactly the same commands into
   vanilla `python`; only the formatting will look slightly
-  different. For instance, the `ipython` prompt looks like``In [1]:``
+  different. For instance, the `ipython` prompt looks like ``In [1]:``
   while the `python` prompt looks like ``>>>``.
 
 

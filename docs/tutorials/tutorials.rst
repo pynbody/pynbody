@@ -25,8 +25,9 @@ Walkthroughs
 
 .. toctree:: 
 
+   A first look at your data with pynbody <snapshot_manipulation>
    Basic data access <data_access>
-   Snapshot manipulation <snapshot_manipulation>
+
 
 .. _cookbook:
 
