@@ -114,14 +114,16 @@ def hybrid_center(sim, r='3 kpc', **kwargs) :
         cen_a = center_of_mass(sim)
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
-def index_center(sim, **kwargs) :
+def index_center(sim, ind = None, **kwargs) :
     """
 
-    Determine the center of mass based on specific particles
+    Determine the center of mass based on specific particles.
+
+    Supply a list of indices using the ``ind`` keyword.
 
     """
 
-    if 'ind' in kwargs :
+    if 'ind' is not None :
         ind = kwargs['ind']
         return center_of_mass(sim[ind])
     else :  
@@ -129,7 +131,16 @@ def index_center(sim, **kwargs) :
     
 
 def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
-    # Use stars from inner 1kpc to calculate center of velocity
+    """
+
+    Use stars from a spehre to calculate center of velocity. The size
+    of the sphere is given by the ``cen_size`` keyword and defaults to
+    1 kpc.
+
+
+    """
+
+
     if config['verbose'] :
         print "Finding halo velocity center..."
     cen = sim.star[filt.Sphere(cen_size)]
@@ -166,7 +177,7 @@ def center(sim, mode=None, retcen=False, vel=True, **kwargs) :
 
       *ssc*: shrink sphere center
 
-      *ind*: center on specific particles
+      *ind*: center on specific particles; supply the list of particles using the ``ind`` keyword.
 
       *hyb*: for sane halos, returns the same as ssc, but works faster by
              starting iteration near potential minimum
