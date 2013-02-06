@@ -43,7 +43,7 @@ list. Additionally, *any* existing array can be 'profiled'. For
 example, if [Fe/H] is a derived field 'feh', then plotting a
 metallicity profile is as simple as: 
 
->>> plt.plot(ps['rbins'],ps['feh'])
+>>> plt.plot(p['rbins'],p['feh'])
 
 If the array doesn't exist but is deriveable (check with
 ``s.derivable_keys()``), it is automatically calculated.
