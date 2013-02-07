@@ -240,8 +240,8 @@ You might have noticed in the output from the above experiments that
  ``.param`` file is sought in the directory from which you are loading
  the snapshot and its immediate parent. 
 
-At the simplest level you can simply print out the units of any given
-array by accessing the ``units`` property:
+You can print out the units of any given array by accessing the
+``units`` property:
 
 .. ipython::
 
@@ -251,7 +251,7 @@ array by accessing the ``units`` property:
 However, it's usually more helpful to simply convert your arrays into
 something more managable than the internal units. `Pynbody` arrays can
 be converted using the :func:`~pynbody.array.SimArray.in_units`
-function; simply pass in a string representing the units you want.
+function; just pass in a string representing the units you want.
 
 .. ipython::
 
