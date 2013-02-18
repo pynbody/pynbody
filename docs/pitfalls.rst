@@ -4,6 +4,8 @@
 Common Pitfalls
 ===============
 
+.. _paramfiles_are_good:
+
 I get errors like "Unknown units" or "Not convertible" from analysis or plotting routines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -48,4 +50,22 @@ To tackle both of these issues in turn:
  :func:`~pynbody.snapshot.SimSnap.physical_units` on your snapshot,
  e.g. ``s.physical_units()`` if your simulation is called ``s``. 
 
+I'm trying to load a file which I'm sure is fine, but it says the format isn't recognized
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When you load a file with `pynbody` you don't have to specify what
+format it is. This is quite handy when everything works. However, if
+there is a minor problem with the file, `pynbody` may move onto trying
+to interpret it as a different format and ultimately conclude it just
+doesn't understand what's going on. At that point you'll get an unhelpful error
+like this: ``File 'filename': format not understood or does not exist``.
+
+To expose the underlying problem, you need to explicitly tell pynbody
+what file format you think it is. For instance, if you have a tipsy
+file, try replacing your ``pynbody.load(filename)`` with
+``pynbody.tipsy.TipsySnap(filename)``. This will then show you the
+actual error. Most likely it's to do with file permissions, or a
+problem with a ``.param`` file. If at this point you can't see what's
+going wrong, do `drop us a line
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
