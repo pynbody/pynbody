@@ -435,15 +435,18 @@ class SimArray(np.ndarray) :
 
     def __setslice__(self, a,b, to) :
         self.__setitem__(slice(a,b), to)
-    #@_u(np.min)
-    #@_u(np.max)
-    #@_u(np.ptp)
+
+    def abs(self, *args, **kwargs) :
+        x = np.ndarray.abs(self, *args, **kwargs)
+        print hasattr(x, 'units'), self.units
+        if hasattr(x, 'units') and self.units is not None :
+            x.units = self.units
+        return x
 
     def cumsum(self, axis=None, dtype=None, out=None) :
-        print(self,axis,dtype,out)
         x = np.ndarray.cumsum(self, axis, dtype, out)
         if hasattr(x, 'units') and self.units is not None :
-            x.units = self.units**self.shape[0]
+            x.units = self.units
         return x
         
     def prod(self, axis=None, dtype=None, out=None) :
