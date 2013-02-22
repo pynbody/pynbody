@@ -437,16 +437,19 @@ class SimArray(np.ndarray) :
         self.__setitem__(slice(a,b), to)
 
     def abs(self, *args, **kwargs) :
-        x = np.ndarray.abs(self, *args, **kwargs)
-        print hasattr(x, 'units'), self.units
+        x = np.abs(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def cumsum(self, axis=None, dtype=None, out=None) :
         x = np.ndarray.cumsum(self, axis, dtype, out)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
         
     def prod(self, axis=None, dtype=None, out=None) :
@@ -455,18 +458,24 @@ class SimArray(np.ndarray) :
             x.units = self.units**self.shape[axis]
         if hasattr(x, 'units') and axis is None and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def sum(self, *args, **kwargs) :
         x = np.ndarray.sum(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def mean(self, *args, **kwargs) :
         x = np.ndarray.mean(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def mean_by_mass(self, *args, **kwargs) :
@@ -476,30 +485,40 @@ class SimArray(np.ndarray) :
         x = np.ndarray.max(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def min(self, *args, **kwargs) :
         x = np.ndarray.min(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def ptp(self, *args, **kwargs) :
         x = np.ndarray.ptp(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
     
     def std(self, *args, **kwargs) :
         x = np.ndarray.std(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def var(self, *args, **kwargs) :
         x = np.ndarray.var(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
             x.units = self.units**2
+        if hasattr(x, 'sim') and self.sim is not None :
+            x.sim = self.sim
         return x
 
     def set_units_like(self, new_unit) :
