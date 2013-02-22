@@ -164,7 +164,7 @@ class TipsySnap(snapshot.SimSnap) :
             if k in write :
                 self[k].set_default_units(quiet=True)
 
-        if "phi" in write :
+        if "phi" in write and self.properties.has_key('h') : # only do this for cosmo runs
             self['phi'].units=self['phi'].units*units.a**-3 # messy :-(
             
         for k in "rho", "temp", "metals":
