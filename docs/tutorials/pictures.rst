@@ -40,7 +40,7 @@ and thus should be faster.
 
 :func:`~pynbody.plot.sph.image` returns an x,y array representing pixel 
 intensity. The function also displays the image with automatically created
-axes and a colorbar. However, one can use the x-y array and plt.imshow() 
+axes and a colorbar. However, one can use the x-y array and `plt.imshow() <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow>`_ 
 (how do I link to matplotlib functions?) to create your own plot.
 
 

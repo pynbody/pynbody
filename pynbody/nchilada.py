@@ -90,7 +90,6 @@ class NchiladaSnap(snapshot.SimSnap) :
         else :
             loadable = None
             for f in self._loadable_keys_registry.itervalues() :
-                print list(f.iterkeys())
                 if loadable is None :
                     loadable = set(f.iterkeys())
                 else :

@@ -7,24 +7,91 @@ Basic snapshot manipulation
 ===========================
 
 
-After you've had a first peek at your data in the :ref:`data-access`
-tutorial, you will likely want to massage it into a shape that will
-let you actually do some more specific analysis (and make pretty
-pictures).
+Once you've :ref:`installed pynbody <pynbody-installation>`, you will
+probably want to have a quick look at your simulation and maybe make a
+pretty picture or two.
 
-`Pynbody` includes some essential tools that allow you to perform some
-basic manipulations. Some of these are included in the low-level
+`Pynbody` includes some essential tools that allow you to quickly
+generate (and visualize) physically interesting quantities. Some of
+the snapshot manipulation functions are included in the low-level
 :class:`pynbody.snapshot.SimSnap` class, others can be found in two
 analysis modules :mod:`pynbody.analysis.angmom` and
 :mod:`pynbody.analysis.halo`. This brief walkthrough will show you
-some of their capabilities.
+some of their capabilities that form the first steps of any simulation
+analysis workflow and by the end you should be able to display a basic
+image of your simulation.
+
+
+Setting up the interactive environment
+--------------------------------------
+
+In this walkthrough (and in others found in this documentation) we
+will use the `ipython <http://ipython.org>`_ interpreter which offers a
+much richer interactive environment over the vanilla `python`
+interpreter. However, you can type exactly the same commands into
+vanilla `python`; only the formatting will look slightly
+different. For instance, the `ipython` prompt looks like 
+
+::
+
+  In [1]:
+
+
+while the `python` prompt looks like 
+
+::
+
+   >>>
+
+
+We highly recommend `ipython` for interactive data analysis. You should also
+install `matplotlib <http://matplotlib.org/>`_ to generate the plots at the
+end of the walkthrough (see the :ref:`pynbody-installation` documentation for
+more details).
+
+Once `ipython` and `matplotlib` are installed, you can start the
+`ipython` shell with the ``--pylab`` flag to automatically load the
+interactive plotting environment:
+
+:: 
+
+  [user@domain ~]$ ipython --pylab
+
+  Python 2.7.2 |EPD 7.1-2 (64-bit)| (default, Jul 27 2011, 14:50:45) 
+  Type "copyright", "credits" or "license" for more information.
+
+  IPython 0.13.1 -- An enhanced Interactive Python.
+  ?         -> Introduction and overview of IPython's features.
+  %quickref -> Quick reference.
+  help      -> Python's own help system.
+  object?   -> Details about 'object', use 'object??' for extra details.
+
+  Welcome to pylab, a matplotlib-based Python environment [backend: MacOSX].
+  For more information, type 'help(pylab)'.
+
+  In [1]: 
+
+
+Now we can get started with the analysis. 
+
+
+.. note:: Before you start make sure `pynbody` is properly
+ installed. See :ref:`pynbody-installation` for more information. You
+ will also need the standard `pynbody` test files, so that you can
+ load the exact same data as used to write the tutorial. You need to
+ download these separately here:
+ <https://code.google.com/p/pynbody/downloads/list>
+ (`testdata.tar.gz`). You can then extract them in a directory of your
+ choice with ``tar -zxvf testdata.tar.gz``
 
 
 Centering the snapshot
 ----------------------
 
-After loading in the data, we will want to center it on the main halo
-to analyze its contents.
+The first step of any analysis is to load the data. Afterwards, we
+will want to center it on the halo of interest (in this case the main
+halo) to analyze its contents.
+
 
 .. ipython::
 
@@ -32,50 +99,79 @@ to analyze its contents.
 
  In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
 
-This loads the snapshot ``s``. Now we load the halos and center on the
+This loads the snapshot ``s`` (make sure you use the correct path to
+the `testdata` directory). Now we load the halos and center on the
 main halo (see the :ref:`halo_tutorial` tutorial for more detailed
 information on how to deal with halos):
 
 .. ipython::
 
  In [3]: h = s.halos()
+
+For later convenience, we can store the main halo in a separate
+variable:
+
+.. ipython:: 
+
+ In [1]: h1 = h[1]
+
+
+And perhaps check quickly how many particles of each type are identified there:
+
+.. ipython::
+
+ In [1]: print 'ngas = %e, ndark = %e, nstar = %e\n'%(len(h1.gas),len(h1.dark),len(h1.star)) 
  
- In [4]: pynbody.analysis.halo.center(h[1],mode='hyb')
+ In [4]: pynbody.analysis.halo.center(h1,mode='hyb')
 
 The halos of ``s`` are now loaded in ``h`` and ``h[1]`` yields the
 :class:`~pynbody.snapshot.SubSnap` of `s` that corresponds to
 halo 1. We pass ``h[1]`` to the function
 :func:`~pynbody.analysis.halo.center` to center the *entire* snapshot
 on the largest halo. We specify the mode of centering using the
-keyword ``mode`` - here, we used `hyb`, which stands for hybrid: the
+keyword ``mode`` - here, we used ``hyb``, which stands for hybrid: the
 snapshot is first centered on the particle with the lowest potential,
 and this guess is then refined using the `shrinking sphere` method
 (see the documentation for :func:`~pynbody.analysis.halo.center` for
 more details).
 
-If you want to check which coordinates pynbody finds for the center,
-supply :func:`~pynbody.analysis.halo.center` with the ``retcen``
-keyword and change the positions manually. This is useful for
-comparing the results of different centering schemes, when accurate
-center determination is essential:
+If you want to make sure that the coordinates which pynbody finds for
+the center are reasonable before recentering, supply
+:func:`~pynbody.analysis.halo.center` with the ``retcen`` keyword and
+change the positions manually. This is useful for comparing the
+results of different centering schemes, when accurate center
+determination is essential. So lets repeat some of the previous steps
+to illustrate this:
 
-::
+.. ipython::
 
-  cen = pynbody.analysis.halo.center(h[1],mode='hyb',retcen=True)
+ In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz'); h1 = s.halos()[1]; 
+
+ In [4]: cen_hyb = pynbody.analysis.halo.center(h1,mode='hyb',retcen=True)
  
-  s['pos'] -= cen
+ In [5]: cen_pot = pynbody.analysis.halo.center(h1,mode='pot',retcen=True)
+  
+ In [6]: print cen_hyb
 
+ In [7]: print cen_pot
+
+ In [7]: s['pos'] -= cen_hyb
+
+In this case, we decided that the `hyb` center was better, so we use
+it for the last step.
+
+.. note:: When calling :func:`~pynbody.analysis.halo.center` without the ``retcen`` keyword, the particle velocities are also centered according to the mean velocity around the center. If you do the centering manually, this is not done and you have to determine the bulk velocity separately using :func:`~pynbody.analysis.halo.vel_center`.
 
   
-
-We can take a look at what we have at the center now: 
+We can take a look at what we have at the center now, but to make
+things easier to interpret we convert to physical units first:
 
 .. ipython::
 
  In [5]: s.physical_units()
  
  @savefig snapshot_manipulation_fig1.png width=5in
- In [9]: pynbody.plot.image(s.g, width=100);
+ In [9]: pynbody.plot.image(h1.g, width=100);
 
 .. note:: see the :doc:`pictures` tutorial for more examples and help regarding images. 
 
@@ -88,10 +184,10 @@ but lets say we want it edge-on:
 
 .. ipython::
 
- In [12]: pynbody.analysis.angmom.sideon(h[1], cen=(0,0,0))
+ In [12]: pynbody.analysis.angmom.sideon(h1, cen=(0,0,0))
 
  @savefig snapshot_manipulation_fig2.png width=5in
- In [13]: pynbody.plot.image(s.g, width=100);
+ In [13]: pynbody.plot.image(h1.g, width=100);
 
 
 Note that the function :func:`~pynbody.analysis.angmom.sideon` will
@@ -120,7 +216,7 @@ face-on orientation:
   is because you normally want to *calculate* the transform
   from a subset of particles, but *apply* the transform to the full
   simulation (e.g. when centering on a particular halo). So, for
-  instance, ``pynbody.analysis.angmom.sideon(h[1])`` calculates the
+  instance, ``pynbody.analysis.angmom.sideon(h1)`` calculates the
   transforms for halo 1, but then applies them to the entire snapshot.
   However, *core* routines (i.e. those that are not part of the
   ``pynbody.analysis`` module) typically operate on exactly what you 
@@ -131,7 +227,7 @@ In the face-on orientation, we may wish to make a profile:
 
 .. ipython:: 
 
- In [23]: p = pynbody.analysis.profile.Profile(h[1].s, min = 0.01, max = 30)
+ In [23]: p = pynbody.analysis.profile.Profile(h1.s, min = 0.01, max = 30)
  
  In [25]: import matplotlib.pylab as plt
 
@@ -148,5 +244,12 @@ In the face-on orientation, we may wish to make a profile:
 
 See the :doc:`profile` tutorial or the
 :class:`~pynbody.analysis.profile.Profile` documentation for more
-information on available options.
+information on available options and other profiles that you can
+generate. 
+
+We've only touched on the basic information that `pynbody` is able to
+provide about your simulation snapshot. To learn a bit more about how
+to get closer to your data, have a look at the :ref:`data-access`
+tutorial.
+
 
