@@ -44,7 +44,9 @@ while the `python` prompt looks like
    >>>
 
 
-We highly recommend `ipython` for interactive data analysis. You should also install `matplotlib <http://http://matplotlib.org/>`_ to generate the plots at the end of the walkthrough (see the :ref:`pynbody-installation` documentation for
+We highly recommend `ipython` for interactive data analysis. You should also
+install `matplotlib <http://matplotlib.org/>`_ to generate the plots at the
+end of the walkthrough (see the :ref:`pynbody-installation` documentation for
 more details).
 
 Once `ipython` and `matplotlib` are installed, you can start the

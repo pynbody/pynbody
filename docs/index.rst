@@ -74,7 +74,7 @@ working correctly because this is the best way for us to correct
 bugs. Please let us know if you find strange behavior or if you have
 ideas for improvements. The best way to do this is via the `users
 group
-<`https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_
 or the `issues page <http://code.google.com/p/pynbody/issues/list>`_ on
 the `Pynbody Google Code site
 <http://code.google.com/p/pynbody/>`_. The documentation in particular

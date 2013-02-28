@@ -3,7 +3,7 @@ import pynbody.plot.sph as sph
 import matplotlib.pylab as plt
 
 # load the snapshot and set to physical units
-s = pynbody.load('../../../nose/testdata/g15784.lr.01024.gz')
+s = pynbody.load('testdata/g15784.lr.01024.gz')
 s.physical_units()
 
 # load the halos

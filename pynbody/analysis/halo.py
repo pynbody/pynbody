@@ -114,7 +114,7 @@ def hybrid_center(sim, r='3 kpc', **kwargs) :
         cen_a = center_of_mass(sim)
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
-def index_center(sim, ind = None, **kwargs) :
+def index_center(sim, **kwargs) :
     """
 
     Determine the center of mass based on specific particles.
@@ -123,10 +123,10 @@ def index_center(sim, ind = None, **kwargs) :
 
     """
 
-    if 'ind' is not None :
+    try :
         ind = kwargs['ind']
         return center_of_mass(sim[ind])
-    else :  
+    except KeyError: 
         raise RuntimeError("Need to supply indices for centering")
     
 
