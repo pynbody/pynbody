@@ -25,6 +25,7 @@ try:
     import kdtree
 except ImportError :
     raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
+import os
 
 _threaded_smooth = config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
 _threaded_image = config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
@@ -293,7 +294,7 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     
     return im
 
-def _threaded_render_image(s,*args, **kwargs) :
+def _threaded_render_image(fn, s,*args, **kwargs) :
     """
     Render an SPH image using multiple threads.
 
@@ -319,7 +320,7 @@ def _threaded_render_image(s,*args, **kwargs) :
     for i in xrange(num_threads) :
         s_local = s[i::num_threads]
         args_local = [outputs, s_local]+list(args)
-        ts.append(threading.Thread(target = _render_image_bridge, args=args_local, kwargs=kwargs))
+        ts.append(threading.Thread(target = _render_image_bridge(fn), args=args_local, kwargs=kwargs))
         ts[-1].start()
         
     for t in ts : 
@@ -327,11 +328,35 @@ def _threaded_render_image(s,*args, **kwargs) :
 
     return sum(outputs)
 
-def _render_image_bridge(*args, **kwargs) :
+def _interpolated_renderer(fn, levels) :
+    """
+    Render an SPH image using interpolation to speed up rendering where smoothing
+    lengths are large.
+    """
+    def render_fn(*args, **kwargs) :
+        kwargs['smooth_range']=(0,2)
+        kwargs['res_downgrade']=1
+        sub=1
+        base = fn(*args, **kwargs)
+
+        kwargs['smooth_range']=(1,2)
+        for i in xrange(1,levels) :
+            sub*=2
+            if i==levels-1:
+                kwargs['smooth_range']=(1,10000)
+            kwargs['res_downgrade']=sub
+            new_im=fn(*args,**kwargs)
+            base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)
+        return base
+    return render_fn
+    
+def _render_image_bridge(fn) :
     """Helper function for threaded_render_image; do not call directly"""
-    output_list = args[0]
-    X = _render_image(*args[1:],**kwargs)
-    output_list.append(X)
+    def bridge(*args, **kwargs) :
+        output_list = args[0]
+        X = fn(*args[1:],**kwargs)
+        output_list.append(X)
+    return bridge
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, 
                  y1=None, z_plane = 0.0, out_units=None, xy_units=None,
@@ -339,7 +364,6 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  z_camera=None,
                  smooth='smooth',
                  smooth_in_pixels = False,
-                 smooth_range=None,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
                  threaded=_threaded_image) :
@@ -386,10 +410,6 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
      *smooth_in_pixels*: If True, the smoothing array contains the smoothing
        length in image pixels, rather than in real distance units (default False)
 
-     *smooth_range*: either None or a tuple of integers (lo,hi). If
-       the latter, only particles with smoothing lengths between
-       lo<smooth<hi pixels will be rendered.
-
      *approximate_fast*: if True, render high smoothing length particles at
        progressively lower resolution, resample and sum
 
@@ -400,55 +420,36 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
       configuration files).
     """
 
-    if threaded :
-        return _threaded_render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
-                               out_units, xy_units, kernel, z_camera, smooth,
-                               smooth_in_pixels, smooth_range, True, 
-                               approximate_fast, num_threads=threaded)
+    if approximate_fast :
+        base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/16))))
     else :
-        return _render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        base_renderer = _render_image
+
+    if threaded :
+        return _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+                                      out_units, xy_units, kernel, z_camera, smooth,
+                                      smooth_in_pixels, True, 
+                                      num_threads=threaded)
+    else :
+        return _render_image(base_renderer, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                out_units, xy_units, kernel, z_camera, smooth,
-                               smooth_in_pixels, smooth_range, False, 
+                               smooth_in_pixels, False, 
                                approximate_fast)
 
 
         
 def _render_image(snap, qty, x2, nx, y2, ny, x1, 
                  y1, z_plane, out_units, xy_units, kernel, z_camera,
-                 smooth, smooth_in_pixels, smooth_range, force_quiet,
-                 approximate_fast, __threaded=False) :
+                 smooth, smooth_in_pixels,  force_quiet,
+                 smooth_range=None, res_downgrade=None, __threaded=False) :
 
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
 
     track_time = config["tracktime"] and not force_quiet
     verbose = config["verbose"] and not force_quiet
-    
-    if approximate_fast :
-    
-        reren = lambda subsamp_nx, subsamp_ny, subsamp_sm_range : \
-            _render_image(snap, qty, x2, subsamp_nx, y2, subsamp_ny, x1,  y1, z_plane, out_units, xy_units,
-                         kernel, z_camera,
-                         smooth,
-                         smooth_in_pixels, subsamp_sm_range, True, False, __threaded)
 
-        if ny==None : ny=nx
-        base = reren(nx, ny, (0,2))
-        sub=1
-        max_i = int(np.floor(np.log2(nx/16)))
-        for i in xrange(max_i) :
-            sub*=2
-            rn = (1,2)
-            if i==max_i-1 :
-                rn = (1,10000)
-            if verbose :
-                print "Iteration",i,"res",nx/sub
-            new_im = reren(nx/sub, ny/sub, rn)
-            
-            base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)
-        return base
     
-            
     import os, os.path
     global config
     
@@ -470,6 +471,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     if y1 is None :
         y1 = -y2
 
+    if res_downgrade is not None :
+        nx/=res_downgrade
+        ny/=res_downgrade
+    
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
     if smooth_range is not None :
@@ -481,8 +486,6 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     result = np.zeros((ny,nx),dtype=np.float32)
 
-    
-    
     n_part = len(snap)
 
     if xy_units is None :
@@ -614,9 +617,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     result.sim = snap
     return result
 
-def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
-               xy_units=None, kernel=Kernel(), smooth='smooth', __threaded=False) :
 
+def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
+               xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
+               threaded=_threaded_image) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -651,25 +655,60 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
         in_time = time.time()
     
 
-    x1 = np.min(snap['x'])
-    x2 = np.max(snap['x'])
-    y1 = np.min(snap['y'])
-    y2 = np.max(snap['y'])
-    z1 = np.min(snap['z'])
-    z2 = np.max(snap['z'])
+   
+    if x2 is None :
+        x1 = np.min(snap['x'])
+        x2 = np.max(snap['x'])
+        y1 = np.min(snap['y'])
+        y2 = np.max(snap['y'])
+        z1 = np.min(snap['z'])
+        z2 = np.max(snap['z'])
+    else :
+        x1 = -x2
+        y1 = -x2
+        z1 = -x2
+        z2 = x2
+        y2 = x2
             
     if nx is None :
         nx = np.ceil((x2 - x1) / np.min(snap['eps']))
     if ny is None :
-        ny = np.ceil((y2 - y1) / np.min(snap['eps']))
+        ny = nx
     if nz is None :
-        nz = np.ceil((z2 - z1) / np.min(snap['eps']))
+        nz = nx
 
     x1, x2, y1, y2, z1, z2 = [float(q) for q in x1,x2,y1,y2,z1,z2]
     nx, ny, nz = [int(q) for q in nx,ny,nz]
 
-    result = np.zeros((nx,ny,nz),dtype=np.float32)
+    if approximate_fast :
+        renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/16))))
+    else :
+        renderer = _to_3d_grid
 
+    if threaded :
+        res= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+                                    xy_units, kernel, smooth, num_threads=threaded)
+    else :
+        res= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+                      xy_units, kernel, smooth, False)
+        
+    if config["tracktime"] :
+        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+
+    return res
+        
+
+
+def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+               xy_units, kernel, smooth, __threaded=False,res_downgrade=None,
+               smooth_range=None) :
+
+    if res_downgrade is not None :
+        nx/=res_downgrade
+        ny/=res_downgrade
+        nz/=res_downgrade
+
+    result = np.zeros((nx,ny,nz),dtype=np.float32)
     n_part = len(snap)
 
     if xy_units is None :
@@ -703,7 +742,14 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
 
     if __threaded :
         code+="#define THREAD 1\n"
-    
+    if smooth_range is not None :
+        code+="#define SMOOTH_RANGE 1\n"
+        smooth_lo=float(smooth_range[0])
+        smooth_hi=float(smooth_range[1])
+    else :
+        smooth_lo = 0
+        smooth_hi = 0
+
        
     code+=file(os.path.join(os.path.dirname(__file__),'sph_to_grid.c')).read()
     
@@ -715,15 +761,10 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
     
     if config['verbose']: print>>sys.stderr, "Gridding particles"
    
-    if config["tracktime"] :
-        print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
     util.threadsafe_inline( code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
                    'x1', 'x2', 'y1', 'y2', 'z1',  'z2',
-                   'qty', 'mass', 'rho'],verbose=2)
-    if config["tracktime"] :
-        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
-            
-        
+                   'qty', 'mass', 'rho', 'smooth_lo','smooth_hi'],verbose=2)
+   
     result = result.view(array.SimArray)
 
     # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
