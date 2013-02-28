@@ -37,6 +37,10 @@ for(int i=0; i<n_part; i++) {
   if(abort) continue;
   float x_i=X1(i), y_i=Y1(i), z_i=Z1(i), sm_i=SM1(i), qty_i=QTY1(i)*MASS1(i)/RHO1(i);
 
+#ifdef SMOOTH_RANGE
+  if((sm_i<pixel_dx*smooth_lo) || (sm_i>pixel_dx*smooth_hi)) continue;
+#endif
+
 #ifndef THREAD
   if(i%1000==0) {
     if(PyErr_CheckSignals()!=0)
