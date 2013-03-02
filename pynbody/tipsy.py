@@ -346,9 +346,9 @@ class TipsySnap(snapshot.SimSnap) :
                                     ar = self_sub[name]
                                     try:
                                         if ar.units != 1 and ar.units != units.NoUnit(): 
-                                            g[:,i] =np.float32(ar.in_original_units())
+                                            g[:,i] = ar.in_original_units().view(np.ndarray)
                                         else : 
-                                            g[:,i] =np.float32(ar)
+                                            g[:,i] = ar.view(np.ndarray)
                                     except KeyError:
                                         pass
 
@@ -424,7 +424,7 @@ class TipsySnap(snapshot.SimSnap) :
                         # Copy from the correct arrays
                         for i, name in enumerate(st) :
                             try:
-                                g[:,i] =np.float32(self_type_block[name])
+                                g[:,i] = self_type_block[name]
                             except KeyError :
                                 pass
 
