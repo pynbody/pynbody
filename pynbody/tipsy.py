@@ -314,7 +314,7 @@ class TipsySnap(snapshot.SimSnap) :
             if family.dm    in fam_out: assert(nd == len(self[family.dm]))
             if family.star  in fam_out: assert(ns == len(self[family.star]))
 
-            max_block_size = 1024 # particles
+            max_block_size = 1024**2 # particles
 
             # describe the file structure as list of (num_parts, [list_of_properties]) 
             file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
@@ -336,18 +336,21 @@ class TipsySnap(snapshot.SimSnap) :
                     else:
                         g = np.fromstring(fin.read(len(st)*n_block*4),'f').reshape((n_block,len(st)))
 
-                    if fam in fam_out : 
+                    if fam in fam_out :
+                        self_sub = self[fam][n_done:n_done+n_block]
                         # write over the relevant data
-                        for i, name in enumerate(st) :
-                            
-                            if name in arrays:
-                                try:
-                                    if self[fam][name].units != 1 and self[fam][name].units != units.NoUnit(): 
-                                        g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block].in_original_units())
-                                    else : 
-                                        g[:,i] =np.float32(self[fam][name][n_done:n_done+n_block])
-                                except KeyError:
-                                    pass
+                        with self_sub.immediate_mode :
+                            for i, name in enumerate(st) :
+
+                                if name in arrays:
+                                    ar = self_sub[name]
+                                    try:
+                                        if ar.units != 1 and ar.units != units.NoUnit(): 
+                                            g[:,i] =np.float32(ar.in_original_units())
+                                        else : 
+                                            g[:,i] =np.float32(ar)
+                                    except KeyError:
+                                        pass
 
                     # Write out the block
                     if self._byteswap :
@@ -406,21 +409,24 @@ class TipsySnap(snapshot.SimSnap) :
                               (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
                               (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
             
-            max_block_size = 1024 # particles
+            max_block_size = 1024**2 # particles
             for n_left, type, st in file_structure :
                 n_done = 0
                 self_type = self[type]
                 while n_left>0 :
                     n_block = min(n_left,max_block_size)                   
-
+                    
                     g = np.zeros((n_block,len(st)),dtype=np.float32)
 
-                    # Copy from the correct arrays
-                    for i, name in enumerate(st) :
-                        try:
-                            g[:,i] =np.float32(self_type[name][n_done:n_done+n_block])
-                        except KeyError :
-                            pass
+                    self_type_block = self_type[n_done:n_done+n_block]
+
+                    with self_type_block.immediate_mode :
+                        # Copy from the correct arrays
+                        for i, name in enumerate(st) :
+                            try:
+                                g[:,i] =np.float32(self_type_block[name])
+                            except KeyError :
+                                pass
 
                     # Write out the block
                     if byteswap :
