@@ -320,27 +320,27 @@ def _threaded_render_image(fn, s,*args, **kwargs) :
     file, probably 4. It should probably match the number of cores on your
     machine. """
     
-    
-    num_threads = kwargs['num_threads']
-    del kwargs['num_threads']
+    with s.immediate_mode:
+        num_threads = kwargs['num_threads']
+        del kwargs['num_threads']
 
-    verbose = kwargs.get('verbose', config['verbose'])
-    
-    kwargs['__threaded']=True # will pass into render_image
-    
-    ts = []
-    outputs = []
+        verbose = kwargs.get('verbose', config['verbose'])
 
-    if verbose : print "Rendering image on %d threads..."%num_threads
-        
-    for i in xrange(num_threads) :
-        s_local = s[i::num_threads]
-        args_local = [outputs, s_local]+list(args)
-        ts.append(threading.Thread(target = _render_image_bridge(fn), args=args_local, kwargs=kwargs))
-        ts[-1].start()
-        
-    for t in ts : 
-        t.join()
+        kwargs['__threaded']=True # will pass into render_image
+
+        ts = []
+        outputs = []
+
+        if verbose : print "Rendering image on %d threads..."%num_threads
+
+        for i in xrange(num_threads) :
+            kwargs['snap_slice'] = slice(i,None,num_threads)
+            args_local = [outputs, s]+list(args)
+            ts.append(threading.Thread(target = _render_image_bridge(fn), args=args_local, kwargs=kwargs))
+            ts[-1].start()
+
+        for t in ts : 
+            t.join()
 
     return sum(outputs)
 
@@ -453,11 +453,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                                approximate_fast)
 
 
-        
+
+            
 def _render_image(snap, qty, x2, nx, y2, ny, x1, 
                  y1, z_plane, out_units, xy_units, kernel, z_camera,
                  smooth, smooth_in_pixels,  force_quiet,
-                 smooth_range=None, res_downgrade=None, __threaded=False) :
+                 smooth_range=None, res_downgrade=None, snap_slice=None,
+                 __threaded=False) :
 
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
@@ -468,6 +470,16 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     
     import os, os.path
     global config
+
+    snap_proxy = {}
+
+    # cache the arrays and take a slice of them if we've been asked to
+    for arname in 'x','y','z', 'pos',smooth,qty,'rho','mass' :
+        snap_proxy[arname] = snap[arname]
+        
+        if snap_slice is not None :
+            snap_proxy[arname] = snap_proxy[arname][snap_slice]
+            
     
     if track_time :
         import time
@@ -505,22 +517,23 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     n_part = len(snap)
 
     if xy_units is None :
-        xy_units = snap['x'].units
+        xy_units = snap_proxy['x'].units
 
-    x = snap['x'].in_units(xy_units)
-    y = snap['y'].in_units(xy_units)
-    z = snap['z'].in_units(xy_units)
+    x = snap_proxy['x'].in_units(xy_units)
+    y = snap_proxy['y'].in_units(xy_units)
+    z = snap_proxy['z'].in_units(xy_units)
 
-    sm = snap[smooth]
+    sm = snap_proxy[smooth]
 
     if sm.units!=x.units and not smooth_in_pixels:
         sm = sm.in_units(x.units)
     
     
     qty_s = qty
-    qty = snap[qty]
-    mass = snap['mass']
-    rho = snap['rho']
+    qty = snap_proxy[qty]
+    mass = snap_proxy['mass']
+    rho = snap_proxy['rho']
+    
 
     if out_units is not None :
         # Calculate the ratio now so we don't waste time calculating
@@ -561,7 +574,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
         mf = cl.mem_flags
 
-        pos = snap['pos']
+        pos = snap_proxy['pos']
         par = struct.pack('ffffi', (x2-x1)/nx, (y2-y1)/ny, x1, y1, len(pos))
     
         par_buf = cl.Buffer(ctx, mf.READ_ONLY, len(par))
@@ -622,10 +635,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     # respectively. This is dimensionless, but may not be 1 if the units
     # have been changed since load-time.
     if out_units is None :
-        result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+        result*= (snap_proxy['mass'].units / (snap_proxy['rho'].units)).ratio(snap_proxy['x'].units**3, **snap_proxy['x'].conversion_context())
 
         # The following will be the units of outputs after the above conversion is applied
-        result.units = snap[qty_s].units*snap['x'].units**(3-kernel.h_power)
+        result.units = snap_proxy[qty_s].units*snap_proxy['x'].units**(3-kernel.h_power)
     else:
         result*=conv_ratio
         result.units = out_units
@@ -636,7 +649,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=_threaded_image) :
+               threaded=_threaded_image,snap_slice=None) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -665,6 +678,8 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
 
     import os, os.path
     global config
+ 
+   
     
     if config["tracktime"] :
         import time
@@ -719,6 +734,15 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                xy_units, kernel, smooth, __threaded=False,res_downgrade=None,
                smooth_range=None) :
 
+    snap_proxy = {}
+
+    # cache the arrays and take a slice of them if we've been asked to
+    for arname in 'x','y','z', 'pos',smooth,qty,'rho','mass' :
+        snap_proxy[arname] = snap[arname]
+        
+        if snap_slice is not None :
+            snap_proxy[arname] = snap_proxy[arname][snap_slice]
+            
     if res_downgrade is not None :
         nx/=res_downgrade
         ny/=res_downgrade
@@ -728,21 +752,21 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
     n_part = len(snap)
 
     if xy_units is None :
-        xy_units = snap['x'].units
+        xy_units = snap_proxy['x'].units
 
-    x = snap['x'].in_units(xy_units)
-    y = snap['y'].in_units(xy_units)
-    z = snap['z'].in_units(xy_units)
+    x = snap_proxy['x'].in_units(xy_units)
+    y = snap_proxy['y'].in_units(xy_units)
+    z = snap_proxy['z'].in_units(xy_units)
 
-    sm = snap[smooth]
+    sm = snap_proxy[smooth]
 
     if sm.units!=x.units :
         sm = sm.in_units(x.units)
 
     qty_s = qty
-    qty = snap[qty]
-    mass = snap['mass']
-    rho = snap['rho']
+    qty = snap_proxy[qty]
+    mass = snap_proxy['mass']
+    rho = snap_proxy['rho']
 
     if out_units is not None :
         # Calculate the ratio now so we don't waste time calculating
@@ -788,10 +812,10 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
     # respectively. This is dimensionless, but may not be 1 if the units
     # have been changed since load-time.
     if out_units is None :
-        result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+        result*= (snap_proxy['mass'].units / (snap_proxy['rho'].units)).ratio(snap_proxy['x'].units**3, **snap_proxy['x'].conversion_context())
 
         # The following will be the units of outputs after the above conversion is applied
-        result.units = snap[qty_s].units*snap['x'].units**(3-kernel.h_power)
+        result.units = snap_proxy[qty_s].units*snap_proxy['x'].units**(3-kernel.h_power)
     else:
         result*=conv_ratio
         result.units = out_units
