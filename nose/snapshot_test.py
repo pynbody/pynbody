@@ -1,5 +1,6 @@
 import pynbody
 import numpy as np
+import weakref
 
 def setup() :
     global f, h
@@ -205,6 +206,21 @@ def test_immediate_mode() :
         test_val = f[[1,6,10]]['x']
     assert isinstance(f[[1,6,10]]['x'], pynbody.array.IndexedSimArray)
     assert (test_val==f[[1,6,10]]['x']).all()
+
+    with f.immediate_mode :
+        # check we get the same actual object two times
+        fsub = f.dm[[1,6,52]]
+        xa = fsub['x']
+        xb = fsub['x']
+        assert xa is xb
+        xc = f.dm[[1,6,52]]['x']
+        assert xa is xc
+        wr = weakref.ref(xa)
+        del xa,xb,xc
+        assert wr() is not None
+
+    # check it was deleted
+    assert wr() is None
     
 def test_subsnap_by_boolean_mask() :
     print (f['x']>0).shape, len(f)
