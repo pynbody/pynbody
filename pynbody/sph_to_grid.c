@@ -50,7 +50,7 @@ for(int i=0; i<n_part; i++) {
 
     {
  
-      if( (sm_i/pixel_dx<1 && sm_i/pixel_dx<1)) {
+      if( (MAX_D_OVER_H*sm_i/pixel_dx<1 && MAX_D_OVER_H*sm_i/pixel_dx<1)) {
       
       int x_pos = X_TO_XI(x_i);
       int y_pos = Y_TO_YI(y_i);
