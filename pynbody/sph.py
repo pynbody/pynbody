@@ -21,6 +21,7 @@ import time
 import sys
 from . import snapshot, array, config, units, util, config_parser
 import threading
+import copy
 try:
     import kdtree
 except ImportError :
@@ -334,9 +335,10 @@ def _threaded_render_image(fn, s,*args, **kwargs) :
         if verbose : print "Rendering image on %d threads..."%num_threads
 
         for i in xrange(num_threads) :
-            kwargs['snap_slice'] = slice(i,None,num_threads)
+            kwargs_local = copy.copy(kwargs)
+            kwargs_local['snap_slice'] = slice(i,None,num_threads)
             args_local = [outputs, s]+list(args)
-            ts.append(threading.Thread(target = _render_image_bridge(fn), args=args_local, kwargs=kwargs))
+            ts.append(threading.Thread(target = _render_image_bridge(fn), args=args_local, kwargs=kwargs_local))
             ts[-1].start()
 
         for t in ts : 
@@ -472,11 +474,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     global config
 
     snap_proxy = {}
-
+    
     # cache the arrays and take a slice of them if we've been asked to
     for arname in 'x','y','z', 'pos',smooth,qty,'rho','mass' :
         snap_proxy[arname] = snap[arname]
-        
         if snap_slice is not None :
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
             
@@ -732,6 +733,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
 
 def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                xy_units, kernel, smooth, __threaded=False,res_downgrade=None,
+               snap_slice=None,
                smooth_range=None) :
 
     snap_proxy = {}
