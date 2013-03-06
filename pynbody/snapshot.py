@@ -1516,7 +1516,7 @@ class SubSnap(SimSnap) :
                 _slice = slice(0, _slice.stop, _slice.step)
             if _slice.start<0 :
                 _slice = slice(len(base)+_slice.start, _slice.stop, _slice.step)
-            if _slice.stop is None :
+            if _slice.stop is None or _slice.stop>len(base) :
                 _slice = slice(_slice.start, len(base), _slice.step)
             if _slice.stop<0 :
                 _slice = slice(_slice.start, len(base)+_slice.stop, _slice.step)
@@ -1533,7 +1533,7 @@ class SubSnap(SimSnap) :
         
         
         
-        self._num_particles = len(np.empty(len(base))[_slice]) # this is highly inefficient and needs fixing
+        self._num_particles = util.indexing_length(_slice) 
         
         self._descriptor = descriptor
 
