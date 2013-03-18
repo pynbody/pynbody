@@ -160,6 +160,7 @@ def age(f, z=None, unit='Gyr') :
     else : 
         return get_age(z)
 
+@units.takes_arg_in_units((1,"Gyr"),context_arg=0)
 def redshift(f, time) : 
     """ 
     Calculate the redshift given a snapshot and a time since Big Bang
@@ -196,7 +197,7 @@ def redshift(f, time) :
             return np.array(map(lambda x: newton(func,1,args=(f,x)),time))
     else : 
         return newton(func,1,args=(f,time))
-    
+
 def rho_crit(f, z=None, unit=None) :
     """Calculate the critical density of the universe in
     the snapshot f.
