@@ -53,12 +53,26 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         # results will be insensitive to the exact value chosen
         r = (sim["x"].max()-sim["x"].min())/2
     com=None
-    while len(x)>min_particles or com is None :
-        com = center_of_mass(x)#, cov = center_of_mass(x)
-        r*=shrink_factor
-        x = sim[filt.Sphere(r, com)]
-        if verbose:
-            print com,r,len(x)
+
+    with sim.immediate_mode : 
+        rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
+        ind = np.where(rs < r)[0]
+        mass = sim['mass'][ind]
+        pos = sim['pos'][ind]
+        rs = rs[ind]
+        
+        while len(ind)>min_particles or com is None :
+            mtot = mass.sum()
+            com = np.sum(mass*pos.transpose(),axis=1)/mtot
+            if verbose:
+                print com,r,len(ind)
+            r*=shrink_factor
+            rs = np.sqrt(np.sum((pos-com)**2,axis=1))
+            ind = np.where(rs < r)[0]
+            mass = mass[ind]
+            pos = pos[ind]
+            rs = rs[ind]
+            
     return com
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
