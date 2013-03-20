@@ -29,10 +29,14 @@ while((npart_new > min_particles) || (com[0]==0.0 && com[1]==0.0 && com[2] == 0.
             npart_new++;
           }
       }
-    for(i=0;i<3;i++) com[i] = com_new[i]/mtot;
-    if(verbose)    
-      fprintf(stderr, "[ %.13f %.13f %.13f] %.13f %d\n", com[0],com[1],com[2],rcut,npart_new);
-    rcut *= 0.7;
+    if (npart_new > 0)
+      {
+        for(i=0;i<3;i++) com[i] = com_new[i]/mtot;
+        if(verbose)    
+          fprintf(stderr, "[ %.13f %.13f %.13f] %.13f %d\n", com[0],com[1],com[2],rcut,npart_new);
+        rcut *= 0.7;
+      }
+    else break;
   }
 
 
