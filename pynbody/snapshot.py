@@ -87,7 +87,7 @@ class SimSnap(object) :
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
-    _persistent = ["kdtree"]
+    _persistent = ["kdtree", "_immediate_cache"]
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
@@ -183,6 +183,7 @@ class SimSnap(object) :
         self.immediate_mode = util.ExecutionControl()
         # use 'with immediate_mode: ' to always return actual numpy arrays, rather
         # than IndexedSubArrays which point to sub-parts of numpy arrays
+        self.immediate_mode.on_exit = lambda : self._clear_immediate_mode()
 
 
         self.delay_promotion = util.ExecutionControl()
@@ -373,6 +374,11 @@ class SimSnap(object) :
             self._persistent_objects[hash] = {}
         self._persistent_objects[hash][name] = obj
 
+    def _clear_immediate_mode(self) :
+        for k, v in self._persistent_objects.iteritems() :
+            if '_immediate_cache' in v :
+                del v['_immediate_cache']
+
     def __getattr__(self, name) :
         """This function overrides the behaviour of f.X where f is a SimSnap object.
 
@@ -387,7 +393,7 @@ class SimSnap(object) :
             return self[family.get_family(name)]
         except ValueError :
             pass
-        
+
         raise AttributeError("%r object has no attribute %r"%(type(self).__name__, name))
 
 
@@ -1420,13 +1426,19 @@ class SimSnap(object) :
 
     @property
     def _inclusion_hash(self) :
+        import traceback
         try :
-            return self.__inclusion_hash
+            rval= self.__inclusion_hash
         except AttributeError :
-            index_list  = self.get_index_list(self.ancestor)
-            hash = hashlib.md5(index_list.data)
-            self.__inclusion_hash = hash.digest()
-            return self.__inclusion_hash
+            try:
+                index_list  = self.get_index_list(self.ancestor)
+                hash = hashlib.md5(index_list.data)
+                self.__inclusion_hash = hash.digest()
+            except:
+                print "Encountered a problem while calculating your inclusion hash. The original traceback follows."
+                traceback.print_exc()
+            rval= self.__inclusion_hash
+        return rval
 
     def __hash__(self) :
         return hash((object.__hash__(self.ancestor), self._inclusion_hash))
@@ -1492,7 +1504,7 @@ class SubSnap(SimSnap) :
         self.base = base
         self._file_units_system = base._file_units_system
         self._unifamily = base._unifamily
-
+                
         self._inherit()
 
         if isinstance(_slice,slice) :
@@ -1504,7 +1516,7 @@ class SubSnap(SimSnap) :
                 _slice = slice(0, _slice.stop, _slice.step)
             if _slice.start<0 :
                 _slice = slice(len(base)+_slice.start, _slice.stop, _slice.step)
-            if _slice.stop is None :
+            if _slice.stop is None or _slice.stop>len(base) :
                 _slice = slice(_slice.start, len(base), _slice.step)
             if _slice.stop<0 :
                 _slice = slice(_slice.start, len(base)+_slice.stop, _slice.step)
@@ -1521,7 +1533,7 @@ class SubSnap(SimSnap) :
         
         
         
-        self._num_particles = len(self["pos"]) # this is highly inefficient and needs fixing
+        self._num_particles = util.indexing_length(_slice) 
         
         self._descriptor = descriptor
 
@@ -1533,7 +1545,15 @@ class SubSnap(SimSnap) :
             
     def _get_array(self, name, index=None, always_writable=False) :
         if _subarray_immediate_mode or self.immediate_mode :
-            return self.base._get_array(name,None,always_writable)[self._slice]
+            hx = hash(name)
+            if not hasattr(self, '_immediate_cache') :
+                self._immediate_cache = [{}]
+            cache = self._immediate_cache[0]
+            if hx not in cache:
+                cache[hx]=self.base._get_array(name,None,always_writable)[self._slice]
+                
+            return cache[hx]
+        
         else :
             ret =  self.base._get_array(name, util.concatenate_indexing(self._slice, index),always_writable)
             ret.family = self._unifamily
@@ -1549,7 +1569,14 @@ class SubSnap(SimSnap) :
         sl = util.concatenate_indexing(sl, index)
 
         if _subarray_immediate_mode or self.immediate_mode :
-            return self.base._get_family_array(name, fam,None,always_writable)[sl]
+            hx = hash((name,fam))
+            if not hasattr(self, '_immediate_cache') :
+                self._immediate_cache = [{}]
+            cache = self._immediate_cache[0]
+
+            if hx not in cache :
+                cache[hx]=self.base._get_family_array(name, fam,None,always_writable)[sl]
+            return cache[hx]
         else :
             return self.base._get_family_array(name, fam, sl,always_writable)
 
@@ -1648,6 +1675,7 @@ class IndexedSubSnap(SubSnap) :
         
         self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
+                
         if isinstance(index_array, filt.Filter) :
             self._descriptor = index_array._descriptor
             index_array = index_array.where(base)[0]
@@ -1724,7 +1752,7 @@ class FamilySubSnap(SubSnap) :
         # Use the slice attributes to find sub array length
         self._num_particles = self._slice.stop-self._slice.start
         self._file_units_system = base._file_units_system
-
+        
     def __delitem__(self, name) :
         if name in self.base.keys() :
             raise ValueError("Cannot delete global simulation property from sub-view")

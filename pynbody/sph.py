@@ -21,10 +21,12 @@ import time
 import sys
 from . import snapshot, array, config, units, util, config_parser
 import threading
+import copy
 try:
     import kdtree
 except ImportError :
     raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
+import os
 
 _threaded_smooth = config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
 _threaded_image = config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
@@ -242,50 +244,66 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
         import healpy_f as hpf
         query_disc = hpf.query_disc
     except ImportError :
-        query_disc = lambda a, b, c : hp.query_disc(a,b,c,deg=False)
-
+        query_disc = hp.query_disc
         
     if out_units is not None :
         conv_ratio = (snap[qty].units*snap['mass'].units/(snap['rho'].units*snap['smooth'].units**kernel.h_power)).ratio(out_units,
                                                                                                                          **snap.conversion_context())
-        
-    D = snap["r"]
-    h = snap["smooth"]
 
-    ds = np.arange(kstep,kernel.max_d,kstep)        
-    ds_mean = np.hstack(([0],ds))
-    ds_mean = (ds_mean[1:]+ds_mean[:-1])/2 # should be K-weighted, or at least area-weighted, but this is better than nothing
-    weights = np.array([kernel.get_value(d) for d in ds])
+    with snap.immediate_mode :
+        D = snap["r"]
+        h = snap["smooth"]
+        pos = snap["pos"]
+        mass = snap["mass"]
+        rho = snap["rho"]
+        qty = snap[qty]
+
+    
+    
+    ds = np.arange(kstep,kernel.max_d+kstep/2,kstep)
+    weights = np.zeros_like(ds)
+
+    for i,d1 in enumerate(ds) :
+        d0 = d1-kstep
+        # work out int_d0^d1 x K(x), then set our discretized kernel to
+        # match that
+        dvals = np.arange(d0,d1,0.001)
+        ivals = np.array([kernel.get_value(d)*d for d in dvals])
+        integ = ivals.sum()*0.001
+        weights[i] = 2*integ / (d1**2-d0**2)
+        
+        
+  
     weights[:-1]-=weights[1:]
 
     if kernel.h_power==3 :
-        ind = np.where(np.abs(snap["r"]-distance)<snap["smooth"]*kernel.max_d)
+        ind = np.where(np.abs(D-distance)<h*kernel.max_d)
         # angular radius subtended by the intersection of the boundary
         # of the SPH particle with the boundary surface of the calculation
-        rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds_mean)**2 - (D[i]-distance)**2)/distance)
+        rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds)**2 - (D[i]-distance)**2)/distance)
         # den_fn = lambda i : [((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]
         print "done"
     elif kernel.h_power==2 :
-        ind = np.where(snap["r"]<distance)
+        ind = np.where(D<distance)
         
         # angular radius taken at distance of particle
         rad_fn = lambda i : np.arctan(h[i]*ds_mean/D[i])
         
-    den_fn = lambda i : ((snap[qty][i]*snap["mass"][i]/snap["rho"][i])) * weights
+    den_fn = lambda i : ((qty[i]*mass[i]/rho[i])) * weights / h[i]**kernel.h_power
         
 
     print "Spherical image from",len(ind[0]),"particles"    
     im = np.zeros(hp.nside2npix(nside))
-    
 
     for i in ind[0] :
         for r,w in zip(rad_fn(i), den_fn(i)) :
             if r==r : #ignore NaN's -- they just mean the current radius doesn't intersect our sphere
-                i2 = query_disc(nside, snap["pos"][i], r)
+                
+                i2 = query_disc(nside, pos[i], r,inclusive=False)
                 im[i2]+=w
 
     im = im.view(array.SimArray)
-    im.units = snap[qty].units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
+    im.units = qty.units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
     im.sim = snap
 
     if out_units is not None :
@@ -293,7 +311,7 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
     
     return im
 
-def _threaded_render_image(s,*args, **kwargs) :
+def _threaded_render_image(fn, s,*args, **kwargs) :
     """
     Render an SPH image using multiple threads.
 
@@ -303,35 +321,60 @@ def _threaded_render_image(s,*args, **kwargs) :
     file, probably 4. It should probably match the number of cores on your
     machine. """
     
-    
-    num_threads = kwargs['num_threads']
-    del kwargs['num_threads']
+    with s.immediate_mode:
+        num_threads = kwargs['num_threads']
+        del kwargs['num_threads']
 
-    verbose = kwargs.get('verbose', config['verbose'])
-    
-    kwargs['__threaded']=True # will pass into render_image
-    
-    ts = []
-    outputs = []
+        verbose = kwargs.get('verbose', config['verbose'])
 
-    if verbose : print "Rendering image on %d threads..."%num_threads
-        
-    for i in xrange(num_threads) :
-        s_local = s[i::num_threads]
-        args_local = [outputs, s_local]+list(args)
-        ts.append(threading.Thread(target = _render_image_bridge, args=args_local, kwargs=kwargs))
-        ts[-1].start()
-        
-    for t in ts : 
-        t.join()
+        kwargs['__threaded']=True # will pass into render_image
+
+        ts = []
+        outputs = []
+
+        if verbose : print "Rendering image on %d threads..."%num_threads
+
+        for i in xrange(num_threads) :
+            kwargs_local = copy.copy(kwargs)
+            kwargs_local['snap_slice'] = slice(i,None,num_threads)
+            args_local = [outputs, s]+list(args)
+            ts.append(threading.Thread(target = _render_image_bridge(fn), args=args_local, kwargs=kwargs_local))
+            ts[-1].start()
+
+        for t in ts : 
+            t.join()
 
     return sum(outputs)
 
-def _render_image_bridge(*args, **kwargs) :
+def _interpolated_renderer(fn, levels) :
+    """
+    Render an SPH image using interpolation to speed up rendering where smoothing
+    lengths are large.
+    """
+    def render_fn(*args, **kwargs) :
+        kwargs['smooth_range']=(0,2)
+        kwargs['res_downgrade']=1
+        sub=1
+        base = fn(*args, **kwargs)
+
+        kwargs['smooth_range']=(1,2)
+        for i in xrange(1,levels) :
+            sub*=2
+            if i==levels-1:
+                kwargs['smooth_range']=(1,10000)
+            kwargs['res_downgrade']=sub
+            new_im=fn(*args,**kwargs)
+            base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)
+        return base
+    return render_fn
+    
+def _render_image_bridge(fn) :
     """Helper function for threaded_render_image; do not call directly"""
-    output_list = args[0]
-    X = _render_image(*args[1:],**kwargs)
-    output_list.append(X)
+    def bridge(*args, **kwargs) :
+        output_list = args[0]
+        X = fn(*args[1:],**kwargs)
+        output_list.append(X)
+    return bridge
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None, 
                  y1=None, z_plane = 0.0, out_units=None, xy_units=None,
@@ -339,7 +382,6 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  z_camera=None,
                  smooth='smooth',
                  smooth_in_pixels = False,
-                 smooth_range=None,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
                  threaded=_threaded_image) :
@@ -386,10 +428,6 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
      *smooth_in_pixels*: If True, the smoothing array contains the smoothing
        length in image pixels, rather than in real distance units (default False)
 
-     *smooth_range*: either None or a tuple of integers (lo,hi). If
-       the latter, only particles with smoothing lengths between
-       lo<smooth<hi pixels will be rendered.
-
      *approximate_fast*: if True, render high smoothing length particles at
        progressively lower resolution, resample and sum
 
@@ -400,57 +438,49 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
       configuration files).
     """
 
-    if threaded :
-        return _threaded_render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
-                               out_units, xy_units, kernel, z_camera, smooth,
-                               smooth_in_pixels, smooth_range, True, 
-                               approximate_fast, num_threads=threaded)
+    if approximate_fast :
+        base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/16))))
     else :
-        return _render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        base_renderer = _render_image
+
+    if threaded :
+        return _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+                                      out_units, xy_units, kernel, z_camera, smooth,
+                                      smooth_in_pixels, True, 
+                                      num_threads=threaded)
+    else :
+        return _render_image(base_renderer, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                out_units, xy_units, kernel, z_camera, smooth,
-                               smooth_in_pixels, smooth_range, False, 
+                               smooth_in_pixels, False, 
                                approximate_fast)
 
 
-        
+
+            
 def _render_image(snap, qty, x2, nx, y2, ny, x1, 
                  y1, z_plane, out_units, xy_units, kernel, z_camera,
-                 smooth, smooth_in_pixels, smooth_range, force_quiet,
-                 approximate_fast, __threaded=False) :
+                 smooth, smooth_in_pixels,  force_quiet,
+                 smooth_range=None, res_downgrade=None, snap_slice=None,
+                 __threaded=False) :
 
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
 
     track_time = config["tracktime"] and not force_quiet
     verbose = config["verbose"] and not force_quiet
-    
-    if approximate_fast :
-    
-        reren = lambda subsamp_nx, subsamp_ny, subsamp_sm_range : \
-            _render_image(snap, qty, x2, subsamp_nx, y2, subsamp_ny, x1,  y1, z_plane, out_units, xy_units,
-                         kernel, z_camera,
-                         smooth,
-                         smooth_in_pixels, subsamp_sm_range, True, False, __threaded)
 
-        if ny==None : ny=nx
-        base = reren(nx, ny, (0,2))
-        sub=1
-        max_i = int(np.floor(np.log2(nx/16)))
-        for i in xrange(max_i) :
-            sub*=2
-            rn = (1,2)
-            if i==max_i-1 :
-                rn = (1,10000)
-            if verbose :
-                print "Iteration",i,"res",nx/sub
-            new_im = reren(nx/sub, ny/sub, rn)
-            
-            base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)
-        return base
     
-            
     import os, os.path
     global config
+
+    snap_proxy = {}
+    
+    # cache the arrays and take a slice of them if we've been asked to
+    for arname in 'x','y','z', 'pos',smooth,qty,'rho','mass' :
+        snap_proxy[arname] = snap[arname]
+        if snap_slice is not None :
+            snap_proxy[arname] = snap_proxy[arname][snap_slice]
+            
     
     if track_time :
         import time
@@ -470,6 +500,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     if y1 is None :
         y1 = -y2
 
+    if res_downgrade is not None :
+        nx/=res_downgrade
+        ny/=res_downgrade
+    
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
     if smooth_range is not None :
@@ -481,27 +515,26 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     result = np.zeros((ny,nx),dtype=np.float32)
 
-    
-    
     n_part = len(snap)
 
     if xy_units is None :
-        xy_units = snap['x'].units
+        xy_units = snap_proxy['x'].units
 
-    x = snap['x'].in_units(xy_units)
-    y = snap['y'].in_units(xy_units)
-    z = snap['z'].in_units(xy_units)
+    x = snap_proxy['x'].in_units(xy_units)
+    y = snap_proxy['y'].in_units(xy_units)
+    z = snap_proxy['z'].in_units(xy_units)
 
-    sm = snap[smooth]
+    sm = snap_proxy[smooth]
 
     if sm.units!=x.units and not smooth_in_pixels:
         sm = sm.in_units(x.units)
     
     
     qty_s = qty
-    qty = snap[qty]
-    mass = snap['mass']
-    rho = snap['rho']
+    qty = snap_proxy[qty]
+    mass = snap_proxy['mass']
+    rho = snap_proxy['rho']
+    
 
     if out_units is not None :
         # Calculate the ratio now so we don't waste time calculating
@@ -542,7 +575,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
         mf = cl.mem_flags
 
-        pos = snap['pos']
+        pos = snap_proxy['pos']
         par = struct.pack('ffffi', (x2-x1)/nx, (y2-y1)/ny, x1, y1, len(pos))
     
         par_buf = cl.Buffer(ctx, mf.READ_ONLY, len(par))
@@ -603,10 +636,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     # respectively. This is dimensionless, but may not be 1 if the units
     # have been changed since load-time.
     if out_units is None :
-        result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+        result*= (snap_proxy['mass'].units / (snap_proxy['rho'].units)).ratio(snap_proxy['x'].units**3, **snap_proxy['x'].conversion_context())
 
         # The following will be the units of outputs after the above conversion is applied
-        result.units = snap[qty_s].units*snap['x'].units**(3-kernel.h_power)
+        result.units = snap_proxy[qty_s].units*snap_proxy['x'].units**(3-kernel.h_power)
     else:
         result*=conv_ratio
         result.units = out_units
@@ -614,9 +647,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     result.sim = snap
     return result
 
-def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
-               xy_units=None, kernel=Kernel(), smooth='smooth', __threaded=False) :
 
+def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
+               xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
+               threaded=_threaded_image,snap_slice=None) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -645,49 +679,96 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
 
     import os, os.path
     global config
+ 
+   
     
     if config["tracktime"] :
         import time
         in_time = time.time()
     
 
-    x1 = np.min(snap['x'])
-    x2 = np.max(snap['x'])
-    y1 = np.min(snap['y'])
-    y2 = np.max(snap['y'])
-    z1 = np.min(snap['z'])
-    z2 = np.max(snap['z'])
+   
+    if x2 is None :
+        x1 = np.min(snap['x'])
+        x2 = np.max(snap['x'])
+        y1 = np.min(snap['y'])
+        y2 = np.max(snap['y'])
+        z1 = np.min(snap['z'])
+        z2 = np.max(snap['z'])
+    else :
+        x1 = -x2
+        y1 = -x2
+        z1 = -x2
+        z2 = x2
+        y2 = x2
             
     if nx is None :
         nx = np.ceil((x2 - x1) / np.min(snap['eps']))
     if ny is None :
-        ny = np.ceil((y2 - y1) / np.min(snap['eps']))
+        ny = nx
     if nz is None :
-        nz = np.ceil((z2 - z1) / np.min(snap['eps']))
+        nz = nx
 
     x1, x2, y1, y2, z1, z2 = [float(q) for q in x1,x2,y1,y2,z1,z2]
     nx, ny, nz = [int(q) for q in nx,ny,nz]
 
-    result = np.zeros((nx,ny,nz),dtype=np.float32)
+    if approximate_fast :
+        renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/16))))
+    else :
+        renderer = _to_3d_grid
 
+    if threaded :
+        res= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+                                    xy_units, kernel, smooth, num_threads=threaded)
+    else :
+        res= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+                      xy_units, kernel, smooth, False)
+        
+    if config["tracktime"] :
+        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+
+    return res
+        
+
+
+def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+               xy_units, kernel, smooth, __threaded=False,res_downgrade=None,
+               snap_slice=None,
+               smooth_range=None) :
+
+    snap_proxy = {}
+
+    # cache the arrays and take a slice of them if we've been asked to
+    for arname in 'x','y','z', 'pos',smooth,qty,'rho','mass' :
+        snap_proxy[arname] = snap[arname]
+        
+        if snap_slice is not None :
+            snap_proxy[arname] = snap_proxy[arname][snap_slice]
+            
+    if res_downgrade is not None :
+        nx/=res_downgrade
+        ny/=res_downgrade
+        nz/=res_downgrade
+
+    result = np.zeros((nx,ny,nz),dtype=np.float32)
     n_part = len(snap)
 
     if xy_units is None :
-        xy_units = snap['x'].units
+        xy_units = snap_proxy['x'].units
 
-    x = snap['x'].in_units(xy_units)
-    y = snap['y'].in_units(xy_units)
-    z = snap['z'].in_units(xy_units)
+    x = snap_proxy['x'].in_units(xy_units)
+    y = snap_proxy['y'].in_units(xy_units)
+    z = snap_proxy['z'].in_units(xy_units)
 
-    sm = snap[smooth]
+    sm = snap_proxy[smooth]
 
     if sm.units!=x.units :
         sm = sm.in_units(x.units)
 
     qty_s = qty
-    qty = snap[qty]
-    mass = snap['mass']
-    rho = snap['rho']
+    qty = snap_proxy[qty]
+    mass = snap_proxy['mass']
+    rho = snap_proxy['rho']
 
     if out_units is not None :
         # Calculate the ratio now so we don't waste time calculating
@@ -703,7 +784,14 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
 
     if __threaded :
         code+="#define THREAD 1\n"
-    
+    if smooth_range is not None :
+        code+="#define SMOOTH_RANGE 1\n"
+        smooth_lo=float(smooth_range[0])
+        smooth_hi=float(smooth_range[1])
+    else :
+        smooth_lo = 0
+        smooth_hi = 0
+
        
     code+=file(os.path.join(os.path.dirname(__file__),'sph_to_grid.c')).read()
     
@@ -715,15 +803,10 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
     
     if config['verbose']: print>>sys.stderr, "Gridding particles"
    
-    if config["tracktime"] :
-        print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
     util.threadsafe_inline( code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
                    'x1', 'x2', 'y1', 'y2', 'z1',  'z2',
-                   'qty', 'mass', 'rho'],verbose=2)
-    if config["tracktime"] :
-        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
-            
-        
+                   'qty', 'mass', 'rho', 'smooth_lo','smooth_hi'],verbose=2)
+   
     result = result.view(array.SimArray)
 
     # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
@@ -731,10 +814,10 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, out_units=None,
     # respectively. This is dimensionless, but may not be 1 if the units
     # have been changed since load-time.
     if out_units is None :
-        result*= (snap['mass'].units / (snap['rho'].units)).ratio(snap['x'].units**3, **snap['x'].conversion_context())
+        result*= (snap_proxy['mass'].units / (snap_proxy['rho'].units)).ratio(snap_proxy['x'].units**3, **snap_proxy['x'].conversion_context())
 
         # The following will be the units of outputs after the above conversion is applied
-        result.units = snap[qty_s].units*snap['x'].units**(3-kernel.h_power)
+        result.units = snap_proxy[qty_s].units*snap_proxy['x'].units**(3-kernel.h_power)
     else:
         result*=conv_ratio
         result.units = out_units

@@ -68,7 +68,7 @@ you might be interested in d phi / dr if you're looking at a
 disk. This is as easy as attaching a ``d_`` to the profile name. For
 example:
 
->>> p = Profile(s)
+>>> p = pynbody.analysis.profile.Profile(s)
 >>> p['phi'] # returns the potential profile
 >>> p['d_phi'] # returns d phi / dr from p["phi"]
 

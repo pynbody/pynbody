@@ -8,7 +8,7 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
-from .. import filt, util, config
+from .. import filt, util, config, array
 from . import cosmology
 import numpy as np
 import math
@@ -39,6 +39,44 @@ def center_of_mass_velocity(sim) :
 
     return v
 
+def weave_ssc(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
+    """
+    
+    Return the center according to the shrinking-sphere method of
+    Power et al (2003)
+    
+    """
+    import os
+    from scipy import weave
+    x = sim
+
+    if r is None :
+        # use rough estimate for a maximum radius
+        # results will be insensitive to the exact value chosen
+        r = (sim["x"].max()-sim["x"].min())/2
+    
+    com=np.array([0.0,0.0,0.0],dtype='double')
+
+    if verbose: verbose = 1
+    else: verbose = 0
+
+    with sim.immediate_mode : 
+        rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
+        ind = np.where(rs < r)[0]
+        mass = np.array(sim['mass'][ind],dtype='double')
+        pos = np.array(sim['pos'][ind],dtype='double')
+        rs = rs[ind]
+
+        npart = len(ind)
+        code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
+        
+
+        vars = ['pos','com','mass','min_particles','npart','r','verbose']
+
+        weave.inline(code,vars,compiler='gcc')
+            
+    return array.SimArray(com,sim['pos'].units)
+
 def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
     """
     
@@ -46,6 +84,8 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     Power et al (2003)
     
     """
+    import os
+    from scipy import weave
     x = sim
 
     if r is None :
@@ -53,13 +93,39 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         # results will be insensitive to the exact value chosen
         r = (sim["x"].max()-sim["x"].min())/2
     com=None
-    while len(x)>min_particles or com is None :
-        com = center_of_mass(x)#, cov = center_of_mass(x)
-        r*=shrink_factor
-        x = sim[filt.Sphere(r, com)]
-        if verbose:
-            print com,r,len(x)
-    return com
+
+    with sim.immediate_mode : 
+        rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
+        ind = np.where(rs < r)[0]
+        mass = np.array(sim['mass'][ind],dtype='double')
+        pos = np.array(sim['pos'][ind],dtype='double')
+        
+        
+        com=np.array([0.0,0.0,0.0],dtype='double')
+        npart = len(ind)
+
+        vars = ['pos','com','mass','min_particles','npart','r','verbose']
+
+        code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
+
+        if verbose: verbose = 1
+        else: verbose = 0
+
+        weave.inline(code,vars,compiler='gcc')
+        
+        #while len(ind)>min_particles or com is None :
+        #    mtot = mass.sum()
+        #    com = np.sum(mass*pos.transpose(),axis=1)/mtot
+        #    if verbose:
+        #        print com,r,len(ind)
+        #        r*=shrink_factor
+        #        rs = np.sqrt(np.sum((pos-com)**2,axis=1))
+        #        ind = np.where(rs < r)[0]
+        #        mass = mass[ind]
+        #        pos = pos[ind]
+        #        rs = rs[ind]
+                    
+    return array.SimArray(com,sim['pos'].units)
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
     """
@@ -114,7 +180,7 @@ def hybrid_center(sim, r='3 kpc', **kwargs) :
         cen_a = center_of_mass(sim)
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
-def index_center(sim, ind = None, **kwargs) :
+def index_center(sim, **kwargs) :
     """
 
     Determine the center of mass based on specific particles.
@@ -123,10 +189,10 @@ def index_center(sim, ind = None, **kwargs) :
 
     """
 
-    if 'ind' is not None :
+    try :
         ind = kwargs['ind']
         return center_of_mass(sim[ind])
-    else :  
+    except KeyError: 
         raise RuntimeError("Need to supply indices for centering")
     
 
