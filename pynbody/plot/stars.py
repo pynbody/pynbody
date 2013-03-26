@@ -420,7 +420,7 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 
 
 def moster(xmasses,z):
-    '''Based on Moster+ (2012) return what stellar mass corresponds to the
+    '''Based on Moster+ (2013) return what stellar mass corresponds to the
     halo mass passed in.
 
     **Usage**
@@ -433,7 +433,7 @@ def moster(xmasses,z):
                          facecolor='#BBBBBB',color='#BBBBBB')
     '''
     hmp = np.log10(xmasses)
-    # from Moster et al (2010)                                                  
+    # from Moster et al (2013)                                                  
     M10a=11.590470
     M11a=1.194913
     R10a=0.035113
@@ -447,10 +447,10 @@ def moster(xmasses,z):
     M11e = 0.353477
     R10e = 0.00577173
     R11e = 0.00693815
-    B10e = 0.19344
-    B11e = 0.285018
-    G10e = 0.0993274
-    G11e = 0.212919
+    B10e = 0.153
+    B11e = 0.225
+    G10e = 0.059
+    G11e = 0.173
 
     a = 1.0/(z+1.0)
     m1 = M10a+M11a*(1.0-a)
