@@ -90,7 +90,7 @@ if build_cython :
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.16alpha',
+             version = '0.19alpha',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
