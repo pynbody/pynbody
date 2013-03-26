@@ -420,8 +420,10 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
 
 
 def moster(xmasses,z):
-    '''Based on Moster+ (2012) return what stellar mass corresponds to the
-    halo mass passed in.
+    '''
+    
+    Based on Moster et al. (2013 - MNRAS 428, 3121) return what
+    stellar mass corresponds to the halo mass passed in.
 
     **Usage**
     
