@@ -3,7 +3,7 @@
 
 double mtot,x,y,z,rp,rcut,com_new[3];
 long i,npart_new=0; 
-int j,first=1;
+int j;
 
 rcut = double(r);
 npart_new = npart;
@@ -35,8 +35,6 @@ while(npart_new > min_particles)
         rcut *= 0.7;
       }
     else break;
-    first = 0;
-    fprintf(stderr,"%d\n",first);
   }
 
 
