@@ -1281,7 +1281,7 @@ def param2units(sim) :
 
         # the sensible way:
         # avoid numerical accuracy problems by concatinating factors:
-        velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit
+        velunit = 8.0285 * math.sqrt(6.6743e-8*denunit) * dunit
         velunit_st = ("%.5g"%velunit)+" km s^-1"
 
         #You have: kpc s / km

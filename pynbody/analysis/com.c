@@ -3,14 +3,12 @@
 
 double mtot,x,y,z,rp,rcut,com_new[3];
 long i,npart_new=0; 
-int j;
+int j,first=1;
 
 rcut = double(r);
 npart_new = npart;
 
-for(i=0;i<3;i++) com[i]=0.0;
-
-while((npart_new > min_particles) || (com[0]==0.0 && com[1]==0.0 && com[2] == 0.0))
+while(npart_new > min_particles)
   {
     for(i=0;i<3;i++) com_new[i] = 0.0;
     mtot=0.0;
@@ -37,6 +35,8 @@ while((npart_new > min_particles) || (com[0]==0.0 && com[1]==0.0 && com[2] == 0.
         rcut *= 0.7;
       }
     else break;
+    first = 0;
+    fprintf(stderr,"%d\n",first);
   }
 
 
