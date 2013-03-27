@@ -8,7 +8,7 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
-from .. import filt, util, config, array
+from .. import filt, util, config, array,units
 from . import cosmology
 import numpy as np
 import math
@@ -39,43 +39,6 @@ def center_of_mass_velocity(sim) :
 
     return v
 
-def weave_ssc(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
-    """
-    
-    Return the center according to the shrinking-sphere method of
-    Power et al (2003)
-    
-    """
-    import os
-    from scipy import weave
-    x = sim
-
-    if r is None :
-        # use rough estimate for a maximum radius
-        # results will be insensitive to the exact value chosen
-        r = (sim["x"].max()-sim["x"].min())/2
-    
-    com=np.array([0.0,0.0,0.0],dtype='double')
-
-    if verbose: verbose = 1
-    else: verbose = 0
-
-    with sim.immediate_mode : 
-        rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
-        ind = np.where(rs < r)[0]
-        mass = np.array(sim['mass'][ind],dtype='double')
-        pos = np.array(sim['pos'][ind],dtype='double')
-        rs = rs[ind]
-
-        npart = len(ind)
-        code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
-        
-
-        vars = ['pos','com','mass','min_particles','npart','r','verbose']
-
-        weave.inline(code,vars,compiler='gcc')
-            
-    return array.SimArray(com,sim['pos'].units)
 
 def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, verbose=False) :
     """
@@ -92,6 +55,11 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         # use rough estimate for a maximum radius
         # results will be insensitive to the exact value chosen
         r = (sim["x"].max()-sim["x"].min())/2
+
+    elif isinstance(r,str) or issubclass(r.__class__,units.UnitBase) : 
+        if isinstance(r,str) : 
+            r = units.Unit(r)
+        r = r.in_units(sim['pos'].units,**sim.conversion_context())
 
     com = np.array(center_of_mass(sim),dtype='double')
    
