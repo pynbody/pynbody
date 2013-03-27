@@ -35,7 +35,6 @@ while(npart_new > min_particles)
         rcut *= 0.7;
       }
     else break;
-    first = 0;
   }
 
 
