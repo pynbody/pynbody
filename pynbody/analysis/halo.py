@@ -102,7 +102,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         pos = np.array(sim['pos'][ind],dtype='double')
         
         npart = len(ind)
-        import pdb;pdb.set_trace()
+
         vars = ['pos','com','mass','min_particles','npart','r','verbose']
 
         code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
