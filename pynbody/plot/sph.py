@@ -47,7 +47,7 @@ def faceon_image(sim, *args, **kwargs) :
     return image(sim, *args, **kwargs)
 
 
-def image(sim, qty='rho', width=10, resolution=500, units=None, log=True, 
+def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=None, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
@@ -61,7 +61,11 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
 
     *qty* (rho): The name of the array to interpolate
 
-    *width* (10): The overall width and height of the plot in sim['pos'] units
+    *width* (10 kpc): The overall width and height of the plot. If
+     `width` is a float or an int, then it is assumed to be in units
+     of `sim['pos']`. It can also be passed in as a string indicating
+     the units, i.e. '10 kpc', in which case it is converted to
+     units of `sim['pos']`.
 
     *resolution* (500): The number of pixels wide and tall
 
@@ -117,7 +121,12 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     if isinstance(units, str) :
         units = _units.Unit(units)
 
-    width = float(width)
+    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
+        if isinstance(width,str) : 
+            width = _units.Unit(width)
+        width = width.in_units(sim['pos'].units,**sim.conversion_context())
+    
+#    width = float(width)
 
     kernel = sph.Kernel()
  
