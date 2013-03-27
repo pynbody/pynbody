@@ -46,6 +46,28 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     Return the center according to the shrinking-sphere method of
     Power et al (2003)
     
+
+    **Input**:
+    
+    *sim* : a simulation snapshot - this can be any subclass of SimSnap
+
+    **Optional Keywords**:
+
+    *r* (default=None): initial search radius. This can be a string
+     indicating the unit, i.e. "200 kpc", or an instance of
+     :func:`~pynbody.units.Unit`. 
+     
+    *shrink_factor* (default=0.7): the amount to shrink the search
+     radius by on each iteration
+
+    *min_particles* (default=100): minimum number of particles within
+     the search radius. When this number is reached, the search is
+     complete.
+
+    *verbose* (default=False): if True, prints out the diagnostics at
+     each iteration. Useful to determine whether the centering is
+     zeroing in on the wrong part of the simulation.
+
     """
     import os
     from scipy import weave
