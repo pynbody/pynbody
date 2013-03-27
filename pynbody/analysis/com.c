@@ -8,9 +8,7 @@ int j;
 rcut = double(r);
 npart_new = npart;
 
-for(i=0;i<3;i++) com[i]=0.0;
-
-while((npart_new > min_particles) || (com[0]==0.0 && com[1]==0.0 && com[2] == 0.0))
+while(npart_new > min_particles)
   {
     for(i=0;i<3;i++) com_new[i] = 0.0;
     mtot=0.0;

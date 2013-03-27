@@ -92,18 +92,17 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         # use rough estimate for a maximum radius
         # results will be insensitive to the exact value chosen
         r = (sim["x"].max()-sim["x"].min())/2
-    com=None
 
+    com = np.array(center_of_mass(sim),dtype='double')
+   
     with sim.immediate_mode : 
-        rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
+        rs = np.sqrt(np.sum((sim['pos']-com)**2,axis=1))
         ind = np.where(rs < r)[0]
         mass = np.array(sim['mass'][ind],dtype='double')
         pos = np.array(sim['pos'][ind],dtype='double')
         
-        
-        com=np.array([0.0,0.0,0.0],dtype='double')
         npart = len(ind)
-
+        import pdb;pdb.set_trace()
         vars = ['pos','com','mass','min_particles','npart','r','verbose']
 
         code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
