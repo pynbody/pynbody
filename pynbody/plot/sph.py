@@ -62,10 +62,10 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     *qty* (rho): The name of the array to interpolate
 
     *width* (10 kpc): The overall width and height of the plot. If
-     `width` is a float or an int, then it is assumed to be in units
-     of `sim['pos']`. It can also be passed in as a string indicating
-     the units, i.e. '10 kpc', in which case it is converted to
-     units of `sim['pos']`.
+     ``width`` is a float or an int, then it is assumed to be in units
+     of ``sim['pos']``. It can also be passed in as a string
+     indicating the units, i.e. '10 kpc', in which case it is
+     converted to units of ``sim['pos']``.
 
     *resolution* (500): The number of pixels wide and tall
 
