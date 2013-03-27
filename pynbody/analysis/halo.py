@@ -94,38 +94,35 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         r = (sim["x"].max()-sim["x"].min())/2
     com=None
 
-    with sim.immediate_mode : 
-        rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
-        ind = np.where(rs < r)[0]
-        mass = np.array(sim['mass'][ind],dtype='double')
-        pos = np.array(sim['pos'][ind],dtype='double')
+    #with sim.immediate_mode : 
+    #    rs = np.sqrt(np.sum(sim['pos']**2,axis=1))
+    #    ind = np.where(rs < r)[0]
+    #    mass = np.array(sim['mass'][ind],dtype='double')
+    #    pos = np.array(sim['pos'][ind],dtype='double')
+    #    rs = rs[ind]
         
         
-        com=np.array([0.0,0.0,0.0],dtype='double')
-        npart = len(ind)
+    #    com=np.array([0.0,0.0,0.0],dtype='double')
+    #    npart = len(ind)
 
-        vars = ['pos','com','mass','min_particles','npart','r','verbose']
+    #    vars = ['pos','com','mass','min_particles','npart','r','verbose']
 
-        code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
+    #    code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
 
-        if verbose: verbose = 1
-        else: verbose = 0
+    #    if verbose: verbose = 1
+    #    else: verbose = 0
 
-        weave.inline(code,vars,compiler='gcc')
+    #    weave.inline(code,vars,compiler='gcc')
         
-        #while len(ind)>min_particles or com is None :
-        #    mtot = mass.sum()
-        #    com = np.sum(mass*pos.transpose(),axis=1)/mtot
-        #    if verbose:
-        #        print com,r,len(ind)
-        #        r*=shrink_factor
-        #        rs = np.sqrt(np.sum((pos-com)**2,axis=1))
-        #        ind = np.where(rs < r)[0]
-        #        mass = mass[ind]
-        #        pos = pos[ind]
-        #        rs = rs[ind]
-                    
-    return array.SimArray(com,sim['pos'].units)
+    while len(x)>min_particles or com is None :
+        com = center_of_mass(x)
+        r*=shrink_factor
+        x = sim[filt.Sphere(r,com)]
+        if verbose:
+            print com,r,len(x)
+            
+    #return array.SimArray(com,sim['pos'].units)
+    return com
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
     """
