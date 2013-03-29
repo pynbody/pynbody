@@ -44,11 +44,10 @@ def test_unit_tracking() :
 
     assert ((x/y).units.ratio("")-1.e-3)<1.e-12
 
-    assert np.var(x).units=="kpc**2"
-    
-    assert np.std(x).units=="kpc"
 
     if hasattr(np.mean(x),'units') :
+        assert np.var(x).units=="kpc**2"
+        assert np.std(x).units=="kpc"
         assert np.mean(x).units=="kpc"
 
 def test_iop_units() :
@@ -61,7 +60,7 @@ def test_iop_units() :
     z = SA([1000,2000,3000,4000])
     z.units = 'm s^-1'
 
-    print repr(x)
+    print(repr(x))
     
     try :
         x+=y
