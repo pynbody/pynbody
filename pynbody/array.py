@@ -332,6 +332,17 @@ class SimArray(np.ndarray) :
                 pass
         return self
 
+    def __itruediv__(self, rhs) :
+        if isinstance(rhs, _units.UnitBase) :
+            self.units/=rhs
+        else :
+            np.ndarray.__itruediv__(self, rhs)
+            try :
+                self.units/=rhs.units
+            except AttributeError :
+                pass
+        return self
+
     def conversion_context(self) :
         if self.sim is not None :
             return self.sim.conversion_context()
