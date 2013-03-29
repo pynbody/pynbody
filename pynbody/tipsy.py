@@ -933,7 +933,7 @@ def u(sim) :
 def p(sim) :
     """Pressure"""
     p = sim["u"]*sim["rho"]*(2./3)
-    p.convert_units("dyn")
+    p.convert_units("Pa")
     return p
 
 @TipsySnap.derived_quantity
