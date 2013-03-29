@@ -713,7 +713,7 @@ class TipsySnap(snapshot.SimSnap) :
             else :
                 filename = self._filename+"."+array_name
                 
-        f = util.open_(filename)
+        f = util.open_(filename,'r')
 
         if config['verbose'] : print>>sys.stderr, "TipsySnap: attempting to load auxiliary array",filename
         # if we get here, we've got the file - try loading it
@@ -743,7 +743,7 @@ class TipsySnap(snapshot.SimSnap) :
         except ValueError :
             # this is probably a binary file
             binary = True
-            f.seek(0)
+            f= util.open_(filename,'rb')
 
             # Read header and check endianness
             if self._byteswap:

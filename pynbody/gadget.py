@@ -49,6 +49,12 @@ _name_map, _rev_name_map = util.setup_name_maps(
 _translate_array_name = util.name_map_function(_name_map, _rev_name_map)
 
 
+def _to_raw(s) :
+    if isinstance(s, str) and sys.version_info[0]>2 :
+        return s.encode('utf-8')
+    else :
+        return s
+    
 def gadget_type(fam):
     if fam == None:
         return list(np.arange(0, N_TYPE))
@@ -187,7 +193,7 @@ class GadgetHeader(object):
             # different.
             self.NallHW = np.zeros(N_TYPE, dtype=np.int32)
         else:
-            self.header.NallHW = np.array(npart/2**32, dtype=np.int32)
+            self.header.NallHW = np.array(npart//2**32, dtype=np.int32)
             self.header.npartTotal = np.array(
                 npart - 2**32*self.header.NallHW, dtype=np.int32)
 
@@ -249,6 +255,8 @@ class GadgetFile(object):
             self.block_names = config_parser.get(
                 'gadget-1-blocks', "blocks").split(",")
             self.block_names = [q.upper().ljust(4) for q in self.block_names]
+            if sys.version_info[0]>2 :
+                self.block_names = map(lambda x : str.encode(x,'utf-8'), self.block_names)
             # This is a counter for the fallback
             self.extra = 0
         while True:
@@ -257,7 +265,7 @@ class GadgetFile(object):
             if block.length == 0:
                 break
             # Do special things for the HEAD block
-            if name[0:4] == "HEAD":
+            if name[0:4] == b"HEAD":
                 if block.length != 256:
                     raise IOError("Mis-sized HEAD block in "+filename)
                 self.header = fd.read(256)
@@ -271,14 +279,14 @@ class GadgetFile(object):
                 t_part = self.header.npart.sum()
                 continue
             # Set the partlen, using our amazing heuristics
-            if name[0:4] == "POS " or name[0:4] == "VEL ":
+            if name[0:4] == b"POS " or name[0:4] == b"VEL ":
                 if block.length == t_part * 24:
                     block.partlen = 24
                     block.data_type = np.float64
                 else:
                     block.partlen = 12
                     block.data_type = np.float32
-            elif name[0:4] == "ID  ":
+            elif name[0:4] == b"ID  ":
                 # Heuristic for long (64-bit) IDs
                 if block.length == t_part * 4:
                     block.partlen = 4
@@ -325,14 +333,14 @@ class GadgetFile(object):
         fd.close()
 
         # Make a mass block if one isn't found.
-        if 'MASS' not in self.blocks:
+        if b'MASS' not in self.blocks:
             block = GadgetBlock()
             block.length = 0
             block.start = 0
             # In the header, mass is a double
             block.partlen = 8
             block.data_type = np.float64
-            self.blocks['MASS'] = block
+            self.blocks[b'MASS'] = block
 
     def get_block_types(self, block, npart):
         """ Set up the particle types in the block, with a heuristic,
@@ -445,13 +453,15 @@ class GadgetFile(object):
                 if self.extra == 0:
                     warnings.warn(
                         "Run out of block names in the config file. Using fallbacks: UNK*", RuntimeWarning)
-                name = "UNK"+str(self.extra)
+                name = _to_raw("UNK"+str(self.extra))
                 self.extra += 1
             return (name, record_size)
 
     def get_block(self, name, p_type, p_toread):
         """Get a particle range from this file, starting at p_start,
         and reading a maximum of p_toread particles"""
+        name = _to_raw(name)
+        
         p_read = 0
         cur_block = self.blocks[name]
         parts = self.get_block_parts(name, p_type)
@@ -462,7 +472,7 @@ class GadgetFile(object):
         fd.seek(cur_block.start+int(cur_block.partlen*p_start), 0)
         # This is just so that we can get a size for the type
         dt = np.dtype(cur_block.data_type)
-        n_type = p_toread*cur_block.partlen/dt.itemsize
+        n_type = p_toread*cur_block.partlen//dt.itemsize
         data = np.fromfile(
             fd, dtype=cur_block.data_type, count=n_type, sep='')
         fd.close()
@@ -476,7 +486,7 @@ class GadgetFile(object):
             return 0
         cur_block = self.blocks[name]
         if p_type == -1:
-            return cur_block.length/cur_block.partlen
+            return cur_block.length//cur_block.partlen
         else:
             return self.header.npart[p_type]*cur_block.p_types[p_type]
 
@@ -496,7 +506,7 @@ class GadgetFile(object):
             return 0
         cur_block = self.blocks[name]
         dt = np.dtype(cur_block.data_type)
-        return cur_block.partlen/dt.itemsize
+        return cur_block.partlen//dt.itemsize
 
     # The following functions are for writing blocks back to the file
     def write_block(self, name, p_type, big_data, filename=None):
@@ -551,6 +561,8 @@ class GadgetFile(object):
 
     def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=-1):
         """Add a block to the block table at the end of the file. Do not actually write anything"""
+        name = _to_raw(name)
+        
         if name in self.blocks:
             raise KeyError(
                 "Block "+name+" already present in file. Not adding")
@@ -595,7 +607,7 @@ class GadgetFile(object):
         # This has ref. semantics so use copy
         head = copy.deepcopy(head_in)
         head.npart = np.array(self.header.npart)
-        data = self.write_block_header("HEAD", 256)
+        data = self.write_block_header(b"HEAD", 256)
         data += head.serialize()
         if filename == None:
             filename = self._filename
@@ -616,7 +628,7 @@ class GadgetFile(object):
         # Seek 48 bytes forward, to skip the padding (which may contain extra
         # data)
         fd.seek(48, 1)
-        data = self.write_block_footer("HEAD", 256)
+        data = self.write_block_footer(b"HEAD", 256)
         fd.write(data)
         fd.close()
 
@@ -646,7 +658,7 @@ class GadgetWriteFile (GadgetFile):
                     start=cur_pos+header_size, partlen=block.partlen,
                     length=block.partlen*b_part.sum(), dtype=block.dtype, p_types=block.types)
                 cur_pos += b.length+header_size+footer_size
-                self.blocks[block.name] = b
+                self.blocks[_to_raw(block.name)] = b
 
 
 class WriteBlock:
@@ -704,7 +716,7 @@ class GadgetSnap(snapshot.SimSnap):
         self.header.npart = npart
         # Check and fix npartTotal and NallHW if they are wrong.
         if npart is not self.header.npartTotal+2**32*self.header.NallHW:
-            self.header.NallHW = npart/2**32
+            self.header.NallHW = npart//2**32
             self.header.npartTotal = npart - 2**32*self.header.NallHW
             for f in self._files:
                 f.header.npartTotal = self.header.npartTotal
@@ -731,7 +743,10 @@ class GadgetSnap(snapshot.SimSnap):
 
         # Add default mapping to unpadded lower case if not in config file.
         for nn in self._loadable_keys:
-            mm = nn.lower().strip()
+            if sys.version_info[0]==2 :
+                mm = nn.lower().strip()
+            else :
+                mm = nn.lower().strip().decode('utf-8')
             if not nn in _rev_name_map:
                 _rev_name_map[nn] = mm
             if not mm in _name_map:
@@ -779,8 +794,8 @@ class GadgetSnap(snapshot.SimSnap):
                 else:
                     b_list[n] = np.array(b.p_types, dtype=bool)
         # Special case mass. Note b_list has reference semantics.
-        if "MASS" in b_list:
-            b_list["MASS"] += np.array(self.header.mass, dtype=bool)
+        if b"MASS" in b_list:
+            b_list[b"MASS"] += np.array(self.header.mass, dtype=bool)
         # Translate this array into families and external names
         out_list = {}
         for k, b in b_list.iteritems():
@@ -799,7 +814,7 @@ class GadgetSnap(snapshot.SimSnap):
             total += sum([f.get_block_parts(
                 name, gfam) for gfam in gadget_type(family)])
         # Special-case MASS
-        if name == "MASS":
+        if name == b"MASS":
             total += sum([self.header.npart[p]*np.array(self.header.mass[
                          p], dtype=bool) for p in gadget_type(family)])
         return total
@@ -867,7 +882,7 @@ class GadgetSnap(snapshot.SimSnap):
         data = np.array([], dtype=self._get_array_type(name))
         for p in p_types:
             # Special-case mass
-            if g_name == "MASS" and self.header.mass[p] != 0.:
+            if g_name == b"MASS" and self.header.mass[p] != 0.:
                 data = np.append(data, self.header.mass[
                                  p]*np.ones(self.header.npart[p], dtype=data.dtype))
             else:
@@ -1001,7 +1016,7 @@ class GadgetSnap(snapshot.SimSnap):
                 out_file.write_header(gheader, filename)
                 # Write all the arrays
                 for x in all_keys:
-                    g_name = _translate_array_name(x).upper().ljust(4)[0:4]
+                    g_name = _to_raw(_translate_array_name(x).upper().ljust(4)[0:4])
                     for fam in self.families():
                         try:
                             # Things can be derived for some families but not
@@ -1038,7 +1053,7 @@ class GadgetSnap(snapshot.SimSnap):
 
         # Make the name a four-character upper case name, possibly with
         # trailing spaces
-        g_name = _translate_array_name(array_name).upper().ljust(4)[0:4]
+        g_name = _to_raw(_translate_array_name(array_name).upper().ljust(4)[0:4])
         nfiles = np.size(self._files)
         # Find where each particle goes
         f_parts = [f.get_block_parts(g_name, -1) for f in self._files]
@@ -1061,7 +1076,7 @@ class GadgetSnap(snapshot.SimSnap):
                         ashape = (ashape[0], 1)
                     npart += ashape[0]
             if p_types.sum():
-                per_file = npart/nfiles
+                per_file = npart//nfiles
                 for f in self._files[:-2]:
                     f.add_file_block(array_name, per_file, ashape[
                                      1], dtype=self[array_name].dtype, p_types=p_types)
@@ -1087,12 +1102,12 @@ class GadgetSnap(snapshot.SimSnap):
                         else:
                             ffile = None
                         # Special-case MASS.
-                        if g_name == "MASS" and self.header.mass[gfam] != 0.:
-                            nmass = np.min(data[s:(s+f.header.npart[gfam])])
+                        if g_name == b"MASS" and self.header.mass[gfam] != 0.:
+                            nmass = np.min(data[s:(s+self.header.npart[gfam])])
                             # Warn if there are now different masses for this particle type,
                             # as this information cannot be represented in this
                             # snapshot.
-                            if nmass != np.max(data[s:(s+f.header.npart[gfam])]):
+                            if nmass != np.max(data[s:(s+self.header.npart[gfam])]):
                                 warnings.warn("Cannot write variable masses for type "+str(
                                     gfam)+", as masses are stored in the header.", RuntimeWarning)
                             elif self.header.mass[gfam] != nmass:
