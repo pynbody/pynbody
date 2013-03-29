@@ -527,6 +527,8 @@ def threadsafe_inline(*args, **kwargs) :
     only want one compilation to be going on at once, otherwise nasty
     race conditions arise. This function wraps scipy.weave.inline to
     be thread-safe."""
+
+    import scipy.weave
     
     call_frame = sys._getframe().f_back
     if 'local_dict' not in kwargs :
