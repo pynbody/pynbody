@@ -565,7 +565,10 @@ def setup_name_maps(config_name, gadget_blocks=False) :
     _rev_name_map = {}
     try :
         for a, b in config_parser.items(config_name) :
-            if gadget_blocks : a=a.upper().ljust(4)
+            if sys.version_info[0]==2 :
+                if gadget_blocks : a=a.upper().ljust(4)
+            else :
+                if gadget_blocks : a=a.upper().ljust(4).encode("utf-8")
             _rev_name_map[a] = b
             _name_map[b] = a
     except ConfigParser.NoOptionError :
