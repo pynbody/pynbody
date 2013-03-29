@@ -138,6 +138,9 @@ class UnitBase(object):
             p = Fraction(p[0], p[1])
         return CompositeUnit(1, [self], [p]).simplify()
 
+    def __truediv__(self, m):
+        return self.__div__(m)
+     
     def __div__(self, m):
         if hasattr(m, "_no_unit"):
             return NoUnit()
@@ -199,6 +202,9 @@ class UnitBase(object):
 
     def __float__(self) :
         return 1.
+
+    def __hash__(self) :
+        return id(self)
 
     def simplify(self):
         return self
