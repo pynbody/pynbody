@@ -19,7 +19,6 @@ from . import simdict
 import numpy as np
 import copy
 import weakref
-import exceptions
 import sys
 import hashlib
 import time
