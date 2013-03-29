@@ -3,7 +3,7 @@ import sys, __builtin__
 
 if sys.version_info[:2] <= (2, 5) :
 
-    import bc_modules.fractions as fractions
+    from .bc_modules import fractions
 
     # emulation of python 2.6 property class from
     # http://blog.yjl.im/2009/02/propery-setter-and-deleter-in-python-25.html
@@ -45,7 +45,7 @@ else :
 
 
 if sys.version_info[:2] <= (2,6) :
-    import bc_modules.ordered_dict
+    from .bc_modules import ordered_dict
     from bc_modules.ordered_dict import OrderedDict
 else :
     import collections

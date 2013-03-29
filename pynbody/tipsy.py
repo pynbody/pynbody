@@ -1374,7 +1374,7 @@ def param2units(sim) :
 def settime(sim) :
     if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
         from . import analysis
-        import analysis.cosmology
+        from .analysis import cosmology 
         t = sim._header_t
         sim.properties['a'] = t
         try :
