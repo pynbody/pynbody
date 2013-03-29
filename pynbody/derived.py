@@ -167,3 +167,13 @@ def zeldovich_offset(self) :
     offset = self['vel']/(a*bdot_by_b)
     offset.units=self['vel'].units/units.Unit('km Mpc^-1 s^-1 a^-1')
     return offset
+
+
+@SimSnap.derived_quantity
+def aform(self) :
+    """The expansion factor at the time specified by the tform array."""
+
+    from . import analysis
+    z = analysis.cosmology.redshift(self, self['tform'])
+    a = 1./(1.+z)
+    return a

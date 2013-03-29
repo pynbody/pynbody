@@ -631,8 +631,9 @@ class GadgetSnap(snapshot.SimSnap):
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
         npart = np.array(self._files[0].header.npart)
+        base_filename = filename
         for i in np.arange(1, files_expected):
-            filename = filename[:-1]+str(i)
+            filename = base_filename[:-1]+str(i)
             tmp_file=GadgetFile(filename)
             if not self.check_headers(tmp_file.header, self._files[0].header) :
                 warnings.warn("file "+str(i)+" is not part of this snapshot set!",RuntimeWarning)

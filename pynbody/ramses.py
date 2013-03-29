@@ -18,6 +18,7 @@ from . import units
 from . import config, config_parser
 from . import chunk
 from . import util
+from . import analysis
 
 from util import read_fortran, read_fortran_series, skip_fortran
 
@@ -606,7 +607,7 @@ def translate_info(sim) :
     l_unit = sim._info['unit_l']*units.Unit("cm")
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
-    sim.properties['time'] = sim._info['time'] * t_unit
+    sim.properties['time'] = analysis.cosmology.age(sim)*units.Unit('Gyr')
 
     sim._file_units_system = [d_unit, t_unit, l_unit]
 

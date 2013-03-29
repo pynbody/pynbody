@@ -278,11 +278,14 @@ class Profile:
         self._properties['rbins'] = 0.5*(self['bin_edges'][:-1]+
                                          self['bin_edges'][1:])
         
-        # no idea why this next line was there... 
+        # no idea why this next line was there... for conversion_context
         # self['rbins'].sim = self.sim
 
         # Width of the bins
         self._properties['dr'] = np.gradient(self['rbins'])
+        # be extra cautious carrying over stuff because sometimes fails
+        self._properties['dr'].units = self['rbins'].units
+        self._properties['dr'].sim = self.sim
 
         self.binind = []
         if len(self._x) > 0:
@@ -832,6 +835,9 @@ class VerticalProfile(Profile) :
 
     def __init__(self,sim,rmin,rmax,zmax,load_from_file = False, ndim = 3, type = 'lin', **kwargs): 
         
+        if isinstance(rmin, str): rmin = units.Unit(rmin)
+        if isinstance(rmax, str): rmax = units.Unit(rmax)
+        if isinstance(zmax, str): zmax = units.Unit(zmax)
         self.rmin = rmin
         self.rmax = rmax
         self.zmax = zmax

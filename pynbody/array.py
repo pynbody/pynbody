@@ -681,6 +681,7 @@ def _mul_units(a,b) :
         return b_units
 
 @_u(np.divide)
+@_u(np.true_divide)
 def _div_units(a,b) :
     a_units, b_units = _get_units_or_none(a,b)
     if a_units is not None and b_units is not None :

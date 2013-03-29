@@ -933,7 +933,7 @@ def u(sim) :
 def p(sim) :
     """Pressure"""
     p = sim["u"]*sim["rho"]*(2./3)
-    p.convert_units("dyn")
+    p.convert_units("Pa")
     return p
 
 @TipsySnap.derived_quantity
@@ -1281,7 +1281,7 @@ def param2units(sim) :
 
         # the sensible way:
         # avoid numerical accuracy problems by concatinating factors:
-        velunit = 8.0285 * math.sqrt(6.67e-8*denunit) * dunit
+        velunit = 8.0285 * math.sqrt(6.6743e-8*denunit) * dunit
         velunit_st = ("%.5g"%velunit)+" km s^-1"
 
         #You have: kpc s / km
@@ -1301,11 +1301,16 @@ def param2units(sim) :
             hubunit_st = ("%.3f"%(hubunit*hub))
             sim.properties['h'] = hub*hubunit
 
+            if isinstance(sim,StarLog) :
+                a = "a_form"
+            else :
+                a = "a"
+                
             # append dependence on 'a' for cosmological runs
-            dunit_st += " a"
-            denunit_st += " a^-3"
-            velunit_st += " a"
-            potunit_st += " a^-1"
+            dunit_st += " "+a
+            denunit_st += " "+a+"^-3"
+            velunit_st += " "+a
+            potunit_st += " "+a+"^-1"
         
             # Assume the box size is equal to the length unit
             sim.properties['boxsize'] = units.Unit(dunit_st)
@@ -1421,8 +1426,10 @@ def slparam2units(sim) :
 
         if hub!=None:
             # append dependence on 'a' for cosmological runs
-            dunit_st += " a"
-            denunit_st += " a^-3"
+            dunit_st += " a_form"
+            
+            # denunit_st += " a^-3"
+            # N.B. density comoving -> physical conversion is done by Gasoline itself
             
         sim.star["rhoform"].units = denunit_st
         sim.star["massform"].units = munit_st
