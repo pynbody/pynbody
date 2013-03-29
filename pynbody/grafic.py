@@ -20,7 +20,7 @@ import numpy as np
 import os
 import functools
 import warnings
-import scipy, scipy.weave
+import scipy
 import copy
 
 _data_type = np.dtype('f4')
@@ -49,6 +49,9 @@ def _grid_gen(indices, nx, ny, nz, pos=None):
     the same for all sane cases, but the file format allows for different
     values). If *pos* is not None, copy the results into the array; otherwise
     create a new array for the results and return it."""
+
+    import scipy.weave
+    
     if pos is None :
         pos = np.empty((util.indexing_length(indices),3))
     if isinstance(indices, slice) :
