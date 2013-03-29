@@ -601,12 +601,12 @@ class GadgetFile(object):
             filename = self._filename
         # a mode will ignore the file position, and w truncates the file.
         try:
-            fd = open(filename, "r+")
+            fd = open(filename, "r+b")
         except IOError as (err, strerror):
             # If we couldn't open it because it doesn't exist open it for
             # writing.
             if err == errno.ENOENT:
-                fd = open(filename, "w+")
+                fd = open(filename, "w+b")
             # If we couldn't open it for any other reason, reraise exception
             else:
                 raise IOError(err, strerror)
@@ -673,9 +673,9 @@ class GadgetSnap(snapshot.SimSnap):
         npart = np.empty(N_TYPE)
         # Check whether the file exists, and get the ".0" right
         try:
-            fd = open(filename)
+            fd = open(filename,'rb')
         except IOError:
-            fd = open(filename+".0")
+            fd = open(filename+".0",'rb')
             # The second time if there is an exception we let it go through
             filename = filename+".0"
         fd.close()
@@ -902,10 +902,10 @@ class GadgetSnap(snapshot.SimSnap):
         """Check whether we can load the file as Gadget format by reading
         the first 4 bytes"""
         try:
-            fd = open(f)
+            fd = open(f,'rb')
         except IOError:
             try:
-                fd = open(f+".0")
+                fd = open(f+".0",'rb')
             except:
                 return False
                 # If we can't open the file, we certainly can't load it...
