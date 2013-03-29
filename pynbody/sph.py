@@ -13,8 +13,7 @@ For most users, the function of interest will be :func:`~pynbody.sph.render_imag
 """
 
 import numpy as np
-import scipy, scipy.weave, scipy.ndimage
-from scipy.weave import inline
+import scipy, scipy.ndimage
 import snapshot, array
 import math
 import time
