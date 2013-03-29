@@ -713,7 +713,23 @@ class SimSnap(object) :
 
         raise RuntimeError("No halo catalogue found for %r"%str(self))        
 
-   
+    ############################################
+    # BRIDGES
+    ############################################
+
+    def bridge(self, other) :
+        """Tries to construct a bridge function between this SimSnap
+        and another one.
+
+        This function calls :func:`pynbody.bridge.bridge_factory`. For
+        more information see :ref:`bridge-tutorial`, or the reference
+        documentation for :py:mod:`pynbody.bridge`.
+
+        """
+        from . import bridge
+        return bridge.bridge_factory(self, other)
+
+        
     ############################################
     # HELPER FUNCTIONS FOR LAZY LOADING
     ############################################
