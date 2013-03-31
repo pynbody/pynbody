@@ -393,7 +393,7 @@ class SimArray(np.ndarray) :
 
     def __sub__(self, x) :
         if isinstance(x, _units.UnitBase) :
-            return -x+self
+            return (-x+self).in_units(self.units)
         else :
             return self._generic_add(x, np.subtract)
 
