@@ -99,3 +99,13 @@ def test_iop_sanity() :
     x/=2
     assert id(x)==x_id
     
+
+def test_unit_array_interaction() :
+    """Test for issue 113 and related"""
+    x  = pynbody.units.Unit('1 Mpc')
+    y = SA(np.ones(10),'kpc')
+    assert all(x+y == SA([ 1.001] * 10, 'Mpc'))
+    assert all(x-y == SA([ 0.999] * 10, 'Mpc'))
+    assert (x+y).units=='Mpc'
+    assert all(y+x == SA([ 1.001] * 10, 'Mpc'))
+    assert all(y-x == SA([ 0.999] * 10, 'Mpc'))

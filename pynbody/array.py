@@ -386,10 +386,16 @@ class SimArray(np.ndarray) :
 
 
     def __add__(self,x) :
-        return self._generic_add(x)
+        if isinstance(x, _units.UnitBase) :
+            return x+self
+        else :
+            return self._generic_add(x)
 
     def __sub__(self, x) :
-        return self._generic_add(x, np.subtract)
+        if isinstance(x, _units.UnitBase) :
+            return -x+self
+        else :
+            return self._generic_add(x, np.subtract)
 
     def __iadd__(self, x) :
         self._generic_add(x, np.ndarray.__iadd__)

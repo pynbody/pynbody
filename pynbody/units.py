@@ -168,6 +168,8 @@ class UnitBase(object):
 
     def __add__(self, m):
         scale = m.in_units(self) if hasattr(m, 'in_units') else m
+        if hasattr(scale, 'units') :
+           scale.units=1
         return self * (1.0 + scale)
 
     def __sub__(self, m):
