@@ -574,9 +574,10 @@ class RamsesSnap(snapshot.SimSnap) :
             
 
         self_fam = self[fam] if fam else self
-        
-        if array_name in self_fam and hasattr(self_fam[array_name].units, "_no_unit") :
-            self_fam[array_name].units = self._default_units_for(array_name)
+
+        # The following is now done by SnapShot (and done better):
+        #if array_name in self_fam and hasattr(self_fam[array_name].units, "_no_unit") :
+        #    self_fam[array_name].units = self._default_units_for(array_name)
                             
     @staticmethod
     def _can_load(f) :
