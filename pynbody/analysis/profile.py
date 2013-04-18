@@ -629,9 +629,9 @@ def v_circ(p, grav_sim=None) :
     
     if config['tracktime']:
         import time
-        start = time.clock()
+        start = time.time()
         rc = gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-        end = time.clock()
+        end = time.time()
         if config['verbose']: print 'Rotation curve calculated in %5.3g s'%(end-start)
         return rc
     else:
