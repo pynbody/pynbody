@@ -302,7 +302,7 @@ class Profile:
                                           self['bin_edges'][:-1]**3)
 
         for i in np.arange(self.nbins)+1:
-            ind = np.where(self.partbin == i)
+            ind = np.where(self.partbin == i)[0]
             self.binind.append(ind)
 
 
