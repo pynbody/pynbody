@@ -360,6 +360,10 @@ class Profile:
         result = np.zeros(self.nbins)
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
+            with self.sim.immediate_mode : 
+                name_array = subs[name].view(np.ndarray)
+                mass_array = subs['mass'].view(np.ndarray)
+
             if dispersion :
                 sq_mean = (subs[name]**2*subs['mass']).sum()/self['mass'][i]
                 mean_sq = ((subs[name]*subs['mass']).sum()/self['mass'][i])**2
@@ -367,7 +371,7 @@ class Profile:
             elif rms : 
                 result[i] = np.sqrt((subs[name]**2*subs['mass']).sum()/self['mass'][i])
             else :
-                result[i] = (subs[name]*subs['mass']).sum()/self['mass'][i]
+                result[i] = (name_array*mass_array).sum()/self['mass'][i]
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units
@@ -519,8 +523,13 @@ def mass(self):
     
     if pynbody.config['verbose'] : print 'Profile: mass()'
     mass = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
+
+    with self.sim.immediate_mode : 
+        pmass = self.sim['mass'].view(np.ndarray)
+
     for i in range(self.nbins):
-        mass[i] = (self.sim['mass'][self.binind[i]]).sum()
+        mass[i] = (pmass[self.binind[i]]).sum()
+
     mass.sim = self.sim
 
     return mass
