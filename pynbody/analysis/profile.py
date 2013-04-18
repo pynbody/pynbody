@@ -365,11 +365,11 @@ class Profile:
                 mass_array = subs['mass'].view(np.ndarray)
 
             if dispersion :
-                sq_mean = (subs[name]**2*subs['mass']).sum()/self['mass'][i]
-                mean_sq = ((subs[name]*subs['mass']).sum()/self['mass'][i])**2
+                sq_mean = (name_array**2*mass_array).sum()/self['mass'][i]
+                mean_sq = ((name_array*mass_array).sum()/self['mass'][i])**2
                 result[i] = math.sqrt(sq_mean - mean_sq)
             elif rms : 
-                result[i] = np.sqrt((subs[name]**2*subs['mass']).sum()/self['mass'][i])
+                result[i] = np.sqrt((name_array**2*mass_array).sum()/self['mass'][i])
             else :
                 result[i] = (name_array*mass_array).sum()/self['mass'][i]
 
