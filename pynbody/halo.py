@@ -434,8 +434,9 @@ class AHFCatalogue(HaloCatalogue):
 
     def _load_ahf_substructure(self, filename):
         f = util.open_(filename)
-        nhalos = int(f.readline())  # number of halos?  no, some crazy number
+        #nhalos = int(f.readline())  # number of halos?  no, some crazy number
                                     # that we will ignore
+        nhalos = f.readline()  # Some crazy number, just need to skip it
         # import pdb; pdb.set_trace()
         for i in xrange(len(self._halos)):
             try:
