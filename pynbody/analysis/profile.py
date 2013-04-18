@@ -302,7 +302,7 @@ class Profile:
                                           self['bin_edges'][:-1]**3)
 
         for i in np.arange(self.nbins)+1:
-            ind = np.where(self.partbin == i)
+            ind = np.where(self.partbin == i)[0]
             self.binind.append(ind)
 
 
@@ -360,14 +360,18 @@ class Profile:
         result = np.zeros(self.nbins)
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
+            with self.sim.immediate_mode : 
+                name_array = subs[name].view(np.ndarray)
+                mass_array = subs['mass'].view(np.ndarray)
+
             if dispersion :
-                sq_mean = (subs[name]**2*subs['mass']).sum()/self['mass'][i]
-                mean_sq = ((subs[name]*subs['mass']).sum()/self['mass'][i])**2
+                sq_mean = (name_array**2*mass_array).sum()/self['mass'][i]
+                mean_sq = ((name_array*mass_array).sum()/self['mass'][i])**2
                 result[i] = math.sqrt(sq_mean - mean_sq)
             elif rms : 
-                result[i] = np.sqrt((subs[name]**2*subs['mass']).sum()/self['mass'][i])
+                result[i] = np.sqrt((name_array**2*mass_array).sum()/self['mass'][i])
             else :
-                result[i] = (subs[name]*subs['mass']).sum()/self['mass'][i]
+                result[i] = (name_array*mass_array).sum()/self['mass'][i]
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units
@@ -519,8 +523,13 @@ def mass(self):
     
     if pynbody.config['verbose'] : print 'Profile: mass()'
     mass = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
+
+    with self.sim.immediate_mode : 
+        pmass = self.sim['mass'].view(np.ndarray)
+
     for i in range(self.nbins):
-        mass[i] = (self.sim['mass'][self.binind[i]]).sum()
+        mass[i] = (pmass[self.binind[i]]).sum()
+
     mass.sim = self.sim
 
     return mass
@@ -629,9 +638,9 @@ def v_circ(p, grav_sim=None) :
     
     if config['tracktime']:
         import time
-        start = time.clock()
+        start = time.time()
         rc = gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-        end = time.clock()
+        end = time.time()
         if config['verbose']: print 'Rotation curve calculated in %5.3g s'%(end-start)
         return rc
     else:
