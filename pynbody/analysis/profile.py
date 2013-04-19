@@ -304,26 +304,34 @@ class Profile:
         import time
         start = time.time()
 
-        @pynbody.util.parallel(p_args=[0,1])
-        def get_bin_ind(partbin, partind, binindex) : 
-            print binindex
-            binind = []
-            for bin in binindex:
-                binind.append(partind[np.where(partbin == bin)[0]])
-            return np.array(binind)
+        # sort the partbin array
+        from bisect import bisect
+        sortind = self.partbin.argsort()
+        sort_pind = self.partbin[sortind]
 
+        # create the bin index arrays
+        prev_index = bisect(sort_pind,0)
+        for i in range(self.nbins):
+            new_index = bisect(sort_pind,i+1)
+            self.binind.append(sortind[prev_index:new_index])
+            prev_index = new_index
+            
+        end = time.time()
+        print 'total time = %f'%(end-start)
+
+#        start = time.time()
+#        
 #        for i in np.arange(self.nbins)+1:
 #            ind = np.where(self.partbin == i)[0]
 #            self.binind.append(ind)
 
-
+#        end = time.time()
+#        print 'total time = %f'%(end-start)
         
                        
-        self.binind = get_bin_ind(self.partbin, np.arange(self.nbins)+1)
+#        self.binind = get_bin_ind(self.partbin, np.arange(len(self.partbin)), np.arange(self.nbins)+1)
         
-        end = time.time()
 
-        print 'total time = %f'%(end-start)
 
     def __len__(self):
         """Returns the number of bins used in this profile object"""
