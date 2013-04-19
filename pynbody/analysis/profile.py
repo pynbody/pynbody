@@ -301,10 +301,29 @@ class Profile:
             self._binsize  = 4./3.*np.pi*(self['bin_edges'][1:]**3 - 
                                           self['bin_edges'][:-1]**3)
 
-        for i in np.arange(self.nbins)+1:
-            ind = np.where(self.partbin == i)[0]
-            self.binind.append(ind)
+        import time
+        start = time.time()
 
+        @pynbody.util.parallel(p_args=[0,1])
+        def get_bin_ind(partbin, partind, binindex) : 
+            print binindex
+            binind = []
+            for bin in binindex:
+                binind.append(partind[np.where(partbin == bin)[0]])
+            return np.array(binind)
+
+#        for i in np.arange(self.nbins)+1:
+#            ind = np.where(self.partbin == i)[0]
+#            self.binind.append(ind)
+
+
+        
+                       
+        self.binind = get_bin_ind(self.partbin, np.arange(self.nbins)+1)
+        
+        end = time.time()
+
+        print 'total time = %f'%(end-start)
 
     def __len__(self):
         """Returns the number of bins used in this profile object"""
