@@ -301,10 +301,17 @@ class Profile:
             self._binsize  = 4./3.*np.pi*(self['bin_edges'][1:]**3 - 
                                           self['bin_edges'][:-1]**3)
 
-        for i in np.arange(self.nbins)+1:
-            ind = np.where(self.partbin == i)[0]
-            self.binind.append(ind)
+        # sort the partbin array
+        from bisect import bisect
+        sortind = self.partbin.argsort()
+        sort_pind = self.partbin[sortind]
 
+        # create the bin index arrays
+        prev_index = bisect(sort_pind,0)
+        for i in range(self.nbins):
+            new_index = bisect(sort_pind,i+1)
+            self.binind.append(sortind[prev_index:new_index])
+            prev_index = new_index
 
     def __len__(self):
         """Returns the number of bins used in this profile object"""
