@@ -355,7 +355,6 @@ def _interpolated_renderer(fn, levels) :
         kwargs['res_downgrade']=1
         sub=1
         base = fn(*args, **kwargs)
-
         kwargs['smooth_range']=(1,2)
         for i in xrange(1,levels) :
             sub*=2
@@ -438,7 +437,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     """
 
     if approximate_fast :
-        base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/16))))
+        base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/20))))
     else :
         base_renderer = _render_image
 
@@ -500,8 +499,22 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         y1 = -y2
 
     if res_downgrade is not None :
+        # calculate original resolution
+        dx = float(x2-x1)/nx
+        dy = float(y2-y1)/ny
+
+        # degrade resolution
         nx/=res_downgrade
         ny/=res_downgrade
+        
+        # shift boundaries (since x1, x2 etc refer to centres of pixels,
+        # not edges, but we want the *edges* to remain invariant)
+        sx = dx*float(res_downgrade-1)/2
+        sy = dy*float(res_downgrade-1)/2
+        x1-=sx
+        y1-=sy
+        x2+=sx
+        y2+=sy
     
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
@@ -712,7 +725,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     nx, ny, nz = [int(q) for q in nx,ny,nz]
 
     if approximate_fast :
-        renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/16))))
+        renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/20))))
     else :
         renderer = _to_3d_grid
 
@@ -745,10 +758,24 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
             
     if res_downgrade is not None :
+        dx = float(x2-x1)/nx
+        dy = float(y2-y1)/ny
+        dz = float(z2-z1)/nz
+        
         nx/=res_downgrade
         ny/=res_downgrade
         nz/=res_downgrade
 
+        # shift boundaries (see _render_image above for explanation)
+        sx,sy,sz = [d_i*float(res_downgrade-1)/2 for d_i in [dx,dy,dz]]
+        x1-=sx
+        y1-=sy
+        z1-=sz
+        x2+=sx
+        y2+=sy
+        z2+=sz
+        
+        
     result = np.zeros((nx,ny,nz),dtype=np.float32)
     n_part = len(snap)
 
