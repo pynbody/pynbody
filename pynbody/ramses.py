@@ -208,8 +208,13 @@ def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator
         smooth_array[i0:i1]=dx
         i0=i1
 
+_gv_load_hydro = 0
+_gv_load_gravity = 1
+
 @remote_exec
-def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1) :
+def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
+                        mode = _gv_load_hydro ) :
+    
     if config['verbose'] :
         print>>sys.stderr, cpu,
         sys.stderr.flush()
@@ -218,13 +223,20 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1) :
     grid_info_iter = _cpui_level_iterator(*lia)
 
     f = file(filename)
-    header = read_fortran_series(f, ramses_hydro_header)
 
-    if header['nvarh']<nvar :
-        warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)"%(nvar, header['nvarh']), RuntimeWarning)
-        nvar = header['nvarh']
+    if mode is _gv_load_hydro :
+        header = read_fortran_series(f, ramses_hydro_header)
+        
+        nvar_file = header['nvarh']
+    else :
+        header = read_fortran_series(f, ramses_grav_header)
+        nvar_file=4
+
+    if nvar_file<nvar :
+        warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)"%(nvar, nvar_file), RuntimeWarning)
+        nvar = nvar_file
         dims = dims[:nvar]
-    elif header['nvarh']>nvar :
+    elif nvar_file>nvar :
         warnings.warn("More hydro variables are in this RAMSES dump than are defined in config.ini", RuntimeWarning)
 
     for level in xrange(maxlevel or header['nlevelmax']) :
@@ -251,16 +263,16 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1) :
                             ar[i0:i1] = read_fortran(f, _float_type, ncache)[(refine[icel]==0)]
 
 
-                        skip_fortran(f, (header['nvarh']-nvar))
+                        skip_fortran(f, (nvar_file-nvar))
 
                 else :
-                    skip_fortran(f, (2**ndim)*header['nvarh'])
+                    skip_fortran(f, (2**ndim)*nvar_file)
 
         for boundary in xrange(header['nboundary']) :
             flevel = read_fortran(f, 'i4')[0]
             ncache = read_fortran(f, 'i4')[0]
             if ncache>0 :
-                skip_fortran(f, (2**ndim)*header['nvarh'])
+                skip_fortran(f, (2**ndim)*nvar_file)
                 
                         
 ramses_particle_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('npart', 'i4'),
@@ -274,10 +286,14 @@ ramses_amr_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('ng', 'i4', (3,))
 ramses_hydro_header = np.dtype([('ncpu', 'i4'), ('nvarh', 'i4'), ('ndim', 'i4'), ('nlevelmax', 'i4'),
                                 ('nboundary', 'i4'), ('gamma', 'f8')])
 
+ramses_grav_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('nlevelmax', 'i4'),
+                                ('nboundary', 'i4')])
+
 particle_blocks = map(str.strip,config_parser.get('ramses',"particle-blocks").split(","))
 particle_format = map(str.strip,config_parser.get('ramses',"particle-format").split(","))
 
 hydro_blocks = map(str.strip,config_parser.get('ramses',"hydro-blocks").split(","))
+grav_blocks = map(str.strip,config_parser.get('ramses',"gravity-blocks").split(","))
 
 particle_distinguisher = map(str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
 
@@ -356,6 +372,9 @@ class RamsesSnap(snapshot.SimSnap) :
     def _hydro_filename(self, cpu_id) :
         return self._filename+"/hydro_"+self._timestep_id+".out"+_cpu_id(cpu_id)
 
+    def _grav_filename(self, cpu_id) :
+        return self._filename+"/grav_"+self._timestep_id+".out"+_cpu_id(cpu_id)
+    
     def _count_particles(self) :
         """Returns ndm, nstar where ndm is the number of dark matter particles
         and nstar is the number of star particles."""
@@ -434,11 +453,12 @@ class RamsesSnap(snapshot.SimSnap) :
         
         
 
-    def _load_gas_vars(self) :
+    def _load_gas_vars(self, mode=_gv_load_hydro) :
         i1 = 0
         
         dims = []
-        for i in hydro_blocks :
+        
+        for i in [hydro_blocks,grav_blocks][mode] :
             if i not in self.gas :
                 self.gas._create_array(i)
             dims.append(self.gas[i])
@@ -449,17 +469,20 @@ class RamsesSnap(snapshot.SimSnap) :
         grid_info_iter = self._level_iterator()
 
         if config['verbose'] :
-            print>>sys.stderr, "RamsesSnap: loading hydro files",
+            print>>sys.stderr, "RamsesSnap: loading %s files"%(['hydro','grav'][mode]),
 
+        filenamer = [self._hydro_filename, self._grav_filename][mode]
+        
         remote_map(self.reader_pool,
                    _cpui_load_gas_vars,
                    [dims]*len(self._cpus),
                    [self._maxlevel]*len(self._cpus),
                    [self._ndim]*len(self._cpus),
-                   [self._hydro_filename(i) for i in self._cpus],
+                   [filenamer(i) for i in self._cpus],
                    self._cpus,
                    self._cpui_level_iterator_args(),
-                   self._gas_i0)
+                   self._gas_i0,
+                   [mode]*len(self._cpus))
  
         if config['verbose'] :
             print>>sys.stderr, "done"
