@@ -108,4 +108,4 @@ def test_unit_array_interaction() :
     assert all(x-y == SA([ 0.999] * 10, 'Mpc'))
     assert (x+y).units=='Mpc'
     assert all(y+x == SA([ 1.001] * 10, 'Mpc'))
-    assert all(y-x == SA([ -0.999] * 10, 'Mpc'))
+    assert all(y-x == SA([ -999.] * 10, 'kpc'))
