@@ -347,7 +347,7 @@ class Profile:
 
         elif name[-4:]=="_rms" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys() :
             if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
-            self._profiles[name] = self._auto_profile(name[:-3], rms=True)
+            self._profiles[name] = self._auto_profile(name[:-4], rms=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
         
