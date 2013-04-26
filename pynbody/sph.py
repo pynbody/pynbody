@@ -382,7 +382,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  smooth_in_pixels = False,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
-                 threaded=_threaded_image) :
+                 threaded=_threaded_image,
+                 denoise=False) :
     """
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -429,6 +430,11 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
      *approximate_fast*: if True, render high smoothing length particles at
        progressively lower resolution, resample and sum
 
+     *denoise*: if True, divide through by an estimate of the discreteness noise.
+       The returned image is then not strictly an SPH estimate, but this option
+       can be useful to reduce noise especially when rendering AMR grids which
+       often introduce problematic edge effects.
+
      *verbose*: if True, all text output suppressed
 
      *threaded*: if False (or None), render on a single core. Otherwise,
@@ -442,16 +448,27 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
         base_renderer = _render_image
 
     if threaded :
-        return _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        im =  _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                       out_units, xy_units, kernel, z_camera, smooth,
                                       smooth_in_pixels, True, 
                                       num_threads=threaded)
     else :
-        return _render_image(base_renderer, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        im =  _render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                out_units, xy_units, kernel, z_camera, smooth,
                                smooth_in_pixels, False, 
                                approximate_fast)
+        
+    if denoise :
+        # call self to render a 'flat field'
+        snap['__one']=1
+        im2 = render_image(snap, '__one', x2, nx, y2, ny, x1, y1, z_plane, out_units,
+                           xy_units, kernel, z_camera, smooth, smooth_in_pixels,
+                           force_quiet, approximate_fast, threaded, False)
+        del snap['__one']
+        return im/im2
 
+    else :
+        return im
 
 
             
