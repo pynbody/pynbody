@@ -369,7 +369,28 @@ class TipsySnap(snapshot.SimSnap) :
 
     @staticmethod
     def _write(self, filename=None, double_pos = False, double_vel = False) :
-        """Write a TIPSY file.  Just the reverse of reading a file. """
+        """
+
+        Write a TIPSY (standard) formatted file.   
+        
+        Additionally, you can specify whether you want position and/or
+        velocity arrays written out in double precision. If you are
+        writing out a snapshot that was originally in tipsy format and
+        the bDoublePos/bDoubleVel flags are set in the parameter file,
+        then the write routine will follow those choices. If you are
+        writing a snapshot other than a tipsy snapshot, then you have
+        to specify these by hand.
+        
+        **Optional Keywords**
+
+        *filename* (None): name of the file to be written out. If
+                           None, the original file is overwritten.
+
+        *double_pos* (False): set to 'True' if you want to write out positions as doubles
+
+        *double_vel* (False): set to 'True' if you want to write out velocities as doubles
+
+        """
 
         global config
         
