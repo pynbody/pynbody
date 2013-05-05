@@ -728,7 +728,7 @@ class GadgetSnap(snapshot.SimSnap):
         self._family_keys = set([])
         self._family_arrays = {}
         self._arrays = {}
-        self.properties = {}
+        #self.properties = {}
 
         # Set up _family_slice
         for x in _type_map:
