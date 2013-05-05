@@ -2,11 +2,15 @@
 
 .. _data-access:
 
-Getting started: basic data access
-==================================
+A walk through pynbody's low-level facilities
+=============================================
 
 The following example shows how to load a file, determine various
 attributes, access some data and make use of unit information. 
+
+If you're more interested in making pretty pictures and plots straight
+away, you may wish to read the :ref:`basic facilities tutorial
+snapshot_manipulation` first.
 
 .. note:: This tutorial discusses an
   interactive session rather than a script. This is only cosmetically
@@ -223,6 +227,67 @@ So, we can get the density of the gas particles like this:
  performance of your code, you can always get a vanilla numpy array by
  using the `numpy` view mechanism,
  e.g. ``f.gas['rho'].view(type=numpy.ndarray)``
+
+.. _create_arrays :
+
+Creating your own arrays
+------------------------
+
+You can create arrays using the obvious assignment syntax:
+
+.. ipython::
+
+  In [14]: f['twicethemass'] = f['mass']*2
+
+You can also define new arrays for one family of particles:
+
+.. ipython::
+
+  In [14]: f.gas['myarray'] = f.gas['rho']**2
+
+An array created in this way exists *only* for the gas
+particles; trying to access it for other particles raises an
+exception.
+
+Alternatively, you can define *derived arrays* which are calculated (and
+re-calculated) on demand. For example,
+
+.. ipython::
+
+  In [3]: @pynbody.derived_array
+     ...:def thricethemass(sim) :
+     ...:    return sim['mass']*3
+     ...: 
+
+
+At this point, nothing has been calculated. However, when you ask for
+the array, the values are calculated and stored
+
+.. ipython::
+
+  In [4]: f['thricethemass']
+  
+  Out[4]: 
+  SimArray([ 1.28755365,  1.28755365,  1.28755365, ...,  1.28755365,
+          1.28755365,  1.28755365], '1.00e+10 Msol')
+
+This has the advantage that your new `thricethemass` array is
+automatically updated when you change the `mass` array:
+
+.. ipython::
+  
+  In [4]: f['mass'][0] = 1
+  
+  In [6]: f['thricethemass']
+  SimSnap: deriving array thricethemass
+  Out[6]: 
+  SimArray([ 3.        ,  1.28755365,  1.28755365, ...,  1.28755365,
+          1.28755365,  1.28755365], '1.00e+10 Msol')
+
+Note, however, that the array is not re-calculated every time you
+access it, only if the `mass` array has changed. Therefore you don't
+waste any time by using derived arrays. For more information see
+the reference documentation for :ref:`derived arrays <derived>`.
 
 Keeping on top of units
 -----------------------
