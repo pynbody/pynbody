@@ -332,6 +332,17 @@ class SimArray(np.ndarray) :
                 pass
         return self
 
+    def __itruediv__(self, rhs) :
+        if isinstance(rhs, _units.UnitBase) :
+            self.units/=rhs
+        else :
+            np.ndarray.__itruediv__(self, rhs)
+            try :
+                self.units/=rhs.units
+            except AttributeError :
+                pass
+        return self
+
     def conversion_context(self) :
         if self.sim is not None :
             return self.sim.conversion_context()
@@ -375,10 +386,16 @@ class SimArray(np.ndarray) :
 
 
     def __add__(self,x) :
-        return self._generic_add(x)
+        if isinstance(x, _units.UnitBase) :
+            return x+self
+        else :
+            return self._generic_add(x)
 
     def __sub__(self, x) :
-        return self._generic_add(x, np.subtract)
+        if isinstance(x, _units.UnitBase) :
+            return (-x+self).in_units(self.units)
+        else :
+            return self._generic_add(x, np.subtract)
 
     def __iadd__(self, x) :
         self._generic_add(x, np.ndarray.__iadd__)
@@ -681,6 +698,7 @@ def _mul_units(a,b) :
         return b_units
 
 @_u(np.divide)
+@_u(np.true_divide)
 def _div_units(a,b) :
     a_units, b_units = _get_units_or_none(a,b)
     if a_units is not None and b_units is not None :

@@ -24,12 +24,12 @@ def test_loadable() :
     blocks=snap.loadable_keys()
     expected_gas=['nhp','smooth','nhe','u','sfr','pos','vel','id','mass','nh','rho','nheq','nhep']
     expected_all = ['pos','vel','id','mass']
-    
+
     #Check that they have the right families
-    assert(snap.gas.loadable_keys() == expected_gas)
-    assert(snap.dm.loadable_keys() == expected_all)
-    assert(snap.star.loadable_keys() == expected_all)
-    assert(snap.loadable_keys() == expected_all)
+    assert(set(snap.gas.loadable_keys()) == set(expected_gas))
+    assert(set(snap.dm.loadable_keys()) == set(expected_all))
+    assert(set(snap.star.loadable_keys()) == set(expected_all))
+    assert(set(snap.loadable_keys()) == set(expected_all))
     assert(snap.neutrino.loadable_keys() == [])
 
 def test_standard_arrays() :

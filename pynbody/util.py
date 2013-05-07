@@ -18,8 +18,10 @@ import scipy
 import threading
 import sys
 import time
-from . import config_parser
+from . import config_parser, config
 import ConfigParser
+import multiprocessing
+import functools
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
@@ -525,6 +527,8 @@ def threadsafe_inline(*args, **kwargs) :
     only want one compilation to be going on at once, otherwise nasty
     race conditions arise. This function wraps scipy.weave.inline to
     be thread-safe."""
+
+    import scipy.weave
     
     call_frame = sys._getframe().f_back
     if 'local_dict' not in kwargs :
@@ -561,7 +565,10 @@ def setup_name_maps(config_name, gadget_blocks=False) :
     _rev_name_map = {}
     try :
         for a, b in config_parser.items(config_name) :
-            if gadget_blocks : a=a.upper().ljust(4)
+            if sys.version_info[0]==2 :
+                if gadget_blocks : a=a.upper().ljust(4)
+            else :
+                if gadget_blocks : a=a.upper().ljust(4).encode("utf-8")
             _rev_name_map[a] = b
             _name_map[b] = a
     except ConfigParser.NoOptionError :
@@ -626,3 +633,73 @@ def read_fortran_series(f, dtype) :
             q[0][i] = data[0]
 
     return q[0]
+
+
+def _thread_map(func, *args) :
+    
+    def r_func(*afunc) :
+        try:
+            this_t = threading.current_thread()
+            this_t.ret_value = func(*afunc)
+        except Exception, e:
+            this_t.ret_excp = e
+        
+    threads = []
+    for arg_this in zip(*args) :
+        threads.append(threading.Thread(target=r_func, args=arg_this))
+        threads[-1].start()
+    rets = []
+    excp = None
+    for t in threads:
+        while t.is_alive() :
+            # just calling t.join() with no timeout can make it harder to
+            # debug deadlocks!
+            t.join(1.0)
+        if hasattr(t,'ret_excp') :
+            excp = t.ret_excp
+        else :
+            rets.append(t.ret_value)
+                
+    if excp is None : return rets
+    raise excp #Note this is a re-raised exception from within a thread
+            
+def parallel(p_args=[0],
+             threads=config['number_of_threads'], reduce='interleave') :
+    """Return a function decorator which makes a function execute in parallel.
+
+    *p_args*: a list of integers specifying which arguments will
+    be  array-like. These will be sliced up and processed over the number
+    of threads specified.
+
+    *reduce*: specifies how to reduce the output, and can take one of
+    three values:
+
+    'none': return None
+    'interleave': return an array of the size of the input arrays, with the
+      elements returned to their correct place
+    'sum': sum over the outputs
+    """
+    def decorator(fn) :
+        def new_fn(*args) :
+            threaded_args = []
+            for i in xrange(len(args)) :
+                if i in p_args :
+                    threaded_args.append([args[i][n::threads] for n in range(threads)])
+                else :
+                    threaded_args.append([args[i]]*threads)
+
+            ret = _thread_map(fn,*threaded_args)
+
+            if reduce=='interleave' :
+                out_len = list(getattr(ret[0], 'shape', [0]))
+                out_len[0] = sum(map(len,ret))
+                output = np.empty(out_len, dtype=ret[0].dtype)
+                for n in range(threads) :
+                    output[n::threads] = ret[n]
+            elif reduce=='sum' :
+                output = sum(ret)
+            else :
+                output = None
+            return output
+        return functools.wraps(fn)(new_fn)
+    return decorator

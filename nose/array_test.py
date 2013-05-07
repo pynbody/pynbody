@@ -44,11 +44,10 @@ def test_unit_tracking() :
 
     assert ((x/y).units.ratio("")-1.e-3)<1.e-12
 
-    assert np.var(x).units=="kpc**2"
-    
-    assert np.std(x).units=="kpc"
 
     if hasattr(np.mean(x),'units') :
+        assert np.var(x).units=="kpc**2"
+        assert np.std(x).units=="kpc"
         assert np.mean(x).units=="kpc"
 
 def test_iop_units() :
@@ -61,7 +60,7 @@ def test_iop_units() :
     z = SA([1000,2000,3000,4000])
     z.units = 'm s^-1'
 
-    print repr(x)
+    print(repr(x))
     
     try :
         x+=y
@@ -100,3 +99,13 @@ def test_iop_sanity() :
     x/=2
     assert id(x)==x_id
     
+
+def test_unit_array_interaction() :
+    """Test for issue 113 and related"""
+    x  = pynbody.units.Unit('1 Mpc')
+    y = SA(np.ones(10),'kpc')
+    assert all(x+y == SA([ 1.001] * 10, 'Mpc'))
+    assert all(x-y == SA([ 0.999] * 10, 'Mpc'))
+    assert (x+y).units=='Mpc'
+    assert all(y+x == SA([ 1.001] * 10, 'Mpc'))
+    assert all(y-x == SA([ -999.] * 10, 'kpc'))

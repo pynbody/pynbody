@@ -55,7 +55,7 @@ class TipsySnap(snapshot.SimSnap) :
 
         self._filename = util.cutgz(filename)
     
-        f = util.open_(filename)
+        f = util.open_(filename,'rb')
     
         if verbose : print>>sys.stderr, "TipsySnap: loading ",filename
 
@@ -133,7 +133,7 @@ class TipsySnap(snapshot.SimSnap) :
 
         if config['verbose'] : print>>sys.stderr, "TipsySnap: loading data from main file"
             
-        f = util.open_(self._filename)
+        f = util.open_(self._filename, 'rb')
         f.seek(32)
 
         write = []
@@ -210,11 +210,11 @@ class TipsySnap(snapshot.SimSnap) :
     def _update_loadable_keys(self)  :
         def is_readable_array(x) :
             try:
-                f = util.open_(x)
+                f = util.open_(x,'r')
                 return int(f.readline()) == len(self)
             except ValueError :
                 # could be a binary file
-                f.seek(0)
+                f = util.open_(x,'rb')
 
                 if hasattr(f,'fileobj') :
                     # Cludge to get un-zipped length
@@ -298,7 +298,7 @@ class TipsySnap(snapshot.SimSnap) :
 
 
         with self.lazy_off : 
-            fin  = util.open_(self.filename)
+            fin  = util.open_(self.filename, "rb")
             fout = util.open_(self.filename+".tmp", "wb")
 
             if self._byteswap: 
@@ -368,8 +368,29 @@ class TipsySnap(snapshot.SimSnap) :
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None) :
-        """Write a TIPSY file.  Just the reverse of reading a file. """
+    def _write(self, filename=None, double_pos = False, double_vel = False) :
+        """
+
+        Write a TIPSY (standard) formatted file.   
+        
+        Additionally, you can specify whether you want position and/or
+        velocity arrays written out in double precision. If you are
+        writing out a snapshot that was originally in tipsy format and
+        the bDoublePos/bDoubleVel flags are set in the parameter file,
+        then the write routine will follow those choices. If you are
+        writing a snapshot other than a tipsy snapshot, then you have
+        to specify these by hand.
+        
+        **Optional Keywords**
+
+        *filename* (None): name of the file to be written out. If
+                           None, the original file is overwritten.
+
+        *double_pos* (False): set to 'True' if you want to write out positions as doubles
+
+        *double_vel* (False): set to 'True' if you want to write out velocities as doubles
+
+        """
 
         global config
         
@@ -380,7 +401,7 @@ class TipsySnap(snapshot.SimSnap) :
 
             if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
 
-            f = util.open_(filename, 'w')
+            f = util.open_(filename, 'wb')
 
             try:
                 t = self.properties['a']
@@ -405,26 +426,43 @@ class TipsySnap(snapshot.SimSnap) :
                 
             # needs to be done in blocks like reading
             # describe the file structure as list of (num_parts, [list_of_properties]) 
-            file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
-                              (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
-                              (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
             
+            if type(self) is not TipsySnap : 
+                ptype = 'd' if double_pos else 'f'
+                vtype = 'd' if double_vel else 'f'
+                g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+                d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+                s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+            else :
+                g_dtype = self._g_dtype
+                d_dtype = self._d_dtype
+                s_dtype = self._s_dtype
+            
+            file_structure = ((ng,family.gas,g_dtype),
+                              (nd,family.dm,d_dtype),
+                              (ns,family.star,s_dtype))
+
             max_block_size = 1024**2 # particles
-            for n_left, type, st in file_structure :
+            for n_left, fam, dtype in file_structure :
                 n_done = 0
-                self_type = self[type]
+                self_type = self[fam]
                 while n_left>0 :
                     n_block = min(n_left,max_block_size)                   
                     
-                    g = np.zeros((n_block,len(st)),dtype=np.float32)
-
+                    #g = np.zeros((n_block,len(st)),dtype=np.float32)
+                                        
+                    g = np.empty(n_block,dtype=dtype)
+                    
                     self_type_block = self_type[n_done:n_done+n_block]
 
                     with self_type_block.immediate_mode :
                         # Copy from the correct arrays
-                        for i, name in enumerate(st) :
+                        for i, name in enumerate(dtype.names) :
                             try:
-                                g[:,i] = self_type_block[name]
+                                g[name] = self_type_block[name]
                             except KeyError :
                                 pass
 
@@ -479,7 +517,7 @@ class TipsySnap(snapshot.SimSnap) :
                      for this array, or None if this cannot be determined"""
 
         try:
-            f = open(self.filename+"."+array_name+".pynbody-meta")
+            f = open(self.filename+"."+array_name+".pynbody-meta",'r')
         except IOError :
             return self._default_units_for(array_name), None
         
@@ -713,7 +751,7 @@ class TipsySnap(snapshot.SimSnap) :
             else :
                 filename = self._filename+"."+array_name
                 
-        f = util.open_(filename)
+        f = util.open_(filename,'r')
 
         if config['verbose'] : print>>sys.stderr, "TipsySnap: attempting to load auxiliary array",filename
         # if we get here, we've got the file - try loading it
@@ -743,7 +781,7 @@ class TipsySnap(snapshot.SimSnap) :
         except ValueError :
             # this is probably a binary file
             binary = True
-            f.seek(0)
+            f= util.open_(filename,'rb')
 
             # Read header and check endianness
             if self._byteswap:
@@ -933,7 +971,7 @@ def u(sim) :
 def p(sim) :
     """Pressure"""
     p = sim["u"]*sim["rho"]*(2./3)
-    p.convert_units("dyn")
+    p.convert_units("Pa")
     return p
 
 @TipsySnap.derived_quantity
@@ -1059,7 +1097,7 @@ class StarLog(snapshot.SimSnap):
         super(StarLog,self).__init__()
         self._filename = filename
 
-        f = util.open_(filename)
+        f = util.open_(filename,"rb")
         self.properties = {}
         bigstarlog = False
         
@@ -1139,7 +1177,7 @@ class StarLog(snapshot.SimSnap):
                 
             if config['verbose'] : print>>sys.stderr, "StarLog: writing starlog file as",filename
 
-            f = util.open_(filename, 'w')
+            f = util.open_(filename, 'wb')
 
             if 'phiform' in self.keys() :  # long starlog format
                 file_structure = np.dtype({'names': ("iord","iorderGas","tform",
@@ -1208,14 +1246,14 @@ def load_paramfile(sim) :
         for filename in l :
             # Attempt the loading of information
             try :
-                f = file(filename)
+                f = open(filename)
             except IOError :
                 l = glob.glob(os.path.join(x,"../*.param"))
                 if l==[] :
                     continue
                 try : 
                     for filename in l:
-                        f = file(filename)
+                        f = open(filename)
                 except IOError:
                     continue
             
@@ -1302,7 +1340,7 @@ def param2units(sim) :
             sim.properties['h'] = hub*hubunit
 
             if isinstance(sim,StarLog) :
-                a = "a_form"
+                a = "aform"
             else :
                 a = "a"
                 
@@ -1374,7 +1412,7 @@ def param2units(sim) :
 def settime(sim) :
     if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
         from . import analysis
-        import analysis.cosmology
+        from .analysis import cosmology 
         t = sim._header_t
         sim.properties['a'] = t
         try :
@@ -1426,7 +1464,7 @@ def slparam2units(sim) :
 
         if hub!=None:
             # append dependence on 'a' for cosmological runs
-            dunit_st += " a_form"
+            dunit_st += " aform"
             
             # denunit_st += " a^-3"
             # N.B. density comoving -> physical conversion is done by Gasoline itself

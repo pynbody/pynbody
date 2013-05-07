@@ -50,10 +50,10 @@ from __future__ import division
 import random
 import math
 import numpy as np
-import scipy, scipy.weave
+
 import copy
 
-from . import util
+from .. import util
 
 class Chunk:
     def __init__(self, *args, **kwargs):
@@ -173,6 +173,9 @@ class LoadControl(object) :
 
     @staticmethod
     def _scan_for_next_stop(ids, offset_start, id_maximum) :
+        from . import scan
+        return scan.scan_for_next_stop(ids, offset_start, id_maximum)
+    
         if len(ids)==0 :
             return 0
         if ids[-1]<=id_maximum :
@@ -199,6 +202,7 @@ class LoadControl(object) :
         if(iter>1000) return_val=-1;
         """
 
+        import scipy, scipy.weave
         mid = scipy.weave.inline(code, ['ids', 'offset_start', 'id_maximum'])
         assert mid!=-1
 

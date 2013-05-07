@@ -1,6 +1,8 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
+#include "bc_modules/capsulethunk.h"
 
+#warning hello
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -81,9 +83,28 @@ static PyMethodDef kdmain_methods[] =
     {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC initkdmain()
+#if PY_MAJOR_VERSION>=3
+static struct PyModuleDef ourdef = {
+  PyModuleDef_HEAD_INIT,
+  "kdmain",
+  "KDTree module for pynbody",
+  -1,
+  kdmain_methods,
+  NULL, NULL, NULL, NULL };
+#endif
+
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION>=3
+PyInit_kdmain(void)
+#else
+initkdmain(void)
+#endif
 {
+  #if PY_MAJOR_VERSION>=3
+    return PyModule_Create(&ourdef);
+  #else
     (void)Py_InitModule("kdmain", kdmain_methods);
+  #endif
 }
 
 /*==========================================================================*/
@@ -147,7 +168,7 @@ PyObject *kdinit(PyObject *self, PyObject *args)
 
     Py_END_ALLOW_THREADS
 
-    return PyCObject_FromVoidPtr((void *)kd, NULL);
+    return PyCapsule_New((void *)kd, NULL, NULL);
 }
 
 /*==========================================================================*/
@@ -159,7 +180,7 @@ PyObject *kdfree(PyObject *self, PyObject *args)
     PyObject *kdobj;
 
     PyArg_ParseTuple(args, "O", &kdobj);
-    kd = PyCObject_AsVoidPtr(kdobj);
+    kd = PyCapsule_GetPointer(kdobj, NULL);
 
     kdFinish(kd);
 
@@ -185,7 +206,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     float hsm;
 
     PyArg_ParseTuple(args, "Oi|OO", &kdobj, &nSmooth, &smooth, &rho);
-    kd = PyCObject_AsVoidPtr(kdobj);
+    kd = PyCapsule_GetPointer(kdobj, NULL);
 
 #define BIGFLOAT ((float)1.0e37)
 
@@ -205,7 +226,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     if(rho != NULL) 
       for (i=0;i<kd->nActive;i++) kd->p[i].fDensity = (float)*((double *)PyArray_GETPTR1(rho, kd->p[i].iOrder));
     
-    return PyCObject_FromVoidPtr(smx, NULL);
+    return PyCapsule_New(smx, NULL, NULL);
 }
 
 /*==========================================================================*/
@@ -224,8 +245,8 @@ PyObject *nn_next(PyObject *self, PyObject *args)
     PyObject *retList;
 
     PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-    kd  = PyCObject_AsVoidPtr(kdobj);
-    smx = PyCObject_AsVoidPtr(smxobj);
+    kd  = PyCapsule_GetPointer(kdobj, NULL);
+    smx = PyCapsule_GetPointer(smxobj, NULL);
 
     Py_BEGIN_ALLOW_THREADS
 
@@ -267,8 +288,8 @@ PyObject *nn_stop(PyObject *self, PyObject *args)
     PyObject *kdobj, *smxobj;
 
     PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-    kd  = PyCObject_AsVoidPtr(kdobj);
-    smx = PyCObject_AsVoidPtr(smxobj);
+    kd  = PyCapsule_GetPointer(kdobj,NULL);
+    smx = PyCapsule_GetPointer(smxobj,NULL);
 
     smFinish(smx);
 
@@ -284,10 +305,10 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
     PyObject *smxobj;
     
     PyArg_ParseTuple(args, "O", &smxobj);
-    smx = PyCObject_AsVoidPtr(smxobj);
+    smx = PyCapsule_GetPointer(smxobj, NULL);
     smSmoothInitStep(smx);
     
-    return PyCObject_FromVoidPtr(smx, NULL);
+    return PyCapsule_New(smx, NULL, NULL);
 }
 
 /*==========================================================================*/
@@ -307,8 +328,8 @@ PyObject *populate(PyObject *self, PyObject *args)
     
   
     PyArg_ParseTuple(args, "OOOi", &kdobj, &smxobj, &dest, &propid);
-    kd  = PyCObject_AsVoidPtr(kdobj);
-    smx = PyCObject_AsVoidPtr(smxobj);
+    kd  = PyCapsule_GetPointer(kdobj, NULL);
+    smx = PyCapsule_GetPointer(smxobj, NULL);
 
     
     
