@@ -13,7 +13,7 @@ Simple example for calculating a density profile:
    :include-source:
 
 
-
+ 
 The Profile Class 
 -----------------
 
