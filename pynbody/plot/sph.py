@@ -191,7 +191,7 @@ def image(sim, qty='rho', width=10, resolution=500, units=None, log=True,
     if clear and not subplot : p.clf()
 
     if ret_im:
-        return plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+        return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
                  vmin=vmin, vmax=vmax, cmap=cmap)
 
     ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
