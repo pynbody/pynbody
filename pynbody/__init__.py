@@ -172,6 +172,7 @@ config['threading'] = config_parser.get('general', 'threading')
 config['number_of_threads'] = int(config_parser.get('general', 'number_of_threads'))
 
 config['gravity_calculation_mode'] = config_parser.get('general', 'gravity_calculation_mode')
+config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
 
 # Import subpackages
 from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, ramses, grafic, analysis, halo, derived, bridge, gravity, sph, nchilada
