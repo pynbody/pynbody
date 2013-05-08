@@ -92,9 +92,22 @@ Acknowledging Pynbody in Scientific Publications
 Pynbody development is an open-source, community effort. The only way
 to make it as robust as possible is to have a wide user-base and this
 is only possible by spreading the word. We ask that if you use pynbody
-in preparing a scientific publication, you mention it either as a
-footnote in the text or in the acknowledgments section with a
-statement like:
+in preparing a scientific publication, you cite it via its
+`Astrophysics Source Code Library <http://ascl.net/1305.002>`_ entry
+using the following BibTex::
+
+   @misc{pynbody,
+     author = {{Pontzen}, A. and {Ro{\v s}kar}, R. and {Stinson}, G.~S. and {Woods}, R. and {Reed}, D.~M. and {Coles}, J. and {Quinn}, T.~R.},
+     title = "{pynbody: Astrophysics Simulation Analysis for Python}",
+     note = {Astrophysics Source Code Library},
+     year = 2013,
+     archivePrefix = "{ascl}",
+     eprint = {1305.002},
+     month = may,
+   }
+
+You may also mention it either as a footnote in the text or in the
+acknowledgments section with a statement like:
 
 **We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
 for this paper.**
