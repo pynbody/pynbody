@@ -463,7 +463,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
         im2 = render_image(snap, '__one', x2, nx, y2, ny, x1, y1, z_plane, None,
                            xy_units, kernel, z_camera, smooth, smooth_in_pixels,
                            force_quiet, approximate_fast, threaded, False)
-        del snap['__one']
+        del snap.ancestor['__one']
         im2 = im/im2
         im2.units = im.units
         return im2
@@ -680,7 +680,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=_threaded_image,snap_slice=None, denoise=True) :
+               threaded=_threaded_image,snap_slice=None, denoise=False) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -753,10 +753,10 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
         renderer = _to_3d_grid
 
     if threaded :
-        res= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+        im= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                                     xy_units, kernel, smooth, num_threads=threaded)
     else :
-        res= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+        im= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                       xy_units, kernel, smooth, False)
         
     if config["tracktime"] :
@@ -768,15 +768,14 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
         snap['__one']=1
         im2 = to_3d_grid(snap, '__one',nx,ny,nz,x2,None,xy_units,kernel,smooth,
                          approximate_fast,threaded,snap_slice,False)
-        del snap['__one']
+        del snap.ancestor['__one']
         im2 = im/im2
         im2.units = im.units
         return im2
 
     else :
         return im
-    
-    return res
+
         
 
 
