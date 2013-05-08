@@ -342,7 +342,8 @@ class AHFCatalogue(HaloCatalogue):
         """Load the particles for the next halo described in particle file f"""
         ng = len(self.base.gas)
         nds = len(self.base.dark) + len(self.base.star)
-        nparts = int(f.readline())
+        nparts = int(f.readline().split()[0])
+
         if self.isnew:
             if isinstance(f, file):
                 data = (np.fromfile(

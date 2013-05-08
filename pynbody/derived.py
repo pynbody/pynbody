@@ -1,11 +1,9 @@
 """
-
 derived
 =======
 
 Holds procedures for creating new arrays from existing ones, e.g. for
-getting the radial position.
-<http://code.google.com/p/pynbody/wiki/AutomagicCalculation>
+getting the radial position. For more information see :ref:`derived`.
 
 """
 
@@ -21,10 +19,12 @@ import sys
 
 @SimSnap.derived_quantity
 def r(self):
+    """Radial position"""
     return ((self['pos']**2).sum(axis = 1))**(1,2)
 
 @SimSnap.derived_quantity
 def rxy(self):
+    """Cylindrical radius in the x-y plane"""
     return ((self['pos'][:,0:2]**2).sum(axis = 1))**(1,2)
 
 @SimSnap.derived_quantity
@@ -64,7 +64,6 @@ def j(self) :
 @SimSnap.derived_quantity
 def j2(self) :
     """Square of the specific angular momentum"""
-
     return (self['j']**2).sum(axis=1)
 
 @SimSnap.derived_quantity
@@ -74,16 +73,19 @@ def jz(self):
 
 @SimSnap.derived_quantity
 def vrxy(self):
+    """Cylindrical radial velocity in the x-y plane"""
     return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['rxy']
 
 @SimSnap.derived_quantity
 def vcxy(self) :
+    """Cylindrical tangential velocity in the x-y plane"""
     f = (self['x']*self['vy']-self['y']*self['vx'])/self['rxy']
     f[np.where(f!=f)]=0
     return f
 
 @SimSnap.derived_quantity
 def v_mean(self):
+    """SPH-smoothed mean velocity"""
     import sph
     
     sph.build_tree(self)
@@ -100,6 +102,7 @@ def v_mean(self):
 
 @SimSnap.derived_quantity
 def v_disp(self):
+    """SPH-smoothed local velocity dispersion"""
     import sph
 
     sph.build_tree(self)
@@ -116,6 +119,7 @@ def v_disp(self):
 
 @SimSnap.derived_quantity
 def age(self) :
+    """Stellar age determined from formation time and current snapshot time"""
     return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
 
 bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
@@ -124,10 +128,12 @@ bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
 for band in bands_available :
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s,band=b)
     X.__name__ = band+"_mag"
+    X.__doc__ = band+" magnitude from analysis.luminosity.calc_mags"""
     SimSnap.derived_quantity(X)
 
     X = lambda s, b=str(band): (10**(-0.4*s[b+"_mag"]))*s['rho']/s['mass']
     X.__name__ = band+"_lum_den"
+    X.__doc__ = band+" luminosity density from analysis.luminosity.calc_mags"""
     SimSnap.derived_quantity(X)
 
 @SimSnap.derived_quantity
@@ -147,6 +153,7 @@ def az(self) :
 
 @SimSnap.derived_quantity
 def cs(self):
+    """Sound speed"""
     mu = np.zeros(len(self))
     mu[np.where(self['temp']>=1e4)[0]] = 0.59
     mu[np.where(self['temp']<1e4)[0]] = 1.3

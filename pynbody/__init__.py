@@ -234,4 +234,6 @@ def load(filename, *args, **kwargs) :
 
 from snapshot import _new as new
 
-__all__ = ['load', 'new']
+derived_array = snapshot.SimSnap.derived_quantity
+
+__all__ = ['load', 'new', 'derived_array']

@@ -846,7 +846,7 @@ class SimSnap(object):
     ############################################
     # WRITING FUNCTIONS
     ############################################
-    def write(self, fmt=None, filename=None):
+    def write(self, fmt=None, filename=None, **kwargs):
         if filename is None and "<" in self.filename:
             raise RuntimeError(
                 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))')
@@ -856,9 +856,9 @@ class SimSnap(object):
                 raise RuntimeError(
                     'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)')
 
-            self._write(self, filename)
+            self._write(self, filename, **kwargs)
         else:
-            fmt._write(self, filename)
+            fmt._write(self, filename, **kwargs)
 
     def write_array(self, array_name, fam=None, overwrite=False, **kwargs):
         """
