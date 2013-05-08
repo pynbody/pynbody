@@ -100,13 +100,11 @@ in preparing a scientific publication, you cite it via its
 using the following BibTex::
 
    @misc{pynbody,
-     author = {{Pontzen}, A. and {Ro{\v s}kar}, R. and {Stinson}, G.~S. and {Woods}, R. and {Reed}, D.~M. and {Coles}, J. and {Quinn}, T.~R.},
+     author = {{Pontzen}, A. and {Ro{\v s}kar}, R. and {Stinson}, G.~S. and {Woods},
+        R. and {Reed}, D.~M. and {Coles}, J. and {Quinn}, T.~R.},
      title = "{pynbody: Astrophysics Simulation Analysis for Python}",
-     note = {Astrophysics Source Code Library},
-     year = 2013,
-     archivePrefix = "{ascl}",
-     eprint = {1305.002},
-     month = may,
+     note = {Astrophysics Source Code Library, ascl:1305.002},
+     year = 2013
    }
 
 You may also mention it either as a footnote in the text or in the
