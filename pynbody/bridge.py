@@ -220,3 +220,28 @@ class OrderBridge(Bridge) :
             output_index = iord_map_to[output_index[np.argsort(iord_map_from)]]
 
         return to_[output_index]
+
+
+
+def bridge_factory(a, b) :
+    """Create a bridge connecting the two specified snapshots. For
+    more information see :ref:`bridge-tutorial`."""
+    
+    from . import tipsy, gadget, ramses, nchilada, gadgethdf
+    a_top = a.ancestor
+    b_top = b.ancestor
+
+    if type(a_top) is not type(b_top) :
+        raise RuntimeError, "Don't know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately."
+
+    
+    if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NChiladaSnap)) :
+        return OrderBridge(a_top, b_top, monotonic=True)
+    elif isinstance(a_top, gadget.GadgetSnap) or isinstance(a_top, gadgethdf.GadgetHDFSnap) :
+        return OrderBridge(a_top, b_top, monotonic=False)
+    elif isinstance(a_top, ramses.RamsesSnap) :
+        if len(a.gas)>0 or len(b.gas)>0 :
+            raise RuntimeError, "Cannot bridge AMR gas cells"
+        return OrderBridge(a_top, b_top, monotonic=False)
+    else :
+        raise RuntimeError, "Don't know how to automatically bridge between these simulations. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately."

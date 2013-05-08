@@ -88,8 +88,6 @@ def setup() :
 def test_get() :
     global correct_pos_3000, x_pos_3000
     current = f['pos'][::3000]
-    print repr(current)
-    print f._family_slice
     x_pos_3000 = current
     assert (np.abs(current-correct_pos_3000).mean()<1.e-6)
 
@@ -107,9 +105,6 @@ def test_get_gas() :
          1.99594979e-07,   2.19145448e-07,   6.16430157e-07,
          4.46814852e-07]
     current = f.gas['HI'][::3000]
-
-    print repr(current)
-
     
     assert (np.abs(current-correct).sum()<1.e-9)
 

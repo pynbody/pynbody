@@ -50,6 +50,10 @@ To tackle both of these issues in turn:
  :func:`~pynbody.snapshot.SimSnap.physical_units` on your snapshot,
  e.g. ``s.physical_units()`` if your simulation is called ``s``. 
 
+.. note:: Point 2. above should be fixed by commit a11df5af1f10. 
+ 
+
+
 I'm trying to load a file which I'm sure is fine, but it says the format isn't recognized
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -69,3 +73,25 @@ problem with a ``.param`` file. If at this point you can't see what's
 going wrong, do `drop us a line
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
+
+.. _pitfall_ramses_sharedmem:
+
+I'm using a RAMSES snapshot, but when I try to open it I get bizarre errors about "No space left on device" or something similar
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This will happen if you are using the parallel loader of RAMSES
+snapshots and your shared memory has filled up. Look in your /dev/shm
+for files named "pynbody-*" -- there are probably many of them. If
+your code exits gracefully, these files are deleted, but if your
+session crashes or you kill your python shell for whatever reason,
+these files will stick around. You should periodically delete them by
+hand if they start to accumulate.
+
+Note that the amount of shared memory available (which is used by the
+parallel loader) to processes on your machine is normally
+substantially less than the total amount of memory on your
+machine. You can tell the kernel to allow more; see
+`here <https://www.zabbix.org/wiki/How_to/configure_shared_memory>`_,
+for instance.
+
+Alternatively, you can disable parallel loading on ramses (see :ref:`loaders`).

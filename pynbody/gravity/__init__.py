@@ -1,5 +1,7 @@
-from . import calc
-
-reload(calc)
-
+import imp
 import numpy as np
+
+from . import calc
+imp.reload(calc)
+
+

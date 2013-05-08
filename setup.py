@@ -18,6 +18,14 @@ except:
     build_cython = False
     cmdclass = {}
 
+import distutils.command.build_py
+
+try :    
+    cmdclass['build_py'] =  distutils.command.build_py.build_py_2to3
+except AttributeError:
+    cmdclass['build_py'] =  distutils.command.build_py.build_py
+
+
 ext_modules = []
 libraries=[ ]
 extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
@@ -78,24 +86,38 @@ ext_modules += [kdmain]
 #ext_modules += [gravity]
 
 if build_cython : 
-
     gravity_omp = Extension('pynbody.grav_omp',
                             sources = ["pynbody/gravity/direct_omp.pyx"],
                             include_dirs=incdir,
                             extra_compile_args=['-fopenmp'],
                             extra_link_args=['-fopenmp'])
-    ext_modules += [gravity_omp]
+    chunkscan = Extension('pynbody.chunk.scan',
+                      sources=['pynbody/chunk/scan.pyx'],
+                      include_dirs=incdir)
+
+else :
+    gravity_omp = Extension('pynbody.grav_omp',
+                            sources = ["pynbody/gravity/direct_omp.c"],
+                            include_dirs=incdir,
+                            extra_compile_args=['-fopenmp'],
+                            extra_link_args=['-fopenmp'])
+    chunkscan = Extension('pynbody.chunk.scan',
+                          sources=['pynbody/chunk/scan.c'],
+                          include_dirs=incdir)
+    
+ext_modules += [gravity_omp, chunkscan]
+    
 
 
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.16alpha',
+             version = '0.19alpha',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot', 'pynbody/gravity' ],
+                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
@@ -106,6 +128,7 @@ dist = setup(name = 'pynbody',
                                                 'ionfracs.npz',
                                                 'interpolate.c',
                                                 'interpolate3d.c',
+                                                'com.c',
                                                 'CAMB_WMAP7'],
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
