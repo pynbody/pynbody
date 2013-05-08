@@ -453,10 +453,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                                       smooth_in_pixels, True, 
                                       num_threads=threaded)
     else :
-        im =  _render_image(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        im =  base_renderer(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                out_units, xy_units, kernel, z_camera, smooth,
-                               smooth_in_pixels, False, 
-                               approximate_fast)
+                               smooth_in_pixels, False)
         
     if denoise :
         # call self to render a 'flat field'
@@ -681,7 +680,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=_threaded_image,snap_slice=None) :
+               threaded=_threaded_image,snap_slice=None, denoise=True) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -703,8 +702,13 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
 
     *kernel*: The Kernel object to use (default Kernel(), a 3D spline kernel)
 
-     *smooth*: The name of the array which contains the smoothing lengths
+    *smooth*: The name of the array which contains the smoothing lengths
       (default 'smooth')
+
+    *denoise*: if True, divide through by an estimate of the discreteness noise.
+      The returned image is then not strictly an SPH estimate, but this option
+      can be useful to reduce noise especially when rendering AMR grids which
+      often introduce problematic edge effects.
 
     """
 
@@ -758,6 +762,20 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     if config["tracktime"] :
         print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
 
+        
+    if denoise :
+        # call self to render a 'flat field'
+        snap['__one']=1
+        im2 = to_3d_grid(snap, '__one',nx,ny,nz,x2,None,xy_units,kernel,smooth,
+                         approximate_fast,threaded,snap_slice,False)
+        del snap['__one']
+        im2 = im/im2
+        im2.units = im.units
+        return im2
+
+    else :
+        return im
+    
     return res
         
 
