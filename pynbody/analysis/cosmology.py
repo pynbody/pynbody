@@ -222,7 +222,7 @@ def rho_crit(f, z=None, unit=None) :
 
     if unit is None :
         try :
-            unit = f["mass"].units/f["pos"].units**3
+            unit = f.dm["mass"].units/f.dm["pos"].units**3
         except units.UnitsException :
             unit = units.NoUnit()
 
