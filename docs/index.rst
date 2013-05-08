@@ -17,11 +17,14 @@ happy to provide further assistance via our
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. 
 
 
-Installation
-------------
+Installation and first steps
+----------------------------
 
 Consult the :doc:`installation` documentation for instructions on how
-to get going.
+to get going. Then you might like to download some `test data
+<https://code.google.com/p/pynbody/downloads/list>`_ and try out the
+:ref:`first steps tutorial <snapshot_manipulation>` or a :ref:`lower-level
+data access walkthrough <data-access>`.
 
 
 .. _getting-help: 

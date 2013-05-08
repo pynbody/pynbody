@@ -461,11 +461,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     if denoise :
         # call self to render a 'flat field'
         snap['__one']=1
-        im2 = render_image(snap, '__one', x2, nx, y2, ny, x1, y1, z_plane, out_units,
+        im2 = render_image(snap, '__one', x2, nx, y2, ny, x1, y1, z_plane, None,
                            xy_units, kernel, z_camera, smooth, smooth_in_pixels,
                            force_quiet, approximate_fast, threaded, False)
         del snap['__one']
-        return im/im2
+        im2 = im/im2
+        im2.units = im.units
+        return im2
 
     else :
         return im
