@@ -909,7 +909,6 @@ def _array_factory(dims, dtype, zeros, shared) :
     if shared and posix_ipc :
         random.seed(os.getpid()*time.time())
         fname = "pynbody-"+("".join([random.choice('abcdefghijklmnopqrstuvwxyz') for i in xrange(10)]))
-        print "create shmem",fname
 
         # memmaps of zero length seem not to be permitted, so have to
         # make zero length arrays a special case
@@ -924,6 +923,18 @@ def _array_factory(dims, dtype, zeros, shared) :
         
             
         mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+        # write zeros into the file pointer before memmaping, to get a graceful exception if the
+        # promised memory isn't available (otherwise will trigger a bus error)
+        try:
+            zeros=(b"\0")*1024*1024
+            remaining = int(np.dtype(dtype).itemsize*size)
+            while remaining > 0 :
+                os.write(mem.fd, zeros[:remaining])
+                remaining-=len(zeros)
+        except OSError :
+            _shared_array_unlink(fname)
+            raise MemoryError, "Unable to create shared memory region"
+                
         # fd, fname = tempfile.mkstemp()
         # ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)
         mapfile = mmap.mmap(mem.fd, mem.size)
@@ -933,7 +944,7 @@ def _array_factory(dims, dtype, zeros, shared) :
         if zero_size :
             ret_ar = ret_ar[1:]
         mem.close_fd()
-        
+
     else :
         if zeros :
             ret_ar = np.zeros(dims, dtype=dtype).view(SimArray)
