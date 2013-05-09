@@ -146,7 +146,7 @@ from . import units as units
 _units = units
 from .backcompat import property
 from .backcompat import fractions
-
+import atexit
 
 class SimArray(np.ndarray) :
     """
@@ -618,9 +618,6 @@ class SimArray(np.ndarray) :
         if getattr(self, '_shared_del', False) :
             _shared_array_unlink(self)
             
-        
-
-
 # Now add dirty bit setters to all the operations which are known
 # to modify the numpy array
 
@@ -894,8 +891,11 @@ try:
     import random
     import mmap
     import posix_ipc
+    _all_shared_arrays = []
 except ImportError:
     posix_ipc = None
+
+
 
 
 def _array_factory(dims, dtype, zeros, shared) :
@@ -903,14 +903,15 @@ def _array_factory(dims, dtype, zeros, shared) :
     If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
     is True, the returned array uses shared memory so can be efficiently
     shared across processes."""
+    global _all_shared_arrays
+    
     if not hasattr(dims, '__len__') :
         dims  = (dims,)
         
     if shared and posix_ipc :
         random.seed(os.getpid()*time.time())
         fname = "pynbody-"+("".join([random.choice('abcdefghijklmnopqrstuvwxyz') for i in xrange(10)]))
-        print "create shmem",fname
-
+        _all_shared_arrays.append(fname)
         # memmaps of zero length seem not to be permitted, so have to
         # make zero length arrays a special case
         zero_size = False
@@ -924,6 +925,18 @@ def _array_factory(dims, dtype, zeros, shared) :
         
             
         mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+        # write zeros into the file pointer before memmaping, to get a graceful exception if the
+        # promised memory isn't available (otherwise will trigger a bus error)
+        try:
+            zeros=(b"\0")*1024*1024
+            remaining = int(np.dtype(dtype).itemsize*size)
+            while remaining > 0 :
+                os.write(mem.fd, zeros[:remaining])
+                remaining-=len(zeros)
+        except OSError :
+            _shared_array_unlink(fname)
+            raise MemoryError, "Unable to create shared memory region"
+                
         # fd, fname = tempfile.mkstemp()
         # ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)
         mapfile = mmap.mmap(mem.fd, mem.size)
@@ -933,7 +946,7 @@ def _array_factory(dims, dtype, zeros, shared) :
         if zero_size :
             ret_ar = ret_ar[1:]
         mem.close_fd()
-        
+
     else :
         if zeros :
             ret_ar = np.zeros(dims, dtype=dtype).view(SimArray)
@@ -987,8 +1000,11 @@ if posix_ipc :
 
     def _shared_array_unlink(X) :
         # os.unlink(X._shared_fname)
-        posix_ipc.unlink_shared_memory(X._shared_fname)
-
+        try:
+            posix_ipc.unlink_shared_memory(X._shared_fname)
+        except (posix_ipc.ExistentialError, OSError) :
+            pass
+        
     def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
         """Works through items in input, deconstructing any shared memory arrays
         into transferrable references"""
@@ -1051,3 +1067,19 @@ if posix_ipc :
         except RemoteKeyboardInterrupt :
             raise KeyboardInterrupt
         return _recursive_shared_array_reconstruct(results)
+
+
+    @atexit.register
+    def exit_cleanup() :
+        """Clean up any shared memory that has not yet been freed. In
+        theory this should not be required, but it is here as a safety
+        net."""
+
+        global _all_shared_arrays
+        
+        for fname in _all_shared_arrays :
+            try:
+                posix_ipc.unlink_shared_memory(fname)
+            except (posix_ipc.ExistentialError, OSError) :
+                pass
+
