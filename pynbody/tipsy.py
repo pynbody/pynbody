@@ -1333,8 +1333,8 @@ def param2units(sim) :
         # Or should we be calculating phi as GM/R units (which
         # is the same for G=1 runs)?
         potunit_st = "%.5g km^2 s^-2"%(velunit**2)
-        
-        if hub!=None:
+
+        if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
             hubunit = 10. * velunit / dunit
             hubunit_st = ("%.3f"%(hubunit*hub))
             sim.properties['h'] = hub*hubunit
