@@ -584,6 +584,7 @@ class RamsesSnap(snapshot.SimSnap) :
 
             if len(self.gas) > 0 :
                 self._load_gas_pos()
+                self._load_gas_vars()
                 
             self._load_array('vel', family.dm)
             self._load_array('pos', family.dm)
