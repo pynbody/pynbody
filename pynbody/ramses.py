@@ -232,7 +232,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         nvar_file = header['nvarh']
     else :
         header = read_fortran_series(f, ramses_grav_header)
-        nvar_file=3
+        nvar_file=4
 
     if nvar_file<nvar :
         warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)"%(nvar, nvar_file), RuntimeWarning)
