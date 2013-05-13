@@ -232,7 +232,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         nvar_file = header['nvarh']
     else :
         header = read_fortran_series(f, ramses_grav_header)
-        nvar_file=4
+        nvar_file=3
 
     if nvar_file<nvar :
         warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)"%(nvar, nvar_file), RuntimeWarning)
@@ -594,8 +594,11 @@ class RamsesSnap(snapshot.SimSnap) :
         elif fam is None and array_name is 'mass' :
             self._create_array('mass')
             self._load_particle_block('mass')
+            self['mass'].set_default_units()
             if len(self.gas) > 0 :
-                self.gas['mass'] = mass(self.gas)
+                gasmass = mass(self.gas)
+                gasmass.convert_units(self['mass'].units)
+                self.gas['mass'] = gasmass
         else :
             raise IOError, "No such array on disk"
             
@@ -650,3 +653,8 @@ def mass(sim) :
 @RamsesSnap.derived_quantity
 def tform(sim) :
     return sim.properties['time']-sim['age']
+
+@RamsesSnap.derived_quantity
+def temp(sim) :
+    return ((sim['p']/sim['rho'])*(1.22*units.m_p/units.k)).in_units("K")
+

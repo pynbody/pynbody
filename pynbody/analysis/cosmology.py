@@ -260,3 +260,20 @@ def add_hubble(f) :
     """Add the hubble flow to velocities in snapshot f"""
 
     f['vel']+=f['pos']*H(f)
+
+def comoving_to_physical(ar) :
+    """Given an array, modify it to be in physical units (remove any
+    dependencies on a or aform)."""
+
+    a_power = ar.units._power_of("a")
+    aform_power = ar.units._power_of("aform")
+
+    if a_power!=0 :
+        a = ar.sim.properties['a']
+        ar*=a**a_power
+        ar/=units.Unit("a")**a_power
+    if aform_power!=0 :
+        aform = ar.sim['aform']
+        ar*=aform**aform_power
+        ar/=units.Unit("aform")
+    
