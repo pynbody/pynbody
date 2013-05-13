@@ -224,6 +224,8 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
 
     f = file(filename)
 
+    check_nvar_file = False
+
     if mode is _gv_load_hydro :
         header = read_fortran_series(f, ramses_hydro_header)
         
@@ -571,6 +573,8 @@ class RamsesSnap(snapshot.SimSnap) :
                 self._load_gas_pos()
             elif array_name=='vel' or array_name in hydro_blocks :
                 self._load_gas_vars()
+            elif array_name in grav_blocks :
+                self._load_gas_vars(1)
             else :
                 raise IOError, "No such array on disk"
         elif fam is None and array_name in ['pos','vel'] :
@@ -642,3 +646,7 @@ def translate_info(sim) :
 @RamsesSnap.derived_quantity
 def mass(sim) :
     return sim['rho']*sim['smooth']**3
+
+@RamsesSnap.derived_quantity
+def tform(sim) :
+    return sim.properties['time']-sim['age']
