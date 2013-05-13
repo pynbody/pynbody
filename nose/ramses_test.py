@@ -15,8 +15,9 @@ def close_enough(x,y) :
     return abs(x-y)<1.e-5
 
 def test_array_unit_sanity() :
-    # test designed to pick up on problems with converting
-    # arrays as they get promoted from family to simulation level
+    """Picks up on problems with converting arrays as they
+    get promoted from family to simulation level"""
+
     
     f.gas['pos']
     f.star['pos']
@@ -39,3 +40,21 @@ def test_array_unit_sanity() :
         close_enough(f2.dm['pos'],f.dm['pos']).all()
     
     assert close_enough(f2['pos'],f['pos']).all()
+
+
+def test_mass_unit_sanity() :
+    """Picks up on problems with converting array units as
+    mass array gets loaded (which is a combination of a derived
+    array and a loaded array)"""
+
+    f1 =  pynbody.load("testdata/ramses_partial_output_00250")
+    f1['mass']
+    f1.physical_units()
+
+    f2 =  pynbody.load("testdata/ramses_partial_output_00250")
+    f2.physical_units()
+    f2['mass']
+    
+
+    assert close_enough(f1.dm['mass'],f2.dm['mass']).all()
+    
