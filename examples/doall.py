@@ -15,12 +15,12 @@ def find_sfh(h,bins=100):
         weight = h.star['massform'].in_units('Msol') * binnorm
     except:
         weight = h.star['mass'].in_units('Msol') * binnorm
-    sfh,sfhbines = np.histogram(tforms, weights=weight, bins=600)
+    sfh,sfhbines = np.histogram(tforms, weights=weight, bins=bins2)
     sfhtimes = 0.5*(sfhbines[1:]+sfhbines[:-1])
     return sfh,sfhtimes
 
 simname = sys.argv[1]
-pp.plt.ion()
+#pp.plt.ion()
 
 s = pynbody.load(simname)
 h = s.halos()
