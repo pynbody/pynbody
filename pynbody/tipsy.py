@@ -948,31 +948,6 @@ def ne(sim) :
     """Number of electrons per proton mass"""
     return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
     
-@TipsySnap.derived_quantity
-def mu(sim) :
-    """Relative atomic mass, i.e. number of particles per
-    proton mass, ignoring metals (since we generally only know the
-    mass fraction of metals, not their specific atomic numbers)"""
-    
-    x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
-    
-    x.units = units.m_p**-1
-    return x
-    
-@TipsySnap.derived_quantity
-def u(sim) :
-    """Specific Internal energy"""
-    u = (3./2) * units.k * sim["temp"] # per particle
-    u=u*sim["mu"] # per unit mass
-    u.convert_units("eV m_p^-1")
-    return u
-
-@TipsySnap.derived_quantity
-def p(sim) :
-    """Pressure"""
-    p = sim["u"]*sim["rho"]*(2./3)
-    p.convert_units("Pa")
-    return p
 
 @TipsySnap.derived_quantity
 def hetot(self) :
