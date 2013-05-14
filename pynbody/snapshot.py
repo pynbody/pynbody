@@ -1333,6 +1333,8 @@ class SimSnap(object):
                                 write_array = self[fam]._get_array(
                                     name, always_writable=True)
 
+                            self.ancestor._autoconvert_array_unit(result)
+
                             write_array[:] = result
                             if units.has_units(result):
                                 write_array.units = result.units
