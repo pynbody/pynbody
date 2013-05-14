@@ -224,6 +224,8 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
 
     f = file(filename)
 
+    check_nvar_file = False
+
     if mode is _gv_load_hydro :
         header = read_fortran_series(f, ramses_hydro_header)
         
@@ -571,6 +573,8 @@ class RamsesSnap(snapshot.SimSnap) :
                 self._load_gas_pos()
             elif array_name=='vel' or array_name in hydro_blocks :
                 self._load_gas_vars()
+            elif array_name in grav_blocks :
+                self._load_gas_vars(1)
             else :
                 raise IOError, "No such array on disk"
         elif fam is None and array_name in ['pos','vel'] :
@@ -584,14 +588,18 @@ class RamsesSnap(snapshot.SimSnap) :
 
             if len(self.gas) > 0 :
                 self._load_gas_pos()
+                self._load_gas_vars()
                 
             self._load_array('vel', family.dm)
             self._load_array('pos', family.dm)
         elif fam is None and array_name is 'mass' :
             self._create_array('mass')
             self._load_particle_block('mass')
+            self['mass'].set_default_units()
             if len(self.gas) > 0 :
-                self.gas['mass'] = mass(self.gas)
+                gasmass = mass(self.gas)
+                gasmass.convert_units(self['mass'].units)
+                self.gas['mass'] = gasmass
         else :
             raise IOError, "No such array on disk"
             
@@ -642,3 +650,12 @@ def translate_info(sim) :
 @RamsesSnap.derived_quantity
 def mass(sim) :
     return sim['rho']*sim['smooth']**3
+
+@RamsesSnap.derived_quantity
+def tform(sim) :
+    return sim.properties['time']-sim['age']
+
+@RamsesSnap.derived_quantity
+def temp(sim) :
+    return ((sim['p']/sim['rho'])*(1.22*units.m_p/units.k)).in_units("K")
+

@@ -25,6 +25,7 @@ import time
 import warnings
 import threading
 import re
+import gc
 
 from units import has_units
 
@@ -1255,7 +1256,8 @@ class SimSnap(object):
             if ndim == 3:
                 for v in self._array_name_ND_to_1D(name):
                     del self._family_arrays[v]
-
+            gc.collect()
+            
         except KeyError:
             pass
 
