@@ -197,7 +197,8 @@ def temp(self) :
     gamma = 5./3
     mu_est = np.ones(len(self))
     for i in range(5) :
-        temp=self['temp']*units.k/(mu_est*(gamma-1))
+        temp=(self['u']*units.m_p/units.k)*(mu_est*(gamma-1))
+        temp.convert_units("K")
         mu_est = mu(self, temp)
     return temp
 
