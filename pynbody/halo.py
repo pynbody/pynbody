@@ -51,6 +51,12 @@ class HaloCatalogue(object):
             self._halos[i] = h  # weakref.ref(h)
             return h
 
+    def __len__(self) : 
+        return len(self._halos)
+
+    def __iter__(self) : 
+        return iter(self._halos.values())
+
     def __getitem__(self, item):
         if isinstance(item, slice):
             indices = item.indices(len(self._halos))
