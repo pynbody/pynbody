@@ -315,7 +315,7 @@ class GadgetFile(object):
             record_size = self.read_block_foot(fd)
             if record_size != block.length:
                 raise IOError("Corrupt record in " +
-                              filename+" footer for block "+name)
+                              filename+" footer for block "+name+"dtype"+str(block.data_type))
             if extra_len >= 2**32:
                 block.length = extra_len
             # Set up the particle types in the block. This also is a heuristic,
@@ -517,6 +517,7 @@ class GadgetFile(object):
             cur_block = self.blocks[name]
         except KeyError:
             raise KeyError("Block "+name+" not in file "+self._filename)
+        
         parts = self.get_block_parts(name, p_type)
         p_start = self.get_start_part(name, p_type)
         MinType = np.ravel(np.where(cur_block.p_types * self.header.npart))[0]
@@ -571,6 +572,10 @@ class GadgetFile(object):
             return val.start
         # Get last block
         lb = max(self.blocks.values(), key=st)
+
+        if np.issubdtype(dtype, float) :
+            dtype=np.float32 # coerce to single precision
+
         # Make new block
         block = GadgetBlock(length=blocksize, partlen=partlen, dtype=dtype)
         block.start = lb.start+lb.length+6 * \
@@ -664,11 +669,15 @@ class GadgetWriteFile (GadgetFile):
 class WriteBlock:
     """Internal structure for passing data around between file and snapshot"""
     def __init__(self, partlen=4, dtype=np.float32, types=np.zeros(N_TYPE, bool), name="    "):
-        # Bytes per particle in file
-        self.partlen = partlen
-        # Data type of block
+       
+        if np.issubdtype(dtype, float) :
+            dtype = np.float32
+        if np.issubdtype(dtype, int) :
+            dtype = np.int32
+
+        self.partlen = partlen * np.dtype(dtype).itemsize
         self.dtype = dtype
-        # Types of particle this block contains
+       
         self.types = types
         self.name = name
 
@@ -728,7 +737,7 @@ class GadgetSnap(snapshot.SimSnap):
         self._family_keys = set([])
         self._family_arrays = {}
         self._arrays = {}
-        self.properties = {}
+        #self.properties = {}
 
         # Set up _family_slice
         for x in _type_map:
@@ -942,8 +951,7 @@ class GadgetSnap(snapshot.SimSnap):
             # so that format conversion works.
             all_keys = set(self.loadable_keys()).union(
                 self.keys()).union(self.family_keys())
-            all_keys = [k for k in all_keys if not self.is_derived_array(
-                k) and not k in ["x", "y", "z", "vx", "vy", "vz"]]
+            all_keys = [k for k in all_keys if not k in ["x", "y", "z", "vx", "vy", "vz"]]
             # This code supports (limited) format conversions
             if self.__class__ is not GadgetSnap:
                 # We need a filename if we are writing to a new type
@@ -993,17 +1001,13 @@ class GadgetSnap(snapshot.SimSnap):
                     types = np.zeros(N_TYPE, bool)
                     for f in self.families():
                         try:
-                            # Things can be derived for some families but not
-                            # others
-                            if self[f].is_derived_array(k):
-                                continue
                             dtype = self[f][k].dtype
                             types[np.min(gadget_type(f))] += True
                             try:
                                 partlen = np.shape(self[
-                                                   f][k])[1]*dtype.itemsize
+                                                   f][k])[1] # *dtype.itemsize
                             except IndexError:
-                                partlen = dtype.itemsize
+                                partlen = 1 # dtype.itemsize
                         except KeyError:
                             pass
                     bb = WriteBlock(partlen, dtype=dtype, types=types, name=_translate_array_name(
@@ -1017,12 +1021,9 @@ class GadgetSnap(snapshot.SimSnap):
                 # Write all the arrays
                 for x in all_keys:
                     g_name = _to_raw(_translate_array_name(x).upper().ljust(4)[0:4])
+
                     for fam in self.families():
                         try:
-                            # Things can be derived for some families but not
-                            # others
-                            if self[f].is_derived_array(k):
-                                continue
                             data = self[fam][x]
                             gfam = np.min(gadget_type(fam))
                             out_file.write_block(
@@ -1116,24 +1117,13 @@ class GadgetSnap(snapshot.SimSnap):
                                     self.header, filename=ffile)
                         else:
                             # Write data
+                            if np.issubdtype(data.dtype, float) :
+                                data = np.asanyarray(data, dtype=np.float32)
                             self._files[i].write_block(g_name, gfam, data[
                                                        s:(s+f_parts[i])], filename=ffile)
                         s += f_parts[i]
 
 
-@GadgetSnap.decorator
-def do_properties(sim):
-    h = sim.header
-    sim.properties['a'] = h.time
-    sim.properties['omegaM0'] = h.Omega0
-    # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
-    sim.properties['omegaL0'] = h.OmegaLambda
-    sim.properties['boxsize'] = h.BoxSize
-    sim.properties['z'] = h.redshift
-    sim.properties['h'] = h.HubbleParam
-    """eps = np.zeros(len(sim)) + 0.1
-    sim['eps'] = eps
-    sim['eps'].units = units.Unit("kpc")"""
 
 
 @GadgetSnap.decorator
@@ -1145,5 +1135,27 @@ def do_units(sim):
     dist_unit = config_parser.get('gadget-units', 'pos')
     mass_unit = config_parser.get('gadget-units', 'mass')
 
-    sim._file_units_system = [units.Unit(x) for x in [
-                              vel_unit, dist_unit, mass_unit, "K"]]
+    vel_unit, dist_unit, mass_unit = [units.Unit(x) for x in vel_unit, dist_unit, mass_unit]
+    
+
+    if sim.header.HubbleParam == 0. :
+        # remove a and h dependences
+        vel_unit = units.Unit("km s^-1")*vel_unit.in_units("km s^-1",a=1,h=1)
+        mass_unit = units.Unit("Msol")*mass_unit.in_units("Msol",a=1,h=1)
+        dist_unit = units.Unit("kpc")*dist_unit.in_units("kpc",a=1,h=1)
+
+    sim._file_units_system = [units.Unit("K"),vel_unit, dist_unit, mass_unit]
+       
+@GadgetSnap.decorator
+def do_properties(sim):
+    h = sim.header
+    if h.HubbleParam==0.:
+        sim.properties['time'] = sim.infer_original_units("s")*h.time
+    else :
+        sim.properties['omegaM0'] = h.Omega0
+        # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
+        sim.properties['omegaL0'] = h.OmegaLambda
+        sim.properties['boxsize'] = h.BoxSize
+        sim.properties['z'] = h.redshift
+        sim.properties['h'] = h.HubbleParam
+    

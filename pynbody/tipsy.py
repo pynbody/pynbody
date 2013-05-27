@@ -368,8 +368,33 @@ class TipsySnap(snapshot.SimSnap) :
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None) :
-        """Write a TIPSY file.  Just the reverse of reading a file. """
+    def _write(self, filename=None, double_pos = False, double_vel = False, binary_aux_arrays = None) :
+        """
+
+        Write a TIPSY (standard) formatted file.   
+        
+        Additionally, you can specify whether you want position and/or
+        velocity arrays written out in double precision. If you are
+        writing out a snapshot that was originally in tipsy format and
+        the bDoublePos/bDoubleVel flags are set in the parameter file,
+        then the write routine will follow those choices. If you are
+        writing a snapshot other than a tipsy snapshot, then you have
+        to specify these by hand.
+        
+        **Optional Keywords**
+
+        *filename* (None): name of the file to be written out. If
+                           None, the original file is overwritten.
+
+        *double_pos* (False): set to 'True' if you want to write out positions as doubles
+
+        *double_vel* (False): set to 'True' if you want to write out velocities as doubles
+
+        *binary_aux_arrays* (None): set to 'True' to write auxiliary
+                                    arrays in binary format; if left 'None', the preference is
+                                    taken from the param file
+
+        """
 
         global config
         
@@ -405,26 +430,43 @@ class TipsySnap(snapshot.SimSnap) :
                 
             # needs to be done in blocks like reading
             # describe the file structure as list of (num_parts, [list_of_properties]) 
-            file_structure = ((ng,family.gas,["mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"]),
-                              (nd,family.dm,["mass","x","y","z","vx","vy","vz","eps","phi"]),
-                              (ns,family.star,["mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"]))
             
+            if type(self) is not TipsySnap : 
+                ptype = 'd' if double_pos else 'f'
+                vtype = 'd' if double_vel else 'f'
+                g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+                d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+                s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+            else :
+                g_dtype = self._g_dtype
+                d_dtype = self._d_dtype
+                s_dtype = self._s_dtype
+            
+            file_structure = ((ng,family.gas,g_dtype),
+                              (nd,family.dm,d_dtype),
+                              (ns,family.star,s_dtype))
+
             max_block_size = 1024**2 # particles
-            for n_left, type, st in file_structure :
+            for n_left, fam, dtype in file_structure :
                 n_done = 0
-                self_type = self[type]
+                self_type = self[fam]
                 while n_left>0 :
                     n_block = min(n_left,max_block_size)                   
                     
-                    g = np.zeros((n_block,len(st)),dtype=np.float32)
-
+                    #g = np.zeros((n_block,len(st)),dtype=np.float32)
+                                        
+                    g = np.empty(n_block,dtype=dtype)
+                    
                     self_type_block = self_type[n_done:n_done+n_block]
 
                     with self_type_block.immediate_mode :
                         # Copy from the correct arrays
-                        for i, name in enumerate(st) :
+                        for i, name in enumerate(dtype.names) :
                             try:
-                                g[:,i] = self_type_block[name]
+                                g[name] = self_type_block[name]
                             except KeyError :
                                 pass
 
@@ -445,7 +487,7 @@ class TipsySnap(snapshot.SimSnap) :
             for x in set(self.keys()).union(self.family_keys()) :
                 if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
                                                               "eps","metals","phi", "tform"]  :
-                    TipsySnap._write_array(self, x, filename=filename+"."+x)
+                    TipsySnap._write_array(self, x, filename=filename+"."+x, binary=binary_aux_arrays)
     
 
     @staticmethod
@@ -910,31 +952,6 @@ def ne(sim) :
     """Number of electrons per proton mass"""
     return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
     
-@TipsySnap.derived_quantity
-def mu(sim) :
-    """Relative atomic mass, i.e. number of particles per
-    proton mass, ignoring metals (since we generally only know the
-    mass fraction of metals, not their specific atomic numbers)"""
-    
-    x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
-    
-    x.units = units.m_p**-1
-    return x
-    
-@TipsySnap.derived_quantity
-def u(sim) :
-    """Specific Internal energy"""
-    u = (3./2) * units.k * sim["temp"] # per particle
-    u=u*sim["mu"] # per unit mass
-    u.convert_units("eV m_p^-1")
-    return u
-
-@TipsySnap.derived_quantity
-def p(sim) :
-    """Pressure"""
-    p = sim["u"]*sim["rho"]*(2./3)
-    p.convert_units("Pa")
-    return p
 
 @TipsySnap.derived_quantity
 def hetot(self) :
@@ -1295,8 +1312,8 @@ def param2units(sim) :
         # Or should we be calculating phi as GM/R units (which
         # is the same for G=1 runs)?
         potunit_st = "%.5g km^2 s^-2"%(velunit**2)
-        
-        if hub!=None:
+
+        if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
             hubunit = 10. * velunit / dunit
             hubunit_st = ("%.3f"%(hubunit*hub))
             sim.properties['h'] = hub*hubunit

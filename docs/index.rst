@@ -17,11 +17,14 @@ happy to provide further assistance via our
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. 
 
 
-Installation
-------------
+Installation and first steps
+----------------------------
 
 Consult the :doc:`installation` documentation for instructions on how
-to get going.
+to get going. Then you might like to download some `test data
+<https://code.google.com/p/pynbody/downloads/list>`_ and try out the
+:ref:`first steps tutorial <snapshot_manipulation>` or a :ref:`lower-level
+data access walkthrough <data-access>`.
 
 
 .. _getting-help: 
@@ -92,9 +95,20 @@ Acknowledging Pynbody in Scientific Publications
 Pynbody development is an open-source, community effort. The only way
 to make it as robust as possible is to have a wide user-base and this
 is only possible by spreading the word. We ask that if you use pynbody
-in preparing a scientific publication, you mention it either as a
-footnote in the text or in the acknowledgments section with a
-statement like:
+in preparing a scientific publication, you cite it via its
+`Astrophysics Source Code Library <http://ascl.net/1305.002>`_ entry
+using the following BibTex::
+
+   @misc{pynbody,
+     author = {{Pontzen}, A. and {Ro{\v s}kar}, R. and {Stinson}, G.~S. and {Woods},
+        R. and {Reed}, D.~M. and {Coles}, J. and {Quinn}, T.~R.},
+     title = "{pynbody: Astrophysics Simulation Analysis for Python}",
+     note = {Astrophysics Source Code Library, ascl:1305.002},
+     year = 2013
+   }
+
+You may also mention it either as a footnote in the text or in the
+acknowledgments section with a statement like:
 
 **We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
 for this paper.**

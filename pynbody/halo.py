@@ -51,6 +51,12 @@ class HaloCatalogue(object):
             self._halos[i] = h  # weakref.ref(h)
             return h
 
+    def __len__(self) : 
+        return len(self._halos)
+
+    def __iter__(self) : 
+        return iter(self._halos.values())
+
     def __getitem__(self, item):
         if isinstance(item, slice):
             indices = item.indices(len(self._halos))
@@ -342,7 +348,8 @@ class AHFCatalogue(HaloCatalogue):
         """Load the particles for the next halo described in particle file f"""
         ng = len(self.base.gas)
         nds = len(self.base.dark) + len(self.base.star)
-        nparts = int(f.readline())
+        nparts = int(f.readline().split()[0])
+
         if self.isnew:
             if isinstance(f, file):
                 data = (np.fromfile(

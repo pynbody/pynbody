@@ -200,7 +200,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     if clear and not subplot : p.clf()
 
     if ret_im:
-        return plt.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+        return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
                  vmin=vmin, vmax=vmax, cmap=cmap)
 
     ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
@@ -240,7 +240,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         
     
     plt.draw()
-    #plt.show()
+    # plt.show() - removed by AP on 30/01/2013 - this should not be here as
+    #              for some systems you don't get back to the command prompt
 
     return im
 

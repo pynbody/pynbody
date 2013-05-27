@@ -4,6 +4,8 @@
 References
 ==========
 
+`Galvagni, M. <http://adsabs.harvard.edu/abs/2012MNRAS.427.1725G>`_, Hayfield, T., Boley, A., Mayer, L., Roskar, R., Saha, P., 2012, MNRAS, 427, 1725
+
 `Pontzen, A. <http://adsabs.harvard.edu/doi/10.1093/mnras/sts529>`_ & Governato, F., `Conserved actions, maximum entropy and dark matter haloes`, 2013, MNRAS, 561
 
 `Pontzen, A. <http://adsabs.harvard.edu/abs/2012MNRAS.421.3464P>`_ & Governato, F. `How supernova feedback turns dark matter cusps into cores`, 2012, MNRAS, 421, 3464

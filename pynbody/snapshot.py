@@ -25,6 +25,7 @@ import time
 import warnings
 import threading
 import re
+import gc
 
 from units import has_units
 
@@ -752,8 +753,8 @@ class SimSnap(object):
 
         # the following function builds a dictionary mapping families to a set of the
         # named arrays defined for them.
-        fk = lambda: dict([(fam, set([k for k in anc._family_arrays.keys() if fam in anc._family_arrays[k]]))
-                           for fam in family._registry])
+        fk = lambda: dict([(fami, set([k for k in anc._family_arrays.keys() if fami in anc._family_arrays[k]]))
+                           for fami in family._registry])
         pre_fam_keys = fk()
 
         with self.delay_promotion:
@@ -773,14 +774,19 @@ class SimSnap(object):
             # Find out what was loaded
             new_keys = set(anc.keys())-pre_keys
             new_fam_keys = fk()
-            for fam in new_fam_keys:
-                new_fam_keys[fam] = new_fam_keys[fam]-pre_fam_keys[fam]
+            for fami in new_fam_keys:
+                new_fam_keys[fami] = new_fam_keys[fami]-pre_fam_keys[fami]
 
-            # Attempt to convert what was loaded into friendly units
+            # If the loader hasn't given units already, try to determine the defaults
+            # Then, attempt to convert what was loaded into friendly units
             for v in new_keys:
+                if not units.has_units(anc[v]) :
+                    anc[v].units = anc._default_units_for(v)
                 anc._autoconvert_array_unit(anc[v])
             for f, vals in new_fam_keys.iteritems():
                 for v in vals:
+                    if not units.has_units(anc[f][v]) :
+                        anc[f][v].units = anc._default_units_for(v)
                     anc._autoconvert_array_unit(anc[f][v])
 
     ############################################
@@ -840,7 +846,7 @@ class SimSnap(object):
     ############################################
     # WRITING FUNCTIONS
     ############################################
-    def write(self, fmt=None, filename=None):
+    def write(self, fmt=None, filename=None, **kwargs):
         if filename is None and "<" in self.filename:
             raise RuntimeError(
                 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))')
@@ -850,9 +856,9 @@ class SimSnap(object):
                 raise RuntimeError(
                     'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)')
 
-            self._write(self, filename)
+            self._write(self, filename, **kwargs)
         else:
-            fmt._write(self, filename)
+            fmt._write(self, filename, **kwargs)
 
     def write_array(self, array_name, fam=None, overwrite=False, **kwargs):
         """
@@ -1250,7 +1256,8 @@ class SimSnap(object):
             if ndim == 3:
                 for v in self._array_name_ND_to_1D(name):
                     del self._family_arrays[v]
-
+            gc.collect()
+            
         except KeyError:
             pass
 
@@ -1325,6 +1332,8 @@ class SimSnap(object):
                                     name, ndim, dtype=result.dtype, derived=not fn.__stable__)
                                 write_array = self[fam]._get_array(
                                     name, always_writable=True)
+
+                            self.ancestor._autoconvert_array_unit(result)
 
                             write_array[:] = result
                             if units.has_units(result):

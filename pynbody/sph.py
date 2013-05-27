@@ -27,8 +27,14 @@ except ImportError :
     raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
 import os
 
-_threaded_smooth = config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
-_threaded_image = config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
+def _get_threaded_smooth() : 
+    return config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
+
+def _get_threaded_image() : 
+    return config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
+
+_threaded_smooth = _get_threaded_smooth()
+_threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph','approximate-fast-images')
 
 
@@ -52,13 +58,14 @@ def build_tree(sim) :
         sim.kdtree = kdtree.KDTree(pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
     
 def _tree_decomposition(obj) :
-    return [obj[i::_threaded_smooth] for i in range(_threaded_smooth)]
+    return [obj[i::_get_threaded_smooth()] for i in range(_get_threaded_smooth())]
 
 def _get_tree_objects(sim) :
-    return map(getattr,_tree_decomposition(sim),['kdtree']*_threaded_smooth)
+    return map(getattr,_tree_decomposition(sim),['kdtree']*_get_threaded_smooth())
 
 def build_tree_or_trees(sim) :
     global _threaded_smooth
+    _threaded_smooth = _get_threaded_smooth()
     
     if not _threaded_smooth :
         if hasattr(sim,'kdtree') : return
@@ -101,6 +108,8 @@ def smooth(self):
         import time
         start = time.time()
 
+    _threaded_smooth = _get_threaded_smooth()
+
     if _threaded_smooth is not None :
         _thread_map(kdtree.KDTree.populate,
                     _get_tree_objects(self),
@@ -132,6 +141,8 @@ def rho(self):
     if config['tracktime']:
         import time
         start = time.time()
+
+    _threaded_smooth = _get_threaded_smooth()
 
     if _threaded_smooth is  None :
         self.kdtree.populate(rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
@@ -355,7 +366,6 @@ def _interpolated_renderer(fn, levels) :
         kwargs['res_downgrade']=1
         sub=1
         base = fn(*args, **kwargs)
-
         kwargs['smooth_range']=(1,2)
         for i in xrange(1,levels) :
             sub*=2
@@ -383,7 +393,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  smooth_in_pixels = False,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
-                 threaded=_threaded_image) :
+                 threaded=None,
+                 denoise=False) :
     """
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -430,6 +441,11 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
      *approximate_fast*: if True, render high smoothing length particles at
        progressively lower resolution, resample and sum
 
+     *denoise*: if True, divide through by an estimate of the discreteness noise.
+       The returned image is then not strictly an SPH estimate, but this option
+       can be useful to reduce noise especially when rendering AMR grids which
+       often introduce problematic edge effects.
+
      *verbose*: if True, all text output suppressed
 
      *threaded*: if False (or None), render on a single core. Otherwise,
@@ -438,21 +454,35 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     """
 
     if approximate_fast :
-        base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/16))))
+        base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/20))))
     else :
         base_renderer = _render_image
 
+    if threaded is None: threaded = _get_threaded_image()
+
     if threaded :
-        return _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        im =  _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                       out_units, xy_units, kernel, z_camera, smooth,
                                       smooth_in_pixels, True, 
                                       num_threads=threaded)
     else :
-        return _render_image(base_renderer, qty, x2, nx, y2, ny, x1, y1, z_plane,
+        im =  base_renderer(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                out_units, xy_units, kernel, z_camera, smooth,
-                               smooth_in_pixels, False, 
-                               approximate_fast)
+                               smooth_in_pixels, False)
+        
+    if denoise :
+        # call self to render a 'flat field'
+        snap['__one']=1
+        im2 = render_image(snap, '__one', x2, nx, y2, ny, x1, y1, z_plane, None,
+                           xy_units, kernel, z_camera, smooth, smooth_in_pixels,
+                           force_quiet, approximate_fast, threaded, False)
+        del snap.ancestor['__one']
+        im2 = im/im2
+        im2.units = im.units
+        return im2
 
+    else :
+        return im
 
 
             
@@ -500,8 +530,22 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         y1 = -y2
 
     if res_downgrade is not None :
+        # calculate original resolution
+        dx = float(x2-x1)/nx
+        dy = float(y2-y1)/ny
+
+        # degrade resolution
         nx/=res_downgrade
         ny/=res_downgrade
+        
+        # shift boundaries (since x1, x2 etc refer to centres of pixels,
+        # not edges, but we want the *edges* to remain invariant)
+        sx = dx*float(res_downgrade-1)/2
+        sy = dy*float(res_downgrade-1)/2
+        x1-=sx
+        y1-=sy
+        x2+=sx
+        y2+=sy
     
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
@@ -649,7 +693,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=_threaded_image,snap_slice=None) :
+               threaded=None,snap_slice=None, denoise=False) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -671,8 +715,13 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
 
     *kernel*: The Kernel object to use (default Kernel(), a 3D spline kernel)
 
-     *smooth*: The name of the array which contains the smoothing lengths
+    *smooth*: The name of the array which contains the smoothing lengths
       (default 'smooth')
+
+    *denoise*: if True, divide through by an estimate of the discreteness noise.
+      The returned image is then not strictly an SPH estimate, but this option
+      can be useful to reduce noise especially when rendering AMR grids which
+      often introduce problematic edge effects.
 
     """
 
@@ -712,21 +761,36 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     nx, ny, nz = [int(q) for q in nx,ny,nz]
 
     if approximate_fast :
-        renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/16))))
+        renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/20))))
     else :
         renderer = _to_3d_grid
 
+    if threaded is None : threaded = _get_threaded_image()
+
     if threaded :
-        res= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+        im= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                                     xy_units, kernel, smooth, num_threads=threaded)
     else :
-        res= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
+        im= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                       xy_units, kernel, smooth, False)
         
     if config["tracktime"] :
         print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
 
-    return res
+        
+    if denoise :
+        # call self to render a 'flat field'
+        snap['__one']=1
+        im2 = to_3d_grid(snap, '__one',nx,ny,nz,x2,None,xy_units,kernel,smooth,
+                         approximate_fast,threaded,snap_slice,False)
+        del snap.ancestor['__one']
+        im2 = im/im2
+        im2.units = im.units
+        return im2
+
+    else :
+        return im
+
         
 
 
@@ -745,10 +809,24 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
             
     if res_downgrade is not None :
+        dx = float(x2-x1)/nx
+        dy = float(y2-y1)/ny
+        dz = float(z2-z1)/nz
+        
         nx/=res_downgrade
         ny/=res_downgrade
         nz/=res_downgrade
 
+        # shift boundaries (see _render_image above for explanation)
+        sx,sy,sz = [d_i*float(res_downgrade-1)/2 for d_i in [dx,dy,dz]]
+        x1-=sx
+        y1-=sy
+        z1-=sz
+        x2+=sx
+        y2+=sy
+        z2+=sz
+        
+        
     result = np.zeros((nx,ny,nz),dtype=np.float32)
     n_part = len(snap)
 

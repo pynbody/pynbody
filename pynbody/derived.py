@@ -1,11 +1,9 @@
 """
-
 derived
 =======
 
 Holds procedures for creating new arrays from existing ones, e.g. for
-getting the radial position.
-<http://code.google.com/p/pynbody/wiki/AutomagicCalculation>
+getting the radial position. For more information see :ref:`derived`.
 
 """
 
@@ -18,13 +16,15 @@ from . import config
 from . import units
 import numpy as np
 import sys
-
+    
 @SimSnap.derived_quantity
 def r(self):
+    """Radial position"""
     return ((self['pos']**2).sum(axis = 1))**(1,2)
 
 @SimSnap.derived_quantity
 def rxy(self):
+    """Cylindrical radius in the x-y plane"""
     return ((self['pos'][:,0:2]**2).sum(axis = 1))**(1,2)
 
 @SimSnap.derived_quantity
@@ -64,7 +64,6 @@ def j(self) :
 @SimSnap.derived_quantity
 def j2(self) :
     """Square of the specific angular momentum"""
-
     return (self['j']**2).sum(axis=1)
 
 @SimSnap.derived_quantity
@@ -74,16 +73,19 @@ def jz(self):
 
 @SimSnap.derived_quantity
 def vrxy(self):
+    """Cylindrical radial velocity in the x-y plane"""
     return (self['pos'][:,0:2]*self['vel'][:,0:2]).sum(axis=1)/self['rxy']
 
 @SimSnap.derived_quantity
 def vcxy(self) :
+    """Cylindrical tangential velocity in the x-y plane"""
     f = (self['x']*self['vy']-self['y']*self['vx'])/self['rxy']
     f[np.where(f!=f)]=0
     return f
 
 @SimSnap.derived_quantity
 def v_mean(self):
+    """SPH-smoothed mean velocity"""
     import sph
     
     sph.build_tree(self)
@@ -100,6 +102,7 @@ def v_mean(self):
 
 @SimSnap.derived_quantity
 def v_disp(self):
+    """SPH-smoothed local velocity dispersion"""
     import sph
 
     sph.build_tree(self)
@@ -116,6 +119,7 @@ def v_disp(self):
 
 @SimSnap.derived_quantity
 def age(self) :
+    """Stellar age determined from formation time and current snapshot time"""
     return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
 
 bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
@@ -124,10 +128,12 @@ bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
 for band in bands_available :
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s,band=b)
     X.__name__ = band+"_mag"
+    X.__doc__ = band+" magnitude from analysis.luminosity.calc_mags"""
     SimSnap.derived_quantity(X)
 
     X = lambda s, b=str(band): (10**(-0.4*s[b+"_mag"]))*s['rho']/s['mass']
     X.__name__ = band+"_lum_den"
+    X.__doc__ = band+" luminosity density from analysis.luminosity.calc_mags"""
     SimSnap.derived_quantity(X)
 
 @SimSnap.derived_quantity
@@ -147,12 +153,54 @@ def az(self) :
 
 @SimSnap.derived_quantity
 def cs(self):
-    mu = np.zeros(len(self))
-    mu[np.where(self['temp']>=1e4)[0]] = 0.59
-    mu[np.where(self['temp']<1e4)[0]] = 1.3
-    return np.sqrt(5.0*units.k*self['temp'] / mu/units.m_p)
+    """Sound speed"""
+    return np.sqrt(5.0*units.k*self['temp'] / self['mu']/units.m_p)
 
+@SimSnap.derived_quantity
+def mu(self,t0=None) :
+    """Estimate of mean molecular mass"""
+    
+@SimSnap.derived_quantity
+def mu(sim,t0=None) :
+    """Relative atomic mass, i.e. number of particles per
+    proton mass, ignoring metals (since we generally only know the
+    mass fraction of metals, not their specific atomic numbers)"""
+    try:
+        x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
+    except KeyError :
+        x = np.empty(len(sim)).view(array.SimArray)
+        if t0 is None :
+            t0 = sim['temp']
+        x[np.where(t0>=1e4)[0]] = 0.59
+        x[np.where(t0<1e4)[0]] = 1.3
 
+    x.units = units.Unit("1")
+    #x.units = units.m_p**-1
+    return x
+    
+@SimSnap.derived_quantity
+def p(sim) :
+    """Pressure"""
+    p = sim["u"]*sim["rho"]*(2./3)
+    p.convert_units("Pa")
+    return p
+
+@SimSnap.derived_quantity
+def u(self) :
+    """Gas internal energy derived from temperature"""
+    gamma = 5./3
+    return self['temp']*units.k/(self['mu']*units.m_p*(gamma-1))
+
+@SimSnap.derived_quantity
+def temp(self) :
+    """Gas temperature derived from internal energy"""
+    gamma = 5./3
+    mu_est = np.ones(len(self))
+    for i in range(5) :
+        temp=(self['u']*units.m_p/units.k)*(mu_est*(gamma-1))
+        temp.convert_units("K")
+        mu_est = mu(self, temp)
+    return temp
 
 @SimSnap.derived_quantity
 def zeldovich_offset(self) :
