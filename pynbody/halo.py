@@ -27,6 +27,10 @@ class DummyHalo(object):
 
 
 class Halo(snapshot.IndexedSubSnap):
+    """
+    Generic class representing a halo.
+    """
+
     def __init__(self, halo_id, halo_catalogue, *args):
         super(Halo, self).__init__(*args)
         self._halo_catalogue = halo_catalogue
@@ -36,10 +40,19 @@ class Halo(snapshot.IndexedSubSnap):
         self.properties['halo_id'] = halo_id
 
     def is_subhalo(self, otherhalo):
+        """
+        Convenience function that calls the corresponding function in 
+        a halo catalogue.
+        """
+
         return self._halo_catalogue.is_subhalo(self._halo_id, otherhalo._halo_id)
 
 
 class HaloCatalogue(object):
+    """
+    Generic halo catalogue object. 
+    """
+
     def __init__(self):
         self._halos = {}
 
@@ -66,6 +79,10 @@ class HaloCatalogue(object):
             return self.calc_item(item)
 
     def is_subhalo(self, childid, parentid):
+        """
+        Checks whether the specified 'childid' halo is a subhalo 
+        of 'parentid' halo. 
+        """
         if (childid in self._halos[parentid].properties['children']):
             return True
         else:
@@ -237,18 +254,26 @@ class HaloCatalogue(object):
 
 
 class AHFCatalogue(HaloCatalogue):
+    """
+    Class to handle catalogues produced by Amiga Halo Finder (AHF).
+    """
+
     def __init__(self, sim, make_grp=None, dummy=False):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
-         *make_grp*: if True a 'grp' array is created in the
-           underlying snapshot specifying the lowest level halo that any
-           given particle belongs to. If it is False, no such array is created;
-           if None, the behaviour is determined by the configuration system.
+         
+        *make_grp*: if True a 'grp' array is created in the underlying
+                    snapshot specifying the lowest level halo that any
+                    given particle belongs to. If it is False, no such
+                    array is created; if None, the behaviour is
+                    determined by the configuration system.
 
-         *dummy*: if True, the particle file is not loaded, and all halos
-           returned are just dummies (with the correct properties dictionary
-           loaded). Use load_copy to get the actual data in this case. """
+         *dummy*: if True, the particle file is not loaded, and all
+                  halos returned are just dummies (with the correct
+                  properties dictionary loaded). Use load_copy to get
+                  the actual data in this case.
+        """
 
         import os.path
         if not self._can_load(sim):
@@ -300,10 +325,21 @@ class AHFCatalogue(HaloCatalogue):
             print "done!"
 
     def make_grp(self, name='grp'):
-        for halo in self._halos.values():
+        """
+        Creates a 'grp' array which labels each particle according to
+        its parent halo. 
+        """
+        for halo in self._halos.values(): 
             halo[name] = np.repeat([halo._halo_id], len(halo))
 
     def _setup_children(self):
+        """
+        Creates a 'children' array inside each halo's 'properties'
+        listing the halo IDs of its children. Used in case the reading
+        of substructure data from the AHF-supplied _substructure file
+        fails for some reason.
+        """
+
         for i in xrange(self._nhalos):
             self._halos[i+1].properties['children'] = []
 
