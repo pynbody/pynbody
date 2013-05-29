@@ -5,7 +5,7 @@ import pynbody.plot.sph
 import pynbody.filt as filt
 import pynbody.units as units
 import pynbody.analysis.profile as profile
-import sys, os, glob, pickle
+import sys, os, glob, pickle, pylab as plt
 
 def find_sfh(h,bins=100):
     trange = [h.star['tform'].in_units("Gyr").min(),h.star['tform'].in_units("Gyr").max()]
@@ -55,7 +55,8 @@ rvir=pynbody.array.SimArray(np.max(h[i]['r'].in_units('kpc')),'kpc')
 mdiskgas=np.sum([h[i][diskf].g['mass'].in_units('Msol')]),
 mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
 # 3D density profile
-rhoprof = profile.Profile(h[i],dim=3,type='log')
+rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
+gashaloprof = profile.Profile(h[i].g,ndim=3,type='log')
 # Rotation curve
 rcpro = profile.Profile(h[i], type='equaln', nbins = 50, max = '40 kpc')
 # surface brightness profile
@@ -96,6 +97,9 @@ pickle.dump({'z':s.properties['z'],
 #             'Jtot':Jtot,'lambda':(Jtot / np.sqrt(2*np.power(mvir,3)*rvir*units.G)).in_units('1'),
              'denprof':{'r':rhoprof['rbins'].in_units('kpc'), 
                         'den':rhoprof['density']},
+             'gashaloprof':{'r':gashaloprof['rbins'].in_units('kpc'), 
+                            'den':gashaloprof['density'].in_units('m_p cm^-3'),
+                            'temp':gashaloprof['temp']},
              'rotcur':{'r':rcpro['rbins'].in_units('kpc'), 
                        'vc':rcpro['rotation_curve_spherical'].in_units('km s^-1'),
                        'fourier':rcpro['fourier']},
@@ -153,6 +157,23 @@ try:
               scalemax=1e6, x_range=[-3,0.3],y_range=[-0.5,1.0])
     pp.mdf(h[i].stars,filename=simname+'.mdf.png', range=[-4,0.5])
     pp.density_profile(h[i].dark,filename=simname+'.dmprof.png',center=False)
+    plt.clf()
+    plt.loglog(gashaloprof['rbins'].in_units('kpc'),
+               gashaloprof['density'].in_units('m_p cm^-3'))
+    plt.xlabel('r [kpc]')
+    plt.ylabel(r'$\rho$ [m$_p$ cm$^{-3}$]')
+    plt.ylim(1e-4,1e3)
+    plt.xlim(0.5,500)
+    plt.savefig(simname+'.gasdenprof.png')
+    plt.clf()
+    plt.loglog(gashaloprof['rbins'].in_units('kpc'),
+               gashaloprof['temp'])
+    plt.ylim(1e5,1e8)
+    plt.xlim(0.5,500)
+    plt.xlabel('r [kpc]')
+    plt.ylabel('T [K]')
+    plt.savefig(simname+'.gastempprof.png')
+    plt.clf()
     pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
     pp.schmidtlaw(h[i],filename=simname+'.schmidt.png',center=False)
     pp.satlf(h[i],filename=simname+'.satlf.png')
