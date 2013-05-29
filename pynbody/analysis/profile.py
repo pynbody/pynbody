@@ -583,10 +583,10 @@ def mass_enc(self):
     Generate the enclosed mass profile
     """
     if pynbody.config['verbose'] : print 'Profile: mass_enc()'
-    m_enc = array.SimArray(np.zeros(self.nbins), 'Msol')
+    m_enc = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
     m_enc.sim = self.sim
     for i in range(self.nbins):
-        m_enc[i] = self['mass'].in_units('Msol')[:i].sum()
+        m_enc[i] = self['mass'].in_units(self.sim['mass'].units)[:i].sum()
     return m_enc
 
 @Profile.profile_property

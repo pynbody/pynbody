@@ -368,7 +368,7 @@ class TipsySnap(snapshot.SimSnap) :
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None, double_pos = False, double_vel = False) :
+    def _write(self, filename=None, double_pos = False, double_vel = False, binary_aux_arrays = None) :
         """
 
         Write a TIPSY (standard) formatted file.   
@@ -389,6 +389,10 @@ class TipsySnap(snapshot.SimSnap) :
         *double_pos* (False): set to 'True' if you want to write out positions as doubles
 
         *double_vel* (False): set to 'True' if you want to write out velocities as doubles
+
+        *binary_aux_arrays* (None): set to 'True' to write auxiliary
+                                    arrays in binary format; if left 'None', the preference is
+                                    taken from the param file
 
         """
 
@@ -483,7 +487,7 @@ class TipsySnap(snapshot.SimSnap) :
             for x in set(self.keys()).union(self.family_keys()) :
                 if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
                                                               "eps","metals","phi", "tform"]  :
-                    TipsySnap._write_array(self, x, filename=filename+"."+x)
+                    TipsySnap._write_array(self, x, filename=filename+"."+x, binary=binary_aux_arrays)
     
 
     @staticmethod
@@ -948,31 +952,6 @@ def ne(sim) :
     """Number of electrons per proton mass"""
     return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
     
-@TipsySnap.derived_quantity
-def mu(sim) :
-    """Relative atomic mass, i.e. number of particles per
-    proton mass, ignoring metals (since we generally only know the
-    mass fraction of metals, not their specific atomic numbers)"""
-    
-    x =  sim["HI"]+2*sim["HII"]+sim["HeI"]+2*sim["HeII"]+3*sim["HeIII"]
-    
-    x.units = units.m_p**-1
-    return x
-    
-@TipsySnap.derived_quantity
-def u(sim) :
-    """Specific Internal energy"""
-    u = (3./2) * units.k * sim["temp"] # per particle
-    u=u*sim["mu"] # per unit mass
-    u.convert_units("eV m_p^-1")
-    return u
-
-@TipsySnap.derived_quantity
-def p(sim) :
-    """Pressure"""
-    p = sim["u"]*sim["rho"]*(2./3)
-    p.convert_units("Pa")
-    return p
 
 @TipsySnap.derived_quantity
 def hetot(self) :

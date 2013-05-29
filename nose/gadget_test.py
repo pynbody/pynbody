@@ -22,8 +22,8 @@ def test_construct() :
 def test_loadable() :
     """Check we have found all the blocks that should be in the snapshot"""
     blocks=snap.loadable_keys()
-    expected_gas=['nhp','smooth','nhe','u','sfr','pos','vel','id','mass','nh','rho','nheq','nhep']
-    expected_all = ['pos','vel','id','mass']
+    expected_gas=['nhp','smooth','nhe','u','sfr','pos','vel','iord','mass','nh','rho','nheq','nhep']
+    expected_all = ['pos','vel','iord','mass']
 
     #Check that they have the right families
     assert(set(snap.gas.loadable_keys()) == set(expected_gas))
@@ -42,7 +42,7 @@ def test_standard_arrays() :
     #Load a second time to check that family_arrays still work
     snap.dm['pos']
     snap['vel']
-    snap['id']
+    snap['iord']
     snap.gas['rho']
     snap.gas['u']
     snap.star['mass']
@@ -53,7 +53,7 @@ def test_array_sizes() :
     assert(np.shape(snap['vel']) == (8192,3))
     assert(np.shape(snap.gas['rho']) == (4039,))
     assert(snap.gas['u'].dtype == np.float32)
-    assert(snap.gas['id'].dtype == np.int32)
+    assert(snap.gas['iord'].dtype == np.int32)
 
 def test_fam_sim() :
     """Check that an array loaded as families is the same as one loaded as a simulation array"""
@@ -66,9 +66,9 @@ def test_fam_sim() :
 
 def test_array_contents() :
     """Check some array elements"""
-    assert(np.max(snap["id"]) == 8192)
-    assert(np.min(snap["id"]) == 1)
-    assert(np.mean(snap["id"]) == 4096.5)
+    assert(np.max(snap["iord"]) == 8192)
+    assert(np.min(snap["iord"]) == 1)
+    assert(np.mean(snap["iord"]) == 4096.5)
     assert(abs(np.mean(snap["pos"]) - 1434.666) < 0.001)
     assert(abs(snap["pos"][52][1] - 456.6968) < 0.001)
     assert(abs(snap.gas["u"][100] - 438.39496) < 0.001)

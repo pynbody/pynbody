@@ -27,8 +27,14 @@ except ImportError :
     raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
 import os
 
-_threaded_smooth = config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
-_threaded_image = config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
+def _get_threaded_smooth() : 
+    return config_parser.getboolean('sph','threaded-smooth') and config['number_of_threads']
+
+def _get_threaded_image() : 
+    return config_parser.getboolean('sph','threaded-image') and config['number_of_threads']
+
+_threaded_smooth = _get_threaded_smooth()
+_threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph','approximate-fast-images')
 
 
@@ -52,13 +58,14 @@ def build_tree(sim) :
         sim.kdtree = kdtree.KDTree(pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
     
 def _tree_decomposition(obj) :
-    return [obj[i::_threaded_smooth] for i in range(_threaded_smooth)]
+    return [obj[i::_get_threaded_smooth()] for i in range(_get_threaded_smooth())]
 
 def _get_tree_objects(sim) :
-    return map(getattr,_tree_decomposition(sim),['kdtree']*_threaded_smooth)
+    return map(getattr,_tree_decomposition(sim),['kdtree']*_get_threaded_smooth())
 
 def build_tree_or_trees(sim) :
     global _threaded_smooth
+    _threaded_smooth = _get_threaded_smooth()
     
     if not _threaded_smooth :
         if hasattr(sim,'kdtree') : return
@@ -101,6 +108,8 @@ def smooth(self):
         import time
         start = time.time()
 
+    _threaded_smooth = _get_threaded_smooth()
+
     if _threaded_smooth is not None :
         _thread_map(kdtree.KDTree.populate,
                     _get_tree_objects(self),
@@ -132,6 +141,8 @@ def rho(self):
     if config['tracktime']:
         import time
         start = time.time()
+
+    _threaded_smooth = _get_threaded_smooth()
 
     if _threaded_smooth is  None :
         self.kdtree.populate(rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
@@ -382,7 +393,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  smooth_in_pixels = False,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
-                 threaded=_threaded_image,
+                 threaded=None,
                  denoise=False) :
     """
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
@@ -446,6 +457,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
         base_renderer = _interpolated_renderer(_render_image, int(np.floor(np.log2(nx/20))))
     else :
         base_renderer = _render_image
+
+    if threaded is None: threaded = _get_threaded_image()
 
     if threaded :
         im =  _threaded_render_image(base_renderer,snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
@@ -680,7 +693,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=_threaded_image,snap_slice=None, denoise=False) :
+               threaded=None,snap_slice=None, denoise=False) :
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -751,6 +764,8 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
         renderer = _interpolated_renderer(_to_3d_grid, int(np.floor(np.log2(nx/20))))
     else :
         renderer = _to_3d_grid
+
+    if threaded is None : threaded = _get_threaded_image()
 
     if threaded :
         im= _threaded_render_image(renderer,snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
