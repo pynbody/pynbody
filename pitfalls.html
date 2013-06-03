@@ -1,0 +1,201 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Common Pitfalls &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="index.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="common-pitfalls">
+<h1>Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines">
+<span id="paramfiles-are-good"></span><h2>I get errors like &#8220;Unknown units&#8221; or &#8220;Not convertible&#8221; from analysis or plotting routines<a class="headerlink" href="#i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines" title="Permalink to this headline">¶</a></h2>
+<p>One of the great things about <cite>pynbody</cite> is that it takes care of units, but
+if it can&#8217;t figure out what units to use, everything is assumed to be
+dimensionless. Some analysis functions then get grumpy, because
+they&#8217;re trying to be smart about using sensible units but the
+information just isn&#8217;t available. The simplest way to avoid this
+situation is to make sure <cite>pynbody</cite> can work out the units for itself.</p>
+<p>In particular, <em>for gasoline/PKD/tipsy users, make sure you have a
+param file in the directory where you are analyzing a tipsy file, and
+make sure that it defines dKpcUnit and dMsolUnit.</em></p>
+<p>Even if you are analyzing a DM only simulation, it&#8217;s can be easier to play
+along and assign units even though they weren&#8217;t needed for the simulation.</p>
+</div>
+<div class="section" id="i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me">
+<h2>I tried to make an image but got a generic-looking error spewed back at me<a class="headerlink" href="#i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me" title="Permalink to this headline">¶</a></h2>
+<p>The most common causes of uninformative errors in the
+<em class="xref std std-ref">image-making process</em> are that:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>there are no particles in the view you tried to generate; or</li>
+<li>all the particles are clustered in the central pixel.</li>
+</ol>
+</div></blockquote>
+<p>To tackle both of these issues in turn:</p>
+<blockquote>
+<div><p>1. The image is <em>always</em> centred on <tt class="docutils literal"><span class="pre">(0,0,0)</span></tt>, so you need to offset
+the simulation before you start. The most common way to do this
+is with the function <a class="reference internal" href="analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.halo.center()</span></tt></a>; see
+<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><em>Basic snapshot manipulation</em></a> for an introduction.</p>
+<p>2. The <cite>width</cite> keyword for the image function
+expects a floating point number in the current units of the
+snapshot. It also defaults to the number <cite>10</cite>, which may be
+very large compared to your snapshot, depending on the units you
+have adopted. That means either you should <em>specify</em> a width which
+is more appropriate (i.e. your call might look like
+<tt class="docutils literal"><span class="pre">pynbody.plot.sph.image(my_snapshot,</span> <span class="pre">width=0.01)</span></tt>) or <em>convert
+to sensible units first</em>. The easiest way to do the latter is to call
+<a class="reference internal" href="essentials.html#pynbody.snapshot.SimSnap.physical_units" title="pynbody.snapshot.SimSnap.physical_units"><tt class="xref py py-func docutils literal"><span class="pre">physical_units()</span></tt></a> on your snapshot,
+e.g. <tt class="docutils literal"><span class="pre">s.physical_units()</span></tt> if your simulation is called <tt class="docutils literal"><span class="pre">s</span></tt>.</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Point 2. above should be fixed by commit a11df5af1f10.</p>
+</div>
+</div>
+<div class="section" id="i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized">
+<h2>I&#8217;m trying to load a file which I&#8217;m sure is fine, but it says the format isn&#8217;t recognized<a class="headerlink" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized" title="Permalink to this headline">¶</a></h2>
+<p>When you load a file with <cite>pynbody</cite> you don&#8217;t have to specify what
+format it is. This is quite handy when everything works. However, if
+there is a minor problem with the file, <cite>pynbody</cite> may move onto trying
+to interpret it as a different format and ultimately conclude it just
+doesn&#8217;t understand what&#8217;s going on. At that point you&#8217;ll get an unhelpful error
+like this: <tt class="docutils literal"><span class="pre">File</span> <span class="pre">'filename':</span> <span class="pre">format</span> <span class="pre">not</span> <span class="pre">understood</span> <span class="pre">or</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist</span></tt>.</p>
+<p>To expose the underlying problem, you need to explicitly tell pynbody
+what file format you think it is. For instance, if you have a tipsy
+file, try replacing your <tt class="docutils literal"><span class="pre">pynbody.load(filename)</span></tt> with
+<tt class="docutils literal"><span class="pre">pynbody.tipsy.TipsySnap(filename)</span></tt>. This will then show you the
+actual error. Most likely it&#8217;s to do with file permissions, or a
+problem with a <tt class="docutils literal"><span class="pre">.param</span></tt> file. If at this point you can&#8217;t see what&#8217;s
+going wrong, do <a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">drop us a line</a>.</p>
+</div>
+<div class="section" id="i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar">
+<span id="pitfall-ramses-sharedmem"></span><h2>I&#8217;m using a RAMSES snapshot, but when I try to open it I get bizarre errors about &#8220;No space left on device&#8221; or something similar<a class="headerlink" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar" title="Permalink to this headline">¶</a></h2>
+<p>This will happen if you are using the parallel loader of RAMSES
+snapshots and your shared memory has filled up. Look in your /dev/shm
+for files named &#8220;pynbody-<a href="#id1"><span class="problematic" id="id2">*</span></a>&#8221; &#8211; there are probably many of them. If
+your code exits gracefully, these files are deleted, but if your
+session crashes or you kill your python shell for whatever reason,
+these files will stick around. You should periodically delete them by
+hand if they start to accumulate.</p>
+<p>Note that the amount of shared memory available (which is used by the
+parallel loader) to processes on your machine is normally
+substantially less than the total amount of memory on your
+machine. You can tell the kernel to allow more; see
+<a class="reference external" href="https://www.zabbix.org/wiki/How_to/configure_shared_memory">here</a>,
+for instance.</p>
+<p>Alternatively, you can disable parallel loading on ramses (see <a class="reference internal" href="loaders.html#loaders"><em>Code-specific loaders</em></a>).</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Common Pitfalls</a><ul>
+<li><a class="reference internal" href="#i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines">I get errors like &#8220;Unknown units&#8221; or &#8220;Not convertible&#8221; from analysis or plotting routines</a></li>
+<li><a class="reference internal" href="#i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me">I tried to make an image but got a generic-looking error spewed back at me</a></li>
+<li><a class="reference internal" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized">I&#8217;m trying to load a file which I&#8217;m sure is fine, but it says the format isn&#8217;t recognized</a></li>
+<li><a class="reference internal" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar">I&#8217;m using a RAMSES snapshot, but when I try to open it I get bizarre errors about &#8220;No space left on device&#8221; or something similar</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/pitfalls.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

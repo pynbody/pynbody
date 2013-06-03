@@ -1,10 +1,331 @@
-<HTML>
-<HEAD>
 
-<META HTTP-EQUIV="refresh" CONTENT="0;URL=docs/build/html/">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-</HEAD>
-<BODY>
-The pynbody documentation is now hosted at <a href="http://pynbody.github.io/pynbody/">GitHub Pages</a>. You will be redirected there automatically in a few seconds. 
-</BODY>
-</HTML>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Pynbody Documentation &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="#" />
+    <link rel="next" title="Pynbody Tutorials" href="tutorials/tutorials.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tutorials/tutorials.html" title="Pynbody Tutorials"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="pynbody-documentation">
+<h1>Pynbody Documentation<a class="headerlink" href="#pynbody-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to the documentation for <a class="reference external" href="http://code.google.com/p/pynbody/">pynbody</a> &#8211; an analysis package for
+astrophysical N-body and Smooth Particle Hydrodynamics
+simulations. We recommend you get started by reading about
+<a class="reference internal" href="installation.html#pynbody-installation"><em>Pynbody Installation</em></a> and trying the <a class="reference internal" href="tutorials/tutorials.html#tutorials"><em>Pynbody Tutorials</em></a>. We are
+happy to provide further assistance via our
+<a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">user group email list</a>.</p>
+<div class="section" id="installation-and-first-steps">
+<h2>Installation and first steps<a class="headerlink" href="#installation-and-first-steps" title="Permalink to this headline">¶</a></h2>
+<p>Consult the <a class="reference internal" href="installation.html"><em>Pynbody Installation</em></a> documentation for instructions on how
+to get going. Then you might like to download some <a class="reference external" href="https://code.google.com/p/pynbody/downloads/list">test data</a> and try out the
+<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><em>first steps tutorial</em></a> or a <a class="reference internal" href="tutorials/data_access.html#data-access"><em>lower-level
+data access walkthrough</em></a>.</p>
+</div>
+<div class="section" id="getting-help">
+<span id="id1"></span><h2>Getting Help<a class="headerlink" href="#getting-help" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="tutorials-reference-documentation-and-online-help">
+<h3>Tutorials, Reference Documentation and Online Help<a class="headerlink" href="#tutorials-reference-documentation-and-online-help" title="Permalink to this headline">¶</a></h3>
+<p>To get started with <cite>Pynbody</cite>, see the tutorials and reference guide
+below. All of the information in the reference guide is also available
+through the interactive python help system. In ipython, this is as
+easy as putting a <cite>?</cite> at the end of a command:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+
+<span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="err">?</span>
+<span class="go">Type:       function</span>
+<span class="go">String Form:&lt;function load at 0x4bf5f50&gt;</span>
+<span class="go">File:       /home/itp/roskar/python/pynbody/__init__.py</span>
+<span class="go">Definition: pynbody.load(filename, *args, **kwargs)</span>
+<span class="go">Docstring:</span>
+<span class="go">Loads a file using the appropriate class, returning a SimSnap</span>
+<span class="go">instance.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="common-pitfalls">
+<h3>Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Permalink to this headline">¶</a></h3>
+<p>We are compiling a list of common problems users might experience. If
+you just installed pynbody and upon trying some fancy analysis it
+greeted you with a complicated error message, the fix might be
+described in <a class="reference internal" href="pitfalls.html"><em>Common Pitfalls</em></a>.</p>
+</div>
+<div class="section" id="pynbody-users-group">
+<h3>Pynbody Users Group<a class="headerlink" href="#pynbody-users-group" title="Permalink to this headline">¶</a></h3>
+<p>If you find yourself stuck, don&#8217;t hesitate to post a message to the
+<a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">users group</a>. If
+you&#8217;d like to take part in the development of pynbody, joining the
+<a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev">developer group</a> is
+a good idea. If you have a Google account you can join the groups
+easily, but if you don&#8217;t have one please click on the <cite>About</cite> button
+of the group you are interested in and contact the owner.</p>
+</div>
+<div class="section" id="reporting-issues">
+<h3>Reporting Issues<a class="headerlink" href="#reporting-issues" title="Permalink to this headline">¶</a></h3>
+<p>We really value feedback from users, especially when things are not
+working correctly because this is the best way for us to correct
+bugs. Please let us know if you find strange behavior or if you have
+ideas for improvements. The best way to do this is via the <a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">users
+group</a>
+or the <a class="reference external" href="http://code.google.com/p/pynbody/issues/list">issues page</a> on
+the <a class="reference external" href="http://code.google.com/p/pynbody/">Pynbody Google Code site</a>. The documentation in particular
+is in a state of flux so if you find an error in any of the tutorials
+let us know asap. If you use the code regularly for your projects,
+consider becoming a contributor and join the <a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev">developer group</a></p>
+</div>
+</div>
+<div class="section" id="acknowledging-pynbody-in-scientific-publications">
+<span id="acknowledging-pynbody"></span><h2>Acknowledging Pynbody in Scientific Publications<a class="headerlink" href="#acknowledging-pynbody-in-scientific-publications" title="Permalink to this headline">¶</a></h2>
+<p>Pynbody development is an open-source, community effort. The only way
+to make it as robust as possible is to have a wide user-base and this
+is only possible by spreading the word. We ask that if you use pynbody
+in preparing a scientific publication, you cite it via its
+<a class="reference external" href="http://ascl.net/1305.002">Astrophysics Source Code Library</a> entry
+using the following BibTex:</p>
+<div class="highlight-python"><pre>@misc{pynbody,
+  author = {{Pontzen}, A. and {Ro{\v s}kar}, R. and {Stinson}, G.~S. and {Woods},
+     R. and {Reed}, D.~M. and {Coles}, J. and {Quinn}, T.~R.},
+  title = "{pynbody: Astrophysics Simulation Analysis for Python}",
+  note = {Astrophysics Source Code Library, ascl:1305.002},
+  year = 2013
+}</pre>
+</div>
+<p>You may also mention it either as a footnote in the text or in the
+acknowledgments section with a statement like:</p>
+<p><strong>We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
+for this paper.</strong></p>
+</div>
+<div class="section" id="tutorials">
+<h2>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h2>
+<p>The tutorials are not a complete guide to Pynbody, but they will help
+new users get started, as well as provide some more in-depth
+information for the seasoned users.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Pynbody tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/tutorials.html#walkthroughs">Walkthroughs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/tutorials.html#cookbook-recipes">Cookbook/Recipes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/tutorials.html#advanced-topics">Advanced topics</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="loaders.html">Simulation loaders</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loaders.html#tipsy">tipsy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loaders.html#gadget">gadget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loaders.html#gadgethdf">gadgethdf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loaders.html#nchilada">nchilada</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loaders.html#ramses">ramses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loaders.html#id13">grafic</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="essentials.html">Essential generic modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="essentials.html#array">array</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#getting-the-array-in-specified-units"><em>Getting the array in specified units</em></a></li>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#specifying-rules-for-ufunc-s"><em>Specifying rules for ufunc&#8217;s</em></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="essentials.html#simdict">simdict</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#adding-further-properties">Adding further properties</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="essentials.html#family">family</a></li>
+<li class="toctree-l2"><a class="reference internal" href="essentials.html#snapshot">snapshot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="essentials.html#units">units</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#making-units">Making units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#getting-conversion-ratios">Getting conversion ratios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#specifying-numerical-values">Specifying numerical values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="essentials.html#defining-new-base-units">Defining new base units</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="essentials.html#util">util</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="convenience.html">Convenience modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="convenience.html#bridge">bridge</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="convenience.html#basic-usage"><em>Basic usage</em></a></li>
+<li class="toctree-l3"><a class="reference internal" href="convenience.html#identifying-halos-between-different-outputs"><em>Identifying halos between different outputs</em></a></li>
+<li class="toctree-l3"><a class="reference internal" href="convenience.html#which-class-to-use"><em>Which class to use</em></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="convenience.html#filt">filt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="convenience.html#halo">halo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="convenience.html#kdtree">KDTree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="convenience.html#sph">sph</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="derived.html">Derived quantities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="derived.html#built-in-derived-arrays">Built-in derived arrays</a></li>
+<li class="toctree-l2"><a class="reference internal" href="derived.html#defining-your-own-deriving-functions">Defining your own deriving functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="derived.html#module-pynbody.derived">Built-in derived arrays for all snapshot classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="derived.html#id1">derived</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="derived.html#tipsy">tipsy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="derived.html#gadget">gadget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="derived.html#ramses">Ramses</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#angmom">angmom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#cosmology">cosmology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#decomp">decomp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#gravity">gravity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#halo">halo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#halo-mass-function-hmf">halo mass function (hmf)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#ionfrac">ionfrac</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#luminosity">luminosity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#pkdgrav-cosmo">pkdgrav_cosmo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#profile">profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="plot.html">Plotting modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#gas">gas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#generic">generic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#metals">metals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#profile">profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#sph">sph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#stars">stars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot.html#util">util</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Pynbody Documentation</a><ul>
+<li><a class="reference internal" href="#installation-and-first-steps">Installation and first steps</a></li>
+<li><a class="reference internal" href="#getting-help">Getting Help</a><ul>
+<li><a class="reference internal" href="#tutorials-reference-documentation-and-online-help">Tutorials, Reference Documentation and Online Help</a></li>
+<li><a class="reference internal" href="#common-pitfalls">Common Pitfalls</a></li>
+<li><a class="reference internal" href="#pynbody-users-group">Pynbody Users Group</a></li>
+<li><a class="reference internal" href="#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#acknowledging-pynbody-in-scientific-publications">Acknowledging Pynbody in Scientific Publications</a></li>
+<li><a class="reference internal" href="#tutorials">Tutorials</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#reference">Reference</a><ul>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tutorials/tutorials.html"
+                        title="next chapter">Pynbody Tutorials</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tutorials/tutorials.html" title="Pynbody Tutorials"
+             >next</a> |</li>
+        <li><a href="#">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

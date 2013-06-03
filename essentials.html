@@ -1,0 +1,1131 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Essential Framework Modules &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="index.html" />
+    <link rel="next" title="Generic Convenience Modules" href="convenience.html" />
+    <link rel="prev" title="Code-specific loaders" href="loaders.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="convenience.html" title="Generic Convenience Modules"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="loaders.html" title="Code-specific loaders"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-pynbody.array">
+<span id="essential-framework-modules"></span><h1>Essential Framework Modules<a class="headerlink" href="#module-pynbody.array" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="array">
+<h2>array<a class="headerlink" href="#array" title="Permalink to this headline">¶</a></h2>
+<p>Defines a shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.</p>
+<p>For most purposes, the differences between numpy.ndarray and
+array.SimArray are not important. However, when units are specified
+(by setting the <tt class="docutils literal"><span class="pre">units</span></tt> attribute), the behaviour is slightly
+different. In particular,</p>
+<ul class="simple">
+<li>it becomes impossible to add or subtract arrays with incompatible dimensions</li>
+</ul>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Mpc&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol&quot;</span><span class="p">))</span>
+<span class="go">ValueError</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>addition or subtraction causes auto-unit conversion. For example</li>
+</ul>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Mpc&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;kpc&quot;</span><span class="p">)</span>
+<span class="go">SimArray([1.001, 1.002], &quot;Mpc&quot;)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>Note that in this context the left value takes precedence in
+specifying the return units, so that reversing the order of the
+operation here would return results in kpc.</li>
+<li>If only one of the arrays specifies a Unit, no checking occurs and
+the unit of the returned array is assumed to be the same as the one
+specified input unit.</li>
+<li>Powers to single integer or rational powers will maintain unit
+tracking.  Powers to float or other powers will not be able to do
+so.</li>
+</ul>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> 
+<span class="go">SimArray([1, 4], &#39;Msol**2 Mpc**-6&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span> 
+<span class="go">SimArray([ 1.,1.26], &#39;Msol**1/3 Mpc**-1&#39;)</span>
+</pre></div>
+</div>
+<p>Syntax above mirrors syntax in units module, where a length-two tuple
+can represent a rational number, in this case one third.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="mf">0.333</span> 
+<span class="go">SimArray([ 1.,1.26])  # Lost track of units</span>
+</pre></div>
+</div>
+<div class="section" id="getting-the-array-in-specified-units">
+<h3><em>Getting the array in specified units</em><a class="headerlink" href="#getting-the-array-in-specified-units" title="Permalink to this headline">¶</a></h3>
+<p>Given an array, you can convert it in-place into units of your
+own chosing:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;kg&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span> 
+<span class="go">SimArray([  1.99e+30,   3.98e+30], &#39;kg&#39;)</span>
+</pre></div>
+</div>
+<p>Or you can leave the original array alone and get a <em>copy</em> in
+different units, correctly converted:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;kg&quot;</span><span class="p">)</span> 
+<span class="go">SimArray([  1.99e+30,   3.98e+30], &#39;kg&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span> 
+<span class="go">SimArray([1,2], &quot;Msol&quot;)</span>
+</pre></div>
+</div>
+<p>If the SimArray was created by a SimSnap (which is most likely), it
+has a pointer into the SimSnap&#8217;s properties so that the cosmological
+context is automatically fetched. For example, comoving -&gt; physical
+conversions are correctly achieved:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&quot;fname&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
+<span class="go">SimArray([[ 0.05419805, -0.0646539 , -0.15700017],</span>
+<span class="go">         [ 0.05169899, -0.06193341, -0.14475258],</span>
+<span class="go">         [ 0.05672406, -0.06384531, -0.15909944],</span>
+<span class="go">         ...,</span>
+<span class="go">         [ 0.0723075 , -0.07650762, -0.07657281],</span>
+<span class="go">         [ 0.07166634, -0.07453796, -0.08020873],</span>
+<span class="go">         [ 0.07165282, -0.07468577, -0.08020587]], &#39;2.86e+04 kpc a&#39;)</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
+<span class="go">SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],</span>
+<span class="go">         [ 1477.1124212 , -1769.52421398, -4135.78377699],</span>
+<span class="go">         [ 1620.68592366, -1824.15000686, -4545.69387564],</span>
+<span class="go">         ...,</span>
+<span class="go">         [ 2065.9264273 , -2185.92982874, -2187.79225915],</span>
+<span class="go">         [ 2047.60759667, -2129.6537339 , -2291.6758134 ],</span>
+<span class="go">         [ 2047.2214441 , -2133.87693163, -2291.59406997]], &#39;kpc&#39;)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="specifying-rules-for-ufunc-s">
+<h3><em>Specifying rules for ufunc&#8217;s</em><a class="headerlink" href="#specifying-rules-for-ufunc-s" title="Permalink to this headline">¶</a></h3>
+<p>In general, it&#8217;s not possible to infer what the output units from a given
+ufunc should be. While numpy built-in ufuncs should be handled OK, other
+ufuncs will need their output units defined (otherwise a numpy.ndarray
+will be returned instead of our custom type.)</p>
+<p>To do this, decorate a function with SimArray.ufunc_rule(ufunc). The function
+you define should take the same number of parameters as the ufunc. These will
+be the input parameters of the ufunc. You should return the correct units for
+the output, or raise units.UnitsException (in the latter case, the return
+array will be made into a numpy.ndarray.)</p>
+<p>For example, here is the code for the correct addition/subtraction
+handler:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@SimArray.ufunc_rule</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="p">)</span>
+<span class="nd">@SimArray.ufunc_rule</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_consistent_units</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="p">:</span>
+
+    <span class="c"># This will be called whenever the standard numpy ufuncs np.add</span>
+    <span class="c"># or np.subtract are called with parameters a,b.</span>
+
+    <span class="c"># You should always be ready for the inputs to have no units.</span>
+
+    <span class="n">a_units</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">units</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="bp">None</span>
+    <span class="n">b_units</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">units</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="bp">None</span>
+
+    <span class="c"># Now do the logic. If we&#39;re adding incompatible units,</span>
+    <span class="c"># we want just to get a plain numpy array out. If we only</span>
+    <span class="c"># know the units of one of the arrays, we assume the output</span>
+    <span class="c"># is in those units.</span>
+
+    <span class="k">if</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">b_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="n">a_units</span><span class="o">==</span><span class="n">b_units</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="n">a_units</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">(</span><span class="s">&quot;Incompatible units&quot;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">a_units</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">b_units</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="pynbody.array.SimArray">
+<em class="property">class </em><tt class="descclassname">pynbody.array.</tt><tt class="descname">SimArray</tt><a class="reference internal" href="_modules/pynbody/array.html#SimArray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a shallow wrapper around numpy.ndarray for extra
+functionality like unit-tracking.</p>
+<dl class="attribute">
+<dt id="pynbody.array.SimArray.ancestor">
+<tt class="descname">ancestor</tt><a class="reference internal" href="_modules/pynbody/array.html#SimArray.ancestor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.ancestor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides the basemost SimArray that an IndexedSimArray is based on.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.array.SimArray.set_units_like">
+<tt class="descname">set_units_like</tt><big>(</big><em>new_unit</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#SimArray.set_units_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.set_units_like" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the units for this array by performing dimensional analysis
+on the supplied unit and referring to the units of the original
+file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.array.SimArray.set_default_units">
+<tt class="descname">set_default_units</tt><big>(</big><em>quiet=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#SimArray.set_default_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.set_default_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the units for this array by performing dimensional analysis
+on the default dimensions for the array.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.array.SimArray.in_original_units">
+<tt class="descname">in_original_units</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#SimArray.in_original_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.in_original_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retun a copy of this array expressed in the units
+specified in the parameter file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.array.SimArray.in_units">
+<tt class="descname">in_units</tt><big>(</big><em>new_unit</em>, <em>**context_overrides</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#SimArray.in_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.in_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of this array expressed relative to an alternative
+unit.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.array.SimArray.convert_units">
+<tt class="descname">convert_units</tt><big>(</big><em>new_unit</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#SimArray.convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.convert_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert units of this array in-place. Note that if
+this is a sub-view, the entire base array will be converted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.array.SimArray.write">
+<tt class="descname">write</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#SimArray.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.SimArray.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write this array to disk according to the standard method
+associated with its base file. This is equivalent to calling</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">write_array</span><span class="p">(</span><span class="s">&#39;array&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>in the case of writing out the array &#8216;array&#8217; for the gas
+particle family.  See the description of
+<a class="reference internal" href="#pynbody.snapshot.SimSnap.write_array" title="pynbody.snapshot.SimSnap.write_array"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.snapshot.SimSnap.write_array()</span></tt></a> for options.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pynbody.array.w">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">w</tt><a class="headerlink" href="#pynbody.array.w" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as self.transpose(), except that self is returned if
+self.ndim &lt; 2.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">2.</span><span class="p">],[</span><span class="mf">3.</span><span class="p">,</span><span class="mf">4.</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span>
+<span class="go">array([[ 1.,  2.],</span>
+<span class="go">       [ 3.,  4.]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">T</span>
+<span class="go">array([[ 1.,  3.],</span>
+<span class="go">       [ 2.,  4.]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mf">2.</span><span class="p">,</span><span class="mf">3.</span><span class="p">,</span><span class="mf">4.</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span>
+<span class="go">array([ 1.,  2.,  3.,  4.])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">T</span>
+<span class="go">array([ 1.,  2.,  3.,  4.])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.array.shared_array_remote">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">shared_array_remote</tt><big>(</big><em>fn</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#shared_array_remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.shared_array_remote" title="Permalink to this definition">¶</a></dt>
+<dd><p>A decorator for functions returning a new function that is
+suitable for use remotely. Inputs to and outputs from the function
+can be transferred efficiently if they are backed onto shared
+memory. Ownership of any shared memory returned by the function
+is transferred.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.array.remote_map">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">remote_map</tt><big>(</big><em>pool</em>, <em>fn</em>, <em>*iterables</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#remote_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.remote_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>A replacement for python&#8217;s in-built map function, sending out tasks
+to the pool and performing the magic required to transport shared memory arrays
+correctly. The function <em>fn</em> must be wrapped with the <em>shared_array_remote</em>
+decorator to interface correctly with this magic.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.array.exit_cleanup">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">exit_cleanup</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#exit_cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.exit_cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up any shared memory that has not yet been freed. In
+theory this should not be required, but it is here as a safety
+net.</p>
+</dd></dl>
+
+</div>
+</div>
+<span class="target" id="module-pynbody.simdict"></span><div class="section" id="simdict">
+<h2>simdict<a class="headerlink" href="#simdict" title="Permalink to this headline">¶</a></h2>
+<p>This submodule defines an augmented dictionary class
+(<tt class="xref py py-class docutils literal"><span class="pre">SimDict</span></tt>) for <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> properties
+where entries need to be managed e.g.  for defining default entries,
+or for ensuring consistency between equivalent properties like
+redshift and scalefactor.</p>
+<p>By default, a <tt class="xref py py-class docutils literal"><span class="pre">SimDict</span></tt> automatically converts between
+redshift (&#8216;z&#8217;) and scalefactor (&#8216;a&#8217;) and implements default entries
+for cosmological values listed in the [default-cosmology] section of
+the <cite>pynbody</cite> configuration files.</p>
+<div class="section" id="adding-further-properties">
+<h3>Adding further properties<a class="headerlink" href="#adding-further-properties" title="Permalink to this headline">¶</a></h3>
+<p>To add further properties use the SimDict.getter and SimDict.setter decorators.
+For instance, to add a property &#8216;X_copy&#8217; which just reflects the value of the
+property &#8216;X&#8217;, you would use the following code:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@SimDict.getter</span>
+<span class="k">def</span> <span class="nf">X_copy</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span>
+
+<span class="nd">@SimDict.setter</span>
+<span class="k">def</span> <span class="nf">X_copy</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="p">:</span>
+    <span class="n">d</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+</pre></div>
+</div>
+</div>
+</div>
+<span class="target" id="module-pynbody.family"></span><div class="section" id="family">
+<h2>family<a class="headerlink" href="#family" title="Permalink to this headline">¶</a></h2>
+<p>This module defines the Family class which represents
+families of particles (e.g. dm, gas, star particles).
+New Family objects are automatically registered so that
+snapshots can use them in the normal syntax (snap.dm,
+snap.star, etc).</p>
+<p>In practice the easiest way to make use of the flexibility
+this module provides is through adding more families of
+particles in your config.ini.</p>
+<dl class="function">
+<dt id="pynbody.family.family_names">
+<tt class="descclassname">pynbody.family.</tt><tt class="descname">family_names</tt><big>(</big><em>with_aliases=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/family.html#family_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.family.family_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the names of all particle families.
+If with_aliases is True, include aliases in the list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.family.get_family">
+<tt class="descclassname">pynbody.family.</tt><tt class="descname">get_family</tt><big>(</big><em>name</em>, <em>create=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/family.html#get_family"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.family.get_family" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a family corresponding to the specified string.  If the
+family does not exist and create is False, raises ValueError. If
+the family does not exist and create is True, an appropriate
+object is instantiated, registered and returned.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-pynbody.snapshot"></span><div class="section" id="snapshot">
+<h2>snapshot<a class="headerlink" href="#snapshot" title="Permalink to this headline">¶</a></h2>
+<p>This module implements the  <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> class which manages and stores snapshot data.
+It also implements the <a class="reference internal" href="#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> class (and relatives) which
+represent different views of an existing <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>.</p>
+<dl class="class">
+<dt id="pynbody.snapshot.SimSnap">
+<em class="property">class </em><tt class="descclassname">pynbody.snapshot.</tt><tt class="descname">SimSnap</tt><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class for managing simulation snapshots.</p>
+<p>For most purposes, SimSnaps should be initialized through
+<tt class="xref py py-func docutils literal"><span class="pre">load()</span></tt> or <tt class="xref py py-func docutils literal"><span class="pre">new()</span></tt>.</p>
+<p>For a basic tutorial explaining how to load a file as a SimSnap
+see <a class="reference internal" href="tutorials/data_access.html"><em>A walk through pynbody&#8217;s low-level facilities</em></a>.</p>
+<p><em>Getting arrays or subsnaps</em></p>
+<p>Once a <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> object <tt class="docutils literal"><span class="pre">f</span></tt> is instantiated, it can
+be used in various ways. The most common operation is to
+access something with the code <tt class="docutils literal"><span class="pre">f[x]</span></tt>.  Depending on the
+type of <tt class="docutils literal"><span class="pre">x</span></tt>, various behaviours result:</p>
+<ul>
+<li><p class="first">If <tt class="docutils literal"><span class="pre">x</span></tt> is a string, the array named by <tt class="docutils literal"><span class="pre">x</span></tt> is returned. If
+no such array exists, the framework attempts to load or
+derive an array of that name (in that order). If this is
+unsuccessful, a <cite>KeyError</cite> is raised.</p>
+</li>
+<li><p class="first">If <tt class="docutils literal"><span class="pre">x</span></tt> is a python <cite>slice</cite> (e.g. <tt class="docutils literal"><span class="pre">f[5:100:3]</span></tt>) or an array of
+integers (e.g. <tt class="docutils literal"><span class="pre">f[[1,5,100,200]]</span></tt>) a subsnap containing only the
+mentioned particles is returned.</p>
+<p>See <a class="reference internal" href="tutorials/data_access.html"><em>A walk through pynbody&#8217;s low-level facilities</em></a> for more information.</p>
+</li>
+<li><p class="first">If <tt class="docutils literal"><span class="pre">x</span></tt> is a numpy array of booleans, it is interpreted as a mask and
+a subsnap containing only those particles for which x[i] is True.
+This means that f[condition] is a shortcut for f[np.where(condition)].</p>
+</li>
+<li><p class="first">If <tt class="docutils literal"><span class="pre">x</span></tt> is a <tt class="xref py py-class docutils literal"><span class="pre">pynbody.filt.Filter</span></tt> object, a subsnap
+containing only the particles which pass the filter condition
+is returned.</p>
+<p>See <a class="reference internal" href="tutorials/data_access.html"><em>A walk through pynbody&#8217;s low-level facilities</em></a> for more information.</p>
+</li>
+<li><p class="first">If <tt class="docutils literal"><span class="pre">x</span></tt> is a <tt class="xref py py-class docutils literal"><span class="pre">pynbody.family.Family</span></tt> object, a subsnap
+containing only the particles in that family is returned. In practice
+for most code it is more convenient to write e.g. <tt class="docutils literal"><span class="pre">f.dm</span></tt> in place of
+the equivalent syntax f[pynbody.family.dm].</p>
+</li>
+</ul>
+<p><em>Getting metadata</em></p>
+<p>The property <cite>filename</cite> gives the filename of a snapshot.</p>
+<p>There is also a <cite>properties</cite> dictionary which
+contains further metadata about the snapshot. See <a class="reference internal" href="tutorials/data_access.html#subsnaps"><em>Subsnaps</em></a>.</p>
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.families">
+<tt class="descname">families</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.families"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.families" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the particle families which have representitives in this SimSnap.
+The families are ordered by their appearance in the snapshot.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the directly accessible array names (in memory)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.has_key">
+<tt class="descname">has_key</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.has_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.has_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the array name is accessible (in memory)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.values">
+<tt class="descname">values</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the actual arrays in memory</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.items">
+<tt class="descname">items</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.items"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.items" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of tuples describing the array
+names and their contents in memory</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.get">
+<tt class="descname">get</tt><big>(</big><em>key</em>, <em>alternative=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standard python get method, returns self[key] if
+key in self else alternative</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.has_family_key">
+<tt class="descname">has_family_key</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.has_family_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.has_family_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the array name is accessible (in memory) for at least one family</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.loadable_keys">
+<tt class="descname">loadable_keys</tt><big>(</big><em>fam=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.loadable_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.loadable_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of arrays which can be lazy-loaded from
+an auxiliary file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.derivable_keys">
+<tt class="descname">derivable_keys</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.derivable_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.derivable_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of arrays which can be lazy-evaluated.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.all_keys">
+<tt class="descname">all_keys</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.all_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.all_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all arrays that can be either lazy-evaluated
+or lazy loaded from an auxiliary file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.family_keys">
+<tt class="descname">family_keys</tt><big>(</big><em>fam=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.family_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.family_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return list of arrays which are not accessible from this
+view, but can be accessed from family-specific sub-views.</p>
+<p>If <em>fam</em> is not None, only those keys applying to the specific
+family will be returned (equivalent to self.fam.keys()).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.is_ancestor">
+<tt class="descname">is_ancestor</tt><big>(</big><em>other</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.is_ancestor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.is_ancestor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if other is a subview of self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.is_descendant">
+<tt class="descname">is_descendant</tt><big>(</big><em>other</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.is_descendant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.is_descendant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if self is a subview of other</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pynbody.snapshot.SimSnap.ancestor">
+<tt class="descname">ancestor</tt><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.ancestor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.ancestor" title="Permalink to this definition">¶</a></dt>
+<dd><p>The original SimSnap from which this view is derived (potentially self)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.get_index_list">
+<tt class="descname">get_index_list</tt><big>(</big><em>relative_to</em>, <em>of_particles=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.get_index_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.get_index_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list specifying the index of the particles in this view relative
+to the ancestor <em>relative_to</em>, such that relative_to[get_index_list(relative_to)]==self.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.intersect">
+<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x3141c80&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the set intersection of this simulation view with another view
+of the same simulation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.union">
+<tt class="descname">union</tt><big>(</big><em>other</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.union"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.union" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the set union of this simulation view with another view
+of the same simulation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.setdiff">
+<tt class="descname">setdiff</tt><big>(</big><em>other</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.setdiff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.setdiff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the set difference of this simulation view with another view
+of the same simulation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.conversion_context">
+<tt class="descname">conversion_context</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.conversion_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.conversion_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary containing a (scalefactor) and h
+(Hubble constant in canonical units) for this snapshot, ready for
+passing into unit conversion functions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.original_units">
+<tt class="descname">original_units</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.original_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.original_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts all arrays&#8217;units to be consistent with the units of
+the original file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.physical_units">
+<tt class="descname">physical_units</tt><big>(</big><em>distance='kpc'</em>, <em>velocity='km s^-1'</em>, <em>mass='Msol'</em>, <em>persistent=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.physical_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.physical_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts all array&#8217;s units to be consistent with the
+distance, velocity, mass basis units specified.</p>
+<p>Base units can be specified using keywords.</p>
+<p><strong>Optional Keywords</strong>:</p>
+<blockquote>
+<div><p><em>distance</em>: string (default = &#8216;kpc&#8217;)</p>
+<p><em>velocity</em>: string (default = &#8216;km s^-1&#8217;)</p>
+<p><em>mass</em>: string (default = &#8216;Msol&#8217;)</p>
+<p><em>persistent</em>: boolean (default = True); apply units change to future lazy-loaded arrays if True</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.infer_original_units">
+<tt class="descname">infer_original_units</tt><big>(</big><em>dimensions</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.infer_original_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.infer_original_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a unit (or string) <cite>dimensions</cite>, returns a unit with the same
+physical dimensions which is in the unit schema of the current file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.halos">
+<tt class="descname">halos</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.halos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.halos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to instantiate a halo catalogue object for the given
+snapshot, using the first available method (as defined in the
+configuration files).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.bridge">
+<tt class="descname">bridge</tt><big>(</big><em>other</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.bridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.bridge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to construct a bridge function between this SimSnap
+and another one.</p>
+<p>This function calls <a class="reference internal" href="convenience.html#pynbody.bridge.bridge_factory" title="pynbody.bridge.bridge_factory"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.bridge.bridge_factory()</span></tt></a>. For
+more information see <em class="xref std std-ref">bridge-tutorial</em>, or the reference
+documentation for <a class="reference internal" href="convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.bridge</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.transform">
+<tt class="descname">transform</tt><big>(</big><em>matrix</em>, <em>ortho_tol=1e-08</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms the snapshot according to the 3x3 matrix given.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.rotate_x">
+<tt class="descname">rotate_x</tt><big>(</big><em>angle</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.rotate_x"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.rotate_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotates the snapshot about the current x-axis by &#8216;angle&#8217; degrees.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.rotate_y">
+<tt class="descname">rotate_y</tt><big>(</big><em>angle</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.rotate_y"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.rotate_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotates the snapshot about the current y-axis by &#8216;angle&#8217; degrees.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.rotate_z">
+<tt class="descname">rotate_z</tt><big>(</big><em>angle</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.rotate_z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.rotate_z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotates the snapshot about the current z-axis by &#8216;angle&#8217; degrees.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.wrap">
+<tt class="descname">wrap</tt><big>(</big><em>boxsize=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.wrap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.wrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps the positions of the particles in the box to lie between
+[-boxsize/2, boxsize/2].</p>
+<p>If no boxsize is specified, self.properties[&#8220;boxsize&#8221;] is used.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.write_array">
+<tt class="descname">write_array</tt><big>(</big><em>array_name</em>, <em>fam=None</em>, <em>overwrite=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.write_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.write_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write out the array with the specified name.</p>
+<p>Some of the functionality is available via the
+<a class="reference internal" href="#pynbody.array.SimArray.write" title="pynbody.array.SimArray.write"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.array.SimArray.write()</span></tt></a> method, which calls the
+present function with appropriate arguments.</p>
+<p><strong>Input</strong></p>
+<p><em>array_name</em> - the name of the array to write</p>
+<p><strong>Optional Keywords</strong></p>
+<dl class="docutils">
+<dt><em>fam</em> (None) - Write out only one family; or provide a list to</dt>
+<dd>write out a set of families.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.is_derived_array">
+<tt class="descname">is_derived_array</tt><big>(</big><em>name</em>, <em>fam=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.is_derived_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.is_derived_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the array or family array of given name is
+auto-derived (and therefore read-only).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.unlink_array">
+<tt class="descname">unlink_array</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.unlink_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.unlink_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the named array is auto-derived, this destroys the link so that
+the array becomes editable but no longer auto-updates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.mean_by_mass">
+<tt class="descname">mean_by_mass</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.mean_by_mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.mean_by_mass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the mean by mass of the specified array.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.snapshot.SubSnap">
+<em class="property">class </em><tt class="descclassname">pynbody.snapshot.</tt><tt class="descname">SubSnap</tt><big>(</big><em>base</em>, <em>_slice</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SubSnap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SubSnap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represent a sub-view of a SimSnap, initialized by specifying a
+slice.  Arrays accessed through __getitem__ are automatically
+sub-viewed using the given slice.</p>
+<dl class="method">
+<dt id="pynbody.snapshot.SubSnap.infer_original_units">
+<tt class="descname">infer_original_units</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SubSnap.infer_original_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SubSnap.infer_original_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the units on disk for a quantity with the specified dimensions</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.snapshot.IndexedSubSnap">
+<em class="property">class </em><tt class="descclassname">pynbody.snapshot.</tt><tt class="descname">IndexedSubSnap</tt><big>(</big><em>base</em>, <em>index_array</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#IndexedSubSnap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.IndexedSubSnap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a subset of the simulation particles according
+to an index array.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.snapshot.FamilySubSnap">
+<em class="property">class </em><tt class="descclassname">pynbody.snapshot.</tt><tt class="descname">FamilySubSnap</tt><big>(</big><em>base</em>, <em>fam</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#FamilySubSnap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.FamilySubSnap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a one-family portion of a parent snap object</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-pynbody.units"></span><div class="section" id="units">
+<h2>units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h2>
+<p>The pynbody units module consists of a set of classes for tracking units.</p>
+<p>It relates closely to the <a class="reference internal" href="#module-pynbody.array" title="pynbody.array"><tt class="xref py py-mod docutils literal"><span class="pre">array</span></tt></a> module, which defines
+an extension to numpy arrays which carries unit information.</p>
+<div class="section" id="making-units">
+<h3>Making units<a class="headerlink" href="#making-units" title="Permalink to this headline">¶</a></h3>
+<p>Units are generated and used at various points through the pynbody
+framework. Quite often the functions where users interact with units
+simply accept strings.</p>
+<p>You can also make units yourself in two ways. Either you can create a string, and
+instantiate a Unit like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;Msol kpc**-3&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;2.1e12 m_p cm**-2/3&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Or you can do it within python, using the named Unit objects</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">units</span><span class="o">.</span><span class="n">Msol</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">kpc</span><span class="o">**-</span><span class="mi">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="mf">2.1e12</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">m_p</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the last example, either a tuple describing a fraction or a
+Fraction instance (from the standard python module fractions) is
+acceptable.</p>
+</div>
+<div class="section" id="getting-conversion-ratios">
+<h3>Getting conversion ratios<a class="headerlink" href="#getting-conversion-ratios" title="Permalink to this headline">¶</a></h3>
+<p>To convert one unit to another, use the <tt class="docutils literal"><span class="pre">ratio</span></tt> member function:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">units</span><span class="o">.</span><span class="n">Msol</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">kg</span><span class="p">)</span>
+<span class="go">1.99e30</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">Msol</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">kpc</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">m_p</span><span class="o">/</span><span class="n">units</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">4.04e-8</span>
+</pre></div>
+</div>
+<p>If the units cannot be converted, a UnitsException is raised:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">units</span><span class="o">.</span><span class="n">Msol</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+<span class="go">UnitsException</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="specifying-numerical-values">
+<h3>Specifying numerical values<a class="headerlink" href="#specifying-numerical-values" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes it&#8217;s necessary to specify a numerical value in the course
+of a conversion. For instance, consider a comoving distance; this
+can be specified in pynbody units as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">comoving_kpc</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">kpc</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">a</span>
+</pre></div>
+</div>
+<p>where units.a represents the scalefactor. We can attempt to convert
+this to a physical distance as follows</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">comoving_kpc</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>but this fails, throwing a UnitsException. On the other hand we
+can specify a value for the scalefactor when we request the conversion</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">comoving_kpc</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="go">0.5</span>
+</pre></div>
+</div>
+<p>and the conversion completes with the expected result. The units
+module also defines units.h for the dimensionless hubble constant,
+which can be used similarly. <em>By default, all conversions happening
+within a specific simulation context should pass in values for
+a and h as a matter of routine.</em></p>
+<p>Any IrreducibleUnit (see below) can have a value specified in this way,
+but a and h are envisaged to be the most useful applications.</p>
+</div>
+<div class="section" id="defining-new-base-units">
+<h3>Defining new base units<a class="headerlink" href="#defining-new-base-units" title="Permalink to this headline">¶</a></h3>
+<p>The units module is fully extensible: you can define and name your own
+units which then integrate with all the standard functions.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">litre</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">NamedUnit</span><span class="p">(</span><span class="s">&quot;litre&quot;</span><span class="p">,</span><span class="mf">0.001</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">gallon</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">NamedUnit</span><span class="p">(</span><span class="s">&quot;gallon&quot;</span><span class="p">,</span><span class="mf">0.004546</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">gallon</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">litre</span><span class="p">)</span> <span class="c"># 4.546</span>
+<span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">pc</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">litre</span><span class="p">)</span> <span class="c"># 2.94e52</span>
+</pre></div>
+</div>
+<p>You can even define completely new dimensions.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">V</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">IrreducibleUnit</span><span class="p">(</span><span class="s">&quot;V&quot;</span><span class="p">)</span> <span class="c"># define a volt</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">NamedUnit</span><span class="p">(</span><span class="s">&quot;C&quot;</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">J</span><span class="o">/</span><span class="n">V</span><span class="p">)</span> <span class="c"># define a coulomb</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">NamedUnit</span><span class="p">(</span><span class="s">&quot;q&quot;</span><span class="p">,</span> <span class="mf">1.60217646e-19</span><span class="o">*</span><span class="n">C</span><span class="p">)</span> <span class="c"># elementary charge</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">NamedUnit</span><span class="p">(</span><span class="s">&quot;F&quot;</span><span class="p">,</span> <span class="n">C</span><span class="o">/</span><span class="n">V</span><span class="p">)</span> <span class="c"># Farad</span>
+<span class="n">epsilon0</span> <span class="o">=</span> <span class="mf">8.85418e-12</span> <span class="o">*</span><span class="n">F</span><span class="o">/</span><span class="n">units</span><span class="o">.</span><span class="n">m</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">V</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;eV&quot;</span><span class="p">)</span>
+<span class="go">1.000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">((</span><span class="n">q</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">epsilon0</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;N&quot;</span><span class="p">)</span>
+<span class="go">2.31e-28</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="pynbody.units.UnitBase">
+<em class="property">class </em><tt class="descclassname">pynbody.units.</tt><tt class="descname">UnitBase</tt><a class="reference internal" href="_modules/pynbody/units.html#UnitBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.UnitBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for units. To instantiate a unit, call the <a class="reference internal" href="#pynbody.units.Unit" title="pynbody.units.Unit"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.units.Unit()</span></tt></a>
+factory function.</p>
+<dl class="method">
+<dt id="pynbody.units.UnitBase.ratio">
+<tt class="descname">ratio</tt><big>(</big><em>other</em>, <em>**substitutions</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#UnitBase.ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.UnitBase.ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the conversion ratio between this Unit and another
+specified unit.</p>
+<p>Keyword arguments, if specified, give numerical substitutions
+for the named unit. This is most useful for specifying values
+for cosmological quantities like &#8216;a&#8217; and &#8216;h&#8217;, but can also
+be used for any IrreducibleUnit.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;1 Mpc a&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;kpc&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="go">250.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;1 Mpc&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;Msol&quot;</span><span class="p">)</span>
+<span class="go">UnitsException: not convertible</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;1 Mpc&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;Msol&quot;</span><span class="p">,</span> <span class="n">kg</span><span class="o">=</span><span class="mf">25.0</span><span class="p">,</span> <span class="n">m</span><span class="o">=</span><span class="mf">50.0</span><span class="p">)</span>
+<span class="go">3.1028701506345152e-08</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.units.UnitBase.in_units">
+<tt class="descname">in_units</tt><big>(</big><em>*a</em>, <em>**kw</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#UnitBase.in_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.UnitBase.in_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for ratio</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.units.UnitBase.irrep">
+<tt class="descname">irrep</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#UnitBase.irrep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.UnitBase.irrep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a unit equivalent to this one (may be identical) but
+expressed in terms of the currently defined IrreducibleUnit
+instances.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.units.Unit">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">Unit</tt><big>(</big><em>s</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#Unit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.Unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class factory for units. Given a string s, creates
+a Unit object.</p>
+<dl class="docutils">
+<dt>The string format is:</dt>
+<dd>[&lt;scale&gt;] [&lt;unit_name&gt;][<a href="#id1"><span class="problematic" id="id2">**</span></a>&lt;rational_power&gt;] [[&lt;unit_name&gt;] ... ]</dd>
+</dl>
+<p>for example:</p>
+<blockquote>
+<div><p>&#8220;1.e30 kg&#8221;</p>
+<p>&#8220;kpc**2&#8221;</p>
+<p>&#8220;26.2 m s**-1&#8221;</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.units.takes_arg_in_units">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">takes_arg_in_units</tt><big>(</big><em>*args</em>, <em>**orig_kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#takes_arg_in_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.takes_arg_in_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a decorator to create a function which auto-converts input
+to given units.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@takes_arg_in_units</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="s">&quot;Msol&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s">&quot;kpc&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;blob&quot;</span><span class="p">,</span> <span class="s">&quot;erg&quot;</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">my_function</span><span class="p">(</span><span class="n">arg0</span><span class="p">,</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="n">blob</span><span class="o">=</span><span class="mi">22</span><span class="p">)</span> <span class="p">:</span>
+   <span class="k">print</span> <span class="s">&quot;Arg 2 is&quot;</span><span class="p">,</span><span class="n">arg2</span><span class="p">,</span><span class="s">&quot;Msol&quot;</span>
+   <span class="k">print</span> <span class="s">&quot;Arg 1 is&quot;</span><span class="p">,</span><span class="n">arg1</span><span class="p">,</span><span class="s">&quot;kpc&quot;</span>
+   <span class="k">print</span> <span class="s">&quot;blob is&quot;</span><span class="p">,</span><span class="n">blob</span><span class="p">,</span><span class="s">&quot;ergs&quot;</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">My_function</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="s">&quot;1.e30 kg&quot;</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="n">blob</span><span class="o">=</span><span class="s">&quot;12 J&quot;</span><span class="p">)</span>
+<span class="go">Input 3 is 0.5 Msol</span>
+<span class="go">Input 2 is 23 kpc</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.units.has_units">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">has_units</tt><big>(</big><em>obj</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#has_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.has_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the specified object has a meaningful units attribute</p>
+</dd></dl>
+
+</div>
+</div>
+<span class="target" id="module-pynbody.util"></span><div class="section" id="util">
+<h2>util<a class="headerlink" href="#util" title="Permalink to this headline">¶</a></h2>
+<p>Various utility routines used internally by pynbody.</p>
+<dl class="function">
+<dt id="pynbody.util.open_">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">open_</tt><big>(</big><em>filename</em>, <em>*args</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#open_"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.open_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open a file, determining from the filename whether to use
+gzip decompression</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.open_with_size">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">open_with_size</tt><big>(</big><em>filename</em>, <em>*args</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#open_with_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.open_with_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open a file for reading, returning also the (decompressed)
+file size</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.intersect_slices">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">intersect_slices</tt><big>(</big><em>s1</em>, <em>s2</em>, <em>array_length=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#intersect_slices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.intersect_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given two python slices s1 and s2, return a new slice which
+will extract the data of an array d which is in both d[s1] and
+d[s2].</p>
+<p>Note that it may not be possible to do this without information on
+the length of the array referred to, hence all slices with
+end-relative indexes are first converted into begin-relative
+indexes. This means that the slice returned may be specific to
+the length specified.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.relative_slice">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">relative_slice</tt><big>(</big><em>s_relative_to</em>, <em>s</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#relative_slice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.relative_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a slice s, return a slice s_prime with the property that
+array[s_relative_to][s_prime] == array[s]. Clearly this will
+not be possible for arbitrarily chosen s_relative_to and s, but
+it should be possible for s=intersect_slices(s_relative_to, s_any)
+which is the use case envisioned here (and used by SubSim).
+This code currently does not work with end-relative (i.e. negative)
+start or stop positions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.chained_slice">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">chained_slice</tt><big>(</big><em>s1</em>, <em>s2</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#chained_slice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.chained_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a slice s3 with the property that
+ar[s1][s2] == ar[s3]</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.index_before_slice">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">index_before_slice</tt><big>(</big><em>s</em>, <em>index</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#index_before_slice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.index_before_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an index array new_index with the property that, for a
+slice s (start, stop and step all positive), ar[s][index] ==
+ar[new_index].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.concatenate_indexing">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">concatenate_indexing</tt><big>(</big><em>i1</em>, <em>i2</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#concatenate_indexing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.concatenate_indexing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given either a numpy array or slice for both i1 and i2,
+return either a numpy array or slice i3 with the property that</p>
+<p>ar[i3] == ar[i1][i2].</p>
+<p>As a convenience, if i2 is None, i1 is returned</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.indexing_length">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">indexing_length</tt><big>(</big><em>sl_or_ar</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#indexing_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.indexing_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given either an array or slice, return len(ar[sl_or_ar]) for any
+array ar which is large enough that the slice does not overrun it.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.arrays_are_same">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">arrays_are_same</tt><big>(</big><em>a1</em>, <em>a2</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#arrays_are_same"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.arrays_are_same" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if a1 and a2 are numpy views pointing to the exact
+same underlying data; False otherwise.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.set_array_if_not_same">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">set_array_if_not_same</tt><big>(</big><em>a_store</em>, <em>a_in</em>, <em>index=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#set_array_if_not_same"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.set_array_if_not_same" title="Permalink to this definition">¶</a></dt>
+<dd><p>This routine checks whether a_store and a_in ultimately point to the
+same buffer; if not, the contents of a_in are copied into a_store.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.index_of_first">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">index_of_first</tt><big>(</big><em>array</em>, <em>find</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#index_of_first"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.index_of_first" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the index to the first element in array
+which satisfies array[index]&gt;=find. The array must
+be sorted in ascending order.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.equipartition">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">equipartition</tt><big>(</big><em>ar</em>, <em>nbins</em>, <em>min=None</em>, <em>max=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#equipartition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.equipartition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an array ar, return nbins+1 monotonically increasing bin
+edges such that the number of items in each bin is approximately
+equal.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.bisect">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">bisect</tt><big>(</big><em>left</em>, <em>right</em>, <em>f</em>, <em>epsilon=None</em>, <em>eta=0</em>, <em>verbose=False</em>, <em>niter_max=200</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#bisect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.bisect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the value x such that f(x)=0 for a monotonically increasing
+function f, using a binary search.</p>
+<p>The search stops when either the bounding domain is smaller than
+epsilon (by default 10^-7 times the original region) OR a value
+f(x) is found such that <a href="#id3"><span class="problematic" id="id4">|</span></a>f(x)|&lt;eta (by default eta=0, so this
+criterion is never satisfied).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.gauss_jordan">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">gauss_jordan</tt><big>(</big><em>out</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#gauss_jordan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.gauss_jordan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simple Gauss-Jordan matrix inverter. This is provided so that
+matrices of fractions can be inverted (numpy linalg converts
+everything to floats first.)</p>
+<p>Don&#8217;t use on large matrices &#8211; it&#8217;s slow!</p>
+<p>Based on public domain code by Jarno Elonen.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.rational_matrix_inv">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">rational_matrix_inv</tt><big>(</big><em>matrix</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#rational_matrix_inv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.rational_matrix_inv" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simple replacement for numpy linalg matrix inverse
+which handles fractions exactly. Not suitable for large
+matrices!</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.cutgz">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">cutgz</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#cutgz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.cutgz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Strip the .gz ending off a string</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.util.Registry">
+<em class="property">class </em><tt class="descclassname">pynbody.util.</tt><tt class="descname">Registry</tt><a class="reference internal" href="_modules/pynbody/util.html#Registry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.Registry" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simple extension of the dict class to make the
+__repr__ more readable.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.gamma_inc">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">gamma_inc</tt><big>(</big><em>a</em>, <em>z</em>, <em>eps=2.9999999999999999e-07</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#gamma_inc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.gamma_inc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Incomplete gamma function accepting complex z, based on algorithm
+given in numerical recipes (3rd ed)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.threadsafe_inline">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">threadsafe_inline</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#threadsafe_inline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.threadsafe_inline" title="Permalink to this definition">¶</a></dt>
+<dd><p>When scipy.weave.inline is called, it may trigger a compile. We
+only want one compilation to be going on at once, otherwise nasty
+race conditions arise. This function wraps scipy.weave.inline to
+be thread-safe.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.util.parallel">
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">parallel</tt><big>(</big><em>p_args=[0], threads=4, reduce='interleave'</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#parallel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.parallel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a function decorator which makes a function execute in parallel.</p>
+<p><em>p_args</em>: a list of integers specifying which arguments will
+be  array-like. These will be sliced up and processed over the number
+of threads specified.</p>
+<p><em>reduce</em>: specifies how to reduce the output, and can take one of
+three values:</p>
+<p>&#8216;none&#8217;: return None
+&#8216;interleave&#8217;: return an array of the size of the input arrays, with the</p>
+<blockquote>
+<div>elements returned to their correct place</div></blockquote>
+<p>&#8216;sum&#8217;: sum over the outputs</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Essential Framework Modules</a><ul>
+<li><a class="reference internal" href="#array">array</a><ul>
+<li><a class="reference internal" href="#getting-the-array-in-specified-units"><em>Getting the array in specified units</em></a></li>
+<li><a class="reference internal" href="#specifying-rules-for-ufunc-s"><em>Specifying rules for ufunc&#8217;s</em></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simdict">simdict</a><ul>
+<li><a class="reference internal" href="#adding-further-properties">Adding further properties</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#family">family</a></li>
+<li><a class="reference internal" href="#snapshot">snapshot</a></li>
+<li><a class="reference internal" href="#units">units</a><ul>
+<li><a class="reference internal" href="#making-units">Making units</a></li>
+<li><a class="reference internal" href="#getting-conversion-ratios">Getting conversion ratios</a></li>
+<li><a class="reference internal" href="#specifying-numerical-values">Specifying numerical values</a></li>
+<li><a class="reference internal" href="#defining-new-base-units">Defining new base units</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#util">util</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="loaders.html"
+                        title="previous chapter">Code-specific loaders</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="convenience.html"
+                        title="next chapter">Generic Convenience Modules</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/essentials.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="convenience.html" title="Generic Convenience Modules"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="loaders.html" title="Code-specific loaders"
+             >previous</a> |</li>
+        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
