@@ -1,0 +1,421 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Generic Convenience Modules &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="index.html" />
+    <link rel="next" title="Automatically Derived Arrays" href="derived.html" />
+    <link rel="prev" title="Essential Framework Modules" href="essentials.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="derived.html" title="Automatically Derived Arrays"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="essentials.html" title="Essential Framework Modules"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-pynbody.bridge">
+<span id="generic-convenience-modules"></span><h1>Generic Convenience Modules<a class="headerlink" href="#module-pynbody.bridge" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="bridge">
+<h2>bridge<a class="headerlink" href="#bridge" title="Permalink to this headline">¶</a></h2>
+<p>The bridge module has tools for connecting different outputs. For instance,
+it&#8217;s possible to take a subview (e.g. a halo) from one snapshot and &#8216;push&#8217;
+it into the other. This is especially useful if the two snapshots are
+different time outputs of the same simulation.</p>
+<div class="section" id="basic-usage">
+<h3><em>Basic usage</em><a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h3>
+<p>f1 = pynbody.load(high_redshift_file)
+f2 = pynbody.load(low_redshift_file)
+b = pynbody.bridge.OrderBridge(f1, f2) # Or a different class, see &#8220;Which class to use&#8221; below</p>
+<p>h = f1.halos() # load the halo catalogue from high redshift step
+h1_at_low_z = b(h[1])
+# h1_at_low_z now contains the particles which were in h[1] in the high redshift output</p>
+<p>h_low_z = f2.halos()
+h1_at_high_z = b(h_low_z[1])
+# h1_at_high_z now contains the particles which will be in h[1] at low redshift output</p>
+</div>
+<div class="section" id="identifying-halos-between-different-outputs">
+<h3><em>Identifying halos between different outputs</em><a class="headerlink" href="#identifying-halos-between-different-outputs" title="Permalink to this headline">¶</a></h3>
+<p>You may wish to work out how a halo catalogue maps onto a halo
+catalogue for a different output. For this purpose a simple function,
+match_catalog, is provided. Extending the example above,
+this would be called as follows:</p>
+<p>cat = b.match_catalog()</p>
+<p>cat is now a numpy index array such that f1.halos()[i] is (probably!) the
+major progenitor for f2.halos()[cat[i]].</p>
+</div>
+<div class="section" id="which-class-to-use">
+<h3><em>Which class to use</em><a class="headerlink" href="#which-class-to-use" title="Permalink to this headline">¶</a></h3>
+<p>For files where the particle ordering is static, so that the particle with
+index i in the first snapshot also has index i in the second snapshot, use the Bridge
+class.</p>
+<p>For files which can spawn new particles, and therefore have a monotonically
+increasing particle ordering array (e.g. &#8220;iord&#8221; in gasoline), use the
+OrderBridge class.</p>
+<p>Snapshot formats where the particle ordering can change are not currently supported.</p>
+<dl class="class">
+<dt id="pynbody.bridge.OrderBridge">
+<em class="property">class </em><tt class="descclassname">pynbody.bridge.</tt><tt class="descname">OrderBridge</tt><big>(</big><em>start</em>, <em>end</em>, <em>order_array='iord'</em>, <em>monotonic=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/bridge.html#OrderBridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.OrderBridge" title="Permalink to this definition">¶</a></dt>
+<dd><p>An OrderBridge uses integer arrays in two simulations
+(start,end) where particles i_start and i_end are
+defined to be the same if and only if
+start[order_array][i_start] == start[order_array][i_end].</p>
+<p>If monotonic is True, order_array must be monotonically increasing
+in both ends of the bridge (and this is not checked for you). If
+monotonic is False, the bridging is slower but this is the
+failsafe option.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.bridge.bridge_factory">
+<tt class="descclassname">pynbody.bridge.</tt><tt class="descname">bridge_factory</tt><big>(</big><em>a</em>, <em>b</em><big>)</big><a class="reference internal" href="_modules/pynbody/bridge.html#bridge_factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.bridge_factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a bridge connecting the two specified snapshots. For
+more information see <em class="xref std std-ref">bridge-tutorial</em>.</p>
+</dd></dl>
+
+</div>
+</div>
+<span class="target" id="module-pynbody.filt"></span><div class="section" id="filt">
+<h2>filt<a class="headerlink" href="#filt" title="Permalink to this headline">¶</a></h2>
+<p>Defines and implements &#8216;filters&#8217; which allow abstract subsets
+of data to be specified.</p>
+<p><strong>Needs docstrings &amp; sample usage</strong></p>
+<p>&lt;<a class="reference external" href="http://code.google.com/p/pynbody/wiki/FiltersAndSubsims">http://code.google.com/p/pynbody/wiki/FiltersAndSubsims</a>&gt;</p>
+</div>
+<span class="target" id="module-pynbody.halo"></span><div class="section" id="halo">
+<h2>halo<a class="headerlink" href="#halo" title="Permalink to this headline">¶</a></h2>
+<p>Implements halo catalogue functions. If you have a supported halo
+catalogue on disk or a halo finder installed and correctly configured,
+you can access a halo catalogue through f.halos() where f is a
+SimSnap.
+&lt;<a class="reference external" href="http://code.google.com/p/pynbody/wiki/HaloCatalogue">http://code.google.com/p/pynbody/wiki/HaloCatalogue</a>&gt;</p>
+<dl class="class">
+<dt id="pynbody.halo.Halo">
+<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">Halo</tt><big>(</big><em>halo_id</em>, <em>halo_catalogue</em>, <em>*args</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#Halo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic class representing a halo.</p>
+<dl class="method">
+<dt id="pynbody.halo.Halo.is_subhalo">
+<tt class="descname">is_subhalo</tt><big>(</big><em>otherhalo</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#Halo.is_subhalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo.is_subhalo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function that calls the corresponding function in 
+a halo catalogue.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.halo.HaloCatalogue">
+<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">HaloCatalogue</tt><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic halo catalogue object.</p>
+<dl class="method">
+<dt id="pynbody.halo.HaloCatalogue.is_subhalo">
+<tt class="descname">is_subhalo</tt><big>(</big><em>childid</em>, <em>parentid</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.is_subhalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.is_subhalo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether the specified &#8216;childid&#8217; halo is a subhalo 
+of &#8216;parentid&#8217; halo.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.HaloCatalogue.writegrp">
+<tt class="descname">writegrp</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>grpoutfile</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writegrp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writegrp" title="Permalink to this definition">¶</a></dt>
+<dd><p>simply write a skid style .grp file from ahf_particles
+file. header = total number of particles, then each line is
+the halo id for each particle (0 means free).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.HaloCatalogue.writestat">
+<tt class="descname">writestat</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>statoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writestat" title="Permalink to this definition">¶</a></dt>
+<dd><p>write a condensed skid.stat style ascii file from ahf_halos
+file.  header + 1 halo per line. should reproduce <a href="#id1"><span class="problematic" id="id2">`</span></a>Alyson&#8217;s
+idl script&#8217; except does not do last 2 columns (Is it a
+satellite?) and (Is central halo is <a href="#id3"><span class="problematic" id="id4">`</span></a>false&#8217;ly split?).  output
+units are set to Mpc Msun, km/s.</p>
+<p>user can specify own hubble constant hubble=(H0/(100
+km/s/Mpc)), ignoring the snaphot arg for hubble constant
+(which sometimes has a large roundoff error).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.HaloCatalogue.writetipsy">
+<tt class="descname">writetipsy</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>tipsyoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writetipsy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writetipsy" title="Permalink to this definition">¶</a></dt>
+<dd><p>write halos to tipsy file (write as stars) from ahf_halos
+file.  returns a shapshot where each halo is a star particle.</p>
+<p>user can specify own hubble constant hubble=(H0/(100
+km/s/Mpc)), ignoring the snaphot arg for hubble constant
+(which sometimes has a large roundoff error).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.HaloCatalogue.writehalos">
+<tt class="descname">writehalos</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>hubble=None</em>, <em>outfile=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writehalos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writehalos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the (ahf) halo catalog to disk.  This is really a
+wrapper that calls writegrp, writetipsy, writestat.  Writes
+.amiga.grp file (ascii group ids), .amiga.stat file (ascii
+halo catalog) and .amiga.gtp file (tipsy halo catalog).
+default outfile base simulation is same as snapshot s.
+function returns simsnap of halo catalog.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.halo.AHFCatalogue">
+<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">AHFCatalogue</tt><big>(</big><em>sim</em>, <em>make_grp=None</em>, <em>dummy=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class to handle catalogues produced by Amiga Halo Finder (AHF).</p>
+<dl class="method">
+<dt id="pynbody.halo.AHFCatalogue.make_grp">
+<tt class="descname">make_grp</tt><big>(</big><em>name='grp'</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.make_grp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.make_grp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a &#8216;grp&#8217; array which labels each particle according to
+its parent halo.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.AHFCatalogue.load_copy">
+<tt class="descname">load_copy</tt><big>(</big><em>i</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.load_copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the a fresh SimSnap with only the particle in halo i</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-pynbody.kdtree"></span><div class="section" id="kdtree">
+<h2>KDTree<a class="headerlink" href="#kdtree" title="Permalink to this headline">¶</a></h2>
+<p>Provides access to nearest neighbour lists and smoothing lengths.</p>
+</div>
+<span class="target" id="module-pynbody.sph"></span><div class="section" id="sph">
+<h2>sph<a class="headerlink" href="#sph" title="Permalink to this headline">¶</a></h2>
+<p>pynbody SPH rendering module.</p>
+<p>This module encompasses Kernel objects, which return C fragments from which
+a final C code to perform the rendering is derived.</p>
+<p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
+<dl class="function">
+<dt id="pynbody.sph.render_spherical_image">
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x523cf10&gt;</em>, <em>kstep=0.5</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render an SPH image on a spherical surface. Note this is written in pure python and
+could be optimized into C, but would then need linking with the healpix libraries.
+Also currently uses a top-hat 3D kernel only.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.sph.render_image">
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x5056c50&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
+scheme.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>qty</em> (&#8216;rho&#8217;): The name of the array within the simulation to render</p>
+<p><em>x2</em> (100.0): The x-coordinate of the right edge of the image</p>
+<p><em>nx</em> (500): The number of pixels wide to make the image</p>
+<dl class="docutils">
+<dt><em>y2</em>: The y-coordinate of the upper edge of the image (default x2,</dt>
+<dd>or if ny is specified, x2*ny/nx)</dd>
+</dl>
+<p><em>ny</em> (nx): The number of pixels tall to make the image</p>
+<p><em>x1</em> (-x2): The x-coordinate of the left edge of the image</p>
+<p><em>y1</em> (-y2): The y-coordinate of the lower edge of the image</p>
+<p><em>z_plane</em> (0.0): The z-coordinate of the plane of the image</p>
+<p><em>out_units</em> (no conversion): The units to convert the output image into</p>
+<p><em>xy_units</em>: The units for the x and y axes</p>
+<p><em>kernel</em>: The Kernel object to use (default Kernel(), a 3D spline kernel)</p>
+<dl class="docutils">
+<dt><em>z_camera</em>: If this is set, a perspective image is rendered,</dt>
+<dd><p class="first">assuming the kernel is suitable (i.e. is a projecting
+kernel). The camera is at the specified z coordinate looking
+towards -ve z, and each pixel represents a line-of-sight radially
+outwards from the camera. The width then specifies the width of
+the image in the z=0 plane. Particles too close to the camera are
+also excluded.</p>
+<dl class="docutils">
+<dt><em>smooth</em>: The name of the array which contains the smoothing lengths</dt>
+<dd>(default &#8216;smooth&#8217;)</dd>
+<dt><em>smooth_in_pixels</em>: If True, the smoothing array contains the smoothing</dt>
+<dd>length in image pixels, rather than in real distance units (default False)</dd>
+<dt><em>approximate_fast</em>: if True, render high smoothing length particles at</dt>
+<dd>progressively lower resolution, resample and sum</dd>
+<dt><em>denoise</em>: if True, divide through by an estimate of the discreteness noise.</dt>
+<dd>The returned image is then not strictly an SPH estimate, but this option
+can be useful to reduce noise especially when rendering AMR grids which
+often introduce problematic edge effects.</dd>
+</dl>
+<p><em>verbose</em>: if True, all text output suppressed</p>
+<dl class="last docutils">
+<dt><em>threaded</em>: if False (or None), render on a single core. Otherwise,</dt>
+<dd>the number of threads to use (defaults to a value specified in your
+configuration files).</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.sph.to_3d_grid">
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x5056cd0&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
+scheme.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>qty</em> (&#8216;rho&#8217;): The name of the array within the simulation to render</p>
+<p><em>nx</em> (x2-x1 / soft): The number of pixels wide to make the grid</p>
+<p><em>ny</em> (nx): The number of pixels tall to make the grid</p>
+<p><em>nz</em> (nx): The number of pixels deep to make the grid</p>
+<p><em>out_units</em> (no conversion): The units to convert the output grid into</p>
+<p><em>xy_units</em>: The units for the x and y axes</p>
+<p><em>kernel</em>: The Kernel object to use (default Kernel(), a 3D spline kernel)</p>
+<dl class="docutils">
+<dt><em>smooth</em>: The name of the array which contains the smoothing lengths</dt>
+<dd>(default &#8216;smooth&#8217;)</dd>
+<dt><em>denoise</em>: if True, divide through by an estimate of the discreteness noise.</dt>
+<dd>The returned image is then not strictly an SPH estimate, but this option
+can be useful to reduce noise especially when rendering AMR grids which
+often introduce problematic edge effects.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.sph.spectra">
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">spectra</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x1=0.0</em>, <em>y1=0.0</em>, <em>v2=400</em>, <em>nvel=200</em>, <em>v1=None</em>, <em>element='H'</em>, <em>ion='I'</em>, <em>xy_units=Unit(&quot;kpc&quot;)</em>, <em>vel_units=Unit(&quot;km s**-1&quot;)</em>, <em>smooth='smooth'</em>, <em>__threaded=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#spectra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.spectra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render an SPH spectrum using a (mass/rho)-weighted &#8216;scatter&#8217;
+scheme of all the particles that have a smoothing length within
+2 h_sm of the position.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>qty</em> (&#8216;rho&#8217;): The name of the array within the simulation to render</p>
+<p><em>x1</em> (0.0): The x-coordinate of the line of sight.</p>
+<p><em>y1</em> (0.0): The y-coordinate of the line of sight.</p>
+<p><em>v1</em> (-400.0): The minimum velocity of the spectrum</p>
+<p><em>v2</em> (400.0): The maximum velocity of the spectrum</p>
+<p><em>nvel</em> (500): The number of resolution elements in spectrum</p>
+<p><em>xy_units</em> (&#8216;kpc&#8217;): The units for the x and y axes</p>
+<dl class="docutils">
+<dt><em>smooth</em>: The name of the array which contains the smoothing lengths</dt>
+<dd>(default &#8216;smooth&#8217;)</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Generic Convenience Modules</a><ul>
+<li><a class="reference internal" href="#bridge">bridge</a><ul>
+<li><a class="reference internal" href="#basic-usage"><em>Basic usage</em></a></li>
+<li><a class="reference internal" href="#identifying-halos-between-different-outputs"><em>Identifying halos between different outputs</em></a></li>
+<li><a class="reference internal" href="#which-class-to-use"><em>Which class to use</em></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#filt">filt</a></li>
+<li><a class="reference internal" href="#halo">halo</a></li>
+<li><a class="reference internal" href="#kdtree">KDTree</a></li>
+<li><a class="reference internal" href="#sph">sph</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="essentials.html"
+                        title="previous chapter">Essential Framework Modules</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="derived.html"
+                        title="next chapter">Automatically Derived Arrays</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/convenience.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="derived.html" title="Automatically Derived Arrays"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="essentials.html" title="Essential Framework Modules"
+             >previous</a> |</li>
+        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
