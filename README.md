@@ -6,6 +6,6 @@ astrophysical simulations supporting PKDGRAV/Gasoline, Gadget, N-Chilada, and RA
 
 Written in python, the core tools are accompanied by a library of publication-level analysis routines.
 
-Get started with [installation instructions](http://www.itp.uzh.ch/~roskar/pynbody/docs/installation.html) and 
-try the introductory [tutorials](http://www.itp.uzh.ch/~roskar/pynbody/docs/tutorials/tutorials.html). 
-The full documentation can be found [here](http://www.itp.uzh.ch/~roskar/pynbody/docs).
+Get started with [installation instructions](http://pynbody.github.io/pynbody/installation.html) and 
+try the introductory [tutorials](http://pynbody.github.io/pynbody/tutorials/tutorials.html). 
+The full documentation can be found [here](http://pynbody.github.io/pynbody/).
