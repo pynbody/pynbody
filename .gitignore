@@ -4,4 +4,4 @@ _build
 *.pyc
 direct_omp.c
 testdata
-
+docs/_static/*png
