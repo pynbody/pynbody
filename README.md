@@ -31,6 +31,6 @@ The full documentation can be found
 ### Support and Contact 
 
 If you have trouble with Pynbody or you have feature
-requests/suggestions, [submit an issue](https://github.com/pynbody/pynbody/issues), 
+requests/suggestions you can [submit an issue](https://github.com/pynbody/pynbody/issues), 
 and/or shoot us an email on the [Usergroup mailing
 list](https://groups.google.com/forum/?fromgroups#!forum/pynbody-users).
