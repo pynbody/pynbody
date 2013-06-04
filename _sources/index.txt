@@ -8,7 +8,7 @@ Pynbody Documentation
 ===============================
 
 Welcome to the documentation for `pynbody
-<http://code.google.com/p/pynbody/>`_ -- an analysis package for
+<http://pynbody.github.io>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
 simulations. We recommend you get started by reading about
 :ref:`pynbody-installation` and trying the :ref:`tutorials`. We are
@@ -78,9 +78,9 @@ bugs. Please let us know if you find strange behavior or if you have
 ideas for improvements. The best way to do this is via the `users
 group
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_
-or the `issues page <http://code.google.com/p/pynbody/issues/list>`_ on
-the `Pynbody Google Code site
-<http://code.google.com/p/pynbody/>`_. The documentation in particular
+or the `issues page <https://github.com/pynbody/pynbody/issues>`_ on
+the `Pynbody Github site
+<https://github.com/pynbody/pynbody/>`_. The documentation in particular
 is in a state of flux so if you find an error in any of the tutorials
 let us know asap. If you use the code regularly for your projects,
 consider becoming a contributor and join the `developer group
@@ -110,7 +110,7 @@ using the following BibTex::
 You may also mention it either as a footnote in the text or in the
 acknowledgments section with a statement like:
 
-**We made use of pynbody (http://code.google.com/p/pynbody) in our analysis
+**We made use of pynbody (https://github.com/pynbody/pynbody) in our analysis
 for this paper.**
 
 

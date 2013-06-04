@@ -127,8 +127,8 @@ caveats.</li>
 <h3>You might also want<a class="headerlink" href="#you-might-also-want" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><ul class="simple">
-<li>Amiga Halo Finder.  Installation instructions are on
-<a class="reference external" href="http://code.google.com/p/pynbody/wiki/HaloCatalogue">HaloCatalogue</a></li>
+<li>Amiga Halo Finder.  You can find some pynbody-related installation
+notes in the <a class="reference internal" href="tutorials/halos.html#halo-tutorial"><em>Halo loading in Pynbody</em></a> tutorial.</li>
 <li>Installing <a class="reference external" href="http://code.google.com/p/h5py/">h5py</a> will allow you
 to work with Gadget HDF snapshots. See the <a class="reference internal" href="#h5py-ref"><em>Appendix: Notes on Optional Installation of h5py on Mac OS</em></a> below.</li>
 </ul>
@@ -252,32 +252,35 @@ everything will happen automatically.</p>
 <p class="first admonition-title">Note</p>
 <p class="last">If your distutils are not installed properly and you don&#8217;t have root permissions, this will fail &#8211; see <a class="reference internal" href="#distutils"><em>Setup Python Distutils</em></a>.</p>
 </div>
-<p>If you don&#8217;t have <cite>easy_install</cite> or want to do it manually:</p>
-<ol class="arabic simple">
-<li>Download most recent version from <a class="reference external" href="http://code.google.com/p/pynbody/downloads/list">Downloads section</a> or scroll down to find out how to <a class="reference internal" href="#repository-section"><em>get the most recent version from the repository</em></a></li>
-<li>Uncompress:  <tt class="docutils literal"><span class="pre">tar</span> <span class="pre">zxf</span> <span class="pre">pynbody.VER-NUMalpha.tar.gz</span></tt></li>
-<li>Enter directory: <tt class="docutils literal"><span class="pre">cd</span> <span class="pre">pynbodybeta.01</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt></li>
+<p>If you don&#8217;t have <cite>easy_install</cite> here is how you can do it manually.</p>
+<p>First, clone the <a class="reference external" href="https://github.com/pynbody/pynbody">git repository from
+Github</a>.  Pynbody uses <a class="reference external" href="http://git-scm.com/">git</a> for development:</p>
+<ol class="arabic simple" start="0">
+<li><cite>git</cite> is probably already on your machine &#8211; try typing <tt class="docutils literal"><span class="pre">git</span></tt> from the shell. If it exists, go to step 2.</li>
+<li>get the appropriate binary from <a class="reference external" href="http://git-scm.com/downloads">http://git-scm.com/downloads</a> and install <cite>git</cite></li>
+<li><tt class="docutils literal"><span class="pre">$</span> <span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/pynbody/pynbody.git</span></tt></li>
+<li>to get the newest from the repository, run <tt class="docutils literal"><span class="pre">git</span> <span class="pre">pull</span></tt>.</li>
+<li><tt class="docutils literal"><span class="pre">$</span> <span class="pre">cd</span> <span class="pre">pynbody</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">$</span> <span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt></li>
 </ol>
+<p>Now the package is installed wherever your python packages reside and should be importable from within python:</p>
+<ol class="arabic simple" start="6">
+<li><tt class="docutils literal"><span class="pre">$</span> <span class="pre">python</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">&gt;&gt;&gt;</span> <span class="pre">import</span> <span class="pre">pynbody</span></tt></li>
+</ol>
+<p>If this yields no errors, you are done!</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you plan on joining the development efforts and you are unfamiliar
+with git, we recommend that you spend some time getting familiar with
+it. The <a class="reference external" href="http://git-scm.com/doc">git documentation</a> is quite good
+and it&#8217;s worth a read through Chapter 3 on branching.</p>
+</div>
 </div>
 <div class="section" id="open-your-simulation-and-start-analyzing">
 <h2>Open your simulation and start analyzing<a class="headerlink" href="#open-your-simulation-and-start-analyzing" title="Permalink to this headline">¶</a></h2>
 <p>Check out the rest of the <a class="reference internal" href="tutorials/tutorials.html#tutorials"><em>tutorials section</em></a> and
 especially the <a class="reference internal" href="tutorials/data_access.html#data-access"><em>A walk through pynbody&#8217;s low-level facilities</em></a> to get going.</p>
-</div>
-<div class="section" id="staying-on-the-bleeding-edge">
-<span id="repository-section"></span><h2>Staying on the bleeding edge<a class="headerlink" href="#staying-on-the-bleeding-edge" title="Permalink to this headline">¶</a></h2>
-<p>To get the most recent code, you can check the code out of our Google
-Code source repository.  Pynbody uses <a class="reference external" href="http://git-scm.com/">git</a> for
-development.</p>
-<ol class="arabic simple" start="0">
-<li><cite>git</cite> is probably already on your machine &#8211; try typing <tt class="docutils literal"><span class="pre">git</span></tt> from the shell. If it exists, go to step 2.</li>
-<li>get the appropriate binary from <a class="reference external" href="http://git-scm.com/downloads">http://git-scm.com/downloads</a> and install <cite>git</cite></li>
-<li>see the <a class="reference external" href="https://code.google.com/p/pynbody/source/checkout">instructions on Google Code</a>.</li>
-<li>to get the newest from the repository, run <tt class="docutils literal"><span class="pre">git</span> <span class="pre">pull</span></tt>.</li>
-</ol>
-<p>If you plan on joining the development efforts and you are unfamiliar with git, we recommend
-that you spend some time getting familiar with it. The <a class="reference external" href="http://git-scm.com/doc">git documentation</a> is quite good and it&#8217;s worth a read through Chapter 3 on branching.</p>
 <div class="section" id="updating-code">
 <h3>Updating Code<a class="headerlink" href="#updating-code" title="Permalink to this headline">¶</a></h3>
 <p>Remember that the <cite>master</cite> branch is the
@@ -291,8 +294,8 @@ up development branches before merging into the master branch is a
 good read.</p>
 <p>We are in pretty active development stage at the moment, so it&#8217;s
 always a good idea to keep your code updated. If you want to see what
-everyone else has been commiting, you can see the <a class="reference external" href="https://code.google.com/p/pynbody/source/list">graph on the google
-code site</a>.</p>
+everyone else has been commiting, you can see the <a class="reference external" href="https://github.com/pynbody/pynbody/commits/master">commit history on
+the github code site</a>.</p>
 </div>
 <div class="section" id="nose-tests">
 <h3>Nose tests<a class="headerlink" href="#nose-tests" title="Permalink to this headline">¶</a></h3>
@@ -371,8 +374,7 @@ sudo python setup.py install</pre>
 </ul>
 </li>
 <li><a class="reference internal" href="#install-pynbody">Install pynbody</a></li>
-<li><a class="reference internal" href="#open-your-simulation-and-start-analyzing">Open your simulation and start analyzing</a></li>
-<li><a class="reference internal" href="#staying-on-the-bleeding-edge">Staying on the bleeding edge</a><ul>
+<li><a class="reference internal" href="#open-your-simulation-and-start-analyzing">Open your simulation and start analyzing</a><ul>
 <li><a class="reference internal" href="#updating-code">Updating Code</a></li>
 <li><a class="reference internal" href="#nose-tests">Nose tests</a></li>
 <li><a class="reference internal" href="#building-your-own-documentation">Building your own documentation</a></li>

@@ -92,10 +92,7 @@
 <span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s">&quot;g cm^-3&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;spectral&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>[<a class="reference external" href="../plot_directive/tutorials/example_code/density_slice.py">source code</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/density_slice.hires.png">hires.png</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/density_slice.pdf">pdf</a>]</p>
-<div class="figure">
-<img alt="../_images/density_slice.png" src="../_images/density_slice.png" />
-</div>
+[<a class="reference external" href="../plot_directive/tutorials/example_code/density_slice.py">source code</a>]<p>Exception occurred rendering plot.</p>
 </div>
 <div class="section" id="integrated-density">
 <h2>Integrated Density<a class="headerlink" href="#integrated-density" title="Permalink to this headline">¶</a></h2>
@@ -118,10 +115,7 @@
 <span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s">&quot;g cm^-2&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;spectral&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>[<a class="reference external" href="../plot_directive/tutorials/example_code/density_integrated.py">source code</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/density_integrated.hires.png">hires.png</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/density_integrated.pdf">pdf</a>]</p>
-<div class="figure">
-<img alt="../_images/density_integrated.png" src="../_images/density_integrated.png" />
-</div>
+[<a class="reference external" href="../plot_directive/tutorials/example_code/density_integrated.py">source code</a>]<p>Exception occurred rendering plot.</p>
 </div>
 <div class="section" id="temperature-slice">
 <h2>Temperature Slice<a class="headerlink" href="#temperature-slice" title="Permalink to this headline">¶</a></h2>
@@ -145,30 +139,27 @@ in this case)</p>
 <span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;spectral&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>[<a class="reference external" href="../plot_directive/tutorials/example_code/temperature_slice.py">source code</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/temperature_slice.hires.png">hires.png</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/temperature_slice.pdf">pdf</a>]</p>
-<div class="figure">
-<img alt="../_images/temperature_slice.png" src="../_images/temperature_slice.png" />
-</div>
+[<a class="reference external" href="../plot_directive/tutorials/example_code/temperature_slice.py">source code</a>]<p>Exception occurred rendering plot.</p>
 </div>
 <div class="section" id="creating-images-using-image">
-<h2>Creating images using <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> function is a general purpose function
+<h2>Creating images using <tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt> function is a general purpose function
 for creating an x-y map of a value from your <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a>
 object. Under the hood, the function calls one two SPH kernels (written in c)
 to calculate the intensity values of whatever value you&#8217;re plotting - a 2d
 kernel for integrated maps, and a 3d kernel for slices. Both kernels require
 the use of a kd-tree to perform an SPH smooth, so you will notice that the
-first time <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is called, it creates a kd-tree.
+first time <tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt> is called, it creates a kd-tree.
 Subsequent calls on the same data set should use the already created tree,
 and thus should be faster.</p>
-<p><a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> returns an x,y array representing pixel
+<p><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt> returns an x,y array representing pixel
 intensity. The function also displays the image with automatically created
 axes and a colorbar. However, one can use the x-y array and <a class="reference external" href="http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow">plt.imshow()</a>
 (how do I link to matplotlib functions?) to create your own plot.</p>
 </div>
 <div class="section" id="common-issues">
 <h2>Common issues<a class="headerlink" href="#common-issues" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is prone to a number of common errors
+<p><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt> is prone to a number of common errors
 when being used by new users. Probably the most common is</p>
 <div class="highlight-python"><pre>ValueError: zero-size array to minimum.reduce without identity</pre>
 </div>
