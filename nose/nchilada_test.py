@@ -122,7 +122,7 @@ def test_array_completion_unit_sanity() :
     
 
 def test_partial_loading() :
-    f_f = pynbody.load("testdata/nchilada_Test/12M.00001")
+    f_f = pynbody.load("testdata/nchilada_test/12M.00001")
     
     test_ptcls = [ 11634,  24181,  26275,  37336,  37795,  38040,  38280,  38327,
         38524,  39349,  46758,  48892,  52160,  53267,  53745,  68970,
@@ -132,6 +132,6 @@ def test_partial_loading() :
        184252, 190498, 197946, 198288, 204526, 221720, 226375, 226915,
        229959, 231778] # randomly generated sample
     
-    f_p = pynbody.load("testdata/nchilada_Test/12M.00001", take = test_ptcls )
+    f_p = pynbody.load("testdata/nchilada_test/12M.00001", take = test_ptcls )
 
     assert((f_p['pos']==f_f['pos'][test_ptcls]).all())
