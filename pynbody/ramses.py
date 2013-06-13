@@ -85,8 +85,11 @@ def _cpui_count_particles(filename) :
     f = file(filename)
     header = read_fortran_series(f, ramses_particle_header)
     npart_this = header['npart']
-    skip_fortran(f,distinguisher_field)
-    data = read_fortran(f,distinguisher_type,header['npart'])
+    try:
+        skip_fortran(f,distinguisher_field)
+        data = read_fortran(f,distinguisher_type,header['npart'])
+    except TypeError:
+        data = np.zeros(npart_this)
     
     my_mask = (data!=0)
     nstar_this = (data!=0).sum()
