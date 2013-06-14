@@ -149,8 +149,11 @@
     <span class="n">f</span> <span class="o">=</span> <span class="nb">file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_particle_header</span><span class="p">)</span>
     <span class="n">npart_this</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]</span>
-    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">distinguisher_field</span><span class="p">)</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">distinguisher_type</span><span class="p">,</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">distinguisher_field</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">distinguisher_type</span><span class="p">,</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">npart_this</span><span class="p">)</span>
     
     <span class="n">my_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">!=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">nstar_this</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">!=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
