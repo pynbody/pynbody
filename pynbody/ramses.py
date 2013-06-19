@@ -642,11 +642,12 @@ def translate_info(sim) :
     l_unit = sim._info['unit_l']*units.Unit("cm")
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
-    if sim._info['time']<0 :
-        sim.properties['time'] = analysis.cosmology.age(sim)*units.Unit('Gyr')
-    else :
+
+    if sim._info['omega_k'] == sim._info['omega_l'] == sim._info['omega_b'] == 0.0 :
         sim.properties['time'] = sim._info['time'] * t_unit
-        
+    else :
+        sim.properties['time'] = analysis.cosmology.age(sim)*units.Unit('Gyr')
+
     sim._file_units_system = [d_unit, t_unit, l_unit]
 
 
