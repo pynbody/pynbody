@@ -11,7 +11,7 @@ publication-level analysis routines.
 
 ### Getting started 
 
-If your python with distutils is installd and properly configured, you can simply do:
+If your python with distutils is installed and properly configured, you can simply do:
 
 ```
 $ git clone https://github.com/pynbody/pynbody
