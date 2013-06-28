@@ -11,7 +11,7 @@ from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
 import warnings
 
-def sfh(sim,filename=None,massform=True,clear=True,legend=False,
+def sfh(sim,filename=None,massform=True,clear=False,legend=False,
         subplot=False, trange=False, bins=100, **kwargs):
     '''
     star formation history
@@ -32,6 +32,9 @@ def sfh(sim,filename=None,massform=True,clear=True,legend=False,
 
        *legend*: boolean
          whether to draw a legend or not
+
+       *clear*: boolean
+         if False (default), plot on the current axes. Otherwise, clear the figure first.
 
     By default, sfh will use the formation mass of the star.  In tipsy, this will be
     taken from the starlog file.  Set massform=False if you want the final (observed)
