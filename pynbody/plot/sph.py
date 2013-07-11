@@ -239,7 +239,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         p.savefig(filename)
         
     
-    plt.draw()
+	if not noplot:
+		plt.draw()
     # plt.show() - removed by AP on 30/01/2013 - this should not be here as
     #              for some systems you don't get back to the command prompt
 
