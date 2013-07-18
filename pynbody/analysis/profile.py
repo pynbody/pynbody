@@ -374,7 +374,11 @@ class Profile:
             if dispersion :
                 sq_mean = (name_array**2*mass_array).sum()/self['mass'][i]
                 mean_sq = ((name_array*mass_array).sum()/self['mass'][i])**2
-                result[i] = math.sqrt(sq_mean - mean_sq)
+                try:
+                    result[i] = math.sqrt(sq_mean - mean_sq)
+                except ValueError :
+                    result[i] = 0  # sq_mean<mean_sq occasionally from numerical roundoff
+
             elif rms : 
                 result[i] = np.sqrt((name_array**2*mass_array).sum()/self['mass'][i])
             else :
