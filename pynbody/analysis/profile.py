@@ -310,7 +310,7 @@ class Profile:
         prev_index = bisect(sort_pind,0)
         for i in range(self.nbins):
             new_index = bisect(sort_pind,i+1)
-            self.binind.append(sortind[prev_index:new_index])
+            self.binind.append(np.sort(sortind[prev_index:new_index]))
             prev_index = new_index
 
     def __len__(self):

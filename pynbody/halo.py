@@ -18,7 +18,7 @@ import glob
 import re
 import copy
 import sys
-from . import snapshot, util, config, config_parser
+from . import snapshot, util, config, config_parser, gadget
 
 
 class DummyHalo(object):
@@ -258,7 +258,7 @@ class AHFCatalogue(HaloCatalogue):
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, dummy=False):
+    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -273,6 +273,11 @@ class AHFCatalogue(HaloCatalogue):
                   halos returned are just dummies (with the correct
                   properties dictionary loaded). Use load_copy to get
                   the actual data in this case.
+
+         *use_iord*: if True, the particle IDs in the Amiga catalogue are
+                     taken to refer to the iord array. If False, they are
+                     the particle offsets within the file. If None, the
+                     parameter defaults to True for GadgetSnap, False otherwise.
         """
 
         import os.path
@@ -280,6 +285,11 @@ class AHFCatalogue(HaloCatalogue):
             self._run_ahf(sim)
         self._base = weakref.ref(sim)
         HaloCatalogue.__init__(self)
+
+        if use_iord is None :
+            use_iord = isinstance(sim.ancestor, gadget.GadgetSnap)
+
+        self._use_iord = use_iord
 
         self._dummy = dummy
 
@@ -397,9 +407,12 @@ class AHFCatalogue(HaloCatalogue):
                 for i in xrange(nparts):
                     data[i] = int(f.readline().split()[0])
 
-            hi_mask = data >= nds
-            data[np.where(hi_mask)] -= nds
-            data[np.where(~hi_mask)] += ng
+            if self._use_iord :
+                data = self._iord_to_fpos[data]
+            else :
+                hi_mask = data >= nds
+                data[np.where(hi_mask)] -= nds
+                data[np.where(~hi_mask)] += ng
         else:
             if isinstance(f, file):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
@@ -412,6 +425,12 @@ class AHFCatalogue(HaloCatalogue):
         return data
 
     def _load_ahf_particles(self, filename):
+        if self._use_iord :
+            iord = self._base()['iord']
+            assert len(iord)==iord.max(), "Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so"
+            self._iord_to_fpos = iord.argsort()
+            
+            
         f = util.open_(filename)
         if filename.split("z")[-2][-1] is ".":
             self.isnew = True

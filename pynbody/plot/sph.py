@@ -126,7 +126,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             width = _units.Unit(width)
         width = width.in_units(sim['pos'].units,**sim.conversion_context())
     
-#    width = float(width)
+    width = float(width)
 
     kernel = sph.Kernel()
  
