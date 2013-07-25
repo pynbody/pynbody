@@ -20,7 +20,8 @@ def check_for_openmp():
     os.chdir(tmpdir)
 
     # Get compiler invocation
-    compiler = distutils.sysconfig.get_config_var('CC')
+    compiler = os.environ.get('CC',
+                              distutils.sysconfig.get_config_var('CC'))
     # Attempt to compile a test script.
     # See http://openmp.org/wp/openmp-compilers/
     filename = r'test.c'
