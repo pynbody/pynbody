@@ -282,7 +282,7 @@ class Profile:
         # self['rbins'].sim = self.sim
 
         # Width of the bins
-        self._properties['dr'] = np.gradient(self['rbins'])
+        self._properties['dr'] = np.gradient(self['rbins']).view(array.SimArray)
         # be extra cautious carrying over stuff because sometimes fails
         self._properties['dr'].units = self['rbins'].units
         self._properties['dr'].sim = self.sim
