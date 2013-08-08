@@ -949,8 +949,11 @@ class QuantileProfile(Profile) :
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
             with self.sim.immediate_mode : 
-                name_array = sorted(subs[name].view(np.ndarray))
+                name_array = subs[name].view(np.ndarray)
+                sorted_array = sorted(name_array)
                 topind = len(name_array)-1
+                if self.qweights is not None:
+                    sorted_weights = self.qweights[np.argsort(name_array)]
             
             for iq,q in enumerate(self.quantiles):
                 #import pdb; pdb.set_trace()
@@ -958,20 +961,24 @@ class QuantileProfile(Profile) :
                     if self.qweights is None: 
                         ilow = int(np.floor(q*topind))
                         inc = q*topind - ilow
-                        lowval = sorted(name_array)[ilow]
-                        hival = sorted(name_array)[ilow+1]
+                        lowval = sorted_array[ilow]
+                        hival = sorted_array[ilow+1]
                         result[i,iq] = lowval+inc*(hival-lowval)
                     else:
-                        cumw= np.cumsum(self.qweights[np.argsort(name_array)])/np.sum(self.qweights[np.argsort(name_array)])
-                        imin = min(np.arange(len(name_array)),key=lambda x:abs(cumw[x]-q))
+                        cumw= np.cumsum(sorted_weights)/np.sum(sorted_weights)
+                        imin = min(np.arange(len(sorted_array)),key=lambda x:abs(cumw[x]-q))
                         inc = q-cumw[imin]
-                        lowval = sorted(name_array)[imin]
-                        if inc > 0: nextval = sorted(name_array)[imin+1]
-                        else: nextval = sorted(name_array)[imin-1]
+                        lowval = sorted_array[imin]
+                        if inc > 0: nextval = sorted_array[imin+1]
+                        else: 
+                            if imin == 0: nextval = lowval
+                            else: nextval = sorted_array[imin-1]
                         
                         result[i,iq] = lowval+inc*(nextval-lowval)
+                        #if (result[i,iq] < 1e-6) : import pdb; pdb.set_trace()
                 else:
                     result[i,iq] = np.nan
+                    self['rbins'][i] = np.nan
 
 
         result = result.view(array.SimArray)
