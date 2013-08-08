@@ -351,6 +351,12 @@ class Profile:
             self._profiles[name].sim = self.sim
             return self._profiles[name]
         
+        elif name[-4:]=="_med" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys() :
+            if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
+            self._profiles[name] = self._auto_profile(name[:-4], median=True)
+            self._profiles[name].sim = self.sim
+            return self._profiles[name]
+        
         elif name[0:2]=="d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys() :
 #            if np.diff(self['dr']).all() < 1e-13 : 
             if pynbody.config['verbose'] : print 'Profile: '+name+'/dR'
@@ -363,7 +369,7 @@ class Profile:
         else :
             raise KeyError, name+" is not a valid profile"
 
-    def _auto_profile(self, name, dispersion=False, rms=False) :
+    def _auto_profile(self, name, dispersion=False, rms=False, median=False) :
         result = np.zeros(self.nbins)
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
@@ -377,6 +383,9 @@ class Profile:
                 result[i] = math.sqrt(sq_mean - mean_sq)
             elif rms : 
                 result[i] = np.sqrt((name_array**2*mass_array).sum()/self['mass'][i])
+            elif median :
+                sorted_name = sorted(name_array)
+                result[i] = sorted_name[int(np.floor(0.5*len(subs)))]
             else :
                 result[i] = (name_array*mass_array).sum()/self['mass'][i]
 
@@ -881,3 +890,92 @@ class VerticalProfile(Profile) :
             area = array.SimArray(np.pi*(self.rmax**2-self.rmin**2),"kpc^2")
             self._binsize = (self['bin_edges'][1:]-self['bin_edges'][:-1])*area
         
+
+class QuantileProfile(Profile) : 
+    """
+
+    Creates a profile object that returns the requested quantiles
+    for a given array in a given bin.  The quantiles may be mass weighted.
+
+    **Input**: 
+    
+    *sim*: snapshot to make a profile from
+
+    *q (default: (0.16,0.5,0.84))*: 
+             The quantiles that will be returned.
+             Default is median with 1-sigma on either side.
+             q can be of arbitrary length allowing the user to select
+             any quantiles they desire.
+
+    *weights (default:None)*:  
+             What should be used to weight the quantile.  You will usually
+             want to use particle mass: sim['mass'].  
+             The default is to not weight by anything, weights=None.
+
+    **Optional Keywords**: 
+
+    *ndim*: if ndim=2, an edge-on projected profile is produced,
+     i.e. density is in units of mass/pc^2. If ndim=3 a volume
+     profile is made, i.e. density is in units of mass/pc^3.
+
+    """
+
+    def __init__(self,sim,q=(0.16,0.50,0.84),weights=None,load_from_file = False, ndim = 3, type = 'lin', **kwargs): 
+        
+        # create a snapshot that only includes the section of disk we're interested in
+        self.quantiles=q
+        self.qweights = weights
+
+        Profile.__init__(self,sim,load_from_file=load_from_file,ndim=ndim,type=type,**kwargs)
+
+
+    def _get_profile(self, name) :
+        """Return the profile of a given kind"""
+        x = name.split(",")
+        if name in self._profiles :
+            return self._profiles[name]
+
+        elif name in self.sim.keys() or name in self.sim.all_keys() :
+            self._profiles[name] = self._auto_profile(name)
+            self._profiles[name].sim = self.sim
+            return self._profiles[name]
+
+        else :
+            raise KeyError, name+" is not a valid QuantileProfile"
+
+
+    def _auto_profile(self, name, dispersion=False, rms=False, median=False) :
+        result = np.zeros((self.nbins,len(self.quantiles)))
+        for i in range(self.nbins):
+            subs = self.sim[self.binind[i]]
+            with self.sim.immediate_mode : 
+                name_array = sorted(subs[name].view(np.ndarray))
+                topind = len(name_array)-1
+            
+            for iq,q in enumerate(self.quantiles):
+                #import pdb; pdb.set_trace()
+                if len(name_array) > 0:
+                    if self.qweights is None: 
+                        ilow = int(np.floor(q*topind))
+                        inc = q*topind - ilow
+                        lowval = sorted(name_array)[ilow]
+                        hival = sorted(name_array)[ilow+1]
+                        result[i,iq] = lowval+inc*(hival-lowval)
+                    else:
+                        cumw= np.cumsum(self.qweights[np.argsort(name_array)])/np.sum(self.qweights[np.argsort(name_array)])
+                        imin = min(np.arange(len(name_array)),key=lambda x:abs(cumw[x]-q))
+                        inc = q-cumw[imin]
+                        lowval = sorted(name_array)[imin]
+                        if inc > 0: nextval = sorted(name_array)[imin+1]
+                        else: nextval = sorted(name_array)[imin-1]
+                        
+                        result[i,iq] = lowval+inc*(nextval-lowval)
+                else:
+                    result[i,iq] = np.nan
+
+
+        result = result.view(array.SimArray)
+        result.units = self.sim[name].units
+        result.sim = self.sim
+        return result
+
