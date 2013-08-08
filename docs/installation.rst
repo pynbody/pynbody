@@ -73,8 +73,8 @@ These packages are all standard and well supported.
 You might also want
 ^^^^^^^^^^^^^^^^^^^
 
-  * Amiga Halo Finder.  Installation instructions are on
-    `HaloCatalogue <http://code.google.com/p/pynbody/wiki/HaloCatalogue>`_
+  * Amiga Halo Finder.  You can find some pynbody-related installation
+    notes in the :ref:`halo_tutorial` tutorial.
 
   * Installing `h5py <http://code.google.com/p/h5py/>`_ will allow you
     to work with Gadget HDF snapshots. See the :ref:`h5py-ref` below.
@@ -222,42 +222,43 @@ everything will happen automatically.
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
-If you don't have `easy_install` or want to do it manually:
+If you don't have `easy_install` here is how you can do it manually.
 
-1. Download most recent version from `Downloads section <http://code.google.com/p/pynbody/downloads/list>`_ or scroll down to find out how to :ref:`get the most recent version from the repository <repository_section>`
+First, clone the `git repository from
+Github <https://github.com/pynbody/pynbody>`_.  Pynbody uses `git
+<http://git-scm.com/>`_ for development:
 
-2. Uncompress:  ``tar zxf pynbody.VER-NUMalpha.tar.gz``
+0. `git` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
 
-3. Enter directory: ``cd pynbodybeta.01``
+1. get the appropriate binary from http://git-scm.com/downloads and install `git`
 
-4. ``python setup.py install``
+2. ``$ git clone https://github.com/pynbody/pynbody.git``
+
+3. to get the newest from the repository, run ``git pull``.
+
+4. ``$ cd pynbody``
+
+5. ``$ python setup.py install``
+
+Now the package is installed wherever your python packages reside and should be importable from within python:
+
+6. ``$ python``
+
+7. ``>>> import pynbody``
+
+If this yields no errors, you are done! 
+
+.. note:: 
+  If you plan on joining the development efforts and you are unfamiliar
+  with git, we recommend that you spend some time getting familiar with
+  it. The `git documentation <http://git-scm.com/doc>`_ is quite good
+  and it's worth a read through Chapter 3 on branching.
 
 Open your simulation and start analyzing
 ----------------------------------------
 
 Check out the rest of the :ref:`tutorials section <tutorials>` and
 especially the :ref:`data-access` to get going.
-
-
-.. _repository_section: 
-
-Staying on the bleeding edge
-----------------------------
-
-To get the most recent code, you can check the code out of our Google
-Code source repository.  Pynbody uses `git <http://git-scm.com/>`_ for 
-development. 
-
-0. `git` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
-
-1. get the appropriate binary from http://git-scm.com/downloads and install `git`
-
-2. see the `instructions on Google Code <https://code.google.com/p/pynbody/source/checkout>`_. 
-
-3. to get the newest from the repository, run ``git pull``.
-
-If you plan on joining the development efforts and you are unfamiliar with git, we recommend
-that you spend some time getting familiar with it. The `git documentation <http://git-scm.com/doc>`_ is quite good and it's worth a read through Chapter 3 on branching.  
 
 
 Updating Code
@@ -278,8 +279,9 @@ good read.
 
 We are in pretty active development stage at the moment, so it's
 always a good idea to keep your code updated. If you want to see what
-everyone else has been commiting, you can see the `graph on the google
-code site <https://code.google.com/p/pynbody/source/list>`_.
+everyone else has been commiting, you can see the `commit history on
+the github code site
+<https://github.com/pynbody/pynbody/commits/master>`_.
 
 
 Nose tests

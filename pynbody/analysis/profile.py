@@ -282,7 +282,7 @@ class Profile:
         # self['rbins'].sim = self.sim
 
         # Width of the bins
-        self._properties['dr'] = np.gradient(self['rbins'])
+        self._properties['dr'] = np.gradient(self['rbins']).view(array.SimArray)
         # be extra cautious carrying over stuff because sometimes fails
         self._properties['dr'].units = self['rbins'].units
         self._properties['dr'].sim = self.sim
@@ -310,7 +310,7 @@ class Profile:
         prev_index = bisect(sort_pind,0)
         for i in range(self.nbins):
             new_index = bisect(sort_pind,i+1)
-            self.binind.append(sortind[prev_index:new_index])
+            self.binind.append(np.sort(sortind[prev_index:new_index]))
             prev_index = new_index
 
     def __len__(self):
@@ -380,7 +380,11 @@ class Profile:
             if dispersion :
                 sq_mean = (name_array**2*mass_array).sum()/self['mass'][i]
                 mean_sq = ((name_array*mass_array).sum()/self['mass'][i])**2
-                result[i] = math.sqrt(sq_mean - mean_sq)
+                try:
+                    result[i] = math.sqrt(sq_mean - mean_sq)
+                except ValueError :
+                    result[i] = 0  # sq_mean<mean_sq occasionally from numerical roundoff
+
             elif rms : 
                 result[i] = np.sqrt((name_array**2*mass_array).sum()/self['mass'][i])
             elif median :

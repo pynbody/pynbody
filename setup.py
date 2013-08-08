@@ -5,6 +5,52 @@ from distutils.sysconfig import get_python_lib
 import numpy
 import numpy.distutils.misc_util
 
+import tempfile
+import subprocess
+import shutil
+
+def check_for_openmp():
+    """Check  whether the default compiler supports OpenMP.
+
+    This routine is adapted from yt, thanks to Nathan
+    Goldbaum. See https://github.com/pynbody/pynbody/issues/124"""
+    # Create a temporary directory
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    # Get compiler invocation
+    compiler = os.environ.get('CC',
+                              distutils.sysconfig.get_config_var('CC'))
+    # Attempt to compile a test script.
+    # See http://openmp.org/wp/openmp-compilers/
+    filename = r'test.c'
+    file = open(filename,'w', 0)
+    file.write(
+        "#include <omp.h>\n"
+        "#include <stdio.h>\n"
+        "int main() {\n"
+        "#pragma omp parallel\n"
+        "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
+        "}"
+        )
+    try:
+        with open(os.devnull, 'w') as fnull:
+            exit_code = subprocess.call([compiler, '-fopenmp', filename],
+                                        stdout=fnull, stderr=fnull)
+    except OSError :
+        exit_code = 1
+        
+    # Clean up
+    file.close()
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+    if exit_code == 0:
+        return True
+    else:
+        return False
+
 try : 
     import pkg_resources
     import cython
@@ -25,6 +71,7 @@ try :
 except AttributeError:
     cmdclass['build_py'] =  distutils.command.build_py.build_py
 
+have_openmp = check_for_openmp()
 
 ext_modules = []
 libraries=[ ]
@@ -104,10 +151,11 @@ else :
     chunkscan = Extension('pynbody.chunk.scan',
                           sources=['pynbody/chunk/scan.c'],
                           include_dirs=incdir)
-    
-ext_modules += [gravity_omp, chunkscan]
-    
 
+if have_openmp :
+    ext_modules.append(gravity_omp)
+    
+ext_modules.append(chunkscan)
 
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',

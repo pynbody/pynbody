@@ -110,13 +110,16 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     
     
     """
-    import matplotlib.pylab as plt
+
+    if not noplot:
+        import matplotlib.pylab as plt
 
     global config
-    if subplot:
-        p = subplot
-    else :
-        p = plt
+    if not noplot:
+        if subplot:
+            p = subplot
+        else :
+            p = plt
 
     if isinstance(units, str) :
         units = _units.Unit(units)
@@ -126,7 +129,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             width = _units.Unit(width)
         width = width.in_units(sim['pos'].units,**sim.conversion_context())
     
-#    width = float(width)
+    width = float(width)
 
     kernel = sph.Kernel()
  
@@ -197,51 +200,52 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
         im = np.log10(im)
 
-    if clear and not subplot : p.clf()
+    if not noplot:
+        if clear and not subplot : p.clf()
 
-    if ret_im:
-        return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-                 vmin=vmin, vmax=vmax, cmap=cmap)
+        if ret_im:
+            return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+                     vmin=vmin, vmax=vmax, cmap=cmap)
 
-    ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-                   vmin=vmin, vmax=vmax, cmap=cmap)
+        ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
+                       vmin=vmin, vmax=vmax, cmap=cmap)
 
-    u_st = sim['pos'].units.latex()
-    if not subplot:
-        plt.xlabel("$x/%s$"%u_st)
-        plt.ylabel("$y/%s$"%u_st)
-    else :
-        p.set_xlabel("$x/%s$"%u_st)
-        p.set_ylabel("$y/%s$"%u_st)
+        u_st = sim['pos'].units.latex()
+        if not subplot:
+            plt.xlabel("$x/%s$"%u_st)
+            plt.ylabel("$y/%s$"%u_st)
+        else :
+            p.set_xlabel("$x/%s$"%u_st)
+            p.set_ylabel("$y/%s$"%u_st)
 
-    if units is None :
-        units = im.units
-   
+        if units is None :
+            units = im.units
+       
 
-    if log :
-        units = r"$\log_{10}\,"+units.latex()+"$"
-    else :
-        units = "$"+units.latex()+"$"
+        if log :
+            units = r"$\log_{10}\,"+units.latex()+"$"
+        else :
+            units = "$"+units.latex()+"$"
 
-    if show_cbar:
-        if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
-        else:                    plt.colorbar(ims).set_label(units)
-    # colorbar doesn't work wtih subplot:  mappable is NoneType
-    #elif show_cbar:
-    #    import matplotlib.pyplot as mpl
-    #    if qtytitle: mpl.colorbar().set_label(qtytitle)
-    #    else:        mpl.colorbar().set_label(units)
+        if show_cbar:
+            if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
+            else:                    plt.colorbar(ims).set_label(units)
+        # colorbar doesn't work wtih subplot:  mappable is NoneType
+        #elif show_cbar:
+        #    import matplotlib.pyplot as mpl
+        #    if qtytitle: mpl.colorbar().set_label(qtytitle)
+        #    else:        mpl.colorbar().set_label(units)
 
-    if title is not None:
-        p.set_title(title)
+        if title is not None:
+            p.set_title(title)
+            
+        if filename is not None:
+            p.savefig(filename)
+            
         
-    if filename is not None:
-        p.savefig(filename)
-        
-    
-    plt.draw()
-    # plt.show() - removed by AP on 30/01/2013 - this should not be here as
-    #              for some systems you don't get back to the command prompt
+        plt.draw()
+        # plt.show() - removed by AP on 30/01/2013 - this should not be here as
+        #              for some systems you don't get back to the command prompt
 
     return im
 

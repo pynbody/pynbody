@@ -429,6 +429,8 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
 
     if scalemin is None: scalemin = np.min(arr[arr>0])
     if scalemax is None: scalemax = np.max(arr[arr>0])
+    arr[arr<scalemin]=scalemin
+    arr[arr>scalemax]=scalemax
 
     if 'norm' in kwargs: del(kwargs['norm'])
     
@@ -460,7 +462,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
 
     if ret_im :
         if logscale: arr = np.log10(arr)
-        
+        scalemin, scalemax = np.log10((scalemin,scalemax))
         return plt.imshow(arr, origin='down', vmin=scalemin, vmax=scalemax,
                           aspect = 'auto',cmap=cmap,
                           #aspect = np.diff(x_range)/np.diff(y_range),cmap=cmap,
