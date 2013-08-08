@@ -7,12 +7,33 @@ Flexible and general plotting functions
 
 """
 
-import numpy as np
+import numpy as np, pylab as plt
 import pynbody
 from ..analysis import profile, angmom, halo
 from .. import config
 from ..array import SimArray
 from ..units import NoUnit
+
+def qprof(sim,qty='metals',weights=None,q=(0.16,0.5,0.84),
+          ax=False,ylabel=None,xlog=False,ylog=False,xlabel=None,
+          facecolor='#BBBBBB',color='#BBBBBB',medcolor='black',filename=False):
+    if ax: 
+        p=ax
+        f = plt.gca()
+    else: f,p=plt.subplots(1)
+
+    qp = pynbody.analysis.profile.QuantileProfile(sim,q=q,weights=weights)
+    p.fill_between(qp['rbins'].in_units('kpc'),qp[qty][:,0],y2=qp[qty][:,2],
+                   facecolor=facecolor,color=color,
+                   where=np.isfinite(qp[qty][:,0]))
+    p.plot(qp['rbins'].in_units('kpc'),qp[qty][:,1],color=medcolor)
+    if xlabel is None: p.set_xlabel('r [kpc]')
+    else: p.set_xlabel(xlabel)
+    if ylabel is not None: p.set_ylabel(ylabel)
+    if xlog: p.semilogx()
+    if ylog: p.semilogy()
+
+    if filename: f.savefig(filename)
 
 def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, make_plot = True, **kwargs):
     """
