@@ -158,6 +158,7 @@ if have_openmp :
 ext_modules.append(chunkscan)
 
 dist = setup(name = 'pynbody',
+             install_requires='numpy>=1.5',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
              version = '0.19alpha',
