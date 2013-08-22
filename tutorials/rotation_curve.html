@@ -103,7 +103,7 @@ object. For a tutorial on profiles see <a class="reference internal" href="profi
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>[<a class="reference external" href="../plot_directive/tutorials/example_code/rotcurve.py">source code</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/rotcurve.hires.png">hires.png</a>, <a class="reference external" href="../plot_directive/tutorials/example_code/rotcurve.pdf">pdf</a>]</p>
+<p>(<a class="reference external" href="../tutorials/example_code/rotcurve.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/rotcurve.png">png</a>, <a class="reference external" href="../tutorials/example_code/rotcurve.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/rotcurve.pdf">pdf</a>)</p>
 <div class="figure">
 <img alt="../_images/rotcurve.png" src="../_images/rotcurve.png" />
 </div>
@@ -129,18 +129,20 @@ configuration like this:</p>
 
 <span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span>
 <span class="go"> Out[3]: </span>
-<span class="go">{&#39;centering-scheme&#39;: &#39;pot&#39;,</span>
+<span class="go">{&#39;centering-scheme&#39;: &#39;ssc&#39;,</span>
 <span class="go"> &#39;default-cosmology&#39;: {&#39;a&#39;: 1.0,</span>
-<span class="go">  &#39;h&#39;: 0.70399999999999996,</span>
-<span class="go">  &#39;omegaL0&#39;: 0.72799999999999998,</span>
-<span class="go">  &#39;omegaM0&#39;: 0.27200000000000002,</span>
-<span class="go">  &#39;sigma8&#39;: 0.80900000000000005},</span>
+<span class="go">  &#39;h&#39;: 0.704,</span>
+<span class="go">  &#39;omegaL0&#39;: 0.728,</span>
+<span class="go">  &#39;omegaM0&#39;: 0.272,</span>
+<span class="go">  &#39;sigma8&#39;: 0.809},</span>
 <span class="go"> &#39;disk-fit-function&#39;: &#39;expsech&#39;,</span>
 <span class="go"> &#39;gravity_calculation_mode&#39;: &#39;direct_omp&#39;,</span>
 <span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.AmigaGrpCatalogue,</span>
 <span class="go">  pynbody.halo.AHFCatalogue],</span>
 <span class="go"> &#39;number_of_threads&#39;: 4,</span>
 <span class="go"> &#39;snap-class-priority&#39;: [pynbody.ramses.RamsesSnap,</span>
+<span class="go">  pynbody.grafic.GrafICSnap,</span>
+<span class="go">  pynbody.nchilada.NchiladaSnap,</span>
 <span class="go">  pynbody.gadget.GadgetSnap,</span>
 <span class="go">  pynbody.gadgethdf.GadgetHDFSnap,</span>
 <span class="go">  pynbody.tipsy.TipsySnap],</span>

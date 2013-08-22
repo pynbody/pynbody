@@ -82,7 +82,7 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">config_parser</span><span class="p">,</span> <span class="n">gadget</span>
 
 
 <span class="k">class</span> <span class="nc">DummyHalo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -322,7 +322,7 @@
 <span class="sd">    Class to handle catalogues produced by Amiga Halo Finder (AHF).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">make_grp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">make_grp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">use_iord</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize an AHFCatalogue.</span>
 
 <span class="sd">        **kwargs** :</span>
@@ -337,6 +337,11 @@
 <span class="sd">                  halos returned are just dummies (with the correct</span>
 <span class="sd">                  properties dictionary loaded). Use load_copy to get</span>
 <span class="sd">                  the actual data in this case.</span>
+
+<span class="sd">         *use_iord*: if True, the particle IDs in the Amiga catalogue are</span>
+<span class="sd">                     taken to refer to the iord array. If False, they are</span>
+<span class="sd">                     the particle offsets within the file. If None, the</span>
+<span class="sd">                     parameter defaults to True for GadgetSnap, False otherwise.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="kn">import</span> <span class="nn">os.path</span>
@@ -344,6 +349,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_run_ahf</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
         <span class="n">HaloCatalogue</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_iord</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="n">use_iord</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span> <span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_iord</span> <span class="o">=</span> <span class="n">use_iord</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_dummy</span> <span class="o">=</span> <span class="n">dummy</span>
 
@@ -461,9 +471,12 @@
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nparts</span><span class="p">):</span>
                     <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
 
-            <span class="n">hi_mask</span> <span class="o">=</span> <span class="n">data</span> <span class="o">&gt;=</span> <span class="n">nds</span>
-            <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">hi_mask</span><span class="p">)]</span> <span class="o">-=</span> <span class="n">nds</span>
-            <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">hi_mask</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">ng</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_iord</span> <span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iord_to_fpos</span><span class="p">[</span><span class="n">data</span><span class="p">]</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="n">hi_mask</span> <span class="o">=</span> <span class="n">data</span> <span class="o">&gt;=</span> <span class="n">nds</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">hi_mask</span><span class="p">)]</span> <span class="o">-=</span> <span class="n">nds</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">hi_mask</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">ng</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">file</span><span class="p">):</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">nparts</span><span class="p">)</span>
@@ -476,6 +489,12 @@
         <span class="k">return</span> <span class="n">data</span>
 
     <span class="k">def</span> <span class="nf">_load_ahf_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_iord</span> <span class="p">:</span>
+            <span class="n">iord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="p">()[</span><span class="s">&#39;iord&#39;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">iord</span><span class="p">)</span><span class="o">==</span><span class="n">iord</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="s">&quot;Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_iord_to_fpos</span> <span class="o">=</span> <span class="n">iord</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+            
+            
         <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;z&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="s">&quot;.&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">isnew</span> <span class="o">=</span> <span class="bp">True</span>

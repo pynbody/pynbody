@@ -81,7 +81,7 @@ snapshot.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x34a5c80&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x4287488&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -213,7 +213,7 @@ dependencies on a or aform).</p>
 <p>Tools for bulge/disk/halo decomposition</p>
 <dl class="function">
 <dt id="pynbody.analysis.decomp.decomp">
-<tt class="descclassname">pynbody.analysis.decomp.</tt><tt class="descname">decomp</tt><big>(</big><em>h</em>, <em>aligned=False</em>, <em>j_disk_min=0.80000000000000004</em>, <em>j_disk_max=1.1000000000000001</em>, <em>E_cut=None</em>, <em>j_circ_from_r=False</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>log_interp=False</em>, <em>angmom_size='3 kpc'</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/decomp.html#decomp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.decomp.decomp" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.decomp.</tt><tt class="descname">decomp</tt><big>(</big><em>h</em>, <em>aligned=False</em>, <em>j_disk_min=0.8</em>, <em>j_disk_max=1.1</em>, <em>E_cut=None</em>, <em>j_circ_from_r=False</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>log_interp=False</em>, <em>angmom_size='3 kpc'</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/decomp.html#decomp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.decomp.decomp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates an array &#8216;decomp&#8217; for star particles in the simulation, with an
 integer specifying a kinematic decomposition. The possible values are:</p>
 <p>1 &#8211; thin disk</p>
@@ -315,7 +315,7 @@ points. Used primarily by <a class="reference internal" href="#pynbody.analysis.
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.shrink_sphere_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.69999999999999996</em>, <em>min_particles=100</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the center according to the shrinking-sphere method of
 Power et al (2003)</p>
 <p><strong>Input</strong>:</p>
@@ -402,7 +402,7 @@ central 1kpc is zeroed</p>
 <p>Various halo mass function routines.</p>
 <dl class="function">
 <dt id="pynbody.analysis.hmf.correlation_func">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">correlation_func</tt><big>(</big><em>context</em>, <em>log_r_min=-3</em>, <em>log_r_max=2</em>, <em>delta_log_r=0.20000000000000001</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#correlation_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.correlation_func" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">correlation_func</tt><big>(</big><em>context</em>, <em>log_r_min=-3</em>, <em>log_r_max=2</em>, <em>delta_log_r=0.2</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#correlation_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.correlation_func" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the linear density field correlation function.</p>
 <p><strong>Args</strong>:</p>
 <dl class="docutils">
@@ -444,19 +444,19 @@ function)</dd>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_sheth_tormen">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_sheth_tormen</tt><big>(</big><em>nu</em>, <em>Anorm=0.32219999999999999</em>, <em>a=0.70699999999999996</em>, <em>p=0.29999999999999999</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#f_sheth_tormen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_sheth_tormen" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_sheth_tormen</tt><big>(</big><em>nu</em>, <em>Anorm=0.3222</em>, <em>a=0.707</em>, <em>p=0.3</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#f_sheth_tormen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_sheth_tormen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sheth &amp; Tormen (1999) fit (see also Sheth Mo &amp; Tormen 2001)</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_reed_no_z">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_reed_no_z</tt><big>(</big><em>nu</em>, <em>deltac=1.6864699999999999</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#f_reed_no_z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_no_z" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_reed_no_z</tt><big>(</big><em>nu</em>, <em>deltac=1.68647</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#f_reed_no_z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_no_z" title="Permalink to this definition">¶</a></dt>
 <dd><p>modified S-T fit  by the G1 gaussian term and c</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_reed_z_evo">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_reed_z_evo</tt><big>(</big><em>nu</em>, <em>neff</em>, <em>deltac=1.6864699999999999</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#f_reed_z_evo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_z_evo" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_reed_z_evo</tt><big>(</big><em>nu</em>, <em>neff</em>, <em>deltac=1.68647</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#f_reed_z_evo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_z_evo" title="Permalink to this definition">¶</a></dt>
 <dd><p>modified S-T fit  by the n_eff dependence and the G1 and G2 gaussian terms and c 
 where   P(k) proportional to k_halo**(n_eff)  and  
 k_halo = Mhalo / r_halo_precollapse.  
@@ -471,13 +471,13 @@ eqn 13 of Reed et al 2007   estimtes neff = 6 d ln(1/sigma(M))/ d ln M  - 3</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.sheth_tormen_bias">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">sheth_tormen_bias</tt><big>(</big><em>nu</em>, <em>delta_c</em>, <em>a=0.70699999999999996</em>, <em>b=0.5</em>, <em>c=0.59999999999999998</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#sheth_tormen_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.sheth_tormen_bias" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">sheth_tormen_bias</tt><big>(</big><em>nu</em>, <em>delta_c</em>, <em>a=0.707</em>, <em>b=0.5</em>, <em>c=0.6</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#sheth_tormen_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.sheth_tormen_bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Sheth-Tormen (1999) bias function [eq 8]</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.halo_mass_function">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">halo_mass_function</tt><big>(</big><em>context</em>, <em>log_M_min=8.0</em>, <em>log_M_max=15.0</em>, <em>delta_log_M=0.10000000000000001</em>, <em>kern='ST'</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em>, <em>delta_crit=1.6859999999999999</em>, <em>no_h=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#halo_mass_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.halo_mass_function" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">halo_mass_function</tt><big>(</big><em>context</em>, <em>log_M_min=8.0</em>, <em>log_M_max=15.0</em>, <em>delta_log_M=0.1</em>, <em>kern='ST'</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em>, <em>delta_crit=1.686</em>, <em>no_h=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/hmf.html#halo_mass_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.halo_mass_function" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the halo mass function, dN/d log_{10} M in units of Mpc^-3
 h^3.</p>
 <p><strong>Args:</strong></p>
@@ -638,7 +638,7 @@ the half luminosity is reached.</p>
 <p><strong>NEEDS DOCUMENTATION</strong></p>
 <dl class="class">
 <dt id="pynbody.analysis.pkdgrav_cosmo.Cosmology">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.pkdgrav_cosmo.</tt><tt class="descname">Cosmology</tt><big>(</big><em>sim=None</em>, <em>H0=2.8944050182330705</em>, <em>Om=0.27200000000000002</em>, <em>L=0.72799999999999998</em>, <em>Ob=0.045600000000000002</em>, <em>Or=0.0</em>, <em>Quin=0.0</em>, <em>Ok=0.0</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/pkdgrav_cosmo.html#Cosmology"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.pkdgrav_cosmo.Cosmology" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pynbody.analysis.pkdgrav_cosmo.</tt><tt class="descname">Cosmology</tt><big>(</big><em>sim=None</em>, <em>H0=2.8944050182330705</em>, <em>Om=0.272</em>, <em>L=0.728</em>, <em>Ob=0.0456</em>, <em>Or=0.0</em>, <em>Quin=0.0</em>, <em>Ok=0.0</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/pkdgrav_cosmo.html#Cosmology"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.pkdgrav_cosmo.Cosmology" title="Permalink to this definition">¶</a></dt>
 <dd><p>docs placeholder</p>
 </dd></dl>
 

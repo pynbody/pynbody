@@ -260,7 +260,7 @@ proper units taken from x</p>
 
 <dl class="function">
 <dt id="pynbody.plot.generic.fourier_map">
-<tt class="descclassname">pynbody.plot.generic.</tt><tt class="descname">fourier_map</tt><big>(</big><em>sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10, levels=[0.01, 0.050000000000000003, 0.10000000000000001, 0.20000000000000001], subplot=None, ret=False, **kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/generic.html#fourier_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.generic.fourier_map" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.generic.</tt><tt class="descname">fourier_map</tt><big>(</big><em>sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10, levels=[0.01, 0.05, 0.1, 0.2], subplot=None, ret=False, **kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/generic.html#fourier_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.generic.fourier_map" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot an overdensity map generated from a Fourier expansion of the
 particle distribution. A <a class="reference internal" href="analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a>
 is made and passed to <a class="reference internal" href="#pynbody.plot.util.inv_fourier" title="pynbody.plot.util.inv_fourier"><tt class="xref py py-func docutils literal"><span class="pre">inv_fourier()</span></tt></a> to
@@ -303,7 +303,7 @@ one.</p>
 <h2>metals<a class="headerlink" href="#metals" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="pynbody.plot.metals.mdf">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">mdf</tt><big>(</big><em>sim, filename=None, clear=True, range=[-5, 0.29999999999999999], axes=False, **kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#mdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.mdf" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">mdf</tt><big>(</big><em>sim, filename=None, clear=True, range=[-5, 0.3], axes=False, **kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#mdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.mdf" title="Permalink to this definition">¶</a></dt>
 <dd><p>Metallicity Distribution Function</p>
 <p>Plots a metallicity distribution function to the best of
 matplotlib&#8217;s abilities.  Unfortunately, the &#8220;normed&#8221; keyword is
@@ -318,7 +318,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x371ec80&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x482cde8&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -438,7 +438,7 @@ the multi-threaded routines; otherwise the pynbody.config default is used</p>
 <h2>stars<a class="headerlink" href="#stars" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="pynbody.plot.stars.sfh">
-<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">sfh</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>massform=True</em>, <em>clear=True</em>, <em>legend=False</em>, <em>subplot=False</em>, <em>trange=False</em>, <em>bins=100</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#sfh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.sfh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">sfh</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>massform=True</em>, <em>clear=False</em>, <em>legend=False</em>, <em>subplot=False</em>, <em>trange=False</em>, <em>bins=100</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#sfh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.sfh" title="Permalink to this definition">¶</a></dt>
 <dd><p>star formation history</p>
 <p><strong>Optional keyword arguments:</strong></p>
 <blockquote>
@@ -453,6 +453,8 @@ the multi-threaded routines; otherwise the pynbody.config default is used</p>
 <dd>where to plot SFH</dd>
 <dt><em>legend</em>: boolean</dt>
 <dd>whether to draw a legend or not</dd>
+<dt><em>clear</em>: boolean</dt>
+<dd>if False (default), plot on the current axes. Otherwise, clear the figure first.</dd>
 </dl>
 </div></blockquote>
 <p>By default, sfh will use the formation mass of the star.  In tipsy, this will be

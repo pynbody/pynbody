@@ -100,7 +100,7 @@ pynbody will calculate it:</p>
 <p>Note that you cannot directly alter a derived array:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="go">---------------------------------------------------------------------------</span>
-<span class="go">RuntimeError                              Traceback (most recent call last)</span>
+<span class="go">ValueError                                Traceback (most recent call last)</span>
 <span class="go">&lt;ipython-input-4-6eb96c8ef7aa&gt; in &lt;module&gt;()</span>
 <span class="go">----&gt; 1 s[&#39;ke&#39;][0] = 0</span>
 
@@ -118,7 +118,7 @@ pynbody will calculate it:</p>
 <span class="go">    452 </span>
 <span class="go">    453     def __setslice__(self, a,b, to) :</span>
 
-<span class="go">RuntimeError: array is not writeable</span>
+<span class="go">ValueError: assignment destination is read-only</span>
 </pre></div>
 </div>
 <p>But the array updates itself when one of its dependencies changes:</p>
