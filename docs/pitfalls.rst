@@ -95,3 +95,75 @@ machine. You can tell the kernel to allow more; see
 for instance.
 
 Alternatively, you can disable parallel loading on ramses (see :ref:`loaders`).
+
+.. _no_memory
+
+When processing multiple files I run out of memory, even if I process them one-by-one
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pynbody lets you have as many files in memory as you can fit, since
+each is stored in a self-contained objection. Clearly, if you try to
+load too many at once, you're going to run out of memory.
+
+However sometimes you might intend to load files one-by-one and still
+find the memory usage is cumulative. 
+
+::
+
+   for i in outputs:
+       s = pynbody.load(i)
+       do_something_with(s)
+
+
+If this happens to you, the cause
+is almost certainly that python is not `garbage-collecting
+<http://www.digi.com/wiki/developer/index.php/Python_Garbage_Collection>`_
+the snapshot.
+
+You can force python to tidy up by using its `gc module
+<http://docs.python.org/2/library/gc.html>`_:
+
+::
+
+   import gc
+   for i in outputs:
+       s = pynbody.load(i)
+       do_something_with(s)
+       del s
+       gc.collect()
+
+If you still have problems you may have extra references to the
+snapshot. In python, ``del`` only deletes a reference to an object,
+not the object itself. You need to ``del`` every reference, or let the
+reference fall out of scope, before the garbage collector will do
+anything.
+
+::
+   
+    import gc
+    s = pynbody.load("my_file")
+    s2 = s
+    del s
+    gc.collect() # does nothing
+    del s2
+    gc.collect() # success
+
+
+Note that a ``SubSnap`` holds a reference to its parent
+``SimSnap``. Any references to a ``SubSnap`` will keep the parent
+``SimSnap`` alive. On the other hand, a ``SimArray`` holds only weak
+references, so it won't keep a ``SimSnap`` alive.
+
+
+::
+   
+    import gc
+    s = pynbody.load("my_file")
+    s2 = s.dm
+    ar = s['mass']
+    del s
+    gc.collect() # does nothing
+    del s2
+    gc.collect() # success, ar alone is left in memory
+
+   

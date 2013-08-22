@@ -140,6 +140,59 @@ machine. You can tell the kernel to allow more; see
 for instance.</p>
 <p>Alternatively, you can disable parallel loading on ramses (see <a class="reference internal" href="loaders.html#loaders"><em>Code-specific loaders</em></a>).</p>
 </div>
+<div class="section" id="when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one">
+<h2>When processing multiple files I run out of memory, even if I process them one-by-one<a class="headerlink" href="#when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one" title="Permalink to this headline">¶</a></h2>
+<p>Pynbody lets you have as many files in memory as you can fit, since
+each is stored in a self-contained objection. Clearly, if you try to
+load too many at once, you&#8217;re going to run out of memory.</p>
+<p>However sometimes you might intend to load files one-by-one and still
+find the memory usage is cumulative.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">do_something_with</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If this happens to you, the cause
+is almost certainly that python is not <a class="reference external" href="http://www.digi.com/wiki/developer/index.php/Python_Garbage_Collection">garbage-collecting</a>
+the snapshot.</p>
+<p>You can force python to tidy up by using its <a class="reference external" href="http://docs.python.org/2/library/gc.html">gc module</a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">gc</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">do_something_with</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">s</span>
+    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If you still have problems you may have extra references to the
+snapshot. In python, <tt class="docutils literal"><span class="pre">del</span></tt> only deletes a reference to an object,
+not the object itself. You need to <tt class="docutils literal"><span class="pre">del</span></tt> every reference, or let the
+reference fall out of scope, before the garbage collector will do
+anything.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">gc</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&quot;my_file&quot;</span><span class="p">)</span>
+<span class="n">s2</span> <span class="o">=</span> <span class="n">s</span>
+<span class="k">del</span> <span class="n">s</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># does nothing</span>
+<span class="k">del</span> <span class="n">s2</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># success</span>
+</pre></div>
+</div>
+<p>Note that a <tt class="docutils literal"><span class="pre">SubSnap</span></tt> holds a reference to its parent
+<tt class="docutils literal"><span class="pre">SimSnap</span></tt>. Any references to a <tt class="docutils literal"><span class="pre">SubSnap</span></tt> will keep the parent
+<tt class="docutils literal"><span class="pre">SimSnap</span></tt> alive. On the other hand, a <tt class="docutils literal"><span class="pre">SimArray</span></tt> holds only weak
+references, so it won&#8217;t keep a <tt class="docutils literal"><span class="pre">SimSnap</span></tt> alive.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">gc</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&quot;my_file&quot;</span><span class="p">)</span>
+<span class="n">s2</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">dm</span>
+<span class="n">ar</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>
+<span class="k">del</span> <span class="n">s</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># does nothing</span>
+<span class="k">del</span> <span class="n">s2</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># success, ar alone is left in memory</span>
+</pre></div>
+</div>
+</div>
 </div>
 
 
@@ -155,6 +208,7 @@ for instance.</p>
 <li><a class="reference internal" href="#i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me">I tried to make an image but got a generic-looking error spewed back at me</a></li>
 <li><a class="reference internal" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized">I&#8217;m trying to load a file which I&#8217;m sure is fine, but it says the format isn&#8217;t recognized</a></li>
 <li><a class="reference internal" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar">I&#8217;m using a RAMSES snapshot, but when I try to open it I get bizarre errors about &#8220;No space left on device&#8221; or something similar</a></li>
+<li><a class="reference internal" href="#when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one">When processing multiple files I run out of memory, even if I process them one-by-one</a></li>
 </ul>
 </li>
 </ul>
