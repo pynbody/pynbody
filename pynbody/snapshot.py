@@ -1790,8 +1790,8 @@ class FamilySubSnap(SubSnap):
         else:
             self.base._set_family_array(name, self._unifamily, value, index)
 
-    def _create_family_array(self, array_name, family, ndim, dtype, shared):
-        self.base._create_family_array(array_name, family, ndim, dtype, shared)
+    def _create_family_array(self, array_name, family, ndim, dtype, derived, shared):
+        self.base._create_family_array(array_name, family, ndim, dtype, derived, shared)
 
     def _promote_family_array(self, *args, **kwargs):
         pass
