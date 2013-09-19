@@ -237,7 +237,10 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         #    else:        mpl.colorbar().set_label(units)
 
         if title is not None:
-            p.set_title(title)
+            if not subplot: 
+                p.title(title)
+            else :
+                p.set_title(title)
             
         if filename is not None:
             p.savefig(filename)
