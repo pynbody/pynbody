@@ -106,12 +106,16 @@ def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_st
     ind1_star = ind0_star+nstar
 
     data = read_fortran(f, _type, header['npart'])
-
-    if len(star_mask)>0 :
-        dm_ar[ind0_dm:ind1_dm]=data[~star_mask]
-        star_ar[ind0_star:ind1_star]=data[star_mask]
-    else :
-        dm_ar[ind0_dm:ind1_dm]=data
+    try:
+        if len(star_mask)>0 :
+            dm_ar[ind0_dm:ind1_dm]=data[~star_mask]
+            star_ar[ind0_star:ind1_star]=data[star_mask]
+        else :
+            dm_ar[ind0_dm:ind1_dm]=data
+    except ValueError:
+        # this translates into the data block loaded from disk not being
+        # long enough
+        raise IOError, "Could not load particle block"
 
     f.close()
 

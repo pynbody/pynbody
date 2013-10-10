@@ -11,7 +11,7 @@ imp.reload(metals)
 imp.reload(util)
 
 from .profile import rotation_curve, fourier_profile, density_profile
-from .generic import hist2d, gauss_kde, fourier_map
+from .generic import hist2d, gauss_kde, fourier_map, qprof
 from .stars import sfh, schmidtlaw, satlf, sbprofile, guo
 from .gas import rho_T, temp_profile
 from .metals import mdf, ofefeh

@@ -114,6 +114,7 @@ class TipsySnap(snapshot.SimSnap) :
                 raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
             else :
                 warnings.warn("No readable param file in the run directory or parent directory: using defaults.",RuntimeWarning)
+                self._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
         
         time_unit = None
         try :
