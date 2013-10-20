@@ -109,3 +109,43 @@ def test_unit_array_interaction() :
     assert (x+y).units=='Mpc'
     assert all(y+x == SA([ 1.001] * 10, 'Mpc'))
     assert all(y-x == SA([ -999.] * 10, 'kpc'))
+
+def test_dimensionful_comparison() :
+    # check that dimensionful units compare correctly
+    # see issue 130
+    a1 = SA(np.ones(2),'kpc')
+    a2 = SA(np.ones(2)*2, 'pc')
+    assert (a2<a1).all()
+    assert not (a2>a1).any()
+    a2 = SA(np.ones(2)*1000, 'pc')
+    assert (a1==a2).all()
+    assert (a2<=a2).all()
+
+    a2 = SA(np.ones(2), 'Msol')
+    try:
+        a2<a1
+        assert False, "Comparison should have failed - incompatible units"
+    except pynbody.units.UnitsException :
+        pass
+
+    a2 = SA(np.ones(2))
+    try:
+        a2<a1
+        assert False, "Comparison should have failed - incompatible units"
+    except pynbody.units.UnitsException :
+        pass
+
+    assert (a1<pynbody.units.Unit("0.5 Mpc")).all()
+    assert (a1>pynbody.units.Unit("400 pc")).all()
+
+    # now check with subarrays
+
+    x = pynbody.new(10)
+    x['a'] = SA(np.ones(10),'kpc')
+    x['b'] = SA(2*np.ones(10),'pc')
+
+    y = x[[1,2,5]]
+   
+    assert (y['b']<y['a']).all()
+    assert not (y['b']>y['a']).any()
+    
