@@ -622,7 +622,7 @@ class SimArray(np.ndarray) :
 
 def _unit_aware_comparison(ar, other, comparison_op = None) :
     # guaranteed to be called with ar a SimArray instance
-    if isinstance(other, units.UnitBase) or units.has_units(other) :
+    if units.is_unit_like(other) :
         if units.has_units(ar) :
             # either other is a unit, or an array with a unit If
             # it's an array with a unit that matches our own, we
@@ -630,7 +630,7 @@ def _unit_aware_comparison(ar, other, comparison_op = None) :
             # operation. If it's an array with a unit that doesn't
             # match ours, OR it's a plain unit, we want to
             # convert first.
-            if isinstance(other, units.UnitBase) or other.units!=ar.units :
+            if units.is_unit(other) or other.units!=ar.units :
                 other = other.in_units(ar.units)
         else :
             raise units.UnitsException, "One side of a comparison has units and the other side does not"
