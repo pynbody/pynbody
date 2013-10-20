@@ -109,7 +109,7 @@ def test_derived_array() :
         f['r'][22]+=3
         # Array should not be writable
         assert False
-    except RuntimeError :
+    except (RuntimeError, ValueError, TypeError) :
         pass
 
     f['r'].derived = False
