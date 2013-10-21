@@ -76,7 +76,7 @@ class GadgetBlock(object):
         self.data_type = dtype
         # Types of particle this block contains
         self.p_types = p_types
-
+        
 
 def _output_order_gadget(all_keys):
 
@@ -279,6 +279,7 @@ class GadgetFile(object):
                 t_part = self.header.npart.sum()
                 continue
             # Set the partlen, using our amazing heuristics
+            success = False
             if name[0:4] == b"POS " or name[0:4] == b"VEL ":
                 if block.length == t_part * 24:
                     block.partlen = 24
@@ -286,6 +287,8 @@ class GadgetFile(object):
                 else:
                     block.partlen = 12
                     block.data_type = np.float32
+                block.p_types = self.header.npart!=0
+                success = True
             elif name[0:4] == b"ID  ":
                 # Heuristic for long (64-bit) IDs
                 if block.length == t_part * 4:
@@ -294,13 +297,9 @@ class GadgetFile(object):
                 else:
                     block.partlen = 8
                     block.data_type = np.int64
-            else:
-                if block.length == t_part * 8:
-                    block.partlen = 8
-                    block.data_type = np.float64
-                else:
-                    block.partlen = 4
-                    block.data_type = np.float32
+                block.p_types = self.header.npart!=0
+                success = True
+                
             block.start = fd.tell()
             # Check for the case where the record size overflows an int.
             # If this is true, we can't get record size from the length and we just have to guess
@@ -318,15 +317,26 @@ class GadgetFile(object):
                               filename+" footer for block "+name+"dtype"+str(block.data_type))
             if extra_len >= 2**32:
                 block.length = extra_len
-            # Set up the particle types in the block. This also is a heuristic,
-            # which assumes that blocks are either fully present or not for a
-            # given particle type
-            try:
-                block.p_types = self.get_block_types(block, self.header.npart)
-            except ValueError:
-            # If it fails, try again with a different partlen
-                block.partlen = 8
-                block.p_types = self.get_block_types(block, self.header.npart)
+                
+            if not success :
+                # Figure out what particles are here and what types
+                # they have. This also is a heuristic, which assumes
+                # that blocks are either fully present or not for a
+                # given particle. It also has to try all
+                # possibilities of dimensions of array and data type.
+                for dim, tp in (1,np.float32), (1,np.float64), (3,np.float32), (3,np.float64), (11, np.float32) :
+                    try:
+                        block.data_type = tp
+                        block.partlen = np.dtype(tp).itemsize*dim
+                        block.p_types = self.get_block_types(block, self.header.npart)
+                        success = True
+                        break
+                    except ValueError:
+                        continue
+
+            if not success :
+                raise ValueError, "Encountered a gadget block which could not be interpreted - is it a strange length or data type?"
+                
             self.blocks[name[0:4]] = block
 
         # and we're done.
