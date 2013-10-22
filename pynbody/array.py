@@ -830,6 +830,9 @@ class IndexedSimArray(object) :
     def __len__(self) :
         return len(self._ptr)
 
+    def __reduce__(self) :
+        return SimArray(self).__reduce__()
+
     
     @property
     def shape(self) :
