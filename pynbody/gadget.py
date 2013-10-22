@@ -335,7 +335,7 @@ class GadgetFile(object):
                         continue
 
             if not success :
-                raise ValueError, "Encountered a gadget block which could not be interpreted - is it a strange length or data type?"
+                warnings.warn("Encountered a gadget block %r which could not be interpreted - is it a strange length or data type?"%name, RuntimeWarning)
                 
             self.blocks[name[0:4]] = block
 
