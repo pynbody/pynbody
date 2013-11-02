@@ -705,10 +705,12 @@ class GadgetSnap(snapshot.SimSnap):
         # Check whether the file exists, and get the ".0" right
         try:
             fd = open(filename,'rb')
+            files = [filename]
         except IOError:
             fd = open(filename+".0",'rb')
             # The second time if there is an exception we let it go through
             filename = filename+".0"
+            files = None
         fd.close()
         if filename[-2:] == ".0":
             self._filename = filename[:-2]
@@ -718,9 +720,13 @@ class GadgetSnap(snapshot.SimSnap):
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
         npart = np.array(self._files[0].header.npart)
-        base_filename = filename
-        for i in np.arange(1, files_expected):
-            filename = base_filename[:-1]+str(i)
+        
+        if files is None :
+            # we want to load all files
+            base_filename = filename[:-2]
+            files = [base_filename+"."+str(i) for i in range(files_expected)]
+
+        for filename in files[1:] :
             tmp_file = GadgetFile(filename)
             if not self.check_headers(tmp_file.header, self._files[0].header):
                 warnings.warn("file "+str(
