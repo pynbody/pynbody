@@ -54,7 +54,7 @@ def build_tree(sim) :
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
         # has been triggered by getting an array in the calling thread.
-        pos, vel, mass = sim._get_array('pos'), sim._get_array('vel'), sim._get_array('mass')
+        pos, vel, mass = [np.asanyarray(sim._get_array(x),dtype=np.float64) for x in 'pos','vel','mass']
         sim.kdtree = kdtree.KDTree(pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
     
 def _tree_decomposition(obj) :
