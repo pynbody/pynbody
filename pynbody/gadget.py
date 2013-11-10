@@ -56,7 +56,12 @@ def _to_raw(s) :
         return s
     
 def gadget_type(fam):
-    if fam == None:
+    if isinstance(fam, list) :
+        l = []
+        for sf in fam :
+            l.extend(gadget_type(sf))
+        return l
+    elif fam is None:
         return list(np.arange(0, N_TYPE))
     else:
         return _type_map[fam]
@@ -756,11 +761,15 @@ class GadgetSnap(snapshot.SimSnap):
         #self.properties = {}
 
         # Set up _family_slice
-        for x in _type_map:
-            max_t = _type_map[x]
-            self._family_slice[x] = slice(npart[0:np.min(
-                max_t)].sum(), npart[0:np.max(max_t)+1].sum())
-
+        current = 0
+        for fam in _type_map:
+            g_types = _type_map[fam]
+            length = 0 
+            for f in self._files :
+                length+=sum([f.header.npart[x] for x in g_types])
+            self._family_slice[fam] = slice(current, current+length)
+            current+=length
+            
         # Set up _loadable_keys
         for f in self._files:
             self._loadable_keys = self._loadable_keys.union(
@@ -900,8 +909,11 @@ class GadgetSnap(snapshot.SimSnap):
         else:
             dims = [self.get_block_parts(g_name, fam), ndim]
 
-        p_types = gadget_type(fam)
-
+        if fam is not None :
+            p_types = gadget_type(fam)
+        else :
+            p_types = gadget_type(self.families())
+            
         # Get the data. Get one type at a time and then concatenate.
         # A possible optimisation is to special-case loading all particles.
         data = np.array([], dtype=self._get_array_type(name))
