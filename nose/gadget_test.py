@@ -73,10 +73,10 @@ def test_array_contents() :
     # 10/11/13 - AP - suspect the following tests are incorrect
     # because ordering of file did not agree with pynbody ordering
     
-    #assert(abs(np.mean(snap["pos"]) - 1434.663) < 0.001)
-    #assert(abs(snap.dm["pos"][52][1] - 456.6968) < 0.001)
+    assert(abs(np.mean(snap["pos"]) - 1434.664) < 0.002)
+    assert(abs(snap["pos"][52][1] - 456.69678) < 0.001)
     assert(abs(snap.gas["u"][100] - 438.39496) < 0.001)
-    #assert(abs(snap.dm["mass"][5] - 0.04061608) < 0.001)
+    assert(abs(snap.dm["mass"][5] - 0.04061608) < 0.001)
 
 def test_header() :
     """Check some header properties"""
