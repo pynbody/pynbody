@@ -15,6 +15,7 @@ from . import family
 from . import config
 from . import config_parser
 from . import util
+from . import backcompat
 
 import ConfigParser
 
@@ -31,16 +32,15 @@ import errno
 # if it is not 6
 N_TYPE = 6
 
-_type_map = {}
-for x in family.family_names():
+_type_map = backcompat.OrderedDict({})
+
+for name, gtypes in config_parser.items('gadget-type-mapping') :
     try:
-        pp = [int(q) for q in config_parser.get(
-            'gadget-type-mapping', x).split(",")]
-        qq = np.array(pp)
-        if (qq >= N_TYPE).any() or (qq < 0).any():
+        gtypes = np.array([int(q) for q in gtypes.split(",")])
+        if (gtypes >= N_TYPE).any() or (gtypes < 0).any():
             raise ValueError(
-                "Type specified for family "+x+" is out of bounds ("+pp+").")
-        _type_map[family.get_family(x)] = pp
+                "Type specified for family "+name+" is out of bounds ("+gtypes+").")
+        _type_map[family.get_family(name)] = gtypes
     except ConfigParser.NoOptionError:
         pass
 
