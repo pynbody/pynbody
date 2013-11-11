@@ -766,9 +766,22 @@ for a_, b_ in config_parser.items("default-array-dimensions"):
     _default_units[a_] = Unit(b_)
 
 
-def has_units(obj):
+def has_unit(obj):
     """Returns True if the specified object has a meaningful units attribute"""
     if hasattr(obj, 'units') and isinstance(obj.units, UnitBase):
         return not hasattr(obj.units, '_no_unit')
     else:
         return False
+
+has_units = has_unit
+
+def is_unit(obj) :
+   """Returns True if the specified object represents a unit"""
+
+   return isinstance(obj, UnitBase)
+
+def is_unit_like(obj) :
+   """Returns True if the specified object is itself a unit or
+   otherwise exposes unit information"""
+
+   return is_unit(obj) or has_unit(obj)

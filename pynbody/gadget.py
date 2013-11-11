@@ -15,6 +15,7 @@ from . import family
 from . import config
 from . import config_parser
 from . import util
+from . import backcompat
 
 import ConfigParser
 
@@ -31,16 +32,15 @@ import errno
 # if it is not 6
 N_TYPE = 6
 
-_type_map = {}
-for x in family.family_names():
+_type_map = backcompat.OrderedDict({})
+
+for name, gtypes in config_parser.items('gadget-type-mapping') :
     try:
-        pp = [int(q) for q in config_parser.get(
-            'gadget-type-mapping', x).split(",")]
-        qq = np.array(pp)
-        if (qq >= N_TYPE).any() or (qq < 0).any():
+        gtypes = np.array([int(q) for q in gtypes.split(",")])
+        if (gtypes >= N_TYPE).any() or (gtypes < 0).any():
             raise ValueError(
-                "Type specified for family "+x+" is out of bounds ("+pp+").")
-        _type_map[family.get_family(x)] = pp
+                "Type specified for family "+name+" is out of bounds ("+gtypes+").")
+        _type_map[family.get_family(name)] = gtypes
     except ConfigParser.NoOptionError:
         pass
 
@@ -56,7 +56,12 @@ def _to_raw(s) :
         return s
     
 def gadget_type(fam):
-    if fam == None:
+    if isinstance(fam, list) :
+        l = []
+        for sf in fam :
+            l.extend(gadget_type(sf))
+        return l
+    elif fam is None:
         return list(np.arange(0, N_TYPE))
     else:
         return _type_map[fam]
@@ -76,7 +81,7 @@ class GadgetBlock(object):
         self.data_type = dtype
         # Types of particle this block contains
         self.p_types = p_types
-
+        
 
 def _output_order_gadget(all_keys):
 
@@ -279,6 +284,7 @@ class GadgetFile(object):
                 t_part = self.header.npart.sum()
                 continue
             # Set the partlen, using our amazing heuristics
+            success = False
             if name[0:4] == b"POS " or name[0:4] == b"VEL ":
                 if block.length == t_part * 24:
                     block.partlen = 24
@@ -286,6 +292,8 @@ class GadgetFile(object):
                 else:
                     block.partlen = 12
                     block.data_type = np.float32
+                block.p_types = self.header.npart!=0
+                success = True
             elif name[0:4] == b"ID  ":
                 # Heuristic for long (64-bit) IDs
                 if block.length == t_part * 4:
@@ -294,13 +302,9 @@ class GadgetFile(object):
                 else:
                     block.partlen = 8
                     block.data_type = np.int64
-            else:
-                if block.length == t_part * 8:
-                    block.partlen = 8
-                    block.data_type = np.float64
-                else:
-                    block.partlen = 4
-                    block.data_type = np.float32
+                block.p_types = self.header.npart!=0
+                success = True
+                
             block.start = fd.tell()
             # Check for the case where the record size overflows an int.
             # If this is true, we can't get record size from the length and we just have to guess
@@ -318,15 +322,26 @@ class GadgetFile(object):
                               filename+" footer for block "+name+"dtype"+str(block.data_type))
             if extra_len >= 2**32:
                 block.length = extra_len
-            # Set up the particle types in the block. This also is a heuristic,
-            # which assumes that blocks are either fully present or not for a
-            # given particle type
-            try:
-                block.p_types = self.get_block_types(block, self.header.npart)
-            except ValueError:
-            # If it fails, try again with a different partlen
-                block.partlen = 8
-                block.p_types = self.get_block_types(block, self.header.npart)
+                
+            if not success :
+                # Figure out what particles are here and what types
+                # they have. This also is a heuristic, which assumes
+                # that blocks are either fully present or not for a
+                # given particle. It also has to try all
+                # possibilities of dimensions of array and data type.
+                for dim, tp in (1,np.float32), (1,np.float64), (3,np.float32), (3,np.float64), (11, np.float32) :
+                    try:
+                        block.data_type = tp
+                        block.partlen = np.dtype(tp).itemsize*dim
+                        block.p_types = self.get_block_types(block, self.header.npart)
+                        success = True
+                        break
+                    except ValueError:
+                        continue
+
+            if not success :
+                warnings.warn("Encountered a gadget block %r which could not be interpreted - is it a strange length or data type?"%name, RuntimeWarning)
+                
             self.blocks[name[0:4]] = block
 
         # and we're done.
@@ -695,10 +710,12 @@ class GadgetSnap(snapshot.SimSnap):
         # Check whether the file exists, and get the ".0" right
         try:
             fd = open(filename,'rb')
+            files = [filename]
         except IOError:
             fd = open(filename+".0",'rb')
             # The second time if there is an exception we let it go through
             filename = filename+".0"
+            files = None
         fd.close()
         if filename[-2:] == ".0":
             self._filename = filename[:-2]
@@ -708,9 +725,13 @@ class GadgetSnap(snapshot.SimSnap):
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
         npart = np.array(self._files[0].header.npart)
-        base_filename = filename
-        for i in np.arange(1, files_expected):
-            filename = base_filename[:-1]+str(i)
+        
+        if files is None :
+            # we want to load all files
+            base_filename = filename[:-2]
+            files = [base_filename+"."+str(i) for i in range(files_expected)]
+
+        for filename in files[1:] :
             tmp_file = GadgetFile(filename)
             if not self.check_headers(tmp_file.header, self._files[0].header):
                 warnings.warn("file "+str(
@@ -740,11 +761,15 @@ class GadgetSnap(snapshot.SimSnap):
         #self.properties = {}
 
         # Set up _family_slice
-        for x in _type_map:
-            max_t = _type_map[x]
-            self._family_slice[x] = slice(npart[0:np.min(
-                max_t)].sum(), npart[0:np.max(max_t)+1].sum())
-
+        current = 0
+        for fam in _type_map:
+            g_types = _type_map[fam]
+            length = 0 
+            for f in self._files :
+                length+=sum([f.header.npart[x] for x in g_types])
+            self._family_slice[fam] = slice(current, current+length)
+            current+=length
+            
         # Set up _loadable_keys
         for f in self._files:
             self._loadable_keys = self._loadable_keys.union(
@@ -884,8 +909,11 @@ class GadgetSnap(snapshot.SimSnap):
         else:
             dims = [self.get_block_parts(g_name, fam), ndim]
 
-        p_types = gadget_type(fam)
-
+        if fam is not None :
+            p_types = gadget_type(fam)
+        else :
+            p_types = gadget_type(self.families())
+            
         # Get the data. Get one type at a time and then concatenate.
         # A possible optimisation is to special-case loading all particles.
         data = np.array([], dtype=self._get_array_type(name))

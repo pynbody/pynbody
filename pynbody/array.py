@@ -147,6 +147,7 @@ _units = units
 from .backcompat import property
 from .backcompat import fractions
 import atexit
+import functools
 
 class SimArray(np.ndarray) :
     """
@@ -435,8 +436,7 @@ class SimArray(np.ndarray) :
             r.sim = self.sim
             
         return r
-
-
+    
     def __repr__(self) :
         x = np.ndarray.__repr__(self)
         if not hasattr(self.units, "_no_unit") :
@@ -617,7 +617,38 @@ class SimArray(np.ndarray) :
 
         if getattr(self, '_shared_del', False) :
             _shared_array_unlink(self)
-            
+
+# Set up the correct comparison functions
+
+def _unit_aware_comparison(ar, other, comparison_op = None) :
+    # guaranteed to be called with ar a SimArray instance
+    if units.is_unit_like(other) :
+        if units.has_units(ar) :
+            # either other is a unit, or an array with a unit If
+            # it's an array with a unit that matches our own, we
+            # want to fall straight through to the comparison
+            # operation. If it's an array with a unit that doesn't
+            # match ours, OR it's a plain unit, we want to
+            # convert first.
+            if units.is_unit(other) or other.units!=ar.units :
+                other = other.in_units(ar.units)
+        else :
+            raise units.UnitsException, "One side of a comparison has units and the other side does not"
+
+    return comparison_op(ar,other)
+        
+for f in np.ndarray.__lt__, np.ndarray.__le__, np.ndarray.__eq__, \
+    np.ndarray.__ne__, np.ndarray.__gt__, np.ndarray.__ge__ :
+
+    # N.B. cannot use functools.partial because it doesn't implement the descriptor
+    # protocol 
+    @functools.wraps(f, assigned=("__name__","__doc__"))
+    def wrapper_function(self, other, comparison_op=f) :
+        return _unit_aware_comparison(self, other, comparison_op=comparison_op)
+    
+    setattr(SimArray, f.__name__, wrapper_function)
+
+
 # Now add dirty bit setters to all the operations which are known
 # to modify the numpy array
 
@@ -798,6 +829,9 @@ class IndexedSimArray(object) :
 
     def __len__(self) :
         return len(self._ptr)
+
+    def __reduce__(self) :
+        return SimArray(self).__reduce__()
 
     
     @property

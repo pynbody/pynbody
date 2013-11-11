@@ -54,7 +54,7 @@ def build_tree(sim) :
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
         # has been triggered by getting an array in the calling thread.
-        pos, vel, mass = sim._get_array('pos'), sim._get_array('vel'), sim._get_array('mass')
+        pos, vel, mass = [np.asanyarray(sim._get_array(x),dtype=np.float64) for x in 'pos','vel','mass']
         sim.kdtree = kdtree.KDTree(pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
     
 def _tree_decomposition(obj) :
@@ -67,11 +67,11 @@ def build_tree_or_trees(sim) :
     global _threaded_smooth
     _threaded_smooth = _get_threaded_smooth()
     
-    if not _threaded_smooth :
-        if hasattr(sim,'kdtree') : return
-    else :
+    if _threaded_smooth :
         bits = _tree_decomposition(sim)
         if all(map(hasattr, bits, ['kdtree']*len(bits))) : return
+    else :
+        if hasattr(sim,'kdtree') : return
     
     if config['verbose'] :
         if _threaded_smooth :
@@ -83,11 +83,10 @@ def build_tree_or_trees(sim) :
         import time
         start = time.clock()
 
-    if _threaded_smooth is not None :
+    if _threaded_smooth :
         # trigger any necessary 'lazy' activity from this thread,
         # it won't be available to the individual worker threads
         sim['pos'], sim['vel'], sim['mass']
-        
         _thread_map(build_tree, bits)
     else :
         build_tree(sim)

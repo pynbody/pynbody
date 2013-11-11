@@ -94,14 +94,14 @@ class Sphere(Filter) :
 
     def __call__(self, sim) :
         radius = self.radius
-        if isinstance(radius, units.UnitBase) :
-            radius = radius.ratio(sim["pos"].units,
+        if units.is_unit_like(radius) :
+            radius = radius.in_units(sim["pos"].units,
                                   **sim["pos"].conversion_context())
         distance = ((sim["pos"]-self.cen)**2).sum(axis=1)
         return distance<radius**2
 
     def __repr__(self) :
-        if isinstance(self.radius, units.UnitBase) :
+        if units.is_unit(self.radius) :
 
             return "Sphere('%s', %s)"%(str(self.radius), repr(self.cen))
         else :
@@ -128,15 +128,15 @@ class Cuboid(Filter) :
         self.x1, self.y1, self.z1, self.x2, self.y2, self.z2 = x1,y1,z1,x2,y2,z2
 
     def __call__(self, sim) :
-        x1,y1,z1,x2,y2,z2 = [x.ratio(sim["pos"].units, **sim["pos"].conversion_context())
-                             if isinstance(x, units.UnitBase) else x
+        x1,y1,z1,x2,y2,z2 = [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+                             if units.is_unit_like(x) else x
                              for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
 
         return ((sim["x"]>x1)*(sim["x"]<x2)*(sim["y"]>y1)*(sim["y"]<y2)*(sim["z"]>z1)*(sim["z"]<z2))
 
     def __repr__(self) :
         x1,y1,z1,x2,y2,z2 = ["'%s'"%str(x)
-                             if isinstance(x, units.UnitBase) else x
+                             if units.is_unit_like(x) else x
                              for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
         return "Cuboid(%s, %s, %s, %s, %s, %s)"%(x1,y1,z1,x2,y2,z2)
     
@@ -160,9 +160,9 @@ class Disc(Filter) :
         radius = self.radius
         height = self.height
 
-        if isinstance(radius, units.UnitBase) :
-            radius = radius.ratio(sim["pos"].units, **sim["pos"].conversion_context())
-        if isinstance(height, units.UnitBase) :
+        if units.is_unit_like(radius) :
+            radius = radius.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+        if units.is_unit_like(height) :
             height = height.ratio(sim["pos"].units, **sim["pos"].conversion_context())
         distance = (((sim["pos"]-self.cen)[:,:2])**2).sum(axis=1)
         return (distance<radius**2) * (np.abs(sim["z"]-self.cen[2])<height)
@@ -171,7 +171,7 @@ class Disc(Filter) :
         radius = self.radius
         height = self.height
 
-        radius,height = [("'%s'"%str(x) if isinstance(x, units.UnitBase) else '%.2e'%x) for x in radius,height]
+        radius,height = [("'%s'"%str(x) if units.is_unit_like(x) else '%.2e'%x) for x in radius,height]
 
         return "Disc(%s, %s, %s)"%(radius, height, repr(self.cen))
 
@@ -190,21 +190,20 @@ class BandPass(Filter) :
         self._max = max
 
     def __call__(self, sim) :
-        min = self._min
-        max = self._max
+        min_ = self._min
+        max_ = self._max
         prop = self._prop
 
+        if units.is_unit_like(min_) :
+            min_ = min_.in_units(sim[prop].units, **sim.conversion_context())
+        if units.is_unit_like(max_) :
+            max_ = max_.in_units(sim[prop].units, **sim.conversion_context())
 
-        if isinstance(min, units.UnitBase) :
-            min = min.ratio(sim[prop].units, **sim.conversion_context())
-        if isinstance(max, units.UnitBase) :
-            max = max.ratio(sim[prop].units, **sim.conversion_context())
-
-        return ((sim[prop]>min)*(sim[prop]<max))
+        return ((sim[prop]>min_)*(sim[prop]<max_))
 
     def __repr__(self) :
-        min, max = [("'%s'"%str(x) if isinstance(x, units.UnitBase) else '%.2e'%x) for x in self._min, self._max]
-        return "BandPass('%s', %s, %s)"%(self._prop, min, max)
+        min_, max_ = [("'%s'"%str(x) if units.is_unit_like(x) else '%.2e'%x) for x in self._min, self._max]
+        return "BandPass('%s', %s, %s)"%(self._prop, min_, max_)
 
 class HighPass(Filter) :
     def __init__(self, prop, min) :
@@ -219,19 +218,18 @@ class HighPass(Filter) :
 
 
     def __call__(self, sim) :
-        min = self._min
+        min_ = self._min
 
         prop = self._prop
 
+        if units.is_unit_like(min_) :
+            min_ = min_.in_units(sim[prop].units, **sim.conversion_context())
 
-        if isinstance(min, units.UnitBase) :
-            min = min.ratio(sim[prop].units, **sim.conversion_context())
 
-
-        return (sim[prop]>min)
+        return (sim[prop]>min_)
 
     def __repr__(self) :
-        min = ("'%s'"%str(self._min) if isinstance(self._min, units.UnitBase) else '%.2e'%self._min)
+        min = ("'%s'"%str(self._min) if units.is_unit_like(self._min) else '%.2e'%self._min)
         return "HighPass('%s', %s)"%(self._prop, min)
 
 
@@ -248,16 +246,16 @@ class LowPass(Filter) :
 
 
     def __call__(self, sim) :
-        max = self._max
+        max_ = self._max
 
         prop = self._prop
 
 
-        if isinstance(max, units.UnitBase) :
-            max = max.ratio(sim[prop].units, **sim.conversion_context())
+        if units.is_unit_like(max_) :
+            max_ = max_.ratio(sim[prop].units, **sim.conversion_context())
 
 
-        return (sim[prop]<max)
+        return (sim[prop]<max_)
 
     def __repr__(self) :
         max = ("'%s'"%str(self._max) if isinstance(self._max, units.UnitBase) else '%.2e'%self._max)
