@@ -109,13 +109,13 @@ def smooth(self):
 
     _threaded_smooth = _get_threaded_smooth()
 
-    if _threaded_smooth is not None :
+    if _threaded_smooth :
         _thread_map(kdtree.KDTree.populate,
                     _get_tree_objects(self),
                     _tree_decomposition(sm),
                     ['hsm']*_threaded_smooth,
                     [config['sph']['smooth-particles']]*_threaded_smooth)
-        
+
         sm/=_threaded_smooth**0.3333
     
             
@@ -132,7 +132,7 @@ def smooth(self):
 @snapshot.SimSnap.stable_derived_quantity
 def rho(self):
     build_tree_or_trees(self)
-    if config['verbose']: print>>sys.stderr, 'Calculating density with %d nearest neighbours'%config['sph']['smooth-particles']
+    if config['verbose']: print>>sys.stderr, 'Calculating SPH density'
     rho = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
 
     smooth = self['smooth']
@@ -143,9 +143,7 @@ def rho(self):
 
     _threaded_smooth = _get_threaded_smooth()
 
-    if _threaded_smooth is  None :
-        self.kdtree.populate(rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
-    else :
+    if _threaded_smooth :
         _thread_map(kdtree.KDTree.populate,
                     _get_tree_objects(self),
                     _tree_decomposition(rho),
@@ -153,7 +151,9 @@ def rho(self):
                     [config['sph']['smooth-particles']]*_threaded_smooth,
                     _tree_decomposition(smooth))
         rho*=_threaded_smooth
-        
+    else :
+        self.kdtree.populate(rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
+    
     if config['tracktime'] : 
         end = time.time()
         print>>sys.stderr, 'Density calculation done in %5.3g s'%(end-start)
@@ -494,12 +494,13 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
 
-    track_time = config["tracktime"] and not force_quiet
-    verbose = config["verbose"] and not force_quiet
-
     
     import os, os.path
     global config
+
+
+    track_time = config["tracktime"] and not force_quiet
+    verbose = config["verbose"] and not force_quiet
 
     snap_proxy = {}
     

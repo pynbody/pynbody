@@ -1,9 +1,10 @@
 #ifndef SMOOTH_HINCLUDED
 #define SMOOTH_HINCLUDED
 
+#include <stdbool.h>
 #include "kd.h"
 
-#define RESMOOTH_SAFE  10
+#define RESMOOTH_SAFE  500
 
 #define M_1_PI  0.31830988618379067154
 
@@ -34,6 +35,7 @@ typedef struct smContext {
 
     int pin,pi,pNext;
     float ax,ay,az;
+    bool warnings; // added by AP to keep track of whether a memory-overrun  warning has been issued
 	} * SMX;
 
 
