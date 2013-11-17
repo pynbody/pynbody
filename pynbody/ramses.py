@@ -141,6 +141,8 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
     offset = np.array(header['ng'],dtype='f8')/2
     offset-=0.5
 
+    coords = np.zeros(3,dtype=_float_type)
+
     for level in xrange(maxlevel or header['nlevelmax']) :
 
         # loop through those CPUs with grid data (includes ghost regions)
@@ -154,8 +156,13 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
 
                 # store the coordinates in temporary arrays. We only want
                 # to copy it if the cell is not refined
-                x0,y0,z0 = [read_fortran(f, _float_type, n_per_level[level,cpu-1]) for ar in range(ndim)]
+                coords = [read_fortran(f, _float_type, n_per_level[level,cpu-1]) for ar in range(ndim)]
 
+                
+                # stick on zeros if we're in less than 3D
+                coords+=[np.zeros_like(coords[0]) for ar in range(3-ndim)]
+
+                
                 skip_fortran(f,1 # father index
                               + 2*ndim # nbor index
                               + 2*(2**ndim) # son index,cpumap,refinement map
@@ -166,9 +173,11 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
                 if level==maxlevel :
                     refine[:] = 0
 
-                x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
+                
+                coords[0]-=offset[0]; coords[1]-=offset[1]; coords[2]-=offset[2]
+                # x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
 
-                yield (x0,y0,z0),refine,cpuf,level
+                yield coords,refine,cpuf,level
 
 
             else :
@@ -190,7 +199,7 @@ def _cpui_count_gas_cells(level_iterator_args) :
 
 @remote_exec
 def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator_args) :
-    dims = [pos_array[:,i] for i in range(3)]
+    dims = [pos_array[:,i] for i in range(ndim)]
     subgrid_index = np.arange(2**ndim)[:,np.newaxis]
     subgrid_z = np.floor((subgrid_index)/4)
     subgrid_y = np.floor((subgrid_index-4*subgrid_z)/2)
@@ -209,7 +218,7 @@ def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator
         mark = np.where(refine==0)
 
         i1 = i0+len(mark[0])
-        for q,d in zip(dims,[x0,y0,z0]) :
+        for q,d in zip(dims,[x0,y0,z0][:ndim]) :
             q[i0:i1]=d[mark]
 
         smooth_array[i0:i1]=dx
@@ -316,7 +325,7 @@ class RamsesSnap(snapshot.SimSnap) :
          *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
          """
     
-        warnings.warn("RamsesSnap is in development and may not behave well", RuntimeWarning)
+        
         
         global config
         super(RamsesSnap,self).__init__()
@@ -331,8 +340,11 @@ class RamsesSnap(snapshot.SimSnap) :
         self._filename = dirname
         self._load_infofile()
 
-        assert self._info['ndim']==3
-        self._ndim = 3 # in future could support lower dimensions
+        assert self._info['ndim']<=3
+        if self._info['ndim']<3 :
+            warnings.warn("Snapshots with less than three dimensions are supported only experimentally", RuntimeWarning)
+            
+        self._ndim = self._info['ndim']
         
         self.ncpu = self._info['ncpu']
 
@@ -399,6 +411,9 @@ class RamsesSnap(snapshot.SimSnap) :
         self._dm_i0 = []
         self._star_i0 = []
 
+        if not os.path.exists(self._particle_filename(1)) :
+            return 0,0
+        
         results = remote_map(self.reader_pool,
                              _cpui_count_particles,
                              [self._particle_filename(i) for i in self._cpus])
@@ -470,6 +485,10 @@ class RamsesSnap(snapshot.SimSnap) :
         for i in [hydro_blocks,grav_blocks][mode] :
             if i not in self.gas :
                 self.gas._create_array(i)
+            if self._ndim<3 and i[-1]=='z' :
+                continue
+            if self._ndim<2 and i[-1]=='y' :
+                continue
             dims.append(self.gas[i])
             self.gas[i].set_default_units()
             

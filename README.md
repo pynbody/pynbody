@@ -17,6 +17,7 @@ If your python with distutils is installed and properly configured, you can simp
 $ git clone https://github.com/pynbody/pynbody
 $ cd pynbody
 $ python setup.py install
+$ cd ..
 $ python
 >>> import pynbody
 ```

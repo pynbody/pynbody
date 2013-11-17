@@ -639,8 +639,123 @@ class AmigaGrpCatalogue(HaloCatalogue):
             return False
 
 
+class SubfindCatalogue(HaloCatalogue):
+    """
+        Class to handle catalogues produced by the SubFind halo finder. 
+        Currently only imports groups (top level), no specific subhalos.
+        Groups are sorted by mass (descending), most massive group is halo[0].
+    """
+    
+    def __init__(self,sim):
+        self._base=weakref.ref(sim)
+        self._halos= {}
+        HaloCatalogue.__init__(self)
+        self.halodir=self._name_of_catalogue(sim)
+        self.tasks=self._readheader()
+        self.ids=self._read_ids()
+        self.data_len, self.data_off=self._read_groups()
+
+    def _get_halo(self,i):
+        x = Halo(i, self, self.base, np.where(np.in1d(self.base['iord'],self.ids[self.data_off[i]:self.data_off[i]+self.data_len[i]])))
+        x._descriptor = "halo_"+str(i)
+        return x
+    
+    def _readheader(self):
+        header=np.array([], dtype='int32')
+        filename=self.halodir+"/subhalo_tab_"+self.halodir.split("_")[-1]+ ".0"
+        fd=open(filename, "rb")
+        #read header: this is strange but it works: there is an extra value in header which we delete in the next step
+        header1=np.fromfile(fd, dtype='int32', sep="", count=8)
+        header=np.delete(header1,4)
+        fd.close()
+        return header[4]
+
+    def _read_ids(self):
+        data_ids=np.array([], dtype='int32')
+        for n in range(0,self.tasks):
+            filename=self.halodir+"/subhalo_ids_"+self.halodir.split("_")[-1]+ "."+str(n)
+            fd=open(filename,"rb")
+            #for some reason there is an extra value in header which we delete in the next step
+            header1=np.fromfile(fd, dtype='int32', sep="", count=7)
+            header=np.delete(header1,4)
+            #optional: include a check if both headers agree (they better)
+            ids=np.fromfile(fd, dtype='int32', sep="", count=header[2] )
+            fd.close()
+            data_ids=np.append(data_ids, ids)
+        return data_ids
+            
+    def _read_groups(self, ReadSubs=False, ReadAll=False):
+        data_len=np.array([], dtype='int32')
+        data_off=np.array([], dtype='int32')
+        for n in range(0,self.tasks):
+            filename=self.halodir+"/subhalo_tab_"+self.halodir.split("_")[-1]+"." +str(n)
+            fd=open(filename, "rb")
+            #read header (because header[0,5] changes between different files, header[4] does not) [same issue as with other headers]
+            header1=np.fromfile(fd, dtype='int32', sep="", count=8)
+            header=np.delete(header1,4)
+            #read groups
+            if header[0]>0:
+                len=np.fromfile(fd, dtype='int32', sep="", count=header[0])
+                offset=np.fromfile(fd, dtype='int32', sep="", count=header[0])
+                #the following is for completeness, none of this information is currently used
+                if ReadAll:
+                    mass=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    pos=np.fromfile(fd, dtype='float32', sep="", count=3*header[0])
+                    mmean200=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    rmean200=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    mcrit200=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    rcrit200=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    mtop200=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    rtop200=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    contcount=np.fromfile(fd, dtype='int32', sep="", count=header[0])
+                    contmass=np.fromfile(fd, dtype='float32', sep="", count=header[0])
+                    nsubs=np.fromfile(fd, dtype='int32', sep="", count=header[0])
+                    firstsub=np.fromfile(fd, dtype='int32', sep="", count=header[0])
+            #read subhalos only if expected to exist from header AND if ReadSubs==True (default False), because this info is not used yet
+            if header[5]>0 and ReadSubs:
+                print 'reading subs'
+                sublen=np.fromfile(fd, dtype='int32', sep="", count=header[5])
+                suboff=np.fromfile(fd, dtype='int32', sep="", count=header[5])
+                if ReadAll:
+                    subparent=np.fromfile(fd, dtype='int32', sep="", count=header[5])
+                    submass=np.fromfile(fd, dtype='float32', sep="", count=header[5])
+                    subpos=np.fromfile(fd, dtype='float32', sep="", count=3*header[5])
+                    subvel=np.fromfile(fd, dtype='float32', sep="", count=3*header[5])
+                    subCM=np.fromfile(fd, dtype='float32', sep="", count=3*header[5])
+                    subspin=np.fromfile(fd, dtype='float32', sep="", count=3*header[5])
+                    subVelDisp=np.fromfile(fd, dtype='float32', sep="", count=header[5])
+                    subVMax=np.fromfile(fd, dtype='float32', sep="", count=header[5])
+                    subVMaxRad=np.fromfile(fd, dtype='float32', sep="", count=header[5])
+                    subHalfMassRad=np.fromfile(fd, dtype='float32', sep="", count=header[5])
+                    subMostBound=np.fromfile(fd, dtype='int32', sep="", count=header[5])
+                    subVMaxRad=np.fromfile(fd, dtype='float32', sep="", count=header[5])
+                    #FIX: reformat 3D arrays (reshape ?) if they are supposed to be used
+            fd.close()
+            data_len=np.append(data_len, len)
+            data_off=np.append(data_off, offset)
+           
+        return data_len, data_off
+
+    @staticmethod
+    def _name_of_catalogue(sim) :
+        snapnum = os.path.basename(os.path.dirname(sim.filename)).split("_")[-1]
+        parent_dir = os.path.dirname(os.path.dirname(sim.filename))
+        return parent_dir+"/groups_"+snapnum
+
+    @property
+    def base(self):
+        return self._base()
+
+    @staticmethod
+    def _can_load(sim):
+        if os.path.exists(SubfindCatalogue._name_of_catalogue(sim)):
+            return True
+        else:
+            return False
+            
+
 # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
 # want to use it, but an AHFCatalogue will probably be on-disk too.
 
-_halo_classes = [AmigaGrpCatalogue, AHFCatalogue]
+_halo_classes = [AmigaGrpCatalogue, AHFCatalogue, SubfindCatalogue]
 _runable_halo_classes = [AHFCatalogue]

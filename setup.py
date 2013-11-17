@@ -82,7 +82,8 @@ extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
                       '-fstrict-aliasing',
                       '-std=c99',
                       '-Wall',
-                      '-O0']
+                      '-O0',
+                      '-g']
 
 extra_link_args = []
 

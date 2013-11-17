@@ -23,6 +23,7 @@ float mid_y = (y2+y1)/2;
 
 #else
 #define pixel_dx dx
+#define pixel_dy dy
 #define X_TO_XI(xpos) int((xpos-x1)/dx)
 #define XI_TO_X(xpix) (dx*xpix+x_start)
 #define Y_TO_YI(ypos) int((ypos-y1)/dy)
@@ -92,7 +93,7 @@ for(int i=0; i<n_part; i++) {
 
 
 #ifndef PERSPECTIVE
-      if( (MAX_D_OVER_H*sm_i/pixel_dx<1 && MAX_D_OVER_H*sm_i/pixel_dx<1)) {
+      if( (MAX_D_OVER_H*sm_i/pixel_dx<1 && MAX_D_OVER_H*sm_i/pixel_dy<1)) {
       
       float z_pixel = z1;
 
