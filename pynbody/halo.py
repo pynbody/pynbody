@@ -650,8 +650,11 @@ class SubfindCatalogue(HaloCatalogue):
         self._base=weakref.ref(sim)
         self._halos= {}
         HaloCatalogue.__init__(self)
+        self.dtype_int=sim['iord'].dtype
+        #self.dtype_flt=sim['x'].dtype #currently not used, but relevant for double precision Subfind output
         self.halodir=self._name_of_catalogue(sim)
-        self.tasks=self._readheader()
+        self.header=self._readheader()
+        self.tasks=self.header[4]
         self.ids=self._read_ids()
         self.data_len, self.data_off=self._read_groups()
 
@@ -668,10 +671,10 @@ class SubfindCatalogue(HaloCatalogue):
         header1=np.fromfile(fd, dtype='int32', sep="", count=8)
         header=np.delete(header1,4)
         fd.close()
-        return header[4]
+        return header#[4]
 
     def _read_ids(self):
-        data_ids=np.array([], dtype='int32')
+        data_ids=np.array([], dtype=self.dtype_int)
         for n in range(0,self.tasks):
             filename=self.halodir+"/subhalo_ids_"+self.halodir.split("_")[-1]+ "."+str(n)
             fd=open(filename,"rb")
@@ -679,7 +682,7 @@ class SubfindCatalogue(HaloCatalogue):
             header1=np.fromfile(fd, dtype='int32', sep="", count=7)
             header=np.delete(header1,4)
             #optional: include a check if both headers agree (they better)
-            ids=np.fromfile(fd, dtype='int32', sep="", count=header[2] )
+            ids=np.fromfile(fd, dtype=self.dtype_int, sep="", count=-1 )
             fd.close()
             data_ids=np.append(data_ids, ids)
         return data_ids
@@ -735,12 +738,19 @@ class SubfindCatalogue(HaloCatalogue):
             data_off=np.append(data_off, offset)
            
         return data_len, data_off
-
+            
     @staticmethod
     def _name_of_catalogue(sim) :
+        #standard path for multiple snapshot files
         snapnum = os.path.basename(os.path.dirname(sim.filename)).split("_")[-1]
         parent_dir = os.path.dirname(os.path.dirname(sim.filename))
-        return parent_dir+"/groups_"+snapnum
+        if os.path.exists(parent_dir+"/groups_"+snapnum):
+            return parent_dir+"/groups_"+snapnum
+        #alternative path if snapshot is single file
+        else:
+            snapnum = os.path.basename(sim.filename).split("_")[-1]
+            parent_dir = os.path.dirname(sim.filename)
+            return parent_dir+"/groups_"+snapnum
 
     @property
     def base(self):
