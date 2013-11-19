@@ -188,13 +188,12 @@ def index_center(sim, **kwargs) :
 def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
     """
 
-    Use stars from a spehre to calculate center of velocity. The size
+    Use stars from a sphere to calculate center of velocity. The size
     of the sphere is given by the ``cen_size`` keyword and defaults to
     1 kpc.
 
 
     """
-
 
     if config['verbose'] :
         print "Finding halo velocity center..."
@@ -217,7 +216,7 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
     if retcen:  return vcen
     else:  sim.ancestor["vel"]-=vcen
 
-def center(sim, mode=None, retcen=False, vel=True, **kwargs) :
+def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
     """
 
     Determine the center of mass of the given particles using the
@@ -248,7 +247,7 @@ def center(sim, mode=None, retcen=False, vel=True, **kwargs) :
      particles to be used for centering
 
     *vel*: if True, translate velocities so that the velocity of the
-    central 1kpc is zeroed
+    central 1kpc (default) is zeroed. Other values can be passed with cen_size.
     """
 
     global config
@@ -270,4 +269,6 @@ def center(sim, mode=None, retcen=False, vel=True, **kwargs) :
         sim.ancestor["pos"]-=cen
 
     if vel :
-        vel_center(sim, cen_size = "1 kpc")
+        #vel_center(sim, cen_size = "1 kpc")
+        vel_center(sim, cen_size=cen_size)
+
