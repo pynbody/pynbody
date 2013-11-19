@@ -255,7 +255,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         nvar = nvar_file
         dims = dims[:nvar]
     elif nvar_file>nvar :
-        warnings.warn("More hydro variables are in this RAMSES dump than are defined in config.ini", RuntimeWarning)
+        warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)"%(nvar_file,nvar), RuntimeWarning)
 
     for level in xrange(maxlevel or header['nlevelmax']) :
 
@@ -340,6 +340,14 @@ class RamsesSnap(snapshot.SimSnap) :
         self._filename = dirname
         self._load_infofile()
 
+        # determine whether we have explicit information about
+        # what particle blocks are present
+        self._new_format = False
+        self._particle_blocks = self._info.get('particle-blocks',particle_blocks)
+        if 'particle-blocks' in self._info :
+            self._new_format = True
+            self._particle_blocks = ['x','y','z','vx','vy','vz']+self._particle_blocks[2:]
+
         assert self._info['ndim']<=3
         if self._info['ndim']<3 :
             warnings.warn("Snapshots with less than three dimensions are supported only experimentally", RuntimeWarning)
@@ -383,6 +391,12 @@ class RamsesSnap(snapshot.SimSnap) :
                         self._info[name] = int(val)
                 except ValueError :
                     self._info[name] = val
+        f = file(self._filename+"/header_"+_timestep_id(self._filename)+".txt")
+        # most of this file is unhelpful, but in the latest ramses
+        # version, there is information on the particle fields present
+        for l in f :
+            if "level" in l :
+                self._info['particle-blocks']=l.split()
 
     def _particle_filename(self, cpu_id) :
         return self._filename+"/part_"+self._timestep_id+".out"+_cpu_id(cpu_id)
@@ -511,13 +525,17 @@ class RamsesSnap(snapshot.SimSnap) :
                    self._cpui_level_iterator_args(),
                    self._gas_i0,
                    [mode]*len(self._cpus))
+
+        if mode is _gv_load_gravity :
+            # potential is awkwardly in expected units divided by box size
+            self.gas['phi']*=self._info['boxlen']
  
         if config['verbose'] :
             print>>sys.stderr, "done"
 
                               
     def _load_particle_block(self, blockname) :
-        offset = particle_blocks.index(blockname)
+        offset = self._particle_blocks.index(blockname)
         _type = np.dtype(particle_format[offset])
         ind0_dm = 0
         ind0_star = 0
@@ -546,6 +564,15 @@ class RamsesSnap(snapshot.SimSnap) :
                    self._star_mask,
                    self._nstar)
         
+        # The potential is awkwardly not in physical units, but in 
+        # physical units divided by the box size. This was different
+        # in an intermediate version, but then later made consistent
+        # with the AMR phi output. So, we need to make a correction here
+        # IF we are dealing with the latest ramses format.
+
+        if self._new_format and blockname is 'phi' :
+            self.dm['phi']*=self._info['boxlen']
+            self.star['phi']*=self._info['boxlen']
 
     
 
@@ -585,7 +612,7 @@ class RamsesSnap(snapshot.SimSnap) :
                 for array_1D in self._array_name_ND_to_1D(array_name) :
                     self._load_array(array_1D, fam)
 
-            elif array_name in particle_blocks :
+            elif array_name in self._particle_blocks :
                 self._load_particle_block(array_name)
             else :
                 raise IOError, "No such array on disk"
