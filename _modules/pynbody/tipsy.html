@@ -178,6 +178,7 @@
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;Could not find .param file for this run. Place it in the run&#39;s directory or parent directory.&quot;</span>
             <span class="k">else</span> <span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;No readable param file in the run directory or parent directory: using defaults.&quot;</span><span class="p">,</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="p">[</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;G&#39;</span><span class="p">,</span> <span class="s">&#39;1 kpc&#39;</span><span class="p">,</span> <span class="s">&#39;1e10 Msol&#39;</span><span class="p">)]</span>
         
         <span class="n">time_unit</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="k">try</span> <span class="p">:</span>

@@ -263,6 +263,12 @@ particle family.  See the description of
 
 </dd></dl>
 
+<dl class="function">
+<dt id="pynbody.array.wrapper_function">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">wrapper_function</tt><big>(</big><em>self</em>, <em>other</em>, <em>comparison_op=&lt;slot wrapper '__ge__' of 'numpy.ndarray' objects&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#wrapper_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.wrapper_function" title="Permalink to this definition">¶</a></dt>
+<dd><p>x.__ge__(y) &lt;==&gt; x&gt;=y</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="pynbody.array.w">
 <tt class="descclassname">pynbody.array.</tt><tt class="descname">w</tt><a class="headerlink" href="#pynbody.array.w" title="Permalink to this definition">¶</a></dt>
@@ -283,6 +289,12 @@ self.ndim &lt; 2.</p>
 <span class="go">array([ 1.,  2.,  3.,  4.])</span>
 </pre></div>
 </div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pynbody.array.f">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">f</tt><a class="headerlink" href="#pynbody.array.f" title="Permalink to this definition">¶</a></dt>
+<dd><p>x.__ge__(y) &lt;==&gt; x&gt;=y</p>
 </dd></dl>
 
 <dl class="function">
@@ -517,7 +529,7 @@ to the ancestor <em>relative_to</em>, such that relative_to[get_index_list(relat
 
 <dl class="method">
 <dt id="pynbody.snapshot.SimSnap.intersect">
-<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x1b7c7d0&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x39577d0&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the set intersection of this simulation view with another view
 of the same simulation</p>
 </dd></dl>
@@ -858,9 +870,28 @@ to given units.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pynbody.units.has_units">
-<tt class="descclassname">pynbody.units.</tt><tt class="descname">has_units</tt><big>(</big><em>obj</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#has_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.has_units" title="Permalink to this definition">¶</a></dt>
+<dt id="pynbody.units.has_unit">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">has_unit</tt><big>(</big><em>obj</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#has_unit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.has_unit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the specified object has a meaningful units attribute</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.units.has_units">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">has_units</tt><big>(</big><em>obj</em><big>)</big><a class="headerlink" href="#pynbody.units.has_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the specified object has a meaningful units attribute</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.units.is_unit">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">is_unit</tt><big>(</big><em>obj</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#is_unit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.is_unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the specified object represents a unit</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.units.is_unit_like">
+<tt class="descclassname">pynbody.units.</tt><tt class="descname">is_unit_like</tt><big>(</big><em>obj</em><big>)</big><a class="reference internal" href="_modules/pynbody/units.html#is_unit_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.is_unit_like" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the specified object is itself a unit or
+otherwise exposes unit information</p>
 </dd></dl>
 
 </div>

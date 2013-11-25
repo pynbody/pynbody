@@ -830,12 +830,25 @@
     <span class="n">_default_units</span><span class="p">[</span><span class="n">a_</span><span class="p">]</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">b_</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="has_units"><a class="viewcode-back" href="../../essentials.html#pynbody.units.has_units">[docs]</a><span class="k">def</span> <span class="nf">has_units</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<div class="viewcode-block" id="has_unit"><a class="viewcode-back" href="../../essentials.html#pynbody.units.has_unit">[docs]</a><span class="k">def</span> <span class="nf">has_unit</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns True if the specified object has a meaningful units attribute&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">):</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&#39;_no_unit&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span></div>
+        <span class="k">return</span> <span class="bp">False</span>
+</div>
+<span class="n">has_units</span> <span class="o">=</span> <span class="n">has_unit</span>
+
+<div class="viewcode-block" id="is_unit"><a class="viewcode-back" href="../../essentials.html#pynbody.units.is_unit">[docs]</a><span class="k">def</span> <span class="nf">is_unit</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="p">:</span>
+   <span class="sd">&quot;&quot;&quot;Returns True if the specified object represents a unit&quot;&quot;&quot;</span>
+
+   <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="is_unit_like"><a class="viewcode-back" href="../../essentials.html#pynbody.units.is_unit_like">[docs]</a><span class="k">def</span> <span class="nf">is_unit_like</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="p">:</span>
+   <span class="sd">&quot;&quot;&quot;Returns True if the specified object is itself a unit or</span>
+<span class="sd">   otherwise exposes unit information&quot;&quot;&quot;</span>
+
+   <span class="k">return</span> <span class="n">is_unit</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">or</span> <span class="n">has_unit</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

@@ -170,12 +170,16 @@
     <span class="n">ind1_star</span> <span class="o">=</span> <span class="n">ind0_star</span><span class="o">+</span><span class="n">nstar</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">])</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">star_mask</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">:</span>
-        <span class="n">dm_ar</span><span class="p">[</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">star_mask</span><span class="p">]</span>
-        <span class="n">star_ar</span><span class="p">[</span><span class="n">ind0_star</span><span class="p">:</span><span class="n">ind1_star</span><span class="p">]</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">star_mask</span><span class="p">]</span>
-    <span class="k">else</span> <span class="p">:</span>
-        <span class="n">dm_ar</span><span class="p">[</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span><span class="o">=</span><span class="n">data</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">star_mask</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">:</span>
+            <span class="n">dm_ar</span><span class="p">[</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">star_mask</span><span class="p">]</span>
+            <span class="n">star_ar</span><span class="p">[</span><span class="n">ind0_star</span><span class="p">:</span><span class="n">ind1_star</span><span class="p">]</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">star_mask</span><span class="p">]</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">dm_ar</span><span class="p">[</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span><span class="o">=</span><span class="n">data</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="c"># this translates into the data block loaded from disk not being</span>
+        <span class="c"># long enough</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Could not load particle block&quot;</span>
 
     <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 

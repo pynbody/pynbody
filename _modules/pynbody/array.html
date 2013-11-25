@@ -211,6 +211,7 @@
 <span class="kn">from</span> <span class="nn">.backcompat</span> <span class="kn">import</span> <span class="nb">property</span>
 <span class="kn">from</span> <span class="nn">.backcompat</span> <span class="kn">import</span> <span class="n">fractions</span>
 <span class="kn">import</span> <span class="nn">atexit</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 
 <div class="viewcode-block" id="SimArray"><a class="viewcode-back" href="../../essentials.html#pynbody.array.SimArray">[docs]</a><span class="k">class</span> <span class="nc">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -499,8 +500,7 @@
             <span class="n">r</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
             
         <span class="k">return</span> <span class="n">r</span>
-
-
+    
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">)</span> <span class="p">:</span>
@@ -681,10 +681,41 @@
 
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_shared_del&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span> <span class="p">:</span>
             <span class="n">_shared_array_unlink</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            
+
+<span class="c"># Set up the correct comparison functions</span>
+</div>
+<span class="k">def</span> <span class="nf">_unit_aware_comparison</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_op</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+    <span class="c"># guaranteed to be called with ar a SimArray instance</span>
+    <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">has_units</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="p">:</span>
+            <span class="c"># either other is a unit, or an array with a unit If</span>
+            <span class="c"># it&#39;s an array with a unit that matches our own, we</span>
+            <span class="c"># want to fall straight through to the comparison</span>
+            <span class="c"># operation. If it&#39;s an array with a unit that doesn&#39;t</span>
+            <span class="c"># match ours, OR it&#39;s a plain unit, we want to</span>
+            <span class="c"># convert first.</span>
+            <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">units</span><span class="o">!=</span><span class="n">ar</span><span class="o">.</span><span class="n">units</span> <span class="p">:</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">,</span> <span class="s">&quot;One side of a comparison has units and the other side does not&quot;</span>
+
+    <span class="k">return</span> <span class="n">comparison_op</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span><span class="n">other</span><span class="p">)</span>
+        
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__lt__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__le__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__eq__</span><span class="p">,</span> \
+    <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__ne__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__gt__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__ge__</span> <span class="p">:</span>
+
+    <span class="c"># N.B. cannot use functools.partial because it doesn&#39;t implement the descriptor</span>
+    <span class="c"># protocol </span>
+    <span class="nd">@functools.wraps</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">assigned</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;__name__&quot;</span><span class="p">,</span><span class="s">&quot;__doc__&quot;</span><span class="p">))</span>
+<div class="viewcode-block" id="wrapper_function"><a class="viewcode-back" href="../../essentials.html#pynbody.array.wrapper_function">[docs]</a>    <span class="k">def</span> <span class="nf">wrapper_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_op</span><span class="o">=</span><span class="n">f</span><span class="p">)</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">_unit_aware_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_op</span><span class="o">=</span><span class="n">comparison_op</span><span class="p">)</span>
+    </div>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">SimArray</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="n">wrapper_function</span><span class="p">)</span>
+
+
 <span class="c"># Now add dirty bit setters to all the operations which are known</span>
 <span class="c"># to modify the numpy array</span>
-</div>
+
 <span class="k">def</span> <span class="nf">_dirty_fn</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="p">:</span>
     <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
@@ -862,6 +893,9 @@
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">SimArray</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">()</span>
 
     
     <span class="nd">@property</span>

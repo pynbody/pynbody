@@ -80,8 +80,23 @@ snapshot.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="pynbody.analysis.angmom.ang_mom_vec_units">
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">ang_mom_vec_units</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#ang_mom_vec_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.ang_mom_vec_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the angular momentum vector of the specified snapshot
+with correct units.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.angmom.spin_parameter">
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">spin_parameter</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#spin_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.spin_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the spin parameter lambda&#8217; of a centered halo
+as defined in eq. (5) of Bullock et al. 2001
+(2001MNRAS.321..559B).</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x366f488&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x54d2cf8&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -974,6 +989,32 @@ initialize.</p>
 <p><em>rmin</em>: minimum radius for particle selection in kpc</p>
 <p><em>rmax</em>: maximum radius for particle selection in kpc</p>
 <p><em>zmax</em>: maximum height to consider in kpc</p>
+<p><strong>Optional Keywords</strong>:</p>
+<dl class="docutils">
+<dt><em>ndim</em>: if ndim=2, an edge-on projected profile is produced,</dt>
+<dd>i.e. density is in units of mass/pc^2. If ndim=3 a volume
+profile is made, i.e. density is in units of mass/pc^3.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.analysis.profile.QuantileProfile">
+<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">QuantileProfile</tt><big>(</big><em>sim</em>, <em>q=(0.16</em>, <em>0.5</em>, <em>0.84)</em>, <em>weights=None</em>, <em>load_from_file=False</em>, <em>ndim=3</em>, <em>type='lin'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/profile.html#QuantileProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.QuantileProfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a profile object that returns the requested quantiles
+for a given array in a given bin.  The quantiles may be mass weighted.</p>
+<p><strong>Input</strong>:</p>
+<p><em>sim</em>: snapshot to make a profile from</p>
+<dl class="docutils">
+<dt><em>q (default: (0.16,0.5,0.84))</em>: </dt>
+<dd>The quantiles that will be returned.
+Default is median with 1-sigma on either side.
+q can be of arbitrary length allowing the user to select
+any quantiles they desire.</dd>
+<dt><em>weights (default:None)</em>:  </dt>
+<dd>What should be used to weight the quantile.  You will usually
+want to use particle mass: sim[&#8216;mass&#8217;].  
+The default is to not weight by anything, weights=None.</dd>
+</dl>
 <p><strong>Optional Keywords</strong>:</p>
 <dl class="docutils">
 <dt><em>ndim</em>: if ndim=2, an edge-on projected profile is produced,</dt>
