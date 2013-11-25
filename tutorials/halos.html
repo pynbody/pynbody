@@ -1,0 +1,315 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Halo loading in Pynbody &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="../index.html" />
+    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="next" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
+    <link rel="prev" title="Pictures in Pynbody" href="pictures.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="processing.html" title="Batch-processing Snapshots with Pynbody"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="pictures.html" title="Pictures in Pynbody"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="halo-loading-in-pynbody">
+<span id="halo-tutorial"></span><h1>Halo loading in Pynbody<a class="headerlink" href="#halo-loading-in-pynbody" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basic-load-the-halos-from-ahf-catalog">
+<h2>Basic Load the Halos from AHF catalog<a class="headerlink" href="#basic-load-the-halos-from-ahf-catalog" title="Permalink to this headline">¶</a></h2>
+<p>Simple example for loading AHF halo catalog.  Currently, AHF is the only halo catalog format that is supported directly, though we hope to add support for different halo catalog formats in the future.  Simulation snapshot file and AHF halo files should all be in working directory:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;tipsyfilename&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span> <span class="c"># this scans for available halo catalogues and loads</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c"># you should find this is now a SimSnap representing halo ID 1 in your catalogue</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span> <span class="c">##  prints all &#39;properties&#39; of halo 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>  <span class="c"># halo 1 mass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;Xc&#39;</span><span class="p">]</span>  <span class="c"># halo 2 x-center</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>  <span class="c"># what is stored for each particle in halo 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;x&#39;</span><span class="p">]</span> <span class="c"># x-positions of each particle in halo 1 (h[1][&#39;x&#39;][0 - npart-1])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;grp&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c"># halo id of particle 0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;grp&#39;</span><span class="p">]</span> <span class="c"># halo ids particles in halo 1 (most will be &#39;1&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c">## component data. components are gas, star, dark</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">max</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;grp&#39;</span><span class="p">])</span> <span class="c"># id of smallest Npart subhalo of halo 1, or &#39;1&#39; if no subhalos</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">potential_minimum</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="c"># position of particle with minimum (tipsy) potential in halo 2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;children&#39;</span><span class="p">]</span> <span class="c"># subhalo IDs of halo 1 (if any)</span>
+</pre></div>
+</div>
+<p>Note that h[n] is a subview of f, meaning it shares the underlying
+data. Therefore any changes to data in h[n] is automatically reflected
+in f. Similarly, h[n] is not centred, since its pos array is shared
+with f. Investigate pynbody.analysis.halo for centring tools.  How it
+works</p>
+<p>The halo.py module does most of the work. It can be extended with more
+base classes of HaloCatalogue to support new formats. The halos()
+method of SimSnap? goes through the _halo_classes list at the bottom
+of halo.py using the static method _can_load of the HaloCatalogue
+classes to see which if any can find a catalogue corresponding to the
+SnapShot. The first one which returns True gets instantiated.</p>
+</div>
+<div class="section" id="partial-loading-the-halos-versus-full-load">
+<h2>Partial loading the Halos versus full load<a class="headerlink" href="#partial-loading-the-halos-versus-full-load" title="Permalink to this headline">¶</a></h2>
+<p>By default, partial loading (i.e. &#8216;lazy loading&#8217;) is used when loading simulation files.  This means that the command h=s.halos() does not actually load halo information until needed.  Sometimes the simulation snapshot or the halo _particles file is very large, and is not desirable or possible to load everything into memory.  Hence, partial loading can be very useful.  The _particles file is needed to find out which particles belong to a particular halo.</p>
+<p>In the following example only particles from a single halo are loaded:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;tipsyfilename&#39;</span><span class="p">)</span> <span class="c"># nothing gets loaded yet.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">(</span><span class="n">dummy</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="c"># loads properties, but skips the _particles file load.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="c"># `dummy&#39; halo - its properties are loaded, but not particle data.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h2</span><span class="o">=</span><span class="n">h</span><span class="o">.</span><span class="n">load_copy</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c"># loads particle ids from _particles file for halo 2 only</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h2</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="c"># Mow that data is requested, the simulation snapshot read.</span>
+</pre></div>
+</div>
+<p>Partial loading can be switched off as follows:</p>
+<p>DESCRIBE HOW................</p>
+</div>
+<div class="section" id="halos-only-usage-if-no-simulation-snapshot-present-does-this-work">
+<h2>Halos only usage (if no simulation snapshot present) - Does this work?)<a class="headerlink" href="#halos-only-usage-if-no-simulation-snapshot-present-does-this-work" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">=</span><span class="n">pynbody</span><span class="o">.</span><span class="n">new</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">properties</span>  <span class="c"># prints the default properties just loaded (can be changed by e.g. s.properties[&#39;h&#39;]=.73)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">_filename</span><span class="o">=</span><span class="s">&quot;simulation_snapshot_name_without_the_ahf_suffixes&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span> <span class="c">## load the halos from the AHF files</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span> <span class="c">##  prints all &#39;properties&#39; of halo 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>  <span class="c"># halo 1 mass</span>
+</pre></div>
+</div>
+<p>This can be useful if one wants to analyze the halo catalog without needing any information about the simulation particles.</p>
+</div>
+<div class="section" id="write-halo-catalog-i-e-convert-ahf-outfiles-to-tipsy-format">
+<h2>Write halo catalog (i.e. convert AHF outfiles to tipsy format)<a class="headerlink" href="#write-halo-catalog-i-e-convert-ahf-outfiles-to-tipsy-format" title="Permalink to this headline">¶</a></h2>
+<p>Tipsy is a particle viewer.  A tipsy format file can be useful for
+quick viewing in tipsy to check whether the AHF halo finder did
+anything sensible. Write the (ahf) halo catalog to disk. Former idl
+users might notice that this produces outfiles similar to &#8216;Alyson&#8217;s
+idl script&#8217;.</p>
+<p>The 3 written file types are:
+1- .gtp (tipsy file with halos as star particles).
+2- .grp (ascii halo id of every snapshot particle, 0 if none).
+3- .stat ascii condensed version of AHF halos file).</p>
+<p>This halo file set is compatible with the halo finder SKID.</p>
+<p>tipsy and skid can be found at <a class="reference external" href="http://www-hpcc.astro.washington.edu/tools/">http://www-hpcc.astro.washington.edu/tools/</a>.</p>
+<div class="section" id="extra-steps-required-if-ahf-was-run-as-mpi-parallel">
+<h3>Extra steps required if AHF was run as MPI parallel:<a class="headerlink" href="#extra-steps-required-if-ahf-was-run-as-mpi-parallel" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If AHF was run using MPI (multiple processors) &#8211; Skip this if AHF was run in serial or OpenMP.  There will be a set of AHF output files (_halos, _particles...) for each MPI process.  A couple of short steps are required to make it concatenate the filesets together.  At this time, MPI AHF does not write any _substructure files and does not keep global halo IDs across domains, so it is not always desireable to use MPI AHF.</p>
+</div>
+<p>from the command prompt (example for a z=0 AHF output):</p>
+<p>&gt; cat simfilename.00*z0.000.AHF_halos | cat &gt; simfilename.z0.000.AHF_halos</p>
+<p>The  _particles files requires an extra step to sort out headers.  Get the total number of halos (= number lines in _halos file - 1 for header).  From the command prompt:</p>
+<p>&gt; wc simfilename.z0.000.AHF_halos | gawk &#8216;{print $1-1}&#8217; &gt; simfilename.z0.000.AHF_particles</p>
+<p>&gt; gawk &#8216;FNR &gt; 1&#8217; simfilename.ahf.0*.z0.000.AHF_particles &gt;&gt; simfilename.z0.000.AHF_particles</p>
+<dl class="docutils">
+<dt>&gt; cat simfilename.00*z0.000.AHF_profiles | cat &gt; simfilename.z0.000.AHF_profiles</dt>
+<dd>#  the _profiles concatenation is optional.  Note MPI AHF produces no _substructure files.</dd>
+</dl>
+</div>
+<div class="section" id="now-convert-to-tipsy-if-serial-openmp-ahf-or-after-above-file-concatenations-made-if-mpi">
+<h3>Now convert to tipsy If serial/OpenMP AHF (or after above file concatenations made if MPI):<a class="headerlink" href="#now-convert-to-tipsy-if-serial-openmp-ahf-or-after-above-file-concatenations-made-if-mpi" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If AHF was run using MPI, first concatnate the AHF processor outfiles into a single outfile set, as described above.</p>
+</div>
+<p>In directory with AHF outputs, where there should be a _halos file, a _particles file, and a _substructure (if not run with MPI):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">=</span><span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">simfile</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">(</span><span class="n">make_grp</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>  <span class="c"># _particles file is read now, not `partial loaded&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="o">.</span><span class="n">writestat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">h</span><span class="p">,</span><span class="n">simfile</span><span class="o">.</span><span class="n">stat</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="o">.</span><span class="n">writetipsy</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">h</span><span class="p">,</span><span class="n">simfile</span><span class="o">.</span><span class="n">gtp</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;grp&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">write</span><span class="p">()</span> <span class="c"># writes &#39;simfile.grp&#39;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If a .grp file is not needed, it can be skipped by using s.halos() instead of s.halos(make_grp=True) (and then also skipping the s[&#8216;grp].write().  The reason to skip the _grp file creation is that for simulations with large particle numbers, the _particles file read through, which is triggered by s[&#8216;grp&#8217;].write() (with partial loading enabled), can be quite slow when the _particles file is large.</p>
+</div>
+<p>pynbody computes the &#8216;hubble&#8217; constant by default &#8211; specifying avoids rounding errors in converting halo positions, which might be important for some applications, as in:
+&gt;&gt;&gt; h.writetipsy(s,h,&#8221;test.gtp&#8221;,hubble=0.7)
+&gt;&gt;&gt; h.writestat(s,h,&#8221;test.stat&#8221;,hubble=0.7)</p>
+<p>In the above example, we also override the default outfile name, which just adds an extension to the simulation file name.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The default AHF and pynbody expectation (as of 2012.04.17) is that TIPSY_PARTICLE_ORDERING (gas, dark, star) is NOT set in the AHF compilation, so pynbody expects non-tipsy default AHF particle ID ordering of dark, star, gas.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">AHF orders halos by particle number, which is not quite the same as ordering by halo mass if there are multiple particle masses.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">One a .grp file is written, there will now be both a _particles file and a .grp file in the directory.  By default, pynbody will try to load the .grp file.  _particles file loading can be forced by</p>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">h</span><span class="o">=</span><span class="n">pynbody</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">AHFCatalogue</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="generating-catalogues-on-the-fly-with-pynbody">
+<h2>Generating catalogues on the fly with pynbody<a class="headerlink" href="#generating-catalogues-on-the-fly-with-pynbody" title="Permalink to this headline">¶</a></h2>
+<p>There is also a mechanism for running halo-finders on-the-fly with
+pynbody from simulation snapshot. This is currently implemented by the
+AHFCatalogue class which reads amiga halo catalogues.</p>
+<p>The AHFCatalogue._can_load() looks for an AHF _particles file. If that
+is not found and all the other _can_loads fail (&#8212;&#8212;&#8212;-WHAT OTHER FILES ATTEMPT TO LOAD?), pynbody searches your
+executable PATH environment variable for AHFstep. If it finds that, it
+creates the necessary input files and runs Amiga Halo Finder for
+you. AHFstep doesn&#8217;t take that long (1 minute for 10 million
+particles?). Once AHFstep finishes, the HaloCatalog loads the particle
+file into Halo objects for each halo that are IndexedSubSnaps. Each
+Halo has slightly extended properties that include all the values from
+the AHF_halos file. The AHFCatalogue also loads the substructure file
+into the [&#8216;children&#8217;] property.</p>
+<div class="section" id="installing-ahfstep-for-pynbody-compatibility">
+<h3>Installing AHFstep for pynbody compatibility<a class="headerlink" href="#installing-ahfstep-for-pynbody-compatibility" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">These are quite old instructions and may be out of date.</p>
+</div>
+<p>From the command prompt:</p>
+<p>&gt;wget <a class="reference external" href="http://popia.ft.uam.es/AHF/files/ahf-v1.0.tgz">http://popia.ft.uam.es/AHF/files/ahf-v1.0.tgz</a></p>
+<p>&gt;tar zxf ahf-v1.0.tgz</p>
+<p>&gt;cd ahf-v1.0</p>
+<p>Edit Makefile.config. For Tipsy, uncomment the DEFINEFLAGS line under MW1.1024g1bwk, g1536, GALFOBS. Possibly switch CC line to use icc (then -fopenmp becomes -openmp) and up the OPTIMIZE line to -O3</p>
+<p>From command prompt:</p>
+<p>&gt;make AHF</p>
+<p>&gt;mkdir ~/bin/</p>
+<p>&gt;cp bin/AHF* ~/bin/</p>
+<p>&gt;export PATH=&#8221;$PATH:${HOME}/bin&#8221;</p>
+<p>It is a good idea to put this last line above into your .bashrc file on Linux or .profile in Mac OS X.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Halo loading in Pynbody</a><ul>
+<li><a class="reference internal" href="#basic-load-the-halos-from-ahf-catalog">Basic Load the Halos from AHF catalog</a></li>
+<li><a class="reference internal" href="#partial-loading-the-halos-versus-full-load">Partial loading the Halos versus full load</a></li>
+<li><a class="reference internal" href="#halos-only-usage-if-no-simulation-snapshot-present-does-this-work">Halos only usage (if no simulation snapshot present) - Does this work?)</a></li>
+<li><a class="reference internal" href="#write-halo-catalog-i-e-convert-ahf-outfiles-to-tipsy-format">Write halo catalog (i.e. convert AHF outfiles to tipsy format)</a><ul>
+<li><a class="reference internal" href="#extra-steps-required-if-ahf-was-run-as-mpi-parallel">Extra steps required if AHF was run as MPI parallel:</a></li>
+<li><a class="reference internal" href="#now-convert-to-tipsy-if-serial-openmp-ahf-or-after-above-file-concatenations-made-if-mpi">Now convert to tipsy If serial/OpenMP AHF (or after above file concatenations made if MPI):</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#generating-catalogues-on-the-fly-with-pynbody">Generating catalogues on the fly with pynbody</a><ul>
+<li><a class="reference internal" href="#installing-ahfstep-for-pynbody-compatibility">Installing AHFstep for pynbody compatibility</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="pictures.html"
+                        title="previous chapter">Pictures in Pynbody</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="processing.html"
+                        title="next chapter">Batch-processing Snapshots with Pynbody</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/halos.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="processing.html" title="Batch-processing Snapshots with Pynbody"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="pictures.html" title="Pictures in Pynbody"
+             >previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

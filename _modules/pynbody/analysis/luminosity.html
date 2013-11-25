@@ -1,0 +1,270 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.analysis.luminosity &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pynbody.analysis.luminosity</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">luminosity</span>
+<span class="sd">==========</span>
+
+<span class="sd">Calculates luminosities -- NEEDS DOCUMENTATION</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="k">try</span> <span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">scipy</span><span class="o">,</span> <span class="nn">scipy.weave</span>
+    <span class="kn">from</span> <span class="nn">scipy.weave</span> <span class="kn">import</span> <span class="n">inline</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">..array</span> <span class="kn">import</span> <span class="n">SimArray</span>
+
+<div class="viewcode-block" id="calc_mags"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.luminosity.calc_mags">[docs]</a><span class="k">def</span> <span class="nf">calc_mags</span><span class="p">(</span><span class="n">simstars</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculating visible magnitudes</span>
+
+<span class="sd">    Using Padova Simple stellar populations (SSPs) from Girardi</span>
+<span class="sd">    http://stev.oapd.inaf.it/cgi-bin/cmd</span>
+<span class="sd">    Marigo+ (2008), Girardi+ (2010)</span>
+
+<span class="sd">    pynbody includes a grid of SSP luminosities for many bandpasses for</span>
+<span class="sd">    various stellar ages and metallicities.  This function linearly </span>
+<span class="sd">    interpolates to the desired value and returns the value as a magnitude.</span>
+
+<span class="sd">    **Usage:**</span>
+
+<span class="sd">    &gt;&gt;&gt; import pynbody</span>
+<span class="sd">    &gt;&gt;&gt; pynbody.analysis.luminosity.calc_mags(h[1].s)</span>
+
+<span class="sd">    **Optional keyword arguments:**</span>
+
+<span class="sd">       *band* (default=&#39;v&#39;): Which observed bandpass magnitude in which </span>
+<span class="sd">            magnitude should be calculated</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># find data file in PYTHONPATH</span>
+    <span class="c"># data is from http://stev.oapd.inaf.it/cgi-bin/cmd</span>
+    <span class="c"># Padova group stellar populations Marigo et al (2008), Girardi et al (2010)</span>
+    <span class="n">lumfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span><span class="s">&quot;cmdlum.npz&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">lumfile</span><span class="p">)</span> <span class="p">:</span>
+        <span class="c"># import data</span>
+        <span class="c"># print &quot;Loading luminosity data&quot;</span>
+        <span class="n">lums</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">lumfile</span><span class="p">)</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;cmdlum.npz (magnitude table) not found&quot;</span>
+
+    <span class="c">#calculate star age</span>
+    <span class="c">#import pdb; pdb.set_trace()</span>
+    <span class="n">age_star</span><span class="o">=</span><span class="p">(</span><span class="n">simstars</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;yr&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">simstars</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span><span class="o">-</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;yr&#39;</span><span class="p">))</span>
+    <span class="c"># allocate temporary metals that we can play with</span>
+    <span class="n">metals</span> <span class="o">=</span> <span class="n">simstars</span><span class="p">[</span><span class="s">&#39;metals&#39;</span><span class="p">]</span>
+    <span class="c"># get values off grid to minmax</span>
+    <span class="n">age_star</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">age_star</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;ages&#39;</span><span class="p">]))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;ages&#39;</span><span class="p">])</span>
+    <span class="n">age_star</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">age_star</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;ages&#39;</span><span class="p">]))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;ages&#39;</span><span class="p">])</span>
+    <span class="n">metals</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">metals</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;mets&#39;</span><span class="p">]))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;mets&#39;</span><span class="p">])</span>
+    <span class="n">metals</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">metals</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;mets&#39;</span><span class="p">]))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;mets&#39;</span><span class="p">])</span>
+    <span class="c">#interpolate</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="nb">file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span><span class="s">&#39;interpolate.c&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">age_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">lums</span><span class="p">[</span><span class="s">&#39;ages&#39;</span><span class="p">])</span>
+    <span class="n">n_age_grid</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">age_grid</span><span class="p">)</span>
+    <span class="n">met_grid</span> <span class="o">=</span> <span class="n">lums</span><span class="p">[</span><span class="s">&#39;mets&#39;</span><span class="p">]</span>
+    <span class="n">n_met_grid</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">met_grid</span><span class="p">)</span>
+    <span class="n">mag_grid</span> <span class="o">=</span> <span class="n">lums</span><span class="p">[</span><span class="n">band</span><span class="p">]</span>
+    <span class="n">n_stars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metals</span><span class="p">)</span>
+    <span class="n">output_mags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_stars</span><span class="p">)</span>
+    <span class="c"># before inlining, the views on the arrays must be standard np.ndarray</span>
+    <span class="c"># otherwise the normal numpy macros are not generated</span>
+    <span class="n">age_star</span><span class="p">,</span><span class="n">metals</span><span class="p">,</span><span class="n">age_grid</span><span class="p">,</span><span class="n">met_grid</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">age_star</span><span class="p">),</span>
+                                         <span class="n">metals</span><span class="p">,</span><span class="n">age_grid</span><span class="p">,</span><span class="n">met_grid</span><span class="p">]</span>
+    <span class="c">#print &quot;Calculating magnitudes&quot;</span>
+    <span class="n">inline</span><span class="p">(</span><span class="n">code</span><span class="p">,[</span><span class="s">&#39;met_grid&#39;</span><span class="p">,</span><span class="s">&#39;n_met_grid&#39;</span><span class="p">,</span><span class="s">&#39;age_grid&#39;</span><span class="p">,</span><span class="s">&#39;n_age_grid&#39;</span><span class="p">,</span>
+                 <span class="s">&#39;age_star&#39;</span><span class="p">,</span><span class="s">&#39;metals&#39;</span><span class="p">,</span><span class="s">&#39;n_stars&#39;</span><span class="p">,</span><span class="s">&#39;mag_grid&#39;</span><span class="p">,</span><span class="s">&#39;output_mags&#39;</span><span class="p">])</span>
+    <span class="k">try</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol&#39;</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol&#39;</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="halo_mag"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.luminosity.halo_mag">[docs]</a><span class="k">def</span> <span class="nf">halo_mag</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculating halo magnitude</span>
+
+<span class="sd">    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed</span>
+<span class="sd">    in simulation, converts those magnitudes back to luminosities, adds</span>
+<span class="sd">    those luminosities, then converts that luminosity back to magnitudes,</span>
+<span class="sd">    which are returned.</span>
+
+<span class="sd">    **Usage:**</span>
+
+<span class="sd">    &gt;&gt;&gt; import pynbody</span>
+<span class="sd">    &gt;&gt;&gt; pynbody.analysis.luminosity.halo_mag(h[1].s)</span>
+
+<span class="sd">    **Optional keyword arguments:**</span>
+
+<span class="sd">       *band* (default=&#39;v&#39;): Which observed bandpass magnitude in which </span>
+<span class="sd">            magnitude should be calculated</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mf">10.0</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mf">0.4</span><span class="o">*</span><span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s">&#39;_mag&#39;</span><span class="p">])))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</div>
+<div class="viewcode-block" id="halo_lum"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.luminosity.halo_lum">[docs]</a><span class="k">def</span> <span class="nf">halo_lum</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculating halo luminosiy</span>
+
+<span class="sd">    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed</span>
+<span class="sd">    in simulation, converts those magnitudes back to luminosities, adds</span>
+<span class="sd">    those luminosities, which are returned.</span>
+
+<span class="sd">    **Usage:**</span>
+
+<span class="sd">    &gt;&gt;&gt; import pynbody</span>
+<span class="sd">    &gt;&gt;&gt; pynbody.analysis.luminosity.halo_mag(h[1].s)</span>
+
+<span class="sd">    **Optional keyword arguments:**</span>
+
+<span class="sd">       *band* (default=&#39;v&#39;): Which observed bandpass magnitude in which </span>
+<span class="sd">            magnitude should be calculated</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mf">10.0</span><span class="o">**</span><span class="p">((</span><span class="mf">5.8</span><span class="o">-</span><span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s">&#39;_mag&#39;</span><span class="p">])</span><span class="o">/</span><span class="mf">2.5</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="half_light_r"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.luminosity.half_light_r">[docs]</a><span class="k">def</span> <span class="nf">half_light_r</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Calculate half light radius</span>
+<span class="sd">    </span>
+<span class="sd">    Calculates entire luminosity of simulation, finds half that, sorts</span>
+<span class="sd">    stars by distance from halo center, and finds out inside which radius</span>
+<span class="sd">    the half luminosity is reached.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="kn">import</span> <span class="nn">pynbody</span><span class="o">,</span> <span class="nn">pynbody.filt</span> <span class="kn">as</span> <span class="nn">f</span>
+    <span class="n">half_l</span> <span class="o">=</span> <span class="n">halo_lum</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">band</span><span class="o">=</span><span class="n">band</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+    <span class="c">#print &quot;half_l: %g&quot;%half_l</span>
+    <span class="n">max_high_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
+    <span class="n">test_r</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">max_high_r</span>
+    <span class="n">testrf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="n">test_r</span><span class="p">)</span>
+    <span class="n">min_low_r</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">test_l</span> <span class="o">=</span> <span class="n">halo_lum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">testrf</span><span class="p">],</span><span class="n">band</span><span class="o">=</span><span class="n">band</span><span class="p">)</span>
+    <span class="n">it</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">while</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">test_l</span> <span class="o">-</span> <span class="n">half_l</span><span class="p">)</span><span class="o">/</span><span class="n">half_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.01</span><span class="p">):</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">it</span><span class="o">+</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">it</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="c">#error = np.abs(test_l - half_l)/half_l</span>
+        <span class="c">#print &quot;iteration: %d error: %6.2g test_l: %g test_r: %g&quot;%(it,error,test_l,test_r)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">test_l</span> <span class="o">&gt;</span> <span class="n">half_l</span><span class="p">):</span>
+            <span class="n">test_r</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">min_low_r</span> <span class="o">+</span> <span class="n">test_r</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">test_r</span> <span class="o">=</span> <span class="p">(</span><span class="n">test_r</span> <span class="o">+</span> <span class="n">max_high_r</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span>
+        <span class="n">testrf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="n">test_r</span><span class="p">)</span>
+        <span class="n">test_l</span> <span class="o">=</span> <span class="n">halo_lum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">testrf</span><span class="p">],</span><span class="n">band</span><span class="o">=</span><span class="n">band</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">test_l</span> <span class="o">&gt;</span> <span class="n">half_l</span><span class="p">):</span>
+            <span class="n">max_high_r</span> <span class="o">=</span> <span class="n">test_r</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">min_low_r</span> <span class="o">=</span> <span class="n">test_r</span>
+        
+    <span class="k">return</span> <span class="n">test_r</span><span class="o">*</span><span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

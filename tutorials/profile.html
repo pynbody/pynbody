@@ -1,0 +1,248 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Profiles in Pynbody &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="../index.html" />
+    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="next" title="Plotting Rotation Cuves" href="rotation_curve.html" />
+    <link rel="prev" title="A walk through pynbody’s low-level facilities" href="data_access.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rotation_curve.html" title="Plotting Rotation Cuves"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="data_access.html" title="A walk through pynbody’s low-level facilities"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="profiles-in-pynbody">
+<h1>Profiles in Pynbody<a class="headerlink" href="#profiles-in-pynbody" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="radial-density-profile">
+<h2>Radial Density Profile<a class="headerlink" href="#radial-density-profile" title="Permalink to this headline">¶</a></h2>
+<p>Simple example for calculating a density profile:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+<span class="c"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+
+<span class="c"># load the halos</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+
+<span class="c"># center on the largest halo and align the disk</span>
+<span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c"># convert all units to something reasonable (kpc, Msol etc)</span>
+<span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+
+<span class="c"># create a profile object for the stars (by default this is a 2D profile)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+<span class="c"># make the plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]&#39;</span><span class="p">)</span>
+
+<span class="c"># make a 3D density plot of the dark matter (note ndim=3 in the constructor below)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\rho_{DM}$ [M$_{\odot}$ kpc$^{-3}$]&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../tutorials/example_code/density_profile.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/density_profile.png">png</a>, <a class="reference external" href="../tutorials/example_code/density_profile.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/density_profile.pdf">pdf</a>)</p>
+<div class="figure">
+<img alt="../_images/density_profile.png" src="../_images/density_profile.png" />
+</div>
+</div>
+<div class="section" id="the-profile-class">
+<h2>The Profile Class<a class="headerlink" href="#the-profile-class" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> class is meant to be a
+general-purpose class to satisfy all simulation profiling
+needs. Profiles are the most elementary ways to begin analyzing a
+simulation, so the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> class is
+designed to be an extension of the syntax implemented in the
+<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a> class and its derivatives.</p>
+<p>The constructor only returns a
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> instance and defines the
+bins etc. Importantly, it also stores lists of particle indices
+corresponding to each bin, so you can easily identify where the
+particles belong.</p>
+<p>With the default parameters, the profile is made in the xy-plane. To
+make a spherically-symmetric 3D profile, specify <tt class="docutils literal"><span class="pre">ndim=3</span></tt> when
+creating the profile.</p>
+<div class="section" id="automatically-generated-profiles">
+<h3>Automatically-generated profiles<a class="headerlink" href="#automatically-generated-profiles" title="Permalink to this headline">¶</a></h3>
+<p>Many profiling functions are already implemented &#8211; see the
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> documentation for a full
+list. Additionally, <em>any</em> existing array can be &#8216;profiled&#8217;. For
+example, if [Fe/H] is a derived field &#8216;feh&#8217;, then plotting a
+metallicity profile is as simple as:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>If the array doesn&#8217;t exist but is deriveable (check with
+<tt class="docutils literal"><span class="pre">s.derivable_keys()</span></tt>), it is automatically calculated.</p>
+<p>You can define your own profiling functions in your code by using the
+<tt class="docutils literal"><span class="pre">Profile.profile_property</span></tt> decorator:</p>
+<div class="highlight-python"><pre>@pynbody.analysis.profile.Profile.profile_property
+ def random(self):
+     """
+     Generate a random profile
+     """
+     import numpy as np
+     return np.random.rand(self.nbins)</pre>
+</div>
+</div>
+<div class="section" id="calculating-derivatives-and-dispersions">
+<h3>Calculating Derivatives and Dispersions<a class="headerlink" href="#calculating-derivatives-and-dispersions" title="Permalink to this headline">¶</a></h3>
+<p>You can calculate derivatives of profiles automatically. For instance,
+you might be interested in d phi / dr if you&#8217;re looking at a
+disk. This is as easy as attaching a <tt class="docutils literal"><span class="pre">d_</span></tt> to the profile name. For
+example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="c"># returns the potential profile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;d_phi&#39;</span><span class="p">]</span> <span class="c"># returns d phi / dr from p[&quot;phi&quot;]</span>
+</pre></div>
+</div>
+<p>Similarly straightforward is the calculation of dispersions and
+root-mean-square values. You simply need to attach a <tt class="docutils literal"><span class="pre">_disp</span></tt> or
+<tt class="docutils literal"><span class="pre">_rms</span></tt> as a suffix to the profile name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;z_rms&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Profiles in Pynbody</a><ul>
+<li><a class="reference internal" href="#radial-density-profile">Radial Density Profile</a></li>
+<li><a class="reference internal" href="#the-profile-class">The Profile Class</a><ul>
+<li><a class="reference internal" href="#automatically-generated-profiles">Automatically-generated profiles</a></li>
+<li><a class="reference internal" href="#calculating-derivatives-and-dispersions">Calculating Derivatives and Dispersions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="data_access.html"
+                        title="previous chapter">A walk through pynbody&#8217;s low-level facilities</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="rotation_curve.html"
+                        title="next chapter">Plotting Rotation Cuves</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/profile.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rotation_curve.html" title="Plotting Rotation Cuves"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="data_access.html" title="A walk through pynbody’s low-level facilities"
+             >previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
