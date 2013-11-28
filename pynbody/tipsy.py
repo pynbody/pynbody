@@ -400,95 +400,96 @@ class TipsySnap(snapshot.SimSnap) :
         global config
         
         with self.lazy_off : # prevent any lazy reading or evaluation
-        
-            if filename is None :
-                filename = self._filename
+            pass
 
-            if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
+        if filename is None :
+            filename = self._filename
 
-            f = util.open_(filename, 'wb')
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
 
-            try:
-                t = self.properties['a']
-            except KeyError :
-                warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
-                t = 0
+        f = util.open_(filename, 'wb')
 
-            n = len(self)
-            ndim = 3
-            ng = len(self.gas)
-            nd = len(self.dark)
-            ns = len(self.star)
+        try:
+            t = self.properties['a']
+        except KeyError :
+            warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
+        t = 0
+
+        n = len(self)
+        ndim = 3
+        ng = len(self.gas)
+        nd = len(self.dark)
+        ns = len(self.star)
 
 
-            byteswap = getattr(self, "_byteswap", sys.byteorder=="little")
+        byteswap = getattr(self, "_byteswap", sys.byteorder=="little")
 
-            if byteswap: 
-                f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
-            else:
-                f.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
+        if byteswap: 
+            f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
+        else:
+            f.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
 
                 
-            # needs to be done in blocks like reading
-            # describe the file structure as list of (num_parts, [list_of_properties]) 
+        # needs to be done in blocks like reading
+        # describe the file structure as list of (num_parts, [list_of_properties]) 
             
-            if type(self) is not TipsySnap : 
-                ptype = 'd' if double_pos else 'f'
-                vtype = 'd' if double_vel else 'f'
-                g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
-                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
-                d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
-                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
-                s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
-                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
-            else :
-                g_dtype = self._g_dtype
-                d_dtype = self._d_dtype
-                s_dtype = self._s_dtype
+        if type(self) is not TipsySnap : 
+            ptype = 'd' if double_pos else 'f'
+            vtype = 'd' if double_vel else 'f'
+            g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                                'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+            d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                                'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+            s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                                'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+        else :
+            g_dtype = self._g_dtype
+            d_dtype = self._d_dtype
+            s_dtype = self._s_dtype
             
-            file_structure = ((ng,family.gas,g_dtype),
-                              (nd,family.dm,d_dtype),
-                              (ns,family.star,s_dtype))
+        file_structure = ((ng,family.gas,g_dtype),
+                          (nd,family.dm,d_dtype),
+                          (ns,family.star,s_dtype))
 
-            max_block_size = 1024**2 # particles
-            for n_left, fam, dtype in file_structure :
-                n_done = 0
-                self_type = self[fam]
-                while n_left>0 :
-                    n_block = min(n_left,max_block_size)                   
-                    
-                    #g = np.zeros((n_block,len(st)),dtype=np.float32)
-                                        
-                    g = np.empty(n_block,dtype=dtype)
-                    
-                    self_type_block = self_type[n_done:n_done+n_block]
+        max_block_size = 1024**2 # particles
+        for n_left, fam, dtype in file_structure :
+            n_done = 0
+            self_type = self[fam]
+            while n_left>0 :
+                n_block = min(n_left,max_block_size)                   
+                
+                #g = np.zeros((n_block,len(st)),dtype=np.float32)
+                
+                g = np.empty(n_block,dtype=dtype)
+                
+                self_type_block = self_type[n_done:n_done+n_block]
+                
+                with self_type_block.immediate_mode :
+                    # Copy from the correct arrays
+                    for i, name in enumerate(dtype.names) :
+                        try:
+                            g[name] = self_type_block[name]
+                        except KeyError :
+                            pass
 
-                    with self_type_block.immediate_mode :
-                        # Copy from the correct arrays
-                        for i, name in enumerate(dtype.names) :
-                            try:
-                                g[name] = self_type_block[name]
-                            except KeyError :
-                                pass
+                # Write out the block
+                if byteswap :
+                    g.byteswap().tofile(f)
+                else:
+                    g.tofile(f)
 
-                    # Write out the block
-                    if byteswap :
-                        g.byteswap().tofile(f)
-                    else:
-                        g.tofile(f)
+                # Increment total ptcls written, decrement ptcls left of this type
+                n_left-=n_block
+                n_done+=n_block
 
-                    # Increment total ptcls written, decrement ptcls left of this type
-                    n_left-=n_block
-                    n_done+=n_block
-
-            f.close()
+        f.close()
             
-            if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
 
-            for x in set(self.keys()).union(self.family_keys()) :
-                if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
-                                                              "eps","metals","phi", "tform"]  :
-                    TipsySnap._write_array(self, x, filename=filename+"."+x, binary=binary_aux_arrays)
+        for x in set(self.keys()).union(self.family_keys()) :
+            if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
+                                                          "eps","metals","phi", "tform"]  :
+                TipsySnap._write_array(self, x, filename=filename+"."+x, binary=binary_aux_arrays)
     
 
     @staticmethod
