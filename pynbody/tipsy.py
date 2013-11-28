@@ -399,9 +399,6 @@ class TipsySnap(snapshot.SimSnap) :
 
         global config
         
-        with self.lazy_off : # prevent any lazy reading or evaluation
-            pass
-
         if filename is None :
             filename = self._filename
 
@@ -486,10 +483,12 @@ class TipsySnap(snapshot.SimSnap) :
             
         if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
 
-        for x in set(self.keys()).union(self.family_keys()) :
-            if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
-                                                          "eps","metals","phi", "tform"]  :
-                TipsySnap._write_array(self, x, filename=filename+"."+x, binary=binary_aux_arrays)
+        with self.lazy_off : # prevent any lazy reading or evaluation
+        
+            for x in set(self.keys()).union(self.family_keys()) :
+                if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
+                                                              "eps","metals","phi", "tform"]  :
+                    TipsySnap._write_array(self, x, filename=filename+"."+x, binary=binary_aux_arrays)
     
 
     @staticmethod
