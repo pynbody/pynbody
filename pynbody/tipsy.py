@@ -1114,6 +1114,14 @@ class StarLog(snapshot.SimSnap):
             else : bigstarlog = True
             
         datasize = os.path.getsize(filename)-f.tell()
+
+        # check whether datasize is a multiple of iSize. If it is not,
+        # the starlog is likely corrupted, but try to read it anyway
+
+        if datasize%iSize > 0 : 
+            warnings.warn("The size of the starlog file does not make sense -- it is likely corrupted. Pynbody will read it anyway, but use with caution.")
+            datasize -= datasize%iSize
+
         if config['verbose'] : print "Reading "+filename
         if(self._byteswap):
             g = np.fromstring(f.read(datasize),dtype=file_structure).byteswap()
