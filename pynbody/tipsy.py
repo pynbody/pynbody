@@ -458,8 +458,6 @@ class TipsySnap(snapshot.SimSnap) :
             elif not double_vel: vtype = 'f'
             else : vtype = 'd' if dvel_param else 'f'
             
-        print 'ptype is %s vtype is %s'%(ptype, vtype)
-
         g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
                             'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
         d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
