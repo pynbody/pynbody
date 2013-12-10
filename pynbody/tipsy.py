@@ -471,35 +471,37 @@ class TipsySnap(snapshot.SimSnap) :
                           (ns,family.star,s_dtype))
 
         max_block_size = 1024**2 # particles
-        for n_left, fam, dtype in file_structure :
-            n_done = 0
-            self_type = self[fam]
-            while n_left>0 :
-                n_block = min(n_left,max_block_size)                   
+
+        with self.lazy_derive_off : 
+            for n_left, fam, dtype in file_structure :
+                n_done = 0
+                self_type = self[fam]
+                while n_left>0 :
+                    n_block = min(n_left,max_block_size)                   
                 
                 #g = np.zeros((n_block,len(st)),dtype=np.float32)
                 
-                g = np.empty(n_block,dtype=dtype)
+                    g = np.empty(n_block,dtype=dtype)
                 
-                self_type_block = self_type[n_done:n_done+n_block]
+                    self_type_block = self_type[n_done:n_done+n_block]
                 
-                with self_type_block.immediate_mode :
-                    # Copy from the correct arrays
-                    for i, name in enumerate(dtype.names) :
-                        try:
-                            g[name] = self_type_block[name]
-                        except KeyError :
-                            pass
+                    with self_type_block.immediate_mode :
+                        # Copy from the correct arrays
+                        for i, name in enumerate(dtype.names) :
+                            try:
+                                g[name] = self_type_block[name]
+                            except KeyError :
+                                pass
 
-                # Write out the block
-                if byteswap :
-                    g.byteswap().tofile(f)
-                else:
-                    g.tofile(f)
+                    # Write out the block
+                    if byteswap :
+                        g.byteswap().tofile(f)
+                    else:
+                        g.tofile(f)
 
-                # Increment total ptcls written, decrement ptcls left of this type
-                n_left-=n_block
-                n_done+=n_block
+                    # Increment total ptcls written, decrement ptcls left of this type
+                    n_left-=n_block
+                    n_done+=n_block
 
         f.close()
             
