@@ -606,7 +606,7 @@ def mass_enc(self):
 def dyntime(self) :
     """The dynamical time of the bin, sqrt(R^3/2GM)."""
     if pynbody.config['verbose'] : print 'Profile: dyntime()'
-    dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(1,2)
+    dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(0.5)
     return dyntime
 
 
@@ -623,7 +623,7 @@ def rotation_curve_spherical(self):
     The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
     
-    return ((units.G*self['mass_enc']/self['rbins'])**(1,2))#.in_units('km s**-1')
+    return ((units.G*self['mass_enc']/self['rbins'])**(0.5))#.in_units('km s**-1')
 
 @Profile.profile_property
 def j_circ(p) :

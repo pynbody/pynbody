@@ -369,7 +369,7 @@ class TipsySnap(snapshot.SimSnap) :
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None, double_pos = False, double_vel = False, binary_aux_arrays = None) :
+    def _write(self, filename=None, double_pos = None, double_vel = None, binary_aux_arrays = None) :
         """
 
         Write a TIPSY (standard) formatted file.   
@@ -431,18 +431,32 @@ class TipsySnap(snapshot.SimSnap) :
         # describe the file structure as list of (num_parts, [list_of_properties]) 
             
         if type(self) is not TipsySnap : 
+            if double_pos is None: double_pos = False
+            if double_vel is None: double_vel = False
             ptype = 'd' if double_pos else 'f'
             vtype = 'd' if double_vel else 'f'
-            g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
-                                'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
-            d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
-                                'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
-            s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
-                                'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+
         else :
-            g_dtype = self._g_dtype
-            d_dtype = self._d_dtype
-            s_dtype = self._s_dtype
+            dpos_param = self._paramfile.get('bDoublePos',False)
+            dvel_param = self._paramfile.get('bDoubleVel',False)
+
+            if double_pos: ptype = 'd'
+            elif not double_pos: ptype = 'f'
+            else : ptype = 'd' if dpos_param else 'f'
+            
+            if double_vel: vtype = 'd'
+            elif not double_vel: vtype = 'f'
+            else : vtype = 'd' if dvel_param else 'f'
+            
+        print 'ptype is %s vtype is %s'%(ptype, vtype)
+
+        g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                            'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+        d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                            'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+        s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                            'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+        
             
         file_structure = ((ng,family.gas,g_dtype),
                           (nd,family.dm,d_dtype),
