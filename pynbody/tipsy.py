@@ -1072,7 +1072,7 @@ def ljeans_turb(self) :
     return x
 
 class StarLog(snapshot.SimSnap):
-    def __init__(self, filename):
+    def __init__(self, filename, sort=True):
         import os
         super(StarLog,self).__init__()
         self._filename = filename
@@ -1131,15 +1131,20 @@ class StarLog(snapshot.SimSnap):
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
         # numpy/lib/arraysetops.py:192 (on 22nd March 2011)
-        tmp = g['iord'].flatten()
-        perm = tmp.argsort()
-        aux = tmp[perm]
-        flag = np.concatenate(([True],aux[1:]!=aux[:-1]))
-        iord = aux[flag]; indices = perm[flag]
+        import pdb; pdb.set_trace()
 
-        self._num_particles = len(indices)
 
-        self._family_slice[family.star] = slice(0, len(indices))
+        if sort : 
+            tmp = g['iord'].flatten()
+            perm = tmp.argsort()
+            aux = tmp[perm]
+            flag = np.concatenate(([True],aux[1:]!=aux[:-1]))
+            iord = aux[flag]; indices = perm[flag]
+            self._num_particles = len(indices)
+        else : 
+            self._num_particles = len(g)
+
+        self._family_slice[family.star] = slice(0, self._num_particles)
         self._create_arrays(["pos","vel"],3)
         self._create_arrays(["iord"],dtype='int32')
         self._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
@@ -1147,10 +1152,13 @@ class StarLog(snapshot.SimSnap):
             self._create_arrays(["phiform","nsmooth"])
 
         self._decorate()
-        for name in file_structure.fields.keys() :
-            self.star[name][:] = g[name][indices]
-
-        #self._decorate()
+        
+        if sort:
+            for name in file_structure.fields.keys() :
+                self.star[name][:] = g[name][indices]
+        else : 
+            for name in file_structure.fields.keys() :
+                self.star[name] = g[name]
 
     @staticmethod
     def _write(self, filename=None) :
