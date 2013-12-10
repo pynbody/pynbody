@@ -7,6 +7,16 @@ Implements classes and functions for handling tipsy files.  You rarely
 need to access this module directly as it will be invoked
 automatically via pynbody.load.
 
+**Input**:
+
+*filename*: file name string
+
+**Optional Keywords**:
+
+*paramfile*: string specifying the parameter file to load. If not
+ specified, the loader will look for a file *.param in the current and
+ parent directories.
+
 """
 
 from __future__ import with_statement # for py2.5
