@@ -1131,8 +1131,6 @@ class StarLog(snapshot.SimSnap):
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
         # numpy/lib/arraysetops.py:192 (on 22nd March 2011)
-        import pdb; pdb.set_trace()
-
 
         if sort : 
             tmp = g['iord'].flatten()
