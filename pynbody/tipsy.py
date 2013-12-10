@@ -1096,10 +1096,11 @@ def ljeans_turb(self) :
     return x
 
 class StarLog(snapshot.SimSnap):
-    def __init__(self, filename, sort=True):
+    def __init__(self, filename, sort=True, paramfile = None):
         import os
         super(StarLog,self).__init__()
         self._filename = filename
+        self._paramfilename = paramfile
 
         f = util.open_(filename,"rb")
         self.properties = {}
