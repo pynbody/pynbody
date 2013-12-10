@@ -82,7 +82,7 @@ class TipsySnap(snapshot.SimSnap) :
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
    
-       
+        self._paramfilename = kwargs.get('paramfile', None)
 
         self._decorate()
 
@@ -1246,41 +1246,45 @@ def load_paramfile(sim) :
     x = os.path.abspath(sim._filename)
     done = False
     sim._paramfile = {}
-    filename=None
-    for i in xrange(2) :
-        x = os.path.dirname(x)
-        l = glob.glob(os.path.join(x,"*.param"))
 
-        for filename in l :
-            # Attempt the loading of information
-            try :
-                f = open(filename)
-            except IOError :
-                l = glob.glob(os.path.join(x,"../*.param"))
-                if l==[] :
-                    continue
-                try : 
-                    for filename in l:
-                        f = open(filename)
-                except IOError:
-                    continue
-            
-                
-            for line in f :
+    if sim._paramfilename is None: 
+        for i in xrange(2) :
+            x = os.path.dirname(x)
+            l = glob.glob(os.path.join(x,"*.param"))
+
+            for filename in l :
+                # Attempt the loading of information
                 try :
-                    if line[0]!="#" :
-                        s = line.split("#")[0].split()
-                        sim._paramfile[s[0]] = " ".join(s[2:])
+                    f = open(filename)
+                    break # the file is there, break out of the loop
+                except IOError :
+                    l = glob.glob(os.path.join(x,"../*.param"))
+                    if l==[] :
+                        continue
+                    try : 
+                        for filename in l:
+                            f = open(filename)
+                            break # the file is there, break out of the loop
+                    except IOError:
+                        continue
+    else : 
+        filename = sim._paramfilename
+        try : 
+            f = open(filename)
+        except IOError : 
+            raise IOError("The parameter filename you supplied is invalid")            
+                
+    for line in f :
+        try :
+            if line[0]!="#" :
+                s = line.split("#")[0].split()
+                sim._paramfile[s[0]] = " ".join(s[2:])
                                     
-                except IndexError, ValueError :
-                    pass
+        except IndexError, ValueError :
+            pass
 
-            if len(sim._paramfile)>1 :
-                sim._paramfile["filename"] = filename
-                done = True
-                    
-        if done : break
-
+        if len(sim._paramfile)>1 :
+            sim._paramfile["filename"] = filename
 
 
             
