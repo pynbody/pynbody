@@ -252,13 +252,12 @@
 <div class="viewcode-block" id="vel_center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.vel_center">[docs]</a><span class="k">def</span> <span class="nf">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cen_size</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="sd">    Use stars from a spehre to calculate center of velocity. The size</span>
+<span class="sd">    Use stars from a sphere to calculate center of velocity. The size</span>
 <span class="sd">    of the sphere is given by the ``cen_size`` keyword and defaults to</span>
 <span class="sd">    1 kpc.</span>
 
 
 <span class="sd">    &quot;&quot;&quot;</span>
-
 
     <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span>
         <span class="k">print</span> <span class="s">&quot;Finding halo velocity center...&quot;</span>
@@ -281,7 +280,7 @@
     <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>  <span class="k">return</span> <span class="n">vcen</span>
     <span class="k">else</span><span class="p">:</span>  <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="s">&quot;vel&quot;</span><span class="p">]</span><span class="o">-=</span><span class="n">vcen</span>
 </div>
-<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Determine the center of mass of the given particles using the</span>
@@ -312,7 +311,7 @@
 <span class="sd">     particles to be used for centering</span>
 
 <span class="sd">    *vel*: if True, translate velocities so that the velocity of the</span>
-<span class="sd">    central 1kpc is zeroed</span>
+<span class="sd">    central 1kpc (default) is zeroed. Other values can be passed with cen_size.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">global</span> <span class="n">config</span>
@@ -334,8 +333,9 @@
         <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">-=</span><span class="n">cen</span>
 
     <span class="k">if</span> <span class="n">vel</span> <span class="p">:</span>
-        <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span><span class="p">)</span></div>
-</pre></div>
+        <span class="c">#vel_center(sim, cen_size = &quot;1 kpc&quot;)</span>
+        <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">)</span>
+</pre></div></div>
 
           </div>
         </div>

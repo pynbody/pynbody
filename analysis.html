@@ -96,7 +96,7 @@ as defined in eq. (5) of Bullock et al. 2001
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x4d3ecf8&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x4bcb5f0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -377,14 +377,14 @@ mean density of overden * rho_c_0 * (1+z)^3.</p>
 <dl class="function">
 <dt id="pynbody.analysis.halo.vel_center">
 <tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">vel_center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use stars from a spehre to calculate center of velocity. The size
+<dd><p>Use stars from a sphere to calculate center of velocity. The size
 of the sphere is given by the <tt class="docutils literal"><span class="pre">cen_size</span></tt> keyword and defaults to
 1 kpc.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of mass of the given particles using the
 specified mode, then recenter the particles (of the entire
 ancestor snapshot) accordingly</p>
@@ -408,7 +408,7 @@ ancestor snapshot) accordingly</p>
 <dd>particles to be used for centering</dd>
 </dl>
 <p><em>vel</em>: if True, translate velocities so that the velocity of the
-central 1kpc is zeroed</p>
+central 1kpc (default) is zeroed. Other values can be passed with cen_size.</p>
 </dd></dl>
 
 </div>

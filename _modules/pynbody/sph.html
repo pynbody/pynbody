@@ -173,13 +173,13 @@
 
     <span class="n">_threaded_smooth</span> <span class="o">=</span> <span class="n">_get_threaded_smooth</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">_threaded_smooth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">_threaded_smooth</span> <span class="p">:</span>
         <span class="n">_thread_map</span><span class="p">(</span><span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="o">.</span><span class="n">populate</span><span class="p">,</span>
                     <span class="n">_get_tree_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
                     <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">sm</span><span class="p">),</span>
                     <span class="p">[</span><span class="s">&#39;hsm&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">_threaded_smooth</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]]</span><span class="o">*</span><span class="n">_threaded_smooth</span><span class="p">)</span>
-        
+
         <span class="n">sm</span><span class="o">/=</span><span class="n">_threaded_smooth</span><span class="o">**</span><span class="mf">0.3333</span>
     
             
@@ -196,7 +196,7 @@
 <span class="nd">@snapshot.SimSnap.stable_derived_quantity</span>
 <span class="k">def</span> <span class="nf">rho</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">build_tree_or_trees</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#39;Calculating density with </span><span class="si">%d</span><span class="s"> nearest neighbours&#39;</span><span class="o">%</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#39;Calculating SPH density&#39;</span>
     <span class="n">rho</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">])),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="n">smooth</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span>
@@ -207,9 +207,7 @@
 
     <span class="n">_threaded_smooth</span> <span class="o">=</span> <span class="n">_get_threaded_smooth</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">_threaded_smooth</span> <span class="ow">is</span>  <span class="bp">None</span> <span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">],</span> <span class="n">smooth</span><span class="o">=</span><span class="n">smooth</span><span class="p">)</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">_threaded_smooth</span> <span class="p">:</span>
         <span class="n">_thread_map</span><span class="p">(</span><span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="o">.</span><span class="n">populate</span><span class="p">,</span>
                     <span class="n">_get_tree_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
                     <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">rho</span><span class="p">),</span>
@@ -217,7 +215,9 @@
                     <span class="p">[</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]]</span><span class="o">*</span><span class="n">_threaded_smooth</span><span class="p">,</span>
                     <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">smooth</span><span class="p">))</span>
         <span class="n">rho</span><span class="o">*=</span><span class="n">_threaded_smooth</span>
-        
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">],</span> <span class="n">smooth</span><span class="o">=</span><span class="n">smooth</span><span class="p">)</span>
+    
     <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;tracktime&#39;</span><span class="p">]</span> <span class="p">:</span> 
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#39;Density calculation done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="n">start</span><span class="p">)</span>
@@ -558,12 +558,13 @@
     <span class="sd">&quot;&quot;&quot;The single-threaded image rendering core function. External calls</span>
 <span class="sd">    should be made to the render_image function.&quot;&quot;&quot;</span>
 
-    <span class="n">track_time</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&quot;tracktime&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force_quiet</span>
-    <span class="n">verbose</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&quot;verbose&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force_quiet</span>
-
     
     <span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">os.path</span>
     <span class="k">global</span> <span class="n">config</span>
+
+
+    <span class="n">track_time</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&quot;tracktime&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force_quiet</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&quot;verbose&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force_quiet</span>
 
     <span class="n">snap_proxy</span> <span class="o">=</span> <span class="p">{}</span>
     

@@ -71,6 +71,16 @@
 <span class="sd">need to access this module directly as it will be invoked</span>
 <span class="sd">automatically via pynbody.load.</span>
 
+<span class="sd">**Input**:</span>
+
+<span class="sd">*filename*: file name string</span>
+
+<span class="sd">**Optional Keywords**:</span>
+
+<span class="sd">*paramfile*: string specifying the parameter file to load. If not</span>
+<span class="sd"> specified, the loader will look for a file *.param in the current and</span>
+<span class="sd"> parent directories.</span>
+
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">with_statement</span> <span class="c"># for py2.5</span>
@@ -146,7 +156,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">mem_family_slice</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">mem_num_particles</span>
    
-       
+        <span class="bp">self</span><span class="o">.</span><span class="n">_paramfilename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;paramfile&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
 
@@ -433,7 +443,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&quot;mv &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span> <span class="s">&quot;.tmp &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">double_pos</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">double_vel</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">binary_aux_arrays</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">double_pos</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">double_vel</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">binary_aux_arrays</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Write a TIPSY (standard) formatted file.   </span>
@@ -463,92 +473,106 @@
 
         <span class="k">global</span> <span class="n">config</span>
         
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_off</span> <span class="p">:</span> <span class="c"># prevent any lazy reading or evaluation</span>
-        
-            <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
-                <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
 
-            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;TipsySnap: writing main file as&quot;</span><span class="p">,</span><span class="n">filename</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;TipsySnap: writing main file as&quot;</span><span class="p">,</span><span class="n">filename</span>
 
-            <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span>
 
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
-            <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Time is unknown: writing zero in header&quot;</span><span class="p">,</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
-                <span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Time is unknown: writing zero in header&quot;</span><span class="p">,</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
 
-            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="n">ndim</span> <span class="o">=</span> <span class="mi">3</span>
-            <span class="n">ng</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span>
-            <span class="n">nd</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dark</span><span class="p">)</span>
-            <span class="n">ns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">ng</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span>
+        <span class="n">nd</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dark</span><span class="p">)</span>
+        <span class="n">ns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">)</span>
 
 
-            <span class="n">byteswap</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;_byteswap&quot;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span><span class="o">==</span><span class="s">&quot;little&quot;</span><span class="p">)</span>
+        <span class="n">byteswap</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;_byteswap&quot;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span><span class="o">==</span><span class="s">&quot;little&quot;</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">byteswap</span><span class="p">:</span> 
-                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s">&quot;&gt;diiiiii&quot;</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">ndim</span><span class="p">,</span><span class="n">ng</span><span class="p">,</span><span class="n">nd</span><span class="p">,</span><span class="n">ns</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s">&quot;diiiiii&quot;</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">ndim</span><span class="p">,</span><span class="n">ng</span><span class="p">,</span><span class="n">nd</span><span class="p">,</span><span class="n">ns</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">byteswap</span><span class="p">:</span> 
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s">&quot;&gt;diiiiii&quot;</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">ndim</span><span class="p">,</span><span class="n">ng</span><span class="p">,</span><span class="n">nd</span><span class="p">,</span><span class="n">ns</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s">&quot;diiiiii&quot;</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">ndim</span><span class="p">,</span><span class="n">ng</span><span class="p">,</span><span class="n">nd</span><span class="p">,</span><span class="n">ns</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
 
                 
-            <span class="c"># needs to be done in blocks like reading</span>
-            <span class="c"># describe the file structure as list of (num_parts, [list_of_properties]) </span>
+        <span class="c"># needs to be done in blocks like reading</span>
+        <span class="c"># describe the file structure as list of (num_parts, [list_of_properties]) </span>
             
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">TipsySnap</span> <span class="p">:</span> 
-                <span class="n">ptype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span> <span class="k">if</span> <span class="n">double_pos</span> <span class="k">else</span> <span class="s">&#39;f&#39;</span>
-                <span class="n">vtype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span> <span class="k">if</span> <span class="n">double_vel</span> <span class="k">else</span> <span class="s">&#39;f&#39;</span>
-                <span class="n">g_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;metals&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">),</span>
-                                  <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">)})</span>
-                <span class="n">d_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">),</span>
-                                  <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">)})</span>
-                <span class="n">s_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;metals&quot;</span><span class="p">,</span><span class="s">&quot;tform&quot;</span><span class="p">,</span><span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">),</span>
-                                  <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">)})</span>
-            <span class="k">else</span> <span class="p">:</span>
-                <span class="n">g_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_g_dtype</span>
-                <span class="n">d_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_dtype</span>
-                <span class="n">s_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_s_dtype</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">TipsySnap</span> <span class="p">:</span> 
+            <span class="k">if</span> <span class="n">double_pos</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="n">double_pos</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">if</span> <span class="n">double_vel</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="n">double_vel</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">ptype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span> <span class="k">if</span> <span class="n">double_pos</span> <span class="k">else</span> <span class="s">&#39;f&#39;</span>
+            <span class="n">vtype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span> <span class="k">if</span> <span class="n">double_vel</span> <span class="k">else</span> <span class="s">&#39;f&#39;</span>
+
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">dpos_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;bDoublePos&#39;</span><span class="p">,</span><span class="bp">False</span><span class="p">)</span>
+            <span class="n">dvel_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;bDoubleVel&#39;</span><span class="p">,</span><span class="bp">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">double_pos</span><span class="p">:</span> <span class="n">ptype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">double_pos</span><span class="p">:</span> <span class="n">ptype</span> <span class="o">=</span> <span class="s">&#39;f&#39;</span>
+            <span class="k">else</span> <span class="p">:</span> <span class="n">ptype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span> <span class="k">if</span> <span class="n">dpos_param</span> <span class="k">else</span> <span class="s">&#39;f&#39;</span>
             
-            <span class="n">file_structure</span> <span class="o">=</span> <span class="p">((</span><span class="n">ng</span><span class="p">,</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">,</span><span class="n">g_dtype</span><span class="p">),</span>
-                              <span class="p">(</span><span class="n">nd</span><span class="p">,</span><span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span><span class="n">d_dtype</span><span class="p">),</span>
-                              <span class="p">(</span><span class="n">ns</span><span class="p">,</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">,</span><span class="n">s_dtype</span><span class="p">))</span>
-
-            <span class="n">max_block_size</span> <span class="o">=</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">2</span> <span class="c"># particles</span>
-            <span class="k">for</span> <span class="n">n_left</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">file_structure</span> <span class="p">:</span>
-                <span class="n">n_done</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">self_type</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span>
-                <span class="k">while</span> <span class="n">n_left</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">:</span>
-                    <span class="n">n_block</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_left</span><span class="p">,</span><span class="n">max_block_size</span><span class="p">)</span>                   
-                    
-                    <span class="c">#g = np.zeros((n_block,len(st)),dtype=np.float32)</span>
-                                        
-                    <span class="n">g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_block</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-                    
-                    <span class="n">self_type_block</span> <span class="o">=</span> <span class="n">self_type</span><span class="p">[</span><span class="n">n_done</span><span class="p">:</span><span class="n">n_done</span><span class="o">+</span><span class="n">n_block</span><span class="p">]</span>
-
-                    <span class="k">with</span> <span class="n">self_type_block</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
-                        <span class="c"># Copy from the correct arrays</span>
-                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="p">:</span>
-                            <span class="k">try</span><span class="p">:</span>
-                                <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">self_type_block</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-                            <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
-                                <span class="k">pass</span>
-
-                    <span class="c"># Write out the block</span>
-                    <span class="k">if</span> <span class="n">byteswap</span> <span class="p">:</span>
-                        <span class="n">g</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">g</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-
-                    <span class="c"># Increment total ptcls written, decrement ptcls left of this type</span>
-                    <span class="n">n_left</span><span class="o">-=</span><span class="n">n_block</span>
-                    <span class="n">n_done</span><span class="o">+=</span><span class="n">n_block</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">double_vel</span><span class="p">:</span> <span class="n">vtype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">double_vel</span><span class="p">:</span> <span class="n">vtype</span> <span class="o">=</span> <span class="s">&#39;f&#39;</span>
+            <span class="k">else</span> <span class="p">:</span> <span class="n">vtype</span> <span class="o">=</span> <span class="s">&#39;d&#39;</span> <span class="k">if</span> <span class="n">dvel_param</span> <span class="k">else</span> <span class="s">&#39;f&#39;</span>
             
-            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;TipsySnap: writing auxiliary arrays&quot;</span>
+        <span class="k">print</span> <span class="s">&#39;ptype is </span><span class="si">%s</span><span class="s"> vtype is </span><span class="si">%s</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">ptype</span><span class="p">,</span> <span class="n">vtype</span><span class="p">)</span>
 
+        <span class="n">g_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;metals&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">),</span>
+                            <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">)})</span>
+        <span class="n">d_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">),</span>
+                            <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">)})</span>
+        <span class="n">s_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;metals&quot;</span><span class="p">,</span><span class="s">&quot;tform&quot;</span><span class="p">,</span><span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">),</span>
+                            <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">ptype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="n">vtype</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">)})</span>
+        
+            
+        <span class="n">file_structure</span> <span class="o">=</span> <span class="p">((</span><span class="n">ng</span><span class="p">,</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">,</span><span class="n">g_dtype</span><span class="p">),</span>
+                          <span class="p">(</span><span class="n">nd</span><span class="p">,</span><span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span><span class="n">d_dtype</span><span class="p">),</span>
+                          <span class="p">(</span><span class="n">ns</span><span class="p">,</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">,</span><span class="n">s_dtype</span><span class="p">))</span>
+
+        <span class="n">max_block_size</span> <span class="o">=</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">2</span> <span class="c"># particles</span>
+        <span class="k">for</span> <span class="n">n_left</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">file_structure</span> <span class="p">:</span>
+            <span class="n">n_done</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">self_type</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span>
+            <span class="k">while</span> <span class="n">n_left</span><span class="o">&gt;</span><span class="mi">0</span> <span class="p">:</span>
+                <span class="n">n_block</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_left</span><span class="p">,</span><span class="n">max_block_size</span><span class="p">)</span>                   
+                
+                <span class="c">#g = np.zeros((n_block,len(st)),dtype=np.float32)</span>
+                
+                <span class="n">g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_block</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                
+                <span class="n">self_type_block</span> <span class="o">=</span> <span class="n">self_type</span><span class="p">[</span><span class="n">n_done</span><span class="p">:</span><span class="n">n_done</span><span class="o">+</span><span class="n">n_block</span><span class="p">]</span>
+                
+                <span class="k">with</span> <span class="n">self_type_block</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
+                    <span class="c"># Copy from the correct arrays</span>
+                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">self_type_block</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                        <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
+                            <span class="k">pass</span>
+
+                <span class="c"># Write out the block</span>
+                <span class="k">if</span> <span class="n">byteswap</span> <span class="p">:</span>
+                    <span class="n">g</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">g</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                <span class="c"># Increment total ptcls written, decrement ptcls left of this type</span>
+                <span class="n">n_left</span><span class="o">-=</span><span class="n">n_block</span>
+                <span class="n">n_done</span><span class="o">+=</span><span class="n">n_block</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;TipsySnap: writing auxiliary arrays&quot;</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_off</span> <span class="p">:</span> <span class="c"># prevent any lazy reading or evaluation</span>
+        
             <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">())</span> <span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">,</span><span class="s">&quot;pos&quot;</span><span class="p">,</span><span class="s">&quot;x&quot;</span><span class="p">,</span><span class="s">&quot;y&quot;</span><span class="p">,</span><span class="s">&quot;z&quot;</span><span class="p">,</span><span class="s">&quot;vel&quot;</span><span class="p">,</span><span class="s">&quot;vx&quot;</span><span class="p">,</span><span class="s">&quot;vy&quot;</span><span class="p">,</span><span class="s">&quot;vz&quot;</span><span class="p">,</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="s">&quot;temp&quot;</span><span class="p">,</span>
                                                               <span class="s">&quot;eps&quot;</span><span class="p">,</span><span class="s">&quot;metals&quot;</span><span class="p">,</span><span class="s">&quot;phi&quot;</span><span class="p">,</span> <span class="s">&quot;tform&quot;</span><span class="p">]</span>  <span class="p">:</span>
@@ -1136,7 +1160,7 @@
     <span class="k">return</span> <span class="n">x</span>
 </div>
 <span class="k">class</span> <span class="nc">StarLog</span><span class="p">(</span><span class="n">snapshot</span><span class="o">.</span><span class="n">SimSnap</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="kn">import</span> <span class="nn">os</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">StarLog</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
@@ -1178,6 +1202,14 @@
             <span class="k">else</span> <span class="p">:</span> <span class="n">bigstarlog</span> <span class="o">=</span> <span class="bp">True</span>
             
         <span class="n">datasize</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">-</span><span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+
+        <span class="c"># check whether datasize is a multiple of iSize. If it is not,</span>
+        <span class="c"># the starlog is likely corrupted, but try to read it anyway</span>
+
+        <span class="k">if</span> <span class="n">datasize</span><span class="o">%</span><span class="n">iSize</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span> 
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;The size of the starlog file does not make sense -- it is likely corrupted. Pynbody will read it anyway, but use with caution.&quot;</span><span class="p">)</span>
+            <span class="n">datasize</span> <span class="o">-=</span> <span class="n">datasize</span><span class="o">%</span><span class="n">iSize</span>
+
         <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span> <span class="s">&quot;Reading &quot;</span><span class="o">+</span><span class="n">filename</span>
         <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_byteswap</span><span class="p">):</span>
             <span class="n">g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">datasize</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="n">file_structure</span><span class="p">)</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span>
@@ -1187,15 +1219,18 @@
         <span class="c"># hoping to provide backward compatibility for np.unique by</span>
         <span class="c"># copying relavent part of current numpy source:</span>
         <span class="c"># numpy/lib/arraysetops.py:192 (on 22nd March 2011)</span>
-        <span class="n">tmp</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="s">&#39;iord&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
-        <span class="n">perm</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
-        <span class="n">aux</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">[</span><span class="n">perm</span><span class="p">]</span>
-        <span class="n">flag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="bp">True</span><span class="p">],</span><span class="n">aux</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">!=</span><span class="n">aux</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
-        <span class="n">iord</span> <span class="o">=</span> <span class="n">aux</span><span class="p">[</span><span class="n">flag</span><span class="p">];</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[</span><span class="n">flag</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sort</span> <span class="p">:</span> 
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="s">&#39;iord&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+            <span class="n">aux</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">[</span><span class="n">perm</span><span class="p">]</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="bp">True</span><span class="p">],</span><span class="n">aux</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">!=</span><span class="n">aux</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">iord</span> <span class="o">=</span> <span class="n">aux</span><span class="p">[</span><span class="n">flag</span><span class="p">];</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[</span><span class="n">flag</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;pos&quot;</span><span class="p">,</span><span class="s">&quot;vel&quot;</span><span class="p">],</span><span class="mi">3</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;iord&quot;</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int32&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;iorderGas&quot;</span><span class="p">,</span><span class="s">&quot;massform&quot;</span><span class="p">,</span><span class="s">&quot;rhoform&quot;</span><span class="p">,</span><span class="s">&quot;tempform&quot;</span><span class="p">,</span><span class="s">&quot;metals&quot;</span><span class="p">,</span><span class="s">&quot;tform&quot;</span><span class="p">])</span>
@@ -1203,10 +1238,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;phiform&quot;</span><span class="p">,</span><span class="s">&quot;nsmooth&quot;</span><span class="p">])</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">name</span><span class="p">][:]</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">indices</span><span class="p">]</span>
-
-        <span class="c">#self._decorate()</span>
+        
+        <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">name</span><span class="p">][:]</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">indices</span><span class="p">]</span>
+        <span class="k">else</span> <span class="p">:</span> 
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
@@ -1282,41 +1320,45 @@
     <span class="n">x</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span>
     <span class="n">done</span> <span class="o">=</span> <span class="bp">False</span>
     <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">filename</span><span class="o">=</span><span class="bp">None</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="p">:</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">l</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="s">&quot;*.param&quot;</span><span class="p">))</span>
 
-        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">l</span> <span class="p">:</span>
-            <span class="c"># Attempt the loading of information</span>
-            <span class="k">try</span> <span class="p">:</span>
-                <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">IOError</span> <span class="p">:</span>
-                <span class="n">l</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="s">&quot;../*.param&quot;</span><span class="p">))</span>
-                <span class="k">if</span> <span class="n">l</span><span class="o">==</span><span class="p">[]</span> <span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="k">try</span> <span class="p">:</span> 
-                    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
-                        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
-                    <span class="k">continue</span>
-            
-                
-            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfilename</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> 
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="s">&quot;*.param&quot;</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">l</span> <span class="p">:</span>
+                <span class="c"># Attempt the loading of information</span>
                 <span class="k">try</span> <span class="p">:</span>
-                    <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">!=</span><span class="s">&quot;#&quot;</span> <span class="p">:</span>
-                        <span class="n">s</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;#&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-                        <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+                    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+                    <span class="k">break</span> <span class="c"># the file is there, break out of the loop</span>
+                <span class="k">except</span> <span class="ne">IOError</span> <span class="p">:</span>
+                    <span class="n">l</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="s">&quot;../*.param&quot;</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">l</span><span class="o">==</span><span class="p">[]</span> <span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">try</span> <span class="p">:</span> 
+                        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+                            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+                            <span class="k">break</span> <span class="c"># the file is there, break out of the loop</span>
+                    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+                        <span class="k">continue</span>
+    <span class="k">else</span> <span class="p">:</span> 
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfilename</span>
+        <span class="k">try</span> <span class="p">:</span> 
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&quot;The parameter filename you supplied is invalid&quot;</span><span class="p">)</span>            
+                
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="p">:</span>
+        <span class="k">try</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">!=</span><span class="s">&quot;#&quot;</span> <span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;#&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
                                     
-                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span> <span class="p">:</span>
-                    <span class="k">pass</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span> <span class="p">:</span>
+            <span class="k">pass</span>
 
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="p">:</span>
-                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s">&quot;filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
-                <span class="n">done</span> <span class="o">=</span> <span class="bp">True</span>
-                    
-        <span class="k">if</span> <span class="n">done</span> <span class="p">:</span> <span class="k">break</span>
-
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="p">:</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s">&quot;filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
 
 
             
