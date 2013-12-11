@@ -258,7 +258,7 @@ class AHFCatalogue(HaloCatalogue):
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None):
+    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None, ahf_basename=None):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -269,15 +269,22 @@ class AHFCatalogue(HaloCatalogue):
                     array is created; if None, the behaviour is
                     determined by the configuration system.
 
-         *dummy*: if True, the particle file is not loaded, and all
-                  halos returned are just dummies (with the correct
-                  properties dictionary loaded). Use load_copy to get
-                  the actual data in this case.
+        *dummy*: if True, the particle file is not loaded, and all
+                 halos returned are just dummies (with the correct
+                 properties dictionary loaded). Use load_copy to get
+                 the actual data in this case.
 
-         *use_iord*: if True, the particle IDs in the Amiga catalogue are
-                     taken to refer to the iord array. If False, they are
-                     the particle offsets within the file. If None, the
-                     parameter defaults to True for GadgetSnap, False otherwise.
+        *use_iord*: if True, the particle IDs in the Amiga catalogue
+                    are taken to refer to the iord array. If False,
+                    they are the particle offsets within the file. If
+                    None, the parameter defaults to True for
+                    GadgetSnap, False otherwise.
+
+        *ahf_basename*: specify the basename of the AHF halo catalog
+                        files - the code will append 'halos',
+                        'particles', and 'substructure' to this
+                        basename to load the catalog data.
+
         """
 
         import os.path
@@ -292,11 +299,16 @@ class AHFCatalogue(HaloCatalogue):
         self._use_iord = use_iord
 
         self._dummy = dummy
+        
+        if ahf_basename is not None: self._ahfBasename = ahf_basename
+        else: 
+            self._ahfBasename = util.cutgz(glob.glob(sim._filename+'*z*halos*')[0])[:-5]
+        
+        try : 
+            f = util.open_(self._ahfBasename+'halos')
+        except IOError: 
+            raise IOError("Halo catalogue not found -- check the base name of catalogue data or try specifying a catalogue using the ahf_basename keyword")
 
-        self._ahfBasename = util.cutgz(glob.glob(
-            sim._filename+'*z*halos*')[0])[:-5]
-
-        f = util.open_(self._ahfBasename+'halos')
         for i, l in enumerate(f):
             pass
         self._nhalos = i
