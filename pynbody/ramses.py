@@ -598,7 +598,19 @@ class RamsesSnap(snapshot.SimSnap) :
                 i1 = i0+(refine[cell]==0).sum()
                 gas_cpu_ar[i0:i1] = cpu
             
-             
+
+    def loadable_keys(self, fam=None) :
+        if fam is None :
+            x = set()
+            for f0 in self.families() :
+                x = x.union(self.loadable_keys(f0))
+            return list(x)
+        else :
+            if fam is family.dm or fam is family.star :
+                return self._particle_blocks
+            elif fam is family.gas :
+                return ['x','y','z','smooth']+hydro_blocks
+        
     def _load_array(self, array_name, fam=None) :
         if array_name=='cpu' :
             self['cpu'] = np.zeros(len(self), dtype=int)
