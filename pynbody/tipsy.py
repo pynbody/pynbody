@@ -1257,18 +1257,21 @@ def load_paramfile(sim) :
     x = os.path.abspath(sim._filename)
     done = False
     sim._paramfile = {}
-
+    
     if sim._paramfilename is None: 
         for i in xrange(2) :
             x = os.path.dirname(x)
             l = glob.glob(os.path.join(x,"*.param"))
 
             for filename in l :
+                print 'trying ', l
                 # Attempt the loading of information
                 try :
                     f = open(filename)
+                    done = True
                     break # the file is there, break out of the loop
                 except IOError :
+                    print 'not found'
                     l = glob.glob(os.path.join(x,"../*.param"))
                     if l==[] :
                         continue
@@ -1278,6 +1281,8 @@ def load_paramfile(sim) :
                             break # the file is there, break out of the loop
                     except IOError:
                         continue
+            if done: break
+
     else : 
         filename = sim._paramfilename
         try : 
