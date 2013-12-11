@@ -416,11 +416,12 @@ class TipsySnap(snapshot.SimSnap) :
 
         f = util.open_(filename, 'wb')
 
+        t = 0
         try:
             t = self.properties['a']
         except KeyError :
             warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
-        t = 0
+        
 
         n = len(self)
         ndim = 3
