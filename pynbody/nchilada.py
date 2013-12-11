@@ -82,8 +82,9 @@ class NchiladaSnap(snapshot.SimSnap) :
         self._filename = filename
         self._update_loadable_keys()
         self._setup_slices(take=take)
-        self._decorate()
         self._paramfilename = paramfile
+        self._decorate()
+
         
     def loadable_keys(self, fam=None) :
         if fam is not None :
