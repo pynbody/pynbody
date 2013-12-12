@@ -3,13 +3,21 @@ import m_ahf
 import numpy
 import m_halo
 
-def moment_of_inertia(obiect):
-    
-    mass = obiect['mass']
-    
-    x = obiect['x']
-    y = obiect['y']
-    z = obiect['z']
+def moment_of_inertia(sim):
+    """
+    Calculate the moment of inertia of the particles in the simulation object. 
+
+    **Inputs**: 
+
+    *sim*: :class:`~pynbody.snapshot.SimSnap` instance
+
+    """
+
+    with sim.immediate_mode:
+        mass = sim['mass']
+        x = sim['x']
+        y = sim['y']
+        z = sim['z']
     
     x = x-numpy.sum(x*mass)/numpy.sum(mass)
     y = y-numpy.sum(y*mass)/numpy.sum(mass)
