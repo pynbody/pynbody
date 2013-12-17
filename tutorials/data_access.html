@@ -395,8 +395,8 @@ future; for example:</p>
 <span class="go">       [ 38.38396454,  68.63973236,  46.01428986]], dtype=float32, &#39;km s**-1&#39;)</span>
 </pre></div>
 </div>
-<p>Finally, note that a new array generated from a
-unary or binary operation will inherit the correct units. For example</p>
+<p>A new array generated from a unary or binary operation will inherit
+the correct units. For example</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [26]: </span><span class="mi">5</span><span class="o">*</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span>
 <span class="gr">Out[26]: </span>
 <span class="go">SimArray([[ 139.69146729,   24.9185257 ,  -50.0443306 ],</span>
@@ -414,6 +414,32 @@ unary or binary operation will inherit the correct units. For example</p>
 <span class="gr">Out[28]: </span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;km Msol**1/2 s**-1&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>You can even associate arrays with the loaded
+<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> unit system even when you create
+them <em>outside</em> the <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>. This is useful
+for keeping things tidy with your unit conversions if you are
+calculating quantities that don&#8217;t apply to all of the particles. For
+instance:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [29]: </span><span class="n">array</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span> <span class="c"># make the newly-formed numpy array a pynbody array</span>
+
+<span class="gp">In [30]: </span><span class="n">array</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">f</span> <span class="c"># this links the array to the simulation</span>
+
+<span class="gp">In [31]: </span><span class="n">array</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Mpc a&#39;</span> <span class="c"># we set units that require cosmology information</span>
+
+<span class="gp">In [32]: </span><span class="n">array</span>
+<span class="gr">Out[32]: </span>
+<span class="go">SimArray([ 0.19396306,  0.4869767 ,  0.86331573,  0.80707931,  0.99010121,</span>
+<span class="go">        0.94775777,  0.31960213,  0.358578  ,  0.61142239,  0.97677484], &#39;Mpc a&#39;)</span>
+
+<span class="gp">In [33]: </span><span class="n">array</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gr">Out[33]: </span>
+<span class="go">SimArray([  53.87862814,  135.27130629,  239.80992544,  224.18870025,</span>
+<span class="go">        275.02811491,  263.26604852,   88.77837076,   99.60499995,</span>
+<span class="go">        169.83955433,  271.32634715], &#39;kpc&#39;)</span>
+</pre></div>
+</div>
+<p>Note that the units were correctly converted into physical units in
+the last step.</p>
 <p>For more information see the reference documentation for
 <a class="reference internal" href="../essentials.html#module-pynbody.units" title="pynbody.units"><tt class="xref py py-class docutils literal"><span class="pre">pynbody.units</span></tt></a>.</p>
 </div>
@@ -428,28 +454,28 @@ accessed <tt class="docutils literal"><span class="pre">f.gas</span></tt> or <tt
 at only those particles. However, subsnaps can be used in a much more
 general way. For example, you can use python&#8217;s normal array slicing
 operations. Here we take every tenth particle:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [29]: </span><span class="n">every_tenth</span> <span class="o">=</span> <span class="n">f</span><span class="p">[::</span><span class="mi">10</span><span class="p">]</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [34]: </span><span class="n">every_tenth</span> <span class="o">=</span> <span class="n">f</span><span class="p">[::</span><span class="mi">10</span><span class="p">]</span>
 
-<span class="gp">In [30]: </span><span class="nb">len</span><span class="p">(</span><span class="n">every_tenth</span><span class="p">)</span>
-<span class="gr">Out[30]: </span><span class="mi">820</span>
+<span class="gp">In [35]: </span><span class="nb">len</span><span class="p">(</span><span class="n">every_tenth</span><span class="p">)</span>
+<span class="gr">Out[35]: </span><span class="mi">820</span>
 </pre></div>
 </div>
 <p>In common with python&#8217;s normal mode of working, this does not copy any
 data, it merely creates another pointer into the existing data. As an
 example, let&#8217;s modify the position of one of our particles in the
 new view:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [31]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-<span class="gr">Out[31]: </span><span class="n">SimArray</span><span class="p">([</span> <span class="mf">505.03970337</span><span class="p">,</span>  <span class="mf">439.98474121</span><span class="p">,</span>  <span class="mf">272.89904785</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [36]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="gr">Out[36]: </span><span class="n">SimArray</span><span class="p">([</span> <span class="mf">505.03970337</span><span class="p">,</span>  <span class="mf">439.98474121</span><span class="p">,</span>  <span class="mf">272.89904785</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 
-<span class="gp">In [32]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
+<span class="gp">In [37]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
 
-<span class="gp">In [33]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-<span class="gr">Out[33]: </span><span class="n">SimArray</span><span class="p">([</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">In [38]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="gr">Out[38]: </span><span class="n">SimArray</span><span class="p">([</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This change is reflected in the main snapshot.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [34]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">10</span><span class="p">]</span>
-<span class="gr">Out[34]: </span><span class="n">SimArray</span><span class="p">([</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [39]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">10</span><span class="p">]</span>
+<span class="gr">Out[39]: </span><span class="n">SimArray</span><span class="p">([</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -466,33 +492,33 @@ the old one.</p>
 whether each successive particle should be included (<cite>True</cite>) or not
 (<cite>False</cite>).  This allows the use of <cite>numpy</cite>&#8216;s comparison
 operators. For example:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [35]: </span><span class="n">f_slab</span> <span class="o">=</span> <span class="n">f</span><span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1000</span><span class="p">)</span><span class="o">&amp;</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">2000</span><span class="p">)]</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [40]: </span><span class="n">f_slab</span> <span class="o">=</span> <span class="n">f</span><span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1000</span><span class="p">)</span><span class="o">&amp;</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">2000</span><span class="p">)]</span>
 
-<span class="gp">In [36]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-<span class="gr">Out[36]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">1000.4244995117188</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">In [41]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+<span class="gr">Out[41]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">1000.4244995117188</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 
-<span class="gp">In [37]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-<span class="gr">Out[37]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">1999.713134765625</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">In [42]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+<span class="gr">Out[42]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">1999.713134765625</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 
-<span class="gp">In [38]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-<span class="gr">Out[38]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">0.16215670108795166</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">In [43]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+<span class="gr">Out[43]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">0.16215670108795166</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 
-<span class="gp">In [39]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-<span class="gr">Out[39]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">4225.29345703125</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">In [44]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+<span class="gr">Out[44]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">4225.29345703125</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Here <cite>f_slab</cite> is pointing at only those particles which have
 x-coordinates between 1000 and 2000.</p>
 <p>Note that subsnaps really do behave exactly like snapshots. So, for
 instance, you can pick out sub-subsnaps or sub-sub-subsnaps.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [40]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
-<span class="gr">Out[40]: </span><span class="mi">886</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [45]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
+<span class="gr">Out[45]: </span><span class="mi">886</span>
 
-<span class="gp">In [41]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">[::</span><span class="mi">10</span><span class="p">])</span>
-<span class="gr">Out[41]: </span><span class="mi">89</span>
+<span class="gp">In [46]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">[::</span><span class="mi">10</span><span class="p">])</span>
+<span class="gr">Out[46]: </span><span class="mi">89</span>
 
-<span class="gp">In [42]: </span><span class="n">f_slab</span><span class="p">[[</span><span class="mi">100</span><span class="p">,</span><span class="mi">105</span><span class="p">,</span><span class="mi">252</span><span class="p">]]</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
-<span class="gr">Out[42]: </span>
+<span class="gp">In [47]: </span><span class="n">f_slab</span><span class="p">[[</span><span class="mi">100</span><span class="p">,</span><span class="mi">105</span><span class="p">,</span><span class="mi">252</span><span class="p">]]</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
+<span class="gr">Out[47]: </span>
 <span class="go">SimArray([[ 1699.36401367,   354.50869751,  1975.56066895],</span>
 <span class="go">       [ 1639.37890625,    75.42573547,  2074.89428711],</span>
 <span class="go">       [ 1209.55371094,  1212.67248535,   579.39923096]], dtype=float32, &#39;kpc&#39;)</span>
@@ -512,9 +538,9 @@ hood. See <a class="reference internal" href="performance.html#performance"><em>
 <cite>filter</cite>. This can lead to more readable code than the equivalent
 explicitly written condition. For example, to pick out a sphere
 centered on the origin, you can use:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [43]: </span><span class="kn">from</span> <span class="nn">pynbody.filt</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [48]: </span><span class="kn">from</span> <span class="nn">pynbody.filt</span> <span class="kn">import</span> <span class="o">*</span>
 
-<span class="gp">In [44]: </span><span class="n">f_sphere</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;10 kpc&#39;</span><span class="p">)]</span>
+<span class="gp">In [49]: </span><span class="n">f_sphere</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;10 kpc&#39;</span><span class="p">)]</span>
 </pre></div>
 </div>
 <p>For a list of filters, see  <a class="reference internal" href="../convenience.html#module-pynbody.filt" title="pynbody.filt"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.filt</span></tt></a>.</p>

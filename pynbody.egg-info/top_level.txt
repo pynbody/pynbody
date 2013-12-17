@@ -1,0 +1,7 @@
+pynbody/bc_modules
+pynbody/chunk
+pynbody/analysis
+pynbody/plot
+pynbody
+pynbody/kdmain
+pynbody/gravity

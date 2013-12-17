@@ -322,7 +322,7 @@
 <span class="sd">    Class to handle catalogues produced by Amiga Halo Finder (AHF).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">make_grp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">use_iord</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">make_grp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">use_iord</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ahf_basename</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize an AHFCatalogue.</span>
 
 <span class="sd">        **kwargs** :</span>
@@ -333,15 +333,22 @@
 <span class="sd">                    array is created; if None, the behaviour is</span>
 <span class="sd">                    determined by the configuration system.</span>
 
-<span class="sd">         *dummy*: if True, the particle file is not loaded, and all</span>
-<span class="sd">                  halos returned are just dummies (with the correct</span>
-<span class="sd">                  properties dictionary loaded). Use load_copy to get</span>
-<span class="sd">                  the actual data in this case.</span>
+<span class="sd">        *dummy*: if True, the particle file is not loaded, and all</span>
+<span class="sd">                 halos returned are just dummies (with the correct</span>
+<span class="sd">                 properties dictionary loaded). Use load_copy to get</span>
+<span class="sd">                 the actual data in this case.</span>
 
-<span class="sd">         *use_iord*: if True, the particle IDs in the Amiga catalogue are</span>
-<span class="sd">                     taken to refer to the iord array. If False, they are</span>
-<span class="sd">                     the particle offsets within the file. If None, the</span>
-<span class="sd">                     parameter defaults to True for GadgetSnap, False otherwise.</span>
+<span class="sd">        *use_iord*: if True, the particle IDs in the Amiga catalogue</span>
+<span class="sd">                    are taken to refer to the iord array. If False,</span>
+<span class="sd">                    they are the particle offsets within the file. If</span>
+<span class="sd">                    None, the parameter defaults to True for</span>
+<span class="sd">                    GadgetSnap, False otherwise.</span>
+
+<span class="sd">        *ahf_basename*: specify the basename of the AHF halo catalog</span>
+<span class="sd">                        files - the code will append &#39;halos&#39;,</span>
+<span class="sd">                        &#39;particles&#39;, and &#39;substructure&#39; to this</span>
+<span class="sd">                        basename to load the catalog data.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="kn">import</span> <span class="nn">os.path</span>
@@ -356,11 +363,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_use_iord</span> <span class="o">=</span> <span class="n">use_iord</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_dummy</span> <span class="o">=</span> <span class="n">dummy</span>
+        
+        <span class="k">if</span> <span class="n">ahf_basename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ahfBasename</span> <span class="o">=</span> <span class="n">ahf_basename</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ahfBasename</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">cutgz</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&#39;*z*halos*&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
+        
+        <span class="k">try</span> <span class="p">:</span> 
+            <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ahfBasename</span><span class="o">+</span><span class="s">&#39;halos&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&quot;Halo catalogue not found -- check the base name of catalogue data or try specifying a catalogue using the ahf_basename keyword&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ahfBasename</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">cutgz</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span>
-            <span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&#39;*z*halos*&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
-
-        <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ahfBasename</span><span class="o">+</span><span class="s">&#39;halos&#39;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
             <span class="k">pass</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_nhalos</span> <span class="o">=</span> <span class="n">i</span>
