@@ -27,6 +27,7 @@ import copy
 import os.path as path
 import warnings
 import errno
+import itertools
 
 # This is set here and not in a config file because too many things break
 # if it is not 6
@@ -360,45 +361,19 @@ class GadgetFile(object):
     def get_block_types(self, block, npart):
         """ Set up the particle types in the block, with a heuristic,
         which assumes that blocks are either fully present or not for a given particle type"""
-        # This function is horrible.
-        p_types = np.zeros(N_TYPE, bool)
-        if block.length == npart.sum()*block.partlen:
+
+        totalnpart = npart.astype(np.int64).sum()
+        if block.length == totalnpart * block.partlen:
             p_types = np.ones(N_TYPE, bool)
             return p_types
-        # Blocks which contain a single particle type
-        for n in np.arange(0, N_TYPE):
-            if block.length == npart[n]*block.partlen:
-                p_types[n] = True
-                return p_types
-        # Blocks which contain two particle types
-        for n in np.arange(0, N_TYPE):
-            for m in np.arange(0, N_TYPE):
-                if block.length == (npart[n]+npart[m])*block.partlen:
-                    p_types[n] = True
-                    p_types[m] = True
-                    return p_types
-        # Blocks which contain three particle types
-        for n in np.arange(0, N_TYPE):
-            for m in np.arange(0, N_TYPE):
-                for l in np.arange(0, N_TYPE):
-                    if block.length == (npart[n]+npart[m]+npart[l])*block.partlen:
-                        p_types[n] = True
-                        p_types[m] = True
-                        p_types[l] = True
-                        return p_types
-        # Blocks which contain four particle types
-        for n in np.arange(0, N_TYPE):
-            for m in np.arange(0, N_TYPE):
-                if block.length == (npart.sum() - npart[n]-npart[m])*block.partlen:
-                    p_types = np.ones(N_TYPE, bool)
-                    p_types[n] = False
-                    p_types[m] = False
-                    return p_types
-        # Blocks which contain five particle type
-        for n in np.arange(0, N_TYPE):
-            if block.length == (npart.sum() - npart[n])*block.partlen:
-                p_types = np.ones(N_TYPE, bool)
-                p_types[n] = False
+        p_types = np.zeros(N_TYPE, bool)
+        for blocknpart in [1,2,3,4,5]:
+            # iterate of differeent possible combinations of particles in the bloc
+            # we stop when we can we match the length of the block
+            for perm in itertools.permutations(range(0,N_TYPE), blocknpart):
+                # the 64-bit calculation is important here
+                if block.length == (npart[perm]).astype(np.int64).sum()*block.partlen:
+                    p_types[perm] = True
                 return p_types
         raise ValueError("Could not determine particle types for block")
 
