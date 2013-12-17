@@ -372,8 +372,8 @@ class GadgetFile(object):
             # we stop when we can we match the length of the block
             for perm in itertools.permutations(range(0,N_TYPE), blocknpart):
                 # the 64-bit calculation is important here
-                if block.length == (npart[perm]).astype(np.int64).sum()*block.partlen:
-                    p_types[perm] = True
+                if block.length == (npart[list(perm)]).astype(np.int64).sum()*block.partlen:
+                    p_types[list(perm)] = True
                     return p_types
         raise ValueError("Could not determine particle types for block")
 
