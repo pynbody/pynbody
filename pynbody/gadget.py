@@ -374,7 +374,7 @@ class GadgetFile(object):
                 # the 64-bit calculation is important here
                 if block.length == (npart[perm]).astype(np.int64).sum()*block.partlen:
                     p_types[perm] = True
-                return p_types
+                    return p_types
         raise ValueError("Could not determine particle types for block")
 
     def check_format(self, fd):
