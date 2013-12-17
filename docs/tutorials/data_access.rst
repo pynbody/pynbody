@@ -369,8 +369,8 @@ future; for example:
        [ 40.75585556,  59.44286728,  44.24484634],
        [ 38.38396454,  68.63973236,  46.01428986]], dtype=float32, 'km s**-1')
 
-Finally, note that a new array generated from a 
-unary or binary operation will inherit the correct units. For example
+A new array generated from a unary or binary operation will inherit
+the correct units. For example
 
 .. ipython::
 
@@ -398,6 +398,27 @@ unary or binary operation will inherit the correct units. For example
  In [57]: np.sqrt(((f['vel']**2).sum(axis=1)*f['mass'])).units
  Out[57]: 
 
+You can even associate arrays with the loaded
+:class:`~pynbody.snapshot.SimSnap` unit system even when you create
+them *outside* the :class:`~pynbody.snapshot.SimSnap`. This is useful
+for keeping things tidy with your unit conversions if you are
+calculating quantities that don't apply to all of the particles. For
+instance:
+
+.. ipython::
+
+ In [6]: array = pynbody.array.SimArray(np.random.rand(10)) # make the newly-formed numpy array a pynbody array
+
+ In [7]: array.sim = f # this links the array to the simulation
+ 
+ In [8]: array.units = 'Mpc a' # we set units that require cosmology information
+
+ In [9]: array
+
+ In [9]: array.in_units('kpc')
+
+Note that the units were correctly converted into physical units in
+the last step.
 
 For more information see the reference documentation for
 :class:`pynbody.units`.
