@@ -38,7 +38,7 @@ def combine(r,g,b):
     return rgbim
 
 def render(sim,file=False,r_band='i',g_band='v',b_band='u',width=50,
-           starsize=0.1, ret_im=True):
+           starsize=0.1, axes=None, ret_im=False,clear=True):
     '''
     Make 3 color image of stars a la Sunrise.  This is simpler than Sunrise 
     in that there is no radiative transfer to account for dust.  It will show
@@ -68,8 +68,8 @@ def render(sim,file=False,r_band='i',g_band='v',b_band='u',width=50,
        *starsize*: float in kpc (default:0.1)
          Sets the maximum size of stars in the image
 
-       *ret_im*: bool (default: True)
-         if you don't want image object returned, set to false
+       *ret_im*: bool (default: False)
+         if you want image object returned, set to True
     '''
     sim.physical_units()
 
@@ -87,7 +87,17 @@ def render(sim,file=False,r_band='i',g_band='v',b_band='u',width=50,
     r,g,b = nw_arcsinh_fit(r,g,b)
 
     rgbim=combine(r,g,b)
-    if file: matplotlib.image.imsave(file,rgbim)
+
+    if clear: plt.clf()
+    if file and axes is None:
+        axes=plt.subplot(111)
+    if axes:
+        axes.imshow(rgbim[::-1,:],extent=(-width/2,width/2,-width/2,width/2))
+        axes.set_xlabel('x ['+str(sim.s['x'].units)+']')
+        axes.set_ylabel('y ['+str(sim.s['y'].units)+']')
+    if file: 
+        plt.savefig(file)
+        #matplotlib.image.imsave(file,rgbim)
 
     if ret_im: return rgbim
 
