@@ -20,8 +20,8 @@ def nw_scale_rgb(r,g,b,scales=[4,3.2,3.4]):
 
 def nw_arcsinh_fit(r,g,b,nonlinearity=3):
     radius = r+g+b
-    val=np.arcsinh(radius*nonlinearity)/nonlinearity
-    return r,g,b
+    val=np.arcsinh(radius*nonlinearity)/nonlinearity/radius
+    return r*val,g*val,b*val
 
 def combine(r,g,b):
     mini = np.array((r,g,b)).min()
