@@ -75,7 +75,7 @@ class HarmonicStepFilter(FieldFilter) :
 
 
 class PowerSpectrumCAMB(object) :
-    def __init__(self, context, filename=None) :
+    def __init__(self, context, filename=None,log_interpolation=True) :
         if filename is None :
             warnings.warn("Using the default power-spectrum spectrum which assumes ns=0.96 and WMAP7+H0+BAO transfer function.", RuntimeWarning)
             filename = os.path.join(os.path.dirname(__file__),"CAMB_WMAP7")
@@ -130,9 +130,14 @@ class PowerSpectrumCAMB(object) :
         self.min_k = self.k.min()
         self.max_k = self.k.max()
         self._norm = 1
-        
-        self._interp = scipy.interpolate.interp1d(np.log(self.k), np.log(self.Pk))
 
+        self._log_interp = log_interpolation
+        
+        if log_interpolation :
+            self._interp = scipy.interpolate.interp1d(np.log(self.k), np.log(self.Pk))
+        else :
+            self._interp = scipy.interpolate.interp1d(np.log(self.k), self.Pk)
+            
         self.set_sigma8(context.properties['sigma8'])    
             
 
@@ -149,9 +154,40 @@ class PowerSpectrumCAMB(object) :
             warnings.warn("Power spectrum does not extend to low enough k; using power-law extrapolation (this is likely to be fine)", RuntimeWarning)
         if np.any(k>self._orig_k_max) :
             warnings.warn("Power spectrum does not extend to high enough k; using power-law extrapolation. This is bad but your results are unlikely to be sensitive to it unless they relate directly to very small scales or you have run CAMB with inappropriate settings.", RuntimeWarning)
-        return self._norm*self._lingrowth*np.exp(self._interp(np.log(k)))
+        if self._log_interp :
+            return self._norm*self._lingrowth*np.exp(self._interp(np.log(k)))
+        else :
+            return self._norm*self._lingrowth*self._interp(np.log(k))
+
+
+class BiasedPowerSpectrum(PowerSpectrumCAMB) :
+    def __init__(self, bias, pspec) :
+        """Set up a biased power spectrum.
+
+        **args**
+          bias: either a number for a fixed bias, or a function taking
+                the wavenumber k in Mpc/h and returning the bias
+
+          pspec: the underlying power spectrum
+        """
+
+        if not hasattr(bias, '__call__') :
+            bias = lambda x : bias
+
+        self._bias = bias
+        self._pspec = pspec
+        self._norm = 1.0
+        self.min_k = pspec.min_k
+        self.max_k = pspec.max_k
+        self.k = pspec.k
+        self.Pk = pspec.Pk*self._bias(self.k)**2
+
+    def __call__(self, k) :
+        return self._norm*self._pspec(k)*self._bias(k)**2
 
     
+
+        
 
 #######################################################################
 # Variance calculation
@@ -248,9 +284,16 @@ def correlation(r, powspec=PowerSpectrumCAMB) :
         n = np.log(Pk_top/Pk_bot)/np.log(k_top/k_bot)
         P0 = Pk_top/k_top**n
 
-        if k_top*r<6.0 and not gamma_method :
+        if  n!=n or abs(n)>2 :
+            # looks nasty in log space, so interpolate linearly instead
+            grad = (Pk_top-Pk_bot)/(k_top-k_bot)
+            segment =  ((-2*grad + k_bot*Pk_bot*r**2)*np.cos(k_bot*r) +  \
+                        (2*grad - k_top*(-(grad*k_bot) + grad*k_top + Pk_bot)*r**2)*np.cos(k_top*r) - \
+                        (grad*k_bot + Pk_bot)*r*np.sin(k_bot*r) + \
+                        (-(grad*k_bot) + 2*grad*k_top + Pk_bot)*r*np.sin(k_top*r))/r**4
+            
+        elif k_top*r<6.0 and not gamma_method :
             # approximate sin y/y as polynomial = \sum_m coeff_m y^m
-
             
             segment = 0
             term = 0
