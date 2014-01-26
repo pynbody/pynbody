@@ -611,18 +611,19 @@ class AHFCatalogue(HaloCatalogue):
 
 
 class AmigaGrpCatalogue(HaloCatalogue):
-    def __init__(self, sim):
-        sim['amiga.grp']
+    def __init__(self, sim, array='amiga.grp'):
+        sim[array]
             # trigger lazy-loading and/or kick up a fuss if unavailable
         self._base = weakref.ref(sim)
         self._halos = {}
+        self._array = array
         HaloCatalogue.__init__(self)
 
     def _get_halo(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        x = Halo(i, self, self.base, np.where(self.base['amiga.grp'] == i))
+        x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
         x._descriptor = "halo_"+str(i)
         return x
 
@@ -631,9 +632,9 @@ class AmigaGrpCatalogue(HaloCatalogue):
         return self._base()
 
     @staticmethod
-    def _can_load(sim):
+    def _can_load(sim,array='amiga.grp'):
         try:
-            sim['amiga.grp']
+            sim[array]
             return True
         except KeyError:
             return False

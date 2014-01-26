@@ -701,13 +701,19 @@ class SimSnap(object):
         from . import halo
 
         for c in config['halo-class-priority']:
-            if c._can_load(self):
-                return c(self, *args, **kwargs)
+            try:
+                if c._can_load(self,*args,**kwargs):
+                    return c(self, *args, **kwargs)
+            except TypeError:
+                pass
 
         for c in config['halo-class-priority']:
-            if c._can_run(self):
-                return c(self, *args, **kwargs)
-
+            try:
+                if c._can_run(self,*args,**kwargs):
+                    return c(self, *args, **kwargs)
+            except TypeError:
+                pass
+                
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 
     ############################################
