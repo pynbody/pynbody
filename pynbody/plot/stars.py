@@ -6,10 +6,100 @@ stars
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib,matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
+from .sph import image
 import warnings
+
+def bytscl(arr,mini=0,maxi=10000):
+    return (arr-mini)/(maxi-mini)
+
+def nw_scale_rgb(r,g,b,scales=[4,3.2,3.4]):
+    return r*scales[0], g*scales[1], b*scales[2]
+
+def nw_arcsinh_fit(r,g,b,nonlinearity=3):
+    radius = r+g+b
+    val=np.arcsinh(radius*nonlinearity)/nonlinearity/radius
+    return r*val,g*val,b*val
+
+def combine(r,g,b):
+    mini = np.array((r,g,b)).min()
+    maxi = np.array((r,g,b)).max()
+    print "mini: %g  maxi: %g"%(mini,maxi)
+    zeropixels=(r==r.min())&(g==g.min())&(b==b.min())
+    r[zeropixels]=mini
+    g[zeropixels]=mini
+    b[zeropixels]=mini
+    rgbim=np.zeros((r.shape[0],r.shape[1],3))
+    rgbim[:,:,0]=bytscl(r,mini=mini,maxi=maxi)
+    rgbim[:,:,1]=bytscl(g,mini=mini,maxi=maxi)
+    rgbim[:,:,2]=bytscl(b,mini=mini,maxi=maxi)
+    return rgbim
+
+def render(sim,file=False,r_band='i',g_band='v',b_band='u',width=50,
+           starsize=0.1, axes=None, ret_im=False,clear=True):
+    '''
+    Make 3 color image of stars a la Sunrise.  This is simpler than Sunrise 
+    in that there is no radiative transfer to account for dust.  It will show
+    whether your young stars are clustered and about how thick your disk is.
+    The colors are based on magnitudes found using stellar Marigo stellar 
+    population code.
+    
+    Return:  three color image
+    
+    **Optional keyword arguments:**
+    
+       *file*: string (default: False)
+         Filename to be written to.  If no filename specified, then 
+
+       *r_band*: string (default: 'i')
+         Determines which Johnston filter will go into the image red channel
+
+       *g_band*: string (default: 'v')
+         Determines which Johnston filter will go into the image green channel
+
+       *b_band*: string (default: 'b')
+         Determines which Johnston filter will go into the image blue channel
+
+       *width*: float in kpc (default:50)
+         Sets the size of the image field in kpc
+
+       *starsize*: float in kpc (default:0.1)
+         Sets the maximum size of stars in the image
+
+       *ret_im*: bool (default: False)
+         if you want image object returned, set to True
+    '''
+    sim.physical_units()
+
+    smf = filt.HighPass('smooth',str(starsize)+' kpc')
+    sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
+    
+    r=image(sim.s,qty=r_band+'_lum_den',width=width,log=True,
+                         av_z=True,clear=False,noplot=True)
+    g=image(sim.s,qty=g_band+'_lum_den',width=width,log=True,
+                         av_z=True,clear=False,noplot=True)
+    b=image(sim.s,qty=b_band+'_lum_den',width=width,log=True,
+                         av_z=True,clear=False,noplot=True)
+
+#r,g,b = nw_scale_rgb(r,g,b)
+    r,g,b = nw_arcsinh_fit(r,g,b)
+
+    rgbim=combine(r,g,b)
+
+    if clear: plt.clf()
+    if file and axes is None:
+        axes=plt.subplot(111)
+    if axes:
+        axes.imshow(rgbim[::-1,:],extent=(-width/2,width/2,-width/2,width/2))
+        axes.set_xlabel('x ['+str(sim.s['x'].units)+']')
+        axes.set_ylabel('y ['+str(sim.s['y'].units)+']')
+    if file: 
+        plt.savefig(file)
+        #matplotlib.image.imsave(file,rgbim)
+
+    if ret_im: return rgbim
 
 def sfh(sim,filename=None,massform=True,clear=False,legend=False,
         subplot=False, trange=False, bins=100, **kwargs):

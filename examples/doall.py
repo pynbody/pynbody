@@ -5,7 +5,7 @@ import pynbody.plot.sph
 import pynbody.filt as filt
 import pynbody.units as units
 import pynbody.analysis.profile as profile
-import sys, os, glob, pickle, pylab as plt
+import sys, os, glob, pickle, pylab as plt, struct
 
 def find_sfh(h,bins=100):
     trange = [h.star['tform'].in_units("Gyr").min(),h.star['tform'].in_units("Gyr").max()]
@@ -19,13 +19,28 @@ def find_sfh(h,bins=100):
     sfhtimes = 0.5*(sfhbines[1:]+sfhbines[:-1])
     return sfh,sfhtimes
 
+def mdf(s,quant='oxh',bins=100,totmass=False,range=(-5,0.5)):
+    if not totmass: totmass = np.sum(s['mass'].in_units('Msol'))
+    hist, binedges = np.histogram(s[quant],
+                                  weights=s['mass'].in_units('Msol')/totmass,
+                                  bins=bins, range=range)
+    bins = 0.5*(binedges[:-1]+binedges[1:])
+    return hist,bins
+
+def write(s,filename='dumbfile.out'):
+    f = pynbody.util.open_(filename,'wb')
+    f.write(struct.pack(">i", len(s)))
+    s.tofile(f)
+    f.close()
+
 simname = sys.argv[1]
 #pp.plt.ion()
 
 s = pynbody.load(simname)
 h = s.halos()
 diskf = filt.Disc('20 kpc','3 kpc')
-notdiskf = filt.Not(diskf)
+fifmyrf = filt.LowPass('age','15 Myr')
+twokpcf = filt.Sphere('2 kpc')
 i=1
 if (len(sys.argv) > 2):
     photiords = np.genfromtxt(sys.argv[2],dtype='i8')
@@ -46,13 +61,20 @@ try:
 except:
     pass
 s.physical_units()
+#diskf = filt.Disc(np.max(h[i].s[diskf]['r']),np.max(h[i].s[diskf]['z']))
+notdiskf = filt.Not(diskf)
+notcooldenf = filt.And(filt.LowPass('rho','0.1 m_p cm^-3'),
+                       filt.HighPass('temp',3e4))
 Jtot = np.sqrt(((np.multiply(h[i]['j'].transpose(),h[i]['mass']).sum(axis=1))**2).sum())
 W = np.sum(h[i]['phi']*h[i]['mass'])
 K = np.sum(h[i]['ke']*h[i]['mass'])
 absE = np.fabs(W+K)
 mvir=np.sum(h[i]['mass'].in_units('Msol'))
+r = s['r']
 rvir=pynbody.array.SimArray(np.max(h[i]['r'].in_units('kpc')),'kpc')
 mdiskgas=np.sum([h[i][diskf].g['mass'].in_units('Msol')]),
+mtwokpcgas=np.sum([h[i][twokpcf].g['mass'].in_units('Msol')]),
+mtwokpcstar=np.sum([h[i][twokpcf].s['mass'].in_units('Msol')]),
 mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
 # 3D density profile
 rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
@@ -67,8 +89,19 @@ sbprof = profile.Profile(diskstars,type='equaln')
 #dec = h[i].star['decomp']
 sfh,sfhtimes = find_sfh(h[i],bins=100)
 hrsfh,hrsfhtimes = find_sfh(h[i],bins=600)
+sfr = np.sum(h[i].star[fifmyrf]['mass'].in_units('Msol')) / 1.5e7
 
-    
+# where did halo come from?  SN or virial shocks
+# look at all particles inside 2.5 r_vir
+twopfivef = pynbody.filt.Sphere(2.5*rvir)
+stfrvir = s[twopfivef]
+halogas = stfrvir[notdiskf].g[notcooldenf]
+mtfhalogas = np.sum(halogas['mass'].in_units('Msol'))
+iposcoolontime = halogas['coolontime'].in_units('yr')>0
+igasords = np.in1d(halogas['iord'],stfrvir.s['igasorder'])
+halooxhist, halooxbins = mdf(halogas,totmass=mtfhalogas)
+cohalooxhist, cohalooxbins = mdf(halogas[iposcoolontime],totmass=mtfhalogas)
+
 ### Save important numbers using pickle.  Currently not working for SimArrays
 pickle.dump({'z':s.properties['z'],
              'time':s.properties['time'].in_units('Gyr'),
@@ -76,6 +109,7 @@ pickle.dump({'z':s.properties['z'],
              'mvir':mvir,
              'mgas': np.sum(h[i].gas['mass'].in_units('Msol')),
              'mstar': np.sum(h[i].star['mass'].in_units('Msol')),
+             'sfr': sfr,
 #             'mdisk': np.sum(h[i].star[np.where(dec == 1)]['mass'].in_units('Msol')),
 #             'msphere': np.sum(h[i].star[np.where(dec == 2)]['mass'].in_units('Msol')),
 #             'mbulge': np.sum(h[i].star[np.where(dec == 3)]['mass'].in_units('Msol')),
@@ -90,10 +124,21 @@ pickle.dump({'z':s.properties['z'],
                                    h[i][diskf].g['metals'])/mdiskgas,
              'mdiskstar': np.sum([h[i][diskf].s['mass'].in_units('Msol')]),
              'mdiskcoolgas': np.sum([h[i][diskf].g[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')]),
+             'mtwokpcgas': mtwokpcgas,
+             'mtwokpcstar': mtwokpcstar,
+             'mtwokpcbary': mtwokpcgas+mtwokpcstar,
+             'twokpcmeanmet': np.sum(h[i][twokpcf].g['mass'].in_units('Msol')*
+                                   h[i][twokpcf].g['metals'])/mtwokpcgas,
+             'mtwokpccoolgas': np.sum([h[i][twokpcf].g[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')]),
              'mhalogas': mhalogas,
              'mhalohotgas': np.sum([h[i][notdiskf].g[filt.HighPass('temp',1e5)]['mass'].in_units('Msol')]),
              'halomeanmet': np.sum(h[i][notdiskf].g['mass'].in_units('Msol')*
                                    h[i][notdiskf].g['metals'])/mhalogas,
+             'mhalogasformedstar':np.sum(halogas[igasords]['mass'].in_units('Msol')),
+             'mhalogascoolwasoff':np.sum(halogas[iposcoolontime]['mass'].in_units('Msol')),
+             'rmaxcooloffgas':np.max(halogas[iposcoolontime]['r'].in_units('kpc')),
+             'halooxmdf':{'bins':halooxbins,'hist':halooxhist},
+             'cohalooxmdf':{'bins':cohalooxbins,'hist':cohalooxhist},
 #             'Jtot':Jtot,'lambda':(Jtot / np.sqrt(2*np.power(mvir,3)*rvir*units.G)).in_units('1'),
              'denprof':{'r':rhoprof['rbins'].in_units('kpc'), 
                         'den':rhoprof['density']},
@@ -109,6 +154,9 @@ pickle.dump({'z':s.properties['z'],
              'hrsfh':{'sfh':hrsfh,'t':hrsfhtimes}
              },
             open(simname+'.data','w'))#, pickle.HIGHEST_PROTOCOL)
+write(h[i][diskf].g['iord'],filename=simname+'.disk.iord')
+write(s.g[filt.LowPass('temp',30000)][filt.HighPass('rho','0.1 m_p cm^-3')]['iord'],filename=simname+'.cooldense.iord')
+write(halogas['iord'],filename=simname+'.halo.iord')
 
 ### Make plots
 try:
@@ -154,7 +202,7 @@ try:
              x_range=[-5,2], y_range=[3,8])
     pp.ofefeh(h[i].stars, filename=simname+'.ofefeh.png',
               weights=h[i].stars['mass'].in_units('Msol'), scalemin=1e3,
-              scalemax=1e6, x_range=[-3,0.3],y_range=[-0.5,1.0])
+              scalemax=1e9, x_range=[-3,0.3],y_range=[-0.5,1.0])
     pp.mdf(h[i].stars,filename=simname+'.mdf.png', range=[-4,0.5])
     pp.density_profile(h[i].dark,filename=simname+'.dmprof.png',center=False)
     plt.clf()
@@ -223,5 +271,8 @@ try:
                  width=30,vmin=3,vmax=7)
     pynbody.plot.image(s.gas,qty='temp',width=500,center=False,
                        filename=simname+'.temp500kpc.png',vmin=3,vmax=7)
+    pynbody.plot.image(s.gas,qty='hiden',units='m_p cm^-2',width=200,
+                       center=False,filename=simname+'.sidehi100kpc.png',
+                       vmin=14,vmax=22)
 except:
     pass
