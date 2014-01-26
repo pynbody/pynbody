@@ -141,6 +141,8 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
     offset = np.array(header['ng'],dtype='f8')/2
     offset-=0.5
 
+    coords = np.zeros(3,dtype=_float_type)
+
     for level in xrange(maxlevel or header['nlevelmax']) :
 
         # loop through those CPUs with grid data (includes ghost regions)
@@ -154,8 +156,13 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
 
                 # store the coordinates in temporary arrays. We only want
                 # to copy it if the cell is not refined
-                x0,y0,z0 = [read_fortran(f, _float_type, n_per_level[level,cpu-1]) for ar in range(ndim)]
+                coords = [read_fortran(f, _float_type, n_per_level[level,cpu-1]) for ar in range(ndim)]
 
+                
+                # stick on zeros if we're in less than 3D
+                coords+=[np.zeros_like(coords[0]) for ar in range(3-ndim)]
+
+                
                 skip_fortran(f,1 # father index
                               + 2*ndim # nbor index
                               + 2*(2**ndim) # son index,cpumap,refinement map
@@ -166,9 +173,11 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
                 if level==maxlevel :
                     refine[:] = 0
 
-                x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
+                
+                coords[0]-=offset[0]; coords[1]-=offset[1]; coords[2]-=offset[2]
+                # x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
 
-                yield (x0,y0,z0),refine,cpuf,level
+                yield coords,refine,cpuf,level
 
 
             else :
@@ -190,7 +199,7 @@ def _cpui_count_gas_cells(level_iterator_args) :
 
 @remote_exec
 def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator_args) :
-    dims = [pos_array[:,i] for i in range(3)]
+    dims = [pos_array[:,i] for i in range(ndim)]
     subgrid_index = np.arange(2**ndim)[:,np.newaxis]
     subgrid_z = np.floor((subgrid_index)/4)
     subgrid_y = np.floor((subgrid_index-4*subgrid_z)/2)
@@ -209,7 +218,7 @@ def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator
         mark = np.where(refine==0)
 
         i1 = i0+len(mark[0])
-        for q,d in zip(dims,[x0,y0,z0]) :
+        for q,d in zip(dims,[x0,y0,z0][:ndim]) :
             q[i0:i1]=d[mark]
 
         smooth_array[i0:i1]=dx
@@ -246,7 +255,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         nvar = nvar_file
         dims = dims[:nvar]
     elif nvar_file>nvar :
-        warnings.warn("More hydro variables are in this RAMSES dump than are defined in config.ini", RuntimeWarning)
+        warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)"%(nvar_file,nvar), RuntimeWarning)
 
     for level in xrange(maxlevel or header['nlevelmax']) :
 
@@ -316,7 +325,7 @@ class RamsesSnap(snapshot.SimSnap) :
          *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
          """
     
-        warnings.warn("RamsesSnap is in development and may not behave well", RuntimeWarning)
+        
         
         global config
         super(RamsesSnap,self).__init__()
@@ -331,8 +340,19 @@ class RamsesSnap(snapshot.SimSnap) :
         self._filename = dirname
         self._load_infofile()
 
-        assert self._info['ndim']==3
-        self._ndim = 3 # in future could support lower dimensions
+        # determine whether we have explicit information about
+        # what particle blocks are present
+        self._new_format = False
+        self._particle_blocks = self._info.get('particle-blocks',particle_blocks)
+        if 'particle-blocks' in self._info :
+            self._new_format = True
+            self._particle_blocks = ['x','y','z','vx','vy','vz']+self._particle_blocks[2:]
+
+        assert self._info['ndim']<=3
+        if self._info['ndim']<3 :
+            warnings.warn("Snapshots with less than three dimensions are supported only experimentally", RuntimeWarning)
+            
+        self._ndim = self._info['ndim']
         
         self.ncpu = self._info['ncpu']
 
@@ -371,6 +391,12 @@ class RamsesSnap(snapshot.SimSnap) :
                         self._info[name] = int(val)
                 except ValueError :
                     self._info[name] = val
+        f = file(self._filename+"/header_"+_timestep_id(self._filename)+".txt")
+        # most of this file is unhelpful, but in the latest ramses
+        # version, there is information on the particle fields present
+        for l in f :
+            if "level" in l :
+                self._info['particle-blocks']=l.split()
 
     def _particle_filename(self, cpu_id) :
         return self._filename+"/part_"+self._timestep_id+".out"+_cpu_id(cpu_id)
@@ -399,6 +425,9 @@ class RamsesSnap(snapshot.SimSnap) :
         self._dm_i0 = []
         self._star_i0 = []
 
+        if not os.path.exists(self._particle_filename(1)) :
+            return 0,0
+        
         results = remote_map(self.reader_pool,
                              _cpui_count_particles,
                              [self._particle_filename(i) for i in self._cpus])
@@ -470,6 +499,10 @@ class RamsesSnap(snapshot.SimSnap) :
         for i in [hydro_blocks,grav_blocks][mode] :
             if i not in self.gas :
                 self.gas._create_array(i)
+            if self._ndim<3 and i[-1]=='z' :
+                continue
+            if self._ndim<2 and i[-1]=='y' :
+                continue
             dims.append(self.gas[i])
             self.gas[i].set_default_units()
             
@@ -492,13 +525,17 @@ class RamsesSnap(snapshot.SimSnap) :
                    self._cpui_level_iterator_args(),
                    self._gas_i0,
                    [mode]*len(self._cpus))
+
+        if mode is _gv_load_gravity :
+            # potential is awkwardly in expected units divided by box size
+            self.gas['phi']*=self._info['boxlen']
  
         if config['verbose'] :
             print>>sys.stderr, "done"
 
                               
     def _load_particle_block(self, blockname) :
-        offset = particle_blocks.index(blockname)
+        offset = self._particle_blocks.index(blockname)
         _type = np.dtype(particle_format[offset])
         ind0_dm = 0
         ind0_star = 0
@@ -527,6 +564,15 @@ class RamsesSnap(snapshot.SimSnap) :
                    self._star_mask,
                    self._nstar)
         
+        # The potential is awkwardly not in physical units, but in 
+        # physical units divided by the box size. This was different
+        # in an intermediate version, but then later made consistent
+        # with the AMR phi output. So, we need to make a correction here
+        # IF we are dealing with the latest ramses format.
+
+        if self._new_format and blockname is 'phi' :
+            self.dm['phi']*=self._info['boxlen']
+            self.star['phi']*=self._info['boxlen']
 
     
 
@@ -552,7 +598,19 @@ class RamsesSnap(snapshot.SimSnap) :
                 i1 = i0+(refine[cell]==0).sum()
                 gas_cpu_ar[i0:i1] = cpu
             
-             
+
+    def loadable_keys(self, fam=None) :
+        if fam is None :
+            x = set()
+            for f0 in self.families() :
+                x = x.union(self.loadable_keys(f0))
+            return list(x)
+        else :
+            if fam is family.dm or fam is family.star :
+                return self._particle_blocks
+            elif fam is family.gas :
+                return ['x','y','z','smooth']+hydro_blocks
+        
     def _load_array(self, array_name, fam=None) :
         if array_name=='cpu' :
             self['cpu'] = np.zeros(len(self), dtype=int)
@@ -566,7 +624,7 @@ class RamsesSnap(snapshot.SimSnap) :
                 for array_1D in self._array_name_ND_to_1D(array_name) :
                     self._load_array(array_1D, fam)
 
-            elif array_name in particle_blocks :
+            elif array_name in self._particle_blocks :
                 self._load_particle_block(array_name)
             else :
                 raise IOError, "No such array on disk"

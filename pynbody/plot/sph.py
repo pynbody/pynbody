@@ -197,7 +197,10 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         im[np.isnan(im)] = fill_val
 
     if log :
-        im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
+        try:
+            im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
+        except ValueError:
+            raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
         im = np.log10(im)
 
     if not noplot:

@@ -381,6 +381,10 @@ class SimArray(np.ndarray) :
 
             return r
 
+        elif units.is_unit(x) :
+            x = x.in_units(self.units, **self.conversion_context())
+            r = add_op(self, x)
+            return r
         else :
             r = add_op(self, x)
             return r
@@ -829,6 +833,9 @@ class IndexedSimArray(object) :
 
     def __len__(self) :
         return len(self._ptr)
+
+    def __reduce__(self) :
+        return SimArray(self).__reduce__()
 
     
     @property

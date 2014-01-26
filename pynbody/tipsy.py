@@ -7,6 +7,16 @@ Implements classes and functions for handling tipsy files.  You rarely
 need to access this module directly as it will be invoked
 automatically via pynbody.load.
 
+**Input**:
+
+*filename*: file name string
+
+**Optional Keywords**:
+
+*paramfile*: string specifying the parameter file to load. If not
+ specified, the loader will look for a file *.param in the current and
+ parent directories.
+
 """
 
 from __future__ import with_statement # for py2.5
@@ -82,7 +92,7 @@ class TipsySnap(snapshot.SimSnap) :
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
    
-       
+        self._paramfilename = kwargs.get('paramfile', None)
 
         self._decorate()
 
@@ -369,7 +379,7 @@ class TipsySnap(snapshot.SimSnap) :
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None, double_pos = False, double_vel = False, binary_aux_arrays = None) :
+    def _write(self, filename=None, double_pos = None, double_vel = None, binary_aux_arrays = None) :
         """
 
         Write a TIPSY (standard) formatted file.   
@@ -399,70 +409,83 @@ class TipsySnap(snapshot.SimSnap) :
 
         global config
         
-        with self.lazy_off : # prevent any lazy reading or evaluation
+        if filename is None :
+            filename = self._filename
+
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
+
+        f = util.open_(filename, 'wb')
+
+        t = 0
+        try:
+            t = self.properties['a']
+        except KeyError :
+            warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
         
-            if filename is None :
-                filename = self._filename
 
-            if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
-
-            f = util.open_(filename, 'wb')
-
-            try:
-                t = self.properties['a']
-            except KeyError :
-                warnings.warn("Time is unknown: writing zero in header",RuntimeWarning)
-                t = 0
-
-            n = len(self)
-            ndim = 3
-            ng = len(self.gas)
-            nd = len(self.dark)
-            ns = len(self.star)
+        n = len(self)
+        ndim = 3
+        ng = len(self.gas)
+        nd = len(self.dark)
+        ns = len(self.star)
 
 
-            byteswap = getattr(self, "_byteswap", sys.byteorder=="little")
+        byteswap = getattr(self, "_byteswap", sys.byteorder=="little")
 
-            if byteswap: 
-                f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
-            else:
-                f.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
+        if byteswap: 
+            f.write(struct.pack(">diiiiii", t,n,ndim,ng,nd,ns,0))
+        else:
+            f.write(struct.pack("diiiiii", t,n,ndim,ng,nd,ns,0))
 
                 
-            # needs to be done in blocks like reading
-            # describe the file structure as list of (num_parts, [list_of_properties]) 
+        # needs to be done in blocks like reading
+        # describe the file structure as list of (num_parts, [list_of_properties]) 
             
-            if type(self) is not TipsySnap : 
-                ptype = 'd' if double_pos else 'f'
-                vtype = 'd' if double_vel else 'f'
-                g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
-                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
-                d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
-                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
-                s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
-                                  'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
-            else :
-                g_dtype = self._g_dtype
-                d_dtype = self._d_dtype
-                s_dtype = self._s_dtype
-            
-            file_structure = ((ng,family.gas,g_dtype),
-                              (nd,family.dm,d_dtype),
-                              (ns,family.star,s_dtype))
+        if type(self) is not TipsySnap : 
+            if double_pos is None: double_pos = False
+            if double_vel is None: double_vel = False
+            ptype = 'd' if double_pos else 'f'
+            vtype = 'd' if double_vel else 'f'
 
-            max_block_size = 1024**2 # particles
+        else :
+            dpos_param = self._paramfile.get('bDoublePos',False)
+            dvel_param = self._paramfile.get('bDoubleVel',False)
+
+            if double_pos: ptype = 'd'
+            elif not double_pos: ptype = 'f'
+            else : ptype = 'd' if dpos_param else 'f'
+            
+            if double_vel: vtype = 'd'
+            elif not double_vel: vtype = 'f'
+            else : vtype = 'd' if dvel_param else 'f'
+            
+        g_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","rho","temp","eps","metals","phi"),
+                            'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f','f')})
+        d_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","eps","phi"),
+                            'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f')})
+        s_dtype = np.dtype({'names': ("mass","x","y","z","vx","vy","vz","metals","tform","eps","phi"),
+                            'formats': ('f',ptype,ptype,ptype,vtype,vtype,vtype,'f','f','f','f')})
+        
+            
+        file_structure = ((ng,family.gas,g_dtype),
+                          (nd,family.dm,d_dtype),
+                          (ns,family.star,s_dtype))
+
+        max_block_size = 1024**2 # particles
+
+        with self.lazy_derive_off : 
             for n_left, fam, dtype in file_structure :
                 n_done = 0
                 self_type = self[fam]
                 while n_left>0 :
                     n_block = min(n_left,max_block_size)                   
-                    
-                    #g = np.zeros((n_block,len(st)),dtype=np.float32)
-                                        
+                
+                #g = np.zeros((n_block,len(st)),dtype=np.float32)
+                
                     g = np.empty(n_block,dtype=dtype)
-                    
+                
                     self_type_block = self_type[n_done:n_done+n_block]
-
+                
                     with self_type_block.immediate_mode :
                         # Copy from the correct arrays
                         for i, name in enumerate(dtype.names) :
@@ -481,10 +504,12 @@ class TipsySnap(snapshot.SimSnap) :
                     n_left-=n_block
                     n_done+=n_block
 
-            f.close()
+        f.close()
             
-            if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
+        if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
 
+        with self.lazy_off : # prevent any lazy reading or evaluation
+        
             for x in set(self.keys()).union(self.family_keys()) :
                 if not self.is_derived_array(x) and x not in ["mass","pos","x","y","z","vel","vx","vy","vz","rho","temp",
                                                               "eps","metals","phi", "tform"]  :
@@ -1072,10 +1097,11 @@ def ljeans_turb(self) :
     return x
 
 class StarLog(snapshot.SimSnap):
-    def __init__(self, filename):
+    def __init__(self, filename, sort=True, paramfile = None):
         import os
         super(StarLog,self).__init__()
         self._filename = filename
+        self._paramfilename = paramfile
 
         f = util.open_(filename,"rb")
         self.properties = {}
@@ -1114,6 +1140,14 @@ class StarLog(snapshot.SimSnap):
             else : bigstarlog = True
             
         datasize = os.path.getsize(filename)-f.tell()
+
+        # check whether datasize is a multiple of iSize. If it is not,
+        # the starlog is likely corrupted, but try to read it anyway
+
+        if datasize%iSize > 0 : 
+            warnings.warn("The size of the starlog file does not make sense -- it is likely corrupted. Pynbody will read it anyway, but use with caution.")
+            datasize -= datasize%iSize
+
         if config['verbose'] : print "Reading "+filename
         if(self._byteswap):
             g = np.fromstring(f.read(datasize),dtype=file_structure).byteswap()
@@ -1123,15 +1157,18 @@ class StarLog(snapshot.SimSnap):
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
         # numpy/lib/arraysetops.py:192 (on 22nd March 2011)
-        tmp = g['iord'].flatten()
-        perm = tmp.argsort()
-        aux = tmp[perm]
-        flag = np.concatenate(([True],aux[1:]!=aux[:-1]))
-        iord = aux[flag]; indices = perm[flag]
 
-        self._num_particles = len(indices)
+        if sort : 
+            tmp = g['iord'].flatten()
+            perm = tmp.argsort()
+            aux = tmp[perm]
+            flag = np.concatenate(([True],aux[1:]!=aux[:-1]))
+            iord = aux[flag]; indices = perm[flag]
+            self._num_particles = len(indices)
+        else : 
+            self._num_particles = len(g)
 
-        self._family_slice[family.star] = slice(0, len(indices))
+        self._family_slice[family.star] = slice(0, self._num_particles)
         self._create_arrays(["pos","vel"],3)
         self._create_arrays(["iord"],dtype='int32')
         self._create_arrays(["iorderGas","massform","rhoform","tempform","metals","tform"])
@@ -1139,10 +1176,13 @@ class StarLog(snapshot.SimSnap):
             self._create_arrays(["phiform","nsmooth"])
 
         self._decorate()
-        for name in file_structure.fields.keys() :
-            self.star[name][:] = g[name][indices]
-
-        #self._decorate()
+        
+        if sort:
+            for name in file_structure.fields.keys() :
+                self.star[name][:] = g[name][indices]
+        else : 
+            for name in file_structure.fields.keys() :
+                self.star[name] = g[name]
 
     @staticmethod
     def _write(self, filename=None) :
@@ -1218,41 +1258,51 @@ def load_paramfile(sim) :
     x = os.path.abspath(sim._filename)
     done = False
     sim._paramfile = {}
-    filename=None
-    for i in xrange(2) :
-        x = os.path.dirname(x)
-        l = glob.glob(os.path.join(x,"*.param"))
+    f = None
+    if sim._paramfilename is None: 
+        for i in xrange(2) :
+            x = os.path.dirname(x)
+            l = glob.glob(os.path.join(x,"*.param"))
 
-        for filename in l :
-            # Attempt the loading of information
-            try :
-                f = open(filename)
-            except IOError :
-                l = glob.glob(os.path.join(x,"../*.param"))
-                if l==[] :
-                    continue
-                try : 
-                    for filename in l:
-                        f = open(filename)
-                except IOError:
-                    continue
-            
-                
-            for line in f :
+            for filename in l :
+                # Attempt the loading of information
                 try :
-                    if line[0]!="#" :
-                        s = line.split("#")[0].split()
-                        sim._paramfile[s[0]] = " ".join(s[2:])
+                    f = open(filename)
+                    done = True
+                    break # the file is there, break out of the loop
+                except IOError :
+                    l = glob.glob(os.path.join(x,"../*.param"))
+                    if l==[] :
+                        continue
+                    try : 
+                        for filename in l:
+                            f = open(filename)
+                            break # the file is there, break out of the loop
+                    except IOError:
+                        continue
+            if done: break
+
+    else : 
+        filename = sim._paramfilename
+        try : 
+            f = open(filename)
+        except IOError : 
+            raise IOError("The parameter filename you supplied is invalid")            
+
+    if f is None :
+        return
+    
+    for line in f :
+        try :
+            if line[0]!="#" :
+                s = line.split("#")[0].split()
+                sim._paramfile[s[0]] = " ".join(s[2:])
                                     
-                except IndexError, ValueError :
-                    pass
+        except IndexError, ValueError :
+            pass
 
-            if len(sim._paramfile)>1 :
-                sim._paramfile["filename"] = filename
-                done = True
-                    
-        if done : break
-
+        if len(sim._paramfile)>1 :
+            sim._paramfile["filename"] = filename
 
 
             

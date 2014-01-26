@@ -192,10 +192,18 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 				dz = sz - p[pj].r[2];
 				fDist2 = dx*dx + dy*dy + dz*dz;
 				if (fDist2 <= fBall2) {
-					smx->fList[nCnt] = fDist2;
-					smx->pList[nCnt++] = pj;
-					}
+				  if(nCnt>=smx->nListSize) {
+				    if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
+				    smx->warnings=true;
+				    break;
+				  }
+				  smx->fList[nCnt] = fDist2;
+				  smx->pList[nCnt++] = pj;
+				  
 				}
+				
+			}
+			
 			}
 	GetNextCell:
 		SETNEXT(cp);
@@ -250,22 +258,22 @@ void smSmoothInitStep(SMX smx)
 
 int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 {
-	KDN *c;
-	PARTICLE *p;
-    PQ *pq,*pqLast;
-	int cell;
-	int pi,pin,pj,pNext,nCnt,nSmooth;
-	float dx,dy,dz,x,y,z,h2,ax,ay,az;
+       KDN *c;
+       PARTICLE *p;
+       PQ *pq,*pqLast;
+       int cell;
+       int pi,pin,pj,pNext,nCnt,nSmooth;
+       float dx,dy,dz,x,y,z,h2,ax,ay,az;
 
-	c = smx->kd->kdNodes;
-	p = smx->kd->p;
-	pqLast = &smx->pq[smx->nSmooth-1];
-	nSmooth = smx->nSmooth;
-    pin = smx->pin;
-    pNext = smx->pNext;
-    ax = smx->ax;
-    ay = smx->ay;
-    az = smx->az;
+       c = smx->kd->kdNodes;
+       p = smx->kd->p;
+       pqLast = &smx->pq[smx->nSmooth-1];
+       nSmooth = smx->nSmooth;
+       pin = smx->pin;
+       pNext = smx->pNext;
+       ax = smx->ax;
+       ay = smx->ay;
+       az = smx->az;
 
 	while (1) {
 		if (smx->pfBall2[pin] >= 0) {
@@ -359,8 +367,16 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
                      including the furthest particle, the neighbor list is always 32 long */
 
                   //if (pq == smx->pqHead) continue;
+		        if(nCnt>=smx->nListSize) {
+			  // no room left
+			  if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
+			  smx->warnings = false;
+			  break;
+			}
+
 			smx->pList[nCnt] = pq->p;
 			smx->fList[nCnt++] = pq->fKey;
+			
 			if (smx->pfBall2[pq->p] >= 0) continue;
 			if (pq->fKey < h2) {
 				pin = pq->p;
@@ -369,7 +385,9 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 				ay = pq->ay;
 				az = pq->az;
 				}
-			}
+			
+		}
+		
 		//(*fncSmooth)(smx,pi,nCnt,smx->pList,smx->fList);
 
         smx->pi = pi;
@@ -397,6 +415,10 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
                 rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
 		else rs = 0.25*rs*rs*rs;
+		if(rs<0) {
+		  fprintf(stderr, "Internal consistency error\n");
+		  smx->warnings=true;
+		}
 		rs *= fNorm;
 		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
 		smx->kd->p[pj].fDensity += rs*smx->kd->p[pi].fMass;

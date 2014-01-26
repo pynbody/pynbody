@@ -2,7 +2,6 @@
 #include <numpy/arrayobject.h>
 #include "bc_modules/capsulethunk.h"
 
-#warning hello
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -330,7 +329,8 @@ PyObject *populate(PyObject *self, PyObject *args)
     PyArg_ParseTuple(args, "OOOi", &kdobj, &smxobj, &dest, &propid);
     kd  = PyCapsule_GetPointer(kdobj, NULL);
     smx = PyCapsule_GetPointer(smxobj, NULL);
-
+    
+    smx->warnings=false;
     
     
     long nbodies = PyArray_DIM(dest, 0);
@@ -366,10 +366,10 @@ PyObject *populate(PyObject *self, PyObject *args)
         {          
             nCnt = smBallGather(smx,smx->pfBall2[i],smx->kd->p[i].r);
             smDensitySym(smx, i, nCnt, smx->pList,smx->fList);
-            SET(kd->p[i].iOrder, kd->p[i].fDensity);
+            
         }
       Py_END_ALLOW_THREADS
-
+      for(i=0;i<nbodies;i++)  SET(kd->p[i].iOrder, kd->p[i].fDensity);
       break;
       
     case PROPID_MEANVEL:
