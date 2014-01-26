@@ -1262,8 +1262,8 @@ def load_paramfile(sim) :
     if sim._paramfilename is None: 
         for i in xrange(2) :
             x = os.path.dirname(x)
-            l = glob.glob(os.path.join(x,"*.param"))
-
+            l = [x for x in glob.glob(os.path.join(x,"*.param")) if "mpeg" not in x]
+            
             for filename in l :
                 # Attempt the loading of information
                 try :
