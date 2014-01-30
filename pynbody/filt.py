@@ -95,8 +95,8 @@ class Sphere(Filter) :
     def __call__(self, sim) :
         radius = self.radius
         if units.is_unit_like(radius) :
-            radius = radius.in_units(sim["pos"].units,
-                                  **sim["pos"].conversion_context())
+            radius = float(radius.in_units(sim["pos"].units,
+                           **sim["pos"].conversion_context()))
         distance = ((sim["pos"]-self.cen)**2).sum(axis=1)
         return distance<radius**2
 
@@ -161,9 +161,9 @@ class Disc(Filter) :
         height = self.height
 
         if units.is_unit_like(radius) :
-            radius = radius.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+            radius = float(radius.in_units(sim["pos"].units, **sim["pos"].conversion_context()))
         if units.is_unit_like(height) :
-            height = height.ratio(sim["pos"].units, **sim["pos"].conversion_context())
+            height = float(height.in_units(sim["pos"].units, **sim["pos"].conversion_context()))
         distance = (((sim["pos"]-self.cen)[:,:2])**2).sum(axis=1)
         return (distance<radius**2) * (np.abs(sim["z"]-self.cen[2])<height)
 
@@ -195,9 +195,9 @@ class BandPass(Filter) :
         prop = self._prop
 
         if units.is_unit_like(min_) :
-            min_ = min_.in_units(sim[prop].units, **sim.conversion_context())
+            min_ = float(min_.in_units(sim[prop].units, **sim.conversion_context()))
         if units.is_unit_like(max_) :
-            max_ = max_.in_units(sim[prop].units, **sim.conversion_context())
+            max_ = float(max_.in_units(sim[prop].units, **sim.conversion_context()))
 
         return ((sim[prop]>min_)*(sim[prop]<max_))
 
@@ -223,7 +223,7 @@ class HighPass(Filter) :
         prop = self._prop
 
         if units.is_unit_like(min_) :
-            min_ = min_.in_units(sim[prop].units, **sim.conversion_context())
+            min_ = float(min_.in_units(sim[prop].units, **sim.conversion_context()))
 
 
         return (sim[prop]>min_)
@@ -252,7 +252,7 @@ class LowPass(Filter) :
 
 
         if units.is_unit_like(max_) :
-            max_ = max_.ratio(sim[prop].units, **sim.conversion_context())
+            max_ = float(max_.in_units(sim[prop].units, **sim.conversion_context()))
 
 
         return (sim[prop]<max_)

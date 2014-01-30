@@ -193,7 +193,7 @@ except:
 
 try:
     pp.sbprofile(h[i],filename=simname+'.sbprof.png',center=False)
-    pp.sfh(h[i],filename=simname+'.sfh.png',nbins=500)
+    pp.sfh(h[i],filename=simname+'.sfh.png',nbins=500,clear=True)
     pp.rotation_curve(h[i],filename=simname+'.rc.png',quick=True,
                       max='40 kpc',center=False)
     pp.rotation_curve(h[i],filename=simname+'.rcparts.png',quick=True,

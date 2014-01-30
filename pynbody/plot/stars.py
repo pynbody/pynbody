@@ -20,8 +20,8 @@ def nw_scale_rgb(r,g,b,scales=[4,3.2,3.4]):
 
 def nw_arcsinh_fit(r,g,b,nonlinearity=3):
     radius = r+g+b
-    val=np.arcsinh(radius*nonlinearity)/nonlinearity
-    return r,g,b
+    val=np.arcsinh(radius*nonlinearity)/nonlinearity/radius
+    return r*val,g*val,b*val
 
 def combine(r,g,b):
     mini = np.array((r,g,b)).min()
@@ -184,7 +184,7 @@ def sfh(sim,filename=None,massform=True,clear=False,legend=False,
     from pynbody.analysis import pkdgrav_cosmo as cosmo
     c = cosmo.Cosmology(sim=sim)
     pz = plt.twiny()
-    labelzs = np.arange(10,int(sim.properties['z'])-1,-1)
+    labelzs = np.arange(5,int(sim.properties['z'])-1,-1)
     times = [13.7*c.Exp2Time(1.0 / (1+z))/c.Exp2Time(1) for z in labelzs]
     pz.set_xticks(times)
     pz.set_xticklabels([str(x) for x in labelzs])

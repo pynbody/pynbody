@@ -1258,12 +1258,12 @@ def load_paramfile(sim) :
     x = os.path.abspath(sim._filename)
     done = False
     sim._paramfile = {}
-    
+    f = None
     if sim._paramfilename is None: 
         for i in xrange(2) :
             x = os.path.dirname(x)
-            l = glob.glob(os.path.join(x,"*.param"))
-
+            l = [x for x in glob.glob(os.path.join(x,"*.param")) if "mpeg" not in x]
+            
             for filename in l :
                 # Attempt the loading of information
                 try :
@@ -1288,7 +1288,10 @@ def load_paramfile(sim) :
             f = open(filename)
         except IOError : 
             raise IOError("The parameter filename you supplied is invalid")            
-                
+
+    if f is None :
+        return
+    
     for line in f :
         try :
             if line[0]!="#" :
