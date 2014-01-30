@@ -149,7 +149,7 @@ pickle.dump({'z':s.properties['z'],
                        'vc':rcpro['rotation_curve_spherical'].in_units('km s^-1'),
                        'fourier':rcpro['fourier']},
              'sb':{'r':sbprof['rbins'].in_units('kpc'), 
-                   'sb':sbprof['sb,i']},
+                   'sb':sbprof['sb,b']},
              'sfh':{'sfh':sfh,'t':sfhtimes},
              'hrsfh':{'sfh':hrsfh,'t':hrsfhtimes}
              },
@@ -234,7 +234,7 @@ diskgas=s.gas[diskf]
 try:
     pp.sph.image(h[i].gas,filename=simname+'.facegas.png',width=30,
                  units='m_p cm^-3')
-    pp.sph.image(h[i].star,filename=simname+'.facestar.png',width=30)
+    pp.stars.render(h[i].star,file=simname+'.facestar.png')
     pp.sph.image(diskgas,qty='temp',filename=simname+'.tempgasdiskface.png',
                  width=30,vmin=3,vmax=7)
     s.gas['hiden'] = s.gas['rho']*s.gas['HI']
@@ -264,7 +264,7 @@ try:
     pynbody.analysis.angmom.sideon(h[i])
     pp.sph.image(h[i].gas,filename=simname+'.sidegas.png',width=30,
                  units='m_p cm^-3')
-    pp.sph.image(h[i].star,filename=simname+'.sidestar.png',width=30)
+    pp.stars.render(h[i].star,file=simname+'.sidestar.png')
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasside.png',
                  width=320,vmin=3,vmax=7)
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasdiskside.png',
