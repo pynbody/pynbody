@@ -184,7 +184,7 @@ def sfh(sim,filename=None,massform=True,clear=False,legend=False,
     from pynbody.analysis import pkdgrav_cosmo as cosmo
     c = cosmo.Cosmology(sim=sim)
     pz = plt.twiny()
-    labelzs = np.arange(10,int(sim.properties['z'])-1,-1)
+    labelzs = np.arange(5,int(sim.properties['z'])-1,-1)
     times = [13.7*c.Exp2Time(1.0 / (1+z))/c.Exp2Time(1) for z in labelzs]
     pz.set_xticks(times)
     pz.set_xticklabels([str(x) for x in labelzs])
