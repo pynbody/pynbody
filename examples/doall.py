@@ -149,7 +149,7 @@ pickle.dump({'z':s.properties['z'],
                        'vc':rcpro['rotation_curve_spherical'].in_units('km s^-1'),
                        'fourier':rcpro['fourier']},
              'sb':{'r':sbprof['rbins'].in_units('kpc'), 
-                   'sb':sbprof['sb,i']},
+                   'sb':sbprof['sb,b']},
              'sfh':{'sfh':sfh,'t':sfhtimes},
              'hrsfh':{'sfh':hrsfh,'t':hrsfhtimes}
              },
@@ -193,7 +193,7 @@ except:
 
 try:
     pp.sbprofile(h[i],filename=simname+'.sbprof.png',center=False)
-    pp.sfh(h[i],filename=simname+'.sfh.png',nbins=500)
+    pp.sfh(h[i],filename=simname+'.sfh.png',nbins=500,clear=True)
     pp.rotation_curve(h[i],filename=simname+'.rc.png',quick=True,
                       max='40 kpc',center=False)
     pp.rotation_curve(h[i],filename=simname+'.rcparts.png',quick=True,
