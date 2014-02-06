@@ -13,7 +13,10 @@ from .sph import image
 import warnings
 
 def bytscl(arr,mini=0,maxi=10000):
-    return (arr-mini)/(maxi-mini)
+    X= (arr-mini)/(maxi-mini)
+    X[X>1] = 1
+    X[X<0] = 0
+    return X
 
 def nw_scale_rgb(r,g,b,scales=[4,3.2,3.4]):
     return r*scales[0], g*scales[1], b*scales[2]
@@ -23,35 +26,42 @@ def nw_arcsinh_fit(r,g,b,nonlinearity=3):
     val=np.arcsinh(radius*nonlinearity)/nonlinearity/radius
     return r*val,g*val,b*val
 
-def combine(r,g,b):
-    mini = np.array((r,g,b)).min()
-    maxi = np.array((r,g,b)).max()
-    print "mini: %g  maxi: %g"%(mini,maxi)
-    zeropixels=(r==r.min())&(g==g.min())&(b==b.min())
-    r[zeropixels]=mini
-    g[zeropixels]=mini
-    b[zeropixels]=mini
+def combine(r,g,b,dynamic_range):
+    maxi = []
+    
+    # find something close to the maximum that is not quite the maximum
+    for x in r,g,b :
+        ordered = np.sort(x.flatten())
+        maxi.append(ordered[-len(ordered)/5000])
+
+    maxi = np.log10(max(maxi))
+    
     rgbim=np.zeros((r.shape[0],r.shape[1],3))
-    rgbim[:,:,0]=bytscl(r,mini=mini,maxi=maxi)
-    rgbim[:,:,1]=bytscl(g,mini=mini,maxi=maxi)
-    rgbim[:,:,2]=bytscl(b,mini=mini,maxi=maxi)
+    rgbim[:,:,0]=bytscl(np.log10(r),maxi-dynamic_range,maxi)
+    rgbim[:,:,1]=bytscl(np.log10(g),maxi-dynamic_range,maxi)
+    rgbim[:,:,2]=bytscl(np.log10(b),maxi-dynamic_range,maxi)
     return rgbim
 
-def render(sim,file=False,r_band='i',g_band='v',b_band='u',width=50,
-           starsize=0.1, axes=None, ret_im=False,clear=True):
+def render(sim,filename=None,
+           r_band='i',g_band='v',b_band='u',
+           r_scale=0.5, g_scale = 1.0, b_scale = 1.0,
+           dynamic_range=2.0,
+           width=50,
+           starsize=None, 
+           plot=True, axes=None, ret_im=False,clear=True):
     '''
-    Make 3 color image of stars a la Sunrise.  This is simpler than Sunrise 
-    in that there is no radiative transfer to account for dust.  It will show
-    whether your young stars are clustered and about how thick your disk is.
-    The colors are based on magnitudes found using stellar Marigo stellar 
-    population code.
+    Make a 3-color image of stars.
+
+    The colors are based on magnitudes found using stellar Marigo
+    stellar population code.  However there is no radiative transfer
+    to account for dust.
     
-    Return:  three color image
+    Returns: If ret_im=True, an NxNx3 array representing an RGB image
     
     **Optional keyword arguments:**
     
-       *file*: string (default: False)
-         Filename to be written to.  If no filename specified, then 
+       *filename*: string (default: None)
+         Filename to be written to (if a filename is specified)
 
        *r_band*: string (default: 'i')
          Determines which Johnston filter will go into the image red channel
@@ -62,44 +72,66 @@ def render(sim,file=False,r_band='i',g_band='v',b_band='u',width=50,
        *b_band*: string (default: 'b')
          Determines which Johnston filter will go into the image blue channel
 
+       *r_scale*: float (default: 0.5)
+         The scaling of the red channel before channels are combined
+
+       *g_scale*: float (default: 1.0)
+         The scaling of the green channel before channels are combined
+
+       *b_scale*: float (default: 1.0)
+         The scaling of the blue channel before channels are combined
+
        *width*: float in kpc (default:50)
          Sets the size of the image field in kpc
 
-       *starsize*: float in kpc (default:0.1)
-         Sets the maximum size of stars in the image
+       *starsize*: float in kpc (default: None)
+         If not None, sets the maximum size of stars in the image
 
        *ret_im*: bool (default: False)
-         if you want image object returned, set to True
+         if True, the NxNx3 image array is returned
+
+       *plot*: bool (default: True)
+         if True, the image is plotted
+
+       *axes*: matplotlib axes object (deault: None)
+         if not None, the axes object to plot to
+
+       *dynamic_range*: float (default: 2.0)
+         The number of dex in luminosity over which the image brightness ranges
     '''
-    sim.physical_units()
-
-    smf = filt.HighPass('smooth',str(starsize)+' kpc')
-    sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
     
-    r=image(sim.s,qty=r_band+'_lum_den',width=width,log=True,
-                         av_z=True,clear=False,noplot=True)
-    g=image(sim.s,qty=g_band+'_lum_den',width=width,log=True,
-                         av_z=True,clear=False,noplot=True)
-    b=image(sim.s,qty=b_band+'_lum_den',width=width,log=True,
-                         av_z=True,clear=False,noplot=True)
+    if starsize is not None :
+        smf = filt.HighPass('smooth',str(starsize)+' kpc')
+        sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
+    
+    r=image(sim.s,qty=r_band+'_lum_den',width=width,log=False,
+                         av_z=True,clear=False,noplot=True) * r_scale
+    g=image(sim.s,qty=g_band+'_lum_den',width=width,log=False,
+                         av_z=True,clear=False,noplot=True) * g_scale
+    b=image(sim.s,qty=b_band+'_lum_den',width=width,log=False,
+                         av_z=True,clear=False,noplot=True) * b_scale
 
-#r,g,b = nw_scale_rgb(r,g,b)
-    r,g,b = nw_arcsinh_fit(r,g,b)
+    #r,g,b = nw_scale_rgb(r,g,b)
+    #r,g,b = nw_arcsinh_fit(r,g,b)
 
-    rgbim=combine(r,g,b)
+    rgbim=combine(r,g,b,dynamic_range)
 
-    if clear: plt.clf()
-    if file and axes is None:
-        axes=plt.subplot(111)
-    if axes:
-        axes.imshow(rgbim[::-1,:],extent=(-width/2,width/2,-width/2,width/2))
-        axes.set_xlabel('x ['+str(sim.s['x'].units)+']')
-        axes.set_ylabel('y ['+str(sim.s['y'].units)+']')
-    if file: 
-        plt.savefig(file)
-        #matplotlib.image.imsave(file,rgbim)
+    if plot :
+        if clear: plt.clf()
+        if axes is None:
+            axes=plt.gca()
 
-    if ret_im: return rgbim
+        if axes:
+            axes.imshow(rgbim[::-1,:],extent=(-width/2,width/2,-width/2,width/2))
+            axes.set_xlabel('x ['+str(sim.s['x'].units)+']')
+            axes.set_ylabel('y ['+str(sim.s['y'].units)+']')
+            plt.draw()
+        
+    if filename : 
+        plt.savefig(filename)
+        
+    if ret_im:
+        return rgbim
 
 def sfh(sim,filename=None,massform=True,clear=False,legend=False,
         subplot=False, trange=False, bins=100, **kwargs):
@@ -192,7 +224,7 @@ def sfh(sim,filename=None,massform=True,clear=False,legend=False,
     pz.set_xlabel('z')
 
     if legend: plt.legend(loc=1)
-    if (filename): 
+    if filename : 
         if config['verbose']: print "Saving "+filename
         plt.savefig(filename)
 
