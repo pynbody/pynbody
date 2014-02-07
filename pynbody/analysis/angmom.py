@@ -71,7 +71,8 @@ def calc_faceon_matrix(angmom_vec, up=[0.0,1.0,0.0]) :
 
 
 def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", 
-           disk_size = "5 kpc", cen = None, vcen=None, top=None, **kwargs ) :
+           disk_size = "5 kpc", cen = None, vcen=None, top=None,
+           return_transform = False, **kwargs ) :
     """
 
     Reposition and rotate the simulation containing the halo h to see
@@ -120,6 +121,9 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
     if config['verbose'] :
         print "Transforming simulation..."
     top.transform(trans)
+
+    if return_transform :
+        return trans
 
 
 def faceon(h, **kwargs) :
