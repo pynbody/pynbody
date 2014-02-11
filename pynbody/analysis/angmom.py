@@ -27,6 +27,9 @@ def ang_mom_vec_units(snap) :
 
     Return the angular momentum vector of the specified snapshot
     with correct units.
+    Note that the halo has to be aligned such that the disk
+    is in the x-y-plane and its center must be the coordinate
+    origin.
 
     """
 
@@ -39,13 +42,16 @@ def spin_parameter(snap) :
     Return the spin parameter \lambda' of a centered halo
     as defined in eq. (5) of Bullock et al. 2001
     (2001MNRAS.321..559B).
+    Note that the halo has to be aligned such that the disk
+    is in the x-y-plane and its center must be the coordinate
+    origin.
 
     """
 
     m3 = snap['mass'].sum()
     m3 = m3*m3*m3
     l = np.sqrt(((ang_mom_vec_units(snap)**2).sum())/(2*units.G*m3*snap['r'].max()))
-    return float(l.in_units('1'))
+    return float(l.in_units('1', **snap.conversion_context()))
 
 def calc_sideon_matrix(angmom_vec) :
     vec_in = np.asarray(angmom_vec)
