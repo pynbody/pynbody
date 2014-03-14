@@ -102,27 +102,30 @@ class HaloCatalogue(object):
     def _can_run(self):
         return False
 
-    def writegrp(self, snapshot, halos, grpoutfile):
+    def writegrp(self, grpoutfile=False):
         """
         simply write a skid style .grp file from ahf_particles
         file. header = total number of particles, then each line is
         the halo id for each particle (0 means free).
         """
-        outfile = grpoutfile
+        snapshot = self[1].ancestor
+        try:
+            snapshot['grp']
+        except:
+            self.make_grp()
+        if not grpoutfile: grpoutfile=snapshot.filename+'.grp'
         print "write grp file to ", grpoutfile
-        fpout = open(outfile, "w")
-        grparray = snapshot['grp']
-        print >> fpout, len(grparray)
+        fpout = open(grpoutfile, "w")
+        print >> fpout, len(snapshot['grp'])
 
         ## writing 1st to a string sacrifices memory for speed.
         ##  but this is much faster than numpy.savetxt (could make an option).
         # it is assumed that max halo id <= nhalos (i.e.length of string is set
         # len(str(nhalos))
-        stringarray = grparray.astype('|S'+str(len(str(halos._nhalos))))
+        stringarray = snapshot['grp'].astype('|S'+str(len(str(self._nhalos))))
         outstring = "\n".join(stringarray)
         print >> fpout, outstring
         fpout.close()
-        return 1
 
     def writestat(self, snapshot, halos, statoutfile, hubble=None):
         """
