@@ -81,11 +81,11 @@ mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
 # 3D density profile
 rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
 gashaloprof = profile.Profile(h[i].g,ndim=3,type='log')
-sphergasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,bins=200)
-sphercoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,bins=200)
-spherhotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,bins=200)
-spherstarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,bins=200)
-spherdarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,bins=200)
+spheregasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,bins=200)
+spherecoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,bins=200)
+spherehotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,bins=200)
+spherestarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,bins=200)
+spheredarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,bins=200)
 # Rotation curve
 rcpro = profile.Profile(h[i], type='equaln', nbins = 200, max = '40 kpc')
 # surface brightness profile
@@ -125,8 +125,8 @@ pickle.dump({'z':s.properties['z'],
 #             'mbulge': np.sum(h[i].star[np.where(dec == 3)]['mass'].in_units('Msol')),
 #             'mthick': np.sum(h[i].star[np.where(dec == 4)]['mass'].in_units('Msol')),
 #             'mpseudob': np.sum(h[i].star[np.where(dec == 5)]['mass'].in_units('Msol')),
-             'mgashot': np.sum(h[i].gas[]['mass'].in_units('Msol')),
-             'mgascool': np.sum(h[i].gas[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')),
+             'mgashot': np.sum(h[i].gas[hot]['mass'].in_units('Msol')),
+             'mgascool': np.sum(h[i].gas[cool]['mass'].in_units('Msol')),
              'mdiskbary': np.sum(h[i][diskf].s['mass'].in_units('Msol')) +
                           np.sum(h[i][diskf].g['mass'].in_units('Msol')),
              'mdiskgas': mdiskgas,
