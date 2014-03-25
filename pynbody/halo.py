@@ -622,10 +622,14 @@ class AHFCatalogue(HaloCatalogue):
         return False
 
 
-class AmigaGrpCatalogue(HaloCatalogue):
-    def __init__(self, sim, array='amiga.grp'):
+class GrpCatalogue(HaloCatalogue) :
+    """
+    A generic catalogue using a .grp file to specify which particles
+    belong to which group. 
+    """
+    def __init__(self, sim, array='grp'): 
         sim[array]
-            # trigger lazy-loading and/or kick up a fuss if unavailable
+    # trigger lazy-loading and/or kick up a fuss if unavailable
         self._base = weakref.ref(sim)
         self._halos = {}
         self._array = array
@@ -644,13 +648,20 @@ class AmigaGrpCatalogue(HaloCatalogue):
         return self._base()
 
     @staticmethod
-    def _can_load(sim,array='amiga.grp'):
+    def _can_load(sim,array='grp'):
         try:
             sim[array]
             return True
         except KeyError:
             return False
 
+class AmigaGrpCatalogue(GrpCatalogue):
+    def __init__(self, sim, array='amiga.grp'):
+        GrpCatalogue.__init__(sim,array)
+
+    @staticmethod
+    def _can_load(sim,array='amiga.grp'):
+        GrpCatalogue._can_load(sim,array)
 
 class SubfindCatalogue(HaloCatalogue):
     """
