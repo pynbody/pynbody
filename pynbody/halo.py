@@ -791,5 +791,5 @@ class SubfindCatalogue(HaloCatalogue):
 # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
 # want to use it, but an AHFCatalogue will probably be on-disk too.
 
-_halo_classes = [AmigaGrpCatalogue, AHFCatalogue, SubfindCatalogue]
+_halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue, SubfindCatalogue]
 _runable_halo_classes = [AHFCatalogue]
