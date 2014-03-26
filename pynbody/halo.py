@@ -55,6 +55,7 @@ class HaloCatalogue(object):
 
     def __init__(self):
         self._halos = {}
+        self.lazy_off = util.ExecutionControl()
 
     def calc_item(self, i):
         if i in self._halos:  # and self._halos[i]() is not None :
@@ -68,7 +69,10 @@ class HaloCatalogue(object):
         return len(self._halos)
 
     def __iter__(self) : 
-        return iter(self._halos.values())
+        if not self.lazy_off :
+            return self._halo_generator()
+        else : 
+            return iter(self._halos.values())
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -77,6 +81,13 @@ class HaloCatalogue(object):
             return self._halos[item]
         else:
             return self.calc_item(item)
+    
+    def _halo_generator(self) : 
+        i = 1
+        while True:
+            yield self[i]
+            i+=1
+            if len(self[i]) == 0: break
 
     def is_subhalo(self, childid, parentid):
         """
