@@ -85,9 +85,12 @@ class HaloCatalogue(object):
     def _halo_generator(self) : 
         i = 1
         while True:
-            yield self[i]
-            i+=1
-            if len(self[i]) == 0: break
+            try : 
+                yield self[i]
+                i+=1
+                if len(self[i]) == 0: break
+            except RuntimeError: 
+                break
 
     def is_subhalo(self, childid, parentid):
         """
@@ -656,6 +659,8 @@ class GrpCatalogue(HaloCatalogue) :
             raise RuntimeError("Parent SimSnap has been deleted")
 
         x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
+        if len(x) == 0 : 
+            raise RuntimeError("Halo %s does not exist"%(str(i)))
         x._descriptor = "halo_"+str(i)
         return x
 
