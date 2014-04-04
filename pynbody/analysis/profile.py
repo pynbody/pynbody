@@ -48,6 +48,10 @@ class Profile:
 
     *nbins* (default = 100): number of bins
 
+    *bins* : array like - predefined bin edges in units of binning quantity. If this
+             keyword is set, the values of the keywords *type*, *nbins*, *min* and *max*
+             will be ignored
+
     *calc_x* (default = None): function to use to calculate the value
      for binning. If None it defaults to the radial distance from
      origin (in either 2 or 3 dimensions), ut you can specify this
@@ -239,7 +243,9 @@ class Profile:
                 else: self.max = kwargs['max']
             else:
                 self.max = np.max(x)
-            if kwargs.has_key('nbins'):
+            if kwargs.has_key('bins'):
+                self.nbins = len(kwargs['bins']) - 1
+            elif kwargs.has_key('nbins'):
                 self.nbins = kwargs['nbins']
             else:
                 self.nbins = 100
@@ -252,7 +258,11 @@ class Profile:
             else:
                 self.min = np.min(x[x>0])
 
-            if type == 'log':
+            if kwargs.has_key('bins'):
+                self._properties['bin_edges'] = kwargs['bins']
+                self.min = kwargs['bins'].min()
+                self.max = kwargs['bins'].max()
+            elif type == 'log':
                 self._properties['bin_edges'] = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
             elif type == 'lin':
                 self._properties['bin_edges'] = np.linspace(self.min, self.max, num = self.nbins+1)
@@ -561,6 +571,88 @@ def density(self):
     """
     if pynbody.config['verbose'] : print 'Profile: density()'
     return self['mass']/self._binsize
+
+@Profile.profile_property
+def vel_disp(self):
+    """
+    Generate profile of 3D velocity dispersion
+    """
+    if pynbody.config['verbose']: print 'Profile: vel_disp()'
+    vel_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
+
+    with self.sim.immediate_mode:
+        pvel = self.sim['vel'].view(np.ndarray)
+
+    for i in range(self.nbins):
+        vel_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean(axis=0))**2).sum()
+    vel_disp /= self['n']
+    empty = np.where(self['n'] == 0)
+    vel_disp[empty] = np.zeros(len(empty))
+    vel_disp.sim = self.sim
+
+    return vel_disp
+
+@Profile.profile_property
+def vz_disp(self):
+    """
+    Generate profile of dispersion of z-component of velocity
+    """
+    if pynbody.config['verbose']: print 'Profile: vz_disp()'
+    vz_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
+
+    with self.sim.immediate_mode:
+        pvel = self.sim['vz'].view(np.ndarray)
+
+    for i in range(self.nbins):
+        vz_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean())**2).sum()
+    vz_disp /= self['n']
+    empty = np.where(self['n'] == 0)
+    vz_disp[empty] = np.zeros(len(empty))
+    vz_disp.sim = self.sim
+
+    return vz_disp
+
+@Profile.profile_property
+def vrxy_disp(self):
+    """
+    Generate profile of dispersion of radial velocity component in
+    cylindrical coordinates
+    """
+    if pynbody.config['verbose']: print 'Profile: vrxy_disp()'
+    vrxy_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
+
+    with self.sim.immediate_mode:
+        pvel = self.sim['vrxy'].view(np.ndarray)
+
+    for i in range(self.nbins):
+        vrxy_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean())**2).sum()
+    vrxy_disp /= self['n']
+    empty = np.where(self['n'] == 0)
+    vrxy_disp[empty] = np.zeros(len(empty))
+    vrxy_disp.sim = self.sim
+
+    return vrxy_disp
+
+@Profile.profile_property
+def vcxy_disp(self):
+    """
+    Generate profile of dispersion of circular velocity component in
+    cylindrical coordinates
+    """
+    if pynbody.config['verbose']: print 'Profile: vcxy_disp()'
+    vcxy_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
+
+    with self.sim.immediate_mode:
+        pvel = self.sim['vcxy'].view(np.ndarray)
+
+    for i in range(self.nbins):
+        vcxy_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean())**2).sum()
+    vcxy_disp /= self['n']
+    empty = np.where(self['n'] == 0)
+    vcxy_disp[empty] = np.zeros(len(empty))
+    vcxy_disp.sim = self.sim
+
+    return vcxy_disp
 
 @Profile.profile_property
 def fourier(self):

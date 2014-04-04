@@ -69,9 +69,10 @@ class NchiladaSnap(snapshot.SimSnap) :
         for f in sorted(self._loadable_keys_registry.keys()) :
             ars = self._loadable_keys_registry[f]
             tf = file(ars.values()[0])
-            _, nbod, _, _ = self._load_header(tf)
+            header_time, nbod, _, _ = self._load_header(tf)
             disk_family_slice[f] = slice(i, i+nbod)
             i+=nbod
+            self.properties['a']=header_time
         self._load_control = chunk.LoadControl(disk_family_slice, _max_buf, take)
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles

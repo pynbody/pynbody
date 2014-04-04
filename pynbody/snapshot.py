@@ -1392,9 +1392,18 @@ class SimSnap(object):
         """If the named array is auto-derived, this destroys the link so that
         the array becomes editable but no longer auto-updates."""
 
-        if name in self._derived_array_track:
-            del self._derived_array_track[
-                self._derived_array_track.index(name)]
+        if self.is_derived_array(name) :
+            if name in self.family_keys():                
+                for fam in self._family_arrays[name] : 
+                    track = self._family_derived_array_track[fam]
+                    
+                    if name in track :
+                        del track[track.index(name)]
+                
+            else: 
+                del self._derived_array_track[
+                    self._derived_array_track.index(name)]
+        
         else:
             raise RuntimeError("Not a derived array")
 
