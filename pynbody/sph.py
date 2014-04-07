@@ -242,7 +242,7 @@ class TopHatKernel(object) :
         return code
 
 def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
-                           kstep=0.5, out_units=None) :
+                           kstep=0.5, denoise=False, out_units=None) :
     """Render an SPH image on a spherical surface. Note this is written in pure python and
     could be optimized into C, but would then need linking with the healpix libraries.
     Also currently uses a top-hat 3D kernel only."""
@@ -296,22 +296,26 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
         ind = np.where(D<distance)
         
         # angular radius taken at distance of particle
-        rad_fn = lambda i : np.arctan(h[i]*ds_mean/D[i])
+        rad_fn = lambda i : np.arctan(h[i]*ds/D[i])
         
     den_fn = lambda i : ((qty[i]*mass[i]/rho[i])) * weights / h[i]**kernel.h_power
-        
+    norm_fn = lambda i : ((mass[i]/rho[i])*weights/h[i]**kernel.h_power)
 
     print "Spherical image from",len(ind[0]),"particles"    
     im = np.zeros(hp.nside2npix(nside))
+    im2 = np.zeros(len(im))
 
     for i in ind[0] :
-        for r,w in zip(rad_fn(i), den_fn(i)) :
+        for r,w,w_norm in zip(rad_fn(i), den_fn(i),norm_fn(i)) :
             if r==r : #ignore NaN's -- they just mean the current radius doesn't intersect our sphere
                 
                 i2 = query_disc(nside, pos[i], r,inclusive=False)
                 im[i2]+=w
+                im2[i2]+=w_norm
 
     im = im.view(array.SimArray)
+    if denoise :
+        im/=im2
     im.units = qty.units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
     im.sim = snap
 
