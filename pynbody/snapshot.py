@@ -1413,8 +1413,7 @@ class SimSnap(object):
     def mean_by_mass(self, name):
         """Calculate the mean by mass of the specified array."""
         m = np.asanyarray(self["mass"])
-        ret = (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
-        ret.units = self[name].units
+        ret = array.SimArray((self[name].transpose()*m).transpose().mean(axis=0)/m.mean(), self[name].units)
 
         return ret
 
