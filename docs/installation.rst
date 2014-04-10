@@ -47,6 +47,15 @@ You must have:
 
   * The standard `numpy` (python numeric arrays) package.
 
+  * Standard development environment, i.e. compilers, libraries etc. On Mac OS that's usually Apple's XCode. 
+
+  * **Note for Mac OS X 10.8 and 10.9 users:** XCode no longer comes
+  with the `gcc` compiler and the `clang` compiler doesn't support
+  OpenMP -- if you want to take advantage of some parallelized
+  sections of the code, you need to install the OpenMP implementation
+  for `clang` from http://clang-omp.github.io/#try-openmp-clang *or*
+  install the `gcc` compiler using `homebrew <http://brew.sh/>`_.
+
 You will probably also want
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -158,8 +167,8 @@ Choose one of the three options below.  Any of the three options can
 be made to work. The first is easiest, the last is hardest; so if you
 don't have a strong reason to do otherwise, we'd recommend option (a).
 
-Option (a): enthought python 
-""""""""""""""""""""""""""""
+Option (a): enthought or anaconda python 
+"""""""""""""""""""""""""""""""""""""""""
 
 If you are at an academic institution (which is likely the case if you
 are installing pynbody) then the `Enthought python bundle
@@ -170,6 +179,12 @@ them with your email address to get a download link. It installs
 *everything* you need including the core python, numpy, scipy,
 matplotlib and other libraries. See the full
 `package index <http://www.enthought.com/products/epdlibraries.php>`_.
+
+A similar solution is the `Anaconda Python
+<https://store.continuum.io/cshop/anaconda/>`_ bundle from Continuum
+Analytics that comes with a nice and easy to use package manager
+`conda`. They also provide free licenses for academic use. 
+
 
 Option (b): python's official python
 """"""""""""""""""""""""""""""""""""
