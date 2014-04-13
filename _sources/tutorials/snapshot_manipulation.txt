@@ -180,7 +180,7 @@ width as a string with a unit.
 .. ipython:: 
 
  @savefig snapshot_manipulation_fig1_wide.png width=5in
- In [1]: pynbody.plot.image(s.d[pynbody.filt.Sphere('10 Mpc')], width='10 Mpc', units = 'Msol kpc^-2');
+ In [1]: pynbody.plot.image(s.d[pynbody.filt.Sphere('10 Mpc')], width='10 Mpc', units = 'Msol kpc^-2', cmap='Greys');
 
 .. note:: see the :doc:`pictures` tutorial for more examples and help regarding images. 
 
