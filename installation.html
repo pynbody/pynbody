@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -14,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.18-alpha',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -98,6 +97,14 @@ common to astronomers, Mac OS X and Linux.</p>
 <li>Python 2.5, 2.6 or 2.7. We will support 3.x once <cite>scipy</cite> and
 <cite>matplotlib</cite> do.</li>
 <li>The standard <cite>numpy</cite> (python numeric arrays) package.</li>
+<li>Standard development environment, i.e. compilers, libraries etc. On Mac OS that&#8217;s usually Apple&#8217;s XCode.</li>
+<li><strong>Note for Mac OS X 10.8 and 10.9 users:</strong> XCode no longer comes
+with the <cite>gcc</cite> compiler and the <cite>clang</cite> compiler doesn&#8217;t support
+OpenMP &#8211; if you want to take advantage of some parallelized
+sections of the code, you need to install the OpenMP
+implementation for <cite>clang</cite> from
+<a class="reference external" href="http://clang-omp.github.io/#try-openmp-clang">http://clang-omp.github.io/#try-openmp-clang</a> <em>or</em> install the
+<cite>gcc</cite> compiler using <a class="reference external" href="http://brew.sh/">homebrew</a>.</li>
 </ul>
 </div></blockquote>
 </div>
@@ -191,8 +198,8 @@ distutils, you just have to <tt class="docutils literal"><span class="pre">cd</s
 <p>Choose one of the three options below.  Any of the three options can
 be made to work. The first is easiest, the last is hardest; so if you
 don&#8217;t have a strong reason to do otherwise, we&#8217;d recommend option (a).</p>
-<div class="section" id="option-a-enthought-python">
-<h4>Option (a): enthought python<a class="headerlink" href="#option-a-enthought-python" title="Permalink to this headline">¶</a></h4>
+<div class="section" id="option-a-enthought-or-anaconda-python">
+<h4>Option (a): enthought or anaconda python<a class="headerlink" href="#option-a-enthought-or-anaconda-python" title="Permalink to this headline">¶</a></h4>
 <p>If you are at an academic institution (which is likely the case if you
 are installing pynbody) then the <a class="reference external" href="http://www.enthought.com/">Enthought python bundle</a> is the simplest way of getting
 everything you need and more. Go to the <a class="reference external" href="http://www.enthought.com/products/edudownload.php">Academic License</a> page and trust
@@ -200,6 +207,9 @@ them with your email address to get a download link. It installs
 <em>everything</em> you need including the core python, numpy, scipy,
 matplotlib and other libraries. See the full
 <a class="reference external" href="http://www.enthought.com/products/epdlibraries.php">package index</a>.</p>
+<p>A similar solution is the <a class="reference external" href="https://store.continuum.io/cshop/anaconda/">Anaconda Python</a> bundle from Continuum
+Analytics that comes with a nice and easy to use package manager
+<cite>conda</cite>. They also provide free licenses for academic use.</p>
 </div>
 <div class="section" id="option-b-python-s-official-python">
 <h4>Option (b): python&#8217;s official python<a class="headerlink" href="#option-b-python-s-official-python" title="Permalink to this headline">¶</a></h4>
@@ -366,7 +376,7 @@ sudo python setup.py install</pre>
 <li><a class="reference internal" href="#install-external-packages">Install External Packages</a><ul>
 <li><a class="reference internal" href="#linux">Linux</a></li>
 <li><a class="reference internal" href="#mac-os">Mac OS</a><ul>
-<li><a class="reference internal" href="#option-a-enthought-python">Option (a): enthought python</a></li>
+<li><a class="reference internal" href="#option-a-enthought-or-anaconda-python">Option (a): enthought or anaconda python</a></li>
 <li><a class="reference internal" href="#option-b-python-s-official-python">Option (b): python&#8217;s official python</a></li>
 <li><a class="reference internal" href="#option-c-python-that-came-with-your-mac">Option (c): python that came with your Mac</a></li>
 </ul>
@@ -421,7 +431,7 @@ sudo python setup.py install</pre>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

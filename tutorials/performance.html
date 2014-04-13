@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -179,12 +178,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 294 ms, sys: 4 ms, total: 298 ms</span>
-<span class="go">Wall time: 291 ms</span>
+<span class="go">CPU times: user 166 ms, sys: 15.3 ms, total: 181 ms</span>
+<span class="go">Wall time: 170 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 23 ms, sys: 0 ns, total: 23 ms</span>
-<span class="go">Wall time: 23 ms</span>
+<span class="go">CPU times: user 17.7 ms, sys: 792 us, total: 18.5 ms</span>
+<span class="go">Wall time: 18 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -349,7 +348,7 @@ any unit handling code being called.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

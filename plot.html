@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -14,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.18-alpha',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -144,9 +143,9 @@ want to weight by mass, pass the masses to weights</dd>
 <dl class="function">
 <dt id="pynbody.plot.generic.gauss_kde">
 <tt class="descclassname">pynbody.plot.generic.</tt><tt class="descname">gauss_kde</tt><big>(</big><em>xo</em>, <em>yo</em>, <em>weights=None</em>, <em>mass=None</em>, <em>gridsize=(100</em>, <em>100)</em>, <em>nbins=None</em>, <em>make_plot=True</em>, <em>nmin=None</em>, <em>nmax=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/generic.html#gauss_kde"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.generic.gauss_kde" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot 2D gaussian kernel density estimate (KDE) given values at points (<em>x</em>, <em>y</em>).</p>
-<blockquote>
-<div><p>Behavior changes depending on which keywords are passed:</p>
+<dd><blockquote>
+<div><p>Plot 2D gaussian kernel density estimate (KDE) given values at points (<em>x</em>, <em>y</em>).</p>
+<p>Behavior changes depending on which keywords are passed:</p>
 <p>If a <em>weights</em> array is supplied, produce a weighted KDE.</p>
 <p>If a <em>mass</em> array is supplied, a mass density is computed.</p>
 <p>If both <em>weights</em> and <em>mass</em> are supplied, a mass-averaged KDE of the weights is 
@@ -318,7 +317,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x4441b18&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bec36e0&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -436,6 +435,47 @@ the multi-threaded routines; otherwise the pynbody.config default is used</p>
 </div>
 <span class="target" id="module-pynbody.plot.stars"></span><div class="section" id="stars">
 <h2>stars<a class="headerlink" href="#stars" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pynbody.plot.stars.render">
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">render</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>r_band='i'</em>, <em>g_band='v'</em>, <em>b_band='u'</em>, <em>r_scale=0.5</em>, <em>g_scale=1.0</em>, <em>b_scale=1.0</em>, <em>dynamic_range=2.0</em>, <em>width=50</em>, <em>starsize=None</em>, <em>plot=True</em>, <em>axes=None</em>, <em>ret_im=False</em>, <em>clear=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#render"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.render" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a 3-color image of stars.</p>
+<p>The colors are based on magnitudes found using stellar Marigo
+stellar population code.  However there is no radiative transfer
+to account for dust.</p>
+<p>Returns: If ret_im=True, an NxNx3 array representing an RGB image</p>
+<p><strong>Optional keyword arguments:</strong></p>
+<blockquote>
+<div><dl class="docutils">
+<dt><em>filename</em>: string (default: None)</dt>
+<dd>Filename to be written to (if a filename is specified)</dd>
+<dt><em>r_band</em>: string (default: &#8216;i&#8217;)</dt>
+<dd>Determines which Johnston filter will go into the image red channel</dd>
+<dt><em>g_band</em>: string (default: &#8216;v&#8217;)</dt>
+<dd>Determines which Johnston filter will go into the image green channel</dd>
+<dt><em>b_band</em>: string (default: &#8216;b&#8217;)</dt>
+<dd>Determines which Johnston filter will go into the image blue channel</dd>
+<dt><em>r_scale</em>: float (default: 0.5)</dt>
+<dd>The scaling of the red channel before channels are combined</dd>
+<dt><em>g_scale</em>: float (default: 1.0)</dt>
+<dd>The scaling of the green channel before channels are combined</dd>
+<dt><em>b_scale</em>: float (default: 1.0)</dt>
+<dd>The scaling of the blue channel before channels are combined</dd>
+<dt><em>width</em>: float in kpc (default:50)</dt>
+<dd>Sets the size of the image field in kpc</dd>
+<dt><em>starsize</em>: float in kpc (default: None)</dt>
+<dd>If not None, sets the maximum size of stars in the image</dd>
+<dt><em>ret_im</em>: bool (default: False)</dt>
+<dd>if True, the NxNx3 image array is returned</dd>
+<dt><em>plot</em>: bool (default: True)</dt>
+<dd>if True, the image is plotted</dd>
+<dt><em>axes</em>: matplotlib axes object (deault: None)</dt>
+<dd>if not None, the axes object to plot to</dd>
+<dt><em>dynamic_range</em>: float (default: 2.0)</dt>
+<dd>The number of dex in luminosity over which the image brightness ranges</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
 <dl class="function">
 <dt id="pynbody.plot.stars.sfh">
 <tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">sfh</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>massform=True</em>, <em>clear=False</em>, <em>legend=False</em>, <em>subplot=False</em>, <em>trange=False</em>, <em>bins=100</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#sfh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.sfh" title="Permalink to this definition">¶</a></dt>
@@ -744,7 +784,7 @@ map.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

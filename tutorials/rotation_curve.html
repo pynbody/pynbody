@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -103,10 +102,7 @@ object. For a tutorial on profiles see <a class="reference internal" href="profi
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>(<a class="reference external" href="../tutorials/example_code/rotcurve.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/rotcurve.png">png</a>, <a class="reference external" href="../tutorials/example_code/rotcurve.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/rotcurve.pdf">pdf</a>)</p>
-<div class="figure">
-<img alt="../_images/rotcurve.png" src="../_images/rotcurve.png" />
-</div>
+<p>(<a class="reference external" href="../tutorials/example_code/rotcurve.py">Source code</a>)</p>
 <div class="section" id="speeding-up-the-gravity-calculation-in-pynbody">
 <h2>Speeding up the Gravity Calculation in Pynbody<a class="headerlink" href="#speeding-up-the-gravity-calculation-in-pynbody" title="Permalink to this headline">¶</a></h2>
 <p>The rotation curve is calculated by calculating the forces in a
@@ -137,8 +133,10 @@ configuration like this:</p>
 <span class="go">  &#39;sigma8&#39;: 0.809},</span>
 <span class="go"> &#39;disk-fit-function&#39;: &#39;expsech&#39;,</span>
 <span class="go"> &#39;gravity_calculation_mode&#39;: &#39;direct_omp&#39;,</span>
-<span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.AmigaGrpCatalogue,</span>
-<span class="go">  pynbody.halo.AHFCatalogue],</span>
+<span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.GrpCatalogue,</span>
+<span class="go">  pynbody.halo.AmigaGrpCatalogue,</span>
+<span class="go">  pynbody.halo.AHFCatalogue,</span>
+<span class="go">  pynbody.halo.SubfindCatalogue],</span>
 <span class="go"> &#39;number_of_threads&#39;: 4,</span>
 <span class="go"> &#39;snap-class-priority&#39;: [pynbody.ramses.RamsesSnap,</span>
 <span class="go">  pynbody.grafic.GrafICSnap,</span>
@@ -147,7 +145,7 @@ configuration like this:</p>
 <span class="go">  pynbody.gadgethdf.GadgetHDFSnap,</span>
 <span class="go">  pynbody.tipsy.TipsySnap],</span>
 <span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 32, &#39;tree-leafsize&#39;: 16},</span>
-<span class="go"> &#39;threading&#39;: &#39;True&#39;,</span>
+<span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
 <span class="go"> &#39;tracktime&#39;: True,</span>
 <span class="go"> &#39;verbose&#39;: True}</span>
 </pre></div>
@@ -237,7 +235,7 @@ for other options.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

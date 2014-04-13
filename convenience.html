@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -14,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.18-alpha',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -166,48 +165,6 @@ a halo catalogue.</p>
 of &#8216;parentid&#8217; halo.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="pynbody.halo.HaloCatalogue.writegrp">
-<tt class="descname">writegrp</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>grpoutfile</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writegrp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writegrp" title="Permalink to this definition">¶</a></dt>
-<dd><p>simply write a skid style .grp file from ahf_particles
-file. header = total number of particles, then each line is
-the halo id for each particle (0 means free).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.HaloCatalogue.writestat">
-<tt class="descname">writestat</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>statoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writestat" title="Permalink to this definition">¶</a></dt>
-<dd><p>write a condensed skid.stat style ascii file from ahf_halos
-file.  header + 1 halo per line. should reproduce <a href="#id1"><span class="problematic" id="id2">`</span></a>Alyson&#8217;s
-idl script&#8217; except does not do last 2 columns (Is it a
-satellite?) and (Is central halo is <a href="#id3"><span class="problematic" id="id4">`</span></a>false&#8217;ly split?).  output
-units are set to Mpc Msun, km/s.</p>
-<p>user can specify own hubble constant hubble=(H0/(100
-km/s/Mpc)), ignoring the snaphot arg for hubble constant
-(which sometimes has a large roundoff error).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.HaloCatalogue.writetipsy">
-<tt class="descname">writetipsy</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>tipsyoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writetipsy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writetipsy" title="Permalink to this definition">¶</a></dt>
-<dd><p>write halos to tipsy file (write as stars) from ahf_halos
-file.  returns a shapshot where each halo is a star particle.</p>
-<p>user can specify own hubble constant hubble=(H0/(100
-km/s/Mpc)), ignoring the snaphot arg for hubble constant
-(which sometimes has a large roundoff error).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.HaloCatalogue.writehalos">
-<tt class="descname">writehalos</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>hubble=None</em>, <em>outfile=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#HaloCatalogue.writehalos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.writehalos" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write the (ahf) halo catalog to disk.  This is really a
-wrapper that calls writegrp, writetipsy, writestat.  Writes
-.amiga.grp file (ascii group ids), .amiga.stat file (ascii
-halo catalog) and .amiga.gtp file (tipsy halo catalog).
-default outfile base simulation is same as snapshot s.
-function returns simsnap of halo catalog.</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="class">
@@ -227,6 +184,55 @@ its parent halo.</p>
 <dd><p>Load the a fresh SimSnap with only the particle in halo i</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="pynbody.halo.AHFCatalogue.writegrp">
+<tt class="descname">writegrp</tt><big>(</big><em>grpoutfile=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.writegrp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writegrp" title="Permalink to this definition">¶</a></dt>
+<dd><p>simply write a skid style .grp file from ahf_particles
+file. header = total number of particles, then each line is
+the halo id for each particle (0 means free).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.AHFCatalogue.writestat">
+<tt class="descname">writestat</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>statoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writestat" title="Permalink to this definition">¶</a></dt>
+<dd><p>write a condensed skid.stat style ascii file from ahf_halos
+file.  header + 1 halo per line. should reproduce <a href="#id1"><span class="problematic" id="id2">`</span></a>Alyson&#8217;s
+idl script&#8217; except does not do last 2 columns (Is it a
+satellite?) and (Is central halo is <a href="#id3"><span class="problematic" id="id4">`</span></a>false&#8217;ly split?).  output
+units are set to Mpc Msun, km/s.</p>
+<p>user can specify own hubble constant hubble=(H0/(100
+km/s/Mpc)), ignoring the snaphot arg for hubble constant
+(which sometimes has a large roundoff error).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.AHFCatalogue.writetipsy">
+<tt class="descname">writetipsy</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>tipsyoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.writetipsy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writetipsy" title="Permalink to this definition">¶</a></dt>
+<dd><p>write halos to tipsy file (write as stars) from ahf_halos
+file.  returns a shapshot where each halo is a star particle.</p>
+<p>user can specify own hubble constant hubble=(H0/(100
+km/s/Mpc)), ignoring the snaphot arg for hubble constant
+(which sometimes has a large roundoff error).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.AHFCatalogue.writehalos">
+<tt class="descname">writehalos</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>hubble=None</em>, <em>outfile=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.writehalos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writehalos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the (ahf) halo catalog to disk.  This is really a
+wrapper that calls writegrp, writetipsy, writestat.  Writes
+.amiga.grp file (ascii group ids), .amiga.stat file (ascii
+halo catalog) and .amiga.gtp file (tipsy halo catalog).
+default outfile base simulation is same as snapshot s.
+function returns simsnap of halo catalog.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pynbody.halo.GrpCatalogue">
+<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">GrpCatalogue</tt><big>(</big><em>sim</em>, <em>array='grp'</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#GrpCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic catalogue using a .grp file to specify which particles
+belong to which group.</p>
 </dd></dl>
 
 <dl class="class">
@@ -250,7 +256,7 @@ a final C code to perform the rendering is derived.</p>
 <p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
 <dl class="function">
 <dt id="pynbody.sph.render_spherical_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x4a93a50&gt;</em>, <em>kstep=0.5</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10bec1190&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image on a spherical surface. Note this is written in pure python and
 could be optimized into C, but would then need linking with the healpix libraries.
 Also currently uses a top-hat 3D kernel only.</p>
@@ -258,7 +264,7 @@ Also currently uses a top-hat 3D kernel only.</p>
 
 <dl class="function">
 <dt id="pynbody.sph.render_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x445ef90&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b56b310&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -308,7 +314,7 @@ configuration files).</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.to_3d_grid">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x4468050&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b56b390&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -423,7 +429,7 @@ scheme of all the particles that have a smoothing length within
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

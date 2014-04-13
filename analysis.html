@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -14,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.18-alpha',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -83,7 +82,10 @@ snapshot.</p>
 <dt id="pynbody.analysis.angmom.ang_mom_vec_units">
 <tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">ang_mom_vec_units</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#ang_mom_vec_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.ang_mom_vec_units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the angular momentum vector of the specified snapshot
-with correct units.</p>
+with correct units.
+Note that the halo has to be aligned such that the disk
+is in the x-y-plane and its center must be the coordinate
+origin.</p>
 </dd></dl>
 
 <dl class="function">
@@ -91,12 +93,15 @@ with correct units.</p>
 <tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">spin_parameter</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#spin_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.spin_parameter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the spin parameter lambda&#8217; of a centered halo
 as defined in eq. (5) of Bullock et al. 2001
-(2001MNRAS.321..559B).</p>
+(2001MNRAS.321..559B).
+Note that the halo has to be aligned such that the disk
+is in the x-y-plane and its center must be the coordinate
+origin.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x43e8050&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10b4c0938&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -685,6 +690,9 @@ particles (&#8216;equaln&#8217;)</dd>
 <p><em>max</em> (default = max(x)): maximum value to consider</p>
 <p><em>nbins</em> (default = 100): number of bins</p>
 <dl class="docutils">
+<dt><em>bins</em> <span class="classifier-delimiter">:</span> <span class="classifier">array like - predefined bin edges in units of binning quantity. If this</span></dt>
+<dd>keyword is set, the values of the keywords <em>type</em>, <em>nbins</em>, <em>min</em> and <em>max</em>
+will be ignored</dd>
 <dt><em>calc_x</em> (default = None): function to use to calculate the value</dt>
 <dd>for binning. If None it defaults to the radial distance from
 origin (in either 2 or 3 dimensions), ut you can specify this
@@ -719,20 +727,20 @@ profiles (such as density) might not make sense.</dd>
 <p><em>kappa</em>      : radial orbital frequency</p>
 <p><em>beta</em>       : 3-D velocity anisotropy parameter</p>
 <p><em>magnitudes</em> : magnitudes in each bin - default band = &#8216;v&#8217;</p>
-<p><em>sb</em>         : surface brightness (default band=&#8217;v&#8217;)</p>
+<p><em>sb</em>         : surface brightness - default band = &#8216;v&#8217;</p>
 <p>Additional functions should use the profile_property to yield the
 desired profile.</p>
 <p><strong>Lazy-loading arrays:</strong></p>
 <p>The Profile class will automatically compute a mass-weighted
 profile for any lazy-loadable array of its parent SimSnap object.</p>
 <p><strong>Dispersions:</strong></p>
-<p>To obtain a dispersion profile, attach a &#8216;_disp&#8217; after the desired
+<p>To obtain a dispersion profile, attach a <cite>_disp</cite> after the desired
 quantity name.</p>
 <p><strong>RMS:</strong></p>
-<p>The root-mean-square of a quantity can be obtained by using a &#8216;_rms&#8217; suffix</p>
+<p>The root-mean-square of a quantity can be obtained by using a <cite>_rms</cite> suffix</p>
 <p><strong>Derivatives:</strong></p>
-<p>To compute a derivative of a profile, prepend a &#8220;<a href="#id1"><span class="problematic" id="id2">d_</span></a>&#8221; to the
-profile string, as in &#8220;p[&#8216;d_temp&#8217;]&#8221; to get a temperature gradient.</p>
+<p>To compute a derivative of a profile, prepend a <cite>d_</cite> to the
+profile string, as in <cite>p[&#8216;d_temp&#8217;]</cite> to get a temperature gradient.</p>
 <p><strong>Saving and loading previously generated profiles:</strong></p>
 <p>Use the <a class="reference internal" href="#pynbody.analysis.profile.Profile.write" title="pynbody.analysis.profile.Profile.write"><tt class="xref py py-func docutils literal"><span class="pre">write()</span></tt></a> function
 to write the current profiles with all the necessary information
@@ -1097,7 +1105,7 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

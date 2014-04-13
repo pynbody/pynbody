@@ -39,7 +39,7 @@ extensions = ['sphinx.ext.autodoc',
               'matplotlib.sphinxext.plot_directive',
               'ipython_console_highlighting',
               'ipython_directive',
-              'inheritance_diagram',
+              'sphinx.ext.inheritance_diagram',
               'numpydoc']
 
 # Add any paths that contain templates here, relative to this directory.
