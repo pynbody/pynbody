@@ -140,19 +140,8 @@ halo) to analyze its contents.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">IOError                                   Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-2-938a4c194ada&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s = pynbody.load(&#39;testdata/g15784.lr.01024.gz&#39;)</span>
-
-<span class="go">/Users/rokstar/python/pynbody/__init__.pyc in load(filename, *args, **kwargs)</span>
-<span class="go">    231             return c(filename,*args,**kwargs)</span>
-<span class="go">    232 </span>
-<span class="go">--&gt; 233     raise IOError(&quot;File %r: format not understood or does not exist&quot;%filename)</span>
-<span class="go">    234 </span>
-<span class="go">    235 </span>
-
-<span class="go">IOError: File &#39;testdata/g15784.lr.01024.gz&#39;: format not understood or does not exist</span>
+<span class="go">Loading using backend &lt;class &#39;pynbody.tipsy.TipsySnap&#39;&gt;</span>
+<span class="go">TipsySnap: loading  testdata/g15784.lr.01024.gz</span>
 </pre></div>
 </div>
 <p>This loads the snapshot <tt class="docutils literal"><span class="pre">s</span></tt> (make sure you use the correct path to
@@ -160,41 +149,23 @@ the <cite>testdata</cite> directory). Now we load the halos and center on the
 main halo (see the <a class="reference internal" href="halos.html#halo-tutorial"><em>Halo loading in Pynbody</em></a> tutorial for more detailed
 information on how to deal with halos):</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-3-dd000090d028&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h = s.halos()</span>
-
-<span class="go">NameError: name &#39;s&#39; is not defined</span>
+<span class="go">AHFCatalogue: loading particles... halos... done!</span>
 </pre></div>
 </div>
 <p>For later convenience, we can store the main halo in a separate
 variable:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">h1</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-4-530e536cd564&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h1 = h[1]</span>
-
-<span class="go">NameError: name &#39;h&#39; is not defined</span>
 </pre></div>
 </div>
 <p>And perhaps check quickly how many particles of each type are identified there:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [5]: </span><span class="k">print</span> <span class="s">&#39;ngas = </span><span class="si">%e</span><span class="s">, ndark = </span><span class="si">%e</span><span class="s">, nstar = </span><span class="si">%e</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">gas</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">dark</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">star</span><span class="p">))</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-5-093e4130a2bc&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 print &#39;ngas = %e, ndark = %e, nstar = %e\n&#39;%(len(h1.gas),len(h1.dark),len(h1.star))</span>
+<span class="go">ngas = 7.906000e+04, ndark = 1.610620e+05, nstar = 2.621780e+05</span>
 
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
 
 <span class="gp">In [6]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;hyb&#39;</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-6-bcef76093ca8&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 pynbody.analysis.halo.center(h1,mode=&#39;hyb&#39;)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="go">TipsySnap: loading data from main file</span>
+<span class="go">Finding halo velocity center...</span>
+<span class="go">vcen= [ 0.00216821 -0.03459588 -0.14736437]</span>
 </pre></div>
 </div>
 <p>The halos of <tt class="docutils literal"><span class="pre">s</span></tt> are now loaded in <tt class="docutils literal"><span class="pre">h</span></tt> and <tt class="docutils literal"><span class="pre">h[1]</span></tt> yields the
@@ -217,44 +188,17 @@ to illustrate this:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [7]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">);</span> <span class="n">h1</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()[</span><span class="mi">1</span><span class="p">];</span>
 
 <span class="gp">In [8]: </span><span class="n">cen_hyb</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;hyb&#39;</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-8-fc2a4895e647&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 cen_hyb = pynbody.analysis.halo.center(h1,mode=&#39;hyb&#39;,retcen=True)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="go">TipsySnap: loading data from main file</span>
 
 <span class="gp">In [9]: </span><span class="n">cen_pot</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;pot&#39;</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-9-01aec081dad5&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 cen_pot = pynbody.analysis.halo.center(h1,mode=&#39;pot&#39;,retcen=True)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
 
 <span class="gp">In [10]: </span><span class="k">print</span> <span class="n">cen_hyb</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-10-dce1c8e10bd3&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 print cen_hyb</span>
-
-<span class="go">NameError: name &#39;cen_hyb&#39; is not defined</span>
+<span class="go">[ 0.02445621 -0.03411364 -0.12243623]</span>
 
 <span class="gp">In [11]: </span><span class="k">print</span> <span class="n">cen_pot</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-11-5a6e932e0c8b&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 print cen_pot</span>
-
-<span class="go">NameError: name &#39;cen_pot&#39; is not defined</span>
+<span class="go">[ 0.02445719 -0.03411397 -0.12243643]</span>
 
 <span class="gp">In [12]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen_hyb</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-12-a0939e7064e4&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s[&#39;pos&#39;] -= cen_hyb</span>
-
-<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>In this case, we decided that the <cite>hyb</cite> center was better, so we use
@@ -266,12 +210,13 @@ it for the last step.</p>
 <p>We can take a look at what we have at the center now, but to make
 things easier to interpret we convert to physical units first:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-13-48d4b86f3d5b&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s.physical_units()</span>
-
-<span class="go">NameError: name &#39;s&#39; is not defined</span>
+<span class="go">SimSnap: converting phi units from 2.98e+06 km**2 a**-1 s**-2 to km**2 s**-2</span>
+<span class="go">SimSnap: converting pos units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting eps units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting vel units from 1.73e+03 km a s**-1 to km s**-1</span>
+<span class="go">SimSnap: converting mass units from 4.75e+16 Msol to Msol</span>
+<span class="go">SimSnap: converting tform units from 3.96e+01 s kpc km**-1 to kpc s km**-1</span>
+<span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
 
 <span class="gp">In [14]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">);</span>
 </pre></div>
@@ -294,12 +239,10 @@ width as a string with a unit.</p>
 <p>In this example, the disk seems to be aligned more or less face-on,
 but lets say we want it edge-on:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [16]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-16-b7047a43a8dc&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 pynbody.analysis.angmom.sideon(h1, cen=(0,0,0))</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="go">Finding halo velocity center...</span>
+<span class="go">vcen= [   3.74602349  -59.77129742 -254.60142767]</span>
+<span class="go">Calculating angular momentum vector...</span>
+<span class="go">Transforming simulation...</span>
 
 <span class="gp">In [17]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">);</span>
 </pre></div>
@@ -321,12 +264,6 @@ want to just rotate the snapshot by arbitrary angles, the
 about the respective axes. We can use this to rotate the disk into a
 face-on orientation:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [18]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-18-fa04bbc54291&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s.rotate_x(90)</span>
-
-<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -346,12 +283,6 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 </div>
 <p>In the face-on orientation, we may wish to make a profile:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [19]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-19-2b71b1e8c9a4&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 p = pynbody.analysis.profile.Profile(h1.s, min = 0.01, max = 30)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
 
 <span class="gp">In [20]: </span><span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
