@@ -173,6 +173,15 @@ things easier to interpret we convert to physical units first:
  @savefig snapshot_manipulation_fig1.png width=5in
  In [9]: pynbody.plot.image(h1.g, width=100);
 
+Here's a slightly more complicated example showing the larger-scale
+dark-matter distribution -- note that you can conveniently specify the
+width as a string with a unit.
+
+.. ipython:: 
+
+ @savefig snapshot_manipulation_fig1_wide.png width=5in
+ In [1]: pynbody.plot.image(s.d[pynbody.filt.Sphere('10 Mpc')], width='10 Mpc', units = 'Msol kpc^-2');
+
 .. note:: see the :doc:`pictures` tutorial for more examples and help regarding images. 
 
 

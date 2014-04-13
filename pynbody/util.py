@@ -667,17 +667,20 @@ def parallel(p_args=[0],
              threads=config['number_of_threads'], reduce='interleave') :
     """Return a function decorator which makes a function execute in parallel.
 
-    *p_args*: a list of integers specifying which arguments will
-    be  array-like. These will be sliced up and processed over the number
+    *p_args*: a list of integers specifying which arguments will be
+    array-like. These will be sliced up and processed over the number
     of threads specified.
 
     *reduce*: specifies how to reduce the output, and can take one of
     three values:
 
     'none': return None
-    'interleave': return an array of the size of the input arrays, with the
-      elements returned to their correct place
+    
+    'interleave': return an array of the size of the input arrays,
+     with the elements returned to their correct place
+    
     'sum': sum over the outputs
+
     """
     def decorator(fn) :
         def new_fn(*args) :

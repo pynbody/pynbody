@@ -1,9 +1,8 @@
 .. summary How to install pynbody
 
-
 .. _pynbody-installation: 
 
-Pynbody Installation 
+Pynbody Installation
 ====================
 
 Nothing makes us happier than a new pynbody user, so we hope that your
@@ -50,11 +49,12 @@ You must have:
   * Standard development environment, i.e. compilers, libraries etc. On Mac OS that's usually Apple's XCode. 
 
   * **Note for Mac OS X 10.8 and 10.9 users:** XCode no longer comes
-  with the `gcc` compiler and the `clang` compiler doesn't support
-  OpenMP -- if you want to take advantage of some parallelized
-  sections of the code, you need to install the OpenMP implementation
-  for `clang` from http://clang-omp.github.io/#try-openmp-clang *or*
-  install the `gcc` compiler using `homebrew <http://brew.sh/>`_.
+    with the `gcc` compiler and the `clang` compiler doesn't support
+    OpenMP -- if you want to take advantage of some parallelized
+    sections of the code, you need to install the OpenMP
+    implementation for `clang` from
+    http://clang-omp.github.io/#try-openmp-clang *or* install the
+    `gcc` compiler using `homebrew <http://brew.sh/>`_.
 
 You will probably also want
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
