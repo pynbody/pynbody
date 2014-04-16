@@ -171,7 +171,7 @@ things easier to interpret we convert to physical units first:
  In [5]: s.physical_units()
  
  @savefig snapshot_manipulation_fig1.png width=5in
- In [9]: pynbody.plot.image(h1.g, width=100);
+ In [9]: pynbody.plot.image(h1.g, width=100, cmap='Blues');
 
 Here's a slightly more complicated example showing the larger-scale
 dark-matter distribution -- note that you can conveniently specify the
@@ -196,7 +196,7 @@ but lets say we want it edge-on:
  In [12]: pynbody.analysis.angmom.sideon(h1, cen=(0,0,0))
 
  @savefig snapshot_manipulation_fig2.png width=5in
- In [13]: pynbody.plot.image(h1.g, width=100);
+ In [13]: pynbody.plot.image(h1.g, width=100, cmap='Blues');
 
 
 Note that the function :func:`~pynbody.analysis.angmom.sideon` will
@@ -232,17 +232,17 @@ face-on orientation:
   ask them to, so ``s.g.rotate_x(90)`` rotates only the gas while
   ``s.rotate_x(90)`` rotates the entire simulation.
 
-In the face-on orientation, we may wish to make a profile: 
+In the face-on orientation, we may wish to make a profile of the stars: 
 
 .. ipython:: 
 
- In [23]: p = pynbody.analysis.profile.Profile(h1.s, min = 0.01, max = 30)
+ In [23]: ps = pynbody.analysis.profile.Profile(h1.s, min = 0.01, max = 50, type = 'log')
  
  In [25]: import matplotlib.pylab as plt
 
  In [25]: plt.clf()
 
- In [25]: plt.plot(p['rbins'], p['density']);
+ In [25]: plt.plot(ps['rbins'], ps['density']);
 
  In [26]: plt.semilogy();
 
@@ -250,6 +250,27 @@ In the face-on orientation, we may wish to make a profile:
 
  @savefig snapshot_manipulation_fig3.png width=5in
  In [29]: plt.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]');
+
+We can also generate other profile, like the rotation curve: 
+
+.. ipython::
+
+ In [1]: plt.figure()
+
+ In [1]: pd = pynbody.analysis.profile.Profile(h1.d,min=.01,max=50, type = 'log')
+
+ In [2]: pg = pynbody.analysis.profile.Profile(h1.g,min=.01,max=50, type = 'log')
+
+ In [3]: p = pynbody.analysis.profile.Profile(h1,min=.01,max=50, type = 'log')
+
+ In [4]: for prof, name in zip([p,pd,ps,pg],['total','dm','stars','gas']) : plt.plot(prof['rbins'],prof['v_circ'],label=name)
+
+ In [5]: plt.xlabel('$R$ [kpc]');
+
+ In [6]: plt.ylabel('$v_{circ}$ [km/s]');
+
+ @savefig vcirc_profiles.png width=5in
+ In [5]: plt.legend()
 
 See the :doc:`profile` tutorial or the
 :class:`~pynbody.analysis.profile.Profile` documentation for more
