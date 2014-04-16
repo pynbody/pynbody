@@ -3,50 +3,125 @@
 
 .. _halo_tutorial:
 
-Halo loading in Pynbody
+Halos in Pynbody
 =======================
 
+`Pynbody` includes functionality to deal with "halos" in
+simulations. A :class:`~pynbody.halo.Halo` is essentially an object
+that holds information about the particle IDs and other properties
+about a given halo, and a :class:`~pynbody.halo.HaloCatalogue` is an
+object which allows one to easily access the information about all the
+halos in a given snapshot.
 
-Basic Load the Halos from AHF catalog
--------------------------------------
-Simple example for loading AHF halo catalog.  Currently, AHF is the only halo catalog format that is supported directly, though we hope to add support for different halo catalog formats in the future.  Simulation snapshot file and AHF halo files should all be in working directory:
+We currently support halo data from the Amiga Halo Finder (AHF)
+(:class:`~pynbody.halo.AHFCatalogue` class), the SKID halo finder
+(:class:`~pynbody.halo.GrpCatalogue` class) and the SubFind halo finder
+(:class:`~pynbody.halo.SubfindCatalogue`). The
+:class:`~pynbody.snapshot.SimSnap` class provides a convenience
+function :func:`~pynbody.snapshot.SimSnap.halos`, which tries to
+automatically determine whether halo data for the given output exists
+on disk already, and if so attempts to load the appropriate halo
+catalogue.
+
+This tutorial will try to demonstrate some of the basic functionality
+of the halo catalogue implementation. If you are not familiar with
+`Pynbody` in general, it is recommended that you first have a look at
+the :ref:`snapshot_manipulation` tutorial.
 
 
->>> import pynbody
->>> s = pynbody.load('tipsyfilename') 
->>> h = s.halos() # this scans for available halo catalogues and loads
->>> print h[1] # you should find this is now a SimSnap representing halo ID 1 in your catalogue
->>> h[1].properties ##  prints all 'properties' of halo 1
->>> h[1].properties['mass']  # halo 1 mass
->>> h[2].properties['Xc']  # halo 2 x-center
->>> h[1].keys()  # what is stored for each particle in halo 1
->>> h[1]['x'] # x-positions of each particle in halo 1 (h[1]['x'][0 - npart-1])
->>> s['grp'][0] # halo id of particle 0 
->>> h[1]['grp'] # halo ids particles in halo 1 (most will be '1')
->>> h[3].star['pos'][0] ## component data. components are gas, star, dark
->>> max(h[1]['grp']) # id of smallest Npart subhalo of halo 1, or '1' if no subhalos
->>> pynbody.analysis.halo.potential_minimum(h[2]) # position of particle with minimum (tipsy) potential in halo 2
->>> h[1].properties['children'] # subhalo IDs of halo 1 (if any)
+Working with Halos and Catalogues
+--------------------------------- 
 
-Note that h[n] is a subview of f, meaning it shares the underlying
-data. Therefore any changes to data in h[n] is automatically reflected
-in f. Similarly, h[n] is not centred, since its pos array is shared
-with f. Investigate pynbody.analysis.halo for centring tools.  How it
-works
+We will use the AHF catalogue here since that is the one that is
+available for the sample output in the `testdata` bundle.
 
-The halo.py module does most of the work. It can be extended with more
-base classes of HaloCatalogue to support new formats. The halos()
-method of SimSnap? goes through the _halo_classes list at the bottom
-of halo.py using the static method _can_load of the HaloCatalogue
-classes to see which if any can find a catalogue corresponding to the
-SnapShot. The first one which returns True gets instantiated.
+.. ipython:: 
+
+ In [1]: import pynbody, matplotlib.pylab as plt
+
+ In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
+
+ In [3]: s.physical_units()
+
+We've got the snapshot loaded, now we ask `Pynbody` to load any
+available halo catalogue:
+
+.. ipython:: 
+
+ In [3]: h = s.halos()
+
+`h` is now the AHF halo catalogue. We can easily retrieve some basic
+information, like the total number of halos in this catalogue:
+
+.. ipython::
+
+ In [4]: len(h)
+
+The catalogue has halos ordered by number of particles, so the first
+halo for this zoom simulation will be the one we would most likely be
+interested in. So lets see some of its stats: 
+
+.. ipython::
+
+ In [5]: h[1].properties
+
+These are just a dictionary, e.g. 
+
+.. ipython::
+
+ In [5]: h[1].properties['children']
+
+returns a list of sub-halos of this halo. 
+
+Here, we access individual halos simply by indexing the halo
+catalogue. For the :class:`~pynbody.halo.AHFCatalogue`, the
+`properties` attribute returns the familiar halo parameters usually
+stored in the AHF `.stat` file. For example, to compare masses of the two halos with the most particles in this catalogue, 
+
+.. ipython:: 
+
+ In [1]: len(h[1]), len(h[2])
+
+.. note Halo IDs begin with 1!
+
+As is already evident above, "halos" here are no different than simple
+Pynbody :class:`~pynbody.snapshot.SubSnap` that we are already
+familiar with. It therefore understands the usual interface used for
+any other :class:`~pynbody.snapshot.SimSnap` object. For example:
+
+.. ipython:: 
+
+ In [7]: h1 = h[1]
+
+ In [10]: h1['mass'].sum().in_units('1e12 Msol')
+
+ In [8]: h1.keys()
+ 
+ In [9]: h1.derivable_keys()[:10] # just showing the first 10
+
+A really common use-case is that one wants to center the simulation on
+a given halo and analyze some of its properties. Since halos are just
+:class:`~pynbody.snapshot.SubSnap` objects, this is easy to do: 
+
+.. ipython::
+
+ In [1]: pynbody.analysis.halo.center(h1)
+
+ @savefig halo1_image.png width=5in
+ In [2]: im = pynbody.plot.image(h1.d, width = '500 kpc', cmap=plt.cm.Greys, units = 'Msol kpc^-2')
 
 
 
 Partial loading the Halos versus full load
 -------------------------------------------
 
-By default, partial loading (i.e. 'lazy loading') is used when loading simulation files.  This means that the command h=s.halos() does not actually load halo information until needed.  Sometimes the simulation snapshot or the halo _particles file is very large, and is not desirable or possible to load everything into memory.  Hence, partial loading can be very useful.  The _particles file is needed to find out which particles belong to a particular halo.  
+By default, partial loading (i.e. 'lazy loading') is used when loading
+simulation files.  This means that the command h=s.halos() does not
+actually load halo information until needed.  Sometimes the simulation
+snapshot or the halo _particles file is very large, and is not
+desirable or possible to load everything into memory.  Hence, partial
+loading can be very useful.  The _particles file is needed to find out
+which particles belong to a particular halo.
 
 In the following example only particles from a single halo are loaded:
 
