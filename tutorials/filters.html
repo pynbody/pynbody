@@ -1,0 +1,265 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Introduction &mdash; pynbody 0.18-alpha documentation</title>
+    
+    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.18-alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.18-alpha documentation" href="../index.html" />
+    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="next" title="Profiles in Pynbody" href="profile.html" />
+    <link rel="prev" title="A walk through pynbody’s low-level facilities" href="data_access.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="profile.html" title="Profiles in Pynbody"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="data_access.html" title="A walk through pynbody’s low-level facilities"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p><cite>pynbody</cite> has the concept of sub-views of simulations. Subviews behave
+exactly like a full simulation, but they reference only a subset of
+the data of that full simulation.</p>
+<div class="section" id="why">
+<h2>Why?<a class="headerlink" href="#why" title="Permalink to this headline">¶</a></h2>
+<p>Because it makes writing code which processes individual halos
+trivial; for instance</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>will find the centre of mass of whatever you throw at it, rather than
+having to repeatedly write things like</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;group&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">group_id</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The latter code has to be changed each time the inclusion criterion
+changes. Or it needs to be wrapped in a function which accepts an
+index array. Every single piece of science code we write then starts
+getting cluttered up with trivial indexing.</p>
+<p>By including the ability to carry around indexing information
+transparently, this book-keeping is factored away.</p>
+</div>
+<div class="section" id="how-do-i-create-a-simple-subview">
+<h2>How do I create a simple subview?<a class="headerlink" href="#how-do-i-create-a-simple-subview" title="Permalink to this headline">¶</a></h2>
+<p>Quite simply, indexing or slicing operations commute with array-fetch
+operations, i.e.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">]</span> <span class="c"># -&gt; new SimSnap object</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">][</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c"># -&gt; True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c"># -&gt; True</span>
+</pre></div>
+</div>
+<p><cite>slice</cite> here can literally be a python slice (e.g. <cite>sim[22:73:2]</cite>,
+starting at the 22nd particle, finishing at the 72nd, taking every
+second particle). It can also be a list of particle indices.</p>
+<p>Or, more interestingly, it can be a <cite>filter</cite>. More on that below, but first...</p>
+</div>
+<div class="section" id="conceptually-everything-is-a-pointer">
+<h2>Conceptually, everything is a pointer<a class="headerlink" href="#conceptually-everything-is-a-pointer" title="Permalink to this headline">¶</a></h2>
+<p>Whenever you create a sub-view of your simulation, you should think of
+it as a _pointer_ into, not a copy of, the original data.</p>
+<p>Thus changing anything in the arrays of your sub-view makes the
+corresponding change in the full data.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">22</span>
+</pre></div>
+</div>
+<p>You can verify that the corresponding element of <cite>sim[&#8216;x&#8217;]</cite> has now changed</p>
+</div>
+<div class="section" id="filters">
+<h2>Filters<a class="headerlink" href="#filters" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="../convenience.html#module-pynbody.filt" title="pynbody.filt"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.filt</span></tt></a> defines abstract filters which can be used in place of
+index lists. For instance,</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">radius</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span> <span class="c"># or might be a float if you already know your units</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">centre</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="c"># Take the origin for now</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">centre</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p><cite>sphere</cite> is now a standard subsim, as though you&#8217;d generated it with
+your own index list.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="c"># -&gt; total mass in sphere</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span> <span class="c"># etc</span>
+</pre></div>
+</div>
+<p>Under the hood, filters are very simple objects which have a
+<cite>__call__</cite> method taking a simulation as the sole parameter, and
+returning a boolean array representing whether particles are included
+(<cite>True</cite>) or excluded (<cite>False</cite>) according to the given filter
+object. The framework uses this to generate an index list and proceeds
+as though you&#8217;d passed that index list in.</p>
+<p>The benefits that this brings are:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Code clarity</li>
+<li>Code factorization (guaranteed that the &#8216;sphere&#8217; filter works,
+rather than having to recode a sphere index-list operation each
+time)</li>
+<li>Future extensibility (e.g. we can just start having Sphere&#8217;s
+accept quantities with units, rather than having to reimplement to
+include units in all code which pulls out spheres)</li>
+<li>Parallelizability (the &#8216;filter&#8217; objects can be trivially sent to
+another node, whereas an index list is irrelevant on another node)</li>
+</ul>
+</div></blockquote>
+<p>Filters can be combined using the following operators, which can of course be chained together:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="78%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><strong>Operator</strong></th>
+<th class="head"><strong>Particle included if</strong></th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><cite>f1 &amp; f2</cite></td>
+<td>Filters <cite>f1</cite> and <cite>f2</cite> both include particle</td>
+</tr>
+<tr class="row-odd"><td><cite>f1 | f2</cite></td>
+<td>Filter <cite>f1</cite> OR <cite>f2</cite> includes particle</td>
+</tr>
+<tr class="row-even"><td><cite>~f</cite></td>
+<td>Filter <cite>f</cite> does NOT include particle</td>
+</tr>
+</tbody>
+</table>
+<p>There are several filter classes currently implemented. Generic filter
+classes work like band-pass filters and are conveniently named so. For example,</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">young</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;1 Gyr&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">old</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">HighPass</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;10 Gyr&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">intermediate</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">BandPass</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;3 Gyr&#39;</span><span class="p">,</span> <span class="s">&#39;7 Gyr&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>would create three filters that each select particles with different
+value ranges for the <cite>age</cite> array.</p>
+<p>Additionaly, several &#8220;geometric&#8221; filter classes are available. We
+already saw <a class="reference internal" href="../convenience.html#pynbody.filt.Sphere" title="pynbody.filt.Sphere"><tt class="xref py py-class docutils literal"><span class="pre">Sphere</span></tt></a> used above, but
+<a class="reference internal" href="../convenience.html#pynbody.filt.Disc" title="pynbody.filt.Disc"><tt class="xref py py-class docutils literal"><span class="pre">Disc</span></tt></a>, <a class="reference internal" href="../convenience.html#pynbody.filt.Cuboid" title="pynbody.filt.Cuboid"><tt class="xref py py-class docutils literal"><span class="pre">Cuboid</span></tt></a>, and two
+convenience functions <a class="reference internal" href="../convenience.html#pynbody.filt.SolarNeighborhood" title="pynbody.filt.SolarNeighborhood"><tt class="xref py py-func docutils literal"><span class="pre">SolarNeighborhood()</span></tt></a> and
+<a class="reference internal" href="../convenience.html#pynbody.filt.Annulus" title="pynbody.filt.Annulus"><tt class="xref py py-func docutils literal"><span class="pre">Annulus()</span></tt></a> are also available.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Introduction</a><ul>
+<li><a class="reference internal" href="#why">Why?</a></li>
+<li><a class="reference internal" href="#how-do-i-create-a-simple-subview">How do I create a simple subview?</a></li>
+<li><a class="reference internal" href="#conceptually-everything-is-a-pointer">Conceptually, everything is a pointer</a></li>
+<li><a class="reference internal" href="#filters">Filters</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="data_access.html"
+                        title="previous chapter">A walk through pynbody&#8217;s low-level facilities</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="profile.html"
+                        title="next chapter">Profiles in Pynbody</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/filters.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="profile.html" title="Profiles in Pynbody"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="data_access.html" title="A walk through pynbody’s low-level facilities"
+             >previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

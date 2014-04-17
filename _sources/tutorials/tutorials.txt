@@ -29,7 +29,8 @@ Walkthroughs
 
    A first look at your data with pynbody <snapshot_manipulation>
    Basic data access <data_access>
-
+   Subviews and Filters <filters>
+   
 .. _cookbook:
 
 Cookbook/Recipes
