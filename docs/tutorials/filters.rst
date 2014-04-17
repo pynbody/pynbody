@@ -35,8 +35,8 @@ something like
 >>> (halo["mass"]*halo["pos"]).mean(axis=0)
 
 The indexing is taken care of under the hood and all the boilerplate
-code is gone. In this tutorial, we discuss some of the ways that
-subviews and filters can be used in `pynbody`.
+indexing code is gone. In this tutorial, we discuss some of the ways
+that subviews and filters can be used in `pynbody`.
 
 How do I create a simple subview?
 ---------------------------------
