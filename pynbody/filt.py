@@ -6,6 +6,10 @@ filt
 Defines and implements 'filters' which allow abstract subsets
 of data to be specified.
 
+See the `filter tutorial
+<http://pynbody.github.io/pynbody/tutorials/filters.html>`_ for some
+sample usage.
+
 """
 
 
