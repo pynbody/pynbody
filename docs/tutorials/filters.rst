@@ -2,36 +2,41 @@
 
 .. _filters_tutorial
 
-Introduction
-============
+Subviews and Filters
+====================
 
-`pynbody` has the concept of sub-views of simulations. Subviews behave
-exactly like a full simulation, but they reference only a subset of
-the data of that full simulation.
-
-Why?
-----
-
-Because it makes writing code which processes individual halos
-trivial; for instance
-
->>> (sim["mass"]*sim["pos"]).mean(axis=0)
-
-
-will find the centre of mass of whatever you throw at it, rather than
-having to repeatedly write things like
+Analyzing simulations often boils down to comparing properties of
+groups of particles or sections of the simulated volume. Therefore a
+generic task in analysis routines is to search for indices of
+particles (or cells) corresponding to some interesting property, so
+analysis code often looks something like this:
 
 >>> index = numpy.where(sim["group"]==group_id)
 >>> (sim["mass"][index]*sim["pos"][index]).mean(axis=0)
 
+In this example, we obtained the center of mass of some group
+specified by `group_id`. Such patterns are fine, but they are ugly to
+look at and illegible when written out in long complicated chains.
 
-The latter code has to be changed each time the inclusion criterion
-changes. Or it needs to be wrapped in a function which accepts an
-index array. Every single piece of science code we write then starts
-getting cluttered up with trivial indexing.
+For this reason, `pynbody` has the concept of sub-views of
+simulations. Subviews behave exactly like a full simulation, but they
+reference only a subset of the data of that full simulation.
 
-By including the ability to carry around indexing information
-transparently, this book-keeping is factored away.
+This makes writing code which processes individual halos trivial; for
+instance
+
+>>> (sim["mass"]*sim["pos"]).mean(axis=0)
+
+will find the centre of mass of whatever you throw at it. So if we had
+some way of defining a *sub-view* of the whole simulation that refers
+to just the halo that we want, called `halo`, then we could do
+something like
+
+>>> (halo["mass"]*halo["pos"]).mean(axis=0)
+
+The indexing is taken care of under the hood and all the boilerplate
+indexing code is gone. In this tutorial, we discuss some of the ways
+that subviews and filters can be used in `pynbody`.
 
 How do I create a simple subview?
 ---------------------------------
@@ -42,7 +47,6 @@ operations, i.e.
 >>> subsim = sim[slice] # -> new SimSnap object 
 >>> sim[slice]["x"] == sim["x"][slice] # -> True 
 >>> subsim["x"] == sim["x"][slice] # -> True
-
 
 `slice` here can literally be a python slice (e.g. `sim[22:73:2]`,
 starting at the 22nd particle, finishing at the 72nd, taking every

@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Introduction &mdash; pynbody 0.18-alpha documentation</title>
+    <title>Subviews and Filters &mdash; pynbody 0.18-alpha documentation</title>
     
     <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -68,31 +68,38 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p><cite>pynbody</cite> has the concept of sub-views of simulations. Subviews behave
-exactly like a full simulation, but they reference only a subset of
-the data of that full simulation.</p>
-<div class="section" id="why">
-<h2>Why?<a class="headerlink" href="#why" title="Permalink to this headline">¶</a></h2>
-<p>Because it makes writing code which processes individual halos
-trivial; for instance</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>will find the centre of mass of whatever you throw at it, rather than
-having to repeatedly write things like</p>
+  <div class="section" id="subviews-and-filters">
+<h1>Subviews and Filters<a class="headerlink" href="#subviews-and-filters" title="Permalink to this headline">¶</a></h1>
+<p>Analyzing simulations often boils down to comparing properties of
+groups of particles or sections of the simulated volume. Therefore a
+generic task in analysis routines is to search for indices of
+particles (or cells) corresponding to some interesting property, so
+analysis code often looks something like this:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;group&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">group_id</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The latter code has to be changed each time the inclusion criterion
-changes. Or it needs to be wrapped in a function which accepts an
-index array. Every single piece of science code we write then starts
-getting cluttered up with trivial indexing.</p>
-<p>By including the ability to carry around indexing information
-transparently, this book-keeping is factored away.</p>
+<p>In this example, we obtained the center of mass of some group
+specified by <cite>group_id</cite>. Such patterns are fine, but they are ugly to
+look at and illegible when written out in long complicated chains.</p>
+<p>For this reason, <cite>pynbody</cite> has the concept of sub-views of
+simulations. Subviews behave exactly like a full simulation, but they
+reference only a subset of the data of that full simulation.</p>
+<p>This makes writing code which processes individual halos trivial; for
+instance</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
 </div>
+<p>will find the centre of mass of whatever you throw at it. So if we had
+some way of defining a <em>sub-view</em> of the whole simulation that refers
+to just the halo that we want, called <cite>halo</cite>, then we could do
+something like</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">halo</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">halo</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The indexing is taken care of under the hood and all the boilerplate
+indexing code is gone. In this tutorial, we discuss some of the ways
+that subviews and filters can be used in <cite>pynbody</cite>.</p>
 <div class="section" id="how-do-i-create-a-simple-subview">
 <h2>How do I create a simple subview?<a class="headerlink" href="#how-do-i-create-a-simple-subview" title="Permalink to this headline">¶</a></h2>
 <p>Quite simply, indexing or slicing operations commute with array-fetch
@@ -201,8 +208,7 @@ convenience functions <a class="reference internal" href="../convenience.html#py
         <div class="sphinxsidebarwrapper">
   <h3><a href="../index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Introduction</a><ul>
-<li><a class="reference internal" href="#why">Why?</a></li>
+<li><a class="reference internal" href="#">Subviews and Filters</a><ul>
 <li><a class="reference internal" href="#how-do-i-create-a-simple-subview">How do I create a simple subview?</a></li>
 <li><a class="reference internal" href="#conceptually-everything-is-a-pointer">Conceptually, everything is a pointer</a></li>
 <li><a class="reference internal" href="#filters">Filters</a></li>

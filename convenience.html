@@ -131,6 +131,8 @@ more information see <em class="xref std std-ref">bridge-tutorial</em>.</p>
 <h2>filt<a class="headerlink" href="#filt" title="Permalink to this headline">¶</a></h2>
 <p>Defines and implements &#8216;filters&#8217; which allow abstract subsets
 of data to be specified.</p>
+<p>See the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/filters.html">filter tutorial</a> for some
+sample usage.</p>
 <dl class="class">
 <dt id="pynbody.filt.Sphere">
 <em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">Sphere</tt><big>(</big><em>radius</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><big>)</big><a class="reference internal" href="_modules/pynbody/filt.html#Sphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Sphere" title="Permalink to this definition">¶</a></dt>
@@ -195,8 +197,9 @@ in a disc between radii <cite>r1</cite> and <cite>r2</cite> and thickness <cite>
 <p>Implements halo catalogue functions. If you have a supported halo
 catalogue on disk or a halo finder installed and correctly configured,
 you can access a halo catalogue through f.halos() where f is a
-SimSnap.
-&lt;<a class="reference external" href="http://code.google.com/p/pynbody/wiki/HaloCatalogue">http://code.google.com/p/pynbody/wiki/HaloCatalogue</a>&gt;</p>
+SimSnap.</p>
+<p>See the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/halos.html">halo tutorial</a> for some
+examples.</p>
 <dl class="class">
 <dt id="pynbody.halo.Halo">
 <em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">Halo</tt><big>(</big><em>halo_id</em>, <em>halo_catalogue</em>, <em>*args</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#Halo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo" title="Permalink to this definition">¶</a></dt>
@@ -312,7 +315,7 @@ a final C code to perform the rendering is derived.</p>
 <p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
 <dl class="function">
 <dt id="pynbody.sph.render_spherical_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b5aa190&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b5c3190&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image on a spherical surface. Note this is written in pure python and
 could be optimized into C, but would then need linking with the healpix libraries.
 Also currently uses a top-hat 3D kernel only.</p>
@@ -320,7 +323,7 @@ Also currently uses a top-hat 3D kernel only.</p>
 
 <dl class="function">
 <dt id="pynbody.sph.render_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10ad6d310&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10ac81310&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -370,7 +373,7 @@ configuration files).</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.to_3d_grid">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10ad6d390&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10ac81390&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>

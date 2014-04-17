@@ -178,12 +178,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 167 ms, sys: 15.3 ms, total: 182 ms</span>
-<span class="go">Wall time: 170 ms</span>
+<span class="go">CPU times: user 184 ms, sys: 37.3 ms, total: 221 ms</span>
+<span class="go">Wall time: 193 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 17.6 ms, sys: 642 us, total: 18.2 ms</span>
-<span class="go">Wall time: 17.7 ms</span>
+<span class="go">CPU times: user 22.9 ms, sys: 1.78 ms, total: 24.7 ms</span>
+<span class="go">Wall time: 23.4 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
