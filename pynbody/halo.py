@@ -7,7 +7,10 @@ Implements halo catalogue functions. If you have a supported halo
 catalogue on disk or a halo finder installed and correctly configured,
 you can access a halo catalogue through f.halos() where f is a
 SimSnap.
-<http://code.google.com/p/pynbody/wiki/HaloCatalogue>
+
+See the `halo tutorial
+<http://pynbody.github.io/pynbody/tutorials/halos.html>`_ for some
+examples.
 
 """
 
