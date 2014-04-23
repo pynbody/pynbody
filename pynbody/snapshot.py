@@ -966,7 +966,6 @@ class SimSnap(object):
             shared = self._shared_arrays
 
         new_array = array._array_factory(dims, dtype, zeros, shared)
-
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
         new_array.family = None
@@ -1657,7 +1656,7 @@ class SubSnap(SimSnap):
     def physical_units(self, *args, **kwargs):
         self.base.physical_units(*args, **kwargs)
 
-    def is_derived_array(self, v):
+    def is_derived_array(self, v, fam=None):
         return self.base.is_derived_array(v)
 
     def unlink_array(self, name):
