@@ -208,7 +208,6 @@ class SimArray(np.ndarray) :
         return new
 
     def __array_finalize__(self, obj) :
-     
         if obj is None :
             return
         elif obj is not self and hasattr(obj, 'units') :
@@ -282,7 +281,10 @@ class SimArray(np.ndarray) :
     @property
     def sim(self) :
         if hasattr(self.base, 'sim') :
-            return self.base.sim
+            if self.family and self.base.sim : 
+                return self.base.sim[self.family]
+            else : 
+                return self.base.sim
         return self._sim()
 
     @sim.setter
@@ -294,6 +296,17 @@ class SimArray(np.ndarray) :
                 self._sim = weakref.ref(s)
             else :
                 self._sim = lambda : None
+
+    @property
+    def family(self) : 
+        try : 
+            return self._family
+        except AttributeError : 
+            return None
+
+    @family.setter
+    def family(self,fam) : 
+        self._family = fam
 
     def __mul__(self, rhs) :
         if isinstance(rhs, _units.UnitBase) :
@@ -854,7 +867,7 @@ class IndexedSimArray(object) :
 
     @property
     def sim(self) :
-        return self.base.sim
+        return self.base.sim[self._ptr]
 
     @sim.setter
     def sim(self, s) :
@@ -864,7 +877,6 @@ class IndexedSimArray(object) :
     def dtype(self) :
         return self.base.dtype
 
-    
     def conversion_context(self) :
         return self.base.conversion_context()
 
