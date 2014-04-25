@@ -593,6 +593,36 @@ class SimSnap(object):
                 d[x] = self.properties[x]
         return d
 
+    def set_units_system(self, velocity = None, distance = None, mass = None, temperature = None) : 
+        """Set the unit system for the snapshot by specifying any or
+        all of `velocity`, `distance`, `mass` and `temperature`
+        units. The units can be given as strings or as pynbody `Unit`
+        objects.
+        """
+
+        # we want to change the base units -- so convert to original
+        # units first and then set all arrays to new unit system
+        self.original_units()
+
+        new_units = []
+        for x in [velocity,distance,mass,temperature] : 
+            if x is not None : 
+                new_units.append(units.Unit(x))
+
+        for i,x in enumerate(self._file_units_system) :
+            if x is units.K : continue
+            try : 
+                d = x.dimensional_project(new_units)
+                self._file_units_system[i] = reduce(lambda x, y: x*y, [
+                          a**b for a, b in zip(new_units, d)])
+
+            except units.UnitsException :
+                pass
+        
+        
+        for arr in self.keys() : 
+            self[arr].set_units_like(self[arr].units)
+
     def original_units(self):
         """Converts all arrays'units to be consistent with the units of
         the original file."""
