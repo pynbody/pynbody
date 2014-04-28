@@ -529,6 +529,17 @@ passing into unit conversion functions.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="pynbody.snapshot.SimSnap.set_units_system">
+<tt class="descname">set_units_system</tt><big>(</big><em>velocity=None</em>, <em>distance=None</em>, <em>mass=None</em>, <em>temperature=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.set_units_system"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.set_units_system" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the unit system for the snapshot by specifying any or
+all of <cite>velocity</cite>, <cite>distance</cite>, <cite>mass</cite> and <cite>temperature</cite>
+units. The units can be given as strings or as pynbody <cite>Unit</cite>
+objects.</p>
+<p>If any of the units are not specified and a previous
+<cite>file_units_system</cite> does not exist, the defaults are used.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="pynbody.snapshot.SimSnap.original_units">
 <tt class="descname">original_units</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.original_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.original_units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts all arrays&#8217;units to be consistent with the units of

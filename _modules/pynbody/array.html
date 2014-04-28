@@ -271,7 +271,6 @@
         <span class="k">return</span> <span class="n">new</span>
 
     <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span> <span class="p">:</span>
-     
         <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
             <span class="k">return</span>
         <span class="k">elif</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="p">:</span>
@@ -345,7 +344,10 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">family</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span> <span class="p">:</span> 
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="p">]</span>
+            <span class="k">else</span> <span class="p">:</span> 
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span><span class="p">()</span>
 
     <span class="nd">@sim.setter</span>
@@ -357,6 +359,17 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
             <span class="k">else</span> <span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="k">lambda</span> <span class="p">:</span> <span class="bp">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">family</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span> 
+        <span class="k">try</span> <span class="p">:</span> 
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="p">:</span> 
+            <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="nd">@family.setter</span>
+    <span class="k">def</span> <span class="nf">family</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fam</span><span class="p">)</span> <span class="p">:</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family</span> <span class="o">=</span> <span class="n">fam</span>
 
     <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">)</span> <span class="p">:</span>
@@ -917,7 +930,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">]</span>
 
     <span class="nd">@sim.setter</span>
     <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="p">:</span>
@@ -927,7 +940,6 @@
     <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">dtype</span>
 
-    
     <span class="k">def</span> <span class="nf">conversion_context</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()</span>
 

@@ -655,6 +655,73 @@
                 <span class="n">d</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">d</span>
 
+    <span class="k">def</span> <span class="nf">set_units_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">velocity</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">distance</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">temperature</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span> </div>
+<div class="viewcode-block" id="SimSnap.set_units_system"><a class="viewcode-back" href="../../essentials.html#pynbody.snapshot.SimSnap.set_units_system">[docs]</a>        <span class="sd">&quot;&quot;&quot;Set the unit system for the snapshot by specifying any or</span>
+<span class="sd">        all of `velocity`, `distance`, `mass` and `temperature`</span>
+<span class="sd">        units. The units can be given as strings or as pynbody `Unit`</span>
+<span class="sd">        objects.</span>
+
+<span class="sd">        If any of the units are not specified and a previous</span>
+<span class="sd">        `file_units_system` does not exist, the defaults are used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config_parser</span>
+        <span class="kn">import</span> <span class="nn">ConfigParser</span>
+
+        <span class="c"># if the units system doesn&#39;t exist (if this is a new snapshot), create one</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span> <span class="p">:</span> 
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Previous unit system incomplete -- using defaults&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="p">[</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;G&#39;</span><span class="p">,</span> <span class="s">&#39;1 kpc&#39;</span><span class="p">,</span> <span class="s">&#39;1e10 Msol&#39;</span><span class="p">)]</span>
+        
+        <span class="k">else</span> <span class="p">:</span> 
+            <span class="c"># we want to change the base units -- so convert to original</span>
+            <span class="c"># units first and then set all arrays to new unit system</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">original_units</span><span class="p">()</span>
+
+        <span class="n">new_units</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">velocity</span><span class="p">,</span><span class="n">distance</span><span class="p">,</span><span class="n">mass</span><span class="p">,</span><span class="n">temperature</span><span class="p">]</span> <span class="p">:</span> 
+            <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
+                <span class="n">new_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+        <span class="n">new_system</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_system</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="n">units</span><span class="o">.</span><span class="n">K</span> <span class="p">:</span> <span class="k">continue</span>
+            <span class="k">try</span> <span class="p">:</span> 
+                <span class="n">d</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dimensional_project</span><span class="p">(</span><span class="n">new_units</span><span class="p">)</span>
+                <span class="n">new_system</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span>
+                          <span class="n">a</span><span class="o">**</span><span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">new_units</span><span class="p">,</span> <span class="n">d</span><span class="p">)])</span>
+
+            <span class="k">except</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span> <span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c"># check that the new unit system is linearly independent</span>
+        <span class="k">for</span> <span class="n">test</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;kpc&#39;</span><span class="p">,</span><span class="s">&#39;Msol&#39;</span><span class="p">,</span><span class="s">&#39;km s^-1&#39;</span><span class="p">]</span> <span class="p">:</span> 
+            <span class="n">test</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+            <span class="k">try</span> <span class="p">:</span> 
+                <span class="n">test</span><span class="o">.</span><span class="n">dimensional_project</span><span class="p">(</span><span class="n">new_system</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span> <span class="p">:</span> 
+                <span class="k">raise</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">(</span><span class="s">&quot;New units are not linearly independent&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="n">new_system</span>
+        
+        <span class="c"># set new units for all known arrays</span>
+        <span class="k">for</span> <span class="n">arr_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">:</span> 
+            <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">arr_name</span><span class="p">]</span>
+            <span class="c"># if the array has units, then use the current units, else</span>
+            <span class="c"># check if a default dimension for this array exists in</span>
+            <span class="c"># the configuration</span>
+            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="n">units</span><span class="o">.</span><span class="n">NoUnit</span><span class="p">()</span> <span class="p">:</span>
+                <span class="n">ref_unit</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span>
+            <span class="k">else</span> <span class="p">:</span> 
+                <span class="k">try</span> <span class="p">:</span> 
+                    <span class="n">ref_unit</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;default-array-dimensions&#39;</span><span class="p">,</span><span class="n">arr_name</span><span class="p">)</span> 
+                <span class="k">except</span> <span class="n">ConfigParser</span><span class="o">.</span><span class="n">NoOptionError</span> <span class="p">:</span> 
+                    <span class="c"># give up -- no applicable dimension found</span>
+                    <span class="k">continue</span>
+                    
+            <span class="n">arr</span><span class="o">.</span><span class="n">set_units_like</span><span class="p">(</span><span class="n">ref_unit</span><span class="p">)</span>
+
+
     <span class="k">def</span> <span class="nf">original_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
 <div class="viewcode-block" id="SimSnap.original_units"><a class="viewcode-back" href="../../essentials.html#pynbody.snapshot.SimSnap.original_units">[docs]</a>        <span class="sd">&quot;&quot;&quot;Converts all arrays&#39;units to be consistent with the units of</span>
 <span class="sd">        the original file.&quot;&quot;&quot;</span>
@@ -1028,7 +1095,6 @@
             <span class="n">shared</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shared_arrays</span>
 
         <span class="n">new_array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">_array_factory</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">shared</span><span class="p">)</span>
-
         <span class="n">new_array</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">new_array</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">array_name</span>
         <span class="n">new_array</span><span class="o">.</span><span class="n">family</span> <span class="o">=</span> <span class="bp">None</span>
@@ -1719,7 +1785,7 @@
     <span class="k">def</span> <span class="nf">physical_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">physical_units</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">is_derived_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">is_derived_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">unlink_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
