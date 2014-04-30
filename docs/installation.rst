@@ -18,7 +18,7 @@ If you are already a regular python/numpy/scipy user
 ----------------------------------------------------
 Either:
 
-1. If you have have `setuptools <http://pypi.python.org/pypi/setuptools>`_ installed, just type ``easy_install pynbody``. 
+1. you can try to install it using pip: ``pip install --allow-all-external pynbody``. 
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
@@ -232,12 +232,18 @@ This is in general not the preferred python solution.
 Install pynbody
 ---------------
 
-You should be able to type, in your shell, `easy_install pynbody` and
-everything will happen automatically. 
+You should be able to type, in your shell, `pip install
+--allow-all-external pynbody` and everything should happen
+automatically. Note that this will give you whatever the latest
+snapshot we made happens to be -- if you want to use `pip` to install
+the freshest version from the git repository, you can do `pip install
+git+git://github.com/pynbody/pynbody` and it should automatically
+clone the git repository and run the install.
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
-If you don't have `easy_install` here is how you can do it manually.
+If you don't have `pip` or if you want to develop `pynbody` here is
+how you can do it manually.
 
 First, clone the `git repository from
 Github <https://github.com/pynbody/pynbody>`_.  Pynbody uses `git
