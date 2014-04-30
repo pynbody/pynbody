@@ -2,7 +2,7 @@
 
 
 Acknowledgement
-==============
+===============
 
 If you would like to acknowledge the use of pynbody in your work, we recommend
 a statement something like:

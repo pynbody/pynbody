@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -26,7 +25,7 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="pynbody 0.18-alpha documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
-    <link rel="next" title="Halo loading in Pynbody" href="halos.html" />
+    <link rel="next" title="Halos in Pynbody" href="halos.html" />
     <link rel="prev" title="Plotting Rotation Cuves" href="rotation_curve.html" />
  
 <script type="text/javascript">
@@ -54,7 +53,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="halos.html" title="Halo loading in Pynbody"
+          <a href="halos.html" title="Halos in Pynbody"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="rotation_curve.html" title="Plotting Rotation Cuves"
@@ -170,7 +169,8 @@ axes and a colorbar. However, one can use the x-y array and <a class="reference 
 <h2>Common issues<a class="headerlink" href="#common-issues" title="Permalink to this headline">¶</a></h2>
 <p><a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is prone to a number of common errors
 when being used by new users. Probably the most common is</p>
-<div class="highlight-python"><pre>ValueError: zero-size array to minimum.reduce without identity</pre>
+<div class="highlight-python"><div class="highlight"><pre>ValueError: zero-size array to minimum.reduce without identity
+</pre></div>
 </div>
 <p>This can come about in a number of circumstances, but essentially it
 means that there were not enough particles in the region that was being
@@ -180,7 +180,8 @@ no longer be an issue. In older versions of pynbody, the width parameter
 assumed kpc, so if the simulation distances were in e.g. &#8220;au&#8221;, this could
 cause a problem).</p>
 <p>Another common error is the following:</p>
-<div class="highlight-python"><pre>TypeError: 'int' object does not support item assignment</pre>
+<div class="highlight-python"><div class="highlight"><pre>TypeError: &#39;int&#39; object does not support item assignment
+</pre></div>
 </div>
 <p>which occurs when the returned image from the kernel is a singular value
 rather than an array. In this case, the issue was because the kernel did
@@ -215,7 +216,7 @@ star particles.</p>
                         title="previous chapter">Plotting Rotation Cuves</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="halos.html"
-                        title="next chapter">Halo loading in Pynbody</a></p>
+                        title="next chapter">Halos in Pynbody</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="../_sources/tutorials/pictures.txt"
@@ -248,7 +249,7 @@ star particles.</p>
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="halos.html" title="Halo loading in Pynbody"
+          <a href="halos.html" title="Halos in Pynbody"
              >next</a> |</li>
         <li class="right" >
           <a href="rotation_curve.html" title="Plotting Rotation Cuves"
@@ -259,7 +260,7 @@ star particles.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

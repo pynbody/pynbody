@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -71,7 +70,10 @@
 <span class="sd">catalogue on disk or a halo finder installed and correctly configured,</span>
 <span class="sd">you can access a halo catalogue through f.halos() where f is a</span>
 <span class="sd">SimSnap.</span>
-<span class="sd">&lt;http://code.google.com/p/pynbody/wiki/HaloCatalogue&gt;</span>
+
+<span class="sd">See the `halo tutorial</span>
+<span class="sd">&lt;http://pynbody.github.io/pynbody/tutorials/halos.html&gt;`_ for some</span>
+<span class="sd">examples.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -119,6 +121,7 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_off</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">ExecutionControl</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">calc_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">:</span>  <span class="c"># and self._halos[i]() is not None :</span>
@@ -132,7 +135,10 @@
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span> 
-        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_off</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_halo_generator</span><span class="p">()</span>
+        <span class="k">else</span> <span class="p">:</span> 
+            <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
@@ -141,6 +147,16 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_item</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_halo_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span> 
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">try</span> <span class="p">:</span> 
+                <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">i</span><span class="o">+=</span><span class="mi">1</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span> 
+                <span class="k">break</span>
 
 <div class="viewcode-block" id="HaloCatalogue.is_subhalo"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.HaloCatalogue.is_subhalo">[docs]</a>    <span class="k">def</span> <span class="nf">is_subhalo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">childid</span><span class="p">,</span> <span class="n">parentid</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -166,157 +182,9 @@
     <span class="k">def</span> <span class="nf">_can_run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">False</span>
 
-<div class="viewcode-block" id="HaloCatalogue.writegrp"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.HaloCatalogue.writegrp">[docs]</a>    <span class="k">def</span> <span class="nf">writegrp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">grpoutfile</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        simply write a skid style .grp file from ahf_particles</span>
-<span class="sd">        file. header = total number of particles, then each line is</span>
-<span class="sd">        the halo id for each particle (0 means free).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">outfile</span> <span class="o">=</span> <span class="n">grpoutfile</span>
-        <span class="k">print</span> <span class="s">&quot;write grp file to &quot;</span><span class="p">,</span> <span class="n">grpoutfile</span>
-        <span class="n">fpout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
-        <span class="n">grparray</span> <span class="o">=</span> <span class="n">snapshot</span><span class="p">[</span><span class="s">&#39;grp&#39;</span><span class="p">]</span>
-        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">grparray</span><span class="p">)</span>
+    
 
-        <span class="c">## writing 1st to a string sacrifices memory for speed.</span>
-        <span class="c">##  but this is much faster than numpy.savetxt (could make an option).</span>
-        <span class="c"># it is assumed that max halo id &lt;= nhalos (i.e.length of string is set</span>
-        <span class="c"># len(str(nhalos))</span>
-        <span class="n">stringarray</span> <span class="o">=</span> <span class="n">grparray</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;|S&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">halos</span><span class="o">.</span><span class="n">_nhalos</span><span class="p">))))</span>
-        <span class="n">outstring</span> <span class="o">=</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stringarray</span><span class="p">)</span>
-        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="n">outstring</span>
-        <span class="n">fpout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="k">return</span> <span class="mi">1</span>
 </div>
-<div class="viewcode-block" id="HaloCatalogue.writestat"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.HaloCatalogue.writestat">[docs]</a>    <span class="k">def</span> <span class="nf">writestat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">statoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        write a condensed skid.stat style ascii file from ahf_halos</span>
-<span class="sd">        file.  header + 1 halo per line. should reproduce `Alyson&#39;s</span>
-<span class="sd">        idl script&#39; except does not do last 2 columns (Is it a</span>
-<span class="sd">        satellite?) and (Is central halo is `false&#39;ly split?).  output</span>
-<span class="sd">        units are set to Mpc Msun, km/s.</span>
-
-<span class="sd">        user can specify own hubble constant hubble=(H0/(100</span>
-<span class="sd">        km/s/Mpc)), ignoring the snaphot arg for hubble constant</span>
-<span class="sd">        (which sometimes has a large roundoff error).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="n">snapshot</span>
-        <span class="n">mindarkmass</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">dark</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
-
-        <span class="k">if</span> <span class="n">hubble</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">hubble</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
-
-        <span class="n">outfile</span> <span class="o">=</span> <span class="n">statoutfile</span>
-        <span class="k">print</span> <span class="s">&quot;write stat file to &quot;</span><span class="p">,</span> <span class="n">statoutfile</span>
-        <span class="n">fpout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
-        <span class="n">header</span> <span class="o">=</span> <span class="s">&quot;#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A&quot;</span>
-        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="n">header</span>
-        <span class="n">nhalos</span> <span class="o">=</span> <span class="n">halos</span><span class="o">.</span><span class="n">_nhalos</span>
-        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nhalos</span><span class="p">):</span>
-            <span class="n">h</span> <span class="o">=</span> <span class="n">halos</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>  <span class="c"># halo index starts with 1 not 0</span>
-<span class="c">##  &#39;Contaminated&#39;? means multiple dark matter particle masses in halo)&quot;</span>
-            <span class="n">icontam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">halos</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dark</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">mindarkmass</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">icontam</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
-                <span class="n">contam</span> <span class="o">=</span> <span class="s">&quot;contam&quot;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">contam</span> <span class="o">=</span> <span class="s">&quot;clean&quot;</span>
-<span class="c">## may want to add implement satellite test and false central breakup test.</span>
-
-            <span class="n">n_dark</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;n_gas&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;n_star&#39;</span><span class="p">]</span>
-            <span class="n">M_dark</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;M_gas&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;M_star&#39;</span><span class="p">]</span>
-            <span class="n">ss</span> <span class="o">=</span> <span class="s">&quot;     &quot;</span>  <span class="c"># can adjust column spacing</span>
-            <span class="n">outstring</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;halo_id&#39;</span><span class="p">]))</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]))</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;n_gas&#39;</span><span class="p">]))</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;n_star&#39;</span><span class="p">]))</span> <span class="o">+</span> <span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n_dark</span><span class="p">))</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Rvir&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;M_gas&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;M_star&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">M_dark</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Vmax&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Rmax&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;sigV&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span>
-        <span class="c">## pos: convert kpc/h to mpc (no h).</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Xc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Yc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Zc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;VXc&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;VYc&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;VZc&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="n">contam</span><span class="o">+</span><span class="n">ss</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="s">&quot;unknown&quot;</span> <span class="o">+</span> \
-                <span class="n">ss</span>  <span class="c"># unknown means sat. test not implemented.</span>
-            <span class="n">outstring</span> <span class="o">+=</span> <span class="s">&quot;unknown&quot;</span><span class="o">+</span><span class="n">ss</span>  <span class="c"># false central breakup.</span>
-            <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="n">outstring</span>
-        <span class="n">fpout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="k">return</span> <span class="mi">1</span>
-</div>
-<div class="viewcode-block" id="HaloCatalogue.writetipsy"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.HaloCatalogue.writetipsy">[docs]</a>    <span class="k">def</span> <span class="nf">writetipsy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">tipsyoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        write halos to tipsy file (write as stars) from ahf_halos</span>
-<span class="sd">        file.  returns a shapshot where each halo is a star particle.</span>
-
-<span class="sd">        user can specify own hubble constant hubble=(H0/(100</span>
-<span class="sd">        km/s/Mpc)), ignoring the snaphot arg for hubble constant</span>
-<span class="sd">        (which sometimes has a large roundoff error).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">analysis</span>
-        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">tipsy</span>
-        <span class="kn">from</span> <span class="nn">.analysis</span> <span class="kn">import</span> <span class="n">cosmology</span>
-        <span class="kn">from</span> <span class="nn">snapshot</span> <span class="kn">import</span> <span class="n">_new</span> <span class="k">as</span> <span class="n">new</span>
-        <span class="kn">import</span> <span class="nn">math</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="n">snapshot</span>
-        <span class="n">outfile</span> <span class="o">=</span> <span class="n">tipsyoutfile</span>
-        <span class="k">print</span> <span class="s">&quot;write tipsy file to &quot;</span><span class="p">,</span> <span class="n">tipsyoutfile</span>
-        <span class="n">nhalos</span> <span class="o">=</span> <span class="n">halos</span><span class="o">.</span><span class="n">_nhalos</span>
-        <span class="n">nstar</span> <span class="o">=</span> <span class="n">nhalos</span>
-        <span class="n">sout</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">star</span><span class="o">=</span><span class="n">nstar</span><span class="p">)</span>  <span class="c"># create new tipsy snapshot written as halos.</span>
-        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
-        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span>
-        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">hubble</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">hubble</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
-        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hubble</span>
-    <span class="c">### ! dangerous -- rho_crit function and unit conversions needs simplifying</span>
-        <span class="n">rhocrithhco</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;Msol Mpc^-3 h^2&quot;</span><span class="p">)</span>
-        <span class="n">lboxkpc</span> <span class="o">=</span> <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;kpc a&quot;</span><span class="p">)</span>
-        <span class="n">lboxkpch</span> <span class="o">=</span> <span class="n">lboxkpc</span><span class="o">*</span><span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
-        <span class="n">lboxmpch</span> <span class="o">=</span> <span class="n">lboxkpc</span><span class="o">*</span><span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1000.</span>
-        <span class="n">tipsyvunitkms</span> <span class="o">=</span> <span class="n">lboxmpch</span> <span class="o">*</span> <span class="mf">100.</span> <span class="o">/</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">8.</span><span class="o">/</span><span class="mf">3.</span><span class="p">)</span><span class="o">**.</span><span class="mi">5</span>
-        <span class="n">tipsymunitmsun</span> <span class="o">=</span> <span class="n">rhocrithhco</span> <span class="o">*</span> <span class="n">lboxmpch</span><span class="o">**</span><span class="mi">3</span> <span class="o">/</span> <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
-
-        <span class="k">print</span> <span class="s">&quot;transforming &quot;</span><span class="p">,</span> <span class="n">nhalos</span><span class="p">,</span> <span class="s">&quot; halos into tipsy star particles&quot;</span>
-        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nhalos</span><span class="p">):</span>
-            <span class="n">h</span> <span class="o">=</span> <span class="n">halos</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span> <span class="o">/</span> <span class="n">tipsymunitmsun</span>
-            <span class="c">## tipsy units: box centered at 0. (assume 0&lt;=x&lt;=1)</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Xc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span> <span class="o">-</span> <span class="mf">0.5</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Yc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span> <span class="o">-</span> <span class="mf">0.5</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Zc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span> <span class="o">-</span> <span class="mf">0.5</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;vx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;VXc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">tipsyvunitkms</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;vy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;VYc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">tipsyvunitkms</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;vz&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;VZc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">tipsyvunitkms</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Rvir&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
-            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
-        <span class="k">print</span> <span class="s">&quot;writing tipsy outfile&quot;</span><span class="p">,</span> <span class="n">outfile</span>
-        <span class="n">sout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">outfile</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">sout</span>
-</div>
-<div class="viewcode-block" id="HaloCatalogue.writehalos"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.HaloCatalogue.writehalos">[docs]</a>    <span class="k">def</span> <span class="nf">writehalos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Write the (ahf) halo catalog to disk.  This is really a</span>
-<span class="sd">        wrapper that calls writegrp, writetipsy, writestat.  Writes</span>
-<span class="sd">        .amiga.grp file (ascii group ids), .amiga.stat file (ascii</span>
-<span class="sd">        halo catalog) and .amiga.gtp file (tipsy halo catalog).</span>
-<span class="sd">        default outfile base simulation is same as snapshot s.</span>
-<span class="sd">        function returns simsnap of halo catalog.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="n">snapshot</span>
-        <span class="n">grpoutfile</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.amiga.grp&quot;</span>
-        <span class="n">statoutfile</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.amiga.stat&quot;</span>
-        <span class="n">tipsyoutfile</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.amiga.gtp&quot;</span>
-        <span class="n">halos</span><span class="o">.</span><span class="n">writegrp</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">grpoutfile</span><span class="p">)</span>
-        <span class="n">halos</span><span class="o">.</span><span class="n">writestat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">statoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="n">hubble</span><span class="p">)</span>
-        <span class="n">shalos</span> <span class="o">=</span> <span class="n">halos</span><span class="o">.</span><span class="n">writetipsy</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">tipsyoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="n">hubble</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">shalos</span>
-
-</div></div>
 <div class="viewcode-block" id="AHFCatalogue"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.AHFCatalogue">[docs]</a><span class="k">class</span> <span class="nc">AHFCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class to handle catalogues produced by Amiga Halo Finder (AHF).</span>
@@ -587,6 +455,159 @@
                 <span class="k">break</span>
         <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
+<div class="viewcode-block" id="AHFCatalogue.writegrp"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.AHFCatalogue.writegrp">[docs]</a>    <span class="k">def</span> <span class="nf">writegrp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grpoutfile</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        simply write a skid style .grp file from ahf_particles</span>
+<span class="sd">        file. header = total number of particles, then each line is</span>
+<span class="sd">        the halo id for each particle (0 means free).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">snapshot</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ancestor</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">snapshot</span><span class="p">[</span><span class="s">&#39;grp&#39;</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">make_grp</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">grpoutfile</span><span class="p">:</span> <span class="n">grpoutfile</span><span class="o">=</span><span class="n">snapshot</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&#39;.grp&#39;</span>
+        <span class="k">print</span> <span class="s">&quot;write grp file to &quot;</span><span class="p">,</span> <span class="n">grpoutfile</span>
+        <span class="n">fpout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">grpoutfile</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">snapshot</span><span class="p">[</span><span class="s">&#39;grp&#39;</span><span class="p">])</span>
+
+        <span class="c">## writing 1st to a string sacrifices memory for speed.</span>
+        <span class="c">##  but this is much faster than numpy.savetxt (could make an option).</span>
+        <span class="c"># it is assumed that max halo id &lt;= nhalos (i.e.length of string is set</span>
+        <span class="c"># len(str(nhalos))</span>
+        <span class="n">stringarray</span> <span class="o">=</span> <span class="n">snapshot</span><span class="p">[</span><span class="s">&#39;grp&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;|S&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nhalos</span><span class="p">))))</span>
+        <span class="n">outstring</span> <span class="o">=</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stringarray</span><span class="p">)</span>
+        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="n">outstring</span>
+        <span class="n">fpout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="AHFCatalogue.writestat"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.AHFCatalogue.writestat">[docs]</a>    <span class="k">def</span> <span class="nf">writestat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">statoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write a condensed skid.stat style ascii file from ahf_halos</span>
+<span class="sd">        file.  header + 1 halo per line. should reproduce `Alyson&#39;s</span>
+<span class="sd">        idl script&#39; except does not do last 2 columns (Is it a</span>
+<span class="sd">        satellite?) and (Is central halo is `false&#39;ly split?).  output</span>
+<span class="sd">        units are set to Mpc Msun, km/s.</span>
+
+<span class="sd">        user can specify own hubble constant hubble=(H0/(100</span>
+<span class="sd">        km/s/Mpc)), ignoring the snaphot arg for hubble constant</span>
+<span class="sd">        (which sometimes has a large roundoff error).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">snapshot</span>
+        <span class="n">mindarkmass</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">dark</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">hubble</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">hubble</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
+
+        <span class="n">outfile</span> <span class="o">=</span> <span class="n">statoutfile</span>
+        <span class="k">print</span> <span class="s">&quot;write stat file to &quot;</span><span class="p">,</span> <span class="n">statoutfile</span>
+        <span class="n">fpout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="s">&quot;#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A&quot;</span>
+        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="n">header</span>
+        <span class="n">nhalos</span> <span class="o">=</span> <span class="n">halos</span><span class="o">.</span><span class="n">_nhalos</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nhalos</span><span class="p">):</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">halos</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>  <span class="c"># halo index starts with 1 not 0</span>
+<span class="c">##  &#39;Contaminated&#39;? means multiple dark matter particle masses in halo)&quot;</span>
+            <span class="n">icontam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">halos</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dark</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">mindarkmass</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">icontam</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">contam</span> <span class="o">=</span> <span class="s">&quot;contam&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">contam</span> <span class="o">=</span> <span class="s">&quot;clean&quot;</span>
+<span class="c">## may want to add implement satellite test and false central breakup test.</span>
+
+            <span class="n">n_dark</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;n_gas&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;n_star&#39;</span><span class="p">]</span>
+            <span class="n">M_dark</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;M_gas&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;M_star&#39;</span><span class="p">]</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="s">&quot;     &quot;</span>  <span class="c"># can adjust column spacing</span>
+            <span class="n">outstring</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;halo_id&#39;</span><span class="p">]))</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]))</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;n_gas&#39;</span><span class="p">]))</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;n_star&#39;</span><span class="p">]))</span> <span class="o">+</span> <span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n_dark</span><span class="p">))</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Rvir&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;M_gas&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;M_star&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">M_dark</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Vmax&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Rmax&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;sigV&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span>
+        <span class="c">## pos: convert kpc/h to mpc (no h).</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Xc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Yc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;Zc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;VXc&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;VYc&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;VZc&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="n">contam</span><span class="o">+</span><span class="n">ss</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="s">&quot;unknown&quot;</span> <span class="o">+</span> \
+                <span class="n">ss</span>  <span class="c"># unknown means sat. test not implemented.</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="s">&quot;unknown&quot;</span><span class="o">+</span><span class="n">ss</span>  <span class="c"># false central breakup.</span>
+            <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">fpout</span><span class="p">,</span> <span class="n">outstring</span>
+        <span class="n">fpout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="AHFCatalogue.writetipsy"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.AHFCatalogue.writetipsy">[docs]</a>    <span class="k">def</span> <span class="nf">writetipsy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">tipsyoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write halos to tipsy file (write as stars) from ahf_halos</span>
+<span class="sd">        file.  returns a shapshot where each halo is a star particle.</span>
+
+<span class="sd">        user can specify own hubble constant hubble=(H0/(100</span>
+<span class="sd">        km/s/Mpc)), ignoring the snaphot arg for hubble constant</span>
+<span class="sd">        (which sometimes has a large roundoff error).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">analysis</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">tipsy</span>
+        <span class="kn">from</span> <span class="nn">.analysis</span> <span class="kn">import</span> <span class="n">cosmology</span>
+        <span class="kn">from</span> <span class="nn">snapshot</span> <span class="kn">import</span> <span class="n">_new</span> <span class="k">as</span> <span class="n">new</span>
+        <span class="kn">import</span> <span class="nn">math</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">snapshot</span>
+        <span class="n">outfile</span> <span class="o">=</span> <span class="n">tipsyoutfile</span>
+        <span class="k">print</span> <span class="s">&quot;write tipsy file to &quot;</span><span class="p">,</span> <span class="n">tipsyoutfile</span>
+        <span class="n">nhalos</span> <span class="o">=</span> <span class="n">halos</span><span class="o">.</span><span class="n">_nhalos</span>
+        <span class="n">nstar</span> <span class="o">=</span> <span class="n">nhalos</span>
+        <span class="n">sout</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">star</span><span class="o">=</span><span class="n">nstar</span><span class="p">)</span>  <span class="c"># create new tipsy snapshot written as halos.</span>
+        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
+        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span>
+        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">hubble</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">hubble</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
+        <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hubble</span>
+    <span class="c">### ! dangerous -- rho_crit function and unit conversions needs simplifying</span>
+        <span class="n">rhocrithhco</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;Msol Mpc^-3 h^2&quot;</span><span class="p">)</span>
+        <span class="n">lboxkpc</span> <span class="o">=</span> <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&quot;kpc a&quot;</span><span class="p">)</span>
+        <span class="n">lboxkpch</span> <span class="o">=</span> <span class="n">lboxkpc</span><span class="o">*</span><span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
+        <span class="n">lboxmpch</span> <span class="o">=</span> <span class="n">lboxkpc</span><span class="o">*</span><span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1000.</span>
+        <span class="n">tipsyvunitkms</span> <span class="o">=</span> <span class="n">lboxmpch</span> <span class="o">*</span> <span class="mf">100.</span> <span class="o">/</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">8.</span><span class="o">/</span><span class="mf">3.</span><span class="p">)</span><span class="o">**.</span><span class="mi">5</span>
+        <span class="n">tipsymunitmsun</span> <span class="o">=</span> <span class="n">rhocrithhco</span> <span class="o">*</span> <span class="n">lboxmpch</span><span class="o">**</span><span class="mi">3</span> <span class="o">/</span> <span class="n">sout</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
+
+        <span class="k">print</span> <span class="s">&quot;transforming &quot;</span><span class="p">,</span> <span class="n">nhalos</span><span class="p">,</span> <span class="s">&quot; halos into tipsy star particles&quot;</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nhalos</span><span class="p">):</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">halos</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">hubble</span> <span class="o">/</span> <span class="n">tipsymunitmsun</span>
+            <span class="c">## tipsy units: box centered at 0. (assume 0&lt;=x&lt;=1)</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Xc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span> <span class="o">-</span> <span class="mf">0.5</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Yc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span> <span class="o">-</span> <span class="mf">0.5</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Zc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span> <span class="o">-</span> <span class="mf">0.5</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;vx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;VXc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">tipsyvunitkms</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;vy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;VYc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">tipsyvunitkms</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;vz&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;VZc&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">tipsyvunitkms</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;Rvir&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">lboxkpch</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">sout</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">print</span> <span class="s">&quot;writing tipsy outfile&quot;</span><span class="p">,</span> <span class="n">outfile</span>
+        <span class="n">sout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">outfile</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sout</span>
+</div>
+<div class="viewcode-block" id="AHFCatalogue.writehalos"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.AHFCatalogue.writehalos">[docs]</a>    <span class="k">def</span> <span class="nf">writehalos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Write the (ahf) halo catalog to disk.  This is really a</span>
+<span class="sd">        wrapper that calls writegrp, writetipsy, writestat.  Writes</span>
+<span class="sd">        .amiga.grp file (ascii group ids), .amiga.stat file (ascii</span>
+<span class="sd">        halo catalog) and .amiga.gtp file (tipsy halo catalog).</span>
+<span class="sd">        default outfile base simulation is same as snapshot s.</span>
+<span class="sd">        function returns simsnap of halo catalog.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">snapshot</span>
+        <span class="n">grpoutfile</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.amiga.grp&quot;</span>
+        <span class="n">statoutfile</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.amiga.stat&quot;</span>
+        <span class="n">tipsyoutfile</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.amiga.gtp&quot;</span>
+        <span class="n">halos</span><span class="o">.</span><span class="n">writegrp</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">grpoutfile</span><span class="p">)</span>
+        <span class="n">halos</span><span class="o">.</span><span class="n">writestat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">statoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="n">hubble</span><span class="p">)</span>
+        <span class="n">shalos</span> <span class="o">=</span> <span class="n">halos</span><span class="o">.</span><span class="n">writetipsy</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halos</span><span class="p">,</span> <span class="n">tipsyoutfile</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="n">hubble</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">shalos</span>
+        </div>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
         <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&#39;*z*particles*&#39;</span><span class="p">):</span>
@@ -686,19 +707,26 @@
         <span class="k">return</span> <span class="bp">False</span>
 
 </div>
-<span class="k">class</span> <span class="nc">AmigaGrpCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
-        <span class="n">sim</span><span class="p">[</span><span class="s">&#39;amiga.grp&#39;</span><span class="p">]</span>
-            <span class="c"># trigger lazy-loading and/or kick up a fuss if unavailable</span>
+<div class="viewcode-block" id="GrpCatalogue"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.GrpCatalogue">[docs]</a><span class="k">class</span> <span class="nc">GrpCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A generic catalogue using a .grp file to specify which particles</span>
+<span class="sd">    belong to which group. </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="s">&#39;grp&#39;</span><span class="p">):</span> 
+        <span class="n">sim</span><span class="p">[</span><span class="n">array</span><span class="p">]</span>
+    <span class="c"># trigger lazy-loading and/or kick up a fuss if unavailable</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_array</span> <span class="o">=</span> <span class="n">array</span>
         <span class="n">HaloCatalogue</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_halo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Parent SimSnap has been deleted&quot;</span><span class="p">)</span>
 
-        <span class="n">x</span> <span class="o">=</span> <span class="n">Halo</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="s">&#39;amiga.grp&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">Halo</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_array</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Halo </span><span class="si">%s</span><span class="s"> does not exist&quot;</span><span class="o">%</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span>
         <span class="n">x</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;halo_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">x</span>
 
@@ -707,13 +735,19 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="p">()</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">sim</span><span class="p">[</span><span class="s">&#39;amiga.grp&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">array</span><span class="o">=</span><span class="s">&#39;grp&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">array</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">())</span> <span class="ow">or</span> <span class="p">(</span><span class="n">array</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="p">:</span> 
             <span class="k">return</span> <span class="bp">True</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">else</span> <span class="p">:</span> 
             <span class="k">return</span> <span class="bp">False</span>
+</div>
+<span class="k">class</span> <span class="nc">AmigaGrpCatalogue</span><span class="p">(</span><span class="n">GrpCatalogue</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="s">&#39;amiga.grp&#39;</span><span class="p">):</span>
+        <span class="n">GrpCatalogue</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim</span><span class="p">,</span><span class="n">array</span><span class="p">)</span>
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">array</span><span class="o">=</span><span class="s">&#39;amiga.grp&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">GrpCatalogue</span><span class="o">.</span><span class="n">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">array</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SubfindCatalogue"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.SubfindCatalogue">[docs]</a><span class="k">class</span> <span class="nc">SubfindCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -843,7 +877,7 @@
 <span class="c"># AmigaGrpCatalogue MUST be scanned first, because if it exists we probably</span>
 <span class="c"># want to use it, but an AHFCatalogue will probably be on-disk too.</span>
 </div>
-<span class="n">_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">AmigaGrpCatalogue</span><span class="p">,</span> <span class="n">AHFCatalogue</span><span class="p">,</span> <span class="n">SubfindCatalogue</span><span class="p">]</span>
+<span class="n">_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">GrpCatalogue</span><span class="p">,</span> <span class="n">AmigaGrpCatalogue</span><span class="p">,</span> <span class="n">AHFCatalogue</span><span class="p">,</span> <span class="n">SubfindCatalogue</span><span class="p">]</span>
 <span class="n">_runable_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">AHFCatalogue</span><span class="p">]</span>
 </pre></div>
 
@@ -884,7 +918,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

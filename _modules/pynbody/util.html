@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -731,17 +730,20 @@
              <span class="n">threads</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">],</span> <span class="nb">reduce</span><span class="o">=</span><span class="s">&#39;interleave&#39;</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Return a function decorator which makes a function execute in parallel.</span>
 
-<span class="sd">    *p_args*: a list of integers specifying which arguments will</span>
-<span class="sd">    be  array-like. These will be sliced up and processed over the number</span>
+<span class="sd">    *p_args*: a list of integers specifying which arguments will be</span>
+<span class="sd">    array-like. These will be sliced up and processed over the number</span>
 <span class="sd">    of threads specified.</span>
 
 <span class="sd">    *reduce*: specifies how to reduce the output, and can take one of</span>
 <span class="sd">    three values:</span>
 
 <span class="sd">    &#39;none&#39;: return None</span>
-<span class="sd">    &#39;interleave&#39;: return an array of the size of the input arrays, with the</span>
-<span class="sd">      elements returned to their correct place</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;interleave&#39;: return an array of the size of the input arrays,</span>
+<span class="sd">     with the elements returned to their correct place</span>
+<span class="sd">    </span>
 <span class="sd">    &#39;sum&#39;: sum over the outputs</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">def</span> <span class="nf">new_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="p">:</span>
@@ -806,7 +808,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

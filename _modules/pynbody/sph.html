@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -306,7 +305,7 @@
         <span class="k">return</span> <span class="n">code</span>
 
 <div class="viewcode-block" id="render_spherical_image"><a class="viewcode-back" href="../../convenience.html#pynbody.sph.render_spherical_image">[docs]</a><span class="k">def</span> <span class="nf">render_spherical_image</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">distance</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">Kernel</span><span class="p">(),</span>
-                           <span class="n">kstep</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">out_units</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+                           <span class="n">kstep</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">denoise</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">out_units</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Render an SPH image on a spherical surface. Note this is written in pure python and</span>
 <span class="sd">    could be optimized into C, but would then need linking with the healpix libraries.</span>
 <span class="sd">    Also currently uses a top-hat 3D kernel only.&quot;&quot;&quot;</span>
@@ -360,22 +359,26 @@
         <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">D</span><span class="o">&lt;</span><span class="n">distance</span><span class="p">)</span>
         
         <span class="c"># angular radius taken at distance of particle</span>
-        <span class="n">rad_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">ds_mean</span><span class="o">/</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">rad_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">ds</span><span class="o">/</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
         
     <span class="n">den_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span> <span class="p">:</span> <span class="p">((</span><span class="n">qty</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">mass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">*</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span>
-        
+    <span class="n">norm_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span> <span class="p">:</span> <span class="p">((</span><span class="n">mass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="n">weights</span><span class="o">/</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="p">)</span>
 
     <span class="k">print</span> <span class="s">&quot;Spherical image from&quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="s">&quot;particles&quot;</span>    
     <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">hp</span><span class="o">.</span><span class="n">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">))</span>
+    <span class="n">im2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
-        <span class="k">for</span> <span class="n">r</span><span class="p">,</span><span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rad_fn</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">den_fn</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="p">:</span>
+        <span class="k">for</span> <span class="n">r</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">w_norm</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rad_fn</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">den_fn</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">norm_fn</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="p">:</span>
             <span class="k">if</span> <span class="n">r</span><span class="o">==</span><span class="n">r</span> <span class="p">:</span> <span class="c">#ignore NaN&#39;s -- they just mean the current radius doesn&#39;t intersect our sphere</span>
                 
                 <span class="n">i2</span> <span class="o">=</span> <span class="n">query_disc</span><span class="p">(</span><span class="n">nside</span><span class="p">,</span> <span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">r</span><span class="p">,</span><span class="n">inclusive</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
                 <span class="n">im</span><span class="p">[</span><span class="n">i2</span><span class="p">]</span><span class="o">+=</span><span class="n">w</span>
+                <span class="n">im2</span><span class="p">[</span><span class="n">i2</span><span class="p">]</span><span class="o">+=</span><span class="n">w_norm</span>
 
     <span class="n">im</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">denoise</span> <span class="p">:</span>
+        <span class="n">im</span><span class="o">/=</span><span class="n">im2</span>
     <span class="n">im</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">qty</span><span class="o">.</span><span class="n">units</span><span class="o">*</span><span class="n">snap</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">/</span><span class="n">snap</span><span class="p">[</span><span class="s">&quot;rho&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">/</span><span class="n">snap</span><span class="p">[</span><span class="s">&quot;smooth&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">**</span><span class="p">(</span><span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="p">)</span>
     <span class="n">im</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">snap</span>
 
@@ -1124,7 +1127,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

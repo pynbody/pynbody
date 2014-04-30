@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -137,8 +136,10 @@ configuration like this:</p>
 <span class="go">  &#39;sigma8&#39;: 0.809},</span>
 <span class="go"> &#39;disk-fit-function&#39;: &#39;expsech&#39;,</span>
 <span class="go"> &#39;gravity_calculation_mode&#39;: &#39;direct_omp&#39;,</span>
-<span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.AmigaGrpCatalogue,</span>
-<span class="go">  pynbody.halo.AHFCatalogue],</span>
+<span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.GrpCatalogue,</span>
+<span class="go">  pynbody.halo.AmigaGrpCatalogue,</span>
+<span class="go">  pynbody.halo.AHFCatalogue,</span>
+<span class="go">  pynbody.halo.SubfindCatalogue],</span>
 <span class="go"> &#39;number_of_threads&#39;: 4,</span>
 <span class="go"> &#39;snap-class-priority&#39;: [pynbody.ramses.RamsesSnap,</span>
 <span class="go">  pynbody.grafic.GrafICSnap,</span>
@@ -166,8 +167,9 @@ on 30 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
 <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>.</p>
 <p>If you want to make your configuration changes permanent, create a file called <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> in your home directory with the lines</p>
-<div class="highlight-python"><pre>gravity_calculation_mode: direct_omp
-number_of_threads: 30</pre>
+<div class="highlight-python"><div class="highlight"><pre>gravity_calculation_mode: direct_omp
+number_of_threads: 30
+</pre></div>
 </div>
 <p>See the file <tt class="docutils literal"><span class="pre">default_config.ini</span></tt> in the pynbody source distribution
 for other options.</p>
@@ -237,7 +239,7 @@ for other options.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -455,12 +454,15 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">ValueError</span> <span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
-        <span class="n">f</span> <span class="o">=</span> <span class="nb">file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot;/header_&quot;</span><span class="o">+</span><span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span><span class="o">+</span><span class="s">&quot;.txt&quot;</span><span class="p">)</span>
-        <span class="c"># most of this file is unhelpful, but in the latest ramses</span>
-        <span class="c"># version, there is information on the particle fields present</span>
-        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span> <span class="p">:</span>
-            <span class="k">if</span> <span class="s">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">l</span> <span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;particle-blocks&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">try</span> <span class="p">:</span> 
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot;/header_&quot;</span><span class="o">+</span><span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span><span class="o">+</span><span class="s">&quot;.txt&quot;</span><span class="p">)</span>
+            <span class="c"># most of this file is unhelpful, but in the latest ramses</span>
+            <span class="c"># version, there is information on the particle fields present</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span> <span class="p">:</span>
+                <span class="k">if</span> <span class="s">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">l</span> <span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;particle-blocks&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="p">:</span> 
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;No header file found -- no particle block information available&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_particle_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">)</span> <span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot;/part_&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span><span class="o">+</span><span class="s">&quot;.out&quot;</span><span class="o">+</span><span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
@@ -827,7 +829,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

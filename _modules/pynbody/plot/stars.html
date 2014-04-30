@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -70,11 +69,133 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span><span class="o">,</span><span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">profile</span><span class="p">,</span> <span class="n">angmom</span><span class="p">,</span> <span class="n">halo</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span>
+<span class="kn">from</span> <span class="nn">.sph</span> <span class="kn">import</span> <span class="n">image</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
+<span class="k">def</span> <span class="nf">bytscl</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">mini</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">maxi</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+    <span class="n">X</span><span class="o">=</span> <span class="p">(</span><span class="n">arr</span><span class="o">-</span><span class="n">mini</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">maxi</span><span class="o">-</span><span class="n">mini</span><span class="p">)</span>
+    <span class="n">X</span><span class="p">[</span><span class="n">X</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">X</span><span class="p">[</span><span class="n">X</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">X</span>
+
+<span class="k">def</span> <span class="nf">nw_scale_rgb</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">scales</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mf">3.2</span><span class="p">,</span><span class="mf">3.4</span><span class="p">]):</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">*</span><span class="n">scales</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">g</span><span class="o">*</span><span class="n">scales</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">b</span><span class="o">*</span><span class="n">scales</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">nw_arcsinh_fit</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">nonlinearity</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="n">r</span><span class="o">+</span><span class="n">g</span><span class="o">+</span><span class="n">b</span>
+    <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arcsinh</span><span class="p">(</span><span class="n">radius</span><span class="o">*</span><span class="n">nonlinearity</span><span class="p">)</span><span class="o">/</span><span class="n">nonlinearity</span><span class="o">/</span><span class="n">radius</span>
+    <span class="k">return</span> <span class="n">r</span><span class="o">*</span><span class="n">val</span><span class="p">,</span><span class="n">g</span><span class="o">*</span><span class="n">val</span><span class="p">,</span><span class="n">b</span><span class="o">*</span><span class="n">val</span>
+
+<span class="k">def</span> <span class="nf">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">dynamic_range</span><span class="p">):</span>
+    <span class="n">maxi</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="c"># find something close to the maximum that is not quite the maximum</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">b</span> <span class="p">:</span>
+        <span class="n">ordered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="n">maxi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ordered</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">ordered</span><span class="p">)</span><span class="o">/</span><span class="mi">5000</span><span class="p">])</span>
+
+    <span class="n">maxi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">maxi</span><span class="p">))</span>
+    
+    <span class="n">rgbim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">3</span><span class="p">))</span>
+    <span class="n">rgbim</span><span class="p">[:,:,</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="n">bytscl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">r</span><span class="p">),</span><span class="n">maxi</span><span class="o">-</span><span class="n">dynamic_range</span><span class="p">,</span><span class="n">maxi</span><span class="p">)</span>
+    <span class="n">rgbim</span><span class="p">[:,:,</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="n">bytscl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">g</span><span class="p">),</span><span class="n">maxi</span><span class="o">-</span><span class="n">dynamic_range</span><span class="p">,</span><span class="n">maxi</span><span class="p">)</span>
+    <span class="n">rgbim</span><span class="p">[:,:,</span><span class="mi">2</span><span class="p">]</span><span class="o">=</span><span class="n">bytscl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="n">maxi</span><span class="o">-</span><span class="n">dynamic_range</span><span class="p">,</span><span class="n">maxi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rgbim</span>
+
+<div class="viewcode-block" id="render"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.stars.render">[docs]</a><span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+           <span class="n">r_band</span><span class="o">=</span><span class="s">&#39;i&#39;</span><span class="p">,</span><span class="n">g_band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">,</span><span class="n">b_band</span><span class="o">=</span><span class="s">&#39;u&#39;</span><span class="p">,</span>
+           <span class="n">r_scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">g_scale</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">b_scale</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+           <span class="n">dynamic_range</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+           <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+           <span class="n">starsize</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> 
+           <span class="n">plot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ret_im</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Make a 3-color image of stars.</span>
+
+<span class="sd">    The colors are based on magnitudes found using stellar Marigo</span>
+<span class="sd">    stellar population code.  However there is no radiative transfer</span>
+<span class="sd">    to account for dust.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns: If ret_im=True, an NxNx3 array representing an RGB image</span>
+<span class="sd">    </span>
+<span class="sd">    **Optional keyword arguments:**</span>
+<span class="sd">    </span>
+<span class="sd">       *filename*: string (default: None)</span>
+<span class="sd">         Filename to be written to (if a filename is specified)</span>
+
+<span class="sd">       *r_band*: string (default: &#39;i&#39;)</span>
+<span class="sd">         Determines which Johnston filter will go into the image red channel</span>
+
+<span class="sd">       *g_band*: string (default: &#39;v&#39;)</span>
+<span class="sd">         Determines which Johnston filter will go into the image green channel</span>
+
+<span class="sd">       *b_band*: string (default: &#39;b&#39;)</span>
+<span class="sd">         Determines which Johnston filter will go into the image blue channel</span>
+
+<span class="sd">       *r_scale*: float (default: 0.5)</span>
+<span class="sd">         The scaling of the red channel before channels are combined</span>
+
+<span class="sd">       *g_scale*: float (default: 1.0)</span>
+<span class="sd">         The scaling of the green channel before channels are combined</span>
+
+<span class="sd">       *b_scale*: float (default: 1.0)</span>
+<span class="sd">         The scaling of the blue channel before channels are combined</span>
+
+<span class="sd">       *width*: float in kpc (default:50)</span>
+<span class="sd">         Sets the size of the image field in kpc</span>
+
+<span class="sd">       *starsize*: float in kpc (default: None)</span>
+<span class="sd">         If not None, sets the maximum size of stars in the image</span>
+
+<span class="sd">       *ret_im*: bool (default: False)</span>
+<span class="sd">         if True, the NxNx3 image array is returned</span>
+
+<span class="sd">       *plot*: bool (default: True)</span>
+<span class="sd">         if True, the image is plotted</span>
+
+<span class="sd">       *axes*: matplotlib axes object (deault: None)</span>
+<span class="sd">         if not None, the axes object to plot to</span>
+
+<span class="sd">       *dynamic_range*: float (default: 2.0)</span>
+<span class="sd">         The number of dex in luminosity over which the image brightness ranges</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">if</span> <span class="n">starsize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
+        <span class="n">smf</span> <span class="o">=</span> <span class="n">filt</span><span class="o">.</span><span class="n">HighPass</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">starsize</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; kpc&#39;</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="n">smf</span><span class="p">][</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">starsize</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">,</span> <span class="n">sim</span><span class="o">=</span><span class="n">sim</span><span class="p">)</span>
+    
+    <span class="n">r</span><span class="o">=</span><span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="n">r_band</span><span class="o">+</span><span class="s">&#39;_lum_den&#39;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span><span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                         <span class="n">av_z</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">r_scale</span>
+    <span class="n">g</span><span class="o">=</span><span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="n">g_band</span><span class="o">+</span><span class="s">&#39;_lum_den&#39;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span><span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                         <span class="n">av_z</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">g_scale</span>
+    <span class="n">b</span><span class="o">=</span><span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="n">b_band</span><span class="o">+</span><span class="s">&#39;_lum_den&#39;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span><span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                         <span class="n">av_z</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">b_scale</span>
+
+    <span class="c">#r,g,b = nw_scale_rgb(r,g,b)</span>
+    <span class="c">#r,g,b = nw_arcsinh_fit(r,g,b)</span>
+
+    <span class="n">rgbim</span><span class="o">=</span><span class="n">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">dynamic_range</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">plot</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="n">clear</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">axes</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">axes</span><span class="p">:</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rgbim</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,:],</span><span class="n">extent</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;x [&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;]&#39;</span><span class="p">)</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;y [&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;]&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+        
+    <span class="k">if</span> <span class="n">filename</span> <span class="p">:</span> 
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">ret_im</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rgbim</span>
+</div>
 <div class="viewcode-block" id="sfh"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.stars.sfh">[docs]</a><span class="k">def</span> <span class="nf">sfh</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">massform</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">legend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
         <span class="n">subplot</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">trange</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -158,7 +279,7 @@
     <span class="kn">from</span> <span class="nn">pynbody.analysis</span> <span class="kn">import</span> <span class="n">pkdgrav_cosmo</span> <span class="k">as</span> <span class="n">cosmo</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">cosmo</span><span class="o">.</span><span class="n">Cosmology</span><span class="p">(</span><span class="n">sim</span><span class="o">=</span><span class="n">sim</span><span class="p">)</span>
     <span class="n">pz</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">twiny</span><span class="p">()</span>
-    <span class="n">labelzs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">labelzs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">times</span> <span class="o">=</span> <span class="p">[</span><span class="mf">13.7</span><span class="o">*</span><span class="n">c</span><span class="o">.</span><span class="n">Exp2Time</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">z</span><span class="p">))</span><span class="o">/</span><span class="n">c</span><span class="o">.</span><span class="n">Exp2Time</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">labelzs</span><span class="p">]</span>
     <span class="n">pz</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
     <span class="n">pz</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">labelzs</span><span class="p">])</span>
@@ -166,7 +287,7 @@
     <span class="n">pz</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;z&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">legend</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">filename</span><span class="p">):</span> 
+    <span class="k">if</span> <span class="n">filename</span> <span class="p">:</span> 
         <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span> <span class="k">print</span> <span class="s">&quot;Saving &quot;</span><span class="o">+</span><span class="n">filename</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
@@ -647,7 +768,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

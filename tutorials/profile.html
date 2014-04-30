@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -27,7 +26,7 @@
     <link rel="top" title="pynbody 0.18-alpha documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Plotting Rotation Cuves" href="rotation_curve.html" />
-    <link rel="prev" title="A walk through pynbody’s low-level facilities" href="data_access.html" />
+    <link rel="prev" title="Subviews and Filters" href="filters.html" />
  
 <script type="text/javascript">
 
@@ -57,7 +56,7 @@
           <a href="rotation_curve.html" title="Plotting Rotation Cuves"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="data_access.html" title="A walk through pynbody’s low-level facilities"
+          <a href="filters.html" title="Subviews and Filters"
              accesskey="P">previous</a> |</li>
         <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
           <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
@@ -143,13 +142,14 @@ metallicity profile is as simple as:</p>
 <tt class="docutils literal"><span class="pre">s.derivable_keys()</span></tt>), it is automatically calculated.</p>
 <p>You can define your own profiling functions in your code by using the
 <tt class="docutils literal"><span class="pre">Profile.profile_property</span></tt> decorator:</p>
-<div class="highlight-python"><pre>@pynbody.analysis.profile.Profile.profile_property
+<div class="highlight-python"><div class="highlight"><pre>@pynbody.analysis.profile.Profile.profile_property
  def random(self):
-     """
+     &quot;&quot;&quot;
      Generate a random profile
-     """
+     &quot;&quot;&quot;
      import numpy as np
-     return np.random.rand(self.nbins)</pre>
+     return np.random.rand(self.nbins)
+</pre></div>
 </div>
 </div>
 <div class="section" id="calculating-derivatives-and-dispersions">
@@ -194,8 +194,8 @@ root-mean-square values. You simply need to attach a <tt class="docutils literal
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="data_access.html"
-                        title="previous chapter">A walk through pynbody&#8217;s low-level facilities</a></p>
+  <p class="topless"><a href="filters.html"
+                        title="previous chapter">Subviews and Filters</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="rotation_curve.html"
                         title="next chapter">Plotting Rotation Cuves</a></p>
@@ -234,7 +234,7 @@ root-mean-square values. You simply need to attach a <tt class="docutils literal
           <a href="rotation_curve.html" title="Plotting Rotation Cuves"
              >next</a> |</li>
         <li class="right" >
-          <a href="data_access.html" title="A walk through pynbody’s low-level facilities"
+          <a href="filters.html" title="Subviews and Filters"
              >previous</a> |</li>
         <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
           <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
@@ -242,7 +242,7 @@ root-mean-square values. You simply need to attach a <tt class="docutils literal
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

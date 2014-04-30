@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -91,7 +90,8 @@ much richer interactive environment over the vanilla <cite>python</cite>
 interpreter. However, you can type exactly the same commands into
 vanilla <cite>python</cite>; only the formatting will look slightly
 different. For instance, the <cite>ipython</cite> prompt looks like</p>
-<div class="highlight-python"><pre>In [1]:</pre>
+<div class="highlight-python"><div class="highlight"><pre>In [1]:
+</pre></div>
 </div>
 <p>while the <cite>python</cite> prompt looks like</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;</span>
@@ -104,21 +104,22 @@ more details).</p>
 <p>Once <cite>ipython</cite> and <cite>matplotlib</cite> are installed, you can start the
 <cite>ipython</cite> shell with the <tt class="docutils literal"><span class="pre">--pylab</span></tt> flag to automatically load the
 interactive plotting environment:</p>
-<div class="highlight-python"><pre>[user@domain ~]$ ipython --pylab
+<div class="highlight-python"><div class="highlight"><pre>[user@domain ~]$ ipython --pylab
 
 Python 2.7.2 |EPD 7.1-2 (64-bit)| (default, Jul 27 2011, 14:50:45)
-Type "copyright", "credits" or "license" for more information.
+Type &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
 
 IPython 0.13.1 -- An enhanced Interactive Python.
-?         -&gt; Introduction and overview of IPython's features.
+?         -&gt; Introduction and overview of IPython&#39;s features.
 %quickref -&gt; Quick reference.
-help      -&gt; Python's own help system.
-object?   -&gt; Details about 'object', use 'object??' for extra details.
+help      -&gt; Python&#39;s own help system.
+object?   -&gt; Details about &#39;object&#39;, use &#39;object??&#39; for extra details.
 
 Welcome to pylab, a matplotlib-based Python environment [backend: MacOSX].
-For more information, type 'help(pylab)'.
+For more information, type &#39;help(pylab)&#39;.
 
-In [1]:</pre>
+In [1]:
+</pre></div>
 </div>
 <p>Now we can get started with the analysis.</p>
 <div class="admonition note">
@@ -147,7 +148,7 @@ halo) to analyze its contents.</p>
 </div>
 <p>This loads the snapshot <tt class="docutils literal"><span class="pre">s</span></tt> (make sure you use the correct path to
 the <cite>testdata</cite> directory). Now we load the halos and center on the
-main halo (see the <a class="reference internal" href="halos.html#halo-tutorial"><em>Halo loading in Pynbody</em></a> tutorial for more detailed
+main halo (see the <a class="reference internal" href="halos.html#halo-tutorial"><em>Halos in Pynbody</em></a> tutorial for more detailed
 information on how to deal with halos):</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 <span class="go">AHFCatalogue: loading particles... halos... done!</span>
@@ -219,10 +220,17 @@ things easier to interpret we convert to physical units first:</p>
 <span class="go">SimSnap: converting tform units from 3.96e+01 s kpc km**-1 to kpc s km**-1</span>
 <span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
 
-<span class="gp">In [14]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">);</span>
+<span class="gp">In [14]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
-<img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" />
+<a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1.png"><img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" /></a>
+<p>Here&#8217;s a slightly more complicated example showing the larger-scale
+dark-matter distribution &#8211; note that you can conveniently specify the
+width as a string with a unit.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;10 Mpc&#39;</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="s">&#39;10 Mpc&#39;</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Greys&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1_wide.png"><img alt="../_images/snapshot_manipulation_fig1_wide.png" src="../_images/snapshot_manipulation_fig1_wide.png" style="width: 5in;" /></a>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">see the <a class="reference internal" href="pictures.html"><em>Pictures in Pynbody</em></a> tutorial for more examples and help regarding images.</p>
@@ -232,16 +240,16 @@ things easier to interpret we convert to physical units first:</p>
 <h2>Aligning the Snapshot<a class="headerlink" href="#aligning-the-snapshot" title="Permalink to this headline">¶</a></h2>
 <p>In this example, the disk seems to be aligned more or less face-on,
 but lets say we want it edge-on:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [16]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
 <span class="go">Finding halo velocity center...</span>
 <span class="go">vcen= [   3.74602349  -59.77129742 -254.60142767]</span>
 <span class="go">Calculating angular momentum vector...</span>
 <span class="go">Transforming simulation...</span>
 
-<span class="gp">In [16]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">);</span>
+<span class="gp">In [17]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
-<img alt="../_images/snapshot_manipulation_fig2.png" src="../_images/snapshot_manipulation_fig2.png" style="width: 5in;" />
+<a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig2.png"><img alt="../_images/snapshot_manipulation_fig2.png" src="../_images/snapshot_manipulation_fig2.png" style="width: 5in;" /></a>
 <p>Note that the function <a class="reference internal" href="../analysis.html#pynbody.analysis.angmom.sideon" title="pynbody.analysis.angmom.sideon"><tt class="xref py py-func docutils literal"><span class="pre">sideon()</span></tt></a> will
 actually by default center the snapshot first, unless you feed it the
 <tt class="docutils literal"><span class="pre">cen</span></tt> keyword. We did that here since we already centered it
@@ -257,7 +265,7 @@ want to just rotate the snapshot by arbitrary angles, the
 <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap.rotate_z" title="pynbody.snapshot.SimSnap.rotate_z"><tt class="xref py py-func docutils literal"><span class="pre">rotate_z()</span></tt></a> that rotate the snapshot
 about the respective axes. We can use this to rotate the disk into a
 face-on orientation:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [17]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [18]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -275,23 +283,52 @@ However, <em>core</em> routines (i.e. those that are not part of the
 ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)</span></tt> rotates only the gas while
 <tt class="docutils literal"><span class="pre">s.rotate_x(90)</span></tt> rotates the entire simulation.</p>
 </div>
-<p>In the face-on orientation, we may wish to make a profile:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [18]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span>
+<p>In the face-on orientation, we may wish to make a profile of the stars:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [19]: </span><span class="n">ps</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
 
-<span class="gp">In [19]: </span><span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="gp">In [20]: </span><span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="gp">In [20]: </span><span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+<span class="gp">In [21]: </span><span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
 
-<span class="gp">In [21]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]);</span>
+<span class="gp">In [22]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">ps</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]);</span>
 
-<span class="gp">In [22]: </span><span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">();</span>
+<span class="gp">In [23]: </span><span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">();</span>
 
-<span class="gp">In [23]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
+<span class="gp">In [24]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
 
-<span class="gp">In [24]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$\Sigma$ [M$_\odot$/kpc$^2$]&#39;</span><span class="p">);</span>
+<span class="gp">In [25]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$\Sigma$ [M$_\odot$/kpc$^2$]&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
-<img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" />
+<a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
+<p>We can also generate other profile, like the rotation curve:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [26]: </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x2618d290</span><span class="o">&gt;</span>
+
+<span class="gp">In [27]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
+
+<span class="gp">In [28]: </span><span class="n">pg</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
+
+<span class="gp">In [29]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
+
+<span class="gp">In [30]: </span><span class="k">for</span> <span class="n">prof</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">p</span><span class="p">,</span><span class="n">pd</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">pg</span><span class="p">],[</span><span class="s">&#39;total&#39;</span><span class="p">,</span><span class="s">&#39;dm&#39;</span><span class="p">,</span><span class="s">&#39;stars&#39;</span><span class="p">,</span><span class="s">&#39;gas&#39;</span><span class="p">])</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in  2.69 s</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in 0.829 s</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in  1.64 s</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in 0.414 s</span>
+
+<span class="gp">In [31]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
+
+<span class="gp">In [32]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
+
+<span class="gp">In [33]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="gr">Out[33]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x2618d750</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
 <p>See the <a class="reference internal" href="profile.html"><em>Profiles in Pynbody</em></a> tutorial or the
 <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> documentation for more
 information on available options and other profiles that you can
@@ -368,7 +405,7 @@ tutorial.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

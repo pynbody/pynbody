@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -112,6 +111,10 @@
 
 <span class="sd">    *nbins* (default = 100): number of bins</span>
 
+<span class="sd">    *bins* : array like - predefined bin edges in units of binning quantity. If this</span>
+<span class="sd">             keyword is set, the values of the keywords *type*, *nbins*, *min* and *max*</span>
+<span class="sd">             will be ignored</span>
+
 <span class="sd">    *calc_x* (default = None): function to use to calculate the value</span>
 <span class="sd">     for binning. If None it defaults to the radial distance from</span>
 <span class="sd">     origin (in either 2 or 3 dimensions), ut you can specify this</span>
@@ -157,7 +160,7 @@
 
 <span class="sd">    *magnitudes* : magnitudes in each bin - default band = &#39;v&#39; </span>
 
-<span class="sd">    *sb*         : surface brightness (default band=&#39;v&#39;)</span>
+<span class="sd">    *sb*         : surface brightness - default band = &#39;v&#39;</span>
 <span class="sd">    </span>
 
 <span class="sd">    Additional functions should use the profile_property to yield the</span>
@@ -170,17 +173,17 @@
 
 <span class="sd">    **Dispersions:**</span>
 <span class="sd">    </span>
-<span class="sd">    To obtain a dispersion profile, attach a &#39;_disp&#39; after the desired</span>
+<span class="sd">    To obtain a dispersion profile, attach a `_disp` after the desired</span>
 <span class="sd">    quantity name.</span>
 
 <span class="sd">    **RMS:**</span>
 <span class="sd">    </span>
-<span class="sd">    The root-mean-square of a quantity can be obtained by using a &#39;_rms&#39; suffix</span>
+<span class="sd">    The root-mean-square of a quantity can be obtained by using a `_rms` suffix</span>
 
 <span class="sd">    **Derivatives:**</span>
 <span class="sd">    </span>
-<span class="sd">    To compute a derivative of a profile, prepend a &quot;d_&quot; to the</span>
-<span class="sd">    profile string, as in &quot;p[&#39;d_temp&#39;]&quot; to get a temperature gradient.</span>
+<span class="sd">    To compute a derivative of a profile, prepend a `d_` to the</span>
+<span class="sd">    profile string, as in `p[&#39;d_temp&#39;]` to get a temperature gradient.</span>
 
 <span class="sd">    **Saving and loading previously generated profiles:**</span>
 <span class="sd">    </span>
@@ -303,7 +306,9 @@
                 <span class="k">else</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;max&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;nbins&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;bins&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;bins&#39;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;nbins&#39;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;nbins&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="mi">100</span>
@@ -316,7 +321,11 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">x</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">])</span>
 
-            <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s">&#39;log&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;bins&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="s">&#39;bin_edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;bins&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;bins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;bins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s">&#39;log&#39;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="s">&#39;bin_edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">),</span> <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s">&#39;lin&#39;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="s">&#39;bin_edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
@@ -1092,7 +1101,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>
