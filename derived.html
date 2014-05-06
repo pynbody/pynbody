@@ -85,57 +85,55 @@ pynbody will calculate it:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
-<span class="go">Loading using backend &lt;class &#39;pynbody.tipsy.TipsySnap&#39;&gt;</span>
-<span class="go">TipsySnap: loading  testdata/g15784.lr.01024.gz</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">IOError                                   Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-2-938a4c194ada&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s = pynbody.load(&#39;testdata/g15784.lr.01024.gz&#39;)</span>
+
+<span class="go">/home/ics/roskar/python/pynbody/__init__.pyc in load(filename, *args, **kwargs)</span>
+<span class="go">    231             return c(filename,*args,**kwargs)</span>
+<span class="go">    232 </span>
+<span class="go">--&gt; 233     raise IOError(&quot;File %r: format not understood or does not exist&quot;%filename)</span>
+<span class="go">    234 </span>
+<span class="go">    235 </span>
+
+<span class="go">IOError: File &#39;testdata/g15784.lr.01024.gz&#39;: format not understood or does not exist</span>
 
 <span class="gp">In [3]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="go">SimSnap: deriving array ke</span>
-<span class="go">TipsySnap: loading data from main file</span>
-<span class="gr">Out[3]: </span>
-<span class="go">SimArray([ 0.01443704,  0.01435218,  0.01545113, ...,  0.02690037,</span>
-<span class="go">        0.02084463,  0.02266956], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-3-1bb5e6fb4c55&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;]</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>Note that you cannot directly alter a derived array:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="go">---------------------------------------------------------------------------</span>
-<span class="go">ValueError                                Traceback (most recent call last)</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
 <span class="go">&lt;ipython-input-4-6eb96c8ef7aa&gt; in &lt;module&gt;()</span>
 <span class="go">----&gt; 1 s[&#39;ke&#39;][0] = 0</span>
 
-<<<<<<< HEAD
-<span class="go">/home/ics/roskar/python/pynbody/array.pyc in q(a, *y, **kw)</span>
-=======
-<span class="go">/Users/rokstar/python/pynbody/array.pyc in q(a, *y, **kw)</span>
->>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
-<span class="go">    678             return w(a, *y, **kw)</span>
-<span class="go">    679         else :</span>
-<span class="go">--&gt; 680             return w(a, *y)</span>
-<span class="go">    681 </span>
-<span class="go">    682     q.__name__ = w.__name__</span>
-
-<<<<<<< HEAD
-<span class="go">/home/ics/roskar/python/pynbody/array.pyc in __setitem__(self, item, to)</span>
-=======
-<span class="go">/Users/rokstar/python/pynbody/array.pyc in __setitem__(self, item, to)</span>
->>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
-<span class="go">    466             np.ndarray.__setitem__(self, item, to.in_units(self.units))</span>
-<span class="go">    467         else :</span>
-<span class="go">--&gt; 468             np.ndarray.__setitem__(self, item, to)</span>
-<span class="go">    469 </span>
-<span class="go">    470     def __setslice__(self, a,b, to) :</span>
-
-<span class="go">ValueError: assignment destination is read-only</span>
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>But the array updates itself when one of its dependencies changes:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [5]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-5-b60c68a9d010&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;vel&#39;]*=2</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 
 <span class="gp">In [6]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="go">SimSnap: deriving array ke</span>
-<span class="gr">Out[6]: </span>
-<span class="go">SimArray([ 0.05774817,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
-<span class="go">        0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-6-1bb5e6fb4c55&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;]</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>The recalculation only takes place when required &#8211; in the example
@@ -147,35 +145,67 @@ your changes could easily be lost, leading to confusing bugs. However,
 if you want to make a derived array back into a normal array you can
 do so.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [7]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">derived</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-7-48a2cbe9a3af&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;].derived = False</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 
 <span class="gp">In [8]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-8-6eb96c8ef7aa&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;][0] = 0</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 
 <span class="gp">In [9]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="gr">Out[9]: </span>
-<span class="go">SimArray([ 0.        ,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
-<span class="go">        0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-9-1bb5e6fb4c55&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;]</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>At this point, however, you&#8217;ve taken full responsibility for that
 array, so if you update its dependencies the framework <em>won&#8217;t</em> help
 you out any longer:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [10]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-10-b60c68a9d010&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;vel&#39;]*=2</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 
 <span class="gp">In [11]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="gr">Out[11]: </span>
-<span class="go">SimArray([ 0.        ,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
-<span class="go">        0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-11-1bb5e6fb4c55&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;]</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>To get the framework back on your side, you can delete the modified
 array:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [12]: </span><span class="k">del</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-12-a0d807971c32&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 del s[&#39;ke&#39;]</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 
 <span class="gp">In [13]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="go">SimSnap: deriving array ke</span>
-<span class="gr">Out[13]: </span>
-<span class="go">SimArray([ 0.23099267,  0.22963485,  0.247218  , ...,  0.43040596,</span>
-<span class="go">        0.33351406,  0.36271291], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">---------------------------------------------------------------------------</span>
+<span class="go">NameError                                 Traceback (most recent call last)</span>
+<span class="go">&lt;ipython-input-13-1bb5e6fb4c55&gt; in &lt;module&gt;()</span>
+<span class="go">----&gt; 1 s[&#39;ke&#39;]</span>
+
+<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 </div>
@@ -541,11 +571,7 @@ the Zel&#8217;dovich approximation applied to the current velocities.
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-<<<<<<< HEAD
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
->>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>

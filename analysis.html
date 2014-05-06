@@ -101,11 +101,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<<<<<<< HEAD
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x39d4230&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
-=======
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10b3b4c08&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
->>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x391c6e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -1036,6 +1032,128 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 </dd></dl>
 
 </div>
+<span class="target" id="module-pynbody.analysis.ramses_util"></span><div class="section" id="ramses-util">
+<h2>ramses_util<a class="headerlink" href="#ramses-util" title="Permalink to this headline">¶</a></h2>
+<p>Handy utilities for using RAMSES outputs in pynbody.</p>
+<p><strong>Sample usage:</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span> <span class="c"># centered on the halo 10</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_fullbox</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">)</span> <span class="c"># will convert the whole output</span>
+</pre></div>
+</div>
+<p>Now you can run AHF or pkdgrav using the file named <cite>output_00101_fullbox.tipsy</cite> as an input or</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s_tipsy</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;output_00101_fullbox.tipsy&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can also just output a part of the simulation :</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_simple</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="nb">file</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;200 kpc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we&#8217;ve got a file called <cite>output_00101.tipsy</cite> which holds only the 200 kpc sphere centered on halo 0.</p>
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.load_hop">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">load_hop</tt><big>(</big><em>s</em>, <em>hop='$HOME/ramses/trunk/ramses/utils/scripts/script_hop.sh'</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#load_hop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_hop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the hop catalog for the given RAMSES snapshot. If the
+catalog doesn&#8217;t exist, it tries to run hop to create one via the
+&#8216;script_hop.sh&#8217; script found in the RAMSES distribution. The hop
+output should be in a &#8216;hop&#8217; directory in the base directory of the
+simulation.</p>
+<p><strong>Input</strong>:</p>
+<p><em>s</em> : loaded RAMSES snapshot</p>
+<p><strong>Optional Keywords</strong>:</p>
+<p><em>hop</em> : path to <cite>script_hop.sh</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.hop_center">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">hop_center</tt><big>(</big><em>s</em>, <em>halo=0</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#hop_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.hop_center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Center the simulation snapshot on the specified halo using the halo data from hop.</p>
+<p><strong>Input</strong>:</p>
+<p><em>s</em> : RAMSES snapshot</p>
+<p><strong>Optional Keywords</strong>:</p>
+<p><em>halo</em> : halo ID to use for centering (default = 0)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.load_center">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">load_center</tt><big>(</big><em>output</em>, <em>align=True</em>, <em>halo=0</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#load_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads a RAMSES output and centers it on the desired halo. The hop
+center is used for an initial estimate, but for more precise
+centering, a shrinking-sphere center is calculated.</p>
+<p><strong>Inputs</strong>:</p>
+<p><em>output</em> : path to RAMSES output directory</p>
+<p><strong>Optional Keywords</strong>:</p>
+<p><em>align</em> : whether to align the snapshot based on the angular momentum in the central region (default = True)</p>
+<p><em>halo</em> : halo to center on (default = 0)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.convert_to_tipsy_simple">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">convert_to_tipsy_simple</tt><big>(</big><em>output</em>, <em>filt=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert RAMSES output to tipsy format readable by
+e.g. pkdgrav. This is a quick and dirty conversion, meant to be
+used for quick visualization or other simple post
+processing. Importantly, none of the cosmologically-relevant
+information is carried forward. For a more complete conversion for
+e.g. running through pkdgrav or Amiga Halo Finder, see
+<a class="reference internal" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="pynbody.analysis.ramses_util.convert_to_tipsy_fullbox"><tt class="xref py py-func docutils literal"><span class="pre">convert_to_tipsy_fullbox()</span></tt></a>.</p>
+<p><strong>Input</strong>:</p>
+<p><em>output</em> : path to RAMSES output directory</p>
+<p><strong>Optional Keywords</strong>:</p>
+<p><em>filt</em> : a filter to apply to the box before writing out the tipsy file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.get_tipsy_units">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">get_tipsy_units</tt><big>(</big><em>sim</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#get_tipsy_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.get_tipsy_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns snapshot <cite>sim</cite> units in the pkdgrav/gasoline unit
+system.  This is probably not a function to be called by users,
+but it is used instead by other routines for file conversion.</p>
+<p><strong>Input</strong>:</p>
+<p><em>sim</em>: RAMSES simulation snapshot</p>
+<p><strong>Return values</strong>:</p>
+<p><em>lenunit, massunit, timeunit</em> : tuple specifying the units in kpc, Msol, and Gyr</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.convert_to_tipsy_fullbox">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">convert_to_tipsy_fullbox</tt><big>(</big><em>output</em>, <em>write_param=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_fullbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert RAMSES file <cite>output</cite> to tipsy format readable by pkdgrav
+and Amiga Halo Finder. Does all unit conversions etc. into the
+pkdgrav unit system. Creates a file called <cite>output_fullbox.tipsy</cite>.</p>
+<p><strong>Input</strong>:</p>
+<p><em>output</em>: name of RAMSES output</p>
+<p><strong>Optional Keywords</strong>:</p>
+<p><em>write_param</em>: whether or not to write the parameter file (default = True)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.write_tipsy_param">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">write_tipsy_param</tt><big>(</big><em>sim</em>, <em>tipsyfile</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#write_tipsy_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.write_tipsy_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a pkdgrav-readable parameter file for RAMSES snapshot
+<cite>sim</cite> with the prefix <cite>filename</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.write_ahf_input">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">write_ahf_input</tt><big>(</big><em>sim</em>, <em>tipsyfile</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#write_ahf_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.write_ahf_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write an input file that can be used by the <a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder</a> with the
+corresponding <cite>tipsyfile</cite> which is the <cite>sim</cite> in tipsy format.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.ramses_util.get_tform">
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">get_tform</tt><big>(</big><em>sim</em>, <em>part2birth_path='$HOME/ramses/trunk/ramses/utils/f90/part2birth'</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#get_tform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.get_tform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use <cite>part2birth</cite> to calculate the formation time of stars in
+Gyr and <strong>replaces</strong> the original <cite>tform</cite> array.</p>
+<p><strong>Input</strong>:</p>
+<p><em>sim</em>: RAMSES snapshot</p>
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -1057,6 +1175,7 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 <li><a class="reference internal" href="#luminosity">luminosity</a></li>
 <li><a class="reference internal" href="#pkdgrav-cosmo">pkdgrav_cosmo</a></li>
 <li><a class="reference internal" href="#profile">profile</a></li>
+<li><a class="reference internal" href="#ramses-util">ramses_util</a></li>
 </ul>
 </li>
 </ul>
@@ -1109,11 +1228,7 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-<<<<<<< HEAD
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
->>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>

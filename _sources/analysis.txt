@@ -33,3 +33,5 @@ Analysis
 .. automodule:: pynbody.analysis.profile
    :members:
 
+.. automodule:: pynbody.analysis.ramses_util
+   :members:
