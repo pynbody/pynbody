@@ -3,7 +3,10 @@
 ramses_util
 ===========
 
-Handy utilities for using RAMSES outputs in pynbody.
+Handy utilities for using RAMSES outputs in pynbody. For a complete
+demo on how to use RAMSES outputs with pynbody, have a look at the
+`ipython notebook demo
+<http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
 
 
 Loading and centering
@@ -49,6 +52,7 @@ deletes the previous `tform` array (not from disk, just from the
 currently loaded snapshot). The next time you call :func:`get_tform`,
 the data will be loaded from the disk and `part2birth` won't need to
 be run again.
+
 
 """
 
@@ -160,7 +164,7 @@ def load_center(output, align=True, halo=0):
     return s
 
 
-def convert_to_tipsy_simple(output, filt = None) : 
+def convert_to_tipsy_simple(output, halo = 0, filt = None) : 
     """
     Convert RAMSES output to tipsy format readable by
     e.g. pkdgrav. This is a quick and dirty conversion, meant to be
@@ -169,6 +173,9 @@ def convert_to_tipsy_simple(output, filt = None) :
     information is carried forward. For a more complete conversion for
     e.g. running through pkdgrav or Amiga Halo Finder, see
     :func:`convert_to_tipsy_fullbox`.
+
+    The snapshot is put into units where G=1, time unit = 1 Gyr and
+    mass unit = 2.222286e5 Msol.
 
     **Input**: 
     
@@ -180,7 +187,7 @@ def convert_to_tipsy_simple(output, filt = None) :
     
     """
 
-    s = load_center(output)
+    s = load_center(output, halo=halo)
 
     for key in ['pos','vel','mass','iord','metal'] : 
         try: 
@@ -193,9 +200,14 @@ def convert_to_tipsy_simple(output, filt = None) :
     for key in ['rho','temp','p']:
         s.g[key]
 
-    print s.g['temp']
-
-    s.s['tform']
+    # try to load tform -- if it fails assign -1
+    del(s.s['tform'])
+    try : 
+        get_tform(s)
+    except : 
+        s.s['tform'] = -1.0
+        s.s['tform'].units = 'Gyr'
+    
     
     massunit = 2.222286e5  # in Msol
     dunit = 1.0 # in kpc

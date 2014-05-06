@@ -7,6 +7,11 @@ Implements classes and functions for handling RAMSES files. AMR cells
 are loaded as particles. You rarely need to access this module
 directly as it will be invoked automatically via pynbody.load.
 
+
+For a complete demo on how to use RAMSES outputs with pynbody, look at
+the `ipython notebook demo
+<http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
+
 """
 
 from __future__ import with_statement # for py2.5
