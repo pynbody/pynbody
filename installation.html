@@ -154,15 +154,17 @@ below describe how to make this happen, and once you&#8217;ve configured it
 properly installing <em>most</em> python packages will be a breeze.</p>
 <p>1. Create a directory where python packages will be installed.  We
 recommend <tt class="docutils literal"><span class="pre">${HOME}/python</span></tt>.</p>
-<div class="highlight-python"><pre>mkdir ~/python</pre>
+<div class="highlight-python"><div class="highlight"><pre>mkdir ~/python
+</pre></div>
 </div>
 <p>2. Download this <a class="reference external" href="http://pynbody.googlecode.com/files/.pydistutils.cfg">.pydistutils.cfg</a> file into
 your home directory.</p>
 <ol class="arabic simple" start="3">
 <li>Set the <tt class="docutils literal"><span class="pre">PYTHONPATH</span></tt> environment variable.</li>
 </ol>
-<div class="highlight-python"><pre>setenv PYTHONPATH "${HOME}/python" #put into your .cshrc file OR
-export PYTHONPATH="${HOME}/python" # in your .bashrc file</pre>
+<div class="highlight-python"><div class="highlight"><pre>setenv PYTHONPATH &quot;${HOME}/python&quot; #put into your .cshrc file OR
+export PYTHONPATH=&quot;${HOME}/python&quot; # in your .bashrc file
+</pre></div>
 </div>
 </div>
 <div class="section" id="install-external-packages">
@@ -171,7 +173,8 @@ export PYTHONPATH="${HOME}/python" # in your .bashrc file</pre>
 <h3>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h3>
 <p>On Linux, use your favourite package manager (like yum or ubuntu) to
 install all the packages in one line, for example</p>
-<div class="highlight-python"><pre>yum install matplotlib scipy ipython</pre>
+<div class="highlight-python"><div class="highlight"><pre>yum install matplotlib scipy ipython
+</pre></div>
 </div>
 <p>This easy way requires root access, so you might have to ask your
 system administrator.</p>
@@ -190,7 +193,8 @@ your version of python:</p>
 in python, so it makes sense for them to be installed at the system
 level.  However, if you sys admin is unhelpful, now that you&#8217;ve set up
 distutils, you just have to <tt class="docutils literal"><span class="pre">cd</span></tt> in each directory and type:</p>
-<div class="highlight-python"><pre>python setup.py install</pre>
+<div class="highlight-python"><div class="highlight"><pre>python setup.py install
+</pre></div>
 </div>
 </div>
 <div class="section" id="mac-os">
@@ -257,7 +261,12 @@ python that ships with your mac, you&#8217;ll need to manually compile
 <div class="section" id="install-pynbody">
 <span id="id5"></span><h2>Install pynbody<a class="headerlink" href="#install-pynbody" title="Permalink to this headline">¶</a></h2>
 <p>You should be able to type, in your shell:</p>
+<<<<<<< HEAD
 <div class="highlight-python"><pre>pip install --allow-all-external pynbody</pre>
+=======
+<div class="highlight-python"><div class="highlight"><pre>pip install --allow-all-external pynbody
+</pre></div>
+>>>>>>> 2d2445540b659116be3c39b1676035b08b04d5dd
 </div>
 <p>and everything should happen automatically. Note that this will give
 you whatever the latest snapshot we made happens to be. <cite>Pynbody</cite> is
@@ -266,7 +275,12 @@ is constantly being updated as new bugs are found or new features
 added. If you want to use <cite>pip</cite> to install the freshest version from
 the git repository and not worry about the details of the installation
 process, you can do</p>
+<<<<<<< HEAD
 <div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody</pre>
+=======
+<div class="highlight-python"><div class="highlight"><pre>pip install git+git://github.com/pynbody/pynbody
+</pre></div>
+>>>>>>> 2d2445540b659116be3c39b1676035b08b04d5dd
 </div>
 <p>and it should clone the git repository and run the install. You will
 need to have <a class="reference external" href="https:http://git-scm.com/">git</a> installed though it
@@ -306,6 +320,7 @@ and it&#8217;s worth a read through Chapter 3 on branching.</p>
 a crucial bug has just been fixed, for example, you can easily update
 your installation. If you installed using <cite>pip</cite> to begin with, simply
 do</p>
+<<<<<<< HEAD
 <div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody</pre>
 </div>
 <p>If you cloned the git repository and installed manually, go into the top-level <cite>pynbody</cite> source directory (the one with <tt class="docutils literal"><span class="pre">setup.py</span></tt> in it) and do :</p>
@@ -318,6 +333,23 @@ other than <cite>master</cite> this procedure is slightly different:</p>
 <div class="highlight-python"><pre>git fetch
 git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
 python setup.py install</pre>
+=======
+<div class="highlight-python"><div class="highlight"><pre>pip install git+git://github.com/pynbody/pynbody
+</pre></div>
+</div>
+<p>If you cloned the git repository and installed manually, go into the top-level <cite>pynbody</cite> source directory (the one with <tt class="docutils literal"><span class="pre">setup.py</span></tt> in it) and do :</p>
+<div class="highlight-python"><div class="highlight"><pre>git checkout master  # make sure you are on the master branch
+git pull origin master
+python setup.py install
+</pre></div>
+</div>
+<p>If you are testing a new feature or a bug fix that resides in a branch
+other than <cite>master</cite> this procedure is slightly different:</p>
+<div class="highlight-python"><div class="highlight"><pre>git fetch
+git checkout -b branch origin/branch  # where &quot;branch&quot; will be the name of the branch for bug fix or feature
+python setup.py install
+</pre></div>
+>>>>>>> 2d2445540b659116be3c39b1676035b08b04d5dd
 </div>
 <p>When you install a new version of the code and you already have a
 python session active with <cite>pynbody</cite> loaded, you have to (carefully)
@@ -378,18 +410,21 @@ work properly. Instead download and untar the HDF5
 <p>Assuming you&#8217;re running on Snow Leopard, use the following command to
 configure the package
 (<a class="reference external" href="http://hdf-forum.184993.n3.nabble.com/Can-t-install-Pytables-something-wrong-with-my-HDF5-installation-td1246998.html">discovered here</a>):</p>
-<div class="highlight-python"><pre>env ARCHFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" ./configure
+<div class="highlight-python"><div class="highlight"><pre>env ARCHFLAGS=&quot;-arch x86_64&quot; LDFLAGS=&quot;-arch x86_64&quot; ./configure
 --build=x86_64-apple-darwin10 --target=x86_64-apple-darwin10
 --prefix=/usr/local/hdf5 --with-szlib=/usr/local/src/szip-2.1/szip
---with-zlib=/usr/local/include,/usr/local/lib }}}</pre>
+--with-zlib=/usr/local/include,/usr/local/lib }}}
+</pre></div>
 </div>
 <p>Finally</p>
-<div class="highlight-python"><pre>make sudo make install</pre>
+<div class="highlight-python"><div class="highlight"><pre>make sudo make install
+</pre></div>
 </div>
 <p>Now <tt class="docutils literal"><span class="pre">h5py</span></tt> will install without much hassle. <a class="reference external" href="http://code.google.com/p/h5py/downloads/list">Download the source</a>, untar it, and type:</p>
-<div class="highlight-python"><pre>python setup.py configure --hdf5=/usr/local/hdf5/
+<div class="highlight-python"><div class="highlight"><pre>python setup.py configure --hdf5=/usr/local/hdf5/
 python setup.py build
-sudo python setup.py install</pre>
+sudo python setup.py install
+</pre></div>
 </div>
 </div>
 </div>
@@ -472,7 +507,11 @@ sudo python setup.py install</pre>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+>>>>>>> 2d2445540b659116be3c39b1676035b08b04d5dd
     </div>
   </body>
 </html>

@@ -142,13 +142,14 @@ metallicity profile is as simple as:</p>
 <tt class="docutils literal"><span class="pre">s.derivable_keys()</span></tt>), it is automatically calculated.</p>
 <p>You can define your own profiling functions in your code by using the
 <tt class="docutils literal"><span class="pre">Profile.profile_property</span></tt> decorator:</p>
-<div class="highlight-python"><pre>@pynbody.analysis.profile.Profile.profile_property
+<div class="highlight-python"><div class="highlight"><pre>@pynbody.analysis.profile.Profile.profile_property
  def random(self):
-     """
+     &quot;&quot;&quot;
      Generate a random profile
-     """
+     &quot;&quot;&quot;
      import numpy as np
-     return np.random.rand(self.nbins)</pre>
+     return np.random.rand(self.nbins)
+</pre></div>
 </div>
 </div>
 <div class="section" id="calculating-derivatives-and-dispersions">
@@ -241,7 +242,11 @@ root-mean-square values. You simply need to attach a <tt class="docutils literal
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+>>>>>>> 2d2445540b659116be3c39b1676035b08b04d5dd
     </div>
   </body>
 </html>
