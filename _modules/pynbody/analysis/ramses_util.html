@@ -69,15 +69,19 @@
 <span class="sd">Handy utilities for using RAMSES outputs in pynbody.</span>
 
 
-<span class="sd">Sample usage:</span>
-<span class="sd">-------------</span>
+<span class="sd">Loading and centering</span>
+<span class="sd">---------------------</span>
 
 <span class="sd">&gt;&gt;&gt; s = pynbody.analysis.ramses_util.load_center(&#39;output_00101&#39;, align=False) # centered on halo 0 </span>
 <span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.hop_center(s,10) # centered on the halo 10</span>
 
+<span class="sd">File Conversion</span>
+<span class="sd">---------------</span>
+
 <span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(&#39;output_00101&#39;) # will convert the whole output</span>
 
-<span class="sd">Now you can run AHF or pkdgrav using the file named `output_00101_fullbox.tipsy` as an input or </span>
+<span class="sd">Now you can run AHF or pkdgrav using the file named</span>
+<span class="sd">`output_00101_fullbox.tipsy` as an input or</span>
 
 <span class="sd">&gt;&gt;&gt; s_tipsy = pynbody.load(&#39;output_00101_fullbox.tipsy&#39;)</span>
 
@@ -86,10 +90,16 @@
 <span class="sd">&gt;&gt;&gt; s = pynbody.analysis.ramses_util.load_center(&#39;output_00101&#39;, align=False) # centered on halo 0 </span>
 <span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.convert_to_tipsy_simple(&#39;output_00101&#39;, file = pynbody.filt.Sphere(&#39;200 kpc&#39;)</span>
 
-<span class="sd">Now we&#39;ve got a file called `output_00101.tipsy` which holds only the 200 kpc sphere centered on halo 0. </span>
+<span class="sd">Now we&#39;ve got a file called `output_00101.tipsy` which holds only the</span>
+<span class="sd">200 kpc sphere centered on halo 0.</span>
 
+<span class="sd">Generating tform</span>
+<span class="sd">----------------</span>
 
-<span class="sd">A common problem with RAMSES outputs in pynbody is that the `tform` array is in funny units that aren&#39;t easily usable. To generate a new `tform` array (in Gyr) you can use the :func:`get_tform` defined here. It&#39;s very easy: </span>
+<span class="sd">A problem with RAMSES outputs in pynbody is that the `tform` array is</span>
+<span class="sd">in funny units that aren&#39;t easily usable. To generate a new `tform`</span>
+<span class="sd">array (in Gyr) you can use the :func:`get_tform` defined here. It&#39;s</span>
+<span class="sd">very easy:</span>
 
 <span class="sd">&gt;&gt;&gt; s = pynbody.load(&#39;output_00101&#39;)</span>
 <span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.get_tform(s)</span>

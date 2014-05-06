@@ -101,7 +101,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x39396e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x53366e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -1035,16 +1035,20 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 <span class="target" id="module-pynbody.analysis.ramses_util"></span><div class="section" id="ramses-util">
 <h2>ramses_util<a class="headerlink" href="#ramses-util" title="Permalink to this headline">¶</a></h2>
 <p>Handy utilities for using RAMSES outputs in pynbody.</p>
-<div class="section" id="sample-usage">
-<h3>Sample usage:<a class="headerlink" href="#sample-usage" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="loading-and-centering">
+<h3>Loading and centering<a class="headerlink" href="#loading-and-centering" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span> <span class="c"># centered on the halo 10</span>
 </pre></div>
 </div>
+</div>
+<div class="section" id="file-conversion">
+<h3>File Conversion<a class="headerlink" href="#file-conversion" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_fullbox</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">)</span> <span class="c"># will convert the whole output</span>
 </pre></div>
 </div>
-<p>Now you can run AHF or pkdgrav using the file named <cite>output_00101_fullbox.tipsy</cite> as an input or</p>
+<p>Now you can run AHF or pkdgrav using the file named
+<cite>output_00101_fullbox.tipsy</cite> as an input or</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s_tipsy</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;output_00101_fullbox.tipsy&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1053,8 +1057,15 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_simple</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="nb">file</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;200 kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Now we&#8217;ve got a file called <cite>output_00101.tipsy</cite> which holds only the 200 kpc sphere centered on halo 0.</p>
-<p>A common problem with RAMSES outputs in pynbody is that the <cite>tform</cite> array is in funny units that aren&#8217;t easily usable. To generate a new <cite>tform</cite> array (in Gyr) you can use the <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a> defined here. It&#8217;s very easy:</p>
+<p>Now we&#8217;ve got a file called <cite>output_00101.tipsy</cite> which holds only the
+200 kpc sphere centered on halo 0.</p>
+</div>
+<div class="section" id="generating-tform">
+<h3>Generating tform<a class="headerlink" href="#generating-tform" title="Permalink to this headline">¶</a></h3>
+<p>A problem with RAMSES outputs in pynbody is that the <cite>tform</cite> array is
+in funny units that aren&#8217;t easily usable. To generate a new <cite>tform</cite>
+array (in Gyr) you can use the <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a> defined here. It&#8217;s
+very easy:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">get_tform</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
@@ -1200,7 +1211,9 @@ home directory, and include</dd>
 <li><a class="reference internal" href="#pkdgrav-cosmo">pkdgrav_cosmo</a></li>
 <li><a class="reference internal" href="#profile">profile</a></li>
 <li><a class="reference internal" href="#ramses-util">ramses_util</a><ul>
-<li><a class="reference internal" href="#sample-usage">Sample usage:</a></li>
+<li><a class="reference internal" href="#loading-and-centering">Loading and centering</a></li>
+<li><a class="reference internal" href="#file-conversion">File Conversion</a></li>
+<li><a class="reference internal" href="#generating-tform">Generating tform</a></li>
 </ul>
 </li>
 </ul>
