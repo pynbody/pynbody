@@ -185,6 +185,8 @@ def convert_to_tipsy_simple(output, halo = 0, filt = None) :
     
     *filt* : a filter to apply to the box before writing out the tipsy file
     
+    *halo* : which hop halo to center on -- default = 0 
+    
     """
 
     s = load_center(output, halo=halo)
