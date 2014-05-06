@@ -1,12 +1,21 @@
 """
+
+ramses_util
+===========
+
 Handy utilities for using RAMSES outputs in pynbody.
+
 """
 
 import pynbody
+from .. import config_parser
 
-hop = 
+ramses_utils = config_parser.get('ramses','ramses_utils')
 
-def load_hop(s, hop='~/ramses/galaxy_formation/script_hop.sh'): 
+hop_script_path = ramses_utils+'scripts/script_hop.sh'
+part2birth_path = ramses_utils+'f90/part2birth'
+
+def load_hop(s, hop=hop_script_path): 
     """
     Loads the hop catalog for the given RAMSES snapshot. If the
     catalog doesn't exist, it tries to run hop to create one via the
@@ -43,3 +52,311 @@ def load_hop(s, hop='~/ramses/galaxy_formation/script_hop.sh'):
         data = np.genfromtxt(filename,unpack=True)
 
     return data
+
+
+def hop_center(s,halo=0):
+    """
+    Center the simulation snapshot on the specified halo using the halo data from hop. 
+
+    Input: 
+    ------
+    
+    *s* : RAMSES snapshot
+
+    Optional Keywords:
+    ------------------
+
+    *halo* : halo ID to use for centering (default = 0)
+ 
+    """
+
+    data = load_hop(s)
+
+    cen = data.T[halo][4:7]
+    vcen = data.T[halo][7:10]
+    
+    s['pos'] -= cen
+    s['vel'] -= vcen
+ 
+
+def load_center(output, align=True, halo=0):
+    """
+    Loads a RAMSES output and centers it on the desired halo. The hop
+    center is used for an initial estimate, but for more precise
+    centering, a shrinking-sphere center is calculated.
+
+    Inputs: 
+    -------
+    
+    *output* : path to RAMSES output directory
+
+    Optional Keywords: 
+    ------------------
+
+    *align* : whether to align the snapshot based on the angular momentum in the central region (default = True)
+
+    *halo* : halo to center on (default = 0)
+    """
+
+
+    s = pynbody.load(output)
+    hop_center(s,halo)
+
+    st = s[pynbody.filt.Sphere('100 kpc')]
+    
+    cen = pynbody.analysis.halo.center(st,retcen=True,mode='ssc',verbose=True)
+    
+    if align: 
+        pynbody.analysis.angmom.faceon(st.s,disk_size='10 kpc',cen=cen,mode='ssc')
+    else :
+        s['pos'] -= cen
+
+    s['pos'].convert_units('kpc')
+    s['vel'].convert_units('km s^-1')
+
+    return s
+
+
+def convert_to_tipsy_simple(output, filt = None) : 
+    """
+    Convert RAMSES output to tipsy format readable by
+    e.g. pkdgrav. This is a quick and dirty conversion, meant to be
+    used for quick visualization or other simple post
+    processing. Importantly, none of the cosmologically-relevant
+    information is carried forward. For a more complete conversion for
+    e.g. running through pkdgrav or Amiga Halo Finder, see
+    `convert_to_tipsy_fullbox`.
+
+    Input: 
+    ------
+
+    *output* : path to RAMSES output directory
+
+    Optional Keywords:
+    ------------------
+
+    *filt* : a filter to apply to the box before writing out the tipsy file
+    
+    """
+
+    s = load_center(output)
+
+    for key in ['pos','vel','mass','iord','metal'] : 
+        try: 
+            s[key]
+        except:
+            pass
+
+    s['eps'] = s.g['smooth'].min()
+
+    for key in ['rho','temp','p']:
+        s.g[key]
+
+    print s.g['temp']
+
+    s.s['tform']
+    
+    massunit = 2.222286e5  # in Msol
+    dunit = 1.0 # in kpc
+    denunit = massunit/dunit**3
+    velunit = 8.0285 * np.sqrt(6.67384e-8*denunit) * dunit
+    timeunit = dunit / velunit * 0.97781311
+
+    s['pos'].convert_units('kpc')
+    s['vel'].convert_units('%e km s^-1'%velunit)
+    s['mass'].convert_units('%e Msol'%massunit)
+    s['eps'].convert_units('kpc')
+    s.g['rho'].convert_units('%e Msol kpc^-3'%denunit)
+    
+    s.s['tform'].convert_units('Gyr')    
+    del(s.g['smooth'])
+    s.s['metals'] = s.s['metal']
+    s.g['metals'] = s.g['metal']
+    del(s['metal'])
+    s.g['temp']
+    s.properties['a'] = pynbody.analysis.cosmology.age(s)
+    if filt is not None : 
+        s[filt].write(pynbody.tipsy.TipsySnap,'%s.tipsy'%output[-12:])
+    else : 
+        s.write(pynbody.tipsy.TipsySnap,'%s.tipsy'%output[-12:])
+
+
+def get_tipsy_units(sim) : 
+    """Returns snapshot `sim` units in the pkdgrav/gasoline unit
+    system.  This is probably not a function to be called by users,
+    but it is used instead by other routines for file conversion.
+    
+    Input:
+    ------
+
+    *sim*: RAMSES simulation snapshot
+    
+    Return values:
+    --------------
+    
+    *lenunit, massunit, timeunit* : tuple specifying the units in kpc, Msol, and Gyr
+
+    """
+
+    # figure out the units starting with mass
+
+    cmtokpc = 3.2407793e-22
+    lenunit  = s._info['unit_l']/s.properties['a']*cmtokpc
+    massunit = pynbody.analysis.cosmology.rho_crit(s,z=0,unit='Msol kpc^-3')*lenunit**3
+    G_u = 4.4998712e-6 # G in kpc^3 / Msol / Gyr^2
+    timeunit = np.sqrt(1/G_u * lenunit**3/massunit)
+    
+    return lenunit,massunit,timeunit
+
+
+def convert_to_tipsy_fullbox(output, write_param = True) : 
+    """
+    Convert RAMSES file `output` to tipsy format readable by pkdgrav
+    and Amiga Halo Finder. Does all unit conversions etc. into the
+    pkdgrav unit system. Creates a file called `output_fullbox.tipsy`.
+
+    Input: 
+    ------
+
+    *output*: name of RAMSES output
+    
+    Optional Keywords:
+    ------------------
+
+    *write_param*: whether or not to write the parameter file (default = True)
+
+    """
+
+    s = pynbody.load(output)
+    
+    lenunit,massunit,timeunit = get_tipsy_units(s)
+    
+    l_unit = Unit('%f kpc'%lenunit)
+    t_unit = Unit('%f Gyr'%timeunit)
+    v_unit = l_unit/t_unit
+   
+    tipsyfile = "%s_fullbox.tipsy"%(output)
+
+    s['mass'].convert_units('%f Msol'%massunit)
+    s.g['temp']
+    s.s['tform'].convert_units(t_unit)
+    s.g['metals'] = s.g['metal']
+    s['pos'].convert_units(l_unit)
+    s['vel'].convert_units(v_unit)
+    s['eps'] = s.g['smooth'].min()
+    s['eps'].units = s['pos'].units
+    del(s.g['metal'])
+    del(s['smooth'])
+            
+    s.write(filename='%s'%tipsyfile, fmt=pynbody.tipsy.TipsySnap, binary_aux_arrays = True)
+
+    if write_param : 
+        write_tipsy_param(s,tipsyfile)
+
+def write_tipsy_param(sim,tipsyfile) : 
+    """Write a pkdgrav-readable parameter file for RAMSES snapshot
+    `sim` with the prefix `filename`
+    """
+
+    # determine units
+    lenunit,massunit,timeunit = get_tipsy_units(sim)
+    h = Unit('%f km s^-1 Mpc^-1'%(sim.properties['h']*100))
+    l_unit = Unit('%f kpc'%lenunit)
+    t_unit = Unit('%f Gyr'%timeunit)
+    v_unit = l_unit/t_unit
+
+    # write the param file
+    f = open('%s.param'%tipsyfile,'w')
+    f.write('dKpcUnit = %f\n'%lenunit)
+    f.write('dMsolUnit = %e\n'%massunit)
+    f.write('dOmega0 = %f\n'%sim.properties['omegaM0'])
+    f.write('dLambda = %f\n'%sim.properties['omegaL0'])
+    h = Unit('%f km s^-1 Mpc^-1'%(sim.properties['h']*100))
+    f.write('dHubble0 = %f\n'%h.in_units(v_unit/l_unit))
+    f.write('bComove = 1\n')
+    f.close()
+
+def write_ahf_input(sim,tipsyfile) : 
+    """Write an input file that can be used by the Amiga Halo Finder
+    with the corresponding `tipsyfile` which is the `sim` in tipsy
+    format.
+    """
+
+    # determine units
+    lenunit,massunit,timeunit = get_tipsy_units(sim)
+    h = Unit('%f km s^-1 Mpc^-1'%(sim.properties['h']*100))
+    l_unit = Unit('%f kpc'%lenunit)
+    t_unit = Unit('%f Gyr'%timeunit)
+    v_unit = l_unit/t_unit
+
+
+    f = open('%s.AHF.input'%tipsyfile,'w')
+    f.write('[AHF]\n')
+    f.write('ic_filename = %s\n'%tipsyfile)
+    f.write('ic_filetype = 90\n')
+    f.write('outfile_prefix = %s\n'%tipsyfile)
+    f.write('LgridDomain = 256\n')
+    f.write('LgridMax = 2097152\n')
+    f.write('NperDomCell = 5\n')
+    f.write('NperRefCell = 5\n')
+    f.write('VescTune = 1.0\n')
+    f.write('NminPerHalo = 50\n')
+    f.write('RhoVir = 0\n')
+    f.write('Dvir = 200\n')
+    f.write('MaxGatherRad = 1.0\n')
+    f.write('[TIPSY]\n')
+    f.write('TIPSY_BOXSIZE = %e\n'%(sim.properties['boxsize'].in_units('Mpc')*sim.properties['h']/sim.properties['a']))
+    f.write('TIPSY_MUNIT   = %e\n'%(massunit*sim.properties['h']))
+    f.write('TIPSY_OMEGA0  = %f\n'%sim.properties['omegaM0'])
+    f.write('TIPSY_LAMBDA0 = %f\n'%sim.properties['omegaL0'])
+    
+ #   velunit = Unit('%f cm'%s._info['unit_l'])/Unit('%f s'%s._info['unit_t'])
+    
+    f.write('TIPSY_VUNIT   = %e\n'%v_unit.ratio('km s^-1 a', **sim.conversion_context()))
+    
+
+    # the thermal energy in K -> km^2/s^2
+
+    f.write('TIPSY_EUNIT   = %e\n'%((pynbody.units.k/pynbody.units.m_p).in_units('km^2 s^-2 K^-1')*5./3.))
+    f.close()
+
+
+@pynbody.ramses.RamsesSnap.derived_quantity
+def tform(self) : 
+    from numpy import fromfile
+    
+    top = self
+    while hasattr(top,'base') : top = self.base
+
+    ncpu = top._info['ncpu']
+    nstar = len(top.s)
+
+    top.s['tform'] = -1.0
+    done = 0
+
+    if len(top.filename.split('/')) > 1 : 
+        parent_dir = top.filename[:-12]
+    else : 
+        parent_dir = './'
+
+    for i in range(ncpu) : 
+        try : 
+            f = open('%s/birth/birth_%s.out%05d'%(parent_dir,top._timestep_id,i+1))
+        except IOError : 
+            import os
+            
+            os.system("cd %s; mkdir birth; %s -inp output_%s; cd .."%(parent_dir,part2birth_path,top._timestep_id))
+            f = open('%s/birth/birth_%s.out%05d'%(parent_dir,top._timestep_id,i+1))
+
+        n = fromfile(f,'i',1)
+        if n > 0: 
+            n /= 8
+            ages = fromfile(f,'d',n)
+            new = np.where(ages > 0)[0]
+            top.s['tform'][done:done+len(new)] = ages[new]
+            done += len(new)
+
+        f.close()
+    top.s['tform'].units = 'Gyr'
+
+    return self.s['tform']
