@@ -317,7 +317,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10b4a5c80&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bca4c08&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -392,7 +392,7 @@ the function image</p>
 
 <dl class="function">
 <dt id="pynbody.plot.sph.image">
-<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">image</tt><big>(</big><em>sim</em>, <em>qty='rho'</em>, <em>width='10 kpc'</em>, <em>resolution=500</em>, <em>units=None</em>, <em>log=True</em>, <em>vmin=None</em>, <em>vmax=None</em>, <em>av_z=False</em>, <em>filename=None</em>, <em>z_camera=None</em>, <em>clear=True</em>, <em>cmap=None</em>, <em>center=False</em>, <em>title=None</em>, <em>qtytitle=None</em>, <em>show_cbar=True</em>, <em>subplot=False</em>, <em>noplot=False</em>, <em>ret_im=False</em>, <em>fill_nan=True</em>, <em>fill_val=0.0</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/sph.html#image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">image</tt><big>(</big><em>sim</em>, <em>qty='rho'</em>, <em>width='10 kpc'</em>, <em>resolution=500</em>, <em>units=None</em>, <em>log=True</em>, <em>vmin=None</em>, <em>vmax=None</em>, <em>av_z=False</em>, <em>filename=None</em>, <em>z_camera=None</em>, <em>clear=True</em>, <em>cmap=None</em>, <em>center=False</em>, <em>title=None</em>, <em>qtytitle=None</em>, <em>show_cbar=True</em>, <em>subplot=False</em>, <em>noplot=False</em>, <em>ret_im=False</em>, <em>fill_nan=True</em>, <em>fill_val=0.0</em>, <em>linthresh=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/sph.html#image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make an SPH image of the given simulation.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>qty</em> (rho): The name of the array to interpolate</p>
@@ -430,6 +430,11 @@ which the image will be shown</p>
 the multi-threaded routines; otherwise the pynbody.config default is used</p>
 <p><em>fill_nan</em> (True): if any of the image values are NaN, replace with fill_val</p>
 <p><em>fill_val</em> (0.0): the fill value to use when replacing NaNs</p>
+<dl class="docutils">
+<dt><em>linthresh</em> (None): if the image has negative and positive values</dt>
+<dd>and a log scaling is requested, the part between <cite>-linthresh</cite> and
+<cite>linthresh</cite> is shown on a linear scale to avoid divergence at 0</dd>
+</dl>
 </dd></dl>
 
 </div>

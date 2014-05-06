@@ -13,5 +13,5 @@ h = s.halos()
 pynbody.analysis.angmom.faceon(h[1])
 
 #create an image of gas density integrated down the line of site (z axis)
-sph.image(h[1].g,qty="rho",units="g cm^-2",width=100,cmap="spectral")
+sph.image(h[1].g,qty="rho",units="g cm^-2",width=100,cmap="Greys")
 

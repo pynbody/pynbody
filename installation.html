@@ -71,7 +71,7 @@ and you end up using it for your scientific work, please see
 <h2>If you are already a regular python/numpy/scipy user<a class="headerlink" href="#if-you-are-already-a-regular-python-numpy-scipy-user" title="Permalink to this headline">¶</a></h2>
 <p>Either:</p>
 <ol class="arabic simple">
-<li>If you have have <a class="reference external" href="http://pypi.python.org/pypi/setuptools">setuptools</a> installed, just type <tt class="docutils literal"><span class="pre">easy_install</span> <span class="pre">pynbody</span></tt>.</li>
+<li>you can try to install it using <cite>pip</cite>: <tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--allow-all-external</span> <span class="pre">pynbody</span></tt>.</li>
 </ol>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -256,13 +256,27 @@ python that ships with your mac, you&#8217;ll need to manually compile
 </div>
 <div class="section" id="install-pynbody">
 <span id="id5"></span><h2>Install pynbody<a class="headerlink" href="#install-pynbody" title="Permalink to this headline">¶</a></h2>
-<p>You should be able to type, in your shell, <cite>easy_install pynbody</cite> and
-everything will happen automatically.</p>
+<p>You should be able to type, in your shell:</p>
+<div class="highlight-python"><pre>pip install --allow-all-external pynbody</pre>
+</div>
+<p>and everything should happen automatically. Note that this will give
+you whatever the latest snapshot we made happens to be. <cite>Pynbody</cite> is
+hosted in a <a class="reference external" href="https://github.com/pynbody/pynbody">git repository</a> and
+is constantly being updated as new bugs are found or new features
+added. If you want to use <cite>pip</cite> to install the freshest version from
+the git repository and not worry about the details of the installation
+process, you can do</p>
+<div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody</pre>
+</div>
+<p>and it should clone the git repository and run the install. You will
+need to have <a class="reference external" href="https:http://git-scm.com/">git</a> installed though it
+will most likely already be available on your system.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">If your distutils are not installed properly and you don&#8217;t have root permissions, this will fail &#8211; see <a class="reference internal" href="#distutils"><em>Setup Python Distutils</em></a>.</p>
 </div>
-<p>If you don&#8217;t have <cite>easy_install</cite> here is how you can do it manually.</p>
+<p>If you don&#8217;t have <cite>pip</cite> or if you want to develop <cite>pynbody</cite> here is
+how you can do it manually.</p>
 <p>First, clone the <a class="reference external" href="https://github.com/pynbody/pynbody">git repository from
 Github</a>.  Pynbody uses <a class="reference external" href="http://git-scm.com/">git</a> for development:</p>
 <ol class="arabic simple" start="0">
@@ -285,6 +299,30 @@ Github</a>.  Pynbody uses <a class="reference external" href="http://git-scm.com
 with git, we recommend that you spend some time getting familiar with
 it. The <a class="reference external" href="http://git-scm.com/doc">git documentation</a> is quite good
 and it&#8217;s worth a read through Chapter 3 on branching.</p>
+</div>
+<div class="section" id="upgrading-your-installation-and-testing-features-or-bug-fixes">
+<h3>Upgrading your installation and testing features or bug-fixes<a class="headerlink" href="#upgrading-your-installation-and-testing-features-or-bug-fixes" title="Permalink to this headline">¶</a></h3>
+<p>If you want to use the most recent version from the repository because
+a crucial bug has just been fixed, for example, you can easily update
+your installation. If you installed using <cite>pip</cite> to begin with, simply
+do</p>
+<div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody</pre>
+</div>
+<p>If you cloned the git repository and installed manually, go into the top-level <cite>pynbody</cite> source directory (the one with <tt class="docutils literal"><span class="pre">setup.py</span></tt> in it) and do :</p>
+<div class="highlight-python"><pre>git checkout master  # make sure you are on the master branch
+git pull origin master
+python setup.py install</pre>
+</div>
+<p>If you are testing a new feature or a bug fix that resides in a branch
+other than <cite>master</cite> this procedure is slightly different:</p>
+<div class="highlight-python"><pre>git fetch
+git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
+python setup.py install</pre>
+</div>
+<p>When you install a new version of the code and you already have a
+python session active with <cite>pynbody</cite> loaded, you have to (carefully)
+reload all of the affected <cite>pynbody</cite> modules. The safest is to just
+quit and restart the python session if you&#8217;re not sure.</p>
 </div>
 </div>
 <div class="section" id="open-your-simulation-and-start-analyzing">
@@ -383,7 +421,10 @@ sudo python setup.py install</pre>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#install-pynbody">Install pynbody</a></li>
+<li><a class="reference internal" href="#install-pynbody">Install pynbody</a><ul>
+<li><a class="reference internal" href="#upgrading-your-installation-and-testing-features-or-bug-fixes">Upgrading your installation and testing features or bug-fixes</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#open-your-simulation-and-start-analyzing">Open your simulation and start analyzing</a><ul>
 <li><a class="reference internal" href="#updating-code">Updating Code</a></li>
 <li><a class="reference internal" href="#nose-tests">Nose tests</a></li>
