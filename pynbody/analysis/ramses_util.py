@@ -6,15 +6,19 @@ ramses_util
 Handy utilities for using RAMSES outputs in pynbody.
 
 
-Sample usage:
--------------
+Loading and centering
+---------------------
 
 >>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0 
 >>> pynbody.analysis.ramses_util.hop_center(s,10) # centered on the halo 10
 
+File Conversion
+---------------
+
 >>> pynbody.analysis.ramses_util.convert_to_tipsy_fullbox('output_00101') # will convert the whole output
 
-Now you can run AHF or pkdgrav using the file named `output_00101_fullbox.tipsy` as an input or 
+Now you can run AHF or pkdgrav using the file named
+`output_00101_fullbox.tipsy` as an input or
 
 >>> s_tipsy = pynbody.load('output_00101_fullbox.tipsy')
 
@@ -23,10 +27,16 @@ You can also just output a part of the simulation :
 >>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0 
 >>> pynbody.analysis.ramses_util.convert_to_tipsy_simple('output_00101', file = pynbody.filt.Sphere('200 kpc')
 
-Now we've got a file called `output_00101.tipsy` which holds only the 200 kpc sphere centered on halo 0. 
+Now we've got a file called `output_00101.tipsy` which holds only the
+200 kpc sphere centered on halo 0.
 
+Generating tform
+----------------
 
-A common problem with RAMSES outputs in pynbody is that the `tform` array is in funny units that aren't easily usable. To generate a new `tform` array (in Gyr) you can use the :func:`get_tform` defined here. It's very easy: 
+A problem with RAMSES outputs in pynbody is that the `tform` array is
+in funny units that aren't easily usable. To generate a new `tform`
+array (in Gyr) you can use the :func:`get_tform` defined here. It's
+very easy:
 
 >>> s = pynbody.load('output_00101')
 >>> pynbody.analysis.ramses_util.get_tform(s)
