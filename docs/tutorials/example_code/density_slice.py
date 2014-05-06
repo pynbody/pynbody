@@ -13,5 +13,5 @@ h = s.halos()
 pynbody.analysis.angmom.faceon(h[1])
 
 #create a simple slice of gas density
-sph.image(h[1].g,qty="rho",units="g cm^-3",width=100,cmap="spectral")
+sph.image(h[1].g,qty="rho",units="g cm^-3",width=100,cmap="Greys")
 

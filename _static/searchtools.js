@@ -4,7 +4,11 @@
  *
  * Sphinx JavaScript utilties for the full-text search.
  *
+<<<<<<< HEAD
  * :copyright: Copyright 2007-2014 by the Sphinx team, see AUTHORS.
+=======
+ * :copyright: Copyright 2007-2013 by the Sphinx team, see AUTHORS.
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
  * :license: BSD, see LICENSE for details.
  *
  */
@@ -330,13 +334,21 @@ var Search = {
           objectterms.push(tmp[i].toLowerCase());
       }
 
+<<<<<<< HEAD
       if ($u.indexOf(stopwords, tmp[i].toLowerCase()) != -1 || tmp[i].match(/^\d+$/) ||
+=======
+      if ($u.indexOf(stopwords, tmp[i]) != -1 || tmp[i].match(/^\d+$/) ||
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
           tmp[i] === "") {
         // skip this "word"
         continue;
       }
       // stem the word
+<<<<<<< HEAD
       var word = stemmer.stemWord(tmp[i].toLowerCase());
+=======
+      var word = stemmer.stemWord(tmp[i]).toLowerCase();
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
       var toAppend;
       // select the correct list
       if (word[0] == '-') {
@@ -550,7 +562,11 @@ var Search = {
     for (i = 0; i < searchterms.length; i++) {
       var word = searchterms[i];
       // no match but word was a required one
+<<<<<<< HEAD
       if ((files = terms[word]) === undefined)
+=======
+      if (!(files = terms[word]))
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
         break;
       if (files.length === undefined) {
         files = [files];

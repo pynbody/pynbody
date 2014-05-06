@@ -221,6 +221,7 @@ things easier to interpret we convert to physical units first:</p>
 <span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
 
 <span class="gp">In [14]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
+<<<<<<< HEAD
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1.png"><img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" /></a>
@@ -230,6 +231,17 @@ width as a string with a unit.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;10 Mpc&#39;</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="s">&#39;10 Mpc&#39;</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Greys&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
+=======
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1.png"><img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" /></a>
+<p>Here&#8217;s a slightly more complicated example showing the larger-scale
+dark-matter distribution &#8211; note that you can conveniently specify the
+width as a string with a unit.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;10 Mpc&#39;</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="s">&#39;10 Mpc&#39;</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Greys&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1_wide.png"><img alt="../_images/snapshot_manipulation_fig1_wide.png" src="../_images/snapshot_manipulation_fig1_wide.png" style="width: 5in;" /></a>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -302,7 +314,11 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
 <p>We can also generate other profile, like the rotation curve:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [26]: </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<<<<<<< HEAD
 <span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x2618d290</span><span class="o">&gt;</span>
+=======
+<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x115de57d0</span><span class="o">&gt;</span>
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
 
 <span class="gp">In [27]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
 
@@ -312,6 +328,7 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 
 <span class="gp">In [30]: </span><span class="k">for</span> <span class="n">prof</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">p</span><span class="p">,</span><span class="n">pd</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">pg</span><span class="p">],[</span><span class="s">&#39;total&#39;</span><span class="p">,</span><span class="s">&#39;dm&#39;</span><span class="p">,</span><span class="s">&#39;stars&#39;</span><span class="p">,</span><span class="s">&#39;gas&#39;</span><span class="p">])</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<<<<<<< HEAD
 <span class="go">Rotation curve calculated in  2.69 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
 <span class="go">Rotation curve calculated in 0.829 s</span>
@@ -319,13 +336,26 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <span class="go">Rotation curve calculated in  1.64 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
 <span class="go">Rotation curve calculated in 0.414 s</span>
+=======
+<span class="go">Rotation curve calculated in  2.78 s</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in 0.886 s</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in  1.45 s</span>
+<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
+<span class="go">Rotation curve calculated in 0.431 s</span>
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
 
 <span class="gp">In [31]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [32]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [33]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<<<<<<< HEAD
 <span class="gr">Out[33]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x2618d750</span><span class="o">&gt;</span>
+=======
+<span class="gr">Out[33]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x115de5850</span><span class="o">&gt;</span>
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
@@ -405,7 +435,11 @@ tutorial.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+>>>>>>> 20107441f949373f5c3d59647f0450d91eb8a8ad
     </div>
   </body>
 </html>
