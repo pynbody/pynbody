@@ -96,71 +96,124 @@ available for the sample output in the <cite>testdata</cite> bundle.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span><span class="o">,</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
 <span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">IOError                                   Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-2-938a4c194ada&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s = pynbody.load(&#39;testdata/g15784.lr.01024.gz&#39;)</span>
-
-<span class="go">/home/ics/roskar/python/pynbody/__init__.pyc in load(filename, *args, **kwargs)</span>
-<span class="go">    231             return c(filename,*args,**kwargs)</span>
-<span class="go">    232 </span>
-<span class="go">--&gt; 233     raise IOError(&quot;File %r: format not understood or does not exist&quot;%filename)</span>
-<span class="go">    234 </span>
-<span class="go">    235 </span>
-
-<span class="go">IOError: File &#39;testdata/g15784.lr.01024.gz&#39;: format not understood or does not exist</span>
+<span class="go">Loading using backend &lt;class &#39;pynbody.tipsy.TipsySnap&#39;&gt;</span>
+<span class="go">TipsySnap: loading  testdata/g15784.lr.01024.gz</span>
 
 <span class="gp">In [3]: </span><span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-3-48d4b86f3d5b&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s.physical_units()</span>
-
-<span class="go">NameError: name &#39;s&#39; is not defined</span>
 </pre></div>
 </div>
 <p>We&#8217;ve got the snapshot loaded, now we ask <cite>Pynbody</cite> to load any
 available halo catalogue:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-4-dd000090d028&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h = s.halos()</span>
-
-<span class="go">NameError: name &#39;s&#39; is not defined</span>
+<span class="go">AHFCatalogue: loading particles... halos... done!</span>
 </pre></div>
 </div>
 <p><cite>h</cite> is now the AHF halo catalogue. We can easily retrieve some basic
 information, like the total number of halos in this catalogue:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [5]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-5-d19b49735224&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 len(h)</span>
-
-<span class="go">NameError: name &#39;h&#39; is not defined</span>
+<span class="go"> Out[5]: 1411</span>
 </pre></div>
 </div>
 <p>The catalogue has halos ordered by number of particles, so the first
 halo for this zoom simulation will be the one we would most likely be
 interested in. So lets see some of its stats:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [6]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-6-9cb032990344&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h[1].properties</span>
-
-<span class="go">NameError: name &#39;h&#39; is not defined</span>
+<span class="go"> Out[6]: </span>
+<span class="go">{&#39;Eax&#39;: 0.682425,</span>
+<span class="go"> &#39;Eax_gas&#39;: 0.688026,</span>
+<span class="go"> &#39;Eax_star&#39;: -0.547906,</span>
+<span class="go"> &#39;Eay&#39;: 0.636529,</span>
+<span class="go"> &#39;Eay_gas&#39;: 0.682572,</span>
+<span class="go"> &#39;Eay_star&#39;: 0.727285,</span>
+<span class="go"> &#39;Eaz&#39;: -0.359343,</span>
+<span class="go"> &#39;Eaz_gas&#39;: -0.246404,</span>
+<span class="go"> &#39;Eaz_star&#39;: -0.413347,</span>
+<span class="go"> &#39;Ebx&#39;: -0.693481,</span>
+<span class="go"> &#39;Ebx_gas&#39;: -0.72541,</span>
+<span class="go"> &#39;Ebx_star&#39;: 0.781075,</span>
+<span class="go"> &#39;Eby&#39;: 0.408413,</span>
+<span class="go"> &#39;Eby_gas&#39;: 0.637537,</span>
+<span class="go"> &#39;Eby_star&#39;: 0.621689,</span>
+<span class="go"> &#39;Ebz&#39;: -0.593534,</span>
+<span class="go"> &#39;Ebz_gas&#39;: -0.259475,</span>
+<span class="go"> &#39;Ebz_star&#39;: 0.058521,</span>
+<span class="go"> &#39;Ecx&#39;: -0.231041,</span>
+<span class="go"> &#39;Ecx_gas&#39;: -0.020018,</span>
+<span class="go"> &#39;Ecx_star&#39;: -0.299534,</span>
+<span class="go"> &#39;Ecy&#39;: 0.65424,</span>
+<span class="go"> &#39;Ecy_gas&#39;: 0.35727,</span>
+<span class="go"> &#39;Ecy_star&#39;: 0.290792,</span>
+<span class="go"> &#39;Ecz&#39;: 0.720132,</span>
+<span class="go"> &#39;Ecz_gas&#39;: 0.933787,</span>
+<span class="go"> &#39;Ecz_star&#39;: 0.908691,</span>
+<span class="go"> &#39;Ekin&#39;: 7.39033e+16,</span>
+<span class="go"> &#39;Ekin_gas&#39;: 3.3475e+16,</span>
+<span class="go"> &#39;Ekin_star&#39;: 5018570000000000.0,</span>
+<span class="go"> &#39;Epot&#39;: -1.15662e+17,</span>
+<span class="go"> &#39;Epot_gas&#39;: -5200330000000000.0,</span>
+<span class="go"> &#39;Epot_star&#39;: -2.36262e+16,</span>
+<span class="go"> &#39;Lx&#39;: 0.3123,</span>
+<span class="go"> &#39;Lx_gas&#39;: 0.250478,</span>
+<span class="go"> &#39;Lx_star&#39;: -0.078403,</span>
+<span class="go"> &#39;Ly&#39;: 0.07221,</span>
+<span class="go"> &#39;Ly_gas&#39;: -0.083472,</span>
+<span class="go"> &#39;Ly_star&#39;: 0.186901,</span>
+<span class="go"> &#39;Lz&#39;: 0.9472,</span>
+<span class="go"> &#39;Lz_gas&#39;: 0.964517,</span>
+<span class="go"> &#39;Lz_star&#39;: 0.979245,</span>
+<span class="go"> &#39;M_gas&#39;: 118606000000.0,</span>
+<span class="go"> &#39;M_star&#39;: 111255000000.0,</span>
+<span class="go"> &#39;Phi0&#39;: 722146,</span>
+<span class="go"> &#39;Redge&#39;: 137.3,</span>
+<span class="go"> &#39;Rmax&#39;: 1.37,</span>
+<span class="go"> &#39;Rvir&#39;: 249.73,</span>
+<span class="go"> &#39;VXc&#39;: 15.88,</span>
+<span class="go"> &#39;VYc&#39;: -56.81,</span>
+<span class="go"> &#39;VZc&#39;: -251.9,</span>
+<span class="go"> &#39;Vmax&#39;: 411.33,</span>
+<span class="go"> &#39;Xc&#39;: 26.21842588,</span>
+<span class="go"> &#39;Yc&#39;: 23.29041572,</span>
+<span class="go"> &#39;Zc&#39;: 18.87335549,</span>
+<span class="go"> &#39;a&#39;: 0.9999999999999911,</span>
+<span class="go"> &#39;a_axis&#39;: 1.0,</span>
+<span class="go"> &#39;a_gas&#39;: 1.0,</span>
+<span class="go"> &#39;a_star&#39;: 1.0,</span>
+<span class="go"> &#39;b_axis&#39;: 0.902585,</span>
+<span class="go"> &#39;b_gas&#39;: 0.92196,</span>
+<span class="go"> &#39;b_star&#39;: 0.636713,</span>
+<span class="go"> &#39;boxsize&#39;: Unit(&quot;6.85e+04 kpc&quot;),</span>
+<span class="go"> &#39;c_axis&#39;: 0.822453,</span>
+<span class="go"> &#39;c_gas&#39;: 0.912891,</span>
+<span class="go"> &#39;c_star&#39;: 0.444645,</span>
+<span class="go"> &#39;children&#39;: [],</span>
+<span class="go"> &#39;com_offset&#39;: 2.71665,</span>
+<span class="go"> &#39;h&#39;: 0.7301145776501103,</span>
+<span class="go"> &#39;halo_id&#39;: 1,</span>
+<span class="go"> &#39;lambda&#39;: 0.025848,</span>
+<span class="go"> &#39;lambdaE&#39;: 0.033555,</span>
+<span class="go"> &#39;lambdaE_gas&#39;: 0.049067,</span>
+<span class="go"> &#39;lambdaE_star&#39;: 0.012501,</span>
+<span class="go"> &#39;lambda_gas&#39;: 0.045934,</span>
+<span class="go"> &#39;lambda_star&#39;: 0.014426,</span>
+<span class="go"> &#39;mass&#39;: 1696390000000.0,</span>
+<span class="go"> &#39;mbp_offset&#39;: 0.10953,</span>
+<span class="go"> &#39;n_gas&#39;: 79060,</span>
+<span class="go"> &#39;n_star&#39;: 262178,</span>
+<span class="go"> &#39;nbins&#39;: 31,</span>
+<span class="go"> &#39;npart&#39;: 502300,</span>
+<span class="go"> &#39;nvpart&#39;: 3.569399e-05,</span>
+<span class="go"> &#39;omegaL0&#39;: 0.76,</span>
+<span class="go"> &#39;omegaM0&#39;: 0.24,</span>
+<span class="go"> &#39;ovdens&#39;: 390.38,</span>
+<span class="go"> &#39;r2&#39;: 1.00493,</span>
+<span class="go"> &#39;sigV&#39;: 295.18,</span>
+<span class="go"> &#39;time&#39;: Unit(&quot;1.40e+01 kpc s km**-1&quot;),</span>
+<span class="go"> &#39;v_esc&#39;: 241.720329}</span>
 </pre></div>
 </div>
 <p>These are just a dictionary, e.g.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [7]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;children&#39;</span><span class="p">]</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-7-ea18632dffaa&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h[1].properties[&#39;children&#39;]</span>
-
-<span class="go">NameError: name &#39;h&#39; is not defined</span>
+<span class="go"> Out[7]: []</span>
 </pre></div>
 </div>
 <p>returns a list of sub-halos of this halo.</p>
@@ -169,12 +222,7 @@ catalogue. For the <a class="reference internal" href="../convenience.html#pynbo
 <cite>properties</cite> attribute returns the familiar halo parameters usually
 stored in the AHF <cite>.stat</cite> file. For example, to compare masses of the two halos with the most particles in this catalogue,</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [8]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-8-9f89c5b4cb54&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 len(h[1]), len(h[2])</span>
-
-<span class="go">NameError: name &#39;h&#39; is not defined</span>
+<span class="go"> Out[8]: (502300, 82543)</span>
 </pre></div>
 </div>
 <p>As is already evident above, &#8220;halos&#8221; here are no different than simple
@@ -182,56 +230,38 @@ Pynbody <a class="reference internal" href="../essentials.html#pynbody.snapshot.
 familiar with. It therefore understands the usual interface used for
 any other <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> object. For example:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [9]: </span><span class="n">h1</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-9-530e536cd564&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h1 = h[1]</span>
-
-<span class="go">NameError: name &#39;h&#39; is not defined</span>
 
 <span class="gp">In [10]: </span><span class="n">h1</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;1e12 Msol&#39;</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-10-382f6f334fa7&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h1[&#39;mass&#39;].sum().in_units(&#39;1e12 Msol&#39;)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="go">TipsySnap: loading data from main file</span>
+<span class="go">SimSnap: converting phi units from 2.98e+06 km**2 a**-1 s**-2 to km**2 s**-2</span>
+<span class="go">SimSnap: converting pos units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting eps units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting vel units from 1.73e+03 km a s**-1 to km s**-1</span>
+<span class="go">SimSnap: converting mass units from 4.75e+16 Msol to Msol</span>
+<span class="go">SimSnap: converting tform units from 3.96e+01 s kpc km**-1 to kpc s km**-1</span>
+<span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
+<span class="gr">Out[10]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">1.696392414687047</span><span class="p">,</span> <span class="s">&#39;1.00e+12 Msol&#39;</span><span class="p">)</span>
 
 <span class="gp">In [11]: </span><span class="n">h1</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-11-633734839b3a&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h1.keys()</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="gr">Out[11]: </span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">,</span> <span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="s">&#39;eps&#39;</span><span class="p">,</span> <span class="s">&#39;vx&#39;</span><span class="p">,</span> <span class="s">&#39;mass&#39;</span><span class="p">,</span> <span class="s">&#39;vy&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;vel&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">,</span> <span class="s">&#39;vz&#39;</span><span class="p">]</span>
 
 <span class="gp">In [12]: </span><span class="n">h1</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()[:</span><span class="mi">10</span><span class="p">]</span> <span class="c"># just showing the first 10</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-12-f15549b945e4&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 h1.derivable_keys()[:10] # just showing the first 10</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="gr">Out[12]: </span><span class="p">[</span><span class="s">&#39;nefe&#39;</span><span class="p">,</span> <span class="s">&#39;hetot&#39;</span><span class="p">,</span> <span class="s">&#39;mjeans&#39;</span><span class="p">,</span> <span class="s">&#39;ofe&#39;</span><span class="p">,</span> <span class="s">&#39;ljeans&#39;</span><span class="p">,</span> <span class="s">&#39;ne&#39;</span><span class="p">,</span> <span class="s">&#39;feh&#39;</span><span class="p">,</span> <span class="s">&#39;c_s&#39;</span><span class="p">,</span> <span class="s">&#39;mgfe&#39;</span><span class="p">,</span> <span class="s">&#39;oxh&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>A really common use-case is that one wants to center the simulation on
 a given halo and analyze some of its properties. Since halos are just
 <a class="reference internal" href="../essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> objects, this is easy to do:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-13-1b5575acd77e&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 pynbody.analysis.halo.center(h1)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="go">Finding halo velocity center...</span>
+<span class="go">vcen= [   1.6295435   -58.21684952 -254.25581364]</span>
 
 <span class="gp">In [14]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;500 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-14-6cf8b69cc538&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 im = pynbody.plot.image(h1.d, width = &#39;500 kpc&#39;, cmap=plt.cm.Greys, units = &#39;Msol kpc^-2&#39;)</span>
-
-<span class="go">NameError: name &#39;h1&#39; is not defined</span>
+<span class="go">TipsySnap: attempting to load auxiliary array testdata/g15784.lr.01024.rho</span>
+<span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
+<span class="go">Rendering image on 4 threads...</span>
+<span class="go">TipsySnap: attempting to load auxiliary array testdata/g15784.lr.01024.smooth</span>
+<span class="go">SimSnap: converting smooth units from 6.85e+04 kpc a to kpc</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/halo1_image.png"><img alt="../_images/halo1_image.png" src="../_images/halo1_image.png" style="width: 5in;" /></a>
