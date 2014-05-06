@@ -66,7 +66,10 @@
 <span class="sd">ramses_util</span>
 <span class="sd">===========</span>
 
-<span class="sd">Handy utilities for using RAMSES outputs in pynbody.</span>
+<span class="sd">Handy utilities for using RAMSES outputs in pynbody. For a complete</span>
+<span class="sd">demo on how to use RAMSES outputs with pynbody, have a look at the</span>
+<span class="sd">`ipython notebook demo</span>
+<span class="sd">&lt;http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb&gt;`_</span>
 
 
 <span class="sd">Loading and centering</span>
@@ -112,6 +115,7 @@
 <span class="sd">currently loaded snapshot). The next time you call :func:`get_tform`,</span>
 <span class="sd">the data will be loaded from the disk and `part2birth` won&#39;t need to</span>
 <span class="sd">be run again.</span>
+
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -223,7 +227,7 @@
     <span class="k">return</span> <span class="n">s</span>
 
 </div>
-<div class="viewcode-block" id="convert_to_tipsy_simple"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_simple">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_simple</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">filt</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span> 
+<div class="viewcode-block" id="convert_to_tipsy_simple"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_simple">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_simple</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">filt</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="p">:</span> 
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert RAMSES output to tipsy format readable by</span>
 <span class="sd">    e.g. pkdgrav. This is a quick and dirty conversion, meant to be</span>
@@ -233,6 +237,9 @@
 <span class="sd">    e.g. running through pkdgrav or Amiga Halo Finder, see</span>
 <span class="sd">    :func:`convert_to_tipsy_fullbox`.</span>
 
+<span class="sd">    The snapshot is put into units where G=1, time unit = 1 Gyr and</span>
+<span class="sd">    mass unit = 2.222286e5 Msol.</span>
+
 <span class="sd">    **Input**: </span>
 <span class="sd">    </span>
 <span class="sd">    *output* : path to RAMSES output directory</span>
@@ -241,9 +248,11 @@
 <span class="sd">    </span>
 <span class="sd">    *filt* : a filter to apply to the box before writing out the tipsy file</span>
 <span class="sd">    </span>
+<span class="sd">    *halo* : which hop halo to center on -- default = 0 </span>
+<span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">s</span> <span class="o">=</span> <span class="n">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="n">halo</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">,</span><span class="s">&#39;vel&#39;</span><span class="p">,</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="s">&#39;iord&#39;</span><span class="p">,</span><span class="s">&#39;metal&#39;</span><span class="p">]</span> <span class="p">:</span> 
         <span class="k">try</span><span class="p">:</span> 
@@ -255,9 +264,6 @@
 
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="s">&#39;temp&#39;</span><span class="p">,</span><span class="s">&#39;p&#39;</span><span class="p">]:</span>
         <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-    <span class="k">print</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span>
-
 
     <span class="c"># try to load tform -- if it fails assign -1</span>
     <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">])</span>

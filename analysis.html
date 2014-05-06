@@ -101,7 +101,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x496e6e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x544a6e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -1034,7 +1034,9 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 </div>
 <span class="target" id="module-pynbody.analysis.ramses_util"></span><div class="section" id="ramses-util">
 <h2>ramses_util<a class="headerlink" href="#ramses-util" title="Permalink to this headline">¶</a></h2>
-<p>Handy utilities for using RAMSES outputs in pynbody.</p>
+<p>Handy utilities for using RAMSES outputs in pynbody. For a complete
+demo on how to use RAMSES outputs with pynbody, have a look at the
+<a class="reference external" href="http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb">ipython notebook demo</a></p>
 <div class="section" id="loading-and-centering">
 <h3>Loading and centering<a class="headerlink" href="#loading-and-centering" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
@@ -1116,7 +1118,7 @@ centering, a shrinking-sphere center is calculated.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.convert_to_tipsy_simple">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">convert_to_tipsy_simple</tt><big>(</big><em>output</em>, <em>filt=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_simple" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">convert_to_tipsy_simple</tt><big>(</big><em>output</em>, <em>halo=0</em>, <em>filt=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_simple" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert RAMSES output to tipsy format readable by
 e.g. pkdgrav. This is a quick and dirty conversion, meant to be
 used for quick visualization or other simple post
@@ -1124,10 +1126,13 @@ processing. Importantly, none of the cosmologically-relevant
 information is carried forward. For a more complete conversion for
 e.g. running through pkdgrav or Amiga Halo Finder, see
 <a class="reference internal" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="pynbody.analysis.ramses_util.convert_to_tipsy_fullbox"><tt class="xref py py-func docutils literal"><span class="pre">convert_to_tipsy_fullbox()</span></tt></a>.</p>
+<p>The snapshot is put into units where G=1, time unit = 1 Gyr and
+mass unit = 2.222286e5 Msol.</p>
 <p><strong>Input</strong>:</p>
 <p><em>output</em> : path to RAMSES output directory</p>
 <p><strong>Optional Keywords</strong>:</p>
 <p><em>filt</em> : a filter to apply to the box before writing out the tipsy file</p>
+<p><em>halo</em> : which hop halo to center on &#8211; default = 0</p>
 </dd></dl>
 
 <dl class="function">
