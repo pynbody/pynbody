@@ -101,7 +101,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x391c6e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x39396e0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -1035,7 +1035,8 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 <span class="target" id="module-pynbody.analysis.ramses_util"></span><div class="section" id="ramses-util">
 <h2>ramses_util<a class="headerlink" href="#ramses-util" title="Permalink to this headline">¶</a></h2>
 <p>Handy utilities for using RAMSES outputs in pynbody.</p>
-<p><strong>Sample usage:</strong></p>
+<div class="section" id="sample-usage">
+<h3>Sample usage:<a class="headerlink" href="#sample-usage" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span> <span class="c"># centered on the halo 10</span>
 </pre></div>
@@ -1053,6 +1054,18 @@ profile is made, i.e. density is in units of mass/pc^3.</dd>
 </pre></div>
 </div>
 <p>Now we&#8217;ve got a file called <cite>output_00101.tipsy</cite> which holds only the 200 kpc sphere centered on halo 0.</p>
+<p>A common problem with RAMSES outputs in pynbody is that the <cite>tform</cite> array is in funny units that aren&#8217;t easily usable. To generate a new <cite>tform</cite> array (in Gyr) you can use the <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a> defined here. It&#8217;s very easy:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">get_tform</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This now generated a directory called <cite>birth</cite> in the parent directory
+of your output. It then calls the routine <cite>part2birth</cite> located in the
+RAMSES utils (see the <a class="reference external" href="https://bitbucket.org/rteyssie/ramses">bitbucket repository</a>. <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a> also
+deletes the previous <cite>tform</cite> array (not from disk, just from the
+currently loaded snapshot). The next time you call <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a>,
+the data will be loaded from the disk and <cite>part2birth</cite> won&#8217;t need to
+be run again.</p>
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.load_hop">
 <tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">load_hop</tt><big>(</big><em>s</em>, <em>hop='$HOME/ramses/trunk/ramses/utils/scripts/script_hop.sh'</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/ramses_util.html#load_hop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_hop" title="Permalink to this definition">¶</a></dt>
@@ -1151,8 +1164,19 @@ corresponding <cite>tipsyfile</cite> which is the <cite>sim</cite> in tipsy form
 Gyr and <strong>replaces</strong> the original <cite>tform</cite> array.</p>
 <p><strong>Input</strong>:</p>
 <p><em>sim</em>: RAMSES snapshot</p>
+<p><strong>Optional Keywords:</strong></p>
+<dl class="docutils">
+<dt><em>part2birth_path:</em> by default, this is</dt>
+<dd>$HOME/ramses/trunk/ramses/utils/f90/part2birth, as specified in
+<cite>default_config.ini</cite> in your pynbody install directory. You can
+override this like so &#8211; make a file called &#8221;.pynbodyrc&#8221; in your
+home directory, and include</dd>
+</dl>
+<p>[ramses]</p>
+<p>ramses_utils = /path/to/your/ramses/utils/directory</p>
 </dd></dl>
 
+</div>
 </div>
 </div>
 
@@ -1175,7 +1199,10 @@ Gyr and <strong>replaces</strong> the original <cite>tform</cite> array.</p>
 <li><a class="reference internal" href="#luminosity">luminosity</a></li>
 <li><a class="reference internal" href="#pkdgrav-cosmo">pkdgrav_cosmo</a></li>
 <li><a class="reference internal" href="#profile">profile</a></li>
-<li><a class="reference internal" href="#ramses-util">ramses_util</a></li>
+<li><a class="reference internal" href="#ramses-util">ramses_util</a><ul>
+<li><a class="reference internal" href="#sample-usage">Sample usage:</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

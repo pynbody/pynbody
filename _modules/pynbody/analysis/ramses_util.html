@@ -69,7 +69,8 @@
 <span class="sd">Handy utilities for using RAMSES outputs in pynbody.</span>
 
 
-<span class="sd">**Sample usage:**</span>
+<span class="sd">Sample usage:</span>
+<span class="sd">-------------</span>
 
 <span class="sd">&gt;&gt;&gt; s = pynbody.analysis.ramses_util.load_center(&#39;output_00101&#39;, align=False) # centered on halo 0 </span>
 <span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.hop_center(s,10) # centered on the halo 10</span>
@@ -86,6 +87,21 @@
 <span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.convert_to_tipsy_simple(&#39;output_00101&#39;, file = pynbody.filt.Sphere(&#39;200 kpc&#39;)</span>
 
 <span class="sd">Now we&#39;ve got a file called `output_00101.tipsy` which holds only the 200 kpc sphere centered on halo 0. </span>
+
+
+<span class="sd">A common problem with RAMSES outputs in pynbody is that the `tform` array is in funny units that aren&#39;t easily usable. To generate a new `tform` array (in Gyr) you can use the :func:`get_tform` defined here. It&#39;s very easy: </span>
+
+<span class="sd">&gt;&gt;&gt; s = pynbody.load(&#39;output_00101&#39;)</span>
+<span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.get_tform(s)</span>
+
+<span class="sd">This now generated a directory called `birth` in the parent directory</span>
+<span class="sd">of your output. It then calls the routine `part2birth` located in the</span>
+<span class="sd">RAMSES utils (see the `bitbucket repository</span>
+<span class="sd">&lt;https://bitbucket.org/rteyssie/ramses&gt;`_. :func:`get_tform` also</span>
+<span class="sd">deletes the previous `tform` array (not from disk, just from the</span>
+<span class="sd">currently loaded snapshot). The next time you call :func:`get_tform`,</span>
+<span class="sd">the data will be loaded from the disk and `part2birth` won&#39;t need to</span>
+<span class="sd">be run again.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -413,6 +429,19 @@
 <span class="sd">    **Input**: </span>
 
 <span class="sd">    *sim*: RAMSES snapshot</span>
+
+<span class="sd">    **Optional Keywords:** </span>
+
+<span class="sd">    *part2birth_path:* by default, this is</span>
+<span class="sd">     $HOME/ramses/trunk/ramses/utils/f90/part2birth, as specified in</span>
+<span class="sd">     `default_config.ini` in your pynbody install directory. You can</span>
+<span class="sd">     override this like so -- make a file called &quot;.pynbodyrc&quot; in your</span>
+<span class="sd">     home directory, and include</span>
+
+<span class="sd">    [ramses]</span>
+
+<span class="sd">    ramses_utils = /path/to/your/ramses/utils/directory</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
    
     <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">fromfile</span>
