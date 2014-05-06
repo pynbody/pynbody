@@ -258,7 +258,15 @@
 
     <span class="k">print</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span>
 
-    <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span>
+
+    <span class="c"># try to load tform -- if it fails assign -1</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">])</span>
+    <span class="k">try</span> <span class="p">:</span> 
+        <span class="n">get_tform</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">:</span> 
+        <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Gyr&#39;</span>
+    
     
     <span class="n">massunit</span> <span class="o">=</span> <span class="mf">2.222286e5</span>  <span class="c"># in Msol</span>
     <span class="n">dunit</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="c"># in kpc</span>
