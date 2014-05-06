@@ -6,7 +6,8 @@ ramses_util
 Handy utilities for using RAMSES outputs in pynbody.
 
 
-**Sample usage:**
+Sample usage:
+-------------
 
 >>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0 
 >>> pynbody.analysis.ramses_util.hop_center(s,10) # centered on the halo 10
@@ -23,6 +24,21 @@ You can also just output a part of the simulation :
 >>> pynbody.analysis.ramses_util.convert_to_tipsy_simple('output_00101', file = pynbody.filt.Sphere('200 kpc')
 
 Now we've got a file called `output_00101.tipsy` which holds only the 200 kpc sphere centered on halo 0. 
+
+
+A common problem with RAMSES outputs in pynbody is that the `tform` array is in funny units that aren't easily usable. To generate a new `tform` array (in Gyr) you can use the :func:`get_tform` defined here. It's very easy: 
+
+>>> s = pynbody.load('output_00101')
+>>> pynbody.analysis.ramses_util.get_tform(s)
+
+This now generated a directory called `birth` in the parent directory
+of your output. It then calls the routine `part2birth` located in the
+RAMSES utils (see the `bitbucket repository
+<https://bitbucket.org/rteyssie/ramses>`_. :func:`get_tform` also
+deletes the previous `tform` array (not from disk, just from the
+currently loaded snapshot). The next time you call :func:`get_tform`,
+the data will be loaded from the disk and `part2birth` won't need to
+be run again.
 
 """
 
@@ -350,6 +366,19 @@ def get_tform(sim, part2birth_path = part2birth_path) :
     **Input**: 
 
     *sim*: RAMSES snapshot
+
+    **Optional Keywords:** 
+
+    *part2birth_path:* by default, this is
+     $HOME/ramses/trunk/ramses/utils/f90/part2birth, as specified in
+     `default_config.ini` in your pynbody install directory. You can
+     override this like so -- make a file called ".pynbodyrc" in your
+     home directory, and include
+
+    [ramses]
+
+    ramses_utils = /path/to/your/ramses/utils/directory
+
     """
    
     from numpy import fromfile
