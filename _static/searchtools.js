@@ -330,21 +330,13 @@ var Search = {
           objectterms.push(tmp[i].toLowerCase());
       }
 
-<<<<<<< HEAD
       if ($u.indexOf(stopwords, tmp[i]) != -1 || tmp[i].match(/^\d+$/) ||
-=======
-      if ($u.indexOf(stopwords, tmp[i].toLowerCase()) != -1 || tmp[i].match(/^\d+$/) ||
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
           tmp[i] === "") {
         // skip this "word"
         continue;
       }
       // stem the word
-<<<<<<< HEAD
       var word = stemmer.stemWord(tmp[i]).toLowerCase();
-=======
-      var word = stemmer.stemWord(tmp[i].toLowerCase());
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
       var toAppend;
       // select the correct list
       if (word[0] == '-') {
@@ -558,11 +550,7 @@ var Search = {
     for (i = 0; i < searchterms.length; i++) {
       var word = searchterms[i];
       // no match but word was a required one
-<<<<<<< HEAD
       if (!(files = terms[word]))
-=======
-      if ((files = terms[word]) === undefined)
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
         break;
       if (files.length === undefined) {
         files = [files];

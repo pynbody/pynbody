@@ -178,21 +178,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
-<<<<<<< HEAD
-<span class="go">CPU times: user 196 ms, sys: 20.8 ms, total: 217 ms</span>
-<span class="go">Wall time: 201 ms</span>
+<span class="go">CPU times: user 199 ms, sys: 19.8 ms, total: 219 ms</span>
+<span class="go">Wall time: 203 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 23.7 ms, sys: 3.98 ms, total: 27.6 ms</span>
-<span class="go">Wall time: 24.6 ms</span>
-=======
-<span class="go">CPU times: user 372 ms, sys: 10 ms, total: 382 ms</span>
-<span class="go">Wall time: 375 ms</span>
-
-<span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 31 ms, sys: 5 ms, total: 36 ms</span>
-<span class="go">Wall time: 30.7 ms</span>
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
+<span class="go">CPU times: user 18.3 ms, sys: 1.16 ms, total: 19.5 ms</span>
+<span class="go">Wall time: 18.5 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -357,11 +348,7 @@ any unit handling code being called.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
     </div>
   </body>
 </html>

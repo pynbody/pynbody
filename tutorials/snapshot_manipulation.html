@@ -300,11 +300,7 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
 <p>We can also generate other profile, like the rotation curve:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [26]: </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
-<<<<<<< HEAD
-<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x11da814d0</span><span class="o">&gt;</span>
-=======
-<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x270712d0</span><span class="o">&gt;</span>
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
+<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x1157ca990</span><span class="o">&gt;</span>
 
 <span class="gp">In [27]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
 
@@ -314,34 +310,20 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 
 <span class="gp">In [30]: </span><span class="k">for</span> <span class="n">prof</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">p</span><span class="p">,</span><span class="n">pd</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">pg</span><span class="p">],[</span><span class="s">&#39;total&#39;</span><span class="p">,</span><span class="s">&#39;dm&#39;</span><span class="p">,</span><span class="s">&#39;stars&#39;</span><span class="p">,</span><span class="s">&#39;gas&#39;</span><span class="p">])</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<<<<<<< HEAD
-<span class="go">Rotation curve calculated in  2.82 s</span>
+<span class="go">Rotation curve calculated in  2.76 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.908 s</span>
+<span class="go">Rotation curve calculated in 0.897 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  1.47 s</span>
+<span class="go">Rotation curve calculated in  1.44 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.448 s</span>
-=======
-<span class="go">Rotation curve calculated in  2.59 s</span>
-<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.837 s</span>
-<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  1.35 s</span>
-<span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.421 s</span>
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
+<span class="go">Rotation curve calculated in 0.435 s</span>
 
 <span class="gp">In [31]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [32]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [33]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<<<<<<< HEAD
-<span class="gr">Out[33]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x12776e450</span><span class="o">&gt;</span>
-=======
-<span class="gr">Out[33]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x27071790</span><span class="o">&gt;</span>
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
+<span class="gr">Out[33]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x115889250</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
@@ -421,11 +403,7 @@ tutorial.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
->>>>>>> bf7128461693731249ec3be4df151f2ead830468
     </div>
   </body>
 </html>
