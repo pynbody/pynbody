@@ -55,4 +55,4 @@ These tutorials are likely to be of interest only in special cases.
 .. toctree::
 
    Performance issues <performance>
-   Configuration <configuration>
+   Configuring Pynbody <configuration>

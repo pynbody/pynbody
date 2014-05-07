@@ -70,7 +70,65 @@
             
   <div class="section" id="configuring-pynbody">
 <span id="configuration"></span><h1>Configuring pynbody<a class="headerlink" href="#configuring-pynbody" title="Permalink to this headline">¶</a></h1>
-<p>Sorry this page is just a placeholder at the moment.</p>
+<p>Pynbody uses a flexible configuration system through the standard
+Python <a class="reference external" href="https://docs.python.org/2/library/configparser.html">ConfigParser</a> class. The
+default configuration is stored in <tt class="docutils literal"><span class="pre">default_config.ini</span></tt> in the
+pynbody installation directory. The options can be overriden by
+placing a <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> file in the home directory and specifying
+different values for configuration parameters. The configuration file
+sets up basic things like particle family names, whether to use
+mutlithreading, default base units etc.</p>
+<p>To find <tt class="docutils literal"><span class="pre">default_config.ini</span></tt>, you can type</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+
+<span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">__path__</span>
+<span class="go"> Out[2]: [&#39;/Users/rokstar/python/pynbody&#39;]</span>
+</pre></div>
+</div>
+<p>to find the <cite>pynbody</cite> installation directory. The
+<tt class="docutils literal"><span class="pre">default_config.ini</span></tt> can be found there. Most of the options are
+explained in the file itself, and in order to use a different default,
+you simply override the option in <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt>. For example, if I
+want to change how many threads <cite>pynbody</cite> should use, I would put in
+<tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt>:</p>
+<div class="highlight-python"><pre>[general]
+
+number_of_threads: 10</pre>
+</div>
+<p>Some options can also be changed at runtime. You can check which ones
+with</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span>
+<span class="go"> Out[3]: </span>
+<span class="go">{&#39;centering-scheme&#39;: &#39;ssc&#39;,</span>
+<span class="go"> &#39;default-cosmology&#39;: {&#39;a&#39;: 1.0,</span>
+<span class="go">  &#39;h&#39;: 0.704,</span>
+<span class="go">  &#39;omegaL0&#39;: 0.728,</span>
+<span class="go">  &#39;omegaM0&#39;: 0.272,</span>
+<span class="go">  &#39;sigma8&#39;: 0.809},</span>
+<span class="go"> &#39;disk-fit-function&#39;: &#39;expsech&#39;,</span>
+<span class="go"> &#39;gravity_calculation_mode&#39;: &#39;direct_omp&#39;,</span>
+<span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.GrpCatalogue,</span>
+<span class="go">  pynbody.halo.AmigaGrpCatalogue,</span>
+<span class="go">  pynbody.halo.AHFCatalogue,</span>
+<span class="go">  pynbody.halo.SubfindCatalogue],</span>
+<span class="go"> &#39;number_of_threads&#39;: 4,</span>
+<span class="go"> &#39;snap-class-priority&#39;: [pynbody.ramses.RamsesSnap,</span>
+<span class="go">  pynbody.grafic.GrafICSnap,</span>
+<span class="go">  pynbody.nchilada.NchiladaSnap,</span>
+<span class="go">  pynbody.gadget.GadgetSnap,</span>
+<span class="go">  pynbody.gadgethdf.GadgetHDFSnap,</span>
+<span class="go">  pynbody.tipsy.TipsySnap],</span>
+<span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 32, &#39;tree-leafsize&#39;: 16},</span>
+<span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
+<span class="go"> &#39;tracktime&#39;: True,</span>
+<span class="go"> &#39;verbose&#39;: True}</span>
+</pre></div>
+</div>
+<p>If you wanted to, for example, change how many particles are being
+used to estimate sph kernel quantities, you could do</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">64</span>
+</pre></div>
+</div>
 </div>
 
 
@@ -128,11 +186,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
->>>>>>> 2d2445540b659116be3c39b1676035b08b04d5dd
     </div>
   </body>
 </html>
