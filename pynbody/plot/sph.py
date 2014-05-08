@@ -51,7 +51,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z = False, filename=None, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False, fill_nan = True, fill_val=0.0,
+          noplot = False, ret_im=False, fill_nan = True, fill_val=0.0, linthresh=None,
           **kwargs) :
     """
 
@@ -108,7 +108,9 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     *fill_val* (0.0): the fill value to use when replacing NaNs
     
-    
+    *linthresh* (None): if the image has negative and positive values
+     and a log scaling is requested, the part between `-linthresh` and
+     `linthresh` is shown on a linear scale to avoid divergence at 0
     """
 
     if not noplot:
@@ -189,7 +191,6 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             im = im/im2
          
     else :
-
         im = sph.render_image(sim,qty,width/2,resolution,out_units=units, 
                                       kernel = kernel,  z_camera = z_camera, **kwargs)
 
@@ -198,20 +199,29 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     if log :
         try:
-            im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
+            im[np.where(im==0)] = abs(im[np.where(abs(im!=0))]).min()
         except ValueError:
             raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
-        im = np.log10(im)
+        # check if there are negative values -- if so, use the symmetric log normalization
+        if (im < 0).any() : 
+            # need to set the linear regime around zero -- set to by default start at 1/1000 of the log range
+            if linthresh is None: linthresh = np.nanmax(abs(im))/1000. 
+            norm = p.matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
+        else : 
+            norm = p.matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
+        #im = np.log10(im)
+    else : 
+        norm = p.matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
 
     if not noplot:
         if clear and not subplot : p.clf()
 
         if ret_im:
-            return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-                     vmin=vmin, vmax=vmax, cmap=cmap)
+            return p.imshow(im[::-1,:].view(np.ndarray),extent=(-width/2,width/2,-width/2,width/2), 
+                     vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
 
-        ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-                       vmin=vmin, vmax=vmax, cmap=cmap)
+        ims = p.imshow(im[::-1,:].view(np.ndarray),extent=(-width/2,width/2,-width/2,width/2), 
+                       vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
 
         u_st = sim['pos'].units.latex()
         if not subplot:
@@ -224,11 +234,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if units is None :
             units = im.units
        
-
-        if log :
-            units = r"$\log_{10}\,"+units.latex()+"$"
-        else :
-            units = "$"+units.latex()+"$"
+        units = "$"+units.latex()+"$"
 
         if show_cbar:
             if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)

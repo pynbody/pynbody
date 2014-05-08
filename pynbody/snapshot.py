@@ -593,6 +593,73 @@ class SimSnap(object):
                 d[x] = self.properties[x]
         return d
 
+    def set_units_system(self, velocity = None, distance = None, mass = None, temperature = None) : 
+        """Set the unit system for the snapshot by specifying any or
+        all of `velocity`, `distance`, `mass` and `temperature`
+        units. The units can be given as strings or as pynbody `Unit`
+        objects.
+
+        If any of the units are not specified and a previous
+        `file_units_system` does not exist, the defaults are used.
+        """
+        from . import config_parser
+        import ConfigParser
+
+        # if the units system doesn't exist (if this is a new snapshot), create one
+        if len(self._file_units_system) < 3 : 
+            warnings.warn("Previous unit system incomplete -- using defaults")
+            self._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+        
+        else : 
+            # we want to change the base units -- so convert to original
+            # units first and then set all arrays to new unit system
+            self.original_units()
+
+        new_units = []
+        for x in [velocity,distance,mass,temperature] : 
+            if x is not None : 
+                new_units.append(units.Unit(x))
+
+        new_system = list(self._file_units_system)
+
+        for i,x in enumerate(new_system) :
+            if x is units.K : continue
+            try : 
+                d = x.dimensional_project(new_units)
+                new_system[i] = reduce(lambda x, y: x*y, [
+                          a**b for a, b in zip(new_units, d)])
+
+            except units.UnitsException :
+                pass
+
+        # check that the new unit system is linearly independent
+        for test in ['kpc','Msol','km s^-1'] : 
+            test = units.Unit(test)
+            try : 
+                test.dimensional_project(new_system)
+            except units.UnitsException : 
+                raise units.UnitsException("New units are not linearly independent")
+        
+        self._file_units_system = new_system
+        
+        # set new units for all known arrays
+        for arr_name in self.keys() : 
+            arr = self[arr_name]
+            # if the array has units, then use the current units, else
+            # check if a default dimension for this array exists in
+            # the configuration
+            if arr.units != units.NoUnit() :
+                ref_unit = arr.units
+            else : 
+                try : 
+                    ref_unit = config_parser.get('default-array-dimensions',arr_name) 
+                except ConfigParser.NoOptionError : 
+                    # give up -- no applicable dimension found
+                    continue
+                    
+            arr.set_units_like(ref_unit)
+
+
     def original_units(self):
         """Converts all arrays'units to be consistent with the units of
         the original file."""
@@ -966,7 +1033,6 @@ class SimSnap(object):
             shared = self._shared_arrays
 
         new_array = array._array_factory(dims, dtype, zeros, shared)
-
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
         new_array.family = None
@@ -1413,8 +1479,7 @@ class SimSnap(object):
     def mean_by_mass(self, name):
         """Calculate the mean by mass of the specified array."""
         m = np.asanyarray(self["mass"])
-        ret = (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
-        ret.units = self[name].units
+        ret = array.SimArray((self[name].transpose()*m).transpose().mean(axis=0)/m.mean(), self[name].units)
 
         return ret
 
@@ -1658,7 +1723,7 @@ class SubSnap(SimSnap):
     def physical_units(self, *args, **kwargs):
         self.base.physical_units(*args, **kwargs)
 
-    def is_derived_array(self, v):
+    def is_derived_array(self, v, fam=None):
         return self.base.is_derived_array(v)
 
     def unlink_array(self, name):

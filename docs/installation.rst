@@ -1,9 +1,8 @@
 .. summary How to install pynbody
 
-
 .. _pynbody-installation: 
 
-Pynbody Installation 
+Pynbody Installation
 ====================
 
 Nothing makes us happier than a new pynbody user, so we hope that your
@@ -19,7 +18,7 @@ If you are already a regular python/numpy/scipy user
 ----------------------------------------------------
 Either:
 
-1. If you have have `setuptools <http://pypi.python.org/pypi/setuptools>`_ installed, just type ``easy_install pynbody``. 
+1. you can try to install it using `pip`: ``pip install --allow-all-external pynbody``. 
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
@@ -46,6 +45,16 @@ You must have:
     `matplotlib` do.
 
   * The standard `numpy` (python numeric arrays) package.
+
+  * Standard development environment, i.e. compilers, libraries etc. On Mac OS that's usually Apple's XCode. 
+
+  * **Note for Mac OS X 10.8 and 10.9 users:** XCode no longer comes
+    with the `gcc` compiler and the `clang` compiler doesn't support
+    OpenMP -- if you want to take advantage of some parallelized
+    sections of the code, you need to install the OpenMP
+    implementation for `clang` from
+    http://clang-omp.github.io/#try-openmp-clang *or* install the
+    `gcc` compiler using `homebrew <http://brew.sh/>`_.
 
 You will probably also want
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -158,8 +167,8 @@ Choose one of the three options below.  Any of the three options can
 be made to work. The first is easiest, the last is hardest; so if you
 don't have a strong reason to do otherwise, we'd recommend option (a).
 
-Option (a): enthought python 
-""""""""""""""""""""""""""""
+Option (a): enthought or anaconda python 
+"""""""""""""""""""""""""""""""""""""""""
 
 If you are at an academic institution (which is likely the case if you
 are installing pynbody) then the `Enthought python bundle
@@ -170,6 +179,12 @@ them with your email address to get a download link. It installs
 *everything* you need including the core python, numpy, scipy,
 matplotlib and other libraries. See the full
 `package index <http://www.enthought.com/products/epdlibraries.php>`_.
+
+A similar solution is the `Anaconda Python
+<https://store.continuum.io/cshop/anaconda/>`_ bundle from Continuum
+Analytics that comes with a nice and easy to use package manager
+`conda`. They also provide free licenses for academic use. 
+
 
 Option (b): python's official python
 """"""""""""""""""""""""""""""""""""
@@ -217,12 +232,32 @@ This is in general not the preferred python solution.
 Install pynbody
 ---------------
 
-You should be able to type, in your shell, `easy_install pynbody` and
-everything will happen automatically. 
+You should be able to type, in your shell:
+
+::
+
+   pip install --allow-all-external pynbody
+
+and everything should happen automatically. Note that this will give
+you whatever the latest snapshot we made happens to be. `Pynbody` is
+hosted in a `git repository <https://github.com/pynbody/pynbody>`_ and
+is constantly being updated as new bugs are found or new features
+added. If you want to use `pip` to install the freshest version from
+the git repository and not worry about the details of the installation
+process, you can do
+
+::
+ 
+   pip install git+git://github.com/pynbody/pynbody 
+
+and it should clone the git repository and run the install. You will
+need to have `git <https:http://git-scm.com/>`_ installed though it
+will most likely already be available on your system.
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
-If you don't have `easy_install` here is how you can do it manually.
+If you don't have `pip` or if you want to develop `pynbody` here is
+how you can do it manually.
 
 First, clone the `git repository from
 Github <https://github.com/pynbody/pynbody>`_.  Pynbody uses `git
@@ -254,11 +289,51 @@ If this yields no errors, you are done!
   it. The `git documentation <http://git-scm.com/doc>`_ is quite good
   and it's worth a read through Chapter 3 on branching.
 
+
+
+
+Upgrading your installation and testing features or bug-fixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you want to use the most recent version from the repository because
+a crucial bug has just been fixed, for example, you can easily update
+your installation. If you installed using `pip` to begin with, simply
+do
+
+::
+
+   pip install git+git://github.com/pynbody/pynbody 
+
+If you cloned the git repository and installed manually, go into the top-level `pynbody` source directory (the one with ``setup.py`` in it) and do : 
+
+:: 
+
+   git checkout master  # make sure you are on the master branch
+   git pull origin master 
+   python setup.py install 
+
+
+If you are testing a new feature or a bug fix that resides in a branch
+other than `master` this procedure is slightly different:
+
+::
+
+   git fetch
+   git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
+   python setup.py install
+
+When you install a new version of the code and you already have a
+python session active with `pynbody` loaded, you have to (carefully)
+reload all of the affected `pynbody` modules. The safest is to just
+quit and restart the python session if you're not sure.
+   
+
 Open your simulation and start analyzing
 ----------------------------------------
 
 Check out the rest of the :ref:`tutorials section <tutorials>` and
 especially the :ref:`data-access` to get going.
+
 
 
 Updating Code

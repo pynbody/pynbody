@@ -97,7 +97,7 @@ class Profile:
 
     *magnitudes* : magnitudes in each bin - default band = 'v' 
 
-    *sb*         : surface brightness (default band='v')
+    *sb*         : surface brightness - default band = 'v'
     
 
     Additional functions should use the profile_property to yield the
@@ -110,17 +110,17 @@ class Profile:
 
     **Dispersions:**
     
-    To obtain a dispersion profile, attach a '_disp' after the desired
+    To obtain a dispersion profile, attach a `_disp` after the desired
     quantity name.
 
     **RMS:**
     
-    The root-mean-square of a quantity can be obtained by using a '_rms' suffix
+    The root-mean-square of a quantity can be obtained by using a `_rms` suffix
 
     **Derivatives:**
     
-    To compute a derivative of a profile, prepend a "d_" to the
-    profile string, as in "p['d_temp']" to get a temperature gradient.
+    To compute a derivative of a profile, prepend a `d_` to the
+    profile string, as in `p['d_temp']` to get a temperature gradient.
 
     **Saving and loading previously generated profiles:**
     
@@ -571,88 +571,6 @@ def density(self):
     """
     if pynbody.config['verbose'] : print 'Profile: density()'
     return self['mass']/self._binsize
-
-@Profile.profile_property
-def vel_disp(self):
-    """
-    Generate profile of 3D velocity dispersion
-    """
-    if pynbody.config['verbose']: print 'Profile: vel_disp()'
-    vel_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
-
-    with self.sim.immediate_mode:
-        pvel = self.sim['vel'].view(np.ndarray)
-
-    for i in range(self.nbins):
-        vel_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean(axis=0))**2).sum()
-    vel_disp /= self['n']
-    empty = np.where(self['n'] == 0)
-    vel_disp[empty] = np.zeros(len(empty))
-    vel_disp.sim = self.sim
-
-    return vel_disp
-
-@Profile.profile_property
-def vz_disp(self):
-    """
-    Generate profile of dispersion of z-component of velocity
-    """
-    if pynbody.config['verbose']: print 'Profile: vz_disp()'
-    vz_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
-
-    with self.sim.immediate_mode:
-        pvel = self.sim['vz'].view(np.ndarray)
-
-    for i in range(self.nbins):
-        vz_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean())**2).sum()
-    vz_disp /= self['n']
-    empty = np.where(self['n'] == 0)
-    vz_disp[empty] = np.zeros(len(empty))
-    vz_disp.sim = self.sim
-
-    return vz_disp
-
-@Profile.profile_property
-def vrxy_disp(self):
-    """
-    Generate profile of dispersion of radial velocity component in
-    cylindrical coordinates
-    """
-    if pynbody.config['verbose']: print 'Profile: vrxy_disp()'
-    vrxy_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
-
-    with self.sim.immediate_mode:
-        pvel = self.sim['vrxy'].view(np.ndarray)
-
-    for i in range(self.nbins):
-        vrxy_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean())**2).sum()
-    vrxy_disp /= self['n']
-    empty = np.where(self['n'] == 0)
-    vrxy_disp[empty] = np.zeros(len(empty))
-    vrxy_disp.sim = self.sim
-
-    return vrxy_disp
-
-@Profile.profile_property
-def vcxy_disp(self):
-    """
-    Generate profile of dispersion of circular velocity component in
-    cylindrical coordinates
-    """
-    if pynbody.config['verbose']: print 'Profile: vcxy_disp()'
-    vcxy_disp = array.SimArray(np.zeros(self.nbins), self.sim['vel'].units**2)
-
-    with self.sim.immediate_mode:
-        pvel = self.sim['vcxy'].view(np.ndarray)
-
-    for i in range(self.nbins):
-        vcxy_disp[i] = ((pvel[self.binind[i]] - pvel[self.binind[i]].mean())**2).sum()
-    vcxy_disp /= self['n']
-    empty = np.where(self['n'] == 0)
-    vcxy_disp[empty] = np.zeros(len(empty))
-    vcxy_disp.sim = self.sim
-
-    return vcxy_disp
 
 @Profile.profile_property
 def fourier(self):

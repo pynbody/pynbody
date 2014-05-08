@@ -4,10 +4,11 @@ pynbody
 [Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
 portable, format-transparent analysis framework for N-body and
 hydrodynamic astrophysical simulations supporting PKDGRAV/Gasoline,
-Gadget, N-Chilada, and RAMSES AMR outputs.
+Gadget, N-Chilada, and RAMSES AMR outputs. 
 
 Written in python, the core tools are accompanied by a library of
-publication-level analysis routines.
+publication-level analysis routines. For a quick tour of some of 
+the features, have a look at this [IPython notebook](http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo.ipynb).
 
 ### Getting started 
 
