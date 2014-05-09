@@ -32,7 +32,7 @@ The full documentation can be found
 
 ### Contributing 
 
-Help us make `pynbody` better! As you develop clever new analysis for your science with pynbody, consider making your code available for everyone else to use. You can do this by creating a [tutorial](http://pynbody.github.io/pynbody/tutorials/tutorials.html) or [cookbook](http://pynbody.github.io/pynbody/tutorials/tutorials.html#cookbook-recipes) or by adding your code to the relevant sub-module and submitting a pull request (make a fork first -- see https://help.github.com/articles/using-pull-requests). 
+Help us make *pynbody* better! As you develop clever new analysis for your science with pynbody, consider making your code available for everyone else to use. You can do this by creating a [tutorial](http://pynbody.github.io/pynbody/tutorials/tutorials.html) or [cookbook](http://pynbody.github.io/pynbody/tutorials/tutorials.html#cookbook-recipes) or by adding your code to the relevant sub-module and submitting a pull request (make a fork first -- see https://help.github.com/articles/using-pull-requests). 
 
 ### Support and Contact 
 
