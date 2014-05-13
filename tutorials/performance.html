@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Performance optimisation in pynbody &mdash; pynbody 0.18-alpha documentation</title>
+    <title>Performance optimisation in pynbody &mdash; pynbody 0.20-beta documentation</title>
     
     <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.18-alpha',
+        VERSION:     '0.20-beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="pynbody 0.18-alpha documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Configuring pynbody" href="configuration.html" />
     <link rel="prev" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
@@ -58,7 +58,7 @@
         <li class="right" >
           <a href="processing.html" title="Batch-processing Snapshots with Pynbody"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
           <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
       </ul>
     </div>  
@@ -178,12 +178,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 370 ms, sys: 8 ms, total: 378 ms</span>
-<span class="go">Wall time: 368 ms</span>
+<span class="go">CPU times: user 362 ms, sys: 3 ms, total: 365 ms</span>
+<span class="go">Wall time: 361 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 26 ms, sys: 4 ms, total: 30 ms</span>
-<span class="go">Wall time: 27 ms</span>
+<span class="go">CPU times: user 21 ms, sys: 4 ms, total: 25 ms</span>
+<span class="go">Wall time: 24.6 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -342,12 +342,12 @@ any unit handling code being called.</p>
         <li class="right" >
           <a href="processing.html" title="Batch-processing Snapshots with Pynbody"
              >previous</a> |</li>
-        <li><a href="../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
           <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+        &copy; Copyright 2011-14, pynbody team https://github.com/orgs/pynbody/members.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
