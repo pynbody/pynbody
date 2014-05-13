@@ -26,6 +26,7 @@ import warnings
 import threading
 import re
 import gc
+import traceback
 
 from units import has_units
 
@@ -1506,7 +1507,6 @@ class SimSnap(object):
 
     @property
     def _inclusion_hash(self):
-        import traceback
         try:
             rval = self.__inclusion_hash
         except AttributeError:
