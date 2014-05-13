@@ -133,14 +133,16 @@ class PowerSpectrumCAMB(object) :
 
         self._log_interp = log_interpolation
         
-        if log_interpolation :
+        self._init_interpolation()
+            
+        self.set_sigma8(context.properties['sigma8'])    
+            
+    def _init_interpolation(self) :
+        if self._log_interp :
             self._interp = scipy.interpolate.interp1d(np.log(self.k), np.log(self.Pk))
         else :
             self._interp = scipy.interpolate.interp1d(np.log(self.k), self.Pk)
             
-        self.set_sigma8(context.properties['sigma8'])    
-            
-
     def set_sigma8(self, sigma8) :
         current_sigma8_2 = self.get_sigma8()**2
         self._norm*=sigma8**2/current_sigma8_2
