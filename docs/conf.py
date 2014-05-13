@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pynbody'
-copyright = u'2011-14, pynbody team https://github.com/orgs/pynbody/members'
+copyright = u'2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -227,7 +227,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'pynbody', u'pynbody Documentation',
-     [u'pynbody team (http://code.google.com/p/pynbody/people/list)'], 1)
+     [u'pynbody team (https://github.com/pynbody/pynbody/graphs/contributors)'], 1)
 ]
 
 autodoc_member_order = 'bysource'
