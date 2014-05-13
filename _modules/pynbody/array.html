@@ -1142,7 +1142,7 @@
             <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">output</span>
 
-    <span class="k">def</span> <span class="nf">shared_array_remote</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="shared_array_remote"><a class="viewcode-back" href="../../essentials.html#pynbody.array.shared_array_remote">[docs]</a>    <span class="k">def</span> <span class="nf">shared_array_remote</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;A decorator for functions returning a new function that is</span>
 <span class="sd">        suitable for use remotely. Inputs to and outputs from the function</span>
 <span class="sd">        can be transferred efficiently if they are backed onto shared</span>
@@ -1166,8 +1166,8 @@
         <span class="n">new_fn</span><span class="o">.</span><span class="n">__pynbody_remote_array__</span> <span class="o">=</span> <span class="bp">True</span>
 
         <span class="k">return</span> <span class="n">new_fn</span>
-
-    <span class="k">def</span> <span class="nf">remote_map</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">iterables</span><span class="p">)</span> <span class="p">:</span>
+</div>
+<div class="viewcode-block" id="remote_map"><a class="viewcode-back" href="../../essentials.html#pynbody.array.remote_map">[docs]</a>    <span class="k">def</span> <span class="nf">remote_map</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">iterables</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;A replacement for python&#39;s in-built map function, sending out tasks</span>
 <span class="sd">        to the pool and performing the magic required to transport shared memory arrays</span>
 <span class="sd">        correctly. The function *fn* must be wrapped with the *shared_array_remote*</span>
@@ -1181,9 +1181,9 @@
             <span class="k">raise</span> <span class="ne">KeyboardInterrupt</span>
         <span class="k">return</span> <span class="n">_recursive_shared_array_reconstruct</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
-
+</div>
     <span class="nd">@atexit.register</span>
-    <span class="k">def</span> <span class="nf">exit_cleanup</span><span class="p">()</span> <span class="p">:</span>
+<div class="viewcode-block" id="exit_cleanup"><a class="viewcode-back" href="../../essentials.html#pynbody.array.exit_cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">exit_cleanup</span><span class="p">()</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Clean up any shared memory that has not yet been freed. In</span>
 <span class="sd">        theory this should not be required, but it is here as a safety</span>
 <span class="sd">        net.&quot;&quot;&quot;</span>
@@ -1195,7 +1195,7 @@
                 <span class="n">posix_ipc</span><span class="o">.</span><span class="n">unlink_shared_memory</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
             <span class="k">except</span> <span class="p">(</span><span class="n">posix_ipc</span><span class="o">.</span><span class="n">ExistentialError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="p">:</span>
                 <span class="k">pass</span>
-</pre></div>
+</pre></div></div>
 
           </div>
         </div>
@@ -1234,7 +1234,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>

@@ -169,7 +169,8 @@ axes and a colorbar. However, one can use the x-y array and <a class="reference 
 <h2>Common issues<a class="headerlink" href="#common-issues" title="Permalink to this headline">¶</a></h2>
 <p><a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is prone to a number of common errors
 when being used by new users. Probably the most common is</p>
-<div class="highlight-python"><pre>ValueError: zero-size array to minimum.reduce without identity</pre>
+<div class="highlight-python"><div class="highlight"><pre>ValueError: zero-size array to minimum.reduce without identity
+</pre></div>
 </div>
 <p>This can come about in a number of circumstances, but essentially it
 means that there were not enough particles in the region that was being
@@ -179,7 +180,8 @@ no longer be an issue. In older versions of pynbody, the width parameter
 assumed kpc, so if the simulation distances were in e.g. &#8220;au&#8221;, this could
 cause a problem).</p>
 <p>Another common error is the following:</p>
-<div class="highlight-python"><pre>TypeError: 'int' object does not support item assignment</pre>
+<div class="highlight-python"><div class="highlight"><pre>TypeError: &#39;int&#39; object does not support item assignment
+</pre></div>
 </div>
 <p>which occurs when the returned image from the kernel is a singular value
 rather than an array. In this case, the issue was because the kernel did
@@ -258,7 +260,7 @@ star particles.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>

@@ -148,7 +148,7 @@ configuration like this:</p>
 <span class="go">  pynbody.gadgethdf.GadgetHDFSnap,</span>
 <span class="go">  pynbody.tipsy.TipsySnap],</span>
 <span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 64, &#39;tree-leafsize&#39;: 16},</span>
-<span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
+<span class="go"> &#39;threading&#39;: &#39;True&#39;,</span>
 <span class="go"> &#39;tracktime&#39;: True,</span>
 <span class="go"> &#39;verbose&#39;: True}</span>
 </pre></div>
@@ -167,8 +167,9 @@ on 30 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
 <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>.</p>
 <p>If you want to make your configuration changes permanent, create a file called <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> in your home directory with the lines</p>
-<div class="highlight-python"><pre>gravity_calculation_mode: direct_omp
-number_of_threads: 30</pre>
+<div class="highlight-python"><div class="highlight"><pre>gravity_calculation_mode: direct_omp
+number_of_threads: 30
+</pre></div>
 </div>
 <p>See the file <tt class="docutils literal"><span class="pre">default_config.ini</span></tt> in the pynbody source distribution
 for other options.</p>
@@ -238,7 +239,7 @@ for other options.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>

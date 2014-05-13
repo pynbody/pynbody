@@ -296,6 +296,33 @@ self.ndim &lt; 2.</p>
 <dd><p>x.__ge__(y) &lt;==&gt; x&gt;=y</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="pynbody.array.shared_array_remote">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">shared_array_remote</tt><big>(</big><em>fn</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#shared_array_remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.shared_array_remote" title="Permalink to this definition">¶</a></dt>
+<dd><p>A decorator for functions returning a new function that is
+suitable for use remotely. Inputs to and outputs from the function
+can be transferred efficiently if they are backed onto shared
+memory. Ownership of any shared memory returned by the function
+is transferred.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.array.remote_map">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">remote_map</tt><big>(</big><em>pool</em>, <em>fn</em>, <em>*iterables</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#remote_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.remote_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>A replacement for python&#8217;s in-built map function, sending out tasks
+to the pool and performing the magic required to transport shared memory arrays
+correctly. The function <em>fn</em> must be wrapped with the <em>shared_array_remote</em>
+decorator to interface correctly with this magic.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.array.exit_cleanup">
+<tt class="descclassname">pynbody.array.</tt><tt class="descname">exit_cleanup</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#exit_cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.exit_cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up any shared memory that has not yet been freed. In
+theory this should not be required, but it is here as a safety
+net.</p>
+</dd></dl>
+
 </div>
 </div>
 <span class="target" id="module-pynbody.simdict"></span><div class="section" id="simdict">
@@ -501,7 +528,7 @@ to the ancestor <em>relative_to</em>, such that relative_to[get_index_list(relat
 
 <dl class="method">
 <dt id="pynbody.snapshot.SimSnap.intersect">
-<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x105dac668&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x3836b90&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the set intersection of this simulation view with another view
 of the same simulation</p>
 </dd></dl>
@@ -1140,7 +1167,7 @@ three values:</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>
