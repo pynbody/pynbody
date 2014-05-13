@@ -15,14 +15,21 @@ and you end up using it for your scientific work, please see
 
 
 If you are already a regular python/numpy/scipy user
-----------------------------------------------------
-Either:
+---------------------------------------------------- 
 
-1. you can try to install it using `pip`: ``pip install --allow-all-external pynbody``. 
+`Pynbody` is in regular development and bugs are constantly being
+fixed. We therefore recommend that you stay up to date with the code
+and use the snapshots from the git repository rather than any
+particular release version.
+
+If you have `pip` and `distutils` installed, you can make `pip` fetch the
+repository for you and do the installation:
+
+1. ``pip install git+git://github.com/pynbody/pynbody.git`` 
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
-Or:
+If this doesn't work or you want to clone the repo and keep it around, you can 
 
 2. Follow the instructions in the :ref:`install-pynbody` section
 
@@ -232,35 +239,22 @@ This is in general not the preferred python solution.
 Install pynbody
 ---------------
 
-You should be able to type, in your shell:
+You can try to type, in your shell:
 
 ::
 
-   pip install --allow-all-external pynbody
+   pip install git+git://github.com/pynbody/pynbody.git
 
-and everything should happen automatically. Note that this will give
-you whatever the latest snapshot we made happens to be. `Pynbody` is
-hosted in a `git repository <https://github.com/pynbody/pynbody>`_ and
-is constantly being updated as new bugs are found or new features
-added. If you want to use `pip` to install the freshest version from
-the git repository and not worry about the details of the installation
-process, you can do
-
-::
- 
-   pip install git+git://github.com/pynbody/pynbody 
-
-and it should clone the git repository and run the install. You will
-need to have `git <https:http://git-scm.com/>`_ installed though it
-will most likely already be available on your system.
+and everything should happen automatically. This will give you
+whatever the latest code from the `git repository <https://github.com/pynbody/pynbody>`_. 
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
 
 If you don't have `pip` or if you want to develop `pynbody` here is
 how you can do it manually.
 
-First, clone the `git repository from
-Github <https://github.com/pynbody/pynbody>`_.  Pynbody uses `git
+First, clone the `git repository from Github
+<https://github.com/pynbody/pynbody>`_. Pynbody uses `git
 <http://git-scm.com/>`_ for development:
 
 0. `git` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
@@ -277,18 +271,22 @@ Github <https://github.com/pynbody/pynbody>`_.  Pynbody uses `git
 
 Now the package is installed wherever your python packages reside and should be importable from within python:
 
-6. ``$ python``
+6. ``$ cd ~``
 
-7. ``>>> import pynbody``
+7. ``$ python``
+
+8. ``>>> import pynbody``
 
 If this yields no errors, you are done! 
-
+  
 .. note:: 
-  If you plan on joining the development efforts and you are unfamiliar
-  with git, we recommend that you spend some time getting familiar with
-  it. The `git documentation <http://git-scm.com/doc>`_ is quite good
-  and it's worth a read through Chapter 3 on branching.
-
+   If you plan on joining the development efforts and you are
+   unfamiliar with git, we recommend that you spend some time getting
+   familiar with it. The `git documentation <http://git-scm.com/doc>`_
+   is quite good and it's worth a read through Chapter 3 on
+   branching. You may also choose to `fork the repo
+   <https://help.github.com/articles/fork-a-repo>`_ if you already
+   have a `github <http://github.com>`_ account.
 
 
 
@@ -304,7 +302,9 @@ do
 
    pip install git+git://github.com/pynbody/pynbody 
 
-If you cloned the git repository and installed manually, go into the top-level `pynbody` source directory (the one with ``setup.py`` in it) and do : 
+If you cloned or forked the git repository and installed manually, go
+into the top-level `pynbody` source directory (the one with
+``setup.py`` in it) and do :
 
 :: 
 
