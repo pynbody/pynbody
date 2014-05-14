@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.analysis.hmf &mdash; pynbody 0.18-alpha documentation</title>
+    <title>pynbody.analysis.hmf &mdash; pynbody 0.20-beta documentation</title>
     
     <link rel="stylesheet" href="../../../_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.18-alpha',
+        VERSION:     '0.20-beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <link rel="top" title="pynbody 0.18-alpha documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.20-beta documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
  
 <script type="text/javascript">
@@ -50,7 +50,7 @@
         <li class="right" >
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+        <li><a href="../../../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
           <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
       </ul>
     </div>  
@@ -196,14 +196,16 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_log_interp</span> <span class="o">=</span> <span class="n">log_interpolation</span>
         
-        <span class="k">if</span> <span class="n">log_interpolation</span> <span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_interpolation</span><span class="p">()</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_sigma8</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;sigma8&#39;</span><span class="p">])</span>    
+            
+    <span class="k">def</span> <span class="nf">_init_interpolation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_interp</span> <span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_interp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Pk</span><span class="p">))</span>
         <span class="k">else</span> <span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_interp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pk</span><span class="p">)</span>
             
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_sigma8</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;sigma8&#39;</span><span class="p">])</span>    
-            
-
     <span class="k">def</span> <span class="nf">set_sigma8</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma8</span><span class="p">)</span> <span class="p">:</span>
         <span class="n">current_sigma8_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sigma8</span><span class="p">()</span><span class="o">**</span><span class="mi">2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_norm</span><span class="o">*=</span><span class="n">sigma8</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">current_sigma8_2</span>
@@ -761,12 +763,12 @@
         <li class="right" >
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../../index.html">pynbody 0.18-alpha documentation</a> &raquo;</li>
+        <li><a href="../../../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
           <li><a href="../../index.html" >Module code</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>

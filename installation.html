@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Pynbody Installation &mdash; pynbody 0.18-alpha documentation</title>
+    <title>Pynbody Installation &mdash; pynbody 0.20-beta documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.18-alpha',
+        VERSION:     '0.20-beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="pynbody 0.18-alpha documentation" href="index.html" />
+    <link rel="top" title="pynbody 0.20-beta documentation" href="index.html" />
  
 <script type="text/javascript">
 
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+        <li><a href="index.html">pynbody 0.20-beta documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -69,15 +69,20 @@ and you end up using it for your scientific work, please see
 <a class="reference internal" href="index.html#acknowledging-pynbody"><em>Acknowledging Pynbody in Scientific Publications</em></a>. Enjoy!</p>
 <div class="section" id="if-you-are-already-a-regular-python-numpy-scipy-user">
 <h2>If you are already a regular python/numpy/scipy user<a class="headerlink" href="#if-you-are-already-a-regular-python-numpy-scipy-user" title="Permalink to this headline">¶</a></h2>
-<p>Either:</p>
+<p><cite>Pynbody</cite> is in regular development and bugs are constantly being
+fixed. We therefore recommend that you stay up to date with the code
+and use the snapshots from the git repository rather than any
+particular release version.</p>
+<p>If you have <cite>pip</cite> and <cite>distutils</cite> installed, you can make <cite>pip</cite> fetch the
+repository for you and do the installation:</p>
 <ol class="arabic simple">
-<li>you can try to install it using <cite>pip</cite>: <tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--allow-all-external</span> <span class="pre">pynbody</span></tt>.</li>
+<li><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">git+git://github.com/pynbody/pynbody.git</span></tt></li>
 </ol>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">If your distutils are not installed properly and you don&#8217;t have root permissions, this will fail &#8211; see <a class="reference internal" href="#distutils"><em>Setup Python Distutils</em></a>.</p>
 </div>
-<p>Or:</p>
+<p>If this doesn&#8217;t work or you want to clone the repo and keep it around, you can</p>
 <ol class="arabic simple" start="2">
 <li>Follow the instructions in the <a class="reference internal" href="#install-pynbody"><em>Install pynbody</em></a> section</li>
 </ol>
@@ -256,29 +261,18 @@ python that ships with your mac, you&#8217;ll need to manually compile
 </div>
 <div class="section" id="install-pynbody">
 <span id="id5"></span><h2>Install pynbody<a class="headerlink" href="#install-pynbody" title="Permalink to this headline">¶</a></h2>
-<p>You should be able to type, in your shell:</p>
-<div class="highlight-python"><pre>pip install --allow-all-external pynbody</pre>
+<p>You can try to type, in your shell:</p>
+<div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody.git</pre>
 </div>
-<p>and everything should happen automatically. Note that this will give
-you whatever the latest snapshot we made happens to be. <cite>Pynbody</cite> is
-hosted in a <a class="reference external" href="https://github.com/pynbody/pynbody">git repository</a> and
-is constantly being updated as new bugs are found or new features
-added. If you want to use <cite>pip</cite> to install the freshest version from
-the git repository and not worry about the details of the installation
-process, you can do</p>
-<div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody</pre>
-</div>
-<p>and it should clone the git repository and run the install. You will
-need to have <a class="reference external" href="https:http://git-scm.com/">git</a> installed though it
-will most likely already be available on your system.</p>
+<p>and everything should happen automatically. This will give you
+whatever the latest code from the <a class="reference external" href="https://github.com/pynbody/pynbody">git repository</a>.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">If your distutils are not installed properly and you don&#8217;t have root permissions, this will fail &#8211; see <a class="reference internal" href="#distutils"><em>Setup Python Distutils</em></a>.</p>
 </div>
 <p>If you don&#8217;t have <cite>pip</cite> or if you want to develop <cite>pynbody</cite> here is
 how you can do it manually.</p>
-<p>First, clone the <a class="reference external" href="https://github.com/pynbody/pynbody">git repository from
-Github</a>.  Pynbody uses <a class="reference external" href="http://git-scm.com/">git</a> for development:</p>
+<p>First, clone the <a class="reference external" href="https://github.com/pynbody/pynbody">git repository from Github</a>. Pynbody uses <a class="reference external" href="http://git-scm.com/">git</a> for development:</p>
 <ol class="arabic simple" start="0">
 <li><cite>git</cite> is probably already on your machine &#8211; try typing <tt class="docutils literal"><span class="pre">git</span></tt> from the shell. If it exists, go to step 2.</li>
 <li>get the appropriate binary from <a class="reference external" href="http://git-scm.com/downloads">http://git-scm.com/downloads</a> and install <cite>git</cite></li>
@@ -289,16 +283,19 @@ Github</a>.  Pynbody uses <a class="reference external" href="http://git-scm.com
 </ol>
 <p>Now the package is installed wherever your python packages reside and should be importable from within python:</p>
 <ol class="arabic simple" start="6">
+<li><tt class="docutils literal"><span class="pre">$</span> <span class="pre">cd</span> <span class="pre">~</span></tt></li>
 <li><tt class="docutils literal"><span class="pre">$</span> <span class="pre">python</span></tt></li>
 <li><tt class="docutils literal"><span class="pre">&gt;&gt;&gt;</span> <span class="pre">import</span> <span class="pre">pynbody</span></tt></li>
 </ol>
 <p>If this yields no errors, you are done!</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">If you plan on joining the development efforts and you are unfamiliar
-with git, we recommend that you spend some time getting familiar with
-it. The <a class="reference external" href="http://git-scm.com/doc">git documentation</a> is quite good
-and it&#8217;s worth a read through Chapter 3 on branching.</p>
+<p class="last">If you plan on joining the development efforts and you are
+unfamiliar with git, we recommend that you spend some time getting
+familiar with it. The <a class="reference external" href="http://git-scm.com/doc">git documentation</a>
+is quite good and it&#8217;s worth a read through Chapter 3 on
+branching. You may also choose to <a class="reference external" href="https://help.github.com/articles/fork-a-repo">fork the repo</a> if you already
+have a <a class="reference external" href="http://github.com">github</a> account.</p>
 </div>
 <div class="section" id="upgrading-your-installation-and-testing-features-or-bug-fixes">
 <h3>Upgrading your installation and testing features or bug-fixes<a class="headerlink" href="#upgrading-your-installation-and-testing-features-or-bug-fixes" title="Permalink to this headline">¶</a></h3>
@@ -306,9 +303,11 @@ and it&#8217;s worth a read through Chapter 3 on branching.</p>
 a crucial bug has just been fixed, for example, you can easily update
 your installation. If you installed using <cite>pip</cite> to begin with, simply
 do</p>
-<div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody</pre>
+<div class="highlight-python"><pre>pip install -I --no-deps git+git://github.com/pynbody/pynbody@master</pre>
 </div>
-<p>If you cloned the git repository and installed manually, go into the top-level <cite>pynbody</cite> source directory (the one with <tt class="docutils literal"><span class="pre">setup.py</span></tt> in it) and do :</p>
+<p>If you cloned or forked the git repository and installed manually, go
+into the top-level <cite>pynbody</cite> source directory (the one with
+<tt class="docutils literal"><span class="pre">setup.py</span></tt> in it) and do :</p>
 <div class="highlight-python"><pre>git checkout master  # make sure you are on the master branch
 git pull origin master
 python setup.py install</pre>
@@ -467,11 +466,11 @@ sudo python setup.py install</pre>
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="index.html">pynbody 0.18-alpha documentation</a> &raquo;</li> 
+        <li><a href="index.html">pynbody 0.20-beta documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011-13, pynbody team &lt;http://code.google.com/p/pynbody/people/list&gt;).
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
