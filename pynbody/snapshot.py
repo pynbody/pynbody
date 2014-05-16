@@ -1155,6 +1155,21 @@ class SimSnap(object):
         if array_name in derive_track:
             del derive_track[derive_track.index(array_name)]
 
+    def _get_from_immediate_cache(self, name, fn) :
+        """Retrieves the named numpy array from the immediate cache associated
+        with this snapshot. If the array does not exist in the immediate
+        cache, function fn is called with no arguments and must generate
+        it."""
+        
+        if not hasattr(self, '_immediate_cache'):
+                self._immediate_cache = [{}]
+        cache = self._immediate_cache[0]
+        hx = hash(name)
+        if hx not in cache:
+            cache[hx] = fn()
+
+        return cache[hx]
+                
     def _get_array(self, name, index=None, always_writable=False):
         """Get the array of the specified *name*, optionally
         for only the particles specified by *index*.
@@ -1203,8 +1218,11 @@ class SimSnap(object):
             if type(index) is slice:
                 x = x[index]
             else:
-                x = array.IndexedSimArray(x, index)
-
+                if _subarray_immediate_mode or self.immediate_mode :
+                    x = self._get_from_immediate_cache(name,
+                                                       lambda : x[index])
+                else :
+                    x = array.IndexedSimArray(x, index)
         return x
 
     def _set_array(self, name, value, index=None):
@@ -1617,15 +1635,9 @@ class SubSnap(SimSnap):
 
     def _get_array(self, name, index=None, always_writable=False):
         if _subarray_immediate_mode or self.immediate_mode:
-            hx = hash(name)
-            if not hasattr(self, '_immediate_cache'):
-                self._immediate_cache = [{}]
-            cache = self._immediate_cache[0]
-            if hx not in cache:
-                cache[hx] = self.base._get_array(
-                    name, None, always_writable)[self._slice]
-
-            return cache[hx]
+            return self._get_from_immediate_cache(name, 
+                   lambda : self.base._get_array(
+                            name, None, always_writable)[self._slice])
 
         else:
             ret = self.base._get_array(name, util.concatenate_indexing(
@@ -1642,17 +1654,10 @@ class SubSnap(SimSnap):
         sl = util.relative_slice(base_family_slice,
                                  util.intersect_slices(self._slice, base_family_slice, len(self.base)))
         sl = util.concatenate_indexing(sl, index)
-
         if _subarray_immediate_mode or self.immediate_mode:
-            hx = hash((name, fam))
-            if not hasattr(self, '_immediate_cache'):
-                self._immediate_cache = [{}]
-            cache = self._immediate_cache[0]
-
-            if hx not in cache:
-                cache[hx] = self.base._get_family_array(
-                    name, fam, None, always_writable)[sl]
-            return cache[hx]
+            return self._get_from_immediate_cache((name,fam),
+                                                  lambda : self.base._get_family_array(
+                        name, fam, None, always_writable)[sl])
         else:
             return self.base._get_family_array(name, fam, sl, always_writable)
 
