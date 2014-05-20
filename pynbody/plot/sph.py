@@ -197,23 +197,30 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     if fill_nan : 
         im[np.isnan(im)] = fill_val
 
-    if log :
-        try:
-            im[np.where(im==0)] = abs(im[np.where(abs(im!=0))]).min()
-        except ValueError:
-            raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
-        # check if there are negative values -- if so, use the symmetric log normalization
-        if (im < 0).any() : 
-            # need to set the linear regime around zero -- set to by default start at 1/1000 of the log range
-            if linthresh is None: linthresh = np.nanmax(abs(im))/1000. 
-            norm = p.matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
-        else : 
-            norm = p.matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
-        #im = np.log10(im)
-    else : 
-        norm = p.matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
-
     if not noplot:
+        
+        # set the log or linear normalizations        
+        if log :
+            try:
+                im[np.where(im==0)] = abs(im[np.where(abs(im!=0))]).min()
+            except ValueError:
+                raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
+
+            # check if there are negative values -- if so, use the symmetric log normalization
+            if (im < 0).any() : 
+
+                # need to set the linear regime around zero -- set to by default start at 1/1000 of the log range
+                if linthresh is None: linthresh = np.nanmax(abs(im))/1000. 
+                norm = p.matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
+            else : 
+                norm = p.matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
+
+        else : 
+            norm = p.matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+
+        #
+        # do the actual plotting
+        #
         if clear and not subplot : p.clf()
 
         if ret_im:
@@ -253,8 +260,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             
         if filename is not None:
             p.savefig(filename)
-            
-        
+               
         plt.draw()
         # plt.show() - removed by AP on 30/01/2013 - this should not be here as
         #              for some systems you don't get back to the command prompt
