@@ -46,6 +46,48 @@ def faceon_image(sim, *args, **kwargs) :
     angmom.faceon(sim)
     return image(sim, *args, **kwargs)
 
+def velocity_image(sim, width="10 kpc", vector_color='black',
+        vector_resolution=40, scale=None, key_x=0.3, key_y=0.9,
+        key_color='white', key_length="100 km s**-1", **kwargs):
+    """
+
+    Make an SPH image of the given simulation with velocity vectors overlaid on top.
+
+    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`.
+
+    **Keyword arguments:**
+
+    *vector_color* (black): The color for the velocity vectors
+
+    *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
+
+    *scale* (None): The length of a vector that would result in a displayed length of the
+    figure width/height.  
+
+    *key_x* (0.3): Display x (width) position for the vector key
+
+    *key_y* (0.9): Display y (height) position for the vector key
+
+    *key_color* (white): Color for the vector key
+
+    *key_length* (100 km/s): Velocity to use for the vector key
+
+    """
+
+    vx = image(sim, qty='vx', width=width, log=False, resolution=vector_resolution)
+    vy = image(sim, qty='vy', width=width, log=False, resolution=vector_resolution)
+    key_unit = _units.Unit(key_length)
+    width_unit = _units.Unit(width)
+    X,Y = np.meshgrid(np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution),
+            np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution)) 
+    im = image(sim, width=width, **kwargs)
+    if scale is None:
+        Q = p.quiver(X,Y,vx,vy, color=vector_color) 
+    else:
+        Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color) 
+    p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units),
+            r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
+    return im
 
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=None, 
