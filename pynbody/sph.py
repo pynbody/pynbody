@@ -260,12 +260,7 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
                                                                                                                          **snap.conversion_context())
 
     with snap.immediate_mode :
-        D = snap["r"]
-        h = snap["smooth"]
-        pos = snap["pos"]
-        mass = snap["mass"]
-        rho = snap["rho"]
-        qty = snap[qty]
+        D,h,pos,mass,rho,qtyar = [snap[x].view(np.ndarray) for x in 'r','smooth','pos','mass','rho',qty]
 
     
     
@@ -280,8 +275,6 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
         ivals = np.array([kernel.get_value(d)*d for d in dvals])
         integ = ivals.sum()*0.001
         weights[i] = 2*integ / (d1**2-d0**2)
-        
-        
   
     weights[:-1]-=weights[1:]
 
@@ -293,30 +286,30 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
         # den_fn = lambda i : [((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]
         print "done"
     elif kernel.h_power==2 :
-        ind = np.where(D<distance)
+        ind = np.where(D<distance)[0]
         
         # angular radius taken at distance of particle
-        rad_fn = lambda i : np.arctan(h[i]*ds/D[i])
-        
-    den_fn = lambda i : ((qty[i]*mass[i]/rho[i])) * weights / h[i]**kernel.h_power
-    norm_fn = lambda i : ((mass[i]/rho[i])*weights/h[i]**kernel.h_power)
+        rad = np.arctan(h[ind,np.newaxis]*ds[np.newaxis,:]/D[ind,np.newaxis])
 
-    print "Spherical image from",len(ind[0]),"particles"    
+    
+    den =  ((qtyar[ind]*mass[ind]/rho[ind]))[:,np.newaxis] * weights[np.newaxis,:] / h[ind,np.newaxis]**kernel.h_power
+    norm = ((mass[ind,np.newaxis]/rho[ind,np.newaxis])*weights[np.newaxis,:]/h[ind,np.newaxis]**kernel.h_power)
+
+    print "Spherical image from",len(ind),"particles"    
     im = np.zeros(hp.nside2npix(nside))
     im2 = np.zeros(len(im))
 
-    for i in ind[0] :
-        for r,w,w_norm in zip(rad_fn(i), den_fn(i),norm_fn(i)) :
+    for i in xrange(len(ind)) :
+        for r,w,w_norm in zip(rad[i], den[i],norm[i]) :
             if r==r : #ignore NaN's -- they just mean the current radius doesn't intersect our sphere
-                
-                i2 = query_disc(nside, pos[i], r,inclusive=False)
+                i2 = query_disc(nside, pos[ind[i]], r,inclusive=False)
                 im[i2]+=w
                 im2[i2]+=w_norm
 
     im = im.view(array.SimArray)
     if denoise :
         im/=im2
-    im.units = qty.units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
+    im.units = snap[qty].units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
     im.sim = snap
 
     if out_units is not None :
