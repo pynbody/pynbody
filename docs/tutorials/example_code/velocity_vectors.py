@@ -10,8 +10,8 @@ s.physical_units()
 h = s.halos()
 
 # center on the largest halo and align the disk
-pynbody.analysis.angmom.faceon(h[1])
+pynbody.analysis.angmom.sideon(h[1])
 
-#create a simple slice of gas density
-sph.image(h[1].g,qty="rho",units="g cm^-3",width=100,cmap="Greys")
+#create a simple slice showing the gas temperature, with velocity vectors overlaid
+sph.velocity_image(h[1].g, vector_color="cyan", qty="temp",width=50,cmap="YlOrRd", denoise=True,approximate_fast=False)
 

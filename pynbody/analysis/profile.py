@@ -48,6 +48,10 @@ class Profile:
 
     *nbins* (default = 100): number of bins
 
+    *bins* : array like - predefined bin edges in units of binning quantity. If this
+             keyword is set, the values of the keywords *type*, *nbins*, *min* and *max*
+             will be ignored
+
     *calc_x* (default = None): function to use to calculate the value
      for binning. If None it defaults to the radial distance from
      origin (in either 2 or 3 dimensions), ut you can specify this
@@ -93,7 +97,7 @@ class Profile:
 
     *magnitudes* : magnitudes in each bin - default band = 'v' 
 
-    *sb*         : surface brightness (default band='v')
+    *sb*         : surface brightness - default band = 'v'
     
 
     Additional functions should use the profile_property to yield the
@@ -106,17 +110,17 @@ class Profile:
 
     **Dispersions:**
     
-    To obtain a dispersion profile, attach a '_disp' after the desired
+    To obtain a dispersion profile, attach a `_disp` after the desired
     quantity name.
 
     **RMS:**
     
-    The root-mean-square of a quantity can be obtained by using a '_rms' suffix
+    The root-mean-square of a quantity can be obtained by using a `_rms` suffix
 
     **Derivatives:**
     
-    To compute a derivative of a profile, prepend a "d_" to the
-    profile string, as in "p['d_temp']" to get a temperature gradient.
+    To compute a derivative of a profile, prepend a `d_` to the
+    profile string, as in `p['d_temp']` to get a temperature gradient.
 
     **Saving and loading previously generated profiles:**
     
@@ -239,7 +243,9 @@ class Profile:
                 else: self.max = kwargs['max']
             else:
                 self.max = np.max(x)
-            if kwargs.has_key('nbins'):
+            if kwargs.has_key('bins'):
+                self.nbins = len(kwargs['bins']) - 1
+            elif kwargs.has_key('nbins'):
                 self.nbins = kwargs['nbins']
             else:
                 self.nbins = 100
@@ -252,7 +258,11 @@ class Profile:
             else:
                 self.min = np.min(x[x>0])
 
-            if type == 'log':
+            if kwargs.has_key('bins'):
+                self._properties['bin_edges'] = kwargs['bins']
+                self.min = kwargs['bins'].min()
+                self.max = kwargs['bins'].max()
+            elif type == 'log':
                 self._properties['bin_edges'] = np.logspace(np.log10(self.min), np.log10(self.max), num = self.nbins+1)
             elif type == 'lin':
                 self._properties['bin_edges'] = np.linspace(self.min, self.max, num = self.nbins+1)

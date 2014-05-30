@@ -2,10 +2,10 @@
 
 
 Batch-processing Snapshots with Pynbody
-=================================
+=======================================
 
 Using pynbody as a batch system
-----------------------------
+-------------------------------
 
 One typical use for scripting software like python is to automate common
 tasks.  You can use `pynbody` to run a standard series of analysis
@@ -48,7 +48,7 @@ Most of the lines in the preamble are commented as to their purpose.  Overall,
 .. _storesdata:
 
 pickle data
-^^^^^^^^^^^^^
+^^^^^^^^^^^
 
 .. literalinclude:: example_code/do_data.py
 

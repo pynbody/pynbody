@@ -6,9 +6,9 @@ filt
 Defines and implements 'filters' which allow abstract subsets
 of data to be specified.
 
-**Needs docstrings & sample usage**
-
-<http://code.google.com/p/pynbody/wiki/FiltersAndSubsims>
+See the `filter tutorial
+<http://pynbody.github.io/pynbody/tutorials/filters.html>`_ for some
+sample usage.
 
 """
 
@@ -81,6 +81,17 @@ class Not(Filter) :
 
 
 class Sphere(Filter) :
+    """
+    Return particles that are within `radius` of the point `cen`. 
+
+    Inputs:
+    -------
+
+    *radius* : extent of the sphere. Can be a number or a string specifying the units.
+
+    *cen* : center of the sphere. default = (0,0,0)
+    """
+
     def __init__(self, radius, cen=(0,0,0)) :
         self._descriptor = "sphere"
         self.cen = np.asarray(cen)
@@ -108,10 +119,14 @@ class Sphere(Filter) :
             return "Sphere(%.2e, %s)"%(self.radius, repr(self.cen))
 
 class Cuboid(Filter) :
+    """Create a cube with specified edge coordinates. If any of the cube
+    coordinates `x1`, `y1`, `z1`, `x2`, `y2`, `z2` are not specified
+    they are determined as `y1=x1;` `z1=x1;` `x2=-x1;` `y2=-y1;`
+    `z2=-z1`.
+
+    """
+        
     def __init__(self, x1, y1=None, z1=None, x2=None, y2=None, z2=None) :
-        """Create a cube with specified edge coordinates. If any of
-        the cube coordinates x1,y1,z1,x2,y2,z2 are not specified they are
-        determined as y1=x1; z1=x1; x2=-x1; y2=-y1; z2=-z1."""
         
         self._descriptor="cube"
         x1,y1,z1,x2,y2,z2 = [units.Unit(x) if isinstance(x,str) else x for x in x1,y1,z1,x2,y2,z2]
@@ -141,6 +156,11 @@ class Cuboid(Filter) :
         return "Cuboid(%s, %s, %s, %s, %s, %s)"%(x1,y1,z1,x2,y2,z2)
     
 class Disc(Filter) :
+    """
+    Return particles that are within a disc of extent `radius` and
+    thickness `height` centered on `cen`.
+    """
+
     def __init__(self, radius, height, cen=(0,0,0)) :
         self._descriptor = "disc"
         self.cen = np.asarray(cen)
@@ -176,6 +196,11 @@ class Disc(Filter) :
         return "Disc(%s, %s, %s)"%(radius, height, repr(self.cen))
 
 class BandPass(Filter) :
+    """
+    Return particles whose property `prop` is within `min` and `max`,
+    which can be specified as unit strings.
+    """
+
     def __init__(self, prop, min, max) :
         self._descriptor = "bandpass_"+prop
 
@@ -206,6 +231,11 @@ class BandPass(Filter) :
         return "BandPass('%s', %s, %s)"%(self._prop, min_, max_)
 
 class HighPass(Filter) :
+    """
+    Return particles whose property `prop` exceeds `min`, which can be
+    specified as a unit string.
+    """
+
     def __init__(self, prop, min) :
         self._descriptor = "highpass_"+prop
 
@@ -234,6 +264,10 @@ class HighPass(Filter) :
 
 
 class LowPass(Filter) :
+    """Return particles whose property `prop` is less than `max`, which can be
+    specified as a unit string.
+    """
+
     def __init__(self, prop, max) :
         self._descriptor = "lowpass_"+prop
 
@@ -264,11 +298,22 @@ class LowPass(Filter) :
 
 
 def Annulus(r1, r2, cen=(0,0,0)) :
+    """
+    Convenience function that returns a filter which selects particles
+    in between two spheres specified by radii `r1` and `r2` centered
+    on `cen`.
+    """
+
     x = Sphere(max(r1,r2),cen) & ~Sphere(min(r1,r2),cen)
     x._descriptor = "annulus"
     return x
 
 def SolarNeighborhood(r1=units.Unit("5 kpc"), r2=units.Unit("10 kpc"), height=units.Unit("2 kpc"),cen=(0,0,0)) :
+    """
+    Convenience function that returns a filter which selects particles
+    in a disc between radii `r1` and `r2` and thickness `height`.
+    """
+
     x = Disc(max(r1,r2),height,cen) & ~Disc(min(r1,r2),height,cen)
     x._descriptor = "Solar Neighborhood"
     return x

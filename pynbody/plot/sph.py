@@ -46,12 +46,54 @@ def faceon_image(sim, *args, **kwargs) :
     angmom.faceon(sim)
     return image(sim, *args, **kwargs)
 
+def velocity_image(sim, width="10 kpc", vector_color='black',
+        vector_resolution=40, scale=None, key_x=0.3, key_y=0.9,
+        key_color='white', key_length="100 km s**-1", **kwargs):
+    """
+
+    Make an SPH image of the given simulation with velocity vectors overlaid on top.
+
+    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`.
+
+    **Keyword arguments:**
+
+    *vector_color* (black): The color for the velocity vectors
+
+    *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
+
+    *scale* (None): The length of a vector that would result in a displayed length of the
+    figure width/height.  
+
+    *key_x* (0.3): Display x (width) position for the vector key
+
+    *key_y* (0.9): Display y (height) position for the vector key
+
+    *key_color* (white): Color for the vector key
+
+    *key_length* (100 km/s): Velocity to use for the vector key
+
+    """
+
+    vx = image(sim, qty='vx', width=width, log=False, resolution=vector_resolution)
+    vy = image(sim, qty='vy', width=width, log=False, resolution=vector_resolution)
+    key_unit = _units.Unit(key_length)
+    width_unit = _units.Unit(width)
+    X,Y = np.meshgrid(np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution),
+            np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution)) 
+    im = image(sim, width=width, **kwargs)
+    if scale is None:
+        Q = p.quiver(X,Y,vx,vy, color=vector_color) 
+    else:
+        Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color) 
+    p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units),
+            r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
+    return im
 
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True, 
           vmin=None, vmax=None, av_z = False, filename=None, 
           z_camera=None, clear = True, cmap=None, center=False,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False, fill_nan = True, fill_val=0.0,
+          noplot = False, ret_im=False, fill_nan = True, fill_val=0.0, linthresh=None,
           **kwargs) :
     """
 
@@ -108,7 +150,9 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     *fill_val* (0.0): the fill value to use when replacing NaNs
     
-    
+    *linthresh* (None): if the image has negative and positive values
+     and a log scaling is requested, the part between `-linthresh` and
+     `linthresh` is shown on a linear scale to avoid divergence at 0
     """
 
     if not noplot:
@@ -189,29 +233,44 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             im = im/im2
          
     else :
-
         im = sph.render_image(sim,qty,width/2,resolution,out_units=units, 
                                       kernel = kernel,  z_camera = z_camera, **kwargs)
 
     if fill_nan : 
         im[np.isnan(im)] = fill_val
 
-    if log :
-        try:
-            im[np.where(im==0)] = abs(im[np.where(im!=0)]).min()
-        except ValueError:
-            raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
-        im = np.log10(im)
-
     if not noplot:
+        
+        # set the log or linear normalizations        
+        if log :
+            try:
+                im[np.where(im==0)] = abs(im[np.where(abs(im!=0))]).min()
+            except ValueError:
+                raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
+
+            # check if there are negative values -- if so, use the symmetric log normalization
+            if (im < 0).any() : 
+
+                # need to set the linear regime around zero -- set to by default start at 1/1000 of the log range
+                if linthresh is None: linthresh = np.nanmax(abs(im))/1000. 
+                norm = p.matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
+            else : 
+                norm = p.matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
+
+        else : 
+            norm = p.matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+
+        #
+        # do the actual plotting
+        #
         if clear and not subplot : p.clf()
 
         if ret_im:
-            return p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-                     vmin=vmin, vmax=vmax, cmap=cmap)
+            return p.imshow(im[::-1,:].view(np.ndarray),extent=(-width/2,width/2,-width/2,width/2), 
+                     vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
 
-        ims = p.imshow(im[::-1,:],extent=(-width/2,width/2,-width/2,width/2), 
-                       vmin=vmin, vmax=vmax, cmap=cmap)
+        ims = p.imshow(im[::-1,:].view(np.ndarray),extent=(-width/2,width/2,-width/2,width/2), 
+                       vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
 
         u_st = sim['pos'].units.latex()
         if not subplot:
@@ -224,11 +283,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if units is None :
             units = im.units
        
-
-        if log :
-            units = r"$\log_{10}\,"+units.latex()+"$"
-        else :
-            units = "$"+units.latex()+"$"
+        units = "$"+units.latex()+"$"
 
         if show_cbar:
             if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
@@ -247,8 +302,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             
         if filename is not None:
             p.savefig(filename)
-            
-        
+               
         plt.draw()
         # plt.show() - removed by AP on 30/01/2013 - this should not be here as
         #              for some systems you don't get back to the command prompt

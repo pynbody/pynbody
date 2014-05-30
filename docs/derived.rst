@@ -107,13 +107,9 @@ tipsy
    
 .. note:: describe how abundances are calculated, give references!
 
-
 .. autofunction:: pynbody.tipsy.HII
 .. autofunction:: pynbody.tipsy.HeIII 
 .. autofunction:: pynbody.tipsy.ne
-.. autofunction:: pynbody.tipsy.mu
-.. autofunction:: pynbody.tipsy.u
-.. autofunction:: pynbody.tipsy.p
 .. autofunction:: pynbody.tipsy.hetot
 .. autofunction:: pynbody.tipsy.hydrogen
 .. autofunction:: pynbody.tipsy.feh

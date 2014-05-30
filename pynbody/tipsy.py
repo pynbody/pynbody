@@ -1,6 +1,4 @@
-"""
-
-tipsy
+"""tipsy
 =====
 
 Implements classes and functions for handling tipsy files.  You rarely
@@ -14,8 +12,8 @@ automatically via pynbody.load.
 **Optional Keywords**:
 
 *paramfile*: string specifying the parameter file to load. If not
- specified, the loader will look for a file *.param in the current and
- parent directories.
+specified, the loader will look for a file `*.param` in the current and
+parent directories.
 
 """
 

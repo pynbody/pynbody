@@ -79,10 +79,12 @@ def calc_mags(simstars, band='v') :
     inline(code,['met_grid','n_met_grid','age_grid','n_age_grid',
                  'age_star','metals','n_stars','mag_grid','output_mags'])
     try :
-        return output_mags - 2.5*np.log10(simstars['massform'].in_units('Msol'))
+        vals = output_mags - 2.5*np.log10(simstars['massform'].in_units('Msol'))
     except KeyError, ValueError:
-        return output_mags - 2.5*np.log10(simstars['mass'].in_units('Msol'))
+        vals = output_mags - 2.5*np.log10(simstars['mass'].in_units('Msol'))
 
+    vals.units=None
+    return vals
 
 def halo_mag(sim,band='v') :
     """Calculating halo magnitude
