@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import pynbody
 import pynbody.plot as pp
 import pynbody.plot.sph
@@ -97,10 +99,10 @@ twopfivef = pynbody.filt.Sphere(2.5*rvir)
 stfrvir = s[twopfivef]
 halogas = stfrvir[notdiskf].g[notcooldenf]
 mtfhalogas = np.sum(halogas['mass'].in_units('Msol'))
-iposcoolontime = halogas['coolontime'].in_units('yr')>0
+#iposcoolontime = halogas['coolontime'].in_units('yr')>0
 igasords = np.in1d(halogas['iord'],stfrvir.s['igasorder'])
 halooxhist, halooxbins = mdf(halogas,totmass=mtfhalogas)
-cohalooxhist, cohalooxbins = mdf(halogas[iposcoolontime],totmass=mtfhalogas)
+#cohalooxhist, cohalooxbins = mdf(halogas[iposcoolontime],totmass=mtfhalogas)
 
 ### Save important numbers using pickle.  Currently not working for SimArrays
 pickle.dump({'z':s.properties['z'],
@@ -135,10 +137,10 @@ pickle.dump({'z':s.properties['z'],
              'halomeanmet': np.sum(h[i][notdiskf].g['mass'].in_units('Msol')*
                                    h[i][notdiskf].g['metals'])/mhalogas,
              'mhalogasformedstar':np.sum(halogas[igasords]['mass'].in_units('Msol')),
-             'mhalogascoolwasoff':np.sum(halogas[iposcoolontime]['mass'].in_units('Msol')),
-             'rmaxcooloffgas':np.max(halogas[iposcoolontime]['r'].in_units('kpc')),
+#             'mhalogascoolwasoff':np.sum(halogas[iposcoolontime]['mass'].in_units('Msol')),
+#             'rmaxcooloffgas':np.max(halogas[iposcoolontime]['r'].in_units('kpc')),
              'halooxmdf':{'bins':halooxbins,'hist':halooxhist},
-             'cohalooxmdf':{'bins':cohalooxbins,'hist':cohalooxhist},
+#             'cohalooxmdf':{'bins':cohalooxbins,'hist':cohalooxhist},
 #             'Jtot':Jtot,'lambda':(Jtot / np.sqrt(2*np.power(mvir,3)*rvir*units.G)).in_units('1'),
              'denprof':{'r':rhoprof['rbins'].in_units('kpc'), 
                         'den':rhoprof['density']},
@@ -230,11 +232,10 @@ except:
 
 
 diskgas=s.gas[diskf]
-### Make pictures: not working past first one
 try:
     pp.sph.image(h[i].gas,filename=simname+'.facegas.png',width=30,
                  units='m_p cm^-3')
-    pp.stars.render(h[i].star,file=simname+'.facestar.png')
+    pp.stars.render(h[i].star,filename=simname+'.facestar.png')
     pp.sph.image(diskgas,qty='temp',filename=simname+'.tempgasdiskface.png',
                  width=30,vmin=3,vmax=7)
     s.gas['hiden'] = s.gas['rho']*s.gas['HI']
@@ -264,7 +265,7 @@ try:
     pynbody.analysis.angmom.sideon(h[i])
     pp.sph.image(h[i].gas,filename=simname+'.sidegas.png',width=30,
                  units='m_p cm^-3')
-    pp.stars.render(h[i].star,file=simname+'.sidestar.png')
+    pp.stars.render(h[i].star,filename=simname+'.sidestar.png')
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasside.png',
                  width=320,vmin=3,vmax=7)
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasdiskside.png',
