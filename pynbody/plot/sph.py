@@ -77,10 +77,18 @@ def velocity_image(sim, width="10 kpc", vector_color='black',
     vx = image(sim, qty='vx', width=width, log=False, resolution=vector_resolution)
     vy = image(sim, qty='vy', width=width, log=False, resolution=vector_resolution)
     key_unit = _units.Unit(key_length)
-    width_unit = _units.Unit(width)
-    X,Y = np.meshgrid(np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution),
-            np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution)) 
+
+    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
+        if isinstance(width,str) : 
+            width = _units.Unit(width)
+        width = width.in_units(sim['pos'].units,**sim.conversion_context())
+    
+    width = float(width)
+
+    X,Y = np.meshgrid(np.arange(-width/2,width/2,width/vector_resolution),
+            np.arange(-width/2,width/2,width/vector_resolution)) 
     im = image(sim, width=width, **kwargs)
+
     if scale is None:
         Q = p.quiver(X,Y,vx,vy, color=vector_color) 
     else:
