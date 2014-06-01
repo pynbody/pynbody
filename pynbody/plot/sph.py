@@ -93,7 +93,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black',
         Q = p.quiver(X,Y,vx,vy, color=vector_color) 
     else:
         Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color) 
-    p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units),
+    p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
             r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
     return im
 
