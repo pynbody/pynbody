@@ -1217,6 +1217,21 @@
         <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">derive_track</span><span class="p">:</span>
             <span class="k">del</span> <span class="n">derive_track</span><span class="p">[</span><span class="n">derive_track</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">array_name</span><span class="p">)]</span>
 
+    <span class="k">def</span> <span class="nf">_get_from_immediate_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves the named numpy array from the immediate cache associated</span>
+<span class="sd">        with this snapshot. If the array does not exist in the immediate</span>
+<span class="sd">        cache, function fn is called with no arguments and must generate</span>
+<span class="sd">        it.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_immediate_cache&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_immediate_cache</span> <span class="o">=</span> <span class="p">[{}]</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immediate_cache</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">hx</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
+            <span class="n">cache</span><span class="p">[</span><span class="n">hx</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">cache</span><span class="p">[</span><span class="n">hx</span><span class="p">]</span>
+                
     <span class="k">def</span> <span class="nf">_get_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get the array of the specified *name*, optionally</span>
 <span class="sd">        for only the particles specified by *index*.</span>
@@ -1265,8 +1280,11 @@
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
                 <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">IndexedSimArray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
-
+                <span class="k">if</span> <span class="n">_subarray_immediate_mode</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_from_immediate_cache</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                                                       <span class="k">lambda</span> <span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+                <span class="k">else</span> <span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">IndexedSimArray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">x</span>
 
     <span class="k">def</span> <span class="nf">_set_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -1679,15 +1697,9 @@
 
     <span class="k">def</span> <span class="nf">_get_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">_subarray_immediate_mode</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">immediate_mode</span><span class="p">:</span>
-            <span class="n">hx</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_immediate_cache&#39;</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_immediate_cache</span> <span class="o">=</span> <span class="p">[{}]</span>
-            <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immediate_cache</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">hx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
-                <span class="n">cache</span><span class="p">[</span><span class="n">hx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
-                    <span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">]</span>
-
-            <span class="k">return</span> <span class="n">cache</span><span class="p">[</span><span class="n">hx</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_from_immediate_cache</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> 
+                   <span class="k">lambda</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
+                            <span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">])</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">concatenate_indexing</span><span class="p">(</span>
@@ -1704,17 +1716,10 @@
         <span class="n">sl</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">relative_slice</span><span class="p">(</span><span class="n">base_family_slice</span><span class="p">,</span>
                                  <span class="n">util</span><span class="o">.</span><span class="n">intersect_slices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">,</span> <span class="n">base_family_slice</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">)))</span>
         <span class="n">sl</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">concatenate_indexing</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="n">_subarray_immediate_mode</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">immediate_mode</span><span class="p">:</span>
-            <span class="n">hx</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="p">))</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_immediate_cache&#39;</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_immediate_cache</span> <span class="o">=</span> <span class="p">[{}]</span>
-            <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immediate_cache</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="n">hx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
-                <span class="n">cache</span><span class="p">[</span><span class="n">hx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_family_array</span><span class="p">(</span>
-                    <span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="p">)[</span><span class="n">sl</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">cache</span><span class="p">[</span><span class="n">hx</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_from_immediate_cache</span><span class="p">((</span><span class="n">name</span><span class="p">,</span><span class="n">fam</span><span class="p">),</span>
+                                                  <span class="k">lambda</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_family_array</span><span class="p">(</span>
+                        <span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="p">)[</span><span class="n">sl</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_family_array</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">sl</span><span class="p">,</span> <span class="n">always_writable</span><span class="p">)</span>
 

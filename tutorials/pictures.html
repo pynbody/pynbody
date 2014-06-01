@@ -149,6 +149,32 @@ in this case)</p>
 <img alt="../_images/temperature_slice.png" src="../_images/temperature_slice.png" />
 </div>
 </div>
+<div class="section" id="velocity-vectors">
+<h2>Velocity Vectors<a class="headerlink" href="#velocity-vectors" title="Permalink to this headline">¶</a></h2>
+<p>Simple example for displaying an image with velocity vectors overlaid.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+<span class="c"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+
+<span class="c"># load the halos</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+
+<span class="c"># center on the largest halo and align the disk</span>
+<span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c">#create a simple slice showing the gas temperature, with velocity vectors overlaid</span>
+<span class="n">sph</span><span class="o">.</span><span class="n">velocity_image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&quot;cyan&quot;</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;YlOrRd&quot;</span><span class="p">,</span> <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../tutorials/example_code/velocity_vectors.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.pdf">pdf</a>)</p>
+<div class="figure">
+<img alt="../_images/velocity_vectors.png" src="../_images/velocity_vectors.png" />
+</div>
+</div>
 <div class="section" id="creating-images-using-image">
 <h2>Creating images using <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
 <p>The <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> function is a general purpose function
@@ -203,6 +229,7 @@ star particles.</p>
 <li><a class="reference internal" href="#density-slice">Density Slice</a></li>
 <li><a class="reference internal" href="#integrated-density">Integrated Density</a></li>
 <li><a class="reference internal" href="#temperature-slice">Temperature Slice</a></li>
+<li><a class="reference internal" href="#velocity-vectors">Velocity Vectors</a></li>
 <li><a class="reference internal" href="#creating-images-using-image">Creating images using <tt class="docutils literal"><span class="pre">image()</span></tt></a></li>
 <li><a class="reference internal" href="#common-issues">Common issues</a></li>
 </ul>
