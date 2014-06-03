@@ -49,6 +49,17 @@ def vr_vec(self):
     return res
 
 @SimSnap.derived_quantity
+def vrxy_vec(self):
+    """Radial velocity vector in the xy-plane"""
+    res = array.SimArray(np.zeros(self['vel'].shape,self['vel'].dtype))
+
+    vrxy = (self['pos'][:,:2]*self['vel'][:,:2]).sum(axis=1)/self['rxy']
+
+    for i in range(2) : 
+        res[:,i] = self['rhat'][:,i]*vrxy
+    return res
+
+@SimSnap.derived_quantity
 def v2(self) :
     """Squared velocity"""
     return (self['vel']**2).sum(axis=1)
@@ -61,7 +72,10 @@ def vt(self) :
 @SimSnap.derived_quantity
 def vt_vec(self) : 
     """Tangential velocity vector"""
-    return self['vel']-self['vr_vec']
+    res = array.SimArray(np.empty(self['vel'].shape,self['vel'].dtype))
+    res = self['vel'] - self['vrxy_vec']
+    res[:,2] = 0.0    
+    return res
 
 @SimSnap.derived_quantity
 def ke(self) :
