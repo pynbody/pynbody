@@ -110,17 +110,17 @@ class Profile:
 
     **Dispersions:**
     
-    To obtain a dispersion profile, attach a `_disp` after the desired
+    To obtain a dispersion profile, attach a ``_disp`` after the desired
     quantity name.
 
     **RMS:**
     
-    The root-mean-square of a quantity can be obtained by using a `_rms` suffix
+    The root-mean-square of a quantity can be obtained by using a ``_rms`` suffix
 
     **Derivatives:**
     
-    To compute a derivative of a profile, prepend a `d_` to the
-    profile string, as in `p['d_temp']` to get a temperature gradient.
+    To compute a derivative of a profile, prepend a ``d_`` to the
+    profile string, as in ``p['d_temp']`` to get a temperature gradient.
 
     **Saving and loading previously generated profiles:**
     
