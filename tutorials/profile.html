@@ -72,7 +72,8 @@
 <h1>Profiles in Pynbody<a class="headerlink" href="#profiles-in-pynbody" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="radial-density-profile">
 <h2>Radial Density Profile<a class="headerlink" href="#radial-density-profile" title="Permalink to this headline">¶</a></h2>
-<p>Simple example for calculating a density profile:</p>
+<p>Making profiles of all kinds of quantities is easy &#8211; here&#8217;s a simple
+example that shows how to plot a density profile:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
@@ -111,11 +112,13 @@
 <div class="figure">
 <img alt="../_images/density_profile.png" src="../_images/density_profile.png" />
 </div>
+<p>Below is a more extended description of the
+<a class="reference internal" href="../analysis.html#module-pynbody.analysis.profile" title="pynbody.analysis.profile"><tt class="xref py py-mod docutils literal"><span class="pre">profile</span></tt></a> module.</p>
 </div>
 <div class="section" id="the-profile-class">
 <h2>The Profile Class<a class="headerlink" href="#the-profile-class" title="Permalink to this headline">¶</a></h2>
 <p>The <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> class is meant to be a
-general-purpose class to satisfy all simulation profiling
+general-purpose class to satisfy (almost) all simulation profiling
 needs. Profiles are the most elementary ways to begin analyzing a
 simulation, so the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> class is
 designed to be an extension of the syntax implemented in the
