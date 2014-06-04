@@ -74,6 +74,7 @@
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span>
 <span class="kn">from</span> <span class="nn">.sph</span> <span class="kn">import</span> <span class="n">image</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">_units</span>
 
 <span class="k">def</span> <span class="nf">bytscl</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">mini</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">maxi</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
     <span class="n">X</span><span class="o">=</span> <span class="p">(</span><span class="n">arr</span><span class="o">-</span><span class="n">mini</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">maxi</span><span class="o">-</span><span class="n">mini</span><span class="p">)</span>
@@ -162,6 +163,11 @@
 <span class="sd">       *dynamic_range*: float (default: 2.0)</span>
 <span class="sd">         The number of dex in luminosity over which the image brightness ranges</span>
 <span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">width</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">width</span><span class="o">.</span><span class="n">__class__</span><span class="p">,</span><span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">)</span> <span class="p">:</span> 
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">width</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="p">:</span> 
+            <span class="n">width</span> <span class="o">=</span> <span class="n">_units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">width</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span><span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
     
     <span class="k">if</span> <span class="n">starsize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
         <span class="n">smf</span> <span class="o">=</span> <span class="n">filt</span><span class="o">.</span><span class="n">HighPass</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">starsize</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; kpc&#39;</span><span class="p">)</span>

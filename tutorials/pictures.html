@@ -72,7 +72,7 @@
 <h1>Pictures in Pynbody<a class="headerlink" href="#pictures-in-pynbody" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="density-slice">
 <h2>Density Slice<a class="headerlink" href="#density-slice" title="Permalink to this headline">¶</a></h2>
-<p>Simple example for displaying a slice of density</p>
+<p>The essential kind of image &#8211; a density slice:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
@@ -98,7 +98,7 @@
 </div>
 <div class="section" id="integrated-density">
 <h2>Integrated Density<a class="headerlink" href="#integrated-density" title="Permalink to this headline">¶</a></h2>
-<p>Simple example for displaying density integrated along the line of site</p>
+<p>Line-of-sight averaged density map:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
@@ -151,7 +151,8 @@ in this case)</p>
 </div>
 <div class="section" id="velocity-vectors">
 <h2>Velocity Vectors<a class="headerlink" href="#velocity-vectors" title="Permalink to this headline">¶</a></h2>
-<p>Simple example for displaying an image with velocity vectors overlaid.</p>
+<p>It is also straightforward to obtain an image with velocity
+vectors or flow lines overlaid:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
@@ -183,6 +184,32 @@ in this case)</p>
 <p>(<a class="reference external" href="../tutorials/example_code/velocity_vectors.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.pdf">pdf</a>)</p>
 <div class="figure">
 <img alt="../_images/velocity_vectors.png" src="../_images/velocity_vectors.png" />
+</div>
+</div>
+<div class="section" id="multi-band-images-of-stars">
+<h2>Multi-band Images of Stars<a class="headerlink" href="#multi-band-images-of-stars" title="Permalink to this headline">¶</a></h2>
+<p>You can create visualizations of the stellar distribution using
+synthetic colors in a variety of bands:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+<span class="c"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+
+<span class="c"># load the halos</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+
+<span class="c"># center on the largest halo and align the disk</span>
+<span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c">#create an image using the default bands (i, v, u)</span>
+<span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">stars</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="s">&#39;20 kpc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../tutorials/example_code/star_render.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/star_render.png">png</a>, <a class="reference external" href="../tutorials/example_code/star_render.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/star_render.pdf">pdf</a>)</p>
+<div class="figure">
+<img alt="../_images/star_render.png" src="../_images/star_render.png" />
 </div>
 </div>
 <div class="section" id="creating-images-using-image">
@@ -242,6 +269,7 @@ star particles.</p>
 <li><a class="reference internal" href="#integrated-density">Integrated Density</a></li>
 <li><a class="reference internal" href="#temperature-slice">Temperature Slice</a></li>
 <li><a class="reference internal" href="#velocity-vectors">Velocity Vectors</a></li>
+<li><a class="reference internal" href="#multi-band-images-of-stars">Multi-band Images of Stars</a></li>
 <li><a class="reference internal" href="#creating-images-using-image">Creating images using <tt class="docutils literal"><span class="pre">image()</span></tt></a></li>
 <li><a class="reference internal" href="#common-issues">Common issues</a></li>
 </ul>
