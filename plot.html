@@ -317,7 +317,11 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
+<<<<<<< HEAD
 <tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x413c6e0&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+=======
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bc99578&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+>>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -388,6 +392,22 @@ the function image</p>
 face-on, then make an SPH image by passing the parameters into
 the function image</p>
 <p>For a description of keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.plot.sph.velocity_image">
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">velocity_image</tt><big>(</big><em>sim</em>, <em>width='10 kpc'</em>, <em>vector_color='black'</em>, <em>vector_resolution=40</em>, <em>scale=None</em>, <em>key_x=0.3</em>, <em>key_y=0.9</em>, <em>key_color='white'</em>, <em>key_length='100 km s**-1'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/sph.html#velocity_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.velocity_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make an SPH image of the given simulation with velocity vectors overlaid on top.</p>
+<p>For a description of additional keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>vector_color</em> (black): The color for the velocity vectors</p>
+<p><em>vector_resolution</em> (40): How many vectors in each dimension (default is 40x40)</p>
+<p><em>scale</em> (None): The length of a vector that would result in a displayed length of the
+figure width/height.</p>
+<p><em>key_x</em> (0.3): Display x (width) position for the vector key</p>
+<p><em>key_y</em> (0.9): Display y (height) position for the vector key</p>
+<p><em>key_color</em> (white): Color for the vector key</p>
+<p><em>key_length</em> (100 km/s): Velocity to use for the vector key</p>
 </dd></dl>
 
 <dl class="function">
@@ -789,7 +809,11 @@ map.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+>>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
     </div>
   </body>
 </html>

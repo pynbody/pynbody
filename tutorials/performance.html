@@ -178,12 +178,21 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
+<<<<<<< HEAD
 <span class="go">CPU times: user 380 ms, sys: 7 ms, total: 387 ms</span>
 <span class="go">Wall time: 376 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
 <span class="go">CPU times: user 24 ms, sys: 2 ms, total: 26 ms</span>
 <span class="go">Wall time: 24.8 ms</span>
+=======
+<span class="go">CPU times: user 217 ms, sys: 36.8 ms, total: 253 ms</span>
+<span class="go">Wall time: 225 ms</span>
+
+<span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
+<span class="go">CPU times: user 17.2 ms, sys: 896 us, total: 18.1 ms</span>
+<span class="go">Wall time: 17.3 ms</span>
+>>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -348,7 +357,11 @@ any unit handling code being called.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+>>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
     </div>
   </body>
 </html>

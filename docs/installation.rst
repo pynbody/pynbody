@@ -300,7 +300,7 @@ do
 
 ::
 
-   pip install git+git://github.com/pynbody/pynbody 
+   pip install -I --no-deps git+git://github.com/pynbody/pynbody@master
 
 If you cloned or forked the git repository and installed manually, go
 into the top-level `pynbody` source directory (the one with

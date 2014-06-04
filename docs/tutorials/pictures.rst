@@ -25,6 +25,13 @@ in this case)
 .. plot:: tutorials/example_code/temperature_slice.py
    :include-source:
 
+Velocity Vectors
+----------------
+Simple example for displaying an image with velocity vectors overlaid.
+
+.. plot:: tutorials/example_code/velocity_vectors.py
+   :include-source:
+
 Creating images using :func:`~pynbody.plot.sph.image`
 -----------------------------------------------------
 

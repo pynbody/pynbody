@@ -84,6 +84,8 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">cmath</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
 
 <span class="c">#######################################################################</span>
 <span class="c"># Filters</span>
@@ -195,15 +197,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_norm</span> <span class="o">=</span> <span class="mi">1</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_log_interp</span> <span class="o">=</span> <span class="n">log_interpolation</span>
-        
-        <span class="k">if</span> <span class="n">log_interpolation</span> <span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_interpolation</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_sigma8</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;sigma8&#39;</span><span class="p">])</span>    
+            
+
+    <span class="k">def</span> <span class="nf">_init_interpolation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_interp</span> <span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_interp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Pk</span><span class="p">))</span>
         <span class="k">else</span> <span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_interp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pk</span><span class="p">)</span>
             
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_sigma8</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;sigma8&#39;</span><span class="p">])</span>    
-            
-
     <span class="k">def</span> <span class="nf">set_sigma8</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma8</span><span class="p">)</span> <span class="p">:</span>
         <span class="n">current_sigma8_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sigma8</span><span class="p">()</span><span class="o">**</span><span class="mi">2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_norm</span><span class="o">*=</span><span class="n">sigma8</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">current_sigma8_2</span>
@@ -223,6 +228,48 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_norm</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_lingrowth</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_interp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
 
+<span class="k">class</span> <span class="nc">PowerSpectrumCAMBLive</span><span class="p">(</span><span class="n">PowerSpectrumCAMB</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">use_context</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">camb_params</span><span class="o">=</span><span class="p">{})</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Run CAMB to get out a power spectrum. The default parameters are in cambtemplate.ini.</span>
+<span class="sd">        Any of these can be modified by passing the appropriate kwarg.&quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config_parser</span>
+        <span class="n">path_to_camb</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;camb&#39;</span><span class="p">,</span><span class="s">&#39;path&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path_to_camb</span> <span class="o">==</span> <span class="s">&#39;/path/to/camb&#39;</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;You need to compile CAMB and set up the executable path in your pynbody configuration file.&quot;</span>
+        
+        <span class="n">file_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span><span class="s">&quot;cambtemplate.ini&quot;</span><span class="p">),</span><span class="s">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">folder_out</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+        <span class="n">file_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_out</span><span class="p">,</span><span class="s">&quot;camb.ini&quot;</span><span class="p">),</span><span class="s">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_context</span> <span class="p">:</span>
+            <span class="n">h0</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span>
+            <span class="n">omB0</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaB0&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">h0</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">omM0</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">h0</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">omC0</span> <span class="o">=</span> <span class="n">omM0</span><span class="o">-</span><span class="n">omB0</span>
+            <span class="n">ns</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;ns&#39;</span><span class="p">]</span>
+            <span class="n">running</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;running&#39;</span><span class="p">]</span>
+            <span class="n">camb_params</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&#39;ombh2&#39;</span><span class="p">:</span> <span class="n">omB0</span><span class="p">,</span> <span class="s">&#39;omch2&#39;</span><span class="p">:</span> <span class="n">omC0</span><span class="p">,</span> <span class="s">&#39;hubble&#39;</span><span class="p">:</span> <span class="n">h0</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span> <span class="s">&#39;scalar_nrun(1)&#39;</span><span class="p">:</span> <span class="n">running</span><span class="p">,</span> <span class="s">&#39;scalar_spectral_index(1)&#39;</span><span class="p">:</span> <span class="n">ns</span><span class="p">})</span>
+            
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">file_in</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="s">&quot;=&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">and</span> <span class="s">&quot;#&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span> <span class="p">:</span>
+                <span class="n">name</span><span class="p">,</span><span class="n">val</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">camb_params</span> <span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">camb_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">file_out</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span><span class="s">&quot;=&quot;</span><span class="p">,</span><span class="n">val</span>
+            <span class="k">else</span> <span class="p">:</span>
+                <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">file_out</span><span class="p">,</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">file_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">print</span> <span class="s">&quot;Running </span><span class="si">%s</span><span class="s"> on </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">path_to_camb</span><span class="p">,</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_out</span><span class="p">,</span><span class="s">&quot;camb.ini&quot;</span><span class="p">))</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="s">; </span><span class="si">%s</span><span class="s"> camb.ini&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">folder_out</span><span class="p">,</span><span class="n">path_to_camb</span><span class="p">),</span><span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        
+
+        <span class="n">PowerSpectrumCAMB</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_out</span><span class="p">,</span><span class="s">&quot;test_matterpower.dat&quot;</span><span class="p">))</span>
+        
 <span class="k">class</span> <span class="nc">BiasedPowerSpectrum</span><span class="p">(</span><span class="n">PowerSpectrumCAMB</span><span class="p">)</span> <span class="p">:</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">pspec</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Set up a biased power spectrum.</span>
@@ -767,7 +814,11 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+>>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
     </div>
   </body>
 </html>

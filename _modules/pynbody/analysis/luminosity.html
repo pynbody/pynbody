@@ -142,10 +142,12 @@
     <span class="n">inline</span><span class="p">(</span><span class="n">code</span><span class="p">,[</span><span class="s">&#39;met_grid&#39;</span><span class="p">,</span><span class="s">&#39;n_met_grid&#39;</span><span class="p">,</span><span class="s">&#39;age_grid&#39;</span><span class="p">,</span><span class="s">&#39;n_age_grid&#39;</span><span class="p">,</span>
                  <span class="s">&#39;age_star&#39;</span><span class="p">,</span><span class="s">&#39;metals&#39;</span><span class="p">,</span><span class="s">&#39;n_stars&#39;</span><span class="p">,</span><span class="s">&#39;mag_grid&#39;</span><span class="p">,</span><span class="s">&#39;output_mags&#39;</span><span class="p">])</span>
     <span class="k">try</span> <span class="p">:</span>
-        <span class="k">return</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol&#39;</span><span class="p">))</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol&#39;</span><span class="p">))</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol&#39;</span><span class="p">))</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol&#39;</span><span class="p">))</span>
 
+    <span class="n">vals</span><span class="o">.</span><span class="n">units</span><span class="o">=</span><span class="bp">None</span>
+    <span class="k">return</span> <span class="n">vals</span>
 </div>
 <div class="viewcode-block" id="halo_mag"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.luminosity.halo_mag">[docs]</a><span class="k">def</span> <span class="nf">halo_mag</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Calculating halo magnitude</span>
@@ -263,7 +265,11 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
+<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+=======
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+>>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
     </div>
   </body>
 </html>
