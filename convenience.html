@@ -74,37 +74,45 @@
 it&#8217;s possible to take a subview (e.g. a halo) from one snapshot and &#8216;push&#8217;
 it into the other. This is especially useful if the two snapshots are
 different time outputs of the same simulation.</p>
-<div class="section" id="basic-usage">
-<h3><em>Basic usage</em><a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h3>
-<p>f1 = pynbody.load(high_redshift_file)
-f2 = pynbody.load(low_redshift_file)
-b = pynbody.bridge.OrderBridge(f1, f2) # Or a different class, see &#8220;Which class to use&#8221; below</p>
-<p>h = f1.halos() # load the halo catalogue from high redshift step
-h1_at_low_z = b(h[1])
-# h1_at_low_z now contains the particles which were in h[1] in the high redshift output</p>
-<p>h_low_z = f2.halos()
-h1_at_high_z = b(h_low_z[1])
-# h1_at_high_z now contains the particles which will be in h[1] at low redshift output</p>
-</div>
-<div class="section" id="identifying-halos-between-different-outputs">
-<h3><em>Identifying halos between different outputs</em><a class="headerlink" href="#identifying-halos-between-different-outputs" title="Permalink to this headline">¶</a></h3>
-<p>You may wish to work out how a halo catalogue maps onto a halo
-catalogue for a different output. For this purpose a simple function,
-match_catalog, is provided. Extending the example above,
-this would be called as follows:</p>
+<p>Once connected, bridge called on a specific subset of particles in
+output1 will trace these particles back (or forward) to the output2,
+enabling observing a change in their properties, such as position,
+temperature, etc.</p>
+<p>For a tutorial on how to use the bridge module to trace the particles
+in your simulation, see the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/bridge.html">bridge tutorial</a>.</p>
+<dl class="class">
+<dt id="pynbody.bridge.Bridge">
+<em class="property">class </em><tt class="descclassname">pynbody.bridge.</tt><tt class="descname">Bridge</tt><big>(</big><em>start</em>, <em>end</em><big>)</big><a class="reference internal" href="_modules/pynbody/bridge.html#Bridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic Bridge class</p>
+<dl class="method">
+<dt id="pynbody.bridge.Bridge.is_same">
+<tt class="descname">is_same</tt><big>(</big><em>i1</em>, <em>i2</em><big>)</big><a class="reference internal" href="_modules/pynbody/bridge.html#Bridge.is_same"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.is_same" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the particle i1 in the start point is the same
+as the particle i2 in the end point.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.bridge.Bridge.match_catalog">
+<tt class="descname">match_catalog</tt><big>(</big><em>min_index=1</em>, <em>max_index=30</em><big>)</big><a class="reference internal" href="_modules/pynbody/bridge.html#Bridge.match_catalog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.match_catalog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a Halos object groups_1, a Halos object groups_2 and a
+Bridge object connecting the two parent simulations, this identifies
+the most likely ID&#8217;s in groups_2 of the objects specified in groups_1.</p>
+<p>Parameters min_index and max_index are the minimum and maximum halo
+numbers to be matched (in both ends of the bridge). If max_index is
+too large, the catalogue matching can take prohibitively long (it
+scales as max_index^2).</p>
+<p>This routine currently uses particle number as a proxy for mass, so that the
+main simulation data does not need to be loaded.</p>
+<p>If b links snapshot f1 (high redshift) to f2 (low redshift) and we set</p>
 <p>cat = b.match_catalog()</p>
-<p>cat is now a numpy index array such that f1.halos()[i] is (probably!) the
-major progenitor for f2.halos()[cat[i]].</p>
-</div>
-<div class="section" id="which-class-to-use">
-<h3><em>Which class to use</em><a class="headerlink" href="#which-class-to-use" title="Permalink to this headline">¶</a></h3>
-<p>For files where the particle ordering is static, so that the particle with
-index i in the first snapshot also has index i in the second snapshot, use the Bridge
-class.</p>
-<p>For files which can spawn new particles, and therefore have a monotonically
-increasing particle ordering array (e.g. &#8220;iord&#8221; in gasoline), use the
-OrderBridge class.</p>
-<p>Snapshot formats where the particle ordering can change are not currently supported.</p>
+<p>then cat is now a numpy index array such that f1.halos()[i] is the
+major progenitor for f2.halos()[cat[i]], assuming cat[i] is positive.</p>
+<p>cat[0:min_index+1] is set to -2. Halos which cannot be matched because
+they have too few particles give the result -1.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="pynbody.bridge.OrderBridge">
 <em class="property">class </em><tt class="descclassname">pynbody.bridge.</tt><tt class="descname">OrderBridge</tt><big>(</big><em>start</em>, <em>end</em>, <em>order_array='iord'</em>, <em>monotonic=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/bridge.html#OrderBridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.OrderBridge" title="Permalink to this definition">¶</a></dt>
@@ -125,7 +133,6 @@ failsafe option.</p>
 more information see <em class="xref std std-ref">bridge-tutorial</em>.</p>
 </dd></dl>
 
-</div>
 </div>
 <span class="target" id="module-pynbody.filt"></span><div class="section" id="filt">
 <h2>filt<a class="headerlink" href="#filt" title="Permalink to this headline">¶</a></h2>
@@ -315,11 +322,7 @@ a final C code to perform the rendering is derived.</p>
 <p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
 <dl class="function">
 <dt id="pynbody.sph.render_spherical_image">
-<<<<<<< HEAD
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x413d050&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
-=======
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10bc91990&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
->>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x7f8aea628b50&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image on a spherical surface. Note this is written in pure python and
 could be optimized into C, but would then need linking with the healpix libraries.
 Also currently uses a top-hat 3D kernel only.</p>
@@ -327,11 +330,7 @@ Also currently uses a top-hat 3D kernel only.</p>
 
 <dl class="function">
 <dt id="pynbody.sph.render_image">
-<<<<<<< HEAD
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x3b4bed0&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
-=======
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b465a50&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
->>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x7f8aedd64b10&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -381,11 +380,7 @@ configuration files).</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.to_3d_grid">
-<<<<<<< HEAD
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x3b4bf50&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
-=======
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b465ad0&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
->>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x7f8aedd64b90&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -438,12 +433,7 @@ scheme of all the particles that have a smoothing length within
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Generic Convenience Modules</a><ul>
-<li><a class="reference internal" href="#bridge">bridge</a><ul>
-<li><a class="reference internal" href="#basic-usage"><em>Basic usage</em></a></li>
-<li><a class="reference internal" href="#identifying-halos-between-different-outputs"><em>Identifying halos between different outputs</em></a></li>
-<li><a class="reference internal" href="#which-class-to-use"><em>Which class to use</em></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#bridge">bridge</a></li>
 <li><a class="reference internal" href="#filt">filt</a></li>
 <li><a class="reference internal" href="#halo">halo</a></li>
 <li><a class="reference internal" href="#kdtree">KDTree</a></li>
@@ -500,11 +490,7 @@ scheme of all the particles that have a smoothing length within
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
->>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
     </div>
   </body>
 </html>

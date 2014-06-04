@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Tracing Particles between Snapshots &mdash; pynbody 0.20-beta documentation</title>
+    
+    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.20-beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
+    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="next" title="Profiles in Pynbody" href="profile.html" />
+    <link rel="prev" title="Subviews and Filters" href="filters.html" />
+ 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="profile.html" title="Profiles in Pynbody"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="filters.html" title="Subviews and Filters"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="tracing-particles-between-snapshots">
+<span id="bridge-tutorial"></span><h1>Tracing Particles between Snapshots<a class="headerlink" href="#tracing-particles-between-snapshots" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference internal" href="../convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">bridge</span></tt></a> module has tools for connecting different
+outputs which allows you to trace particles from one snapshot of the
+simulation to another. Normally, matching up particle IDs between
+different snapshots can be a pain, but <a class="reference internal" href="../convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">bridge</span></tt></a> does all
+of this for you transparently. All that is needed is to initialize a
+<a class="reference internal" href="../convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><tt class="xref py py-class docutils literal"><span class="pre">Bridge</span></tt></a> object that links two snapshots
+together. Once connected, a bridge object called on a specific subset
+of particles in one snapshot will trace these particles back (or
+forward) to the second snapshot.</p>
+<div class="section" id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>Load the data:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">high_redshift_file</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f2</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">low_redshift_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Load the halo catalogue:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">h_high_z</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Create the bridge object:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">OrderBridge</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span> <span class="c"># Or a different class, see &quot;Which class to use&quot; below</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">b</span></tt> is now an <a class="reference internal" href="../convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><tt class="xref py py-class docutils literal"><span class="pre">OrderBridge</span></tt></a> object that links
+the two outputs <tt class="docutils literal"><span class="pre">f1</span></tt> and <tt class="docutils literal"><span class="pre">f2</span></tt> together. Passing a <tt class="docutils literal"><span class="pre">SubSnap</span></tt> from
+one of the two linked snapshots to <tt class="docutils literal"><span class="pre">b</span></tt> will return a <tt class="docutils literal"><span class="pre">SubSnap</span></tt>
+with the same particles in the <em>other</em> snapshot. So, if we want to see
+where all the particles that were in halo 1 in the high-redshift
+snapshot (<tt class="docutils literal"><span class="pre">f1</span></tt>) end up at low redshift (<tt class="docutils literal"><span class="pre">f2</span></tt>), we can simply do:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">h1_at_low_z</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">h1_at_low_z</span> <span class="pre">now</span></tt> contains the particles which were in h[1] in the high redshift output</p>
+</div>
+<div class="section" id="identifying-halos-between-different-outputs">
+<h2>Identifying halos between different outputs<a class="headerlink" href="#identifying-halos-between-different-outputs" title="Permalink to this headline">¶</a></h2>
+<p>You may wish to work out how a halo catalogue maps onto a halo
+catalogue for a different output. For this purpose a simple function,
+match_catalog, is provided. Extending the example above,
+this would be called as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">cat</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">match_catalog</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">cat</span></tt> is now a numpy index array such that <tt class="docutils literal"><span class="pre">f1.halos()[i]</span></tt> is
+(probably!) the major progenitor for <tt class="docutils literal"><span class="pre">f2.halos()[cat[i]]</span></tt>.</p>
+</div>
+<div class="section" id="which-class-to-use">
+<h2>Which class to use?<a class="headerlink" href="#which-class-to-use" title="Permalink to this headline">¶</a></h2>
+<p>For files where the particle ordering is static, so that the particle
+with index i in the first snapshot also has index i in the second
+snapshot, use the <a class="reference internal" href="../convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><tt class="xref py py-class docutils literal"><span class="pre">Bridge</span></tt></a> class.</p>
+<p>For files which can spawn new particles, and therefore have a monotonically
+increasing particle ordering array (e.g. &#8220;iord&#8221; in gasoline), use the
+<a class="reference internal" href="../convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><tt class="xref py py-class docutils literal"><span class="pre">OrderBridge</span></tt></a> class.</p>
+<p>Snapshot formats where the particle ordering can change are not currently supported.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tracing Particles between Snapshots</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li><a class="reference internal" href="#identifying-halos-between-different-outputs">Identifying halos between different outputs</a></li>
+<li><a class="reference internal" href="#which-class-to-use">Which class to use?</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="filters.html"
+                        title="previous chapter">Subviews and Filters</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="profile.html"
+                        title="next chapter">Profiles in Pynbody</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/tutorials/bridge.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="profile.html" title="Profiles in Pynbody"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="filters.html" title="Subviews and Filters"
+             >previous</a> |</li>
+        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
+          <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>

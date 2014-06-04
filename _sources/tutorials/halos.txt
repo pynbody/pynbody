@@ -1,4 +1,4 @@
-.. profile tutorial
+.. halo tutorial
 
 
 .. _halo_tutorial:

@@ -71,67 +71,34 @@
 <span class="sd">it into the other. This is especially useful if the two snapshots are</span>
 <span class="sd">different time outputs of the same simulation.</span>
 
-<span class="sd">*Basic usage*</span>
-<span class="sd">-------------</span>
+<span class="sd">Once connected, bridge called on a specific subset of particles in</span>
+<span class="sd">output1 will trace these particles back (or forward) to the output2,</span>
+<span class="sd">enabling observing a change in their properties, such as position,</span>
+<span class="sd">temperature, etc.</span>
 
-<span class="sd">f1 = pynbody.load(high_redshift_file)</span>
-<span class="sd">f2 = pynbody.load(low_redshift_file)</span>
-<span class="sd">b = pynbody.bridge.OrderBridge(f1, f2) # Or a different class, see &quot;Which class to use&quot; below</span>
-
-<span class="sd">h = f1.halos() # load the halo catalogue from high redshift step</span>
-<span class="sd">h1_at_low_z = b(h[1])</span>
-<span class="sd"># h1_at_low_z now contains the particles which were in h[1] in the high redshift output</span>
-
-<span class="sd">h_low_z = f2.halos()</span>
-<span class="sd">h1_at_high_z = b(h_low_z[1])</span>
-<span class="sd"># h1_at_high_z now contains the particles which will be in h[1] at low redshift output</span>
-
-
-<span class="sd">*Identifying halos between different outputs*</span>
-<span class="sd">---------------------------------------------</span>
-
-<span class="sd">You may wish to work out how a halo catalogue maps onto a halo</span>
-<span class="sd">catalogue for a different output. For this purpose a simple function,</span>
-<span class="sd">match_catalog, is provided. Extending the example above,</span>
-<span class="sd">this would be called as follows:</span>
-
-<span class="sd">cat = b.match_catalog()</span>
-
-<span class="sd">cat is now a numpy index array such that f1.halos()[i] is (probably!) the</span>
-<span class="sd">major progenitor for f2.halos()[cat[i]].</span>
-
-
-<span class="sd">*Which class to use*</span>
-<span class="sd">--------------------</span>
-
-<span class="sd">For files where the particle ordering is static, so that the particle with</span>
-<span class="sd">index i in the first snapshot also has index i in the second snapshot, use the Bridge</span>
-<span class="sd">class.</span>
-
-<span class="sd">For files which can spawn new particles, and therefore have a monotonically</span>
-<span class="sd">increasing particle ordering array (e.g. &quot;iord&quot; in gasoline), use the</span>
-<span class="sd">OrderBridge class.</span>
-
-<span class="sd">Snapshot formats where the particle ordering can change are not currently supported.</span>
-
+<span class="sd">For a tutorial on how to use the bridge module to trace the particles</span>
+<span class="sd">in your simulation, see the `bridge tutorial</span>
+<span class="sd">&lt;http://pynbody.github.io/pynbody/tutorials/bridge.html&gt;`_.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
 
 <span class="kn">import</span> <span class="nn">weakref</span><span class="o">,</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">math</span>
 
-<span class="k">class</span> <span class="nc">Bridge</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="Bridge"><a class="viewcode-back" href="../../convenience.html#pynbody.bridge.Bridge">[docs]</a><span class="k">class</span> <span class="nc">Bridge</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generic Bridge class&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
 
 
-    <span class="k">def</span> <span class="nf">is_same</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="Bridge.is_same"><a class="viewcode-back" href="../../convenience.html#pynbody.bridge.Bridge.is_same">[docs]</a>    <span class="k">def</span> <span class="nf">is_same</span><span class="p">(</span><span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Returns true if the particle i1 in the start point is the same</span>
 <span class="sd">        as the particle i2 in the end point.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">i1</span><span class="o">==</span><span class="n">i2</span>
-
+</div>
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Given a subview of either the start or end point of the bridge,</span>
 <span class="sd">        generate the corresponding subview of the connected snapshot&quot;&quot;&quot;</span>
@@ -151,7 +118,7 @@
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;Stale reference to start or endpoint&quot;</span>
         <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
 
-    <span class="k">def</span> <span class="nf">match_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_index</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_index</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="Bridge.match_catalog"><a class="viewcode-back" href="../../convenience.html#pynbody.bridge.Bridge.match_catalog">[docs]</a>    <span class="k">def</span> <span class="nf">match_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_index</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_index</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Given a Halos object groups_1, a Halos object groups_2 and a</span>
 <span class="sd">        Bridge object connecting the two parent simulations, this identifies</span>
 <span class="sd">        the most likely ID&#39;s in groups_2 of the objects specified in groups_1.</span>
@@ -194,7 +161,7 @@
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">min_index</span><span class="p">,</span><span class="n">identification</span><span class="p">))</span>
 
-
+</div></div>
 <div class="viewcode-block" id="OrderBridge"><a class="viewcode-back" href="../../convenience.html#pynbody.bridge.OrderBridge">[docs]</a><span class="k">class</span> <span class="nc">OrderBridge</span><span class="p">(</span><span class="n">Bridge</span><span class="p">)</span> <span class="p">:</span>
 
     <span class="sd">&quot;&quot;&quot;An OrderBridge uses integer arrays in two simulations</span>
@@ -347,11 +314,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-<<<<<<< HEAD
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
-=======
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
->>>>>>> a2ea4e4a5c33a4434c23e6765841db65159e9697
     </div>
   </body>
 </html>
