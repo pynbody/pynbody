@@ -7,18 +7,22 @@ Profiles in Pynbody
 
 Radial Density Profile 
 ----------------------
-Simple example for calculating a density profile: 
+
+Making profiles of all kinds of quantities is easy -- here's a simple
+example that shows how to plot a density profile:
 
 .. plot:: tutorials/example_code/density_profile.py
    :include-source:
 
+Below is a more extended description of the
+:mod:`~pynbody.analysis.profile` module.
 
  
 The Profile Class 
 -----------------
 
 The :func:`~pynbody.analysis.profile.Profile` class is meant to be a
-general-purpose class to satisfy all simulation profiling
+general-purpose class to satisfy (almost) all simulation profiling
 needs. Profiles are the most elementary ways to begin analyzing a
 simulation, so the :func:`~pynbody.analysis.profile.Profile` class is
 designed to be an extension of the syntax implemented in the
