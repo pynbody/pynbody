@@ -54,7 +54,8 @@ def velocity_image(sim, width="10 kpc", vector_color='black',
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
 
-    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`.
+    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`, 
+    or see the `tutorial <http://pynbody.github.io/pynbody/tutorials/pictures.html#velocity-vectors>`_.
 
     **Keyword arguments:**
 
@@ -121,7 +122,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           **kwargs) :
     """
 
-    Make an SPH image of the given simulation.
+    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial 
+    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples. 
 
     **Keyword arguments:**
 
