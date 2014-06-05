@@ -92,20 +92,22 @@ example that shows how to plot a density profile:</p>
 <span class="c"># create a profile object for the stars (by default this is a 2D profile)</span>
 <span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
 
+<span class="c"># make the figure and sub plots</span>
+<span class="n">f</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+
 <span class="c"># make the plot</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">],</span> <span class="s">&#39;k&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">r&#39;$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]&#39;</span><span class="p">)</span>
 
 <span class="c"># make a 3D density plot of the dark matter (note ndim=3 in the constructor below)</span>
 <span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\rho_{DM}$ [M$_{\odot}$ kpc$^{-3}$]&#39;</span><span class="p">)</span>
+
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">],</span> <span class="s">&#39;k&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">r&#39;$\rho_{DM}$ [M$_{\odot}$ kpc$^{-3}$]&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>(<a class="reference external" href="../tutorials/example_code/density_profile.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/density_profile.png">png</a>, <a class="reference external" href="../tutorials/example_code/density_profile.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/density_profile.pdf">pdf</a>)</p>
@@ -117,62 +119,242 @@ example that shows how to plot a density profile:</p>
 </div>
 <div class="section" id="the-profile-class">
 <h2>The Profile Class<a class="headerlink" href="#the-profile-class" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> class is meant to be a
+<p>The <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> class is meant to be a
 general-purpose class to satisfy (almost) all simulation profiling
 needs. Profiles are the most elementary ways to begin analyzing a
-simulation, so the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> class is
+simulation, so the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> class is
 designed to be an extension of the syntax implemented in the
-<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a> class and its derivatives.</p>
-<p>The constructor only returns a
-<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> instance and defines the
-bins etc. Importantly, it also stores lists of particle indices
-corresponding to each bin, so you can easily identify where the
-particles belong.</p>
+<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> class and its derivatives.</p>
+<p>Creating a <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> instance simply
+defines the bins etc. Importantly, it also stores lists of particle
+indices corresponding to each bin, so you can easily identify where
+the particles belong.</p>
+<p>Let&#8217;s quickly load a snapshot:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span><span class="p">;</span> <span class="kn">from</span> <span class="nn">pynbody.analysis</span> <span class="kn">import</span> <span class="n">profile</span><span class="p">;</span> <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+<span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024&#39;</span><span class="p">);</span> <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+<span class="go">Loading using backend &lt;class &#39;pynbody.tipsy.TipsySnap&#39;&gt;</span>
+<span class="go">TipsySnap: loading  testdata/g15784.lr.01024</span>
+
+<span class="gp">In [3]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+<span class="go">AHFCatalogue: loading particles... halos... done!</span>
+
+<span class="gp">In [4]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="go">Finding halo center...</span>
+<span class="go">TipsySnap: loading data from main file</span>
+<span class="go">SimSnap: converting phi units from 2.98e+06 km**2 a**-1 s**-2 to km**2 s**-2</span>
+<span class="go">SimSnap: converting pos units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting eps units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting vel units from 1.73e+03 km a s**-1 to km s**-1</span>
+<span class="go">SimSnap: converting mass units from 4.75e+16 Msol to Msol</span>
+<span class="go">SimSnap: converting tform units from 3.96e+01 s kpc km**-1 to kpc s km**-1</span>
+<span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
+<span class="go">cen= [ 1675.0977205  -2336.53255745 -8386.04530297]</span>
+<span class="go">Finding halo velocity center...</span>
+<span class="go">vcen= [   1.6295435   -58.21684952 -254.25581364]</span>
+<span class="go">Calculating angular momentum vector...</span>
+<span class="go">Transforming simulation...</span>
+</pre></div>
+</div>
+<p>We&#8217;re centered on the main halo (as in the cookbook example above) and
+we make the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> instance:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [5]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="nb">min</span><span class="o">=</span><span class="s">&#39;.01 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="s">&#39;50 kpc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>With the default parameters, the profile is made in the xy-plane. To
 make a spherically-symmetric 3D profile, specify <tt class="docutils literal"><span class="pre">ndim=3</span></tt> when
 creating the profile.</p>
-<div class="section" id="automatically-generated-profiles">
-<h3>Automatically-generated profiles<a class="headerlink" href="#automatically-generated-profiles" title="Permalink to this headline">¶</a></h3>
-<p>Many profiling functions are already implemented &#8211; see the
-<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> documentation for a full
-list. Additionally, <em>any</em> existing array can be &#8216;profiled&#8217;. For
-example, if [Fe/H] is a derived field &#8216;feh&#8217;, then plotting a
-metallicity profile is as simple as:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">])</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [6]: </span><span class="n">pdm_sph</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=</span><span class="s">&#39;.01 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="s">&#39;250 kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Even though we use <tt class="docutils literal"><span class="pre">s.d</span></tt> here (i.e. the full snapshot, not
+just halo 1), the whole snapshot is still centered on halo 1.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You can pass unit strings to <tt class="docutils literal"><span class="pre">min</span></tt> and <tt class="docutils literal"><span class="pre">max</span></tt> and the
+conversion will be done automatically into whatever the current
+units of the snapshot are so you don&#8217;t have to explicitly do any unit conversions.</p>
+</div>
+</div>
+<div class="section" id="automatically-generated-profiles">
+<h2>Automatically-generated profiles<a class="headerlink" href="#automatically-generated-profiles" title="Permalink to this headline">¶</a></h2>
+<p>Many profiling functions are already implemented &#8211; see the
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> documentation for a full
+list with brief descriptions. You can also check the available
+profiles in your session using
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile.derivable_keys" title="pynbody.analysis.profile.Profile.derivable_keys"><tt class="xref py py-func docutils literal"><span class="pre">derivable_keys()</span></tt></a> just like you
+would for a <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [7]: </span><span class="n">p</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()</span>
+<span class="go"> Out[7]: </span>
+<span class="go">[&#39;j_theta&#39;,</span>
+<span class="go"> &#39;v_circ&#39;,</span>
+<span class="go"> &#39;E_circ&#39;,</span>
+<span class="go"> &#39;kappa&#39;,</span>
+<span class="go"> &#39;density&#39;,</span>
+<span class="go"> &#39;mass_enc&#39;,</span>
+<span class="go"> &#39;pot&#39;,</span>
+<span class="go"> &#39;magnitudes&#39;,</span>
+<span class="go"> &#39;Q&#39;,</span>
+<span class="go"> &#39;beta&#39;,</span>
+<span class="go"> &#39;jtot&#39;,</span>
+<span class="go"> &#39;mass&#39;,</span>
+<span class="go"> &#39;j_circ&#39;,</span>
+<span class="go"> &#39;X&#39;,</span>
+<span class="go"> &#39;dyntime&#39;,</span>
+<span class="go"> &#39;g_spherical&#39;,</span>
+<span class="go"> &#39;sb&#39;,</span>
+<span class="go"> &#39;fourier&#39;,</span>
+<span class="go"> &#39;omega&#39;,</span>
+<span class="go"> &#39;rotation_curve_spherical&#39;,</span>
+<span class="go"> &#39;j_phi&#39;]</span>
+</pre></div>
+</div>
+<p>Additionally, <em>any</em> existing array can be &#8216;profiled&#8217;. For example, if
+the metallicity [Fe/H] is a derived field stored under &#8216;feh&#8217;, then
+plotting a metallicity profile is as simple as:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [8]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">),</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">],</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+<span class="go">SimSnap: deriving array feh</span>
+<span class="go">TipsySnap: attempting to load auxiliary array testdata/g15784.lr.01024.FeMassFrac</span>
+<span class="go">SimSnap: deriving array hydrogen</span>
+<span class="go">SimSnap: deriving array hetot</span>
+<span class="go">Profile: mass()</span>
+<span class="go"> Out[8]: [&lt;matplotlib.lines.Line2D at 0x7f3df36fbc10&gt;]</span>
+
+<span class="gp">In [9]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;[Fe/H]&#39;</span><span class="p">)</span>
+<span class="go"> Out[9]: &lt;matplotlib.text.Text at 0x7f3df37ebed0&gt;</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/profile_fig1.png"><img alt="../_images/profile_fig1.png" src="../_images/profile_fig1.png" style="width: 5in;" /></a>
 <p>If the array doesn&#8217;t exist but is deriveable (check with
 <tt class="docutils literal"><span class="pre">s.derivable_keys()</span></tt>), it is automatically calculated.</p>
-<p>You can define your own profiling functions in your code by using the
-<tt class="docutils literal"><span class="pre">Profile.profile_property</span></tt> decorator:</p>
-<div class="highlight-python"><div class="highlight"><pre>@pynbody.analysis.profile.Profile.profile_property
- def random(self):
-     &quot;&quot;&quot;
-     Generate a random profile
-     &quot;&quot;&quot;
-     import numpy as np
-     return np.random.rand(self.nbins)
+<p>In addition, you can define your own profiling functions in your code
+by using the <tt class="docutils literal"><span class="pre">Profile.profile_property</span></tt> decorator:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@profile.Profile.profile_property</span>
+<span class="k">def</span> <span class="nf">random</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+   <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+   <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Now this will be automatically derivable for any newly-created profile as <tt class="docutils literal"><span class="pre">'random'</span></tt>.</p>
 </div>
 <div class="section" id="calculating-derivatives-and-dispersions">
-<h3>Calculating Derivatives and Dispersions<a class="headerlink" href="#calculating-derivatives-and-dispersions" title="Permalink to this headline">¶</a></h3>
+<h2>Calculating Derivatives and Dispersions<a class="headerlink" href="#calculating-derivatives-and-dispersions" title="Permalink to this headline">¶</a></h2>
 <p>You can calculate derivatives of profiles automatically. For instance,
 you might be interested in d phi / dr if you&#8217;re looking at a
 disk. This is as easy as attaching a <tt class="docutils literal"><span class="pre">d_</span></tt> to the profile name. For
 example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="c"># returns the potential profile</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;d_phi&#39;</span><span class="p">]</span> <span class="c"># returns d phi / dr from p[&quot;phi&quot;]</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [10]: </span><span class="n">p_all</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="nb">min</span><span class="o">=</span><span class="s">&#39;.01 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="s">&#39;250 kpc&#39;</span><span class="p">)</span>
+
+<span class="gp">In [11]: </span><span class="n">p_all</span><span class="p">[</span><span class="s">&#39;pot&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span> <span class="c"># returns the potential profile</span>
+<span class="go">Profile: pot() -- warning, disk must be in the x-y plane</span>
+<span class="go">Potential calculated in    19 s</span>
+<span class="gr">Out[11]: </span>
+<span class="go">SimArray([-1883725.20606321, -1774955.42301419, -1722218.33725593,</span>
+<span class="go">       -1690633.68613172, -1668854.69876005, -1652878.17689284,</span>
+<span class="go">       -1640433.23593103, -1630243.68972153, -1621605.13215668,</span>
+<span class="go">       -1614220.30221359], &#39;km**2 s**-2&#39;)</span>
+
+<span class="gp">In [12]: </span><span class="n">p_all</span><span class="p">[</span><span class="s">&#39;d_pot&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span> <span class="c"># returns d phi / dr from p[&quot;phi&quot;]</span>
+<span class="go">Profile: d_pot/dR</span>
+<span class="gr">Out[12]: </span>
+<span class="go">SimArray([ 43509.65360575,  32302.66586809,  16865.02197737,  10673.15462536,</span>
+<span class="go">         7551.40390393,   5684.5199466 ,   4527.0785174 ,   3765.77138572,</span>
+<span class="go">         3204.80569382,   2767.54060377], &#39;km**2 kpc**-1 s**-2&#39;)</span>
 </pre></div>
 </div>
 <p>Similarly straightforward is the calculation of dispersions and
 root-mean-square values. You simply need to attach a <tt class="docutils literal"><span class="pre">_disp</span></tt> or
-<tt class="docutils literal"><span class="pre">_rms</span></tt> as a suffix to the profile name:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;z_rms&#39;</span><span class="p">]</span>
+<tt class="docutils literal"><span class="pre">_rms</span></tt> as a suffix to the profile name. To get the stellar velocity
+dispersion:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">),</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;km s^-1&#39;</span><span class="p">),</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="go">Profile: auto-deriving vr_disp</span>
+<span class="go">SimSnap: deriving array vr</span>
+<span class="go">SimSnap: deriving array r</span>
+<span class="gr">Out[13]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x7f3df3757e90</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="gp">In [14]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$\sigma_{r}$&#39;</span><span class="p">)</span>
+<span class="gr">Out[14]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x7f3df37ebed0</span><span class="o">&gt;</span>
 </pre></div>
 </div>
+<a class="reference internal image-reference" href="../_images/profile_fig2.png"><img alt="../_images/profile_fig2.png" src="../_images/profile_fig2.png" style="width: 5in;" /></a>
+<p>In addition to doing this by hand, you can make a
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.QuantileProfile" title="pynbody.analysis.profile.QuantileProfile"><tt class="xref py py-class docutils literal"><span class="pre">QuantileProfile</span></tt></a> that can return any
+desired quantile range. By default, this is the mean +/- 1-sigma:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">p_quant</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">QuantileProfile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="s">&#39;0.1 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="s">&#39;50 kpc&#39;</span><span class="p">)</span>
+
+<span class="gp">In [16]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">][:,</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="gr">Out[16]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x7f3df3757e50</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="gp">In [17]: </span><span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s">&#39;Grey&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gr">Out[17]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">PolyCollection</span> <span class="n">at</span> <span class="mh">0x7f3df3705890</span><span class="o">&gt;</span>
+
+<span class="gp">In [18]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;[Fe/H]&#39;</span><span class="p">)</span>
+<span class="gr">Out[18]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x7f3df37ebed0</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/profile_quant.png"><img alt="../_images/profile_quant.png" src="../_images/profile_quant.png" style="width: 5in;" /></a>
+</div>
+<div class="section" id="making-a-profile-using-a-different-quantity">
+<h2>Making a profile using a different quantity<a class="headerlink" href="#making-a-profile-using-a-different-quantity" title="Permalink to this headline">¶</a></h2>
+<p>Radial profiles are nice, but sometimes we want a &#8220;profile&#8221; using a
+different quantity. We might want to know, for example, how the mean
+metallicity varies as a function of age in the
+stars. <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a> calls the function
+<tt class="xref py py-func docutils literal"><span class="pre">_calculate_x()</span></tt> by default and
+this simply returns the 3D or xy-plane radial distance, depending on
+the value of <tt class="docutils literal"><span class="pre">ndim</span></tt>. We can specify a different function using the
+<tt class="docutils literal"><span class="pre">calc_x</span></tt> keyword. Often these are simple so a lambda function can be
+used (e.g. if we just want to return an array) or can also be more
+complicated functions. For example, to make the profile of stars in
+halo 1 according to their age:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [19]: </span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;age&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;Gyr&#39;</span><span class="p">)</span>
+<span class="go">SimSnap: deriving array age</span>
+
+<span class="gp">In [20]: </span><span class="n">p_age</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">calc_x</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;age&#39;</span><span class="p">],</span> <span class="nb">max</span> <span class="o">=</span> <span class="s">&#39;10 Gyr&#39;</span><span class="p">)</span>
+
+<span class="gp">In [21]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_age</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_age</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">],</span> <span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">&#39;mean [Fe/H]&#39;</span><span class="p">,</span><span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="go">Profile: mass()</span>
+<span class="gr">Out[21]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x7f3df3757a50</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="gp">In [22]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_age</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_age</span><span class="p">[</span><span class="s">&#39;feh_disp&#39;</span><span class="p">],</span> <span class="s">&#39;k--&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">&#39;dispersion&#39;</span><span class="p">)</span>
+<span class="go">Profile: auto-deriving feh_disp</span>
+<span class="gr">Out[22]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x7f3dedbed110</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="gp">In [23]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;Age [Gyr]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;[Fe/H]&#39;</span><span class="p">)</span>
+<span class="gr">Out[23]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x7f3df37ebed0</span><span class="o">&gt;</span>
+
+<span class="gp">In [24]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="gr">Out[24]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x7f3e09d75cd0</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/profile_fig4.png"><img alt="../_images/profile_fig4.png" src="../_images/profile_fig4.png" style="width: 5in;" /></a>
+</div>
+<div class="section" id="vertical-profiles-and-inclined-profiles">
+<h2>Vertical Profiles and Inclined Profiles<a class="headerlink" href="#vertical-profiles-and-inclined-profiles" title="Permalink to this headline">¶</a></h2>
+<p>For analyzing disk structure, it is frequently useful to have a
+profile in the z-direction. This is done with the
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.VerticalProfile" title="pynbody.analysis.profile.VerticalProfile"><tt class="xref py py-class docutils literal"><span class="pre">VerticalProfile</span></tt></a> which behaves in
+the same way as the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-class docutils literal"><span class="pre">Profile</span></tt></a>. Unlike
+in the basic class, you must specify the radial range and maximum z to
+be used:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [25]: </span><span class="n">p_vert</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">VerticalProfile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s">&#39;3 kpc&#39;</span><span class="p">,</span> <span class="s">&#39;5 kpc&#39;</span><span class="p">,</span> <span class="s">&#39;5 kpc&#39;</span><span class="p">)</span>
+
+<span class="gp">In [26]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_vert</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;pc&#39;</span><span class="p">),</span> <span class="n">p_vert</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol pc^-3&#39;</span><span class="p">),</span><span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="go">Profile: density()</span>
+<span class="go">Profile: mass()</span>
+<span class="gr">Out[26]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x7f3df37d5290</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="gp">In [27]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$z$ [pc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\rho_{\star}$ [M$_{\odot}$ pc$^{-3}$]&#39;</span><span class="p">)</span>
+<span class="gr">Out[27]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x7f3df37ebed0</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/profile_fig5.png"><img alt="../_images/profile_fig5.png" src="../_images/profile_fig5.png" style="width: 5in;" /></a>
+<p>Similarly, one can make inclined profiles using the
+<a class="reference internal" href="../analysis.html#pynbody.analysis.profile.VerticalProfile" title="pynbody.analysis.profile.VerticalProfile"><tt class="xref py py-class docutils literal"><span class="pre">VerticalProfile</span></tt></a>, but the snapshot needs to be rotated first:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [28]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span> <span class="c"># rotate the snapshot by 60-degrees</span>
+
+<span class="gp">In [29]: </span><span class="n">p_inc</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">InclinedProfile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="s">&#39;0.1 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="s">&#39;50 kpc&#39;</span><span class="p">)</span>
+</pre></div>
 </div>
 </div>
 </div>
@@ -187,11 +369,11 @@ root-mean-square values. You simply need to attach a <tt class="docutils literal
   <ul>
 <li><a class="reference internal" href="#">Profiles in Pynbody</a><ul>
 <li><a class="reference internal" href="#radial-density-profile">Radial Density Profile</a></li>
-<li><a class="reference internal" href="#the-profile-class">The Profile Class</a><ul>
+<li><a class="reference internal" href="#the-profile-class">The Profile Class</a></li>
 <li><a class="reference internal" href="#automatically-generated-profiles">Automatically-generated profiles</a></li>
 <li><a class="reference internal" href="#calculating-derivatives-and-dispersions">Calculating Derivatives and Dispersions</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#making-a-profile-using-a-different-quantity">Making a profile using a different quantity</a></li>
+<li><a class="reference internal" href="#vertical-profiles-and-inclined-profiles">Vertical Profiles and Inclined Profiles</a></li>
 </ul>
 </li>
 </ul>

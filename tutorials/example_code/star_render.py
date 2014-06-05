@@ -13,4 +13,3 @@ pynbody.analysis.angmom.sideon(h[1])
 
 #create an image using the default bands (i, v, u)
 pynbody.plot.stars.render(s,width='20 kpc')
-
