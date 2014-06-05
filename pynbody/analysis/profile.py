@@ -189,7 +189,7 @@ class Profile:
 
     Using another quantity for binning:
 
-    >>> ps = profile.Profile(s.s, calc_x = lambda x: s.s['rform'])
+    >>> ps = profile.Profile(s.s, calc_x = lambda x: x.s['rform'])
     
     """
 

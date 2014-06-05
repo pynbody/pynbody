@@ -22,5 +22,6 @@ sph.velocity_image(h[1].g, vector_color="cyan", qty="temp",width=50,cmap="YlOrRd
 #you can also make a stream visualization instead of a quiver plot
 pynbody.analysis.angmom.faceon(h[1])
 s['pos'].convert_units('Mpc')
-sph.velocity_image(s.g, width='3 Mpc', cmap = "Greys", mode='stream', units='Msol kpc^-2', 
-                   density = 2.0, vector_resolution=100, vmin=1e-1,subplot=axs[1], show_cbar=False)
+sph.velocity_image(s.g, width='3 Mpc', cmap = "Greys_r", mode='stream', units='Msol kpc^-2', 
+                   density = 2.0, vector_resolution=100, vmin=1e-1,subplot=axs[1], 
+                   show_cbar=False, vector_color='black')
