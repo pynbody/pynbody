@@ -3,8 +3,16 @@ python:
   - "2.7"
   - "2.6"
 
+# use anaconda from continuum to avoid building numpy/scipy
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda3-3.5.2-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  -./miniconda.sh -b
+  - export PATH=/home/travis/anaconda/bin:$PATH
+  - conda update --yes conda
+
 install:
-  - "pip install -r requirements.txt"
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib nose h5py
   - "cd nose; wget https://pynbody.googlecode.com/files/testdata.tar.gz; tar -zxvf testdata.tar.gz; cd .."
   - python setup.py install
 
