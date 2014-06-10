@@ -100,11 +100,22 @@ class GadgetHDFSnap(snapshot.SimSnap):
         self._arrays = {}
         self.properties = {}
 
+        # determine which particle types are in the output
+
+        my_type_map = {}
+
+        for fam, g_types in _type_map.iteritems() : 
+            my_types = []
+            for x in g_types :
+                if x in self._hdf[0].keys() : 
+                    my_types.append(x)
+            if len(my_types) : 
+                my_type_map[fam] = my_types
+        
         sl_start = 0
-        for x in _type_map:
+        for x in my_type_map:
             l = 0
-            for n in _type_map[x]:
-                name = n
+            for name in my_type_map[x]:
                 for hdf in self._hdf:
                     l += hdf[name]['Coordinates'].shape[0]
             self._family_slice[x] = slice(sl_start, sl_start+l)
@@ -246,10 +257,26 @@ class GadgetHDFSnap(snapshot.SimSnap):
 @GadgetHDFSnap.decorator
 def do_properties(sim):
     atr = sim._hdf[0]['Header'].attrs
-    sim.properties['a'] = atr['ExpansionFactor']
-    sim.properties['time'] = units.Gyr*atr['Time_GYR']
+    
+    # expansion factor could be saved as redshift
+    try:
+        sim.properties['a'] = atr['ExpansionFactor']
+    except KeyError : 
+        sim.properties['a'] = 1./(1+atr['Redshift'])
+
+    # time unit might not be set in the attributes
+    try : 
+        sim.properties['time'] = units.Gyr*atr['Time_GYR']
+    except KeyError: 
+        pass
+        
+    # not all omegas need to be specified in the attributes
+    try : 
+        sim.properties['omegaB0'] = atr['OmegaBaryon']
+    except KeyError : 
+        pass
+
     sim.properties['omegaM0'] = atr['Omega0']
-    sim.properties['omegaB0'] = atr['OmegaBaryon']
     sim.properties['omegaL0'] = atr['OmegaLambda']
     sim.properties['boxsize'] = atr['BoxSize']
     sim.properties['z'] = (1./sim.properties['a'])-1
@@ -261,9 +288,23 @@ def do_properties(sim):
 
 @GadgetHDFSnap.decorator
 def do_units(sim):
-    cosmo = (sim._hdf[0]['Parameters'][
-             'NumericalParameters'].attrs['ComovingIntegrationOn']) != 0
-    atr = sim._hdf[0]['Units'].attrs
+    
+    # this doesn't seem to be standard -- maybe use the convention
+    # from tipsy.py and set cosmo = True if there is a hubble constant
+    # specified?
+    try : 
+        cosmo = (sim._hdf[0]['Parameters'][
+            'NumericalParameters'].attrs['ComovingIntegrationOn']) != 0
+    except KeyError : 
+        cosmo = 'HubbleParam' in sim._hdf[0]['Header'].attrs.keys()
+
+    try : 
+        atr = sim._hdf[0]['Units'].attrs
+    except KeyError : 
+        warnings.warn("No unit information found: using defaults.",RuntimeWarning)
+        sim._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+        return
+
     vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
     dist_unit = atr['UnitLength_in_cm']*units.cm
     if cosmo:
