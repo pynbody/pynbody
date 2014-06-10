@@ -3,7 +3,6 @@ nose
 
 # python libs
 numpy>=1.5
-matplotlib
 scipy
 h5py
 
