@@ -1,8 +1,0 @@
-# testing
-nose
-
-# python libs
-numpy>=1.5
-#scipy -- scipt wont build on travis CI
-#h5py apparently this can't be installed via pip either?
-
