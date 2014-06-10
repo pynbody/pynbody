@@ -5,6 +5,7 @@ python:
 
 install:
   - "pip install -r requirements.txt"
+  - "cd nose; wget https://pynbody.googlecode.com/files/testdata.tar.gz; tar -zxvf testdata"
   - python setup.py install
 
 script: nosetests
