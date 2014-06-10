@@ -1,8 +1,7 @@
 language: python
 python: 
   - "2.7"
-  - "2.6"
-
+  
 # use anaconda from continuum to avoid building numpy/scipy
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-3.5.2-Linux-x86_64.sh -O miniconda.sh
@@ -12,9 +11,10 @@ before_install:
   - conda update --yes conda
 
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib nose h5py
+# could test here for $TRAVIS_PYTHON_VERSION and make a python 2.6 conda environment
+  - conda install --yes numpy scipy matplotlib nose h5py
   - "cd nose; wget https://pynbody.googlecode.com/files/testdata.tar.gz; tar -zxvf testdata.tar.gz; cd .."
   - python setup.py install
 
-script: nosetests
+script: "cd nose; nosetests"
 
