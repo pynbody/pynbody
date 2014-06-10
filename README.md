@@ -1,6 +1,6 @@
 pynbody
 =======
-![Travis CL](https://travis-ci.org/rokroskar/pynbody.svg?branch=master)
+![Travis CI](https://travis-ci.org/rokroskar/pynbody.svg?branch=master)
 
 
 [Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
