@@ -1,7 +1,6 @@
 pynbody
 =======
-![Travis CL](https://travis-ci.org/rokroskar/pynbody.svg?branch=master)
-
+[![Build Status](https://travis-ci.org/rokroskar/pynbody.svg?branch=master)](https://travis-ci.org/rokroskar/pynbody)
 
 [Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
 portable, format-transparent analysis framework for N-body and
