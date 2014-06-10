@@ -3,6 +3,6 @@ nose
 
 # python libs
 numpy>=1.5
-scipy
+#scipy -- scipt wont build on travis CI
 h5py
 
