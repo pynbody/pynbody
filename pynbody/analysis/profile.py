@@ -728,7 +728,7 @@ def beta(p) :
     """3D Anisotropy parameter as defined in Binney and Tremiane"""
     if pynbody.config['verbose'] : print 'Profile: beta()'
     assert p.ndim is 3
-    return  1-p['vt_disp']/(2*p['vr_disp'])
+    return  1.5-(p['vx_disp']**2+p['vy_disp']**2+p['vz_disp']**2)/p['vr_disp']**2/2.
 
 @Profile.profile_property
 def magnitudes(self,band='v'):
