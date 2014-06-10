@@ -2,11 +2,8 @@
 
 language: c
 # use language: c to be able to use a matrix of python and numpy versions -- see https://github.com/rmcgibbo/mdtraj/blob/master/.travis.yml
-#python: 
-#  - "2.7"
-#  - "2.6"
   
-# specify different versions of numpy
+# specify different versions of python and numpy
 env: 
   - PYTHON=2.6  NUMPY_VERSION=1.6.2
   - PYTHON=2.7  NUMPY_VERSION=1.7.1
@@ -19,7 +16,6 @@ before_install:
   - ./miniconda.sh -b
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
-# could test here for $TRAVIS_PYTHON_VERSION and make a python 2.6 conda environment
   - "cd nose; wget https://pynbody.googlecode.com/files/testdata_april_2013.tar.gz; tar -zxvf testdata_april_2013.tar.gz; cd .."
 
 install:
