@@ -22,6 +22,10 @@ def check_for_openmp():
     # Get compiler invocation
     compiler = os.environ.get('CC',
                               distutils.sysconfig.get_config_var('CC'))
+
+    # make sure to use just the compiler name without flags
+    compiler = compiler.split()[0]
+
     # Attempt to compile a test script.
     # See http://openmp.org/wp/openmp-compilers/
     filename = r'test.c'
