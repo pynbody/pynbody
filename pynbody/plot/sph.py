@@ -47,7 +47,7 @@ def faceon_image(sim, *args, **kwargs) :
     angmom.faceon(sim)
     return image(sim, *args, **kwargs)
 
-def velocity_image(sim, width="10 kpc", vector_color='black',
+def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
         vector_resolution=40, scale=None, mode = 'quiver', key_x=0.3, key_y=0.9,
         key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
     """
@@ -60,6 +60,10 @@ def velocity_image(sim, width="10 kpc", vector_color='black',
     **Keyword arguments:**
 
     *vector_color* (black): The color for the velocity vectors
+
+    *edgecolor* (black): edge color used for the lines - using a color
+     other than black for the *vector_color* and a black *edgecolor*
+     can result in poor readability in pdfs
 
     *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
 
@@ -104,13 +108,13 @@ def velocity_image(sim, width="10 kpc", vector_color='black',
 
     if mode == 'quiver' : 
         if scale is None:
-            Q = p.quiver(X,Y,vx,vy, color=vector_color) 
+            Q = p.quiver(X,Y,vx,vy, color=vector_color, edgecolor=edgecolor) 
         else:
-            Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color) 
+            Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color, edgecolor=edgecolor) 
         p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
                     r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
     elif mode == 'stream' : 
-        Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density)
+        Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density,edgecolor=edgecolor)
 
     return im
 
