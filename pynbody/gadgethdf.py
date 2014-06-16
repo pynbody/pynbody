@@ -128,22 +128,30 @@ class GadgetHDFSnap(snapshot.SimSnap):
             x, reverse=True) for x in self._loadable_keys]
         self._num_particles = sl_start
 
+        self._my_type_map = my_type_map
+
         self._decorate()
 
-    def _family_has_loadable_array(self, fam, name):
+    def _family_has_loadable_array(self, fam, name, subgroup = None):
         """Returns True if the array can be loaded for the specified family.
         If fam is None, returns True if the array can be loaded for all families."""
 
         if name == "mass":
             return True
 
+        if subgroup is None : 
+            hdf = self._hdf[0]
+        else : 
+            hdf = self._hdf[0][subgroup]
+
+
         if fam is None:
-            return all([self._family_has_loadable_array(fam_x, name) for fam_x in self._family_slice])
+            return all([self._family_has_loadable_array(fam_x, name, subgroup) for fam_x in self._family_slice])
 
         else:
             translated_name = _translate_array_name(name)
-            for n in _type_map[fam]:
-                if translated_name not in self._get_hdf_allarray_keys(self._hdf[0][n]):
+            for n in self._my_type_map[fam]:
+                if translated_name not in self._get_hdf_allarray_keys(hdf[n]):
                     return False
             return True
 
@@ -195,8 +203,8 @@ class GadgetHDFSnap(snapshot.SimSnap):
             ret = ret[tpart]
         return ret
 
-    def _load_array(self, array_name, fam=None):
-        if not self._family_has_loadable_array(fam, array_name):
+    def _load_array(self, array_name, fam=None, subgroup = None):
+        if not self._family_has_loadable_array(fam, array_name, subgroup):
             raise IOError("No such array on disk")
         else:
             if fam is not None:
@@ -206,15 +214,25 @@ class GadgetHDFSnap(snapshot.SimSnap):
 
             translated_name = _translate_array_name(array_name)
 
-            hdf0 = self._hdf[0]
+            if subgroup is None : 
+                hdf0 = self._hdf[0]
+            else : 
+                hdf0 = self._hdf[0][subgroup]
 
             dset0 = self._get_hdf_dataset(hdf0[
-                                          _type_map[famx][0]], translated_name)
+                                          self._my_type_map[famx][0]], translated_name)
 
             assert len(dset0.shape) <= 2
             dy = 1
             if len(dset0.shape) > 1:
                 dy = dset0.shape[1]
+
+            # check if the dimensions make sense -- if
+            # not, assume we're looking at an array that
+            # is 3D and cross your fingers
+            npart = hdf0.attrs['Number_per_Type'][int(self._my_type_map[famx][0][-1])]
+            if len(dset0) != npart :
+                dy = len(dset0)/npart                     
 
             dtype = dset0.dtype
 
@@ -232,13 +250,28 @@ class GadgetHDFSnap(snapshot.SimSnap):
 
             for f in fams:
                 i0 = 0
-                for t in _type_map[f]:
+                for t in self._my_type_map[f]:
                     for hdf in self._hdf:
-                        dataset = self._get_hdf_dataset(
-                            hdf[t], translated_name)
-                        i1 = i0+len(dataset)
-                        dataset.read_direct(self[f][array_name][i0:i1])
-                        i0 = i1
+                        if subgroup is not None : 
+                            hdf = hdf[subgroup]
+                        npart = hdf.attrs['Number_per_Type'][int(t[-1])]
+                        
+                        if npart > 0 : 
+                            dataset = self._get_hdf_dataset(hdf[t], translated_name)
+
+                            # check if the dimensions make sense -- if
+                            # not, assume we're looking at an array that
+                            # is 3D and cross your fingers
+                            if len(dataset) != npart : 
+                                temp = dataset[:].reshape((len(dataset)/3,3))
+                                i1 = i0+len(temp)
+                                self[f][array_name][i0:i1] = temp
+                            
+                            else : 
+                                i1 = i0+len(dataset)
+                                dataset.read_direct(self[f][array_name][i0:i1])
+
+                            i0 = i1
 
     @staticmethod
     def _can_load(f):
@@ -315,3 +348,73 @@ def do_units(sim):
 
     sim._file_units_system = [units.Unit(x) for x in [
                               vel_unit, dist_unit, mass_unit, "K"]]
+
+
+
+###################
+# SubFindHDF class
+###################
+
+class SubFindHDFSnap(GadgetHDFSnap) : 
+
+    def __init__(self, filename) : 
+        
+        global config
+        super(SubFindHDFSnap,self).__init__(filename)
+
+        # the super constructor does almost nothing because most of
+        # the relevant data on particles is stored in the FOF group
+        # attributes -- but it does set up the array and slice
+        # dictionaries and the properties dictionary
+
+        # get the properties from the FOF HDF group and other metadata
+        self._decorate()
+
+        # load the rest of the hdfs if the user doesn't specify a single hdf
+        if not h5py.is_hdf5(filename) :
+            numfiles = self.properties['NTask']
+            self._hdf = [h5py.File(filename+"."+str(
+                i)+".hdf5", "r") for i in xrange(numfiles)]
+        
+        # set up the particle type mapping
+        my_type_map = {}
+
+        for fam, g_types in _type_map.iteritems() : 
+            my_types = []
+            for x in g_types :
+                if x in self._hdf[0]['FOF'].keys() : 
+                    my_types.append(x)
+            if len(my_types) : 
+                my_type_map[fam] = my_types
+        
+        # set up family slices
+        sl_start = 0
+        self._loadable_keys = set([])
+        for x in my_type_map:
+            l = 0
+            for name in my_type_map[x]:
+                for hdf in self._hdf:
+                    l += hdf['FOF'].attrs['Number_per_Type'][int(name[-1])]
+            self._family_slice[x] = slice(sl_start, sl_start+l)
+
+            k = self._get_hdf_allarray_keys(self._hdf[0]['FOF'][name])
+            self._loadable_keys = self._loadable_keys.union(set(k))
+            sl_start += l
+        self._loadable_keys = [_translate_array_name(
+            x, reverse=True) for x in self._loadable_keys]
+        
+        self._num_particles = sl_start
+
+        self._my_type_map = my_type_map
+
+
+    def _load_array(self, array_name, fam=None, subgroup = 'FOF') : 
+        return GadgetHDFSnap._load_array(self, array_name, fam, subgroup)
+
+@SubFindHDFSnap.decorator
+def do_properties(sim): 
+
+    atr = sim._hdf[0]['FOF'].attrs
+
+    for s in atr : 
+        sim.properties[s] = atr[s]
