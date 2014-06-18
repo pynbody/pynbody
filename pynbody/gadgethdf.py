@@ -420,6 +420,9 @@ class SubFindHDFSnap(GadgetHDFSnap) :
     def _load_array(self, array_name, fam=None, subgroup = 'FOF') : 
         return GadgetHDFSnap._load_array(self, array_name, fam, subgroup)
 
+    def halos(self) : 
+        return SubFindHDFHaloCatalogue(self)
+
 @SubFindHDFSnap.decorator
 def do_properties(sim): 
 
