@@ -43,7 +43,6 @@ def vt(self) :
     """Tangential velocity"""
     return np.sqrt(self['v2']-self['vr']**2)
 
-
 @SimSnap.derived_quantity
 def ke(self) :
     """Specific kinetic energy"""
@@ -82,6 +81,18 @@ def vcxy(self) :
     f = (self['x']*self['vy']-self['y']*self['vx'])/self['rxy']
     f[np.where(f!=f)]=0
     return f
+
+@SimSnap.derived_quantity
+def vphi(self):
+    """Azimuthal velocity (synonym for vcxy)"""
+    return self['vcxy']
+
+@SimSnap.derived_quantity
+def vtheta(self):
+    """Velocity projected to polar direction"""
+    return (np.cos(self['az'])*np.cos(self['theta'])*self['vx'] +
+        np.sin(self['az'])*np.cos(self['theta'])*self['vy'] -
+        np.sin(self['theta'])*self['vy'])
 
 @SimSnap.derived_quantity
 def v_mean(self):
