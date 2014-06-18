@@ -421,7 +421,7 @@ class SubFindHDFSnap(GadgetHDFSnap) :
         return GadgetHDFSnap._load_array(self, array_name, fam, subgroup)
 
     def halos(self) : 
-        return SubFindHDFHaloCatalogue(self)
+        return halo.SubFindHDFHaloCatalogue(self)
 
 @SubFindHDFSnap.decorator
 def do_properties(sim): 
@@ -432,77 +432,3 @@ def do_properties(sim):
         sim.properties[s] = atr[s]
 
 
-class SubFindHDFHaloCatalogue(halo.HaloCatalogue) : 
-    """
-    Gadget's SubFind Halo catalogue -- used in concert with :class:`~SubFindHDFSnap`
-    """
-
-    def __init__(self, sim) : 
-        super(SubFindHDFHaloCatalogue,self).__init__()
-    
-        self._base = weakref.ref(sim)
-
-        # set up particle group offsets
-        self._fof_group_offsets = {}
-        self._fof_group_lengths = {}
-
-        ngroups = sim._hdf[0]['FOF'].attrs['Total_Number_of_groups']
-
-        for ptype in sim._my_type_map.values() : 
-            ptype = ptype[0] 
-            self._fof_group_offsets[ptype] = np.empty(ngroups,dtype='int64')
-            self._fof_group_lengths[ptype] = np.empty(ngroups,dtype='int64')
-
-            curr_groups = 0
-            for h in sim._hdf : 
-                offset = h['FOF'][ptype]['Offset']
-                length = h['FOF'][ptype]['Length']
-                self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
-                self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
-                curr_groups += len(offset)
-            
-                
-        
-
-    def _get_halo(self, i) : 
-        if self.base is None : 
-            raise RuntimeError("Parent SimSnap has been deleted")
-        
-        if i > len(self) : 
-            raise RuntimeError("Group %d does not exist"%i)
-
-        type_map = self.base._my_type_map
-
-        # create the particle lists
-        tot_len = 0
-        for g_ptype in type_map.values() : 
-            g_ptype = g_ptype[0]
-            tot_len += self._fof_group_lengths[g_ptype][i]
-
-        plist = np.zeros(tot_len,dtype='int64')
-
-        npart = 0
-        for ptype in type_map.keys() : 
-            # family slice in the SubFindHDFSnap 
-            sl = self.base._family_slice[ptype]
-            
-            # gadget ptype
-            g_ptype = type_map[ptype][0]
-
-            # add the particle indices to the particle list
-            offset = self._fof_group_offsets[g_ptype][i]
-            length = self._fof_group_lengths[g_ptype][i]
-            ind = np.arange(sl.start + offset, sl.start + offset + length) 
-            plist[npart:npart+length] = ind
-            npart += length
-            
-        return halo.Halo(i, self, self.base, plist)
-        
-
-    def __len__(self) : 
-        return self.base._hdf[0]['FOF'].attrs['Total_Number_of_groups']
-        
-        
-    @property
-    def base(self):
-        return self._base()
