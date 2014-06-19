@@ -236,7 +236,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
             # check if the dimensions make sense -- if
             # not, assume we're looking at an array that
             # is 3D and cross your fingers
-            npart = hdf0.attrs['Number_per_Type'][int(self._my_type_map[famx][0][-1])]
+            npart = len(hdf0[self._my_type_map[famx][0]]['ParticleIDs'])
             if len(dset0) != npart :
                 dy = len(dset0)/npart                     
 
@@ -260,7 +260,10 @@ class GadgetHDFSnap(snapshot.SimSnap):
                     for hdf in self._hdf:
                         if subgroup is not None : 
                             hdf = hdf[subgroup]
-                        npart = hdf.attrs['Number_per_Type'][int(t[-1])]
+                        try : 
+                            npart = len(hdf[t]['ParticleIDs'])
+                        except KeyError: 
+                            npart = 0
                         
                         if npart > 0 : 
                             dataset = self._get_hdf_dataset(hdf[t], translated_name)
