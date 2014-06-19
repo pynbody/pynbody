@@ -211,7 +211,7 @@ except :
 
 # This is our definitive list of classes which are able to
 # load snapshots
-_snap_classes = [gadgethdf.GadgetHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap, tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap]
+_snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap, tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap]
 
 # Turn the config strings for snapshot/halo classes into lists of
 # actual classes

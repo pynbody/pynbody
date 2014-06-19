@@ -282,7 +282,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
     @staticmethod
     def _can_load(f):
         try:
-            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5"):
+            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5") and ('sub' not in f):
                 return True
             else:
                 return False
@@ -423,6 +423,20 @@ class SubFindHDFSnap(GadgetHDFSnap) :
     def halos(self) : 
         return halo.SubFindHDFHaloCatalogue(self)
 
+    @staticmethod
+    def _can_load(f):
+        try:
+            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5"):
+                return True
+            else:
+                return False
+        except AttributeError:
+            if "hdf5" in f:
+                warnings.warn(
+                    "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
+            return False
+
+            
 @SubFindHDFSnap.decorator
 def do_properties(sim): 
 
