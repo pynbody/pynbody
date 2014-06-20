@@ -86,6 +86,7 @@ class HaloCatalogue(object):
             return self.calc_item(item)
     
     def _halo_generator(self) : 
+        if len(self) == 0 : return
         try : 
             self[0]
             i = 0
