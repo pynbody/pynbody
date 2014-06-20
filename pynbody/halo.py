@@ -79,27 +79,35 @@ class HaloCatalogue(object):
 
     def __getitem__(self, item):
         if isinstance(item, slice):
+            for x in self._halo_generator(item.start,item.stop) : pass
             indices = item.indices(len(self._halos))
-            [self.calc_item(i+1) for i in range(*indices)]
-            return self._halos.values()[item]
+            res = [self.calc_item(i) for i in range(*indices)]
+            return res
         else:
             return self.calc_item(item)
     
-    def _halo_generator(self) : 
+    def _halo_generator(self, i_start=None, i_stop=None) : 
         if len(self) == 0 : return
-        try : 
-            self[0]
-            i = 0
-        except KeyError :
-            i = 1
+        if i_start is None :
+            try : 
+                self[0]
+                i = 0
+            except KeyError :
+                i = 1
+        else : 
+            i = i_start
+            
+        if i_stop is None : 
+            i_stop = len(self)
 
         while True:
             try : 
                 yield self[i]
                 i+=1
-                if len(self[i]) == 0: break
+                if len(self[i]) == 0: continue
             except RuntimeError: 
                 break
+            if i == i_stop: raise StopIteration
 
     def is_subhalo(self, childid, parentid):
         """

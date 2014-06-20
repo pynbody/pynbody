@@ -40,6 +40,10 @@ def test_halo_loading() :
         for s in halo.sub : 
             s['mass'].sum()
     
+    # test halo catalogue slicing
+    for halo in h[0:10] : pass
+    for halo in h[30:40] : pass
+    for sub in h[0].sub[1:5] : pass
 
     
     
