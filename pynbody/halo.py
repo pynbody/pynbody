@@ -1001,8 +1001,8 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
             g_ptype = type_map[ptype][0]
 
             # add the particle indices to the particle list
-            offset = halo_offsets[g_ptype][i]
-            length = halo_lengths[g_ptype][i]
+            offset = halo_offsets[g_ptype][absolute_id]
+            length = halo_lengths[g_ptype][absolute_id]
             ind = np.arange(sl.start + offset, sl.start + offset + length) 
             plist[npart:npart+length] = ind
             npart += length

@@ -35,7 +35,11 @@ def test_halo_loading() :
     h[0]['pos']
     # check that loading the subhalos works
     h[0].sub[0]['pos']
-
+    for halo in h : 
+        halo['mass'].sum()
+        for s in halo.sub : 
+            s['mass'].sum()
+    
 
     
     
