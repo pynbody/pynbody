@@ -86,7 +86,12 @@ class HaloCatalogue(object):
             return self.calc_item(item)
     
     def _halo_generator(self) : 
-        i = 1
+        try : 
+            self[0]
+            i = 0
+        except KeyError :
+            i = 1
+
         while True:
             try : 
                 yield self[i]
