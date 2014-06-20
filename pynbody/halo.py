@@ -81,7 +81,7 @@ class HaloCatalogue(object):
         if isinstance(item, slice):
             indices = item.indices(len(self._halos))
             [self.calc_item(i+1) for i in range(*indices)]
-            return self._halos[item]
+            return self._halos.values()[item]
         else:
             return self.calc_item(item)
     
