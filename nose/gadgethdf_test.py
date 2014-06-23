@@ -33,12 +33,18 @@ def test_halo_loading() :
     h = subfind.halos()
     # check that data loading for individual fof groups works
     h[0]['pos']
+    h[1]['pos']
+
     # check that loading the subhalos works
     h[0].sub[0]['pos']
-    for halo in h : 
+    for i,halo in enumerate(h[0:10]) : 
         halo['mass'].sum()
+        for fam in [halo.g, halo.d, halo.s] : 
+            assert(len(fam['iord']) == subfind._hdf[0]['FOF'][subfind._my_type_map[fam.families()[0]][0]]['Length'][i])
         for s in halo.sub : 
             s['mass'].sum()
+            
+            
     
     # test halo catalogue slicing
     for halo in h[0:10] : pass

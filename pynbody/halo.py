@@ -952,7 +952,7 @@ class SubFindFOFGroup(Halo) :
         if name == 'sub':
             return self._subhalo_catalogue
         else : 
-            return super(SubFindFOFGroup,self).__attr__(subhalo_id)
+            return super(SubFindFOFGroup,self).__getattr__(name)
 
         
 class SubFindHDFSubhaloCatalogue(HaloCatalogue) : 
