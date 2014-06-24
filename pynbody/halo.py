@@ -21,7 +21,8 @@ import glob
 import re
 import copy
 import sys
-from . import snapshot, util, config, config_parser, gadget
+from . import snapshot, util, config, config_parser, gadget, units
+from array import SimArray
 
 
 class DummyHalo(object):
@@ -663,19 +664,19 @@ class GrpCatalogue(HaloCatalogue) :
     A generic catalogue using a .grp file to specify which particles
     belong to which group. 
     """
-    def __init__(self, sim, array='grp'): 
-        sim[array]
+    def __init__(self, sim, arr_name='grp'): 
+        sim[arr_name]
     # trigger lazy-loading and/or kick up a fuss if unavailable
         self._base = weakref.ref(sim)
         self._halos = {}
-        self._array = array
+        self._arr_name = arr_name
         HaloCatalogue.__init__(self)
 
     def _get_halo(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
+        x = Halo(i, self, self.base, np.where(self.base[self._arr_name] == i))
         if len(x) == 0 : 
             raise RuntimeError("Halo %s does not exist"%(str(i)))
         x._descriptor = "halo_"+str(i)
@@ -686,19 +687,19 @@ class GrpCatalogue(HaloCatalogue) :
         return self._base()
 
     @staticmethod
-    def _can_load(sim,array='grp'):
-        if (array in sim.loadable_keys()) or (array in sim.keys()) : 
+    def _can_load(sim,arr_name='grp'):
+        if (arr_name in sim.loadable_keys()) or (arr_name in sim.keys()) : 
             return True
         else : 
             return False
 
 class AmigaGrpCatalogue(GrpCatalogue):
-    def __init__(self, sim, array='amiga.grp'):
-        GrpCatalogue.__init__(self,sim,array)
+    def __init__(self, sim, arr_name='amiga.grp'):
+        GrpCatalogue.__init__(self,sim,arr_name)
 
     @staticmethod
-    def _can_load(sim,array='amiga.grp'):
-        return GrpCatalogue._can_load(sim,array)
+    def _can_load(sim,arr_name='amiga.grp'):
+        return GrpCatalogue._can_load(sim,arr_name)
 
 class SubfindCatalogue(HaloCatalogue):
     """
@@ -890,7 +891,60 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             self._fof_group_first_subhalo[nfof:nfof+len(first_groups)] = first_groups
             nfof += len(first_groups)
 
+        # get the properties of fof groups and subhalos calculated by subfind
+        fof_properties = {'CenterOfMass': np.array([]), 'CenterOfMassVelocity': np.array([]), 
+                          'Mass': np.array([]), 'MassType': np.array([])}
+        sub_properties = {}
+       
+        ignore = ['GrNr', 'FirstSubOfHalo', 'SF', 'NSF', 'NsubPerHalo', 'Stars', 'MassType']
+        for t in  sim._my_type_map.values() :
+            ignore.append(t[0])
 
+        for key in sim._hdf[0]['SUBFIND'].keys() :
+            if key not in ignore : 
+                sub_properties[key] = np.array([])
+                
+        
+        for h in sim._hdf : 
+            for key in fof_properties.keys() :
+                fof_properties[key] = np.append(fof_properties[key],h['FOF'][key].value)
+
+            for key in sub_properties.keys() :
+                sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
+        
+        for key in fof_properties.keys() + sub_properties.keys() : 
+            arr_units = units.NoUnit()
+
+            if key not in ignore :
+                if 'Vel' in key : arr_units = sim['vel'].units
+                if 'Mass' in key and 'Center' not in key : arr_units = sim['mass'].units
+                if 'Halo_M' in key: arr_units = sim['mass'].units
+                if 'Halo_R' in key: arr_units = sim['pos'].units
+                if key == 'CenterOfMass' : arr_units = sim['pos'].units
+            
+            try : 
+                fof_properties[key] = fof_properties[key].view(SimArray)
+                fof_properties[key].units = arr_units
+            except KeyError :
+                pass
+
+                sub_properties[key] = sub_properties[key].view(SimArray)
+                sub_properties[key].units = arr_units
+
+            
+
+        for arr in fof_properties.values() + sub_properties.values() : 
+            try : 
+                arr.sim = sim
+            except AttributeError : 
+                pass
+
+        self._fof_properties = fof_properties
+        self._sub_properties = sub_properties
+        
+
+        
+                
     def _get_halo(self, i) : 
         if self.base is None : 
             raise RuntimeError("Parent SimSnap has been deleted")
@@ -948,11 +1002,14 @@ class SubFindFOFGroup(Halo) :
         
         self._descriptor = "fof_group_"+str(group_id)
 
+        # load properties
+        
+
     def __getattr__(self, name):
         if name == 'sub':
             return self._subhalo_catalogue
         else : 
-            return super(SubFindFOFGroup,self).__getattr__(name)
+            return super(SubFindFOFGroup,self).__getattr__()
 
         
 class SubFindHDFSubhaloCatalogue(HaloCatalogue) : 
@@ -1003,8 +1060,6 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
             tot_len += halo_lengths[g_ptype][absolute_id]
 
         plist = np.zeros(tot_len,dtype='int64')
-
-
 
         npart = 0
         for ptype in type_map.keys() : 
