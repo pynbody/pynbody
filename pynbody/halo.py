@@ -893,7 +893,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
         # get the properties of fof groups and subhalos calculated by subfind
         fof_properties = {'CenterOfMass': np.array([]), 'CenterOfMassVelocity': np.array([]), 
-                          'Mass': np.array([]), 'MassType': np.array([])}
+                          'Mass': np.array([])}
         sub_properties = {}
        
         ignore = ['GrNr', 'FirstSubOfHalo', 'SF', 'NSF', 'NsubPerHalo', 'Stars', 'MassType']
@@ -912,7 +912,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             for key in sub_properties.keys() :
                 sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
         
-        for key in fof_properties.keys() + sub_properties.keys() : 
+        for key in sub_properties.keys() : 
             arr_units = units.NoUnit()
 
             if key not in ignore :
@@ -928,16 +928,28 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             except KeyError :
                 pass
 
-                sub_properties[key] = sub_properties[key].view(SimArray)
-                sub_properties[key].units = arr_units
-
+            sub_properties[key] = sub_properties[key].view(SimArray)
+            sub_properties[key].units = arr_units
             
 
+        # set the sim 
         for arr in fof_properties.values() + sub_properties.values() : 
             try : 
                 arr.sim = sim
             except AttributeError : 
                 pass
+
+        # reshape multi-D arrays
+        for key in sub_properties.keys() : 
+            ndim = len(sub_properties[key])/self.nsubhalos
+
+            if ndim > 1 : 
+                try : 
+                    fof_properties[key] = fof_properties[key].reshape(self.ngroups,ndim)
+                except KeyError : 
+                    pass
+                sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
+                    
 
         self._fof_properties = fof_properties
         self._sub_properties = sub_properties
@@ -1003,7 +1015,11 @@ class SubFindFOFGroup(Halo) :
         self._descriptor = "fof_group_"+str(group_id)
 
         # load properties
-        
+        for key in self._halo_catalogue._fof_properties.keys() : 
+            self.properties[key] = SimArray(self._halo_catalogue._fof_properties[key][group_id],
+                                            self._halo_catalogue._fof_properties[key].units)
+            self.properties[key].sim = self.base
+            
 
     def __getattr__(self, name):
         if name == 'sub':
@@ -1079,7 +1095,6 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
         return SubFindHDFSubHalo(i, self._group_id, self, self.base, plist)
         
         
-
     @property
     def base(self) : 
         return self._base()
@@ -1094,6 +1109,17 @@ class SubFindHDFSubHalo(Halo) :
     
         self._group_id = group_id
         self._descriptor = "fof_group_%d_subhalo_%d"%(group_id,halo_id)
+
+        # need this to index the global offset and length arrays
+        absolute_id = self._halo_catalogue._group_catalogue._fof_group_first_subhalo[self._group_id] + halo_id
+        print absolute_id
+        
+        # load properties
+        sub_props = self._halo_catalogue._group_catalogue._sub_properties
+        for key in sub_props : 
+            self.properties[key] = SimArray(sub_props[key][group_id], sub_props[key].units)
+            self.properties[key].sim = self.base
+        
 
 _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue]
 _runable_halo_classes = [AHFCatalogue]
