@@ -357,6 +357,9 @@ def _interpolated_renderer(fn, levels) :
     Render an SPH image using interpolation to speed up rendering where smoothing
     lengths are large.
     """
+    if levels==1 :
+        return fn
+    
     def render_fn(*args, **kwargs) :
         kwargs['smooth_range']=(0,2)
         kwargs['res_downgrade']=1
@@ -366,7 +369,7 @@ def _interpolated_renderer(fn, levels) :
         for i in xrange(1,levels) :
             sub*=2
             if i==levels-1:
-                kwargs['smooth_range']=(1,10000)
+                kwargs['smooth_range']=(1,np.inf)
             kwargs['res_downgrade']=sub
             new_im=fn(*args,**kwargs)
             base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)
