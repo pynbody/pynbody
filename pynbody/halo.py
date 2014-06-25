@@ -1112,12 +1112,11 @@ class SubFindHDFSubHalo(Halo) :
 
         # need this to index the global offset and length arrays
         absolute_id = self._halo_catalogue._group_catalogue._fof_group_first_subhalo[self._group_id] + halo_id
-        print absolute_id
         
         # load properties
         sub_props = self._halo_catalogue._group_catalogue._sub_properties
         for key in sub_props : 
-            self.properties[key] = SimArray(sub_props[key][group_id], sub_props[key].units)
+            self.properties[key] = SimArray(sub_props[key][absolute_id], sub_props[key].units)
             self.properties[key].sim = self.base
         
 
