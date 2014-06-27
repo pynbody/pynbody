@@ -383,9 +383,8 @@ class Profile:
         result = np.zeros(self.nbins)
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
-            with self.sim.immediate_mode : 
-                name_array = subs[name].view(np.ndarray)
-                mass_array = subs['mass'].view(np.ndarray)
+            name_array = subs[name].view(np.ndarray)
+            mass_array = subs['mass'].view(np.ndarray)
 
             if dispersion :
                 sq_mean = (name_array**2*mass_array).sum()/self['mass'][i]
