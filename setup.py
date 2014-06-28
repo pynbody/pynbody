@@ -79,7 +79,7 @@ have_openmp = check_for_openmp()
 
 ext_modules = []
 libraries=[ ]
-extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
+extra_compile_args = ['-ftree-vectorize',
                       '-fno-omit-frame-pointer',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
