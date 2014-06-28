@@ -381,6 +381,10 @@ class Profile:
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False) :
         result = np.zeros(self.nbins)
+        
+        # force derivation of array if necessary:
+        self.sim[name]
+        
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
             name_array = subs[name].view(np.ndarray)
