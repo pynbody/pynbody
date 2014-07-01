@@ -14,15 +14,14 @@ For most users, the function of interest will be :func:`~pynbody.sph.render_imag
 
 import numpy as np
 import scipy, scipy.ndimage
-import snapshot, array
 import math
 import time
 import sys
-from . import snapshot, array, config, units, util, config_parser
+from .. import snapshot, array, config, units, util, config_parser
 import threading
 import copy
 try:
-    import kdtree
+    from . import kdtree
 except ImportError :
     raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
 import os

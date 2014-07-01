@@ -96,9 +96,9 @@ incdir.append('pynbody/pkdgrav2')
 incdir.append('pynbody/pkdgrav2/mdl2/null')
 
 #os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
-kdmain = Extension('pynbody/kdmain',
-                   sources = ['pynbody/kdmain.c', 'pynbody/kd.c', 
-                              'pynbody/smooth.c'],
+kdmain = Extension('pynbody/sph/kdmain',
+                   sources = ['pynbody/sph/kdmain.c', 'pynbody/sph/kd.c', 
+                              'pynbody/sph/smooth.c'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
                    libraries=libraries,
@@ -171,13 +171,13 @@ dist = setup(name = 'pynbody',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk' ],
+                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
-             package_data={'pynbody': ['default_config.ini', 
-                                       'sph_image.c','sph_to_grid.c',
-                                       'sph_spectra.c'],
+             package_data={'pynbody': ['default_config.ini'],
+                           'pynbody/sph': ['sph_image.c','sph_to_grid.c',
+                                        'sph_spectra.c'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'ionfracs.npz',
                                                 'interpolate.c',
