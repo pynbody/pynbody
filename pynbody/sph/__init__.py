@@ -280,9 +280,6 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
     
 def _render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
                            kstep=0.5, denoise=False, out_units=None,__threaded=False,snap_slice=None) :
-    """Render an SPH image on a spherical surface. Note this is written in pure python and
-    could be optimized into C, but would then need linking with the healpix libraries.
-    Also currently uses a top-hat 3D kernel only."""
 
     import healpy as hp
     from . import _spherical
