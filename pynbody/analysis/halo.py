@@ -8,7 +8,7 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
-from .. import filt, util, config, array,units
+from .. import filt, util, config, array,units, transformation
 from . import cosmology
 import numpy as np
 import math
@@ -214,7 +214,8 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
         print "vcen=",vcen
 
     if retcen:  return vcen
-    else:  sim.ancestor["vel"]-=vcen
+    else:
+        return transformation.v_translate(sim.ancestor, -vcen)
 
 def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
     """
@@ -263,12 +264,14 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
     except KeyError :
         fn = mode
 
-    if retcen:  return fn(sim, **kwargs)
+    if retcen:
+        return fn(sim, **kwargs)
     else:
         cen = fn(sim, **kwargs)
-        sim.ancestor["pos"]-=cen
+        tx = transformation.translate(sim.ancestor, -cen)
 
     if vel :
-        #vel_center(sim, cen_size = "1 kpc")
-        vel_center(sim, cen_size=cen_size)
+        velc = vel_center(sim, cen_size=cen_size, retcen=True)
+        tx = transformation.v_translate(tx, -velc)
 
+    return tx

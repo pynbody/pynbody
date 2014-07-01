@@ -91,5 +91,11 @@ def test_chaining() :
         npt.assert_almost_equal(f['y'],1.0-original['z'])
         npt.assert_almost_equal(f['z'],original['y'])
 
-    npt.assert_almost_equal(f['pos'], f['pos'])
+    npt.assert_almost_equal(f['pos'], original['pos'])
 
+
+def test_halo_managers() :
+    with pynbody.analysis.angmom.sideon(f, disk_size=1, cen_size=1) :
+        pass
+
+    npt.assert_almost_equal(f['pos'], original['pos'])

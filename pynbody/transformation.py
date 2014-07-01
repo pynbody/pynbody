@@ -1,5 +1,4 @@
 import numpy as np
-from .analysis import halo
 from . import snapshot
 
 class Transformation(object) :
@@ -37,6 +36,7 @@ class Transformation(object) :
         
         if isinstance(self.f, Transformation) :
             self.f.revert()
+        self.applied = False
          
 
     def __enter__(self) :
