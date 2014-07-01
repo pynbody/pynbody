@@ -146,6 +146,9 @@ if build_cython :
     chunkscan = Extension('pynbody.chunk.scan',
                       sources=['pynbody/chunk/scan.pyx'],
                       include_dirs=incdir)
+    sph_spherical = Extension('pynbody.sph._spherical',
+                      sources=['pynbody/sph/_spherical.pyx'],
+                      include_dirs=incdir)
 
 else :
     gravity_omp = Extension('pynbody.grav_omp',
@@ -157,10 +160,14 @@ else :
                           sources=['pynbody/chunk/scan.c'],
                           include_dirs=incdir)
 
+    sph_spherical = Extension('pynbody.sph._spherical',
+                      sources=['pynbody/sph/_spherical.c'],
+                      include_dirs=incdir)
+
 if have_openmp :
     ext_modules.append(gravity_omp)
     
-ext_modules.append(chunkscan)
+ext_modules+=[chunkscan,sph_spherical]
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
