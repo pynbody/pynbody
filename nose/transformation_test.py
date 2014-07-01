@@ -75,3 +75,21 @@ def test_vp_translate() :
 
     npt.assert_almost_equal(f['vel'],original['vel'])
     npt.assert_almost_equal(f['pos'],original['pos'])
+
+
+def test_rotate() :
+    global f,original
+
+    with f.rotate_x(90) :
+        npt.assert_almost_equal(f['y'],-original['z'])
+        npt.assert_almost_equal(f['z'],original['y'])
+
+    npt.assert_almost_equal(f['pos'], f['pos'])
+
+def test_chaining() :
+    with pynbody.transformation.translate(f.rotate_x(90),[0,1,0]) :
+        npt.assert_almost_equal(f['y'],1.0-original['z'])
+        npt.assert_almost_equal(f['z'],original['y'])
+
+    npt.assert_almost_equal(f['pos'], f['pos'])
+
