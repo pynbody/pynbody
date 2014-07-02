@@ -916,11 +916,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             arr_units = units.NoUnit()
 
             if key not in ignore :
-                if 'Vel' in key : arr_units = sim['vel'].units
-                if 'Mass' in key and 'Center' not in key : arr_units = sim['mass'].units
-                if 'Halo_M' in key: arr_units = sim['mass'].units
-                if 'Halo_R' in key: arr_units = sim['pos'].units
-                if key == 'CenterOfMass' : arr_units = sim['pos'].units
+                if 'Vel' in key : arr_units = sim['vel'].in_original_units().units
+                if 'Mass' in key and 'Center' not in key : arr_units = sim['mass'].in_original_units().units
+                if 'Halo_M' in key: arr_units = sim['mass'].in_original_units().units
+                if 'Halo_R' in key: arr_units = sim['pos'].in_original_units().units
+                if key == 'CenterOfMass' : arr_units = sim['pos'].in_original_units().units
             
             try : 
                 fof_properties[key] = fof_properties[key].view(SimArray)
