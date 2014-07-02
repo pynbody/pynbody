@@ -157,9 +157,21 @@ class GadgetHDFSnap(snapshot.SimSnap):
         else:
             translated_name = _translate_array_name(name)
             for n in self._my_type_map[fam]:
-                if translated_name not in self._get_hdf_allarray_keys(hdf[n]):
+                if translated_name not in self._get_all_particle_arrays(n,subgroup) :
                     return False
             return True
+
+    def _get_all_particle_arrays(self, gtype, subgroup=None): 
+        """Return all array names for a given gadget particle type"""
+
+        # this is a hack to flatten a list of lists
+        if subgroup is not None : 
+            l = [item for sublist in [x[subgroup][gtype].keys() for x in self._hdf] for item in sublist]
+        else : 
+            l = [item for sublist in [x[gtype].keys() for x in self._hdf] for item in sublist]
+
+        # now just return the unique items by converting to a set
+        return list(set(l))
 
     def loadable_keys(self, fam=None):
         return self._loadable_keys
