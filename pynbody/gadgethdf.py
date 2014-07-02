@@ -232,13 +232,26 @@ class GadgetHDFSnap(snapshot.SimSnap):
 
             translated_name = _translate_array_name(array_name)
 
-            if subgroup is None : 
-                hdf0 = self._hdf[0]
-            else : 
-                hdf0 = self._hdf[0][subgroup]
+            
+            # this next chunk of code is just to determine the
+            # dimensionality of the data
 
-            dset0 = self._get_hdf_dataset(hdf0[
-                                          self._my_type_map[famx][0]], translated_name)
+            i=0
+            not_loaded = True
+
+            # not all arrays are present in all hdfs so need to loop
+            # until we find one
+            while(not_loaded) :
+                if subgroup is None : 
+                    hdf0 = self._hdf[i]
+                else : 
+                    hdf0 = self._hdf[i][subgroup]
+                try : 
+                    dset0 = self._get_hdf_dataset(hdf0[
+                        self._my_type_map[famx][0]], translated_name)
+                    not_loaded = False
+                except KeyError: 
+                    i+=1
 
             assert len(dset0.shape) <= 2
             dy = 1
@@ -253,6 +266,8 @@ class GadgetHDFSnap(snapshot.SimSnap):
                 dy = len(dset0)/npart                     
 
             dtype = dset0.dtype
+
+            # got the dimension -- now make the arrays and load the data
 
             if fam is None:
                 self._create_array(array_name, dy, dtype=dtype)
