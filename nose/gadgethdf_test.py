@@ -60,12 +60,7 @@ def test_halo_values() :
     filesub = 'testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103'
 
     # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
-    import urllib2, sys, imp
-    u = urllib2.urlopen('https://bitbucket.org/astroduff/pyreadgadget/raw/master/pyread_gadget_hdf5.py')
-    code = u.read()
-    module = imp.new_module('pyread_gadget_hdf5')
-    exec code in module.__dict__
-    pyread_gadget_hdf5 = module.pyread_gadget_hdf5    
+    from pyread_gadget_hdf5 import pyread_gadget_hdf5    
 
     FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=True) 
     FoF_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='fof', nopanda=True, silent=True)
