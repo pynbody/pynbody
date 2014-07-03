@@ -186,12 +186,19 @@ def index_center(sim, **kwargs) :
     
 
 def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, move_all=True, **kwargs) :
-    """
-
-    Use stars from a sphere to calculate center of velocity. The size
+    """Use stars from a sphere to calculate center of velocity. The size
     of the sphere is given by the ``cen_size`` keyword and defaults to
     1 kpc.
 
+    **Keyword arguments:**
+
+    *mode*: reserved for future use; currently ignored
+
+    *move_all*: if True (default), move the entire snapshot. Otherwise only move
+    the particles in the halo passed in.
+    
+    *retcen*: if True only return the velocity center without moving the
+     snapshot (default = False)
 
     """
 
