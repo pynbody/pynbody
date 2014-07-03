@@ -185,7 +185,7 @@ def index_center(sim, **kwargs) :
         raise RuntimeError("Need to supply indices for centering")
     
 
-def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
+def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, move_all=True, **kwargs) :
     """
 
     Use stars from a sphere to calculate center of velocity. The size
@@ -197,6 +197,12 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
 
     if config['verbose'] :
         print "Finding halo velocity center..."
+
+    if move_all :
+        target = sim.ancestor
+    else :
+        target = sim
+        
     cen = sim.star[filt.Sphere(cen_size)]
     if len(cen)<5 :
         # fall-back to DM
@@ -213,11 +219,12 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
     if config['verbose'] :
         print "vcen=",vcen
 
-    if retcen:  return vcen
+    if retcen:
+        return vcen
     else:
-        return transformation.v_translate(sim.ancestor, -vcen)
+        return transformation.v_translate(target, -vcen)
 
-def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
+def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=True, **kwargs) :
     """
 
     Determine the center of mass of the given particles using the
@@ -249,6 +256,9 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
 
     *vel*: if True, translate velocities so that the velocity of the
     central 1kpc (default) is zeroed. Other values can be passed with cen_size.
+
+    *move_all*: if True (default), move the entire snapshot. Otherwise only move
+    the particles in the halo passed in. 
     """
 
     global config
@@ -264,14 +274,19 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
     except KeyError :
         fn = mode
 
+    if move_all :
+        target = sim.ancestor
+    else :
+        target = sim
+        
     if retcen:
         return fn(sim, **kwargs)
     else:
         cen = fn(sim, **kwargs)
-        tx = transformation.translate(sim.ancestor, -cen)
+        tx = transformation.inverse_translate(target, cen)
 
     if vel :
         velc = vel_center(sim, cen_size=cen_size, retcen=True)
-        tx = transformation.v_translate(tx, -velc)
+        tx = transformation.inverse_v_translate(tx, velc)
 
     return tx

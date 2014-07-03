@@ -77,7 +77,7 @@ def calc_faceon_matrix(angmom_vec, up=[0.0,1.0,0.0]) :
 
 
 def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", 
-           disk_size = "5 kpc", cen = None, vcen=None, top=None,
+           disk_size = "5 kpc", cen = None, vcen=None, move_all=True,
             **kwargs ) :
     """
 
@@ -93,9 +93,10 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
 
     global config
 
-    if top is None :
+    if move_all :
+        top = h.ancestor
+    else :
         top = h
-        while hasattr(top,'base') : top = top.base
 
     # Top is the top-level view of the simulation, which will be
     # transformed
@@ -107,12 +108,12 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
         if config['verbose'] :
             print "cen=",cen
 
-    tx = transformation.translate(top, -cen)
+    tx = transformation.inverse_translate(top, cen)
 
     if vcen is None :
         vcen = halo.vel_center(h,retcen=True, cen_size=cen_size)
 
-    tx = transformation.v_translate(tx, -vcen)
+    tx = transformation.inverse_v_translate(tx, vcen)
 
 
     # Use gas from inner 10kpc to calculate angular momentum vector
