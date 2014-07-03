@@ -57,7 +57,12 @@ class Transformation(object) :
             self.next.revert()
             
         
+    def _apply(self):
+        pass
 
+    def _revert(self):
+        pass
+    
     def __enter__(self) :
         self.apply(force=False)
 
@@ -170,3 +175,9 @@ def transform(f, matrix) :
     *matrix*"""
     
     return GenericRotation(f,matrix)
+
+def null(f) :
+    """Form a context manager for the null transformation (useful to avoid messy extra logic for situations where it's
+    unclear whether any transformation will be applied)"""
+
+    return Transformation(f)
