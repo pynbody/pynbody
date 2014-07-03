@@ -2,6 +2,7 @@ import pynbody
 import numpy as np
 import numpy.testing as npt
 import copy
+import gc
 
 def setup() :
     global f, original
@@ -99,3 +100,14 @@ def test_halo_managers() :
         pass
 
     npt.assert_almost_equal(f['pos'], original['pos'])
+
+def test_weakref() :
+    global f
+    tx1 = f.rotate_y(90)
+    tx2 = pynbody.transformation.translate(f.rotate_x(90),[0,1,0])
+    assert tx1.sim is not None
+    assert tx2.sim is not None
+    del f
+    gc.collect()
+    assert tx1.sim is None
+    assert tx2.sim is None

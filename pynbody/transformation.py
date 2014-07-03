@@ -1,23 +1,42 @@
 import numpy as np
+import weakref
 from . import snapshot
 
 class Transformation(object) :
     def __init__(self, f, defer=False) :
-        if not (isinstance(f, snapshot.SimSnap) or isinstance(f, Transformation)) :
+        if isinstance(f, snapshot.SimSnap) :
+            self.sim = f
+            self.next = None
+        elif isinstance(f, Transformation) :
+            self.sim = None
+            self.next = f
+        else:
             raise ValueError, "Transformation must either act on another Transformation or on a SimSnap"
-        self.f = f
+        
         self.applied = False
         if not defer :
             self.apply(force=False)
 
-    def apply(self, force=True) :
-        
-        if isinstance(self.f, snapshot.SimSnap) :
-            f = self.f
+
+    @property
+    def sim(self) :
+        return self._sim()
+
+    @sim.setter
+    def sim(self, sim) :
+        if sim is None :
+            self._sim = lambda : None
         else :
+            self._sim = weakref.ref(sim)
+
+    def apply(self, force=True) :
+
+        if self.next is not None :
             # this is a chained transformation, get the SimSnap to operate on
             # from the level below
-            f = self.f.apply(force=force)
+            f = self.next.apply(force=force)
+        else :
+            f = self.sim
             
         if self.applied and force :
             raise RuntimeError, "Transformation has already been applied"
@@ -25,19 +44,19 @@ class Transformation(object) :
         if not self.applied :
             self._apply(f)
             self.applied = True
-            self._applied_to = f
+            self.sim = f
 
         return f
         
     def revert(self) :
         if not self.applied :
             raise RuntimeError, "Transformation has not been applied"
-        self._revert(self._applied_to)
-        
-        if isinstance(self.f, Transformation) :
-            self.f.revert()
+        self._revert(self.sim)
         self.applied = False
-         
+        if self.next is not None :
+            self.next.revert()
+            
+        
 
     def __enter__(self) :
         self.apply(force=False)
@@ -103,6 +122,14 @@ def translate(f, shift) :
     """
     return GenericTranslate(f, 'pos', shift)
 
+def inverse_translate(f, shift) :
+    """Form a context manager for translating the simulation *f* by the spatial
+    vector *-shift*.
+
+    For a fuller description, see *translate*"""
+    return translate(f, -np.asarray(shift))
+
+
 def v_translate(f, shift) :
     """Form a context manager for translating the simulation *f* by the given
     velocity *shift*.
@@ -110,6 +137,14 @@ def v_translate(f, shift) :
     For a fuller description, see *translate* (which applies to position transformations)."""
     
     return GenericTranslate(f, 'vel', shift)
+
+def inverse_v_translate(f, shift) :
+    """Form a context manager for translating the simulation *f* by the given
+    velocity *-shift*.
+
+    For a fuller description, see *translate* (which applies to position transformations)."""
+    
+    return GenericTranslate(f, 'vel', -np.asarray(shift))
 
 def xv_translate(f, x_shift, v_shift) :
     """Form a context manager for translating the simulation *f* by the given
@@ -121,5 +156,17 @@ def xv_translate(f, x_shift, v_shift) :
                      x_shift)
 
 
+def inverse_xv_translate(f, x_shift, v_shift) :
+    """Form a context manager for translating the simulation *f* by the given
+    position *-x_shift* and velocity *-v_shift*.
+
+    For a fuller description, see *translate* (which applies to position transformations)."""
+    
+    return translate(v_translate(f,-np.asarray(v_shift)),
+                     -np.asarray(x_shift))
+
 def transform(f, matrix) :
+    """Form a context manager for rotating the simulation *f* by the given 3x3
+    *matrix*"""
+    
     return GenericRotation(f,matrix)
