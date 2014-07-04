@@ -166,9 +166,9 @@ class GadgetHDFSnap(snapshot.SimSnap):
 
         # this is a hack to flatten a list of lists
         if subgroup is not None : 
-            l = [item for sublist in [x[subgroup][gtype].keys() for x in self._hdf] for item in sublist]
+            l = [item for sublist in [self._get_hdf_allarray_keys(x[subgroup][gtype]) for x in self._hdf] for item in sublist]
         else : 
-            l = [item for sublist in [x[gtype].keys() for x in self._hdf] for item in sublist]
+            l = [item for sublist in [self._get_hdf_allarray_keys(x[gtype]) for x in self._hdf] for item in sublist]
 
         # now just return the unique items by converting to a set
         return list(set(l))
