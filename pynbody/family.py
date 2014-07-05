@@ -100,7 +100,7 @@ class Family(object):
     def __hash__(self) :
         return hash(str(self))
 
-if sys.version_info.major>=3 :
+if sys.version_info[0]>=3 :
     Family = functools.total_ordering(Family)
 
 
