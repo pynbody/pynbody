@@ -117,9 +117,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     return array.SimArray(com,sim['pos'].units)
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
-    """
-    
-    Calculate the virial radius of the halo centerd on the given
+    """Calculate the virial radius of the halo centered on the given
     coordinates.
 
     This is here defined by the sphere centerd on cen which contains a
@@ -138,16 +136,15 @@ def virial_radius(sim, cen=None, overden=178, r_max=None) :
     r_min = 0.0
 
     if cen is not None :
-        sim['pos']-=cen
+        tx = transformation.inverse_translate(sim, cen)
+    else :
+        tx = transformation.null(sim)
         
-    # sim["r"] = ((sim["pos"]-cen)**2).sum(axis=1)**(1,2)
-
-    rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
-    target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
-
-    result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
-    if cen is not None :
-        sim['pos']+=cen
+    with tx :
+        rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
+        target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
+        result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
+   
 
     return result
 
