@@ -4,7 +4,7 @@ import weakref
 
 def setup() :
     global f, h
-    f = pynbody.new(dm=1000, star=500, gas=500)
+    f = pynbody.new(dm=1000, star=500, gas=500, order='gas,dm,star')
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
     f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
     f['mass'] = np.random.uniform(1.0,10.0,size=f['mass'].shape)

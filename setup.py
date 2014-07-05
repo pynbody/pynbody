@@ -55,11 +55,10 @@ def check_for_openmp():
     else:
         return False
 
-try : 
-    import pkg_resources
+try :
     import cython
-    # check that cython version is > 0.15
-    if float(pkg_resources.get_distribution("cython").version.partition(".")[2]) < 15 : 
+    # check that cython version is > 0.20
+    if float(cython.__version__.partition(".")[2]) < 20 : 
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
@@ -149,6 +148,13 @@ if build_cython :
     sph_spherical = Extension('pynbody.sph._spherical',
                       sources=['pynbody/sph/_spherical.pyx'],
                       include_dirs=incdir)
+    halo_pyx = Extension('pynbody.analysis._com',
+                         sources=['pynbody/analysis/_com.pyx'],
+                         include_dirs=incdir)
+    bridge_pyx = Extension('pynbody.bridge._bridge',
+                         sources=['pynbody/bridge/_bridge.pyx'],
+                         include_dirs=incdir)
+                            
 
 else :
     gravity_omp = Extension('pynbody.grav_omp',
@@ -164,10 +170,18 @@ else :
                       sources=['pynbody/sph/_spherical.c'],
                       include_dirs=incdir)
 
+    halo_pyx = Extension('pynbody.analysis._com',
+                         sources=['pynbody/analysis/_com.c'],
+                         include_dirs=incdir)
+
+    bridge_pyx = Extension('pynbody.bridge._bridge',
+                         sources=['pynbody/bridge/_bridge.c'],
+                         include_dirs=incdir)
+
 if have_openmp :
     ext_modules.append(gravity_omp)
     
-ext_modules+=[chunkscan,sph_spherical]
+ext_modules+=[chunkscan,sph_spherical,halo_pyx,bridge_pyx]
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
@@ -179,7 +193,7 @@ dist = setup(name = 'pynbody',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
                          'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                         'pynbody/snapshot' ],
+                         'pynbody/snapshot', 'pynbody/bridge' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future

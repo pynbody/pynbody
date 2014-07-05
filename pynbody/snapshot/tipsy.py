@@ -686,8 +686,8 @@ class TipsySnap(SimSnap) :
                     fhand.write(struct.pack("i", len(self)))
                 
             else :
-                fhand = util.open_(filename, 'w')
-                print>>fhand, str(len(self))
+                fhand = util.open_(filename, 'wb')
+                fhand.write((str(len(self))+'\n').encode('utf-8'))
         
 
             if contents is None :

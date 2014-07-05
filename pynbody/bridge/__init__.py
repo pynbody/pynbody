@@ -21,6 +21,7 @@ in your simulation, see the `bridge tutorial
 
 
 import weakref, numpy as np, math
+from . import _bridge
 
 class Bridge(object) :
     """Generic Bridge class"""
@@ -125,8 +126,6 @@ class OrderBridge(Bridge) :
 
 
     def __call__(self, s) :
-        import scipy, scipy.weave
-        from scipy.weave import inline
 
         start, end = self._get_ends()
 
@@ -153,36 +152,8 @@ class OrderBridge(Bridge) :
             iord_to = iord_to[iord_map_to]
             iord_from = iord_from[iord_map_from]
             
-        output_index = np.zeros(len(iord_from)+1, dtype=int)
-
-        code = """
-        long len = iord_from_array->dimensions[0];
-        long len_to = iord_to_array->dimensions[0];
-
-        long i_to=0, j=1;
-
-        // note j starts at 1 because output length stored in position zero
-
-        for(long i=0; i<len; i++) {
-          long i_from = IORD_FROM1(i);
-          while(i_from>IORD_TO1(i_to) && i_to<len_to) i_to++;
-          if(i_from==IORD_TO1(i_to)) {
-            output_index[j] = i_to;
-            j++;
-          }
-        }
-
-        output_index[0] = j-1;
-        // length is j-1, because the last written index was j-1 and the
-        // indexing is 1-based precisely because we're writing this information
-        // into position zero.
-
-        """
-
-        inline(code, ['iord_to', 'iord_from', 'output_index'])
-
-        output_index = output_index[1:output_index[0]+1]
-
+        output_index = _bridge.bridge(iord_to, iord_from)
+        
         if not self.monotonic :
             output_index = iord_map_to[output_index[np.argsort(iord_map_from)]]
 

@@ -1887,7 +1887,7 @@ class FamilySubSnap(SubSnap):
             self.base._derive_array(array_name, self._unifamily)
 
 
-def _new(n_particles=0, **families):
+def _new(n_particles=0, order=None, **families):
     """Create a blank SimSnap, with the specified number of particles.
 
     Position, velocity and mass arrays are created and filled
@@ -1898,6 +1898,14 @@ def _new(n_particles=0, **families):
     the number of particles for each family, e.g.
 
     f = new(dm=50, star=25, gas=25)
+
+    The order in which the different families appear in the snapshot
+    is unspecified unless you add an 'order' argument:
+
+    f = new(dm=50, star=25, gas=25, order='star,gas,dm')
+
+    guarantees the stars, then gas, then dark matter particles appear
+    in sqeuence.
     """
 
     if len(families) == 0:
@@ -1906,11 +1914,18 @@ def _new(n_particles=0, **families):
     t_fam = []
     tot_particles = 0
 
-    for k, v in families.items():
+    if order is None :
+        for k, v in families.items():
 
-        assert isinstance(v, int)
-        t_fam.append((family.get_family(k), v))
-        tot_particles += v
+            assert isinstance(v, int)
+            t_fam.append((family.get_family(k), v))
+            tot_particles += v
+    else :
+        for k in order.split(",") :
+            v = families[k]
+            assert isinstance(v, int)
+            t_fam.append((family.get_family(k), v))
+            tot_particles += v
 
     x = SimSnap()
     x._num_particles = tot_particles

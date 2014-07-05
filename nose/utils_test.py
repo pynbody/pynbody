@@ -12,29 +12,29 @@ def test_intersect_slices() :
 
     numbers = np.arange(1000)
 
-    for x in xrange(1000) :
-    s1= random_slice()
-    s2 = random_slice()
-    n1 = numbers[s1]
-    n2 = numbers[s2]
-    s_inter = pynbody.util.intersect_slices(s1,s2,len(numbers))
-    nx = numbers[s_inter]
-    nx2 = numbers[s1][pynbody.util.relative_slice(s1,s_inter)]
-    correct_intersection=set(n1).intersection(set(n2))
-    assert set(nx)==correct_intersection
-    assert set(nx2)==correct_intersection
+    for x in range(1000) :
+        s1= random_slice()
+        s2 = random_slice()
+        n1 = numbers[s1]
+        n2 = numbers[s2]
+        s_inter = pynbody.util.intersect_slices(s1,s2,len(numbers))
+        nx = numbers[s_inter]
+        nx2 = numbers[s1][pynbody.util.relative_slice(s1,s_inter)]
+        correct_intersection=set(n1).intersection(set(n2))
+        assert set(nx)==correct_intersection
+        assert set(nx2)==correct_intersection
 
-    s1 = random_slice()
-    s2 = random_slice(20,4)
-    n3 = numbers[s1][s2]
-    s3 = pynbody.util.chained_slice(s1,s2)
-    nx3 = numbers[s3]
-    assert len(n3)==len(nx3)
-    assert all([x==y for x,y in zip(n3,nx3)])
+        s1 = random_slice()
+        s2 = random_slice(20,4)
+        n3 = numbers[s1][s2]
+        s3 = pynbody.util.chained_slice(s1,s2)
+        nx3 = numbers[s3]
+        assert len(n3)==len(nx3)
+        assert all([x==y for x,y in zip(n3,nx3)])
 
-    rel_slice_to_self = pynbody.util.relative_slice(s1,s1)
-    assert rel_slice_to_self.step is None
-    assert rel_slice_to_self.start==0
+        rel_slice_to_self = pynbody.util.relative_slice(s1,s1)
+        assert rel_slice_to_self.step is None
+        assert rel_slice_to_self.start==0
 
     # test 'None' steps handled correctly
     assert pynbody.util.intersect_slices(slice(0,5,None),slice(0,5,None))==slice(0,5,None)
@@ -45,17 +45,17 @@ def test_intersect_indices() :
 
     numbers = np.arange(1000)
     
-    for x in xrange(1000) :
-    sl = random_slice()
-    t = numbers[sl]
-    if len(t)==0 :
-        continue
-    ind = np.random.randint(0,len(t),50)
-    new_ind = pynbody.util.index_before_slice(sl, ind)
-    
-    assert len(numbers[new_ind])==len(numbers[sl][ind])
-    
-    assert all([x==y for x, y in zip(numbers[new_ind],numbers[sl][ind])])
+    for x in range(1000) :
+        sl = random_slice()
+        t = numbers[sl]
+        if len(t)==0 :
+            continue
+        ind = np.random.randint(0,len(t),50)
+        new_ind = pynbody.util.index_before_slice(sl, ind)
+
+        assert len(numbers[new_ind])==len(numbers[sl][ind])
+
+        assert all([x==y for x, y in zip(numbers[new_ind],numbers[sl][ind])])
 
 
 def test_bisect() :
@@ -66,8 +66,8 @@ def test_bisect() :
 def test_slice_length() :
     N = np.arange(100)
 
-    for end in xrange(100) :
-        for start in xrange(end) :
-            for step in xrange(1,10) :
+    for end in range(100) :
+        for start in range(end) :
+            for step in range(1,10) :
                 S = slice(0,end,step)
                 assert len(N[S]) == pynbody.util.indexing_length(S)

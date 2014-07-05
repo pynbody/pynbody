@@ -6,10 +6,10 @@ class Transformation(object) :
     def __init__(self, f, defer=False) :
         if isinstance(f, snapshot.SimSnap) :
             self.sim = f
-            self.next = None
+            self.next_transformation = None
         elif isinstance(f, Transformation) :
             self.sim = None
-            self.next = f
+            self.next_transformation = f
         else:
             raise ValueError, "Transformation must either act on another Transformation or on a SimSnap"
         
@@ -31,10 +31,10 @@ class Transformation(object) :
 
     def apply(self, force=True) :
 
-        if self.next is not None :
+        if self.next_transformation is not None :
             # this is a chained transformation, get the SimSnap to operate on
             # from the level below
-            f = self.next.apply(force=force)
+            f = self.next_transformation.apply(force=force)
         else :
             f = self.sim
             
@@ -53,8 +53,8 @@ class Transformation(object) :
             raise RuntimeError, "Transformation has not been applied"
         self._revert(self.sim)
         self.applied = False
-        if self.next is not None :
-            self.next.revert()
+        if self.next_transformation is not None :
+            self.next_transformation.revert()
             
         
     def _apply(self, f):

@@ -2,7 +2,7 @@ import pynbody
 from pynbody import units
 
 def numacc(a,b, tol=1.e-9) :
-    print a,b
+    print(a,b)
     assert abs(a-b)<a*tol
         
 def test_units_conversion() :
@@ -25,12 +25,12 @@ def test_units_substitution() :
     
 def test_units_parser() :
     testunit = units.Unit("kpc a s^-2/3 Myr^2/3")
-    print "Unit as parsed: ",testunit
+    print("Unit as parsed: ",testunit)
     testunit/=units.kpc
     testunit/=units.a
     testunit/=units.s**(-2,3)
     testunit/=units.Myr**(2,3)
-    print "This should be one: ",testunit
+    print("This should be one: ",testunit)
     assert abs(testunit.dimensionless_constant()-1)<1.e-10
    
     

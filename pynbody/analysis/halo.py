@@ -9,7 +9,7 @@ Functions for dealing with and manipulating halos in simulations.
 """
 
 from .. import filt, util, config, array,units, transformation
-from . import cosmology
+from . import cosmology, _com
 import numpy as np
 import math
 
@@ -70,8 +70,6 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
 
     """
     import os
-    from scipy import weave
-    x = sim
 
     if r is None :
         # use rough estimate for a maximum radius
@@ -82,38 +80,14 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
         if isinstance(r,str) : 
             r = units.Unit(r)
         r = r.in_units(sim['pos'].units,**sim.conversion_context())
-
-    com = np.array(center_of_mass(sim),dtype='double')
    
-    with sim.immediate_mode : 
-        rs = np.sqrt(np.sum((sim['pos']-com)**2,axis=1))
-        ind = np.where(rs < r)[0]
-        mass = np.array(sim['mass'][ind],dtype='double')
-        pos = np.array(sim['pos'][ind],dtype='double')
-        
-        npart = len(ind)
+    
+    mass = np.asarray(sim['mass'],dtype='double')
+    pos = np.asarray(sim['pos'],dtype='double')
 
-        vars = ['pos','com','mass','min_particles','npart','r','verbose']
+    print "Initial rough COM=",pos.mean(axis=0)
+    com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r)
 
-        code =file(os.path.join(os.path.dirname(__file__),'com.c')).read()
-
-        if verbose: verbose = 1
-        else: verbose = 0
-
-        weave.inline(code,vars,compiler='gcc')
-        
-        #while len(ind)>min_particles or com is None :
-        #    mtot = mass.sum()
-        #    com = np.sum(mass*pos.transpose(),axis=1)/mtot
-        #    if verbose:
-        #        print com,r,len(ind)
-        #        r*=shrink_factor
-        #        rs = np.sqrt(np.sum((pos-com)**2,axis=1))
-        #        ind = np.where(rs < r)[0]
-        #        mass = mass[ind]
-        #        pos = pos[ind]
-        #        rs = rs[ind]
-                    
     return array.SimArray(com,sim['pos'].units)
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
@@ -143,7 +117,8 @@ def virial_radius(sim, cen=None, overden=178, r_max=None) :
     with tx :
         rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
         target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
-        result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
+        print "target_rho=",target_rho,rho(0.5)
+        result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=False)
    
 
     return result

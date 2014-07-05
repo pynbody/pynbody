@@ -323,9 +323,9 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200) :
     for i in xrange(niter_max) :
 
         if (right-left)< epsilon :
-            return (right+left)//2
+            return (right+left)/2
 
-        mid = (left+right)//2
+        mid = (left+right)/2
         z = f(mid)
 
         if verbose :

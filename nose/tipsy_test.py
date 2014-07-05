@@ -20,7 +20,7 @@ def teardown() :
 
 def test_get() :
     current =  f['pos'][0:100:10]
-    print current
+    print(current)
 
     correct = np.array([[ 0.01070931, -0.03619793, -0.16635996],
                         [ 0.01066598, -0.0328698 , -0.16544016],
@@ -33,7 +33,7 @@ def test_get() :
                         [ 0.0155305 , -0.0332876 , -0.14802328],
                         [ 0.01534095, -0.03525123, -0.14457548]])
     
-    print "Position error of ",np.abs(current-correct).sum()
+    print("Position error of ",np.abs(current-correct).sum())
     assert (np.abs(current-correct).sum()<1.e-7)
 
 def test_standard_arrays() :
@@ -58,7 +58,7 @@ def test_standard_arrays() :
     
     
 def test_halo() :
-    print "Length=",len(h[1])
+    print("Length=",len(h[1]))
     assert len(h[1])==502300
 
     
@@ -102,13 +102,6 @@ def _assert_unit(u, targ, eps=0.01) :
     assert abs(u.ratio(targ)-1.0)<eps
     
 def test_units() :
-    print f['pos'].units
-    print f['vel'].units
-    print f['phi'].units
-    print f.gas['rho'].units
-    print f.star['tform'].units.in_units("Gyr")
-
-    
     _assert_unit(f['pos'].units,"6.85e+04 kpc a")
     _assert_unit(f['vel'].units,"1.73e+03 km a s**-1")
     _assert_unit(f['phi'].units,"2.98e+06 km**2 a**-1 s**-2")
@@ -124,8 +117,8 @@ def test_halo_unit_conversion() :
     assert str(h[1].gas['rho'].units)=='m_p cm**-3'
 
 def test_write() :
-    f2 = pynbody.new(dm=10,star=10,gas=20)
-    f2.dm['test_array']=np.ones(10)
+    f2 = pynbody.new(gas=20,star=11,dm=9,order='gas,dm,star')
+    f2.dm['test_array']=np.ones(9)
     f2['x']=np.arange(0,40)
     f2['vx']=np.arange(40,80)
     f2.write(fmt=pynbody.tipsy.TipsySnap, filename="testdata/test_out.tipsy")

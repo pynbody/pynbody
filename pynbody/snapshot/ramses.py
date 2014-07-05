@@ -87,7 +87,7 @@ def _cpui_count_particles(filename) :
     distinguisher_field = int(particle_distinguisher[0])
     distinguisher_type = np.dtype(particle_distinguisher[1])
 
-    f = file(filename)
+    f = open(filename,"rb")
     header = read_fortran_series(f, ramses_particle_header)
     npart_this = header['npart']
     try:
@@ -102,7 +102,7 @@ def _cpui_count_particles(filename) :
 
 @remote_exec
 def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_star, _type, star_mask, nstar) :
-    f = file(filename)
+    f = open(filename,"rb")
     header = read_fortran_series(f, ramses_particle_header)
 
     skip_fortran(f, offset)
@@ -126,7 +126,7 @@ def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_st
 
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim) :
-    f = file(amr_filename, 'rb')
+    f = open(amr_filename, 'rb')
     header = read_fortran_series(f, ramses_amr_header)
     skip_fortran(f, 13)
 
@@ -243,7 +243,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
     nvar = len(dims)
     grid_info_iter = _cpui_level_iterator(*lia)
 
-    f = file(filename)
+    f = open(filename,"rb")
 
     check_nvar_file = False
 
@@ -385,7 +385,7 @@ class RamsesSnap(SimSnap) :
 
     def _load_infofile(self) :
         self._info = {}
-        f = file(self._filename+"/info_"+_timestep_id(self._filename)+".txt")
+        f = open(self._filename+"/info_"+_timestep_id(self._filename)+".txt","r")
         for l in f :
             if '=' in l :
                 name, val = map(str.strip,l.split('='))
@@ -397,7 +397,7 @@ class RamsesSnap(SimSnap) :
                 except ValueError :
                     self._info[name] = val
         try : 
-            f = file(self._filename+"/header_"+_timestep_id(self._filename)+".txt")
+            f = open(self._filename+"/header_"+_timestep_id(self._filename)+".txt","r")
             # most of this file is unhelpful, but in the latest ramses
             # version, there is information on the particle fields present
             for l in f :
@@ -588,7 +588,7 @@ class RamsesSnap(SimSnap) :
         ind0_dm = 0
         ind0_star = 0
         for i, star_mask, nstar in zip(self._cpus, self._star_mask, self._nstar) :
-            f = file(self._particle_filename(i))
+            f = open(self._particle_filename(i),"rb")
             header = read_fortran_series(f, ramses_particle_header)
             f.close()
             ind1_dm = ind0_dm+header['npart']-nstar

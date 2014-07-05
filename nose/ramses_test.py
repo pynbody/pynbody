@@ -1,4 +1,5 @@
 import pynbody
+import numpy as np
 
 def setup() :
     global f
@@ -30,16 +31,7 @@ def test_array_unit_sanity() :
     f2.dm['pos']
     f2.star['pos']
     
-    
-    
-    
-    print "OK for stars,gas,dm:"
-    
-    print close_enough(f2.star['pos'],f.star['pos']).all(), \
-        close_enough(f2.gas['pos'],f.gas['pos']).all(), \
-        close_enough(f2.dm['pos'],f.dm['pos']).all()
-    
-    assert close_enough(f2['pos'],f['pos']).all()
+    np.testing.assert_allclose(f2['pos'],f['pos'],atol=1e-5)
 
 
 def test_mass_unit_sanity() :
@@ -56,5 +48,5 @@ def test_mass_unit_sanity() :
     f2['mass']
     
 
-    assert close_enough(f1.dm['mass'],f2.dm['mass']).all()
+    np.testing.assert_allclose(f1.dm['mass'],f2.dm['mass'],atol=1e-5)
     
