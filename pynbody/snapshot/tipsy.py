@@ -20,12 +20,13 @@ parent directories.
 from __future__ import with_statement # for py2.5
 from __future__ import division
 
-from . import snapshot, array, util
-from . import family
-from . import units
-from . import config, config_parser
-from . import chunk
+from .. import array, util
+from .. import family
+from .. import units
+from .. import config, config_parser
+from .. import chunk
 from . import nchilada
+from . import SimSnap
 
 import struct, os
 import numpy as np
@@ -36,7 +37,7 @@ import copy
 import types
 import math
 
-class TipsySnap(snapshot.SimSnap) :
+class TipsySnap(SimSnap) :
     _basic_loadable_keys = {family.dm: set(['phi', 'pos', 'eps', 'mass', 'vel']),
                             family.gas: set(['phi', 'temp', 'pos', 'metals', 'eps',
                                              'mass', 'rho', 'vel']),
@@ -1094,7 +1095,7 @@ def ljeans_turb(self) :
     x.convert_units('kpc')
     return x
 
-class StarLog(snapshot.SimSnap):
+class StarLog(SimSnap):
     def __init__(self, filename, sort=True, paramfile = None):
         import os
         super(StarLog,self).__init__()
@@ -1438,9 +1439,7 @@ def param2units(sim) :
 
 @TipsySnap.decorator
 def settime(sim) :
-    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :
-        from . import analysis
-        from .analysis import cosmology 
+    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove'])!=0 :        
         t = sim._header_t
         sim.properties['a'] = t
         try :
@@ -1452,7 +1451,8 @@ def settime(sim) :
         if (sim.properties['z'] is not None and 
             sim._paramfile.has_key('dMsolUnit') and 
             sim._paramfile.has_key('dKpcUnit')):
-            sim.properties['time'] =  analysis.cosmology.age(sim, unit=sim.infer_original_units('yr'))
+            from ..analysis import cosmology 
+            sim.properties['time'] = cosmology.age(sim, unit=sim.infer_original_units('yr'))
         else :
             # something has gone wrong with the cosmological side of
             # things

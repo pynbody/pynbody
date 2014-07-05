@@ -12,11 +12,12 @@ automatically via pynbody.load.
 from __future__ import with_statement # for py2.5
 from __future__ import division
 
-from . import snapshot, array, util
-from . import family
-from . import units
-from . import config, config_parser
-from . import chunk
+from .. import array, util
+from .. import family
+from .. import units
+from .. import config, config_parser
+from .. import chunk
+from . import SimSnap
 
 import struct, os
 import numpy as np
@@ -39,7 +40,7 @@ _type_codes = map(np.dtype,[None, 'int8', 'uint8', 'int16', 'uint16',
 
 _max_buf = 1024*512
 
-class NchiladaSnap(snapshot.SimSnap) :
+class NchiladaSnap(SimSnap) :
     def _load_header(self, f) :
         u = xdrlib.Unpacker(f.read(28))
         assert u.unpack_int() == 1062053

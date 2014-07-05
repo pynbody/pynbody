@@ -178,7 +178,8 @@ dist = setup(name = 'pynbody',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph' ],
+                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
+                         'pynbody/snapshot' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future

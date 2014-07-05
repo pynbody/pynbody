@@ -10,7 +10,7 @@ properties.
 
 import numpy as np
 import pynbody
-from .. import family, snapshot, units, array, util
+from .. import family, units, array, util
 import math
 
 #

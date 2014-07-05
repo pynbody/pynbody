@@ -23,11 +23,12 @@ be loaded.
 
 from __future__ import with_statement  # for py2.5
 
-from . import snapshot, array, util
-from . import family
-from . import units
-from . import config
-from . import config_parser
+from .. import array, util
+from .. import family
+from .. import units
+from .. import config
+from .. import config_parser
+from . import SimSnap
 
 import ConfigParser
 
@@ -77,7 +78,7 @@ class DummyHDFData(object):
         target[:] = self.value
 
 
-class GadgetHDFSnap(snapshot.SimSnap):
+class GadgetHDFSnap(SimSnap):
     def __init__(self, filename):
 
         global config

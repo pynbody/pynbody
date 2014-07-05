@@ -17,15 +17,15 @@ the `ipython notebook demo
 from __future__ import with_statement # for py2.5
 from __future__ import division
 
-from . import snapshot, array, util
-from . import family
-from . import units
-from . import config, config_parser
-from . import chunk
-from . import util
-from . import analysis
-
-from util import read_fortran, read_fortran_series, skip_fortran
+from .. import array, util
+from .. import family
+from .. import units
+from .. import config, config_parser
+from .. import chunk
+from .. import util
+from .. import analysis
+from . import SimSnap
+from ..util import read_fortran, read_fortran_series, skip_fortran
 
 import struct, os
 import numpy as np
@@ -320,7 +320,7 @@ grav_blocks = map(str.strip,config_parser.get('ramses',"gravity-blocks").split("
 
 particle_distinguisher = map(str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
 
-class RamsesSnap(snapshot.SimSnap) :
+class RamsesSnap(SimSnap) :
     reader_pool = None
     
     def __init__(self, dirname, **kwargs) :

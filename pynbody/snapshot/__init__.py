@@ -9,12 +9,14 @@ represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 
 """
 
-from . import array
-from . import family, util
-from . import filt
-from . import units
-from . import config
-from . import simdict
+from .. import array
+from .. import family
+from .. import util
+from .. import filt
+from .. import units
+from .. import config
+from .. import simdict
+from ..units import has_units
 
 import numpy as np
 import copy
@@ -27,9 +29,6 @@ import threading
 import re
 import gc
 import traceback
-
-from units import has_units
-
 
 class SimSnap(object):
     """The class for managing simulation snapshots.
@@ -603,7 +602,7 @@ class SimSnap(object):
         If any of the units are not specified and a previous
         `file_units_system` does not exist, the defaults are used.
         """
-        from . import config_parser
+        from .. import config_parser
         import ConfigParser
 
         # if the units system doesn't exist (if this is a new snapshot), create one
@@ -766,7 +765,7 @@ class SimSnap(object):
         snapshot, using the first available method (as defined in the
         configuration files)."""
 
-        from . import halo
+        from .. import halo
 
         for c in config['halo-class-priority']:
             try:
@@ -797,7 +796,7 @@ class SimSnap(object):
         documentation for :py:mod:`pynbody.bridge`.
 
         """
-        from . import bridge
+        from .. import bridge
         return bridge.bridge_factory(self, other)
 
     ############################################
@@ -867,7 +866,7 @@ class SimSnap(object):
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
     ############################################
     def transform(self, matrix) :
-        from . import transformation
+        from .. import transformation
         return transformation.transform(self, matrix)
     
     def _transform(self, matrix):

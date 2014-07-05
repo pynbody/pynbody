@@ -10,17 +10,16 @@ automatically via pynbody.load.
 """
 
 
-from . import snapshot, array, units
-from . import family
-from . import config
-from . import config_parser
-from . import util
-from . import backcompat
+from .. import array, units
+from .. import family
+from .. import config
+from .. import config_parser
+from .. import util
+from .. import backcompat
+from . import SimSnap
 
 import ConfigParser
-
 import numpy as np
-# Needed to unpack things
 import struct
 import sys
 import copy
@@ -672,7 +671,7 @@ class WriteBlock:
         self.name = name
 
 
-class GadgetSnap(snapshot.SimSnap):
+class GadgetSnap(SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
     of the blocks, which are then read by _load_array"""
     def __init__(self, filename, only_header=False, must_have_paramfile=False):

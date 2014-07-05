@@ -6,15 +6,15 @@ grafic
 Support for loading grafIC files
 """
 
-from . import util
-from . import snapshot
-from . import array
-from . import chunk
-from . import family
-from . import analysis
-from . import units
+from .. import util
+from .. import array
+from .. import chunk
+from .. import family
+from .. import analysis
+from .. import units
+from . import SimSnap
 
-from util import read_fortran, read_fortran_series
+from ..util import read_fortran, read_fortran_series
 
 import numpy as np
 import os
@@ -100,7 +100,7 @@ def _grid_gen(indices, nx, ny, nz, pos=None):
     
 _max_buflen = 1024**2
 
-class GrafICSnap(snapshot.SimSnap) :
+class GrafICSnap(SimSnap) :
     @staticmethod
     def _can_load(f) :
         return os.path.isdir(f) and os.path.exists(os.path.join(f, "ic_velcx"))
