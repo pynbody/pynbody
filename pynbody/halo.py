@@ -278,7 +278,7 @@ class AHFCatalogue(HaloCatalogue):
         nparts = int(f.readline().split()[0])
 
         if self.isnew:
-            if isinstance(f, file):
+            if hasattr(f, "read"):
                 data = (np.fromfile(
                     f, dtype=int, sep=" ", count=nparts*2).reshape(nparts, 2))[:, 0]
             else:
@@ -295,7 +295,7 @@ class AHFCatalogue(HaloCatalogue):
                 data[np.where(hi_mask)] -= nds
                 data[np.where(~hi_mask)] += ng
         else:
-            if isinstance(f, file):
+            if hasattr(f, "read"): 
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
             else:
                 # see comment above on gzipped files

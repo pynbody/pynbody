@@ -29,8 +29,8 @@ def check_for_openmp():
     # Attempt to compile a test script.
     # See http://openmp.org/wp/openmp-compilers/
     filename = r'test.c'
-    file = open(filename,'w', 0)
-    file.write(
+    with open(filename,'w') as f :
+        f.write(
         "#include <omp.h>\n"
         "#include <stdio.h>\n"
         "int main() {\n"
@@ -38,6 +38,7 @@ def check_for_openmp():
         "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
         "}"
         )
+        
     try:
         with open(os.devnull, 'w') as fnull:
             exit_code = subprocess.call([compiler, '-fopenmp', filename],
@@ -46,7 +47,6 @@ def check_for_openmp():
         exit_code = 1
         
     # Clean up
-    file.close()
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 

@@ -233,5 +233,5 @@ def test_immediate_mode() :
         assert isinstance(f[[600,603,670]].dm['r'], pynbody.array.SimArray)
     
 def test_subsnap_by_boolean_mask() :
-    print (f['x']>0).shape, len(f)
+    print((f['x']>0).shape, len(f))
     assert (f['x'][f['x']>0]==f[f['x']>0]['x']).all()

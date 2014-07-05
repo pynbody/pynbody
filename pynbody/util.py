@@ -154,9 +154,9 @@ def relative_slice(s_relative_to, s) :
     if s_step%s_relative_to_step!=0 :
         raise ValueError, "Incompatible slices"
 
-    start = (s.start-s_relative_to.start)/s_relative_to_step
-    step = s_step/s_relative_to_step
-    stop = start+(s_relative_to_step-1+s.stop-s.start)/s_relative_to_step
+    start = (s.start-s_relative_to.start)//s_relative_to_step
+    step = s_step//s_relative_to_step
+    stop = start+(s_relative_to_step-1+s.stop-s.start)//s_relative_to_step
 
     if step==1 : step=None
 
@@ -177,11 +177,11 @@ def chained_slice(s1,s2) :
     if s1.stop is None and s2.stop is None :
         stop = None
     elif s1.stop is None :
-        stop = start+step*(s2.stop-s2_start)/s2_step
+        stop = start+step*(s2.stop-s2_start)//s2_step
     elif s2.stop is None :
         stop = s1.stop
     else :
-        stop_s2 = start+step*(s2.stop-s2_start)/s2_step
+        stop_s2 = start+step*(s2.stop-s2_start)//s2_step
         stop_s1 = s1.stop
         stop = stop_s2 if stop_s2<stop_s1 else stop_s1
     return slice(start, stop, step)
@@ -235,7 +235,7 @@ def indexing_length(sl_or_ar) :
     if isinstance(sl_or_ar, slice) :
         step = sl_or_ar.step or 1
         diff = (sl_or_ar.stop-sl_or_ar.start)
-        return diff/step + (diff%step>0)
+        return diff//step + (diff%step>0)
     else :
         return len(sl_or_ar)
 
@@ -276,7 +276,7 @@ def index_of_first(array, find) :
         return len(array)
 
     while right-left>1 :
-        mid = (left+right)/2
+        mid = (left+right)//2
         if array[mid]>=find :
             right = mid
         else :
@@ -323,9 +323,9 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200) :
     for i in xrange(niter_max) :
 
         if (right-left)< epsilon :
-            return (right+left)/2
+            return (right+left)//2
 
-        mid = (left+right)/2
+        mid = (left+right)//2
         z = f(mid)
 
         if verbose :

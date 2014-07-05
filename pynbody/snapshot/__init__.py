@@ -1778,7 +1778,7 @@ class IndexedSubSnap(SubSnap):
         self._num_particles = len(index_array)
 
         # Find the locations of the family slices
-        for i, fam in enumerate(base.families()):
+        for i, fam in enumerate(self.ancestor.families()):
             ids = np.where(findex == i)[0]
             if len(ids) > 0:
                 new_slice = slice(ids.min(), ids.max()+1)

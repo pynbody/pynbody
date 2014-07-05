@@ -230,7 +230,7 @@ class TipsySnap(SimSnap) :
                     # Cludge to get un-zipped length
                     fx = f.fileobj
                     fx.seek(-4, 2)
-                    buflen = gzip.read32(fx)
+                    buflen = struct.unpack("<l", fx.read(4))[0]
                     ourlen_1 = ((len(self)*4)+4) & 0xffffffffL
                     ourlen_3 = ((len(self)*3*4)+4) & 0xffffffffL
                     

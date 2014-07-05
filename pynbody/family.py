@@ -15,6 +15,8 @@ particles in your config.ini.
 
 """
 
+import sys
+import functools
 from . import config_parser
 
 
@@ -86,7 +88,20 @@ class Family(object):
         return self.name
 
     def __cmp__(self, other):
+        # for python 2.x
         return cmp(str(self), str(other))
+
+    def __eq__(self, other):
+        return str(self)==str(other)
+
+    def __lt__(self, other):
+        return str(self)<str(other)
+
+    def __hash__(self) :
+        return hash(str(self))
+
+if sys.version_info.major>=3 :
+    Family = functools.total_ordering(Family)
 
 
 # Instantiate the default families as specified

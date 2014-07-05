@@ -52,7 +52,7 @@ class NchiladaSnap(SimSnap) :
         self._loadable_keys_registry = {}
         d = self._loadable_keys_registry
         fams = self._dom_sim.getElementsByTagName('family')
-        for f in sorted(fams) :
+        for f in sorted(fams,key=lambda x: str(x)) :
             fam_name = f.attributes['name'].value
             our_fam = family.get_family(fam_name)
             d_f = {}
@@ -69,7 +69,7 @@ class NchiladaSnap(SimSnap) :
         # set up a logical map of particles on disk
         for f in sorted(self._loadable_keys_registry.keys()) :
             ars = self._loadable_keys_registry[f]
-            tf = file(ars.values()[0])
+            tf = open(ars.values()[0],'rb')
             header_time, nbod, _, _ = self._load_header(tf)
             disk_family_slice[f] = slice(i, i+nbod)
             i+=nbod
@@ -106,7 +106,7 @@ class NchiladaSnap(SimSnap) :
 
         fname = self._loadable_keys_registry[fam].get(array_name, None)
         if not fname : raise IOError, "No such array on disk"
-        f = file(fname)
+        f = open(fname,'rb')
         _, nbod, ndim, dtype = self._load_header(f)
 
         self._create_family_array(array_name, fam, ndim=ndim)
