@@ -57,10 +57,10 @@ class Transformation(object) :
             self.next.revert()
             
         
-    def _apply(self):
+    def _apply(self, f):
         pass
 
-    def _revert(self):
+    def _revert(self, f):
         pass
     
     def __enter__(self) :
