@@ -393,7 +393,9 @@ def rational_matrix_inv(matrix) :
 
     for i in xrange(len(x)) :
         for j in xrange(len(x)) :
-            x[i,j] = fractions.Fraction.from_float(matrix[i][j])
+            if type(matrix[i][j]) is np.float64 or type(matrix[i][j]) is np.float : 
+                x[i,j] = fractions.Fraction.from_float(matrix[i][j])
+            x[i,j] = fractions.Fraction(matrix[i][j])
 
 
 
