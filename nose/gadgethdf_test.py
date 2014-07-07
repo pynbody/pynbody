@@ -70,7 +70,7 @@ def test_halo_values() :
     OffsetHalo = np.roll(NsubPerHalo.cumsum(), 1)
     OffsetHalo[0]=0 ## To start counter
 
-    h = subfind.halos() ## Need everything in Mpc / Msol
+    h = subfind.halos() 
 
     FoF_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='fof', nopanda=True, silent=True)
     Sub_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='subfind', nopanda=True, silent=True)
