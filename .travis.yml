@@ -22,6 +22,7 @@ before_install:
 install:
   - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py
   - source activate ${PYTHON}_${NUMPY_VERSION}
+  - python --version
   - python setup.py install
   
 

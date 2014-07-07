@@ -175,36 +175,14 @@ class Kernel(object) :
 
         self.safe = threading.Lock()
 
-    def get_c_code(self) :
-        
-        if not hasattr(self, "_code") :
-            code =""
-
-            sample_pts = np.arange(0,2.01,0.01)
-            samples = [self.get_value(x) for x in sample_pts]
-            samples_s = str(samples)
-            samples_s = "{"+samples_s[1:-1]+"};"
-            h_str="*h"*(self.h_power-1)
-            if self.h_power==2 :
-                code+="#define Z_CONDITION(dz,h) true\n"
-            else :
-                code+="#define Z_CONDITION(dz,h) abs(dz)<MAX_D_OVER_H*(h)\n"
-
-            if self.h_power==2 :
-                code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy))"
-            else :
-                code+="#define DISTANCE(dx,dy,dz) sqrt((dx)*(dx)+(dy)*(dy)+(dz)*(dz))"
-
-
-            code+= """
-            const float KERNEL_VALS[] = %s
-            #define KERNEL1(d,h) (d<2*h)?KERNEL_VALS[(int)(d/(0.01*h))]/(h%s):0
-            #define KERNEL(dx,dy,dz,h) KERNEL1(DISTANCE(dx,dy,dz),h)
-            #define MAX_D_OVER_H %d
-            """%(samples_s,h_str,self.max_d)
-            self._code = code
-        
-        return self._code
+    def get_samples(self,dtype=np.float32) :
+        print "GET_SAMPLES"
+        sys.stdout.flush()
+        with self.safe :
+            if not hasattr(self, "_samples") :
+                sample_pts = np.arange(0,4.01,0.02)
+                self._samples = np.array([self.get_value(x**0.5) for x in sample_pts],dtype=dtype)
+        return self._samples
 
     def get_value(self, d, h=1) :
         """Get the value of the kernel for a given smoothing length."""
@@ -570,11 +548,11 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     x1, x2, y1, y2, z1 = [float(q) for q in x1,x2,y1,y2,z_plane]
 
     if smooth_range is not None :
-        smooth_lo = int(smooth_range[0])
-        smooth_hi = int(smooth_range[1])
+        smooth_lo = float(smooth_range[0])
+        smooth_hi = float(smooth_range[1])
     else :
-        smooth_lo = 0
-        smooth_hi = 0
+        smooth_lo = 0.0
+        smooth_hi = 100000.0
 
     result = np.zeros((ny,nx),dtype=np.float32)
 
@@ -605,91 +583,20 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         conv_ratio = (qty.units*mass.units/(rho.units*sm.units**kernel.h_power)).ratio(out_units,
                                                                                       **x.conversion_context())
 
-    try :
-        kernel.safe.acquire(True)
-        code = kernel.get_c_code()
-    finally :
-        kernel.safe.release()
+  
 
     perspective = z_camera is not None
 
-    
-    
     if perspective :
-        z_camera = float(z_camera)
-        code+="#define PERSPECTIVE 1\n"
-    if smooth_range is not None :
-        code+="#define SMOOTH_RANGE 1\n"
-        
-    if __threaded :
-        code+="#define THREAD 1\n"
-
-    if smooth_in_pixels :
-        code+="#define SMOOTH_IN_PIXELS 1\n"
+        raise NotImplementedError, "Perspective not implemented in new SPH module yet"
+    else :
+        z_camera = 0.0
     
-    try:
-        #import pyopencl as cl
-        #import struct
-        #import squadron
-        raise ImportError
+    from . import _spherical
+
+    result = _spherical.render_image(nx,ny,x,y,z,sm, x1,x2,y1,y2,0.0,z_camera,qty,mass,rho,
+                                     smooth_lo,smooth_hi,kernel)
     
-        ctx = cl.create_some_context(interactive=False)
-        queue = cl.CommandQueue(ctx)
-
-        mf = cl.mem_flags
-
-        pos = snap_proxy['pos']
-        par = struct.pack('ffffi', (x2-x1)/nx, (y2-y1)/ny, x1, y1, len(pos))
-    
-        par_buf = cl.Buffer(ctx, mf.READ_ONLY, len(par))
-        cl.enqueue_write_buffer(queue, par_buf, par)
-        
-        
-        
-        sm_buf, qty_buf, pos_buf = [cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=x.astype(np.float32))
-                                              for x in sm, (qty*mass/rho), pos]
-
-        par_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=par)
-        
-        dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, result.nbytes)
-
-        local_pos = cl.LocalMemory(500*3*4)
-        local_sm = cl.LocalMemory(500*4)
-        local_qty = cl.LocalMemory(500*4)
-        
-        code+=file(os.path.join(os.path.dirname(__file__),
-                                'sph_image.cl')).read()
-
-      
-        prg = cl.Program(ctx, code).build(devices=[cl.get_platforms()[0].get_devices()[0]])
-
-        prg.render(queue, result.shape, None, sm_buf, qty_buf, pos_buf, par_buf,
-                   dest_buf,
-                   local_pos, local_sm, local_qty )
-        
-        cl.enqueue_read_buffer(queue, dest_buf, result).wait()
-
-    except ImportError :
-
-        
-        code+=file(os.path.join(os.path.dirname(__file__),'sph_image.c')).read()
-
-
-        # before inlining, the views on the arrays must be standard np.ndarray
-        # otherwise the normal numpy macros are not generated
-        x,y,z,sm,qty, mass, rho = [np.asarray(q, dtype=float) for q in x,y,z,sm,qty, mass, rho]
-        #qty[np.where(qty < 1e-15)] = 1e-15
-
-        if verbose: print>>sys.stderr, "Rendering SPH image"
-
-        if track_time:
-            print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
-        util.threadsafe_inline( code, ['result', 'nx', 'ny', 'x', 'y', 'z', 'sm',
-                      'x1', 'x2', 'y1', 'y2', 'z_camera', 'z1',   
-                      'qty', 'mass', 'rho', 'smooth_lo' ,'smooth_hi'],verbose=2)
-        
-        if track_time:
-            print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
 
 
     result = result.view(array.SimArray)
