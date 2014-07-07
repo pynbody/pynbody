@@ -221,6 +221,18 @@ class GadgetHDFSnap(snapshot.SimSnap):
             ret = ret[tpart]
         return ret
 
+    @staticmethod
+    def _get_cosmo_factors(hdf, arr_name) :
+        """Return the cosmological factors for a given array"""
+        match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
+        if len(match) > 0 : 
+            a_exp = hdf[match[0]].attrs['aexp-scale-exponent']
+            h_exp = hdf[match[0]].attrs['h-scale-exponent']
+            return units.a**a_exp, units.h**h_exp
+        else : 
+            return units.Unit('1.0'), units.Unit('1.0')
+
+
     def _load_array(self, array_name, fam=None, subgroup = None):
         if not self._family_has_loadable_array(fam, array_name, subgroup):
             raise IOError("No such array on disk")
@@ -376,11 +388,11 @@ def do_units(sim):
 
     vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
     dist_unit = atr['UnitLength_in_cm']*units.cm
-    if cosmo:
-        dist_unit /= units.h
     mass_unit = atr['UnitMass_in_g']*units.g
     if cosmo:
-        mass_unit /= units.h
+        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf[0],'Coordinates') : dist_unit *= fac
+        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf[0],'Velocity') : vel_unit *= fac
+        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf[0],'Mass') : mass_unit *= fac
 
     sim._file_units_system = [units.Unit(x) for x in [
                               vel_unit, dist_unit, mass_unit, "K"]]
