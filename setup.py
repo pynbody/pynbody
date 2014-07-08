@@ -145,8 +145,8 @@ if build_cython :
     chunkscan = Extension('pynbody.chunk.scan',
                       sources=['pynbody/chunk/scan.pyx'],
                       include_dirs=incdir)
-    sph_spherical = Extension('pynbody.sph._spherical',
-                      sources=['pynbody/sph/_spherical.pyx'],
+    sph_render = Extension('pynbody.sph._render',
+                      sources=['pynbody/sph/_render.pyx'],
                       include_dirs=incdir)
     halo_pyx = Extension('pynbody.analysis._com',
                          sources=['pynbody/analysis/_com.pyx'],
@@ -166,8 +166,8 @@ else :
                           sources=['pynbody/chunk/scan.c'],
                           include_dirs=incdir)
 
-    sph_spherical = Extension('pynbody.sph._spherical',
-                      sources=['pynbody/sph/_spherical.c'],
+    sph_render = Extension('pynbody.sph._render',
+                      sources=['pynbody/sph/_render.c'],
                       include_dirs=incdir)
 
     halo_pyx = Extension('pynbody.analysis._com',
@@ -181,7 +181,7 @@ else :
 if have_openmp :
     ext_modules.append(gravity_omp)
     
-ext_modules+=[chunkscan,sph_spherical,halo_pyx,bridge_pyx]
+ext_modules+=[chunkscan,sph_render,halo_pyx,bridge_pyx]
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
