@@ -27,13 +27,17 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
             for i in range(npart_all) :
                 r = (pos[i,0]-com_x[0])**2+(pos[i,1]-com_x[1])**2+(pos[i,2]-com_x[2])**2
                 if r<current_rmax :
-                    com[0]+=pos[i,0]*mass[i]
-                    com[1]+=pos[i,1]*mass[i]
-                    com[2]+=pos[i,2]*mass[i]
+                    com[0]+=(pos[i,0]-com_x[0])*mass[i]
+                    com[1]+=(pos[i,1]-com_x[1])*mass[i]
+                    com[2]+=(pos[i,2]-com_x[2])*mass[i]
                     tot_mass+=mass[i]
                     npart+=1
 
+        # divide out total mass and shift
         com/=tot_mass
+        com+=com_x
+
+        # update for next cycle
         com_x[:]= com
         com[:]=0
         tot_mass=0
