@@ -20,6 +20,7 @@ import sys
 import threading
 import copy
 
+from . import _render
 from .. import snapshot, array, config, units, util, config_parser
 
 try:
@@ -176,7 +177,6 @@ class Kernel(object) :
         self.safe = threading.Lock()
 
     def get_samples(self,dtype=np.float32) :
-        print "GET_SAMPLES"
         sys.stdout.flush()
         with self.safe :
             if not hasattr(self, "_samples") :
@@ -260,7 +260,6 @@ def _render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=
                            kstep=0.5, denoise=False, out_units=None,__threaded=False,snap_slice=None) :
 
     import healpy as hp
-    from . import _spherical
 
     if out_units is not None :
         conv_ratio = (snap[qty].units*snap['mass'].units/(snap['rho'].units*snap['smooth'].units**kernel.h_power)).ratio(out_units,
@@ -302,7 +301,7 @@ def _render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=
     else :
         raise ValueError, "render_spherical_image doesn't know how to handle this kernel"
 
-    im, im2 = _spherical.render_spherical_image_core(rho,mass,qtyar,pos,D,h,ind,ds,weights,nside)
+    im, im2 = _render.render_spherical_image_core(rho,mass,qtyar,pos,D,h,ind,ds,weights,nside)
     
     im = im.view(array.SimArray)
     if denoise :
@@ -592,9 +591,8 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     else :
         z_camera = 0.0
     
-    from . import _spherical
 
-    result = _spherical.render_image(nx,ny,x,y,z,sm, x1,x2,y1,y2,0.0,z_camera,qty,mass,rho,
+    result = _render.render_image(nx,ny,x,y,z,sm, x1,x2,y1,y2,0.0,z_camera,qty,mass,rho,
                                      smooth_lo,smooth_hi,kernel)
     
 
