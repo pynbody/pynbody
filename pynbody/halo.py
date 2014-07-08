@@ -21,6 +21,7 @@ import glob
 import re
 import copy
 import sys
+import gzip
 from . import snapshot, util, config, config_parser, gadget
 
 
@@ -278,7 +279,7 @@ class AHFCatalogue(HaloCatalogue):
         nparts = int(f.readline().split()[0])
 
         if self.isnew:
-            if hasattr(f, "read"):
+            if not isinstance(f, gzip.GzipFile) :
                 data = (np.fromfile(
                     f, dtype=int, sep=" ", count=nparts*2).reshape(nparts, 2))[:, 0]
             else:
@@ -295,7 +296,7 @@ class AHFCatalogue(HaloCatalogue):
                 data[np.where(hi_mask)] -= nds
                 data[np.where(~hi_mask)] += ng
         else:
-            if hasattr(f, "read"): 
+            if not isinstance(f, gzip.GzipFile) :
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
             else:
                 # see comment above on gzipped files
@@ -338,7 +339,7 @@ class AHFCatalogue(HaloCatalogue):
         f = util.open_(filename)
         # get all the property names from the first, commented line
         # remove (#)
-        keys = [re.sub('\([0-9]*\)', '', field)
+        keys = [re.sub('\([0-9]*\)', '', field.decode('utf-8'))
                 for field in f.readline().split()]
         # provide translations
         for i, key in enumerate(keys):
@@ -365,7 +366,7 @@ class AHFCatalogue(HaloCatalogue):
 
         for h, line in enumerate(f):
             values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(
-                x) for x in line.split()]
+                x) for x in line.decode('utf-8').split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
             for i, key in enumerate(keys):

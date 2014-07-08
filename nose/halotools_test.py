@@ -21,11 +21,11 @@ def test_center() :
 def test_align() :
     global f,h
     with pynbody.analysis.angmom.faceon(h[1]) :
-        np.testing.assert_allclose(f['pos'][:2],[[-0.03144149,  0.01132592, -0.03177311],
-                                                 [-0.03079908,  0.01505963, -0.03046862]],atol=1e-4)
+        np.testing.assert_allclose(f['pos'][:2],[[-0.01069893, -0.00150329, -0.04478709],
+                                                 [-0.01000654,  0.00244104, -0.04465359]],atol=1e-5)
         
-        np.testing.assert_allclose(f['vel'][:2],[[-0.00126288,  0.02604627, -0.01340912],
-                                                 [ 0.03307226,  0.03773096, -0.01782989]],atol=1e-4)
+        np.testing.assert_allclose(f['vel'][:2], [[ 0.02047303,  0.01907281, -0.01987804],
+                                                  [ 0.05459918,  0.02794922, -0.01030767]], atol=1e-5)
                                                 
 
 
