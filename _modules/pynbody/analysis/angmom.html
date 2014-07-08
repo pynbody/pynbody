@@ -69,7 +69,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">transformation</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">halo</span>
 
 <div class="viewcode-block" id="ang_mom_vec"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.angmom.ang_mom_vec">[docs]</a><span class="k">def</span> <span class="nf">ang_mom_vec</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span> <span class="p">:</span>
@@ -140,8 +140,8 @@
 
 
 <div class="viewcode-block" id="sideon"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.angmom.sideon">[docs]</a><span class="k">def</span> <span class="nf">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">vec_to_xform</span><span class="o">=</span><span class="n">calc_sideon_matrix</span><span class="p">,</span> <span class="n">cen_size</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> 
-           <span class="n">disk_size</span> <span class="o">=</span> <span class="s">&quot;5 kpc&quot;</span><span class="p">,</span> <span class="n">cen</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-           <span class="n">return_transform</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span> <span class="p">)</span> <span class="p">:</span>
+           <span class="n">disk_size</span> <span class="o">=</span> <span class="s">&quot;5 kpc&quot;</span><span class="p">,</span> <span class="n">cen</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span> <span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Reposition and rotate the simulation containing the halo h to see</span>
@@ -156,9 +156,10 @@
 
     <span class="k">global</span> <span class="n">config</span>
 
-    <span class="k">if</span> <span class="n">top</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">move_all</span> <span class="p">:</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">else</span> <span class="p">:</span>
         <span class="n">top</span> <span class="o">=</span> <span class="n">h</span>
-        <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">top</span><span class="p">,</span><span class="s">&#39;base&#39;</span><span class="p">)</span> <span class="p">:</span> <span class="n">top</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">base</span>
 
     <span class="c"># Top is the top-level view of the simulation, which will be</span>
     <span class="c"># transformed</span>
@@ -170,12 +171,13 @@
         <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span>
             <span class="k">print</span> <span class="s">&quot;cen=&quot;</span><span class="p">,</span><span class="n">cen</span>
 
-    <span class="n">top</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">-=</span><span class="n">cen</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">vcen</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
-        <span class="n">vcen</span> <span class="o">=</span> <span class="n">halo</span><span class="o">.</span><span class="n">vel_center</span><span class="p">(</span><span class="n">h</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">vcen</span> <span class="o">=</span> <span class="n">halo</span><span class="o">.</span><span class="n">vel_center</span><span class="p">(</span><span class="n">h</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">)</span>
 
-    <span class="n">top</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">-=</span><span class="n">vcen</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_v_translate</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">vcen</span><span class="p">)</span>
+
 
     <span class="c"># Use gas from inner 10kpc to calculate angular momentum vector</span>
     <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
@@ -189,10 +191,10 @@
 
     <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span>
         <span class="k">print</span> <span class="s">&quot;Transforming simulation...&quot;</span>
-    <span class="n">top</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">trans</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">return_transform</span> <span class="p">:</span>
-        <span class="k">return</span> <span class="n">trans</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">trans</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tx</span>
 
 </div>
 <div class="viewcode-block" id="faceon"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.angmom.faceon">[docs]</a><span class="k">def</span> <span class="nf">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
@@ -208,7 +210,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">calc_faceon_matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">calc_faceon_matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -248,7 +250,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

@@ -101,7 +101,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x7f3dff078b18&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10b3e65f0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -359,7 +359,7 @@ zeroing in on the wrong part of the simulation.</dd>
 <dl class="function">
 <dt id="pynbody.analysis.halo.virial_radius">
 <tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">virial_radius</tt><big>(</big><em>sim</em>, <em>cen=None</em>, <em>overden=178</em>, <em>r_max=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#virial_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.virial_radius" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate the virial radius of the halo centerd on the given
+<dd><p>Calculate the virial radius of the halo centered on the given
 coordinates.</p>
 <p>This is here defined by the sphere centerd on cen which contains a
 mean density of overden * rho_c_0 * (1+z)^3.</p>
@@ -381,15 +381,23 @@ mean density of overden * rho_c_0 * (1+z)^3.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.vel_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">vel_center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">vel_center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use stars from a sphere to calculate center of velocity. The size
 of the sphere is given by the <tt class="docutils literal"><span class="pre">cen_size</span></tt> keyword and defaults to
 1 kpc.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>mode</em>: reserved for future use; currently ignored</p>
+<p><em>move_all</em>: if True (default), move the entire snapshot. Otherwise only move
+the particles in the halo passed in.</p>
+<dl class="docutils">
+<dt><em>retcen</em>: if True only return the velocity center without moving the</dt>
+<dd>snapshot (default = False)</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of mass of the given particles using the
 specified mode, then recenter the particles (of the entire
 ancestor snapshot) accordingly</p>
@@ -414,6 +422,8 @@ ancestor snapshot) accordingly</p>
 </dl>
 <p><em>vel</em>: if True, translate velocities so that the velocity of the
 central 1kpc (default) is zeroed. Other values can be passed with cen_size.</p>
+<p><em>move_all</em>: if True (default), move the entire snapshot. Otherwise only move
+the particles in the halo passed in.</p>
 </dd></dl>
 
 </div>
@@ -802,7 +812,7 @@ profile.</p>
 </pre></div>
 </div>
 <p>Using another quantity for binning:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">calc_x</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;rform&#39;</span><span class="p">])</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">calc_x</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;rform&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
 <dl class="method">
@@ -1273,7 +1283,7 @@ home directory, and include</dd>
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

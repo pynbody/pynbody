@@ -317,7 +317,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x7f3df77d0de8&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bd69b18&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -392,12 +392,17 @@ the function image</p>
 
 <dl class="function">
 <dt id="pynbody.plot.sph.velocity_image">
-<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">velocity_image</tt><big>(</big><em>sim</em>, <em>width='10 kpc'</em>, <em>vector_color='black'</em>, <em>vector_resolution=40</em>, <em>scale=None</em>, <em>mode='quiver'</em>, <em>key_x=0.3</em>, <em>key_y=0.9</em>, <em>key_color='white'</em>, <em>key_length='100 km s**-1'</em>, <em>density=1.0</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/sph.html#velocity_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.velocity_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">velocity_image</tt><big>(</big><em>sim</em>, <em>width='10 kpc'</em>, <em>vector_color='black'</em>, <em>edgecolor='black'</em>, <em>vector_resolution=40</em>, <em>scale=None</em>, <em>mode='quiver'</em>, <em>key_x=0.3</em>, <em>key_y=0.9</em>, <em>key_color='white'</em>, <em>key_length='100 km s**-1'</em>, <em>density=1.0</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/sph.html#velocity_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.velocity_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make an SPH image of the given simulation with velocity vectors overlaid on top.</p>
 <p>For a description of additional keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>, 
 or see the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/pictures.html#velocity-vectors">tutorial</a>.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>vector_color</em> (black): The color for the velocity vectors</p>
+<dl class="docutils">
+<dt><em>edgecolor</em> (black): edge color used for the lines - using a color</dt>
+<dd>other than black for the <em>vector_color</em> and a black <em>edgecolor</em>
+can result in poor readability in pdfs</dd>
+</dl>
 <p><em>vector_resolution</em> (40): How many vectors in each dimension (default is 40x40)</p>
 <p><em>scale</em> (None): The length of a vector that would result in a displayed length of the
 figure width/height.</p>
@@ -808,7 +813,7 @@ map.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

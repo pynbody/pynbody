@@ -103,19 +103,19 @@ pynbody will calculate it:</p>
 <span class="go">&lt;ipython-input-4-6eb96c8ef7aa&gt; in &lt;module&gt;()</span>
 <span class="go">----&gt; 1 s[&#39;ke&#39;][0] = 0</span>
 
-<span class="go">/home/ics/roskar/python/pynbody/array.pyc in q(a, *y, **kw)</span>
-<span class="go">    678             return w(a, *y, **kw)</span>
-<span class="go">    679         else :</span>
-<span class="go">--&gt; 680             return w(a, *y)</span>
-<span class="go">    681 </span>
-<span class="go">    682     q.__name__ = w.__name__</span>
+<span class="go">/Users/rokstar/python/pynbody/array.pyc in q(a, *y, **kw)</span>
+<span class="go">    691             return w(a, *y, **kw)</span>
+<span class="go">    692         else :</span>
+<span class="go">--&gt; 693             return w(a, *y)</span>
+<span class="go">    694 </span>
+<span class="go">    695     q.__name__ = w.__name__</span>
 
-<span class="go">/home/ics/roskar/python/pynbody/array.pyc in __setitem__(self, item, to)</span>
-<span class="go">    466             np.ndarray.__setitem__(self, item, to.in_units(self.units))</span>
-<span class="go">    467         else :</span>
-<span class="go">--&gt; 468             np.ndarray.__setitem__(self, item, to)</span>
-<span class="go">    469 </span>
-<span class="go">    470     def __setslice__(self, a,b, to) :</span>
+<span class="go">/Users/rokstar/python/pynbody/array.pyc in __setitem__(self, item, to)</span>
+<span class="go">    479             np.ndarray.__setitem__(self, item, to.in_units(self.units))</span>
+<span class="go">    480         else :</span>
+<span class="go">--&gt; 481             np.ndarray.__setitem__(self, item, to)</span>
+<span class="go">    482 </span>
+<span class="go">    483     def __setslice__(self, a,b, to) :</span>
 
 <span class="go">ValueError: assignment destination is read-only</span>
 </pre></div>
@@ -256,6 +256,18 @@ getting the radial position. For more information see <a class="reference intern
 <dt id="pynbody.derived.vcxy">
 <tt class="descclassname">pynbody.derived.</tt><tt class="descname">vcxy</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="_modules/pynbody/derived.html#vcxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vcxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cylindrical tangential velocity in the x-y plane</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.derived.vphi">
+<tt class="descclassname">pynbody.derived.</tt><tt class="descname">vphi</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="_modules/pynbody/derived.html#vphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vphi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Azimuthal velocity (synonym for vcxy)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.derived.vtheta">
+<tt class="descclassname">pynbody.derived.</tt><tt class="descname">vtheta</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="_modules/pynbody/derived.html#vtheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vtheta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Velocity projected to polar direction</p>
 </dd></dl>
 
 <dl class="function">
@@ -533,7 +545,7 @@ the Zel&#8217;dovich approximation applied to the current velocities.
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

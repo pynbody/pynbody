@@ -77,15 +77,16 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy</span><span class="o">,</span> <span class="nn">scipy.ndimage</span>
-<span class="kn">import</span> <span class="nn">snapshot</span><span class="o">,</span> <span class="nn">array</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config_parser</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config_parser</span>
+
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">kdtree</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">kdtree</span>
 <span class="k">except</span> <span class="ne">ImportError</span> <span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">,</span> <span class="s">&quot;Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python&quot;</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -304,26 +305,55 @@
 <span class="s">        #define MAX_D_OVER_H </span><span class="si">%d</span><span class="s">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_d</span><span class="p">,</span><span class="mf">3.</span><span class="o">/</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">max_d</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">h_power</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">max_d</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_d</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">code</span>
 
-<div class="viewcode-block" id="render_spherical_image"><a class="viewcode-back" href="../../convenience.html#pynbody.sph.render_spherical_image">[docs]</a><span class="k">def</span> <span class="nf">render_spherical_image</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">distance</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">Kernel</span><span class="p">(),</span>
-                           <span class="n">kstep</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">denoise</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">out_units</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Render an SPH image on a spherical surface. Note this is written in pure python and</span>
-<span class="sd">    could be optimized into C, but would then need linking with the healpix libraries.</span>
-<span class="sd">    Also currently uses a top-hat 3D kernel only.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="render_spherical_image"><a class="viewcode-back" href="../../convenience.html#pynbody.sph.render_spherical_image">[docs]</a><span class="k">def</span> <span class="nf">render_spherical_image</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">Kernel</span><span class="p">(),</span>
+                           <span class="n">kstep</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">denoise</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">out_units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">threaded</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Render an SPH image on a spherical surface. Requires healpy libraries.</span>
+
+<span class="sd">    **Keyword arguments:**</span>
+
+<span class="sd">    *qty* (&#39;rho&#39;): The name of the simulation array to render</span>
+<span class="sd">    </span>
+<span class="sd">    *nside* (8): The healpix nside resolution to use (must be power of 2)</span>
+
+<span class="sd">    *distance* (10.0): The distance of the shell (for 3D kernels) or maximum distance</span>
+<span class="sd">        of the skewers (2D kernels)</span>
+
+<span class="sd">    *kernel*: The Kernel object to use (defaults to 3D spline kernel)</span>
+
+<span class="sd">    *kstep* (0.5): The sampling distance when projecting onto the spherical surface in units of the</span>
+<span class="sd">        smoothing length</span>
+
+<span class="sd">    *denoise* (False): if True, divide through by an estimate of the discreteness noise.</span>
+<span class="sd">      The returned image is then not strictly an SPH estimate, but this option can be</span>
+<span class="sd">      useful to reduce noise.</span>
+
+<span class="sd">    *threaded*: if False, render on a single core. Otherwise, the number of threads to use.</span>
+<span class="sd">      Defaults to a value specified in your configuration files. *Currently multi-threaded</span>
+<span class="sd">      rendering is slower than single-threaded because healpy does not release the gil*.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">renderer</span> <span class="o">=</span> <span class="n">_render_spherical_image</span>
+    
+    <span class="k">if</span> <span class="n">threaded</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span> <span class="n">threaded</span> <span class="o">=</span> <span class="n">_get_threaded_image</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">threaded</span> <span class="p">:</span>
+        <span class="n">im</span><span class="o">=</span> <span class="n">_threaded_render_image</span><span class="p">(</span><span class="n">renderer</span><span class="p">,</span><span class="n">snap</span><span class="p">,</span><span class="n">qty</span><span class="p">,</span><span class="n">nside</span><span class="p">,</span><span class="n">distance</span><span class="p">,</span><span class="n">kernel</span><span class="p">,</span><span class="n">kstep</span><span class="p">,</span><span class="n">denoise</span><span class="p">,</span><span class="n">out_units</span><span class="p">,</span> <span class="n">num_threads</span><span class="o">=</span><span class="n">threaded</span><span class="p">)</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="n">im</span><span class="o">=</span> <span class="n">renderer</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span><span class="n">distance</span><span class="p">,</span><span class="n">kernel</span><span class="p">,</span><span class="n">kstep</span><span class="p">,</span><span class="n">denoise</span><span class="p">,</span><span class="n">out_units</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">im</span>
+    </div>
+<span class="k">def</span> <span class="nf">_render_spherical_image</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">distance</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">Kernel</span><span class="p">(),</span>
+                           <span class="n">kstep</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">denoise</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">out_units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">__threaded</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">snap_slice</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
 
     <span class="kn">import</span> <span class="nn">healpy</span> <span class="kn">as</span> <span class="nn">hp</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_spherical</span>
 
-    <span class="k">try</span> <span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">healpy_f</span> <span class="kn">as</span> <span class="nn">hpf</span>
-        <span class="n">query_disc</span> <span class="o">=</span> <span class="n">hpf</span><span class="o">.</span><span class="n">query_disc</span>
-    <span class="k">except</span> <span class="ne">ImportError</span> <span class="p">:</span>
-        <span class="n">query_disc</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">query_disc</span>
-        
     <span class="k">if</span> <span class="n">out_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
         <span class="n">conv_ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">*</span><span class="n">snap</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">/</span><span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">*</span><span class="n">snap</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">**</span><span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="p">))</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">out_units</span><span class="p">,</span>
                                                                                                                          <span class="o">**</span><span class="n">snap</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
 
+    <span class="k">if</span> <span class="n">snap_slice</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span> <span class="n">snap_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">snap</span><span class="p">))</span>
     <span class="k">with</span> <span class="n">snap</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
-        <span class="n">D</span><span class="p">,</span><span class="n">h</span><span class="p">,</span><span class="n">pos</span><span class="p">,</span><span class="n">mass</span><span class="p">,</span><span class="n">rho</span><span class="p">,</span><span class="n">qtyar</span> <span class="o">=</span> <span class="p">[</span><span class="n">snap</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="s">&#39;r&#39;</span><span class="p">,</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="s">&#39;pos&#39;</span><span class="p">,</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="n">qty</span><span class="p">]</span>
+        <span class="n">D</span><span class="p">,</span><span class="n">h</span><span class="p">,</span><span class="n">pos</span><span class="p">,</span><span class="n">mass</span><span class="p">,</span><span class="n">rho</span><span class="p">,</span><span class="n">qtyar</span> <span class="o">=</span> <span class="p">[</span><span class="n">snap</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)[</span><span class="n">snap_slice</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="s">&#39;r&#39;</span><span class="p">,</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="s">&#39;pos&#39;</span><span class="p">,</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="n">qty</span><span class="p">]</span>
 
     
     
@@ -334,41 +364,31 @@
         <span class="n">d0</span> <span class="o">=</span> <span class="n">d1</span><span class="o">-</span><span class="n">kstep</span>
         <span class="c"># work out int_d0^d1 x K(x), then set our discretized kernel to</span>
         <span class="c"># match that</span>
-        <span class="n">dvals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d0</span><span class="p">,</span><span class="n">d1</span><span class="p">,</span><span class="mf">0.001</span><span class="p">)</span>
-        <span class="n">ivals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">kernel</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">*</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dvals</span><span class="p">])</span>
-        <span class="n">integ</span> <span class="o">=</span> <span class="n">ivals</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">*</span><span class="mf">0.001</span>
+        <span class="n">dvals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d0</span><span class="p">,</span><span class="n">d1</span><span class="p">,</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="n">ivals</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">kernel</span><span class="o">.</span><span class="n">get_value</span><span class="p">,</span><span class="n">dvals</span><span class="p">)</span>
+        <span class="n">ivals</span><span class="o">*=</span><span class="n">dvals</span>
+        <span class="n">integ</span> <span class="o">=</span> <span class="n">ivals</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">*</span><span class="mf">0.05</span>
         <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">integ</span> <span class="o">/</span> <span class="p">(</span><span class="n">d1</span><span class="o">**</span><span class="mi">2</span><span class="o">-</span><span class="n">d0</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
   
     <span class="n">weights</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-=</span><span class="n">weights</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
     <span class="k">if</span> <span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="o">==</span><span class="mi">3</span> <span class="p">:</span>
-        <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">D</span><span class="o">-</span><span class="n">distance</span><span class="p">)</span><span class="o">&lt;</span><span class="n">h</span><span class="o">*</span><span class="n">kernel</span><span class="o">.</span><span class="n">max_d</span><span class="p">)</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">D</span><span class="o">-</span><span class="n">distance</span><span class="p">)</span><span class="o">&lt;</span><span class="n">h</span><span class="o">*</span><span class="n">kernel</span><span class="o">.</span><span class="n">max_d</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
         <span class="c"># angular radius subtended by the intersection of the boundary</span>
-        <span class="c"># of the SPH particle with the boundary surface of the calculation</span>
-        <span class="n">rad_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">ds</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">distance</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">distance</span><span class="p">)</span>
-        <span class="c"># den_fn = lambda i : [((snap[qty][i]*snap[&quot;mass&quot;][i]/snap[&quot;rho&quot;][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]</span>
-        <span class="k">print</span> <span class="s">&quot;done&quot;</span>
+        <span class="c"># of the SPH particle with the boundary surface of the calculation:</span>
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">-</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">-</span><span class="n">distance</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">distance</span><span class="p">)</span>
+        
     <span class="k">elif</span> <span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="o">==</span><span class="mi">2</span> <span class="p">:</span>
         <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">D</span><span class="o">&lt;</span><span class="n">distance</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         
-        <span class="c"># angular radius taken at distance of particle</span>
+        <span class="c"># angular radius taken at distance of particle:</span>
         <span class="n">rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">*</span><span class="n">ds</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">/</span><span class="n">D</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;render_spherical_image doesn&#39;t know how to handle this kernel&quot;</span>
 
+    <span class="n">im</span><span class="p">,</span> <span class="n">im2</span> <span class="o">=</span> <span class="n">_spherical</span><span class="o">.</span><span class="n">render_spherical_image_core</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span><span class="n">mass</span><span class="p">,</span><span class="n">qtyar</span><span class="p">,</span><span class="n">pos</span><span class="p">,</span><span class="n">D</span><span class="p">,</span><span class="n">h</span><span class="p">,</span><span class="n">ind</span><span class="p">,</span><span class="n">ds</span><span class="p">,</span><span class="n">weights</span><span class="p">,</span><span class="n">nside</span><span class="p">)</span>
     
-    <span class="n">den</span> <span class="o">=</span>  <span class="p">((</span><span class="n">qtyar</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">*</span><span class="n">mass</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">/</span><span class="n">rho</span><span class="p">[</span><span class="n">ind</span><span class="p">]))[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">weights</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span> <span class="o">/</span> <span class="n">h</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">**</span><span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span>
-    <span class="n">norm</span> <span class="o">=</span> <span class="p">((</span><span class="n">mass</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">/</span><span class="n">rho</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span><span class="o">*</span><span class="n">weights</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">/</span><span class="n">h</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">**</span><span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="p">)</span>
-
-    <span class="k">print</span> <span class="s">&quot;Spherical image from&quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">),</span><span class="s">&quot;particles&quot;</span>    
-    <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">hp</span><span class="o">.</span><span class="n">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">))</span>
-    <span class="n">im2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">))</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">))</span> <span class="p">:</span>
-        <span class="k">for</span> <span class="n">r</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">w_norm</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">den</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">norm</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">:</span>
-            <span class="k">if</span> <span class="n">r</span><span class="o">==</span><span class="n">r</span> <span class="p">:</span> <span class="c">#ignore NaN&#39;s -- they just mean the current radius doesn&#39;t intersect our sphere</span>
-                <span class="n">i2</span> <span class="o">=</span> <span class="n">query_disc</span><span class="p">(</span><span class="n">nside</span><span class="p">,</span> <span class="n">pos</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="n">r</span><span class="p">,</span><span class="n">inclusive</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-                <span class="n">im</span><span class="p">[</span><span class="n">i2</span><span class="p">]</span><span class="o">+=</span><span class="n">w</span>
-                <span class="n">im2</span><span class="p">[</span><span class="n">i2</span><span class="p">]</span><span class="o">+=</span><span class="n">w_norm</span>
-
     <span class="n">im</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">denoise</span> <span class="p">:</span>
         <span class="n">im</span><span class="o">/=</span><span class="n">im2</span>
@@ -379,7 +399,7 @@
         <span class="n">im</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">out_units</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">im</span>
-</div>
+
 <span class="k">def</span> <span class="nf">_threaded_render_image</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Render an SPH image using multiple threads.</span>
@@ -420,6 +440,9 @@
 <span class="sd">    Render an SPH image using interpolation to speed up rendering where smoothing</span>
 <span class="sd">    lengths are large.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">levels</span><span class="o">==</span><span class="mi">1</span> <span class="p">:</span>
+        <span class="k">return</span> <span class="n">fn</span>
+    
     <span class="k">def</span> <span class="nf">render_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;smooth_range&#39;</span><span class="p">]</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;res_downgrade&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
@@ -429,7 +452,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">levels</span><span class="p">)</span> <span class="p">:</span>
             <span class="n">sub</span><span class="o">*=</span><span class="mi">2</span>
             <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="n">levels</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;smooth_range&#39;</span><span class="p">]</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10000</span><span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;smooth_range&#39;</span><span class="p">]</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">100000</span><span class="p">)</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;res_downgrade&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">sub</span>
             <span class="n">new_im</span><span class="o">=</span><span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="n">base</span><span class="o">+=</span><span class="n">scipy</span><span class="o">.</span><span class="n">ndimage</span><span class="o">.</span><span class="n">interpolation</span><span class="o">.</span><span class="n">zoom</span><span class="p">(</span><span class="n">new_im</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">new_im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -1120,7 +1143,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>
