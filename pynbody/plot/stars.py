@@ -7,11 +7,15 @@ stars
 
 import numpy as np
 import matplotlib,matplotlib.pyplot as plt
+import warnings
+
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
 from .sph import image
-import warnings
 from .. import units as _units
+
+import logging
+logger = logging.getLogger('pynbody.plot.stars')
 
 def bytscl(arr,mini=0,maxi=10000):
     X= (arr-mini)/(maxi-mini)
@@ -230,8 +234,8 @@ def sfh(sim,filename=None,massform=True,clear=False,legend=False,
     pz.set_xlabel('z')
 
     if legend: plt.legend(loc=1)
-    if filename : 
-        if config['verbose']: print "Saving "+filename
+    if filename :
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
 
     return array.SimArray(sfhist, "Msol yr**-1"), array.SimArray(thebins, "Gyr")
@@ -277,8 +281,7 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
     '''
     
     if not radial :
-        print 'only radial Schmidt Law supported at the moment'
-        return
+        raise NotImplementedError, "Sorry, only radial Schmidt law currently supported"
     
     if center :
         angmom.faceon(sim)
@@ -328,8 +331,8 @@ def schmidtlaw(sim,center=True,filename=None,pretime='50 Myr',
     plt.xlabel('$\Sigma_{gas}$ [M$_\odot$ pc$^{-2}$]')
     plt.ylabel('$\Sigma_{SFR}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
     if legend : plt.legend(loc=2)
-    if (filename): 
-        print "Saving "+filename
+    if (filename):
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
 
 
@@ -449,8 +452,8 @@ def satlf(sim,band='v',filename=None, MWcompare=True, Trentham=True,
                      label='Trentham & Tully (2009)')
 
     if legend : plt.legend(loc=2)
-    if (filename): 
-        print "Saving "+filename
+    if (filename):
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
 
 
@@ -496,14 +499,14 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
     '''
     
     if center :
-        if config['verbose']: print "Centering"
+        logger.info("Centering...")
         angmom.faceon(sim)
 
-    if config['verbose']: print "Selecting disk stars"
+    logger.info("Selecting disk stars")
     diskstars = sim.star[filt.Disc(rmax,diskheight)]
-    if config['verbose']: print "Creating profile"
+    logger.info("Creating profile")
     ps = profile.Profile(diskstars, type=binning)
-    if config['verbose']: print "Plotting"
+    logger.info("Plotting")
     r=ps['rbins'].in_units('kpc')
 
     if axes: plt=axes
@@ -519,8 +522,10 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
         exp_inds = np.where(r.in_units('kpc') > fit_exp)
         expfit = np.polyfit(np.array(r[exp_inds]), 
                           np.array(ps['sb,'+band][exp_inds]), 1)
+
         # 1.0857 is how many magnitudes a 1/e decrease is
         print "h: ",1.0857/expfit[0],"  u_0:",expfit[1]
+        
         fit = np.poly1d(expfit)
         if 'label' in kwargs:
             del kwargs['label']
@@ -545,8 +550,8 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
     else:
         plt.xlabel('R [kpc]')
         plt.ylabel(band+'-band Surface brightness [mag as$^{-2}$]')
-    if filename: 
-        if config['verbose']: print "Saving "+filename
+    if filename:
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
 
 
@@ -669,7 +674,7 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
     plt.axis([0.8*min(totmasshalos),1.2*max(totmasshalos),
               0.8*min(starmasshalos),1.2*max(starmasshalos)])
 
-    if (filename): 
-        if config['verbose']: print "Saving "+filename
+    if (filename):
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
 

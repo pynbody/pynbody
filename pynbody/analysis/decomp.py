@@ -15,6 +15,9 @@ from . import profile
 import numpy as np
 import sys
 
+import logging
+logger = logging.getLogger('pynbody.analysis.decomp')
+
 def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_circ_from_r=False,
            cen=None, vcen=None, log_interp=False, angmom_size="3 kpc") :
     """
@@ -92,12 +95,12 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     # Add an arbitrary offset to the PE to reflect the idea that
     # the group is 'fully bound'.
     te-=te_max
-    if config['verbose'] : print>>sys.stderr, "te_max = ",te_max
+    logger.info("te_max = %.2e"%te_max)
 
     h['te']-=te_max
 
-    
-    if config['verbose'] : print>>sys.stderr, "Making disk rotation curve..."
+
+    logger.info("Making disk rotation curve...")
     
     # Now make a rotation curve for the disk. We'll take everything
     # inside a vertical height of eps*3
@@ -115,9 +118,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
         v_c = np.concatenate(([v_c[0]], v_c, [v_c[-1]]))
         v_c = interp.interp1d(r_x, v_c, bounds_error=False)(r_me)
 
-            
-        if config['verbose'] : 
-            print>>sys.stderr, "   -- found existing rotation curve on disk, using that"
+        logger.info(" - found existing rotation curve on disk, using that")
             
         v_c = v_c.view(array.SimArray)
         v_c.units = "km s^-1"
@@ -182,21 +183,18 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     JzJcirc = h_star['jz_by_jzcirc']
     te = h_star['te']
 
+    logger.info("Finding spheroid/disk angular momentum boundary...")
 
-    if config['verbose'] : 
-        print>>sys.stderr, "Finding spheroid/disk angular momentum boundary..."
     j_crit = util.bisect(0.,5.0,
                          lambda c : np.mean(V[np.where(JzJcirc<c)]))
 
 
         
-    if config['verbose'] :
-        print>>sys.stderr, "j_crit = ",j_crit
-        if j_crit>j_disk_min :
-            print>>sys.stderr, "!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?) !!"
-            print>>sys.stderr, "!! j_crit will be reset to j_disk_min =",j_disk_min,"!!"
-            
+    logger.info("j_crit = %.2e"%j_crit)
+
     if j_crit>j_disk_min :
+        logger.warn("!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?)")
+        logger.warn("!! j_crit will be reset to j_disk_min=%.2e"%j_disk_min)
         j_crit = j_disk_min
 
     sphere = np.where(h_star['jz_by_jzcirc']<j_crit)
@@ -205,8 +203,7 @@ def decomp(h, aligned=False, j_disk_min = 0.8, j_disk_max=1.1, E_cut = None, j_c
     if E_cut is None :
         E_cut = np.median(h_star['te'])
 
-    if config['verbose'] : 
-        print>>sys.stderr, "E_cut = ",E_cut
+    logger.info("E_cut = %.2e"%E_cut)
 
 
     halo =np.where((te>E_cut) * (JzJcirc<j_crit))

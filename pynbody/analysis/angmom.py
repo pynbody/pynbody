@@ -4,10 +4,12 @@ angmom
 ======
 
 """
-
+import logging
 import numpy as np
 from .. import array, filt, units, config, transformation
 from . import halo
+
+logger = logging.getLogger('pynbody.analysis.angmom')
 
 def ang_mom_vec(snap) :
     """
@@ -102,11 +104,10 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
     # transformed
 
     if cen is None :
-        if config['verbose'] :
-            print "Finding halo center..."
+        logger.info("Finding halo center...")
         cen = halo.center(h,retcen=True,**kwargs) # or h['pos'][h['phi'].argmin()]
-        if config['verbose'] :
-            print "cen=",cen
+        logger.info("... cen=%s"%cen)
+
 
     tx = transformation.inverse_translate(top, cen)
 
@@ -122,15 +123,15 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
     else:
         cen = h[filt.Sphere(disk_size)]
 
-    if config['verbose'] :
-        print "Calculating angular momentum vector..."
+    logger.info("Calculating angular momentum vector...")
     trans = vec_to_xform(ang_mom_vec(cen))
 
-    if config['verbose'] :
-        print "Transforming simulation..."
+    logger.info("Transforming simulation...")
 
     tx = transformation.transform(tx, trans)
 
+    logger.info("...done!")
+    
     return tx
 
 

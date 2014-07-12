@@ -8,8 +8,9 @@ profile
 import numpy as np
 from ..analysis import angmom, profile, halo
 from .. import filt, units, config
-
 import pylab as p
+import logging
+logger = logging.getLogger('pynbody.plot.profile')
 
 def rotation_curve(sim, center=True, r_units = 'kpc',
                    v_units = 'km s^-1', disk_height='100 pc', nbins=50,
@@ -88,8 +89,8 @@ def rotation_curve(sim, center=True, r_units = 'kpc',
     if legend :
         p.legend(loc=0)
 
-    if (filename): 
-        print "Saving "+filename
+    if (filename):
+        logger.info("Saving %s",filename)
         p.savefig(filename)
     
     return r,v
@@ -139,8 +140,8 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
 
     p.xlabel("r / $"+r.units.latex()+"$")
     p.ylabel("Amplitude of 2nd Fourier Mode")
-    if (filename): 
-        print "Saving "+filename
+    if (filename):
+        logger.info("Saving %s",filename)
         p.savefig(filename)
 
 def density_profile(sim, linestyle=False, center=True, clear=True, 
@@ -163,18 +164,19 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     '''
     import matplotlib.pyplot as plt
     global config
-    
+
+    logger.info("Centering...")
     if center :
-        if config['verbose']: print "Centering"
         halo.center(sim,mode='ssc')
 
-    if config['verbose']: print "Creating profile"
+    logger.info("Creating profile...")
+
     if 'min' in kwargs:
         ps = profile.Profile(sim,ndim=3,type='log',nbins=40,min=kwargs['min'])
         del kwargs['min']
     else:
         ps = profile.Profile(sim,ndim=3,type='log',nbins=40)
-    if config['verbose']: print "Plotting"
+
     if clear : plt.clf()
     critden = (units.Unit('100 km s^-1 Mpc^-1')*sim.properties['h'])**2 /8.0/np.pi/units.G
     r=ps['rbins'].in_units('kpc')
@@ -190,6 +192,6 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     plt.xlabel('r [kpc]')
     plt.ylabel(r'$\rho / \rho_{cr}$')#+den.units.latex()+'$]')
     if (filename): 
-        if config['verbose']: print "Saving "+filename
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
 

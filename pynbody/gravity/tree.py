@@ -9,19 +9,18 @@ except ImportError :
     
 from .. import config
 import numpy as np
+import time
 
 class GravTree:
     
     def __init__(self, pos, mass, rs, eps=None, leafsize=16):
-        import pdb; pdb.set_trace()
-        if config['tracktime']:
-            import time
-            start = time.clock()
-            self.tree = pkdgrav.pkdPythonInitialize(pos, mass, eps, rs, int(leafsize))
-            end = time.clock()
-            if config['verbose']: print 'Tree build done in %5.3g s'%(end-start)
-        else:
-            self.tree = pkdgrav.pkdPythonInitialize(pos, mass, eps, rs, int(leafsize))
+
+
+        start = time.clock()
+        self.tree = pkdgrav.pkdPythonInitialize(pos, mass, eps, rs, int(leafsize))
+        end = time.clock()
+        if config['verbose']: print 'Tree build done in %5.3g s'%(end-start)
+
 
         self.derived = True
         self.flags = {'WRITEABLE':False}
@@ -30,14 +29,12 @@ class GravTree:
         accel = np.zeros((len(vec_pos),3))
         pot = np.zeros(len(vec_pos))
         if config['verbose']: print 'Calculating Gravity'
-        if config['tracktime']:
-            import time
-            start = time.clock()
-            pkdgrav.pkdPythonDoGravity(self.tree, accel, pot, theta=0.55)
-            end = time.clock()
-            if config['verbose']: print 'Gravity calculated in %5.3g s'%(end-start)
-        else:
-            pkdgrav.pkdPythonDoGravity(self.tree, accel, pot, theta=0.55)
+       
+        start = time.clock()
+        pkdgrav.pkdPythonDoGravity(self.tree, accel, pot, theta=0.55)
+        end = time.clock()
+        if config['verbose']: print 'Gravity calculated in %5.3g s'%(end-start)
+      
         return accel, pot
         
     def __del__(self):

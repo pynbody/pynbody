@@ -129,6 +129,8 @@ import imp
 import numpy
 import warnings
 import sys
+import logging
+
 
 # Create config dictionaries which will be required by subpackages
 # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
@@ -148,7 +150,6 @@ config_parser.read("config.ini")
 
 
 config= {'verbose': config_parser.getboolean('general','verbose'),
-         'tracktime': config_parser.getboolean('general','tracktime'),
          'centering-scheme': config_parser.get('general','centering-scheme')}
 
 config['snap-class-priority'] = map(str.strip,
@@ -173,6 +174,40 @@ config['number_of_threads'] = int(config_parser.get('general', 'number_of_thread
 
 config['gravity_calculation_mode'] = config_parser.get('general', 'gravity_calculation_mode')
 config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
+
+# Create the logger for pynbody
+logger = logging.getLogger('pynbody')
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(name)s : %(message)s')
+for existing_handler in list(logger.handlers) :
+    logger.removeHandler(existing_handler)
+
+ch = logging.StreamHandler()
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+if config['verbose'] :
+    ch.setLevel(logging.INFO)
+    logger.info("Verbose mode is on")
+else :
+    ch.setLevel(logging.WARNING)
+    
+    warning = """
+Welcome to pynbody v0.30. Note this new version by default is much quieter than old versions.
+To get back the verbose output, edit your config.ini or .pynbodyrc file and insert the following
+section
+
+[general]
+verbose: True
+
+The information is now parsed through python's standard logging module; using logging.getLogger('pynbody')
+you can customize the behaviour. See here https://docs.python.org/2/howto/logging-cookbook.html#logging-cookbook."""
+
+    if not os.path.exists(os.path.expanduser("~/.pynbody_v03_touched")) :
+        print warning
+        with open(os.path.expanduser("~/.pynbody_v03_touched"),"w") as f :
+            print>>f, "This file tells pynbody not to reprint the welcome-to-v-0.3 warning"
+            
 
 # Import subpackages
 from . import util, filt, array, family, snapshot
@@ -228,7 +263,7 @@ def load(filename, *args, **kwargs) :
    
     for c in config['snap-class-priority'] :
         if c._can_load(filename) :
-            if config['verbose'] : print>>sys.stderr, "Loading using backend",str(c)
+            logger.info("Loading using backend %s"%str(c))
             return c(filename,*args,**kwargs)
 
     raise IOError("File %r: format not understood or does not exist"%filename)

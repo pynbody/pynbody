@@ -22,6 +22,8 @@ from . import config_parser, config
 import ConfigParser
 import multiprocessing
 import functools
+import logging
+logger = logging.getLogger('pynbody.util')
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
@@ -320,6 +322,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200) :
     if epsilon is None :
         epsilon = (right-left)*1.e-7
 
+    logger.info("Entering bisection search algorithm")
     for i in xrange(niter_max) :
 
         if (right-left)< epsilon :
@@ -328,8 +331,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200) :
         mid = (left+right)/2
         z = f(mid)
 
-        if verbose :
-            print left, mid, right, z
+        logger.info("%f %f %f %f"%(left,mid,right,z))
 
         if (abs(z)<eta) :
             return mid
@@ -403,29 +405,6 @@ def cutgz(x) :
     """Strip the .gz ending off a string"""
     if x[-3:] == '.gz' : return x[:-3]
     else : return x
-
-class Registry(dict) :
-    """A simple extension of the dict class to make the
-    __repr__ more readable."""
-
-    is_file = []
-
-    def __repr__ (self) :
-        string = " "
-        
-        if len(self.keys()) > 0 :
-            print 'files: \n'
-            for i, key in enumerate(self.keys()) :
-                if is_file[i]:
-                    string += key
-            print 'compute: \n'
-            for i, key in enumerate(self.keys()) :
-                if not is_file[i]:
-                    string += key
-        else :
-            string = "Empty registry"
-
-        return string
 
 
 

@@ -16,6 +16,9 @@ from . import config
 from . import units
 import numpy as np
 import sys
+import logging
+
+logger = logging.getLogger('pynbody.derived')
     
 @SimSnap.derived_quantity
 def r(self):
@@ -103,11 +106,12 @@ def v_mean(self):
     
     nsmooth = config['sph']['smooth-particles']
     
-    if config['verbose']: print 'Calculating mean velocity with %d nearest neighbours' % nsmooth
+    logger.info('Calculating mean velocity with %d nearest neighbours' % nsmooth)
 
     sm = array.SimArray(np.empty((len(self['pos']),3)), self['vel'])
     self.kdtree.populate(sm, 'v_mean', nn=nsmooth, smooth=self['smooth'], rho=self['rho'])
-    if config['verbose']: print 'Mean velocity done.'
+
+    logger.info('Mean velocity done.')
 
     return sm 
 
@@ -120,11 +124,11 @@ def v_disp(self):
     nsmooth = config['sph']['smooth-particles']
     self['rho']
     
-    if config['verbose']: print 'Calculating velocity dispersion with %d nearest neighbours' % nsmooth
+    logger.info('Calculating velocity dispersion with %d nearest neighbours' % nsmooth)
 
     sm = array.SimArray(np.empty(len(self['pos'])), self['vel'].units)
     self.kdtree.populate(sm, 'v_disp', nn=nsmooth, smooth=self['smooth'], rho=self['rho']) 
-    if config['verbose']: print 'Velocity dispersion done.'
+    logger.info('Velocity dispersion done.')
 
     return sm 
 

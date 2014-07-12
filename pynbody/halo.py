@@ -22,8 +22,10 @@ import re
 import copy
 import sys
 import gzip
+import logging
 from . import snapshot, util, config, config_parser, gadget
 
+logger = logging.getLogger("pynbody.halo")
 
 class DummyHalo(object):
     def __init__(self):
@@ -184,22 +186,18 @@ class AHFCatalogue(HaloCatalogue):
         self._nhalos = i
         f.close()
 
-        if config['verbose']:
-            print "AHFCatalogue: loading particles...",
-        sys.stdout.flush()
+        logger.info("AHFCatalogue loading particles")
 
         self._load_ahf_particles(self._ahfBasename+'particles')
 
-        if config['verbose']:
-            print "halos...",
-        sys.stdout.flush()
+        logger.info("AHFCatalogue loading halos")
+
 
         self._load_ahf_halos(self._ahfBasename+'halos')
 
         if os.path.isfile(self._ahfBasename+'substructure'):
-            if config['verbose']:
-                print "substructure...",
-            sys.stdout.flush()
+            logger.info("AHFCatalogue loading substructure")
+ 
             self._load_ahf_substructure(self._ahfBasename+'substructure')
         else:
             self._setup_children()
@@ -213,9 +211,8 @@ class AHFCatalogue(HaloCatalogue):
         if config_parser.getboolean('AHFCatalogue', 'AutoPid'):
             sim['pid'] = np.arange(0, len(sim))
 
-        if config['verbose']:
-            print "done!"
-
+        logger.info("AHFCatalogue loaded")
+        
     def make_grp(self, name='grp'):
         """
         Creates a 'grp' array which labels each particle according to
@@ -405,7 +402,7 @@ class AHFCatalogue(HaloCatalogue):
         except:
             self.make_grp()
         if not grpoutfile: grpoutfile=snapshot.filename+'.grp'
-        print "write grp file to ", grpoutfile
+        logger.info("Writing grp file to %s"%grpoutfile)
         fpout = open(grpoutfile, "w")
         print >> fpout, len(snapshot['grp'])
 
@@ -437,7 +434,7 @@ class AHFCatalogue(HaloCatalogue):
             hubble = s.properties['h']
 
         outfile = statoutfile
-        print "write stat file to ", statoutfile
+        logger.info("Writing stat file to %s"%statoutfile)
         fpout = open(outfile, "w")
         header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
         print >> fpout, header
@@ -492,7 +489,6 @@ class AHFCatalogue(HaloCatalogue):
         import math
         s = snapshot
         outfile = tipsyoutfile
-        print "write tipsy file to ", tipsyoutfile
         nhalos = halos._nhalos
         nstar = nhalos
         sout = new(star=nstar)  # create new tipsy snapshot written as halos.
@@ -510,7 +506,6 @@ class AHFCatalogue(HaloCatalogue):
         tipsyvunitkms = lboxmpch * 100. / (math.pi * 8./3.)**.5
         tipsymunitmsun = rhocrithhco * lboxmpch**3 / sout.properties['h']
 
-        print "transforming ", nhalos, " halos into tipsy star particles"
         for ii in xrange(nhalos):
             h = halos[ii+1].properties
             sout.star[ii]['mass'] = h['mass']/hubble / tipsymunitmsun
@@ -525,7 +520,7 @@ class AHFCatalogue(HaloCatalogue):
             sout.star[ii]['metals'] = 0.
             sout.star[ii]['phi'] = 0.
             sout.star[ii]['tform'] = 0.
-        print "writing tipsy outfile", outfile
+            
         sout.write(fmt=tipsy.TipsySnap, filename=outfile)
         return sout
 
@@ -764,7 +759,7 @@ class SubfindCatalogue(HaloCatalogue):
                     firstsub=np.fromfile(fd, dtype='int32', sep="", count=header[0])
             #read subhalos only if expected to exist from header AND if ReadSubs==True (default False), because this info is not used yet
             if header[5]>0 and ReadSubs:
-                print 'reading subs'
+                logger.info("Reading subs")
                 sublen=np.fromfile(fd, dtype='int32', sep="", count=header[5])
                 suboff=np.fromfile(fd, dtype='int32', sep="", count=header[5])
                 if ReadAll:

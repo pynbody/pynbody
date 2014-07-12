@@ -12,10 +12,9 @@ import numpy as np
 import pynbody
 from .. import family, units, array, util
 import math
-
-#
-# A module for making profiles of particle properties
-#
+import logging
+import time
+logger = logging.getLogger('pynbody.analysis.profile')
 
 
 class Profile:
@@ -224,12 +223,12 @@ class Profile:
                 self._profiles   = data['profiles']
                 self.binind      = data['binind']
 
-                if pynbody.config['verbose'] : print 'Profile: loaded profile from ' + filename
+                logger.info("Loaded profile from %s"%filename)
 
                 generate_new = False
 
             except IOError:
-                print 'Profile: existing profile not found -- generating one from scratch'
+                logger.warning("Existing profile not found -- generating one from scratch instead")
                                                           
         if generate_new :
             self._properties = {}
@@ -350,26 +349,26 @@ class Profile:
             return self._profiles[name]
 
         elif name[-5:]=="_disp" and name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys() :
-            if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
+            logger.info("Auto-deriving %s"%name)
             self._profiles[name] = self._auto_profile(name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
         elif name[-4:]=="_rms" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys() :
-            if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
+            logger.info("Auto-deriving %s"%name)
             self._profiles[name] = self._auto_profile(name[:-4], rms=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
         
         elif name[-4:]=="_med" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys() :
-            if pynbody.config['verbose'] : print 'Profile: auto-deriving '+name
+            logger.info("Auto-deriving %s"%name)
             self._profiles[name] = self._auto_profile(name[:-4], median=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
         
         elif name[0:2]=="d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys() :
-#            if np.diff(self['dr']).all() < 1e-13 : 
-            if pynbody.config['verbose'] : print 'Profile: '+name+'/dR'
+#            if np.diff(self['dr']).all() < 1e-13 :
+            logger.info("Auto-deriving %s/dR"%name)
             self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
             self._profiles[name] = self._profiles[name] / self['dr'].units
             return self._profiles[name]
@@ -530,8 +529,8 @@ class Profile:
         # use the hash generated from the particle list for the file name suffix
 
         filename = self._generate_hash_filename()
-
-        if pynbody.config['verbose']: print 'Profile: writing profile to ' + filename
+        
+        logger.info("Writing profile to %s",filename)
             
         pickle.dump({'properties': self._properties, 
                      'max': self.max,
@@ -553,8 +552,6 @@ def mass(self):
     """
     Calculate mass in each bin
     """
-    
-    if pynbody.config['verbose'] : print 'Profile: mass()'
     mass = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
 
     with self.sim.immediate_mode : 
@@ -572,7 +569,6 @@ def density(self):
     """
     Generate a radial density profile for the current type of profile
     """
-    if pynbody.config['verbose'] : print 'Profile: density()'
     return self['mass']/self._binsize
 
 @Profile.profile_property
@@ -580,7 +576,6 @@ def fourier(self):
     """
     Generate a profile of fourier coefficients, amplitudes and phases
     """
-    if pynbody.config['verbose'] : print 'Profile: fourier()'
 
     f = {'c': np.zeros((7, self.nbins),dtype=complex),
          'amp': np.zeros((7, self.nbins)),
@@ -608,7 +603,6 @@ def mass_enc(self):
     """
     Generate the enclosed mass profile
     """
-    if pynbody.config['verbose'] : print 'Profile: mass_enc()'
     m_enc = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
     m_enc.sim = self.sim
     for i in range(self.nbins):
@@ -618,7 +612,6 @@ def mass_enc(self):
 @Profile.profile_property
 def dyntime(self) :
     """The dynamical time of the bin, sqrt(R^3/2GM)."""
-    if pynbody.config['verbose'] : print 'Profile: dyntime()'
     dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(1,2)
     return dyntime
 
@@ -641,7 +634,6 @@ def rotation_curve_spherical(self):
 @Profile.profile_property
 def j_circ(p) :
     """Angular momentum of particles on circular orbits."""
-    if pynbody.config['verbose'] : print 'Profile: j_circ()'
     return p['v_circ'] * p['rbins']
 
 
@@ -657,8 +649,8 @@ def v_circ(p, grav_sim=None) :
 
     grav_sim = grav_sim or p.sim
 
-    if pynbody.config['verbose'] : 
-        print 'Profile: v_circ() -- warning, disk must be in the x-y plane'
+    logger.warn("Profile v_circ -- this routine assumes the disk is in the x-y plane")
+
 
     
     # If this is a cosmological run, go up to the halo level
@@ -669,20 +661,15 @@ def v_circ(p, grav_sim=None) :
     #elif hasattr(grav_sim,'base') : 
     #    grav_sim = grav_sim.base
     
-    if config['tracktime']:
-        import time
-        start = time.time()
-        rc = gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-        end = time.time()
-        if config['verbose']: print 'Rotation curve calculated in %5.3g s'%(end-start)
-        return rc
-    else:
-        return gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-
+    start = time.time()
+    rc = gravity.midplane_rot_curve(grav_sim, p['rbins']).in_units(p.sim['vel'].units)
+    end = time.time()
+    logger.info("Rotation curve calculated in %5.3g s"%(end-start))
+    return rc
+   
 @Profile.profile_property
 def E_circ(p) :
     """Energy of particles on circular orbits."""
-    if pynbody.config['verbose'] : print 'Profile: E_circ()'
     return 0.5*(p['v_circ']**2) + p['pot']
 
 @Profile.profile_property
@@ -691,29 +678,24 @@ def pot(p) :
     #from . import gravity
     import pynbody.gravity.calc as gravity
 
-    if pynbody.config['verbose'] : 
-        print 'Profile: pot() -- warning, disk must be in the x-y plane'
+    logger.warn("Profile pot -- this routine assumes the disk is in the x-y plane")
 
     grav_sim = p.sim
     # Go up to the halo level
     while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
         grav_sim = grav_sim.base
         
-    if pynbody.config['tracktime']:
-        import time
-        start = time.clock()
-        pot = gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
-        end = time.clock()
-        if pynbody.config['verbose']: print 'Potential calculated in %5.3g s'%(end-start)
-        return pot
-    else:
-        return gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
-    
+
+    start = time.clock()
+    pot = gravity.midplane_potential(grav_sim, p['rbins']).in_units(p.sim['vel'].units**2)
+    end = time.clock()
+    logger.info("Potential calculated in %5.3g s"%(end-start))
+    return pot
+
 
 @Profile.profile_property
 def omega(p) :
     """Circular frequency Omega = v_circ/radius (see Binney & Tremaine Sect. 3.2)"""
-    if pynbody.config['verbose'] : print 'Profile: omega()'
     prof = p['v_circ']/p['rbins']
     prof.set_units_like('km s**-1 kpc**-1')
     return prof
@@ -721,7 +703,6 @@ def omega(p) :
 @Profile.profile_property
 def kappa(p) :
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
-    if pynbody.config['verbose'] : print 'Profile: kappa()'
     dOmegadR = np.gradient(p['omega']**2, p['dr'][0])
     dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
     return np.sqrt(p['rbins']*dOmegadR + 4*p['omega']**2)
@@ -729,7 +710,6 @@ def kappa(p) :
 @Profile.profile_property
 def beta(p) :
     """3D Anisotropy parameter as defined in Binney and Tremiane"""
-    if pynbody.config['verbose'] : print 'Profile: beta()'
     assert p.ndim is 3
     return  1.5-(p['vx_disp']**2+p['vy_disp']**2+p['vz_disp']**2)/p['vr_disp']**2/2.
 
@@ -741,7 +721,6 @@ def magnitudes(self,band='v'):
     from . import luminosity
 
     magnitudes = np.zeros(self.nbins)
-    print "Calculating magnitudes"
     for i in range(self.nbins):
         magnitudes[i] = luminosity.halo_mag(self.sim[self.binind[i]],band=band)
     magnitudes = array.SimArray(magnitudes, units.Unit('1'))

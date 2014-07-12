@@ -12,7 +12,8 @@ from .. import filt, util, config, array,units, transformation
 from . import cosmology, _com
 import numpy as np
 import math
-
+import logging
+logger = logging.getLogger('pynbody.analysis.halo')
 
 def center_of_mass(sim) : 
     """
@@ -85,9 +86,10 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     mass = np.asarray(sim['mass'],dtype='double')
     pos = np.asarray(sim['pos'],dtype='double')
 
-    print "Initial rough COM=",pos.mean(axis=0)
+    logger.info("Initial rough COM=%s",pos.mean(axis=0))
     com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r)
-
+    logger.info("Final COM=%s",com)
+    
     return array.SimArray(com,sim['pos'].units)
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
@@ -117,7 +119,7 @@ def virial_radius(sim, cen=None, overden=178, r_max=None) :
     with tx :
         rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
         target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
-        print "target_rho=",target_rho,rho(0.5)
+        logger.info("target_rho=%s",target_rho)
         result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=False)
    
 
@@ -174,8 +176,8 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, move_all=True, 
 
     """
 
-    if config['verbose'] :
-        print "Finding halo velocity center..."
+    logger.info("Finding halo velocity center...")
+
 
     if move_all :
         target = sim.ancestor
@@ -196,7 +198,7 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, move_all=True, 
     vcen = (cen['vel'].transpose()*cen['mass']).sum(axis=1)/cen['mass'].sum()
     vcen.units = cen['vel'].units
     if config['verbose'] :
-        print "vcen=",vcen
+        logger.info("vcen=%s",vcen)
 
     if retcen:
         return vcen

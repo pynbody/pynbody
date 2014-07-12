@@ -39,6 +39,9 @@ import functools
 import warnings
 import sys
 
+import logging
+logger = logging.getLogger('pynbody.snapshot.gadgethdf')
+
 try:
     import h5py
 except ImportError:
@@ -162,8 +165,7 @@ class GadgetHDFSnap(SimSnap):
             if filename is None:
                 filename = self._filename
 
-            if config['verbose']:
-                print>>sys.stderr, "GadgetHDF: writing main file as", filename
+            logger.info('Writing main file as %s',filename)
 
             self._hdf_out = h5py.File(filename, "w")
 

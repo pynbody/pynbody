@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .generic import hist2d
 from ..units import Unit
+import logging
+logger = logging.getLogger('pynbody.plot.gas')
 
 def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
     """
@@ -95,7 +97,7 @@ def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln',
 
     plt.xlabel("r / $"+r.units.latex()+"$")
     plt.ylabel("Temperature [K]")
-    if (filename): 
-        print "Saving "+filename
+    if (filename):
+        logger.info("Saving %s",filename)
         plt.savefig(filename)
     

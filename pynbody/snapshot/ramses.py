@@ -39,6 +39,9 @@ import re
 import functools
 import time
 
+import logging
+logger = logging.getLogger('pynbody.snapshot.ramses')
+
 multiprocess_num = int(config_parser.get('ramses',"parallel-read"))
 multiprocess = (multiprocess_num>1)
 
@@ -50,7 +53,7 @@ if multiprocess :
     except ImportError:
         warnings.warn("RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
         multiprocess = False
-        
+
 if not multiprocess:
     def remote_exec(fn) :
         def q(*args) :
@@ -235,10 +238,8 @@ _gv_load_gravity = 1
 @remote_exec
 def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                         mode = _gv_load_hydro ) :
-    
-    if config['verbose'] :
-        print>>sys.stderr, cpu,
-        sys.stderr.flush()
+
+    logger.info("Loading data from CPU %d",cpu)
         
     nvar = len(dims)
     grid_info_iter = _cpui_level_iterator(*lia)
@@ -518,8 +519,7 @@ class RamsesSnap(SimSnap) :
 
         grid_info_iter = self._level_iterator()
 
-        if config['verbose'] :
-            print>>sys.stderr, "RamsesSnap: loading %s files"%(['hydro','grav'][mode]),
+        logger.info("Loading %s files",['hydro','grav'][mode])
 
         filenamer = [self._hydro_filename, self._grav_filename][mode]
         
@@ -538,8 +538,7 @@ class RamsesSnap(SimSnap) :
             # potential is awkwardly in expected units divided by box size
             self.gas['phi']*=self._info['boxlen']
  
-        if config['verbose'] :
-            print>>sys.stderr, "done"
+        logger.info("Done")
 
                               
     def _load_particle_block(self, blockname) :

@@ -23,6 +23,9 @@ import warnings
 import cmath
 import tempfile
 import subprocess
+import logging
+logger = logging.getLogger('pynbody.analysis.hmf')
+
 
 #######################################################################
 # Filters
@@ -200,7 +203,7 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB) :
 
         file_out.close()
 
-        print "Running %s on %s"%(path_to_camb,os.path.join(folder_out,"camb.ini"))
+        logger.info("Running %s on %s"%(path_to_camb,os.path.join(folder_out,"camb.ini")))
         subprocess.check_output("cd %s; %s camb.ini"%(folder_out,path_to_camb),shell=True)
 
         
@@ -467,8 +470,7 @@ def f_jenkins(nu,deltac=1.68647):
     sigma = deltac / nu
     lnsigmainv = np.log(1./sigma)
     if ((np.any(lnsigmainv < -1.2)) or (np.any(lnsigmainv > 1.05))):
-## this warning could get annoying
-        print "jenkins mass function is outsie of valid mass range.  continuing calculations anyway."
+        logger.warning("Jenkins mass function is outsie of valid mass range.  Continuing calculations anyway.")
     f = 0.315* np.exp(-np.power( (np.fabs(lnsigmainv+0.61)), 3.8) )
     return f
 

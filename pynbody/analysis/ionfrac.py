@@ -18,6 +18,9 @@ import os
 from ..array import SimArray
 from pynbody import config
 
+import logging
+logger = logging.getLogger('pynbody.analysis.ionfrac')
+
 def calculate(sim,ion='ovi') :
     """
 
@@ -32,7 +35,7 @@ def calculate(sim,ion='ovi') :
     iffile = os.path.join(os.path.dirname(__file__),"ionfracs.npz")
     if os.path.exists(iffile) :
         # import data
-        if config['verbose']: print "Loading "+iffile
+        logger.info("Loading %s"%iffile)
         ifs=np.load(iffile)
     else :
         raise IOError, "ionfracs.npz (Ion Fraction table) not found"
@@ -63,7 +66,7 @@ def calculate(sim,ion='ovi') :
     z[np.where(z > np.max(z_vals))] = np.max(z_vals)
 
     #interpolate
-    if config['verbose']: print "Interpolating "+ion+" values"
+    logger.info("Interpolation %s values"%ion)
     code = file(os.path.join(os.path.dirname(__file__),'interpolate3d.c')).read()
     inline(code,['n','n_x_vals','x_vals','n_y_vals','y_vals','n_z_vals',
                  'z_vals','x','y','z','vals','result_array'])

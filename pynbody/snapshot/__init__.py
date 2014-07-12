@@ -29,6 +29,9 @@ import threading
 import re
 import gc
 import traceback
+import logging
+
+logger = logging.getLogger('pynbody.snapshot')
 
 class SimSnap(object):
     """The class for managing simulation snapshots.
@@ -687,8 +690,7 @@ class SimSnap(object):
             new_unit = reduce(lambda x, y: x*y, [
                               a**b for a, b in zip(dims, d[:ucut])])
             if new_unit != ar.units:
-                if config['verbose']:
-                    print>>sys.stderr, "SimSnap: converting", ar.name, "units from", ar.units, "to", new_unit
+                logger.info("Converting %s units from %s to %s"%(ar.name,ar.units,new_unit))
                 ar.convert_units(new_unit)
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
@@ -1400,8 +1402,7 @@ class SimSnap(object):
                 for cl in type(self).__mro__:
                     if cl in self._derived_quantity_registry \
                             and name in self._derived_quantity_registry[cl]:
-                        if config['verbose']:
-                            print>>sys.stderr, "SimSnap: deriving array", name
+                        logger.info("Deriving array %s"%name)
                         with self.auto_propagate_off:
                             fn = self._derived_quantity_registry[cl][name]
                             if fam is None:
@@ -1530,8 +1531,7 @@ class SimSnap(object):
                 hash = hashlib.md5(index_list.data)
                 self.__inclusion_hash = hash.digest()
             except:
-                print "Encountered a problem while calculating your inclusion hash. The original traceback follows."
-                traceback.print_exc()
+                logging.warn("Encountered a problem while calculating your inclusion hash. %s"%traceback.format_exc())
             rval = self.__inclusion_hash
         return rval
 

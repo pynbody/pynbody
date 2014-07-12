@@ -19,6 +19,9 @@ import time
 import sys
 import threading
 import copy
+import logging
+import time
+logger = logging.getLogger('pynbody.sph')
 
 from . import _render
 from .. import snapshot, array, config, units, util, config_parser
@@ -75,15 +78,14 @@ def build_tree_or_trees(sim) :
     else :
         if hasattr(sim,'kdtree') : return
     
-    if config['verbose'] :
-        if _threaded_smooth :
-            print>>sys.stderr, 'Building %d trees with leafsize=%d'%(_threaded_smooth,config['sph']['tree-leafsize'])
-        else :
-            print>>sys.stderr, 'Building tree with leafsize=%d'%config['sph']['tree-leafsize']
-
-    if config['tracktime'] :
-        import time
-        start = time.clock()
+ 
+    if _threaded_smooth :
+        logger.info('Building %d trees with leafsize=%d'%(_threaded_smooth,config['sph']['tree-leafsize']))
+    else :
+        logger.info('Building tree with leafsize=%d'%config['sph']['tree-leafsize'])
+        
+        
+    start = time.clock()
 
     if _threaded_smooth :
         # trigger any necessary 'lazy' activity from this thread,
@@ -93,21 +95,20 @@ def build_tree_or_trees(sim) :
     else :
         build_tree(sim)
 
-    if config['tracktime'] :
-        end = time.clock()
-        print>>sys.stderr, 'Tree build done in %5.3g s'%(end-start)
-    elif config['verbose'] and verbose: print>>sys.stderr, 'Tree build done.'
+    end = time.clock()
+    logger.info('Tree build done in %5.3g s'%(end-start))
+  
 
         
 @snapshot.SimSnap.stable_derived_quantity
 def smooth(self):
     build_tree_or_trees(self)
-    
-    if config['verbose']: print>>sys.stderr, 'Smoothing with %d nearest neighbours'%config['sph']['smooth-particles']
+
+    logger.info('Smoothing with %d nearest neighbours'%config['sph']['smooth-particles'])
+
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
-    if config['tracktime']:
-        import time
-        start = time.time()
+    
+    start = time.time()
 
     _threaded_smooth = _get_threaded_smooth()
 
@@ -124,24 +125,22 @@ def smooth(self):
     else :
         self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles']) 
     
-    if config['tracktime'] : 
-        end = time.time()
-        print>>sys.stderr, 'Smoothing done in %5.3gs'%(end-start)
-    elif config['verbose']: print>>sys.stderr, 'Smoothing done.'
+    
+    end = time.time()
+    logger.info('Smoothing done in %5.3gs'%(end-start))
 
     return sm 
 
 @snapshot.SimSnap.stable_derived_quantity
 def rho(self):
     build_tree_or_trees(self)
-    if config['verbose']: print>>sys.stderr, 'Calculating SPH density'
+    
+    smooth = self['smooth']
+
+    logger.info('Calculating SPH density')
     rho = array.SimArray(np.empty(len(self['pos'])), self['mass'].units/self['pos'].units**3)
 
-    smooth = self['smooth']
-    
-    if config['tracktime']:
-        import time
-        start = time.time()
+    start = time.time()
 
     _threaded_smooth = _get_threaded_smooth()
 
@@ -156,10 +155,9 @@ def rho(self):
     else :
         self.kdtree.populate(rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
     
-    if config['tracktime'] : 
-        end = time.time()
-        print>>sys.stderr, 'Density calculation done in %5.3g s'%(end-start)
-    elif config['verbose']: print>>sys.stderr, 'Density done.'
+    
+    end = time.time()
+    logger.info('Density calculation done in %5.3g s'%(end-start))
     
     return rho
 
@@ -328,14 +326,14 @@ def _threaded_render_image(fn, s,*args, **kwargs) :
         num_threads = kwargs['num_threads']
         del kwargs['num_threads']
 
-        verbose = kwargs.get('verbose', config['verbose'])
+        verbose = kwargs.get('verbose', True)
 
         kwargs['__threaded']=True # will pass into render_image
 
         ts = []
         outputs = []
 
-        if verbose : print "Rendering image on %d threads..."%num_threads
+        if verbose : logger.info("Rendering image on %d threads..."%num_threads)
 
         for i in xrange(num_threads) :
             kwargs_local = copy.copy(kwargs)
@@ -496,7 +494,6 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     global config
 
 
-    track_time = config["tracktime"] and not force_quiet
     verbose = config["verbose"] and not force_quiet
 
     snap_proxy = {}
@@ -508,9 +505,8 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
             
     
-    if track_time :
-        import time
-        in_time = time.time()
+
+    in_time = time.time()
     
 
     if y2 is None :
@@ -655,12 +651,9 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
  
    
     
-    if config["tracktime"] :
-        import time
-        in_time = time.time()
     
-
-   
+    in_time = time.time()
+    
     if x2 is None :
         x1 = np.min(snap['x'])
         x2 = np.max(snap['x'])
@@ -699,8 +692,8 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
         im= renderer(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
                       xy_units, kernel, smooth, False)
         
-    if config["tracktime"] :
-        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+    
+    logger.info("Render done at %.2f s"%(time.time()-in_time))
 
         
     if denoise :
@@ -803,7 +796,7 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
     x,y,z,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,z,sm,qty, mass, rho]
         #qty[np.where(qty < 1e-15)] = 1e-15
     
-    if config['verbose']: print>>sys.stderr, "Gridding particles"
+    logger.info("Gridding particles")
    
     util.threadsafe_inline( code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
                    'x1', 'x2', 'y1', 'y2', 'z1',  'z2',
@@ -863,9 +856,8 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     import os, os.path
     global config
     
-    if config["tracktime"] :
-        import time
-        in_time = time.time()
+    
+    in_time = time.time()
     
     kernel=Kernel2D()
             
@@ -919,16 +911,12 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     # otherwise the normal numpy macros are not generated
     x,y,vz,temp,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,vz,temp,sm,qty, mass, rho]
 
-    if config['verbose']: print>>sys.stderr, "Constructing SPH spectrum"
+    logger.info("Constructing SPH spectrum at %.2f s"%(time.time()-in_time))
 
-    if config["tracktime"] :
-        print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
-    #import pdb; pdb.set_trace()
     util.threadsafe_inline( code, ['tau', 'nvel', 'x', 'y', 'vz', 'temp', 'sm', 'v1', 'v2',
                    'nnucleons','qty', 'mass', 'rho'],verbose=2)
 
-    if config["tracktime"] :
-        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+    logger.info("Render done at %.2f s"%(time.time()-in_time))
 
     mass_e = 9.10938188e-28
     e = 4.803206e-10
@@ -938,10 +926,10 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     oscwav0 = 1031.9261*0.13250*1e-8
     tau = tauconst*oscwav0*tau*conv_ratio
     #tau = tau*conv_ratio
-    print "tauconst: %g oscwav0: %g"%(tauconst,oscwav0)
-    print "tauconst*oscwav0: %g"%(tauconst*oscwav0)
-    print "conv_ratio: %g"%conv_ratio
-    print "max(N): %g"%(np.max(tau))
+    logger.info("tauconst: %g oscwav0: %g"%(tauconst,oscwav0))
+    logger.info("tauconst*oscwav0: %g"%(tauconst*oscwav0))
+    logger.info("conv_ratio: %g"%conv_ratio)
+    logger.info("max(N): %g"%(np.max(tau)))
     tau = tau.view(array.SimArray)
 
     tau.sim = snap

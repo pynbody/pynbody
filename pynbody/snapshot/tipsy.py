@@ -37,6 +37,9 @@ import copy
 import types
 import math
 
+import logging
+logger = logging.getLogger('pynbody.snapshot.tipsy')
+
 class TipsySnap(SimSnap) :
     _basic_loadable_keys = {family.dm: set(['phi', 'pos', 'eps', 'mass', 'vel']),
                             family.gas: set(['phi', 'temp', 'pos', 'metals', 'eps',
@@ -65,8 +68,9 @@ class TipsySnap(SimSnap) :
         self._filename = util.cutgz(filename)
     
         f = util.open_(filename,'rb')
-    
-        if verbose : print>>sys.stderr, "TipsySnap: loading ",filename
+
+        if not only_header:
+            logger.info("Loading %s",filename)
 
         t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
         if (ndim > 3 or ndim < 1):
@@ -141,7 +145,7 @@ class TipsySnap(SimSnap) :
 
     def _load_main_file(self) :
 
-        if config['verbose'] : print>>sys.stderr, "TipsySnap: loading data from main file"
+        logger.info("Loading data from main file %s",self._filename)
             
         f = util.open_(self._filename, 'rb')
         f.seek(32)
@@ -411,7 +415,7 @@ class TipsySnap(SimSnap) :
         if filename is None :
             filename = self._filename
 
-        if config['verbose'] : print>>sys.stderr, "TipsySnap: writing main file as",filename
+        logger.info("Writing main file %s",filename)
 
         f = util.open_(filename, 'wb')
 
@@ -504,8 +508,8 @@ class TipsySnap(SimSnap) :
                     n_done+=n_block
 
         f.close()
-            
-        if config['verbose'] : print>>sys.stderr, "TipsySnap: writing auxiliary arrays"
+
+        logger.info("Writing auxiliary arrays")
 
         with self.lazy_off : # prevent any lazy reading or evaluation
         
@@ -782,7 +786,7 @@ class TipsySnap(SimSnap) :
                 
         f = util.open_(filename,'r')
 
-        if config['verbose'] : print>>sys.stderr, "TipsySnap: attempting to load auxiliary array",filename
+        logger.info("Attempting to load auxiliary array %s",filename)
         # if we get here, we've got the file - try loading it
   
         try :
@@ -834,45 +838,7 @@ class TipsySnap(SimSnap) :
             else:
                 loadblock = lambda count : np.fromstring(f.read(count*4), dtype=dtype, count=count)
                 # data = np.fromstring(f.read(3*len(self)*4),dtype)
-           
-
-        """
-        ndim = len(data)/len(self)
-
-        if ndim*len(self)!=len(data) :
-            raise IOError, "Incorrect file format"
-
-        if ndim>1 :
-            dims = (len(self),ndim)
-
-            # check whether the vector format is specified in the param file
-            # this only matters for binary because ascii files use packed vectors by default
-            if (binary) and (packed_vector == None) :
-                # default bPackedVector = 0, so must use column-major format when reshaping
-                v_order = 'F'
-                if self._paramfile != "" :
-                    try:
-                        if int(self._paramfile.get("bPackedVector",0)) :
-                            v_order="C"
-                    except ValueError :
-                        pass
-                    
-            elif ((packed_vector is True) or (binary is False)) and (packed_vector is None) :
-                if config['verbose']:
-                    print>>sys.stderr, 'Warning: assuming packed vector format!'
-                    print>>sys.stderr, 'Packed vector means values are in order x1, y1, z1... xn, yn, zn'
-                v_order = 'C'
-            else :
-                v_order = 'F'
-        else :
-            dims = len(self)
-            v_order = 'C'
-
-        if fam is None :
-            r = data.reshape(dims, order=v_order).view(array.SimArray)
-        else :
-            r = data.reshape(dims,order=v_order).view(array.SimArray)[self._get_family_slice(fam)]
-        """
+                
         ndim = 1
 
         self.ancestor._tipsy_arrays_binary = binary
@@ -915,7 +881,7 @@ class TipsySnap(SimSnap) :
             for filename in l:
                 sl = StarLog(filename)
 
-        if config['verbose'] : print "Bridging starlog into SimSnap"
+        logger.info("Bridging starlog into SimSnap")
         b = pynbody.bridge.OrderBridge(self,sl)
         b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
         b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
@@ -1147,7 +1113,7 @@ class StarLog(SimSnap):
             warnings.warn("The size of the starlog file does not make sense -- it is likely corrupted. Pynbody will read it anyway, but use with caution.")
             datasize -= datasize%iSize
 
-        if config['verbose'] : print "Reading "+filename
+        logger.info("Reading starlog file %s",filename)
         if(self._byteswap):
             g = np.fromstring(f.read(datasize),dtype=file_structure).byteswap()
         else:
@@ -1193,8 +1159,8 @@ class StarLog(SimSnap):
             
             if filename is None : 
                 filename = self._filename
-                
-            if config['verbose'] : print>>sys.stderr, "StarLog: writing starlog file as",filename
+
+            logger.info("Writing starlog file as %s",filename)
 
             f = util.open_(filename, 'wb')
 
