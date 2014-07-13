@@ -15,11 +15,11 @@ ctypedef np.float64_t input_quantities_type
 @cython.wraparound(False)
 @cython.cdivision(True)
 def render_spherical_image_core(np.ndarray[input_quantities_type, ndim=1] rho, # array of particle densities
-								np.ndarray[input_quantities_type, ndim=1] mass, # array of particle masses
-								np.ndarray[input_quantities_type, ndim=1] qtyar, # array of quantity to make image of
+                                np.ndarray[input_quantities_type, ndim=1] mass, # array of particle masses
+                                np.ndarray[input_quantities_type, ndim=1] qtyar, # array of quantity to make image of
                                 np.ndarray[input_quantities_type, ndim=2] pos, # array of particle positions
                                 np.ndarray[input_quantities_type, ndim=1] r, # particle radius
-								np.ndarray[input_quantities_type, ndim=1] h, # particle smoothing length
+                                np.ndarray[input_quantities_type, ndim=1] h, # particle smoothing length
                                 np.ndarray[np.int64_t, ndim=1] ind, # which of the above particles to use
                                 np.ndarray[input_quantities_type, ndim=1] ds, # what distances to sample at (in units of smoothing)
                                 np.ndarray[input_quantities_type, ndim=1] weights, # what kernel weighting to use at these samples
@@ -30,33 +30,33 @@ def render_spherical_image_core(np.ndarray[input_quantities_type, ndim=1] rho, #
     cdef float angle, norm, den
     cdef unsigned int h_power = 2 # to update
     cdef np.ndarray[np.int64_t,ndim=1] healpix_pixels, buff
-    cdef np.ndarray[input_quantities_type,ndim=1] im, im_norm
+    cdef np.ndarray[image_output_type,ndim=1] im, im_norm
 
     import healpy as hp
     n = len(ind)
     im = np.zeros(hp.nside2npix(nside), dtype=np_image_output_type)
     im_norm = np.zeros_like(im)
-    buff = np.empty(len(im), dtype=np_image_output_type)
+    buff = np.empty(len(im), dtype=np.int64)
     
     if not hp.isnsideok(nside):
         raise ValueError('Wrong nside value, must be a power of 2')
 
-	# go through each particle
+    # go through each particle
     for i0 in range(n) :
         i = ind[i0]
-		# go through each kernel step
+        # go through each kernel step
         for j in range(m) :
 
             angle = atan(h[i]*ds[j]/r[i])
             norm = weights[j]*mass[i]/rho[i]/h[i]**h_power
             den = qtyar[i]*norm
 
-			# find the pixels affected
+            # find the pixels affected
             healpix_pixels = hp.query_disc(nside, pos[i], angle , inclusive=False, buff=buff)
             num_pix = len(healpix_pixels)
 
             with nogil :
-				# add the required amount to those particles
+                # add the required amount to those particles
                 for k in range(num_pix) :
                     im[healpix_pixels[k]]+=den
                     im_norm[healpix_pixels[k]]+=norm
@@ -86,7 +86,9 @@ cdef image_output_type get_kernel_xyz(input_quantities_type x, input_quantities_
                                        image_output_type h_to_the_kdim, int num_samples, 
                                  image_output_type* kvals) nogil :
      return get_kernel(x*x+y*y+z*z,kernel_max_2,h_to_the_kdim,num_samples,kvals)
-    
+
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -109,6 +111,14 @@ def render_image(int nx, int ny,
     cdef int x_pos, y_pos
     cdef int x_pix_start, x_pix_stop, y_pix_start, y_pix_stop
 
+    # following are only used for "perspective" rendering
+    cdef float per_z_dx = (x2-x1)/(2*z_camera)
+    cdef float per_z_dy = (y2-y1)/(2*z_camera)
+    cdef float mid_x = (x2+x1)/2
+    cdef float mid_y = (y2+y1)/2
+    cdef float dz_i
+
+    
     cdef int kernel_dim = kernel.h_power
     cdef input_quantities_type max_d_over_h = kernel.max_d
 
@@ -129,11 +139,28 @@ def render_image(int nx, int ny,
 
     assert kernel_dim==2 or kernel_dim==3, "Only kernels of dimension 2 or 3 currently supported"
     assert len(x) == len(y) == len(z) == len(sm) == len(qty) == len(mass) == len(rho), "Inconsistent array lengths passed to render_image_core"
-    
+
     with nogil:
         for i in range(n_part) :
             # load particle details
             x_i = x[i]; y_i=y[i]; z_i=z[i]; sm_i = sm[i]; qty_i = qty[i]*mass[i]/rho[i]
+
+            if z_camera!=0.0 :
+                # perspective image -
+                # update image bounds for the current z
+                if (z_i>z_camera and z_camera>0) or (z_i<z_camera and z_camera<0) :
+                    # behind camera
+                    continue
+                dz_i = z_camera-z_i
+                x1 = mid_x - per_z_dx*dz_i
+                x2 = mid_x + per_z_dx*dz_i
+                y1 = mid_y - per_z_dy*dz_i
+                y2 = mid_y + per_z_dy*dz_i
+                pixel_dx = (x2-x1)/nx
+                pixel_dy = (y2-y1)/ny
+                x_start = x1+pixel_dx/2
+                y_start = y1+pixel_dy/2
+              
             
             # check particle smoothing is within specified range
             if sm_i<pixel_dx*smooth_lo or sm_i>pixel_dx*smooth_hi : continue

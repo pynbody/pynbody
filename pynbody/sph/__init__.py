@@ -504,6 +504,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         if snap_slice is not None :
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
             
+
     
 
     in_time = time.time()
@@ -580,15 +581,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
   
 
-    perspective = z_camera is not None
-
-    if perspective :
-        raise NotImplementedError, "Perspective not implemented in new SPH module yet"
-    else :
+    if z_camera is None :
         z_camera = 0.0
-    
 
-    result = _render.render_image(nx,ny,x,y,z,sm, x1,x2,y1,y2,0.0,z_camera,qty,mass,rho,
+    result = _render.render_image(nx,ny,x,y,z,sm, x1,x2,y1,y2,z_camera,0.0,qty,mass,rho,
                                      smooth_lo,smooth_hi,kernel)
     
 
