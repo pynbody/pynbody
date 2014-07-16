@@ -488,3 +488,117 @@ def do_properties(sim):
         sim.properties[s] = atr[s]
 
 
+# From the Tipsysnap example we replicate the various metalicity 
+#
+# calculate the number fraction YH, YHe as a function of metalicity. Cosmic 
+# production rate of helium relative to metals (in mass)  
+# delta Y/delta Z = 2.1 and primordial He Yp = 0.236 (Jimenez et al. 2003, 
+# Science 299, 5612. 
+#  piecewise linear
+#  Y = Yp + dY/dZ*ZMetal up to ZMetal = 0.1, then linear decrease to 0 at Z=1)  
+
+#  SUM_Metal = sum(ni/nH *mi),it is a fixed number for cloudy abundance. 
+#  Massfraction fmetal = Z*SUM_metal/(1 + 4*nHe/nH + Z*SUM_metal) (1)
+#  4*nHe/nH = mHe/mH = fHe/fH 
+#  also fH + fHe + fMetal = 1  (2)
+#  if fHe specified, combining the 2 eq above will solve for 
+#  fH and fMetal 
+        
+def _abundance_estimator(metal) :
+
+    Y_He = ((0.236+2.1*metal)/4.0)*(metal<=0.1)
+    Y_He+= ((-0.446*(metal-0.1)/0.9+0.446)/4.0)*(metal>0.1)
+    Y_H = 1.0-Y_He*4. - metal
+
+    return Y_H, Y_He
+
+@SubFindHDFSnap.derived_quantity
+def HII(sim) :
+    """Number of HII ions per proton mass"""
+    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
+    return Y_H - sim["HI"]
+
+@SubFindHDFSnap.derived_quantity
+def HeIII(sim) :
+    """Number of HeIII ions per proton mass"""
+    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
+    return Y_He-sim["HeII"]-sim["HeI"]
+
+@SubFindHDFSnap.derived_quantity
+def ne(sim) :
+    """Number of electrons per proton mass"""
+    return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
+
+@SubFindHDFSnap.derived_quantity
+def hetot(self) :
+    return self['ElementAbundance/Helium']
+
+@SubFindHDFSnap.derived_quantity
+def hydrogen(self) :
+    return self['ElementAbundance/Hydrogen']
+
+#from .tipsy import TipsySnap
+# Asplund et al (2009) ARA&A solar abundances (Table 1)
+# m_frac = 10.0^([X/H] - 12)*M_X/M_H*0.74
+# OR
+# http://en.wikipedia.org/wiki/Abundance_of_the_chemical_elements      
+# puts stuff more straighforwardly cites Arnett (1996)
+# A+G from http://www.t4.lanl.gov/opacity/grevand1.html
+# Anders + Grev (1989)    Asplund
+XSOLFe=0.125E-2         # 1.31e-3
+# Looks very wrong ([O/Fe] ~ 0.2-0.3 higher than solar), 
+# probably because SN ejecta are calculated with
+# Woosley + Weaver (1995) based on Anders + Grevesse (1989)
+# XSOLO=0.59E-2           # 5.8e-2
+XSOLO=0.84E-2
+XSOLH=0.706             # 0.74
+XSOLC=3.03e-3           # 2.39e-3
+XSOLN=9.2e-4          # 7e-4
+XSOLNe=1.66e-3          # 1.26e-3
+XSOLMg=6.44e-4          # 7e-4
+XSOLSi=7e-4          # 6.7e-4
+
+
+@SubFindHDFSnap.derived_quantity
+def feh(self) :
+    minfe = np.amin(self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] > 0)])
+    self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] == 0)]=minfe
+    return np.log10(self['ElementAbundance/Iron']/self['ElementAbundance/Hydrogen']) - np.log10(XSOLFe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def oxh(self) :
+    minox = np.amin(self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] > 0)])
+    self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] == 0)]=minox
+    return np.log10(self['ElementAbundance/Oxygen']/self['ElementAbundance/Hydrogen']) - np.log10(XSOLO/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def ofe(self) :
+    minox = np.amin(self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] > 0)])
+    self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] == 0)]=minox
+    minfe = np.amin(self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] > 0)])
+    self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] == 0)]=minfe
+    return np.log10(self['ElementAbundance/Oxygen']/self['ElementAbundance/Iron']) - np.log10(XSOLO/XSOLFe)
+
+@SubFindHDFSnap.derived_quantity
+def mgfe(sim) :
+    minmg = np.amin(sim['ElementAbundance/Magnesium'][np.where(sim['ElementAbundance/Magnesium'] > 0)])
+    sim['ElementAbundance/Magnesium'][np.where(sim['ElementAbundance/Magnesium'] == 0)]=minmg
+    minfe = np.amin(sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] > 0)])
+    sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] == 0)]=minfe
+    return np.log10(sim['ElementAbundance/Magnesium']/sim['ElementAbundance/Iron']) - np.log10(XSOLMg/XSOLFe)
+
+@SubFindHDFSnap.derived_quantity
+def nefe(sim) :
+    minne = np.amin(sim['ElementAbundance/Neon'][np.where(sim['ElementAbundance/Neon'] > 0)])
+    sim['ElementAbundance/Neon'][np.where(sim['ElementAbundance/Neon'] == 0)]=minne
+    minfe = np.amin(sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] > 0)])
+    sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] == 0)]=minfe
+    return np.log10(sim['ElementAbundance/Neon']/sim['ElementAbundance/Iron']) - np.log10(XSOLNe/XSOLFe)
+
+@SubFindHDFSnap.derived_quantity
+def sife(sim) :
+    minsi = np.amin(sim['ElementAbundance/Silicon'][np.where(sim['ElementAbundance/Silicon'] > 0)])
+    sim['ElementAbundance/Silicon'][np.where(sim['ElementAbundance/Silicon'] == 0)]=minsi
+    minfe = np.amin(sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] > 0)])
+    sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] == 0)]=minfe
+    return np.log10(sim['ElementAbundance/Silicon']/sim['ElementAbundance/Iron']) - np.log10(XSOLSi/XSOLFe)
