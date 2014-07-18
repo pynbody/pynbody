@@ -531,11 +531,11 @@ def ne(sim) :
 
 @SubFindHDFSnap.derived_quantity
 def hetot(self) :
-    return self['ElementAbundance/Helium']
+    return self['He']
 
 @SubFindHDFSnap.derived_quantity
 def hydrogen(self) :
-    return self['ElementAbundance/Hydrogen']
+    return self['H']
 
 #from .tipsy import TipsySnap
 # Asplund et al (2009) ARA&A solar abundances (Table 1)
@@ -561,44 +561,80 @@ XSOLSi=7e-4          # 6.7e-4
 
 @SubFindHDFSnap.derived_quantity
 def feh(self) :
-    minfe = np.amin(self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] > 0)])
-    self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] == 0)]=minfe
-    return np.log10(self['ElementAbundance/Iron']/self['ElementAbundance/Hydrogen']) - np.log10(XSOLFe/XSOLH)
+    minfe = np.amin(self['Fe'][np.where(self['Fe'] > 0)])
+    self['Fe'][np.where(self['Fe'] == 0)]=minfe
+    return np.log10(self['Fe']/self['H']) - np.log10(XSOLFe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def sixh(self) :
+    minsi = np.amin(self['Si'][np.where(self['Si'] > 0)])
+    self['Si'][np.where(self['Si'] == 0)]=minsi
+    return np.log10(self['Si']/self['Si']) - np.log10(XSOLSi/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def mgxh(self) :
+    minmg = np.amin(self['Mg'][np.where(self['Mg'] > 0)])
+    self['Mg'][np.where(self['Mg'] == 0)]=minmg
+    return np.log10(self['Mg']/self['Mg']) - np.log10(XSOLMg/XSOLH)
 
 @SubFindHDFSnap.derived_quantity
 def oxh(self) :
-    minox = np.amin(self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] > 0)])
-    self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] == 0)]=minox
-    return np.log10(self['ElementAbundance/Oxygen']/self['ElementAbundance/Hydrogen']) - np.log10(XSOLO/XSOLH)
+    minox = np.amin(self['O'][np.where(self['O'] > 0)])
+    self['O'][np.where(self['O'] == 0)]=minox
+    return np.log10(self['O']/self['H']) - np.log10(XSOLO/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def nexh(self) :
+    minne = np.amin(self['Ne'][np.where(self['Ne'] > 0)])
+    self['Ne'][np.where(self['Ne'] == 0)]=minne
+    return np.log10(self['Ne']/self['Ne']) - np.log10(XSOLNe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def hexh(self) :
+    minhe = np.amin(self['He'][np.where(self['He'] > 0)])
+    self['He'][np.where(self['He'] == 0)]=minhe
+    return np.log10(self['He']/self['He']) - np.log10(XSOLHe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def cxh(self) :
+    mincx = np.amin(self['C'][np.where(self['C'] > 0)])
+    self['C'][np.where(self['C'] == 0)]=mincx
+    return np.log10(self['C']/self['H']) - np.log10(XSOLC/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def nxh(self) :
+    minnx = np.amin(self['N'][np.where(self['N'] > 0)])
+    self['N'][np.where(self['N'] == 0)]=minnx
+    return np.log10(self['N']/self['H']) - np.log10(XSOLH/XSOLH)
 
 @SubFindHDFSnap.derived_quantity
 def ofe(self) :
-    minox = np.amin(self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] > 0)])
-    self['ElementAbundance/Oxygen'][np.where(self['ElementAbundance/Oxygen'] == 0)]=minox
-    minfe = np.amin(self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] > 0)])
-    self['ElementAbundance/Iron'][np.where(self['ElementAbundance/Iron'] == 0)]=minfe
-    return np.log10(self['ElementAbundance/Oxygen']/self['ElementAbundance/Iron']) - np.log10(XSOLO/XSOLFe)
+    minox = np.amin(self['O'][np.where(self['O'] > 0)])
+    self['O'][np.where(self['O'] == 0)]=minox
+    minfe = np.amin(self['Fe'][np.where(self['Fe'] > 0)])
+    self['Fe'][np.where(self['Fe'] == 0)]=minfe
+    return np.log10(self['O']/self['Fe']) - np.log10(XSOLO/XSOLFe)
 
 @SubFindHDFSnap.derived_quantity
 def mgfe(sim) :
-    minmg = np.amin(sim['ElementAbundance/Magnesium'][np.where(sim['ElementAbundance/Magnesium'] > 0)])
-    sim['ElementAbundance/Magnesium'][np.where(sim['ElementAbundance/Magnesium'] == 0)]=minmg
-    minfe = np.amin(sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] > 0)])
-    sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] == 0)]=minfe
-    return np.log10(sim['ElementAbundance/Magnesium']/sim['ElementAbundance/Iron']) - np.log10(XSOLMg/XSOLFe)
+    minmg = np.amin(sim['Mg'][np.where(sim['Mg'] > 0)])
+    sim['Mg'][np.where(sim['Mg'] == 0)]=minmg
+    minfe = np.amin(sim['Fe'][np.where(sim['Fe'] > 0)])
+    sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
+    return np.log10(sim['Mg']/sim['Fe']) - np.log10(XSOLMg/XSOLFe)
 
 @SubFindHDFSnap.derived_quantity
 def nefe(sim) :
-    minne = np.amin(sim['ElementAbundance/Neon'][np.where(sim['ElementAbundance/Neon'] > 0)])
-    sim['ElementAbundance/Neon'][np.where(sim['ElementAbundance/Neon'] == 0)]=minne
-    minfe = np.amin(sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] > 0)])
-    sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] == 0)]=minfe
-    return np.log10(sim['ElementAbundance/Neon']/sim['ElementAbundance/Iron']) - np.log10(XSOLNe/XSOLFe)
+    minne = np.amin(sim['Ne'][np.where(sim['Ne'] > 0)])
+    sim['Ne'][np.where(sim['Ne'] == 0)]=minne
+    minfe = np.amin(sim['Fe'][np.where(sim['Fe'] > 0)])
+    sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
+    return np.log10(sim['Ne']/sim['Fe']) - np.log10(XSOLNe/XSOLFe)
 
 @SubFindHDFSnap.derived_quantity
 def sife(sim) :
-    minsi = np.amin(sim['ElementAbundance/Silicon'][np.where(sim['ElementAbundance/Silicon'] > 0)])
-    sim['ElementAbundance/Silicon'][np.where(sim['ElementAbundance/Silicon'] == 0)]=minsi
-    minfe = np.amin(sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] > 0)])
-    sim['ElementAbundance/Iron'][np.where(sim['ElementAbundance/Iron'] == 0)]=minfe
-    return np.log10(sim['ElementAbundance/Silicon']/sim['ElementAbundance/Iron']) - np.log10(XSOLSi/XSOLFe)
+    minsi = np.amin(sim['Si'][np.where(sim['Si'] > 0)])
+    sim['Si'][np.where(sim['Si'] == 0)]=minsi
+    minfe = np.amin(sim['Fe'][np.where(sim['Fe'] > 0)])
+    sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
+    return np.log10(sim['Si']/sim['Fe']) - np.log10(XSOLSi/XSOLFe)
