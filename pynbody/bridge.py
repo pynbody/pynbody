@@ -8,49 +8,14 @@ it's possible to take a subview (e.g. a halo) from one snapshot and 'push'
 it into the other. This is especially useful if the two snapshots are
 different time outputs of the same simulation.
 
-*Basic usage*
--------------
+Once connected, bridge called on a specific subset of particles in
+output1 will trace these particles back (or forward) to the output2,
+enabling observing a change in their properties, such as position,
+temperature, etc.
 
-f1 = pynbody.load(high_redshift_file)
-f2 = pynbody.load(low_redshift_file)
-b = pynbody.bridge.OrderBridge(f1, f2) # Or a different class, see "Which class to use" below
-
-h = f1.halos() # load the halo catalogue from high redshift step
-h1_at_low_z = b(h[1])
-# h1_at_low_z now contains the particles which were in h[1] in the high redshift output
-
-h_low_z = f2.halos()
-h1_at_high_z = b(h_low_z[1])
-# h1_at_high_z now contains the particles which will be in h[1] at low redshift output
-
-
-*Identifying halos between different outputs*
----------------------------------------------
-
-You may wish to work out how a halo catalogue maps onto a halo
-catalogue for a different output. For this purpose a simple function,
-match_catalog, is provided. Extending the example above,
-this would be called as follows:
-
-cat = b.match_catalog()
-
-cat is now a numpy index array such that f1.halos()[i] is (probably!) the
-major progenitor for f2.halos()[cat[i]].
-
-
-*Which class to use*
---------------------
-
-For files where the particle ordering is static, so that the particle with
-index i in the first snapshot also has index i in the second snapshot, use the Bridge
-class.
-
-For files which can spawn new particles, and therefore have a monotonically
-increasing particle ordering array (e.g. "iord" in gasoline), use the
-OrderBridge class.
-
-Snapshot formats where the particle ordering can change are not currently supported.
-
+For a tutorial on how to use the bridge module to trace the particles
+in your simulation, see the `bridge tutorial
+<http://pynbody.github.io/pynbody/tutorials/bridge.html>`_.
 
 """
 
@@ -58,6 +23,8 @@ Snapshot formats where the particle ordering can change are not currently suppor
 import weakref, numpy as np, math
 
 class Bridge(object) :
+    """Generic Bridge class"""
+
     def __init__(self, start, end) :
         self._start = weakref.ref(start)
         self._end = weakref.ref(end)

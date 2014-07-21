@@ -7,6 +7,11 @@ Implements classes and functions for handling RAMSES files. AMR cells
 are loaded as particles. You rarely need to access this module
 directly as it will be invoked automatically via pynbody.load.
 
+
+For a complete demo on how to use RAMSES outputs with pynbody, look at
+the `ipython notebook demo
+<http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
+
 """
 
 from __future__ import with_statement # for py2.5
@@ -391,12 +396,15 @@ class RamsesSnap(snapshot.SimSnap) :
                         self._info[name] = int(val)
                 except ValueError :
                     self._info[name] = val
-        f = file(self._filename+"/header_"+_timestep_id(self._filename)+".txt")
-        # most of this file is unhelpful, but in the latest ramses
-        # version, there is information on the particle fields present
-        for l in f :
-            if "level" in l :
-                self._info['particle-blocks']=l.split()
+        try : 
+            f = file(self._filename+"/header_"+_timestep_id(self._filename)+".txt")
+            # most of this file is unhelpful, but in the latest ramses
+            # version, there is information on the particle fields present
+            for l in f :
+                if "level" in l :
+                    self._info['particle-blocks']=l.split()
+        except IOError : 
+            warnings.warn("No header file found -- no particle block information available")
 
     def _particle_filename(self, cpu_id) :
         return self._filename+"/part_"+self._timestep_id+".out"+_cpu_id(cpu_id)

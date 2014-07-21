@@ -26,6 +26,7 @@ import warnings
 import threading
 import re
 import gc
+import traceback
 
 from units import has_units
 
@@ -593,6 +594,73 @@ class SimSnap(object):
                 d[x] = self.properties[x]
         return d
 
+    def set_units_system(self, velocity = None, distance = None, mass = None, temperature = None) : 
+        """Set the unit system for the snapshot by specifying any or
+        all of `velocity`, `distance`, `mass` and `temperature`
+        units. The units can be given as strings or as pynbody `Unit`
+        objects.
+
+        If any of the units are not specified and a previous
+        `file_units_system` does not exist, the defaults are used.
+        """
+        from . import config_parser
+        import ConfigParser
+
+        # if the units system doesn't exist (if this is a new snapshot), create one
+        if len(self._file_units_system) < 3 : 
+            warnings.warn("Previous unit system incomplete -- using defaults")
+            self._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+        
+        else : 
+            # we want to change the base units -- so convert to original
+            # units first and then set all arrays to new unit system
+            self.original_units()
+
+        new_units = []
+        for x in [velocity,distance,mass,temperature] : 
+            if x is not None : 
+                new_units.append(units.Unit(x))
+
+        new_system = list(self._file_units_system)
+
+        for i,x in enumerate(new_system) :
+            if x is units.K : continue
+            try : 
+                d = x.dimensional_project(new_units)
+                new_system[i] = reduce(lambda x, y: x*y, [
+                          a**b for a, b in zip(new_units, d)])
+
+            except units.UnitsException :
+                pass
+
+        # check that the new unit system is linearly independent
+        for test in ['kpc','Msol','km s^-1'] : 
+            test = units.Unit(test)
+            try : 
+                test.dimensional_project(new_system)
+            except units.UnitsException : 
+                raise units.UnitsException("New units are not linearly independent")
+        
+        self._file_units_system = new_system
+        
+        # set new units for all known arrays
+        for arr_name in self.keys() : 
+            arr = self[arr_name]
+            # if the array has units, then use the current units, else
+            # check if a default dimension for this array exists in
+            # the configuration
+            if arr.units != units.NoUnit() :
+                ref_unit = arr.units
+            else : 
+                try : 
+                    ref_unit = config_parser.get('default-array-dimensions',arr_name) 
+                except ConfigParser.NoOptionError : 
+                    # give up -- no applicable dimension found
+                    continue
+                    
+            arr.set_units_like(ref_unit)
+
+
     def original_units(self):
         """Converts all arrays'units to be consistent with the units of
         the original file."""
@@ -798,14 +866,12 @@ class SimSnap(object):
     ############################################
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
     ############################################
-    def transform(self, matrix, ortho_tol=1.e-8):
-        """Transforms the snapshot according to the 3x3 matrix given."""
-
-        # Check that the matrix is orthogonal
-        resid = np.dot(matrix, np.asarray(matrix).T) - np.eye(3)
-        resid = (resid**2).sum()
-        if resid > ortho_tol or resid != resid:
-            raise ValueError("Transformation matrix is not orthogonal")
+    def transform(self, matrix) :
+        from . import transformation
+        return transformation.transform(self, matrix)
+    
+    def _transform(self, matrix):
+        """Transforms the snapshot according to the 3x3 matrix given."""        
         for x in self.keys():
             ar = self[x]
             if len(ar.shape) == 2 and ar.shape[1] == 3:
@@ -814,21 +880,21 @@ class SimSnap(object):
     def rotate_x(self, angle):
         """Rotates the snapshot about the current x-axis by 'angle' degrees."""
         angle *= np.pi/180
-        self.transform(np.matrix([[1,      0,             0],
+        return self.transform(np.matrix([[1,      0,             0],
                                   [0, np.cos(angle), -np.sin(angle)],
                                   [0, np.sin(angle),  np.cos(angle)]]))
 
     def rotate_y(self, angle):
         """Rotates the snapshot about the current y-axis by 'angle' degrees."""
         angle *= np.pi/180
-        self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
+        return self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
                                   [0,                1,        0],
                                   [-np.sin(angle),   0,   np.cos(angle)]]))
 
     def rotate_z(self, angle):
         """Rotates the snapshot about the current z-axis by 'angle' degrees."""
         angle *= np.pi/180
-        self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
+        return self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
                                   [np.sin(angle),  np.cos(angle), 0],
                                   [0,             0,        1]]))
 
@@ -966,7 +1032,6 @@ class SimSnap(object):
             shared = self._shared_arrays
 
         new_array = array._array_factory(dims, dtype, zeros, shared)
-
         new_array._sim = weakref.ref(self)
         new_array._name = array_name
         new_array.family = None
@@ -1088,6 +1153,21 @@ class SimSnap(object):
         if array_name in derive_track:
             del derive_track[derive_track.index(array_name)]
 
+    def _get_from_immediate_cache(self, name, fn) :
+        """Retrieves the named numpy array from the immediate cache associated
+        with this snapshot. If the array does not exist in the immediate
+        cache, function fn is called with no arguments and must generate
+        it."""
+        
+        if not hasattr(self, '_immediate_cache'):
+                self._immediate_cache = [{}]
+        cache = self._immediate_cache[0]
+        hx = hash(name)
+        if hx not in cache:
+            cache[hx] = fn()
+
+        return cache[hx]
+                
     def _get_array(self, name, index=None, always_writable=False):
         """Get the array of the specified *name*, optionally
         for only the particles specified by *index*.
@@ -1136,8 +1216,11 @@ class SimSnap(object):
             if type(index) is slice:
                 x = x[index]
             else:
-                x = array.IndexedSimArray(x, index)
-
+                if _subarray_immediate_mode or self.immediate_mode :
+                    x = self._get_from_immediate_cache(name,
+                                                       lambda : x[index])
+                else :
+                    x = array.IndexedSimArray(x, index)
         return x
 
     def _set_array(self, name, value, index=None):
@@ -1392,9 +1475,18 @@ class SimSnap(object):
         """If the named array is auto-derived, this destroys the link so that
         the array becomes editable but no longer auto-updates."""
 
-        if name in self._derived_array_track:
-            del self._derived_array_track[
-                self._derived_array_track.index(name)]
+        if self.is_derived_array(name) :
+            if name in self.family_keys():                
+                for fam in self._family_arrays[name] : 
+                    track = self._family_derived_array_track[fam]
+                    
+                    if name in track :
+                        del track[track.index(name)]
+                
+            else: 
+                del self._derived_array_track[
+                    self._derived_array_track.index(name)]
+        
         else:
             raise RuntimeError("Not a derived array")
 
@@ -1404,8 +1496,7 @@ class SimSnap(object):
     def mean_by_mass(self, name):
         """Calculate the mean by mass of the specified array."""
         m = np.asanyarray(self["mass"])
-        ret = (self[name].transpose()*m).transpose().mean(axis=0)/m.mean()
-        ret.units = self[name].units
+        ret = array.SimArray((self[name].transpose()*m).transpose().mean(axis=0)/m.mean(), self[name].units)
 
         return ret
 
@@ -1432,7 +1523,6 @@ class SimSnap(object):
 
     @property
     def _inclusion_hash(self):
-        import traceback
         try:
             rval = self.__inclusion_hash
         except AttributeError:
@@ -1543,15 +1633,9 @@ class SubSnap(SimSnap):
 
     def _get_array(self, name, index=None, always_writable=False):
         if _subarray_immediate_mode or self.immediate_mode:
-            hx = hash(name)
-            if not hasattr(self, '_immediate_cache'):
-                self._immediate_cache = [{}]
-            cache = self._immediate_cache[0]
-            if hx not in cache:
-                cache[hx] = self.base._get_array(
-                    name, None, always_writable)[self._slice]
-
-            return cache[hx]
+            return self._get_from_immediate_cache(name, 
+                   lambda : self.base._get_array(
+                            name, None, always_writable)[self._slice])
 
         else:
             ret = self.base._get_array(name, util.concatenate_indexing(
@@ -1568,17 +1652,10 @@ class SubSnap(SimSnap):
         sl = util.relative_slice(base_family_slice,
                                  util.intersect_slices(self._slice, base_family_slice, len(self.base)))
         sl = util.concatenate_indexing(sl, index)
-
         if _subarray_immediate_mode or self.immediate_mode:
-            hx = hash((name, fam))
-            if not hasattr(self, '_immediate_cache'):
-                self._immediate_cache = [{}]
-            cache = self._immediate_cache[0]
-
-            if hx not in cache:
-                cache[hx] = self.base._get_family_array(
-                    name, fam, None, always_writable)[sl]
-            return cache[hx]
+            return self._get_from_immediate_cache((name,fam),
+                                                  lambda : self.base._get_family_array(
+                        name, fam, None, always_writable)[sl])
         else:
             return self.base._get_family_array(name, fam, sl, always_writable)
 
@@ -1649,7 +1726,7 @@ class SubSnap(SimSnap):
     def physical_units(self, *args, **kwargs):
         self.base.physical_units(*args, **kwargs)
 
-    def is_derived_array(self, v):
+    def is_derived_array(self, v, fam=None):
         return self.base.is_derived_array(v)
 
     def unlink_array(self, name):

@@ -1,5 +1,4 @@
 import pynbody
-import pynbody.plot.sph as sph
 import matplotlib.pylab as plt
 
 # load the snapshot and set to physical units
@@ -10,8 +9,7 @@ s.physical_units()
 h = s.halos()
 
 # center on the largest halo and align the disk
-pynbody.analysis.angmom.faceon(h[1])
+pynbody.analysis.angmom.sideon(h[1])
 
-#create a simple slice of gas density
-sph.image(h[1].g,qty="rho",units="g cm^-3",width=100,cmap="Greys")
-
+#create an image using the default bands (i, v, u)
+pynbody.plot.stars.render(s,width='20 kpc')

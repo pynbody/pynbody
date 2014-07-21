@@ -189,7 +189,6 @@ class SimArray(np.ndarray) :
         
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
         new = np.array(data, **kwargs).view(subtype)
-
         if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None :
             units = data.units
             sim = data.sim
@@ -201,14 +200,28 @@ class SimArray(np.ndarray) :
             units = _units.Unit(units)
 
         new._units = units
-        new.sim = sim # will generate a weakref automatically
-       
-        new._name = None
 
+        # Always associate a SimArray with the top-level snapshot.
+        # Otherwise we run into problems with how the reference should
+        # behave: we don't want to lose the link to the simulation by
+        # storing a weakref to a SubSnap that might be deconstructed,
+        # but we also wouldn't want to store a strong ref to a SubSnap
+        # since that would keep the entire simulation alive even if
+        # deleted.
+        #
+        # So, set the sim attribute to the top-level snapshot and use
+        # the normal weak-reference system.
+
+        if sim is not None :
+            new.sim = sim.ancestor
+            # will generate a weakref automatically
+        
+            
+        new._name = None
+        
         return new
 
     def __array_finalize__(self, obj) :
-     
         if obj is None :
             return
         elif obj is not self and hasattr(obj, 'units') :
@@ -224,7 +237,6 @@ class SimArray(np.ndarray) :
 
 
     def __array_wrap__(self, array, context=None) :
- 
         if context is None :
             n_array = array.view(SimArray)
             return n_array
@@ -282,7 +294,10 @@ class SimArray(np.ndarray) :
     @property
     def sim(self) :
         if hasattr(self.base, 'sim') :
-            return self.base.sim
+            if self.family and self.base.sim : 
+                return self.base.sim[self.family]
+            else : 
+                return self.base.sim
         return self._sim()
 
     @sim.setter
@@ -294,6 +309,17 @@ class SimArray(np.ndarray) :
                 self._sim = weakref.ref(s)
             else :
                 self._sim = lambda : None
+
+    @property
+    def family(self) : 
+        try : 
+            return self._family
+        except AttributeError : 
+            return None
+
+    @family.setter
+    def family(self,fam) : 
+        self._family = fam
 
     def __mul__(self, rhs) :
         if isinstance(rhs, _units.UnitBase) :
@@ -854,7 +880,7 @@ class IndexedSimArray(object) :
 
     @property
     def sim(self) :
-        return self.base.sim
+        return self.base.sim[self._ptr]
 
     @sim.setter
     def sim(self, s) :
@@ -864,7 +890,6 @@ class IndexedSimArray(object) :
     def dtype(self) :
         return self.base.dtype
 
-    
     def conversion_context(self) :
         return self.base.conversion_context()
 

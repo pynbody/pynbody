@@ -7,7 +7,10 @@ Implements halo catalogue functions. If you have a supported halo
 catalogue on disk or a halo finder installed and correctly configured,
 you can access a halo catalogue through f.halos() where f is a
 SimSnap.
-<http://code.google.com/p/pynbody/wiki/HaloCatalogue>
+
+See the `halo tutorial
+<http://pynbody.github.io/pynbody/tutorials/halos.html>`_ for some
+examples.
 
 """
 
@@ -55,6 +58,7 @@ class HaloCatalogue(object):
 
     def __init__(self):
         self._halos = {}
+        self.lazy_off = util.ExecutionControl()
 
     def calc_item(self, i):
         if i in self._halos:  # and self._halos[i]() is not None :
@@ -68,7 +72,10 @@ class HaloCatalogue(object):
         return len(self._halos)
 
     def __iter__(self) : 
-        return iter(self._halos.values())
+        if not self.lazy_off :
+            return self._halo_generator()
+        else : 
+            return iter(self._halos.values())
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -77,6 +84,16 @@ class HaloCatalogue(object):
             return self._halos[item]
         else:
             return self.calc_item(item)
+    
+    def _halo_generator(self) : 
+        i = 1
+        while True:
+            try : 
+                yield self[i]
+                i+=1
+                if len(self[i]) == 0: break
+            except RuntimeError: 
+                break
 
     def is_subhalo(self, childid, parentid):
         """
@@ -102,158 +119,7 @@ class HaloCatalogue(object):
     def _can_run(self):
         return False
 
-    def writegrp(self, grpoutfile=False):
-        """
-        simply write a skid style .grp file from ahf_particles
-        file. header = total number of particles, then each line is
-        the halo id for each particle (0 means free).
-        """
-        snapshot = self[1].ancestor
-        try:
-            snapshot['grp']
-        except:
-            self.make_grp()
-        if not grpoutfile: grpoutfile=snapshot.filename+'.grp'
-        print "write grp file to ", grpoutfile
-        fpout = open(grpoutfile, "w")
-        print >> fpout, len(snapshot['grp'])
-
-        ## writing 1st to a string sacrifices memory for speed.
-        ##  but this is much faster than numpy.savetxt (could make an option).
-        # it is assumed that max halo id <= nhalos (i.e.length of string is set
-        # len(str(nhalos))
-        stringarray = snapshot['grp'].astype('|S'+str(len(str(self._nhalos))))
-        outstring = "\n".join(stringarray)
-        print >> fpout, outstring
-        fpout.close()
-
-    def writestat(self, snapshot, halos, statoutfile, hubble=None):
-        """
-        write a condensed skid.stat style ascii file from ahf_halos
-        file.  header + 1 halo per line. should reproduce `Alyson's
-        idl script' except does not do last 2 columns (Is it a
-        satellite?) and (Is central halo is `false'ly split?).  output
-        units are set to Mpc Msun, km/s.
-
-        user can specify own hubble constant hubble=(H0/(100
-        km/s/Mpc)), ignoring the snaphot arg for hubble constant
-        (which sometimes has a large roundoff error).
-        """
-        s = snapshot
-        mindarkmass = min(s.dark['mass'])
-
-        if hubble is None:
-            hubble = s.properties['h']
-
-        outfile = statoutfile
-        print "write stat file to ", statoutfile
-        fpout = open(outfile, "w")
-        header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
-        print >> fpout, header
-        nhalos = halos._nhalos
-        for ii in xrange(nhalos):
-            h = halos[ii+1].properties  # halo index starts with 1 not 0
-##  'Contaminated'? means multiple dark matter particle masses in halo)"
-            icontam = np.where(halos[ii+1].dark['mass'] > mindarkmass)
-            if (len(icontam[0]) > 0):
-                contam = "contam"
-            else:
-                contam = "clean"
-## may want to add implement satellite test and false central breakup test.
-
-            n_dark = h['npart'] - h['n_gas'] - h['n_star']
-            M_dark = h['mass'] - h['M_gas'] - h['M_star']
-            ss = "     "  # can adjust column spacing
-            outstring = str(int(h['halo_id']))+ss
-            outstring += str(int(h['npart']))+ss+str(int(h['n_gas']))+ss
-            outstring += str(int(h['n_star'])) + ss+str(int(n_dark))+ss
-            outstring += str(h['mass']/hubble)+ss+str(h['Rvir']/hubble)+ss
-            outstring += str(h['M_gas']/hubble)+ss+str(h['M_star']/hubble)+ss
-            outstring += str(M_dark/hubble)+ss
-            outstring += str(h['Vmax'])+ss+str(h['Rmax']/hubble)+ss
-            outstring += str(h['sigV'])+ss
-        ## pos: convert kpc/h to mpc (no h).
-            outstring += str(h['Xc']/hubble/1000.)+ss
-            outstring += str(h['Yc']/hubble/1000.)+ss
-            outstring += str(h['Zc']/hubble/1000.)+ss
-            outstring += str(h['VXc'])+ss+str(h['VYc'])+ss+str(h['VZc'])+ss
-            outstring += contam+ss
-            outstring += "unknown" + \
-                ss  # unknown means sat. test not implemented.
-            outstring += "unknown"+ss  # false central breakup.
-            print >> fpout, outstring
-        fpout.close()
-        return 1
-
-    def writetipsy(self, snapshot, halos, tipsyoutfile, hubble=None):
-        """
-        write halos to tipsy file (write as stars) from ahf_halos
-        file.  returns a shapshot where each halo is a star particle.
-
-        user can specify own hubble constant hubble=(H0/(100
-        km/s/Mpc)), ignoring the snaphot arg for hubble constant
-        (which sometimes has a large roundoff error).
-        """
-        from . import analysis
-        from . import tipsy
-        from .analysis import cosmology
-        from snapshot import _new as new
-        import math
-        s = snapshot
-        outfile = tipsyoutfile
-        print "write tipsy file to ", tipsyoutfile
-        nhalos = halos._nhalos
-        nstar = nhalos
-        sout = new(star=nstar)  # create new tipsy snapshot written as halos.
-        sout.properties['a'] = s.properties['a']
-        sout.properties['z'] = s.properties['z']
-        sout.properties['boxsize'] = s.properties['boxsize']
-        if hubble is None:
-            hubble = s.properties['h']
-        sout.properties['h'] = hubble
-    ### ! dangerous -- rho_crit function and unit conversions needs simplifying
-        rhocrithhco = cosmology.rho_crit(s, z=0, unit="Msol Mpc^-3 h^2")
-        lboxkpc = sout.properties['boxsize'].ratio("kpc a")
-        lboxkpch = lboxkpc*sout.properties['h']
-        lboxmpch = lboxkpc*sout.properties['h']/1000.
-        tipsyvunitkms = lboxmpch * 100. / (math.pi * 8./3.)**.5
-        tipsymunitmsun = rhocrithhco * lboxmpch**3 / sout.properties['h']
-
-        print "transforming ", nhalos, " halos into tipsy star particles"
-        for ii in xrange(nhalos):
-            h = halos[ii+1].properties
-            sout.star[ii]['mass'] = h['mass']/hubble / tipsymunitmsun
-            ## tipsy units: box centered at 0. (assume 0<=x<=1)
-            sout.star[ii]['x'] = h['Xc']/lboxkpch - 0.5
-            sout.star[ii]['y'] = h['Yc']/lboxkpch - 0.5
-            sout.star[ii]['z'] = h['Zc']/lboxkpch - 0.5
-            sout.star[ii]['vx'] = h['VXc']/tipsyvunitkms
-            sout.star[ii]['vy'] = h['VYc']/tipsyvunitkms
-            sout.star[ii]['vz'] = h['VZc']/tipsyvunitkms
-            sout.star[ii]['eps'] = h['Rvir']/lboxkpch
-            sout.star[ii]['metals'] = 0.
-            sout.star[ii]['phi'] = 0.
-            sout.star[ii]['tform'] = 0.
-        print "writing tipsy outfile", outfile
-        sout.write(fmt=tipsy.TipsySnap, filename=outfile)
-        return sout
-
-    def writehalos(self, snapshot, halos, hubble=None, outfile=None):
-        """ Write the (ahf) halo catalog to disk.  This is really a
-        wrapper that calls writegrp, writetipsy, writestat.  Writes
-        .amiga.grp file (ascii group ids), .amiga.stat file (ascii
-        halo catalog) and .amiga.gtp file (tipsy halo catalog).
-        default outfile base simulation is same as snapshot s.
-        function returns simsnap of halo catalog.
-        """
-        s = snapshot
-        grpoutfile = s.filename+".amiga.grp"
-        statoutfile = s.filename+".amiga.stat"
-        tipsyoutfile = s.filename+".amiga.gtp"
-        halos.writegrp(s, halos, grpoutfile)
-        halos.writestat(s, halos, statoutfile, hubble=hubble)
-        shalos = halos.writetipsy(s, halos, tipsyoutfile, hubble=hubble)
-        return shalos
+    
 
 
 class RockstarCatalogue(HaloCatalogue):
@@ -893,6 +759,159 @@ class AHFCatalogue(HaloCatalogue):
                 break
         f.close()
 
+    def writegrp(self, grpoutfile=False):
+        """
+        simply write a skid style .grp file from ahf_particles
+        file. header = total number of particles, then each line is
+        the halo id for each particle (0 means free).
+        """
+        snapshot = self[1].ancestor
+        try:
+            snapshot['grp']
+        except:
+            self.make_grp()
+        if not grpoutfile: grpoutfile=snapshot.filename+'.grp'
+        print "write grp file to ", grpoutfile
+        fpout = open(grpoutfile, "w")
+        print >> fpout, len(snapshot['grp'])
+
+        ## writing 1st to a string sacrifices memory for speed.
+        ##  but this is much faster than numpy.savetxt (could make an option).
+        # it is assumed that max halo id <= nhalos (i.e.length of string is set
+        # len(str(nhalos))
+        stringarray = snapshot['grp'].astype('|S'+str(len(str(self._nhalos))))
+        outstring = "\n".join(stringarray)
+        print >> fpout, outstring
+        fpout.close()
+
+    def writestat(self, snapshot, halos, statoutfile, hubble=None):
+        """
+        write a condensed skid.stat style ascii file from ahf_halos
+        file.  header + 1 halo per line. should reproduce `Alyson's
+        idl script' except does not do last 2 columns (Is it a
+        satellite?) and (Is central halo is `false'ly split?).  output
+        units are set to Mpc Msun, km/s.
+
+        user can specify own hubble constant hubble=(H0/(100
+        km/s/Mpc)), ignoring the snaphot arg for hubble constant
+        (which sometimes has a large roundoff error).
+        """
+        s = snapshot
+        mindarkmass = min(s.dark['mass'])
+
+        if hubble is None:
+            hubble = s.properties['h']
+
+        outfile = statoutfile
+        print "write stat file to ", statoutfile
+        fpout = open(outfile, "w")
+        header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
+        print >> fpout, header
+        nhalos = halos._nhalos
+        for ii in xrange(nhalos):
+            h = halos[ii+1].properties  # halo index starts with 1 not 0
+##  'Contaminated'? means multiple dark matter particle masses in halo)"
+            icontam = np.where(halos[ii+1].dark['mass'] > mindarkmass)
+            if (len(icontam[0]) > 0):
+                contam = "contam"
+            else:
+                contam = "clean"
+## may want to add implement satellite test and false central breakup test.
+
+            n_dark = h['npart'] - h['n_gas'] - h['n_star']
+            M_dark = h['mass'] - h['M_gas'] - h['M_star']
+            ss = "     "  # can adjust column spacing
+            outstring = str(int(h['halo_id']))+ss
+            outstring += str(int(h['npart']))+ss+str(int(h['n_gas']))+ss
+            outstring += str(int(h['n_star'])) + ss+str(int(n_dark))+ss
+            outstring += str(h['mass']/hubble)+ss+str(h['Rvir']/hubble)+ss
+            outstring += str(h['M_gas']/hubble)+ss+str(h['M_star']/hubble)+ss
+            outstring += str(M_dark/hubble)+ss
+            outstring += str(h['Vmax'])+ss+str(h['Rmax']/hubble)+ss
+            outstring += str(h['sigV'])+ss
+        ## pos: convert kpc/h to mpc (no h).
+            outstring += str(h['Xc']/hubble/1000.)+ss
+            outstring += str(h['Yc']/hubble/1000.)+ss
+            outstring += str(h['Zc']/hubble/1000.)+ss
+            outstring += str(h['VXc'])+ss+str(h['VYc'])+ss+str(h['VZc'])+ss
+            outstring += contam+ss
+            outstring += "unknown" + \
+                ss  # unknown means sat. test not implemented.
+            outstring += "unknown"+ss  # false central breakup.
+            print >> fpout, outstring
+        fpout.close()
+        return 1
+
+    def writetipsy(self, snapshot, halos, tipsyoutfile, hubble=None):
+        """
+        write halos to tipsy file (write as stars) from ahf_halos
+        file.  returns a shapshot where each halo is a star particle.
+
+        user can specify own hubble constant hubble=(H0/(100
+        km/s/Mpc)), ignoring the snaphot arg for hubble constant
+        (which sometimes has a large roundoff error).
+        """
+        from . import analysis
+        from . import tipsy
+        from .analysis import cosmology
+        from snapshot import _new as new
+        import math
+        s = snapshot
+        outfile = tipsyoutfile
+        print "write tipsy file to ", tipsyoutfile
+        nhalos = halos._nhalos
+        nstar = nhalos
+        sout = new(star=nstar)  # create new tipsy snapshot written as halos.
+        sout.properties['a'] = s.properties['a']
+        sout.properties['z'] = s.properties['z']
+        sout.properties['boxsize'] = s.properties['boxsize']
+        if hubble is None:
+            hubble = s.properties['h']
+        sout.properties['h'] = hubble
+    ### ! dangerous -- rho_crit function and unit conversions needs simplifying
+        rhocrithhco = cosmology.rho_crit(s, z=0, unit="Msol Mpc^-3 h^2")
+        lboxkpc = sout.properties['boxsize'].ratio("kpc a")
+        lboxkpch = lboxkpc*sout.properties['h']
+        lboxmpch = lboxkpc*sout.properties['h']/1000.
+        tipsyvunitkms = lboxmpch * 100. / (math.pi * 8./3.)**.5
+        tipsymunitmsun = rhocrithhco * lboxmpch**3 / sout.properties['h']
+
+        print "transforming ", nhalos, " halos into tipsy star particles"
+        for ii in xrange(nhalos):
+            h = halos[ii+1].properties
+            sout.star[ii]['mass'] = h['mass']/hubble / tipsymunitmsun
+            ## tipsy units: box centered at 0. (assume 0<=x<=1)
+            sout.star[ii]['x'] = h['Xc']/lboxkpch - 0.5
+            sout.star[ii]['y'] = h['Yc']/lboxkpch - 0.5
+            sout.star[ii]['z'] = h['Zc']/lboxkpch - 0.5
+            sout.star[ii]['vx'] = h['VXc']/tipsyvunitkms
+            sout.star[ii]['vy'] = h['VYc']/tipsyvunitkms
+            sout.star[ii]['vz'] = h['VZc']/tipsyvunitkms
+            sout.star[ii]['eps'] = h['Rvir']/lboxkpch
+            sout.star[ii]['metals'] = 0.
+            sout.star[ii]['phi'] = 0.
+            sout.star[ii]['tform'] = 0.
+        print "writing tipsy outfile", outfile
+        sout.write(fmt=tipsy.TipsySnap, filename=outfile)
+        return sout
+
+    def writehalos(self, snapshot, halos, hubble=None, outfile=None):
+        """ Write the (ahf) halo catalog to disk.  This is really a
+        wrapper that calls writegrp, writetipsy, writestat.  Writes
+        .amiga.grp file (ascii group ids), .amiga.stat file (ascii
+        halo catalog) and .amiga.gtp file (tipsy halo catalog).
+        default outfile base simulation is same as snapshot s.
+        function returns simsnap of halo catalog.
+        """
+        s = snapshot
+        grpoutfile = s.filename+".amiga.grp"
+        statoutfile = s.filename+".amiga.stat"
+        tipsyoutfile = s.filename+".amiga.gtp"
+        halos.writegrp(s, halos, grpoutfile)
+        halos.writestat(s, halos, statoutfile, hubble=hubble)
+        shalos = halos.writetipsy(s, halos, tipsyoutfile, hubble=hubble)
+        return shalos
+        
     @staticmethod
     def _can_load(sim):
         for file in glob.glob(sim._filename+'*z*particles*'):
@@ -991,10 +1010,14 @@ class AHFCatalogue(HaloCatalogue):
                 return os.path.exists(path)
         return False
 
-class AmigaGrpCatalogue(HaloCatalogue):
-    def __init__(self, sim, array='amiga.grp'):
+class GrpCatalogue(HaloCatalogue) :
+    """
+    A generic catalogue using a .grp file to specify which particles
+    belong to which group. 
+    """
+    def __init__(self, sim, array='grp'): 
         sim[array]
-            # trigger lazy-loading and/or kick up a fuss if unavailable
+    # trigger lazy-loading and/or kick up a fuss if unavailable
         self._base = weakref.ref(sim)
         self._halos = {}
         self._array = array
@@ -1005,6 +1028,8 @@ class AmigaGrpCatalogue(HaloCatalogue):
             raise RuntimeError("Parent SimSnap has been deleted")
 
         x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
+        if len(x) == 0 : 
+            raise RuntimeError("Halo %s does not exist"%(str(i)))
         x._descriptor = "halo_"+str(i)
         return x
 
@@ -1013,13 +1038,19 @@ class AmigaGrpCatalogue(HaloCatalogue):
         return self._base()
 
     @staticmethod
-    def _can_load(sim,array='amiga.grp'):
-        try:
-            sim[array]
+    def _can_load(sim,array='grp'):
+        if (array in sim.loadable_keys()) or (array in sim.keys()) : 
             return True
-        except KeyError:
+        else : 
             return False
 
+class AmigaGrpCatalogue(GrpCatalogue):
+    def __init__(self, sim, array='amiga.grp'):
+        GrpCatalogue.__init__(self,sim,array)
+
+    @staticmethod
+    def _can_load(sim,array='amiga.grp'):
+        return GrpCatalogue._can_load(sim,array)
 
 class SubfindCatalogue(HaloCatalogue):
     """
@@ -1149,5 +1180,5 @@ class SubfindCatalogue(HaloCatalogue):
 # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
 # want to use it, but an AHFCatalogue will probably be on-disk too.
 
-_halo_classes = [AmigaGrpCatalogue, AHFCatalogue, SubfindCatalogue]
+_halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue, SubfindCatalogue]
 _runable_halo_classes = [AHFCatalogue]

@@ -14,15 +14,16 @@ For most users, the function of interest will be :func:`~pynbody.sph.render_imag
 
 import numpy as np
 import scipy, scipy.ndimage
-import snapshot, array
 import math
 import time
 import sys
-from . import snapshot, array, config, units, util, config_parser
 import threading
 import copy
+
+from .. import snapshot, array, config, units, util, config_parser
+
 try:
-    import kdtree
+    from . import kdtree
 except ImportError :
     raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
 import os
@@ -241,31 +242,55 @@ class TopHatKernel(object) :
         #define MAX_D_OVER_H %d"""%(self.max_d,3./(math.pi*4*self.max_d**self.h_power),self.max_d, self.max_d)
         return code
 
-def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
-                           kstep=0.5, out_units=None) :
-    """Render an SPH image on a spherical surface. Note this is written in pure python and
-    could be optimized into C, but would then need linking with the healpix libraries.
-    Also currently uses a top-hat 3D kernel only."""
+def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
+                           kstep=0.5,denoise=False,out_units=None,threaded=None) :
+    """Render an SPH image on a spherical surface. Requires healpy libraries.
+
+    **Keyword arguments:**
+
+    *qty* ('rho'): The name of the simulation array to render
+    
+    *nside* (8): The healpix nside resolution to use (must be power of 2)
+
+    *distance* (10.0): The distance of the shell (for 3D kernels) or maximum distance
+        of the skewers (2D kernels)
+
+    *kernel*: The Kernel object to use (defaults to 3D spline kernel)
+
+    *kstep* (0.5): The sampling distance when projecting onto the spherical surface in units of the
+        smoothing length
+
+    *denoise* (False): if True, divide through by an estimate of the discreteness noise.
+      The returned image is then not strictly an SPH estimate, but this option can be
+      useful to reduce noise.
+
+    *threaded*: if False, render on a single core. Otherwise, the number of threads to use.
+      Defaults to a value specified in your configuration files. *Currently multi-threaded
+      rendering is slower than single-threaded because healpy does not release the gil*.
+    """
+    renderer = _render_spherical_image
+    
+    if threaded is None : threaded = _get_threaded_image()
+
+    if threaded :
+        im= _threaded_render_image(renderer,snap,qty,nside,distance,kernel,kstep,denoise,out_units, num_threads=threaded)
+    else :
+        im= renderer(snap, qty, nside,distance,kernel,kstep,denoise,out_units)
+    return im
+    
+def _render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=Kernel(),
+                           kstep=0.5, denoise=False, out_units=None,__threaded=False,snap_slice=None) :
 
     import healpy as hp
+    from . import _spherical
 
-    try :
-        import healpy_f as hpf
-        query_disc = hpf.query_disc
-    except ImportError :
-        query_disc = hp.query_disc
-        
     if out_units is not None :
         conv_ratio = (snap[qty].units*snap['mass'].units/(snap['rho'].units*snap['smooth'].units**kernel.h_power)).ratio(out_units,
                                                                                                                          **snap.conversion_context())
 
+    if snap_slice is None : snap_slice = slice(len(snap))
     with snap.immediate_mode :
-        D = snap["r"]
-        h = snap["smooth"]
-        pos = snap["pos"]
-        mass = snap["mass"]
-        rho = snap["rho"]
-        qty = snap[qty]
+        D,h,pos,mass,rho,qtyar = [snap[x].view(np.ndarray)[snap_slice] for x in 'r','smooth','pos','mass','rho',qty]
 
     
     
@@ -276,43 +301,35 @@ def render_spherical_image(snap, qty='rho', nside = 8, distance = 10.0, kernel=K
         d0 = d1-kstep
         # work out int_d0^d1 x K(x), then set our discretized kernel to
         # match that
-        dvals = np.arange(d0,d1,0.001)
-        ivals = np.array([kernel.get_value(d)*d for d in dvals])
-        integ = ivals.sum()*0.001
+        dvals = np.arange(d0,d1,0.05)
+        ivals = map(kernel.get_value,dvals)
+        ivals*=dvals
+        integ = ivals.sum()*0.05
         weights[i] = 2*integ / (d1**2-d0**2)
-        
-        
   
     weights[:-1]-=weights[1:]
 
     if kernel.h_power==3 :
-        ind = np.where(np.abs(D-distance)<h*kernel.max_d)
+        ind = np.where(np.abs(D-distance)<h*kernel.max_d)[0]
+        
         # angular radius subtended by the intersection of the boundary
-        # of the SPH particle with the boundary surface of the calculation
-        rad_fn = lambda i : np.arctan(np.sqrt((h[i]*ds)**2 - (D[i]-distance)**2)/distance)
-        # den_fn = lambda i : [((snap[qty][i]*snap["mass"][i]/snap["rho"][i]) / (math.pi*4*((kernel.max_d*h[i])**3)/3))]
-        print "done"
+        # of the SPH particle with the boundary surface of the calculation:
+        rad = np.arctan(np.sqrt(h[ind,np.newaxis]**2-(D[ind,np.newaxis]-distance)**2)/distance)
+        
     elif kernel.h_power==2 :
-        ind = np.where(D<distance)
+        ind = np.where(D<distance)[0]
         
-        # angular radius taken at distance of particle
-        rad_fn = lambda i : np.arctan(h[i]*ds_mean/D[i])
-        
-    den_fn = lambda i : ((qty[i]*mass[i]/rho[i])) * weights / h[i]**kernel.h_power
-        
+        # angular radius taken at distance of particle:
+        rad = np.arctan(h[ind,np.newaxis]*ds[np.newaxis,:]/D[ind,np.newaxis])
+    else :
+        raise ValueError, "render_spherical_image doesn't know how to handle this kernel"
 
-    print "Spherical image from",len(ind[0]),"particles"    
-    im = np.zeros(hp.nside2npix(nside))
-
-    for i in ind[0] :
-        for r,w in zip(rad_fn(i), den_fn(i)) :
-            if r==r : #ignore NaN's -- they just mean the current radius doesn't intersect our sphere
-                
-                i2 = query_disc(nside, pos[i], r,inclusive=False)
-                im[i2]+=w
-
+    im, im2 = _spherical.render_spherical_image_core(rho,mass,qtyar,pos,D,h,ind,ds,weights,nside)
+    
     im = im.view(array.SimArray)
-    im.units = qty.units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
+    if denoise :
+        im/=im2
+    im.units = snap[qty].units*snap["mass"].units/snap["rho"].units/snap["smooth"].units**(kernel.h_power)
     im.sim = snap
 
     if out_units is not None :
@@ -360,6 +377,9 @@ def _interpolated_renderer(fn, levels) :
     Render an SPH image using interpolation to speed up rendering where smoothing
     lengths are large.
     """
+    if levels==1 :
+        return fn
+    
     def render_fn(*args, **kwargs) :
         kwargs['smooth_range']=(0,2)
         kwargs['res_downgrade']=1
@@ -369,7 +389,7 @@ def _interpolated_renderer(fn, levels) :
         for i in xrange(1,levels) :
             sub*=2
             if i==levels-1:
-                kwargs['smooth_range']=(1,10000)
+                kwargs['smooth_range']=(1,100000)
             kwargs['res_downgrade']=sub
             new_im=fn(*args,**kwargs)
             base+=scipy.ndimage.interpolation.zoom(new_im, float(base.shape[0])/new_im.shape[0], order=1)

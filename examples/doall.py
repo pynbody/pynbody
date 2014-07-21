@@ -38,7 +38,7 @@ simname = sys.argv[1]
 
 s = pynbody.load(simname)
 h = s.halos()
-diskf = filt.Disc('20 kpc','3 kpc')
+diskf = filt.Disc('40 kpc','3 kpc')
 fifmyrf = filt.LowPass('age','15 Myr')
 twokpcf = filt.Sphere('2 kpc')
 i=1
@@ -65,6 +65,8 @@ s.physical_units()
 notdiskf = filt.Not(diskf)
 notcooldenf = filt.And(filt.LowPass('rho','0.1 m_p cm^-3'),
                        filt.HighPass('temp',3e4))
+hot=filt.HighPass('temp',3e4)
+cold=filt.LowPass('temp',3e4)
 Jtot = np.sqrt(((np.multiply(h[i]['j'].transpose(),h[i]['mass']).sum(axis=1))**2).sum())
 W = np.sum(h[i]['phi']*h[i]['mass'])
 K = np.sum(h[i]['ke']*h[i]['mass'])
@@ -79,11 +81,19 @@ mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
 # 3D density profile
 rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
 gashaloprof = profile.Profile(h[i].g,ndim=3,type='log')
+spheregasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,bins=200)
+spherecoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,bins=200)
+spherehotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,bins=200)
+spherestarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,bins=200)
+spheredarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,bins=200)
 # Rotation curve
-rcpro = profile.Profile(h[i], type='equaln', nbins = 50, max = '40 kpc')
+rcpro = profile.Profile(h[i], type='equaln', nbins = 200, max = '40 kpc')
 # surface brightness profile
 diskstars = h[i].star[diskf]
-sbprof = profile.Profile(diskstars,type='equaln')
+sbprof = profile.Profile(diskstars,type='equaln',bins=200)
+surfcoldgasprof = profile.Profile(h[i].g[diskf][cold],type='equaln',bins=200)
+surfhotgasprof = profile.Profile(h[i].g[diskf][hot],type='equaln',bins=200)
+surfgasprof = profile.Profile(h[i].g[diskf],type='equaln',bins=200)
 # Kinematic decomposition
 #decompprof = pynbody.analysis.decomp(h[i])
 #dec = h[i].star['decomp']
@@ -115,8 +125,8 @@ pickle.dump({'z':s.properties['z'],
 #             'mbulge': np.sum(h[i].star[np.where(dec == 3)]['mass'].in_units('Msol')),
 #             'mthick': np.sum(h[i].star[np.where(dec == 4)]['mass'].in_units('Msol')),
 #             'mpseudob': np.sum(h[i].star[np.where(dec == 5)]['mass'].in_units('Msol')),
-             'mgashot': np.sum(h[i].gas[filt.HighPass('temp',1e5)]['mass'].in_units('Msol')),
-             'mgascool': np.sum(h[i].gas[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')),
+             'mgashot': np.sum(h[i].gas[hot]['mass'].in_units('Msol')),
+             'mgascool': np.sum(h[i].gas[cool]['mass'].in_units('Msol')),
              'mdiskbary': np.sum(h[i][diskf].s['mass'].in_units('Msol')) +
                           np.sum(h[i][diskf].g['mass'].in_units('Msol')),
              'mdiskgas': mdiskgas,
@@ -148,8 +158,29 @@ pickle.dump({'z':s.properties['z'],
              'rotcur':{'r':rcpro['rbins'].in_units('kpc'), 
                        'vc':rcpro['rotation_curve_spherical'].in_units('km s^-1'),
                        'fourier':rcpro['fourier']},
-             'sb':{'r':sbprof['rbins'].in_units('kpc'), 
-                   'sb':sbprof['sb,b']},
+             'surfstar':{'r':sbprof['rbins'].in_units('kpc'), 
+                   'sb':sbprof['sb,b'],'sv':sbprof['sb,v'],'si':sbprof['sb,i'],
+                   'den':sbprof['density'],'mass':sbprof['mass']},
+             'surfcoldgas':{'r':surfcoldgasprof['rbins'].in_units('kpc'), 
+                        'den':surfcoldgasprof['density'],
+                        'mass':surfcoldgasprof['mass']},
+             'surfhotgas':{'r':surfhotgasprof['rbins'].in_units('kpc'), 
+                       'den':surfhotgasprof['density'],
+                       'mass':surfhotgasprof['mass']},
+             'surfgas':{'r':surfgasprof['rbins'].in_units('kpc'), 
+                       'den':surfgasprof['density'],
+                       'mass':surfgasprof['mass']},
+             'spherestar':{'r':spherestarprof['rbins'].in_units('kpc'), 
+                   'den':spherestarprof['density'],'mass':spherestarprof['mass']},
+             'spherecoldgas':{'r':spherecoldgasprof['rbins'].in_units('kpc'), 
+                        'den':spherecoldgasprof['density'],
+                        'mass':spherecoldgasprof['mass']},
+             'spherehotgas':{'r':spherehotgasprof['rbins'].in_units('kpc'), 
+                       'den':spherehotgasprof['density'],
+                       'mass':spherehotgasprof['mass']},
+             'spheregas':{'r':spheregasprof['rbins'].in_units('kpc'), 
+                       'den':spheregasprof['density'],
+                       'mass':spheregasprof['mass']},
              'sfh':{'sfh':sfh,'t':sfhtimes},
              'hrsfh':{'sfh':hrsfh,'t':hrsfhtimes}
              },

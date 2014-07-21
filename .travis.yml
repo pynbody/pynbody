@@ -1,0 +1,28 @@
+# see https://gist.github.com/dan-blanchard/7045057 for a discussion on using conda with travis ci
+
+language: c
+# use language: c to be able to use a matrix of python and numpy versions -- see https://github.com/rmcgibbo/mdtraj/blob/master/.travis.yml
+  
+# specify different versions of python and numpy
+env: 
+  - PYTHON=2.6  NUMPY_VERSION=1.6.2
+  - PYTHON=2.7  NUMPY_VERSION=1.7.1
+  - PYTHON=2.7  NUMPY_VERSION=1.8.1
+  
+# use anaconda from continuum to avoid building numpy/scipy
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda/bin:$PATH
+  - conda update --yes conda
+  - "cd nose; wget https://pynbody.googlecode.com/files/testdata_april_2013.tar.gz; tar -zxvf testdata_april_2013.tar.gz; cd .."
+
+install:
+  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py
+  - source activate ${PYTHON}_${NUMPY_VERSION}
+  - python setup.py install
+  
+
+script: "cd nose; nosetests"
+

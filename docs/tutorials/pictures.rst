@@ -5,14 +5,14 @@ Pictures in Pynbody
 
 Density Slice
 -------------
-Simple example for displaying a slice of density 
+The essential kind of image -- a density slice:
 
 .. plot:: tutorials/example_code/density_slice.py
    :include-source:
 
 Integrated Density
 ------------------
-Simple example for displaying density integrated along the line of site
+Line-of-sight averaged density map:
 
 .. plot:: tutorials/example_code/density_integrated.py
    :include-source:
@@ -24,6 +24,24 @@ in this case)
 
 .. plot:: tutorials/example_code/temperature_slice.py
    :include-source:
+
+Velocity Vectors
+----------------
+It is also straightforward to obtain an image with velocity 
+vectors or flow lines overlaid:
+
+.. plot:: tutorials/example_code/velocity_vectors.py
+   :include-source:
+
+Multi-band Images of Stars
+--------------------------
+
+You can create visualizations of the stellar distribution using
+synthetic colors in a variety of bands:
+
+.. plot:: tutorials/example_code/star_render.py
+   :include-source:
+
 
 Creating images using :func:`~pynbody.plot.sph.image`
 -----------------------------------------------------

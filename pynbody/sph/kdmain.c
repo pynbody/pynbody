@@ -1,6 +1,6 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "bc_modules/capsulethunk.h"
+#include "../bc_modules/capsulethunk.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

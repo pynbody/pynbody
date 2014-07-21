@@ -22,6 +22,10 @@ def check_for_openmp():
     # Get compiler invocation
     compiler = os.environ.get('CC',
                               distutils.sysconfig.get_config_var('CC'))
+
+    # make sure to use just the compiler name without flags
+    compiler = compiler.split()[0]
+
     # Attempt to compile a test script.
     # See http://openmp.org/wp/openmp-compilers/
     filename = r'test.c'
@@ -75,7 +79,7 @@ have_openmp = check_for_openmp()
 
 ext_modules = []
 libraries=[ ]
-extra_compile_args = ['-ftree-vectorizer-verbose=1', '-ftree-vectorize',
+extra_compile_args = ['-ftree-vectorize',
                       '-fno-omit-frame-pointer',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
@@ -92,9 +96,9 @@ incdir.append('pynbody/pkdgrav2')
 incdir.append('pynbody/pkdgrav2/mdl2/null')
 
 #os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
-kdmain = Extension('pynbody/kdmain',
-                   sources = ['pynbody/kdmain.c', 'pynbody/kd.c', 
-                              'pynbody/smooth.c'],
+kdmain = Extension('pynbody/sph/kdmain',
+                   sources = ['pynbody/sph/kdmain.c', 'pynbody/sph/kd.c', 
+                              'pynbody/sph/smooth.c'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
                    libraries=libraries,
@@ -142,6 +146,9 @@ if build_cython :
     chunkscan = Extension('pynbody.chunk.scan',
                       sources=['pynbody/chunk/scan.pyx'],
                       include_dirs=incdir)
+    sph_spherical = Extension('pynbody.sph._spherical',
+                      sources=['pynbody/sph/_spherical.pyx'],
+                      include_dirs=incdir)
 
 else :
     gravity_omp = Extension('pynbody.grav_omp',
@@ -153,33 +160,38 @@ else :
                           sources=['pynbody/chunk/scan.c'],
                           include_dirs=incdir)
 
+    sph_spherical = Extension('pynbody.sph._spherical',
+                      sources=['pynbody/sph/_spherical.c'],
+                      include_dirs=incdir)
+
 if have_openmp :
     ext_modules.append(gravity_omp)
     
-ext_modules.append(chunkscan)
+ext_modules+=[chunkscan,sph_spherical]
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.19alpha',
+             version = '0.2beta',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
-                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk' ],
+                         'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph' ],
 # treat weave .c files like data files since weave takes
 # care of their compilation for now
 # could make a separate extension for them in future
-             package_data={'pynbody': ['default_config.ini', 
-                                       'sph_image.c','sph_to_grid.c',
-                                       'sph_spectra.c'],
+             package_data={'pynbody': ['default_config.ini'],
+                           'pynbody/sph': ['sph_image.c','sph_to_grid.c',
+                                        'sph_spectra.c'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'ionfracs.npz',
                                                 'interpolate.c',
                                                 'interpolate3d.c',
                                                 'com.c',
-                                                'CAMB_WMAP7'],
+                                                'CAMB_WMAP7',
+                                                'cambtemplate.ini'],
                            'pynbody/plot': ['tollerud2008mw'],
                            'pynbody/gravity': ['direct.c']},
              ext_modules = ext_modules,

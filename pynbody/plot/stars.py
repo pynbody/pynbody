@@ -11,6 +11,7 @@ from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
 from .sph import image
 import warnings
+from .. import units as _units
 
 def bytscl(arr,mini=0,maxi=10000):
     X= (arr-mini)/(maxi-mini)
@@ -94,6 +95,11 @@ def render(sim,filename=None,
          if not None, the axes object to plot to
 
     '''
+    
+    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
+        if isinstance(width,str) : 
+            width = _units.Unit(width)
+        width = width.in_units(sim['pos'].units,**sim.conversion_context())
     
     if starsize is not None :
         smf = filt.HighPass('smooth',str(starsize)+' kpc')

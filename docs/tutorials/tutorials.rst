@@ -29,7 +29,9 @@ Walkthroughs
 
    A first look at your data with pynbody <snapshot_manipulation>
    Basic data access <data_access>
-
+   Subviews and Filters <filters>
+   Tracing particles across different snapshots <bridge>   
+   
 .. _cookbook:
 
 Cookbook/Recipes
@@ -54,4 +56,4 @@ These tutorials are likely to be of interest only in special cases.
 .. toctree::
 
    Performance issues <performance>
-   Configuration <configuration>
+   Configuring Pynbody <configuration>

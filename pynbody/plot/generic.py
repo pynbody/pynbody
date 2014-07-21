@@ -464,12 +464,11 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels = 20,
         if logscale: arr = np.log10(arr)
         scalemin, scalemax = np.log10((scalemin,scalemax))
         return plt.imshow(arr, origin='down', vmin=scalemin, vmax=scalemax,
-                          aspect = 'auto',cmap=cmap,
+                          aspect = 'auto',cmap=cmap,axes=subplot,
                           #aspect = np.diff(x_range)/np.diff(y_range),cmap=cmap,
                           extent=[x_range[0],x_range[1],y_range[0],y_range[1]])
     cs = plt.contourf(xs,ys,arr, levels, norm=cont_color,cmap=cmap,**kwargs)
 
-    
     if kwargs.has_key('xlabel'):
         xlabel = kwargs['xlabel']
     else :

@@ -21,6 +21,8 @@ except ImportError :
 import math
 import warnings
 import cmath
+import tempfile
+import subprocess
 
 #######################################################################
 # Filters
@@ -132,15 +134,18 @@ class PowerSpectrumCAMB(object) :
         self._norm = 1
 
         self._log_interp = log_interpolation
-        
-        if log_interpolation :
+
+        self._init_interpolation()
+
+        self.set_sigma8(context.properties['sigma8'])    
+            
+
+    def _init_interpolation(self) :
+        if self._log_interp :
             self._interp = scipy.interpolate.interp1d(np.log(self.k), np.log(self.Pk))
         else :
             self._interp = scipy.interpolate.interp1d(np.log(self.k), self.Pk)
             
-        self.set_sigma8(context.properties['sigma8'])    
-            
-
     def set_sigma8(self, sigma8) :
         current_sigma8_2 = self.get_sigma8()**2
         self._norm*=sigma8**2/current_sigma8_2
@@ -160,6 +165,48 @@ class PowerSpectrumCAMB(object) :
             return self._norm*self._lingrowth*self._interp(np.log(k))
 
 
+class PowerSpectrumCAMBLive(PowerSpectrumCAMB) :
+    def __init__(self, context, use_context=True, camb_params={}, log_interpolation=True) :
+        """Run CAMB to get out a power spectrum. The default parameters are in cambtemplate.ini.
+        Any of these can be modified by passing the appropriate kwarg."""
+
+        from .. import config_parser
+        path_to_camb = config_parser.get('camb','path')
+        if path_to_camb == '/path/to/camb' :
+            raise RuntimeError, "You need to compile CAMB and set up the executable path in your pynbody configuration file."
+        
+        file_in = open(os.path.join(os.path.dirname(__file__),"cambtemplate.ini"),"r")
+        folder_out = tempfile.mkdtemp()
+        file_out = open(os.path.join(folder_out,"camb.ini"),"w")
+
+        if use_context :
+            h0 = context.properties['h']
+            omB0 = context.properties['omegaB0'] * h0**2
+            omM0 = context.properties['omegaM0'] * h0**2
+            omC0 = omM0-omB0
+            ns = context.properties['ns']
+            running = context.properties['running']
+            camb_params.update({'ombh2': omB0, 'omch2': omC0, 'hubble': h0*100, 'scalar_nrun(1)': running, 'scalar_spectral_index(1)': ns})
+            
+        for line in file_in :
+            if "=" in line and "#" not in line :
+                name,val = line.split("=")
+                name = name.strip()
+                if name in camb_params :
+                    val = camb_params[name]
+                print >> file_out, name,"=",val
+            else :
+                print >> file_out, line.strip()
+
+        file_out.close()
+
+        print "Running %s on %s"%(path_to_camb,os.path.join(folder_out,"camb.ini"))
+        subprocess.check_output("cd %s; %s camb.ini"%(folder_out,path_to_camb),shell=True)
+
+        
+
+        PowerSpectrumCAMB.__init__(self, context, os.path.join(folder_out,"test_matterpower.dat"),log_interpolation=log_interpolation)
+        
 class BiasedPowerSpectrum(PowerSpectrumCAMB) :
     def __init__(self, bias, pspec) :
         """Set up a biased power spectrum.
