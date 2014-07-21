@@ -128,12 +128,12 @@ bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
 for band in bands_available :
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s,band=b)
     X.__name__ = band+"_mag"
-    X.__doc__ = band+" magnitude from analysis.luminosity.calc_mags"""
+    X.__doc__ = band+" magnitude from analysis.luminosity.calc_mags"
     SimSnap.derived_quantity(X)
 
     X = lambda s, b=str(band): (10**(-0.4*s[b+"_mag"]))*s['rho']/s['mass']
     X.__name__ = band+"_lum_den"
-    X.__doc__ = band+" luminosity density from analysis.luminosity.calc_mags"""
+    X.__doc__ = band+" luminosity density from analysis.luminosity.calc_mags"
     SimSnap.derived_quantity(X)
 
 @SimSnap.derived_quantity
