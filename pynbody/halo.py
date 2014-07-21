@@ -256,6 +256,373 @@ class HaloCatalogue(object):
         return shalos
 
 
+class RockstarCatalogue(HaloCatalogue):
+    """
+    Class to handle catalogues produced by Rockstar (by Peter Behroozi).
+    """
+
+    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None, basename=None):
+        """Initialize a RockstarCatalogue.
+
+        **kwargs** :
+         
+        *make_grp*: if True a 'grp' array is created in the underlying
+                    snapshot specifying the lowest level halo that any
+                    given particle belongs to. If it is False, no such
+                    array is created; if None, the behaviour is
+                    determined by the configuration system.
+
+        *dummy*: if True, the particle file is not loaded, and all
+                 halos returned are just dummies (with the correct
+                 properties dictionary loaded). Use load_copy to get
+                 the actual data in this case.
+
+        *use_iord*: if True, the particle IDs in the Amiga catalogue
+                    are taken to refer to the iord array. If False,
+                    they are the particle offsets within the file. If
+                    None, the parameter defaults to True for
+                    GadgetSnap, False otherwise.
+
+        *basename*: specify the basename of the halo catalog
+                        file - the code will load the catalog data from the
+                        binary file.
+
+        """
+
+        import os.path
+        if not self._can_load(sim):
+            self._run_rockstar(sim)
+        self._base = weakref.ref(sim)
+        HaloCatalogue.__init__(self)
+
+        if use_iord is None :
+            use_iord = isinstance(sim.ancestor, gadget.GadgetSnap)
+
+        self._use_iord = use_iord
+
+        self._dummy = dummy
+        
+        if ahf_basename is not None: self._ahfBasename = ahf_basename
+        else: 
+            self._ahfBasename = util.cutgz(glob.glob(sim._filename+'*z*halos*')[0])[:-5]
+        
+        try : 
+            f = util.open_(self._ahfBasename+'halos')
+        except IOError: 
+            raise IOError("Halo catalogue not found -- check the base name of catalogue data or try specifying a catalogue using the ahf_basename keyword")
+
+        for i, l in enumerate(f):
+            pass
+        self._nhalos = i
+        f.close()
+
+        if config['verbose']:
+            print "AHFCatalogue: loading particles...",
+        sys.stdout.flush()
+
+        self._load_ahf_particles(self._ahfBasename+'particles')
+
+        if config['verbose']:
+            print "halos...",
+        sys.stdout.flush()
+
+        self._load_ahf_halos(self._ahfBasename+'halos')
+
+        if os.path.isfile(self._ahfBasename+'substructure'):
+            if config['verbose']:
+                print "substructure...",
+            sys.stdout.flush()
+            self._load_ahf_substructure(self._ahfBasename+'substructure')
+        else:
+            self._setup_children()
+
+        if make_grp is None:
+            make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp')
+
+        if make_grp:
+            self.make_grp()
+
+        if config_parser.getboolean('AHFCatalogue', 'AutoPid'):
+            sim['pid'] = np.arange(0, len(sim))
+
+        if config['verbose']:
+            print "done!"
+
+    def make_grp(self, name='grp'):
+        """
+        Creates a 'grp' array which labels each particle according to
+        its parent halo. 
+        """
+        for halo in self._halos.values(): 
+            halo[name] = np.repeat([halo._halo_id], len(halo))
+
+    def _setup_children(self):
+        """
+        Creates a 'children' array inside each halo's 'properties'
+        listing the halo IDs of its children. Used in case the reading
+        of substructure data from the AHF-supplied _substructure file
+        fails for some reason.
+        """
+
+        for i in xrange(self._nhalos):
+            self._halos[i+1].properties['children'] = []
+
+        for i in xrange(self._nhalos):
+            host = self._halos[i+1].properties.get('hostHalo', -2)
+            if host > -1:
+                try:
+                    self._halos[host+1].properties['children'].append(i+1)
+                except KeyError:
+                    pass
+
+    def _get_halo(self, i):
+        if self.base is None:
+            raise RuntimeError("Parent SimSnap has been deleted")
+
+        return self._halos[i]
+
+    @property
+    def base(self):
+        return self._base()
+
+    def load_copy(self, i):
+        """Load the a fresh SimSnap with only the particle in halo i"""
+
+        from . import load
+
+        f = util.open_(self._ahfBasename+'particles')
+
+        if self.isnew:
+            nhalos = int(f.readline())
+        else:
+            nhalos = self._nhalos
+
+        for h in xrange(i):
+            ids = self._load_ahf_particle_block(f)
+
+        f.close()
+
+        return load(self.base.filename, take=ids)
+
+    def _load_ahf_particle_block(self, f):
+        """Load the particles for the next halo described in particle file f"""
+        ng = len(self.base.gas)
+        nds = len(self.base.dark) + len(self.base.star)
+        nparts = int(f.readline().split()[0])
+
+        if self.isnew:
+            if isinstance(f, file):
+                data = (np.fromfile(
+                    f, dtype=int, sep=" ", count=nparts*2).reshape(nparts, 2))[:, 0]
+            else:
+                # unfortunately with gzipped files there does not
+                # seem to be an efficient way to load nparts lines
+                data = np.zeros(nparts, dtype=int)
+                for i in xrange(nparts):
+                    data[i] = int(f.readline().split()[0])
+
+            if self._use_iord :
+                data = self._iord_to_fpos[data]
+            else :
+                hi_mask = data >= nds
+                data[np.where(hi_mask)] -= nds
+                data[np.where(~hi_mask)] += ng
+        else:
+            if isinstance(f, file):
+                data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
+            else:
+                # see comment above on gzipped files
+                data = np.zeros(nparts, dtype=int)
+                for i in xrange(nparts):
+                    data[i] = int(f.readline())
+        data.sort()
+        return data
+
+    def _load_ahf_particles(self, filename):
+        if self._use_iord :
+            iord = self._base()['iord']
+            assert len(iord)==iord.max(), "Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so"
+            self._iord_to_fpos = iord.argsort()
+            
+            
+        f = util.open_(filename)
+        if filename.split("z")[-2][-1] is ".":
+            self.isnew = True
+        else:
+            self.isnew = False
+
+        if self.isnew:
+            nhalos = int(f.readline())
+        else:
+            nhalos = self._nhalos
+
+        if not self._dummy:
+            for h in xrange(nhalos):
+                self._halos[h+1] = Halo(
+                    h+1, self, self.base, self._load_ahf_particle_block(f))
+                self._halos[h+1]._descriptor = "halo_"+str(h+1)
+        else:
+            for h in xrange(nhalos):
+                self._halos[h+1] = DummyHalo()
+
+        f.close()
+
+    def _load_ahf_halos(self, filename):
+        f = util.open_(filename)
+        # get all the property names from the first, commented line
+        # remove (#)
+        keys = [re.sub('\([0-9]*\)', '', field)
+                for field in f.readline().split()]
+        # provide translations
+        for i, key in enumerate(keys):
+            if self.isnew:
+                if(key == '#npart'):
+                    keys[i] = 'npart'
+            else:
+                if(key == '#'):
+                    keys[i] = 'dumb'
+            if(key == 'a'):
+                keys[i] = 'a_axis'
+            if(key == 'b'):
+                keys[i] = 'b_axis'
+            if(key == 'c'):
+                keys[i] = 'c_axis'
+            if(key == 'Mvir'):
+                keys[i] = 'mass'
+
+        if self.isnew:
+            # fix for column 0 being a non-column in some versions of the AHF
+            # output
+            if keys[0] == '#':
+                keys = keys[1:]
+
+        for h, line in enumerate(f):
+            values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(
+                x) for x in line.split()]
+            # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
+            # well
+            for i, key in enumerate(keys):
+                if self.isnew:
+                    self._halos[h+1].properties[key] = values[i]
+                else:
+                    self._halos[h+1].properties[key] = values[i-1]
+        f.close()
+
+    def _load_ahf_substructure(self, filename):
+        f = util.open_(filename)
+        #nhalos = int(f.readline())  # number of halos?  no, some crazy number
+                                    # that we will ignore
+        nhalos = f.readline()  # Some crazy number, just need to skip it
+        # import pdb; pdb.set_trace()
+        for i in xrange(len(self._halos)):
+            try:
+                haloid, nsubhalos = [int(x) for x in f.readline().split()]
+                self._halos[haloid+1].properties['children'] = [
+                    int(x)+1 for x in f.readline().split()]
+            except KeyError:
+                pass
+            except ValueError:
+                break
+        f.close()
+
+    @staticmethod
+    def _can_load(sim):
+        for file in glob.glob(sim._filename+'*z*particles*'):
+            if os.path.exists(file):
+                return True
+        return False
+
+    def _run_rockstar(self, sim):
+        # if (sim is pynbody.tipsy.TipsySnap) :
+        typecode = 90
+        # elif (sim is pynbody.gadget.GadgetSnap):
+        #   typecode = '60' or '61'
+        import pynbody.units as units
+        # find AHFstep
+
+        groupfinder = config_parser.get('RockstarCatalogue', 'Path')
+
+        if groupfinder == 'None':
+            for directory in os.environ["PATH"].split(os.pathsep):
+                ahfs = glob.glob(os.path.join(directory, "rockstar-galaxies"))
+                for iahf, ahf in enumerate(ahfs):
+                    # if there are more AHF*'s than 1, it's not the last one, and
+                    # it's AHFstep, then continue, otherwise it's OK.
+                    if ((len(ahfs) > 1) & (iahf != len(ahfs)-1) &
+                            (os.path.basename(ahf) == 'rockstar')):
+                        continue
+                    else:
+                        groupfinder = ahf
+                        break
+
+        if not os.path.exists(groupfinder):
+            raise RuntimeError("Path to AHF (%s) is invalid" % groupfinder)
+
+        if (os.path.basename(groupfinder) == 'AHFstep'):
+            isAHFstep = True
+        else:
+            isAHFstep = False
+        # build units file
+        if isAHFstep:
+            f = open('tipsy.info', 'w')
+            f.write(str(sim.properties['omegaM0'])+"\n")
+            f.write(str(sim.properties['omegaL0'])+"\n")
+            f.write(str(sim['pos'].units.ratio(
+                units.kpc, a=1)/1000.0 * sim.properties['h'])+"\n")
+            f.write(str(sim['vel'].units.ratio(units.km/units.s, a=1))+"\n")
+            f.write(str(sim['mass'].units.ratio(units.Msol))+"\n")
+            f.close()
+            # make input file
+            f = open('AHF.in', 'w')
+            f.write(sim._filename+" "+str(typecode)+" 1\n")
+            f.write(sim._filename+"\n256\n5\n5\n0\n0\n0\n0\n")
+            f.close()
+        else:
+            # make input file
+            f = open('AHF.in', 'w')
+
+            lgmax = np.min([int(2**np.floor(np.log2(
+                1.0 / np.min(sim['eps'])))), 131072])
+            # hardcoded maximum 131072 might not be necessary
+
+            print >>f, config_parser.get('AHFCatalogue', 'Config', vars={
+                'filename': sim._filename,
+                'typecode': typecode,
+                'gridmax': lgmax
+            })
+
+            print >>f, config_parser.get('AHFCatalogue', 'ConfigTipsy', vars={
+                'omega0': sim.properties['omegaM0'],
+                'lambda0': sim.properties['omegaL0'],
+                'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
+                'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
+                'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
+                'eunit': 0.03  # surely this can't be right?
+            })
+
+            f.close()
+
+        if (not os.path.exists(sim._filename)):
+            os.system("gunzip "+sim._filename+".gz")
+        # determine parallel possibilities
+
+        if os.path.exists(groupfinder):
+            # run it
+            os.system(groupfinder+" AHF.in")
+            return
+
+    @staticmethod
+    def _can_run(sim):
+        if config_parser.getboolean('AHFCatalogue', 'AutoRun'):
+            if config_parser.get('AHFCatalogue', 'Path') == 'None':
+                for directory in os.environ["PATH"].split(os.pathsep):
+                    if (len(glob.glob(os.path.join(directory, "AHF*"))) > 0):
+                        return True
+            else:
+                path = config_parser.get('AHFCatalogue', 'Path')
+                return os.path.exists(path)
+        return False
+
 class AHFCatalogue(HaloCatalogue):
     """
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
@@ -623,7 +990,6 @@ class AHFCatalogue(HaloCatalogue):
                 path = config_parser.get('AHFCatalogue', 'Path')
                 return os.path.exists(path)
         return False
-
 
 class AmigaGrpCatalogue(HaloCatalogue):
     def __init__(self, sim, array='amiga.grp'):
