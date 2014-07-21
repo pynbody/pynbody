@@ -5,7 +5,7 @@ stars
 
 """
 
-import numpy as np
+import numpy as np, pdb
 import matplotlib,matplotlib.pyplot as plt
 from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
@@ -23,31 +23,28 @@ def nw_scale_rgb(r,g,b,scales=[4,3.2,3.4]):
 
 def nw_arcsinh_fit(r,g,b,nonlinearity=3):
     radius = r+g+b
+    radius = radius + (radius==0)
     val=np.arcsinh(radius*nonlinearity)/nonlinearity/radius
+    #pdb.set_trace()
     return r*val,g*val,b*val
 
-def combine(r,g,b,dynamic_range):
-    maxi = []
-    
-    # find something close to the maximum that is not quite the maximum
-    for x in r,g,b :
-        ordered = np.sort(x.flatten())
-        maxi.append(ordered[-len(ordered)/5000])
+def scale(r,g,b):
+    factor=np.zeros((r.shape[0],r.shape[1]))
+    factor = np.max([np.max([r, g],axis=0), b],axis=0)
+    #pdb.set_trace()
+    factor = np.max([factor,np.ones((r.shape[0],r.shape[1]))],axis=0)
+    return r/factor, g/factor, b/factor
 
-    maxi = np.log10(max(maxi))
-    
+def combine(r,g,b):
     rgbim=np.zeros((r.shape[0],r.shape[1],3))
-    rgbim[:,:,0]=bytscl(np.log10(r),maxi-dynamic_range,maxi)
-    rgbim[:,:,1]=bytscl(np.log10(g),maxi-dynamic_range,maxi)
-    rgbim[:,:,2]=bytscl(np.log10(b),maxi-dynamic_range,maxi)
+    rgbim[:,:,0],rgbim[:,:,1], rgbim[:,:,2]=scale(r,g,b)
     return rgbim
 
 def render(sim,filename=None,
            r_band='i',g_band='v',b_band='u',
-           r_scale=0.5, g_scale = 1.0, b_scale = 1.0,
-           dynamic_range=2.0,
+           r_scale=0.25, g_scale = 1, b_scale = 1,
            width=50,
-           starsize=None, 
+           starsize=0.05, nonlinearity=1,
            plot=True, axes=None, ret_im=False,clear=True):
     '''
     Make a 3-color image of stars.
@@ -69,7 +66,7 @@ def render(sim,filename=None,
        *g_band*: string (default: 'v')
          Determines which Johnston filter will go into the image green channel
 
-       *b_band*: string (default: 'b')
+       *b_band*: string (default: 'u')
          Determines which Johnston filter will go into the image blue channel
 
        *r_scale*: float (default: 0.5)
@@ -96,8 +93,6 @@ def render(sim,filename=None,
        *axes*: matplotlib axes object (deault: None)
          if not None, the axes object to plot to
 
-       *dynamic_range*: float (default: 2.0)
-         The number of dex in luminosity over which the image brightness ranges
     '''
     
     if starsize is not None :
@@ -105,16 +100,16 @@ def render(sim,filename=None,
         sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
     
     r=image(sim.s,qty=r_band+'_lum_den',width=width,log=False,
-                         av_z=True,clear=False,noplot=True) * r_scale
+            av_z=True,clear=False,noplot=True) * r_scale
     g=image(sim.s,qty=g_band+'_lum_den',width=width,log=False,
-                         av_z=True,clear=False,noplot=True) * g_scale
+            av_z=True,clear=False,noplot=True) * g_scale
     b=image(sim.s,qty=b_band+'_lum_den',width=width,log=False,
-                         av_z=True,clear=False,noplot=True) * b_scale
+            av_z=True,clear=False,noplot=True) * b_scale
 
+    #pdb.set_trace()
     #r,g,b = nw_scale_rgb(r,g,b)
-    #r,g,b = nw_arcsinh_fit(r,g,b)
-
-    rgbim=combine(r,g,b,dynamic_range)
+    r,g,b = nw_arcsinh_fit(r,g,b,nonlinearity=nonlinearity)
+    rgbim=combine(r,g,b)
 
     if plot :
         if clear: plt.clf()
