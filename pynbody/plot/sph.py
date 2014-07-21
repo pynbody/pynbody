@@ -228,7 +228,10 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if log :
             units = r"$\log_{10}\,"+units.latex()+"$"
         else :
-            units = "$"+units.latex()+"$"
+            if units.latex() is "":
+                units=""
+            else:
+                units = "$"+units.latex()+"$"
 
         if show_cbar:
             if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
