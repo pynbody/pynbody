@@ -182,7 +182,7 @@ else :
                          include_dirs=incdir)
 
     interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
-                                  sources = ['pynbody/analysis/interpolate3d.pyx'],
+                                  sources = ['pynbody/analysis/interpolate3d.c'],
                                   include_dirs=incdir)
     
 
