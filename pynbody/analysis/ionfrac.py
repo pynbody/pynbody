@@ -8,12 +8,6 @@ calculates ionization fractions - NEEDS DOCUMENTATION
 """
 
 import numpy as np
-try :
-    import scipy, scipy.weave
-    from scipy.weave import inline
-except ImportError :
-    pass
-
 import os
 from ..array import SimArray
 from pynbody import config
@@ -21,7 +15,9 @@ from pynbody import config
 import logging
 logger = logging.getLogger('pynbody.analysis.ionfrac')
 
-def calculate(sim,ion='ovi') :
+from . import interpolate3d
+
+def calculate(sim,ion='ovi', mode = 'old') :
     """
 
     calculate -- documentation placeholder
@@ -67,11 +63,8 @@ def calculate(sim,ion='ovi') :
 
     #interpolate
     logger.info("Interpolation %s values"%ion)
-    code = file(os.path.join(os.path.dirname(__file__),'interpolate3d.c')).read()
-    inline(code,['n','n_x_vals','x_vals','n_y_vals','y_vals','n_z_vals',
-                 'z_vals','x','y','z','vals','result_array'])
+    interpolate3d.interpolate3d(n,n_x_vals,x_vals,n_y_vals,y_vals,n_z_vals,z_vals,x,y,z,vals,result_array)
     
     return 10**result_array
-
 
 
