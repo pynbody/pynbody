@@ -8,12 +8,6 @@ calculates ionization fractions - NEEDS DOCUMENTATION
 """
 
 import numpy as np
-try :
-    import scipy, scipy.weave
-    from scipy.weave import inline
-except ImportError :
-    pass
-
 import os
 from ..array import SimArray
 from pynbody import config
