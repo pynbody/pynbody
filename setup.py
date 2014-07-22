@@ -154,6 +154,10 @@ if build_cython :
     bridge_pyx = Extension('pynbody.bridge._bridge',
                          sources=['pynbody/bridge/_bridge.pyx'],
                          include_dirs=incdir)
+
+    util_pyx = Extension('pynbody._util',
+                         sources=['pynbody/_util.pyx'],
+                         include_dirs=incdir)
                             
 
 else :
@@ -178,10 +182,14 @@ else :
                          sources=['pynbody/bridge/_bridge.c'],
                          include_dirs=incdir)
 
+    util_pyx = Extension('pynbody._util',
+                         sources=['pynbody/_util.c'],
+                         include_dirs=incdir)
+
 if have_openmp :
     ext_modules.append(gravity_omp)
     
-ext_modules+=[chunkscan,sph_render,halo_pyx,bridge_pyx]
+ext_modules+=[chunkscan,sph_render,halo_pyx,bridge_pyx, util_pyx]
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',

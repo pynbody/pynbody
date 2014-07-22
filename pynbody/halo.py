@@ -651,17 +651,54 @@ class GrpCatalogue(HaloCatalogue) :
         self._base = weakref.ref(sim)
         self._halos = {}
         self._array = array
+        self._sorted = None
         HaloCatalogue.__init__(self)
+
+    def precalculate(self) :
+        """Speed up future operations by precalculating the indices
+        for all halos in one operation. This is slow compared to
+        getting a single halo, however."""
+        self._sorted = np.argsort(self.base[self._array],kind='mergesort') # mergesort for stability
+        self._boundaries = util.find_boundaries(self.base[self._array][self._sorted])
+        
 
     def _get_halo(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
-        if len(x) == 0 : 
-            raise RuntimeError("Halo %s does not exist"%(str(i)))
-        x._descriptor = "halo_"+str(i)
-        return x
+        no_exist = RuntimeError("Halo %s does not exist"%(str(i)))
+        
+        if self._sorted is None :
+            # one-off selection
+            x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
+            if len(x) == 0 : 
+                raise no_exist
+            x._descriptor = "halo_"+str(i)
+            return x
+        else :
+            # pre-calculated
+            if i>=len(self._boundaries) or i<0 :
+                raise no_exist
+            if self._boundaries[i]<0 :
+                raise no_exist
+            
+            start = self._boundaries[i]
+            if start is None :
+                raise no_exist
+            
+            end = None
+            j = i+1
+            while j<len(self._boundaries) and end is None :
+                end = self._boundaries[j]
+                j+=1
+
+            x = Halo(i, self, self.base, self._sorted[start:end])
+            x._descriptor = "halo_"+str(i)
+
+            return x
+            
+           
+            
 
     @property
     def base(self):
