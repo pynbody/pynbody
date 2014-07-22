@@ -325,7 +325,6 @@
         
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">subtype</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sim</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
         <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">subtype</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">units</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">sim</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
             <span class="n">units</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">units</span>
             <span class="n">sim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sim</span>
@@ -337,10 +336,25 @@
             <span class="n">units</span> <span class="o">=</span> <span class="n">_units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
 
         <span class="n">new</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">units</span>
-        <span class="n">new</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span> <span class="c"># will generate a weakref automatically</span>
-       
-        <span class="n">new</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">None</span>
 
+        <span class="c"># Always associate a SimArray with the top-level snapshot.</span>
+        <span class="c"># Otherwise we run into problems with how the reference should</span>
+        <span class="c"># behave: we don&#39;t want to lose the link to the simulation by</span>
+        <span class="c"># storing a weakref to a SubSnap that might be deconstructed,</span>
+        <span class="c"># but we also wouldn&#39;t want to store a strong ref to a SubSnap</span>
+        <span class="c"># since that would keep the entire simulation alive even if</span>
+        <span class="c"># deleted.</span>
+        <span class="c">#</span>
+        <span class="c"># So, set the sim attribute to the top-level snapshot and use</span>
+        <span class="c"># the normal weak-reference system.</span>
+
+        <span class="k">if</span> <span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
+            <span class="c"># will generate a weakref automatically</span>
+        
+            
+        <span class="n">new</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">None</span>
+        
         <span class="k">return</span> <span class="n">new</span>
 
     <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span> <span class="p">:</span>
@@ -359,7 +373,6 @@
 
 
     <span class="k">def</span> <span class="nf">__array_wrap__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
- 
         <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
             <span class="n">n_array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">n_array</span>

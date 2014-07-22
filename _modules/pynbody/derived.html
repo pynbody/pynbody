@@ -178,7 +178,6 @@
 <div class="viewcode-block" id="vt"><a class="viewcode-back" href="../../derived.html#pynbody.derived.vt">[docs]</a><span class="k">def</span> <span class="nf">vt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Tangential velocity&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;v2&#39;</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vr&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-
 </div>
 <span class="nd">@SimSnap.derived_quantity</span>
 <div class="viewcode-block" id="ke"><a class="viewcode-back" href="../../derived.html#pynbody.derived.ke">[docs]</a><span class="k">def</span> <span class="nf">ke</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="p">:</span>
@@ -218,6 +217,18 @@
     <span class="n">f</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vx&#39;</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rxy&#39;</span><span class="p">]</span>
     <span class="n">f</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">f</span><span class="o">!=</span><span class="n">f</span><span class="p">)]</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">return</span> <span class="n">f</span>
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vphi"><a class="viewcode-back" href="../../derived.html#pynbody.derived.vphi">[docs]</a><span class="k">def</span> <span class="nf">vphi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Azimuthal velocity (synonym for vcxy)&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vcxy&#39;</span><span class="p">]</span>
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vtheta"><a class="viewcode-back" href="../../derived.html#pynbody.derived.vtheta">[docs]</a><span class="k">def</span> <span class="nf">vtheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Velocity projected to polar direction&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;az&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">])</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vx&#39;</span><span class="p">]</span> <span class="o">+</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;az&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">])</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">]</span> <span class="o">-</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">])</span><span class="o">*</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">])</span>
 </div>
 <span class="nd">@SimSnap.derived_quantity</span>
 <div class="viewcode-block" id="v_mean"><a class="viewcode-back" href="../../derived.html#pynbody.derived.v_mean">[docs]</a><span class="k">def</span> <span class="nf">v_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

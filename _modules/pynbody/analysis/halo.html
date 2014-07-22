@@ -144,7 +144,7 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span><span class="n">units</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span><span class="n">units</span><span class="p">,</span> <span class="n">transformation</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cosmology</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">math</span>
@@ -253,9 +253,7 @@
     <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">com</span><span class="p">,</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="virial_radius"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.virial_radius">[docs]</a><span class="k">def</span> <span class="nf">virial_radius</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">overden</span><span class="o">=</span><span class="mi">178</span><span class="p">,</span> <span class="n">r_max</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    </span>
-<span class="sd">    Calculate the virial radius of the halo centerd on the given</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the virial radius of the halo centered on the given</span>
 <span class="sd">    coordinates.</span>
 
 <span class="sd">    This is here defined by the sphere centerd on cen which contains a</span>
@@ -274,16 +272,15 @@
     <span class="n">r_min</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
-        <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">-=</span><span class="n">cen</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">null</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
         
-    <span class="c"># sim[&quot;r&quot;] = ((sim[&quot;pos&quot;]-cen)**2).sum(axis=1)**(1,2)</span>
-
-    <span class="n">rho</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span> <span class="p">:</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;r&quot;</span><span class="p">]</span><span class="o">&lt;</span><span class="n">r</span><span class="p">)]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">/</span><span class="p">(</span><span class="mf">4.</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">r</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
-    <span class="n">target_rho</span> <span class="o">=</span> <span class="n">overden</span> <span class="o">*</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;omegaM0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">+</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">])</span><span class="o">**</span><span class="mi">3</span>
-
-    <span class="n">result</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span> <span class="p">:</span> <span class="n">target_rho</span><span class="o">-</span><span class="n">rho</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.e-3</span><span class="o">*</span><span class="n">target_rho</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
-        <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">+=</span><span class="n">cen</span>
+    <span class="k">with</span> <span class="n">tx</span> <span class="p">:</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span> <span class="p">:</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;r&quot;</span><span class="p">]</span><span class="o">&lt;</span><span class="n">r</span><span class="p">)]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">/</span><span class="p">(</span><span class="mf">4.</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">r</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">target_rho</span> <span class="o">=</span> <span class="n">overden</span> <span class="o">*</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;omegaM0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">+</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">])</span><span class="o">**</span><span class="mi">3</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span> <span class="p">:</span> <span class="n">target_rho</span><span class="o">-</span><span class="n">rho</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.e-3</span><span class="o">*</span><span class="n">target_rho</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+   
 
     <span class="k">return</span> <span class="n">result</span>
 </div>
@@ -321,18 +318,31 @@
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Need to supply indices for centering&quot;</span><span class="p">)</span>
     
 </div>
-<div class="viewcode-block" id="vel_center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.vel_center">[docs]</a><span class="k">def</span> <span class="nf">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cen_size</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">    Use stars from a sphere to calculate center of velocity. The size</span>
+<div class="viewcode-block" id="vel_center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.vel_center">[docs]</a><span class="k">def</span> <span class="nf">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cen_size</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Use stars from a sphere to calculate center of velocity. The size</span>
 <span class="sd">    of the sphere is given by the ``cen_size`` keyword and defaults to</span>
 <span class="sd">    1 kpc.</span>
 
+<span class="sd">    **Keyword arguments:**</span>
+
+<span class="sd">    *mode*: reserved for future use; currently ignored</span>
+
+<span class="sd">    *move_all*: if True (default), move the entire snapshot. Otherwise only move</span>
+<span class="sd">    the particles in the halo passed in.</span>
+<span class="sd">    </span>
+<span class="sd">    *retcen*: if True only return the velocity center without moving the</span>
+<span class="sd">     snapshot (default = False)</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span>
         <span class="k">print</span> <span class="s">&quot;Finding halo velocity center...&quot;</span>
+
+    <span class="k">if</span> <span class="n">move_all</span> <span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span>
+        
     <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">5</span> <span class="p">:</span>
         <span class="c"># fall-back to DM</span>
@@ -349,10 +359,12 @@
     <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span>
         <span class="k">print</span> <span class="s">&quot;vcen=&quot;</span><span class="p">,</span><span class="n">vcen</span>
 
-    <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>  <span class="k">return</span> <span class="n">vcen</span>
-    <span class="k">else</span><span class="p">:</span>  <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="s">&quot;vel&quot;</span><span class="p">]</span><span class="o">-=</span><span class="n">vcen</span>
+    <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">vcen</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">transformation</span><span class="o">.</span><span class="n">v_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">-</span><span class="n">vcen</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
+<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Determine the center of mass of the given particles using the</span>
@@ -384,6 +396,9 @@
 
 <span class="sd">    *vel*: if True, translate velocities so that the velocity of the</span>
 <span class="sd">    central 1kpc (default) is zeroed. Other values can be passed with cen_size.</span>
+
+<span class="sd">    *move_all*: if True (default), move the entire snapshot. Otherwise only move</span>
+<span class="sd">    the particles in the halo passed in. </span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">global</span> <span class="n">config</span>
@@ -399,15 +414,23 @@
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="p">:</span>
         <span class="n">fn</span> <span class="o">=</span> <span class="n">mode</span>
 
-    <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>  <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">move_all</span> <span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">else</span> <span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span>
+        
+    <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">cen</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">-=</span><span class="n">cen</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">vel</span> <span class="p">:</span>
-        <span class="c">#vel_center(sim, cen_size = &quot;1 kpc&quot;)</span>
-        <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">)</span>
-</pre></div></div>
+        <span class="n">velc</span> <span class="o">=</span> <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_v_translate</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">velc</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tx</span></div>
+</pre></div>
 
     </div>
       

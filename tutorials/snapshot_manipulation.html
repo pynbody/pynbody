@@ -262,6 +262,7 @@ halo is as follows:</p>
 <span class="go">TipsySnap: loading data from main file</span>
 <span class="go">Finding halo velocity center...</span>
 <span class="go">vcen= [ 0.00216821 -0.03459588 -0.14736437]</span>
+<span class="go"> Out[6]: &lt;pynbody.transformation.GenericTranslate at 0x112f6ce10&gt;</span>
 </pre></div>
 </div>
 <p>We passed <tt class="docutils literal"><span class="pre">h[1]</span></tt> to the function
@@ -283,32 +284,14 @@ notice halo 1 doesn&#8217;t move at all.</p>
 <span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
 
 <span class="gp">In [9]: </span><span class="n">my_h5_transform</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;hyb&#39;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">TypeError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-9-0fb86a19b1c0&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 my_h5_transform = pynbody.analysis.halo.center(h[5], mode=&#39;hyb&#39;, move_all=False)</span>
-
-<span class="go">/Users/rokstar/python/pynbody/analysis/halo.pyc in center(sim, mode, retcen, vel, cen_size, **kwargs)</span>
-<span class="go">    266     if retcen:  return fn(sim, **kwargs)</span>
-<span class="go">    267     else:</span>
-<span class="go">--&gt; 268         cen = fn(sim, **kwargs)</span>
-<span class="go">    269         sim.ancestor[&quot;pos&quot;]-=cen</span>
-<span class="go">    270 </span>
-
-<span class="go">/Users/rokstar/python/pynbody/analysis/halo.pyc in hybrid_center(sim, r, **kwargs)</span>
-<span class="go">    168     except KeyError:</span>
-<span class="go">    169         cen_a = center_of_mass(sim)</span>
-<span class="go">--&gt; 170     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)</span>
-<span class="go">    171 </span>
-<span class="go">    172 def index_center(sim, **kwargs) :</span>
-
-<span class="go">TypeError: shrink_sphere_center() got an unexpected keyword argument &#39;move_all&#39;</span>
+<span class="go">Finding halo velocity center...</span>
+<span class="go">vcen= [-0.03110905 -0.05988219  0.00266517]</span>
 
 <span class="gp">In [10]: </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c"># should be unchanged</span>
 <span class="go">[-0.00091396 -0.00044043 -0.00365958]</span>
 
 <span class="gp">In [11]: </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c"># should be changed</span>
-<span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
+<span class="go">[  7.35278525e-05   8.42307445e-05   1.28638683e-04]</span>
 </pre></div>
 </div>
 <p>Note however that the data inside <tt class="docutils literal"><span class="pre">h[5]</span></tt> (or any halo) just <em>points</em>
@@ -318,12 +301,6 @@ and the rest of it is where it started out. For that reason, functions
 that transform data return a <cite>Tranformation</cite> object that conveniently
 allows you to undo the operation:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [12]: </span><span class="n">my_h5_transform</span><span class="o">.</span><span class="n">revert</span><span class="p">()</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">NameError                                 Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-12-acb315b59620&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 my_h5_transform.revert()</span>
-
-<span class="go">NameError: name &#39;my_h5_transform&#39; is not defined</span>
 
 <span class="gp">In [13]: </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c"># back to where it started</span>
 <span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
@@ -338,15 +315,10 @@ centering is unaffected after you are done. This is the thing to do:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="k">with</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;hyb&#39;</span><span class="p">):</span> <span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 <span class="go">Finding halo velocity center...</span>
 <span class="go">vcen= [-0.03110905 -0.05988219  0.00266517]</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">AttributeError                            Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-15-583e48433a9c&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 with pynbody.analysis.halo.center(h[5], mode=&#39;hyb&#39;): print h[5][&#39;pos&#39;][0]</span>
-
-<span class="go">AttributeError: __exit__</span>
+<span class="go">[  7.35278525e-05   8.42307445e-05   1.28638683e-04]</span>
 
 <span class="gp">In [16]: </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-<span class="go">[  7.35278525e-05   8.42307445e-05   1.28638683e-04]</span>
+<span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
 </pre></div>
 </div>
 <p>Inside the <tt class="docutils literal"><span class="pre">with</span></tt> code block, <tt class="docutils literal"><span class="pre">h[5]</span></tt> is centered. The moment the block
@@ -429,6 +401,7 @@ but let&#8217;s say we want it edge-on:</p>
 <span class="go">vcen= [   3.74602349  -59.77129742 -254.60142767]</span>
 <span class="go">Calculating angular momentum vector...</span>
 <span class="go">Transforming simulation...</span>
+<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x15152e0d0</span><span class="o">&gt;</span>
 
 <span class="gp">In [27]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
@@ -450,6 +423,7 @@ want to just rotate the snapshot by arbitrary angles, the
 about the respective axes.</p>
 <p>We can use this to rotate the disk into a face-on orientation:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [28]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
+<span class="gr">Out[28]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x1519dc810</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>All of these transformations behave in the way that was specified for
@@ -491,7 +465,7 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
 <p>We can also generate other profiles, like the rotation curve:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [36]: </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
-<span class="gr">Out[36]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x142ebdc50</span><span class="o">&gt;</span>
+<span class="gr">Out[36]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x14f3f1b90</span><span class="o">&gt;</span>
 
 <span class="gp">In [37]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
 
@@ -501,20 +475,20 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 
 <span class="gp">In [40]: </span><span class="k">for</span> <span class="n">prof</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">p</span><span class="p">,</span><span class="n">pd</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">pg</span><span class="p">],[</span><span class="s">&#39;total&#39;</span><span class="p">,</span><span class="s">&#39;dm&#39;</span><span class="p">,</span><span class="s">&#39;stars&#39;</span><span class="p">,</span><span class="s">&#39;gas&#39;</span><span class="p">])</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  2.96 s</span>
+<span class="go">Rotation curve calculated in   2.9 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.924 s</span>
+<span class="go">Rotation curve calculated in 0.886 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  1.48 s</span>
+<span class="go">Rotation curve calculated in  1.51 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.446 s</span>
+<span class="go">Rotation curve calculated in 0.452 s</span>
 
 <span class="gp">In [41]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [42]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [43]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gr">Out[43]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x142ebdcd0</span><span class="o">&gt;</span>
+<span class="gr">Out[43]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x14f3f1b50</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
