@@ -24,6 +24,7 @@ import multiprocessing
 import functools
 import logging
 logger = logging.getLogger('pynbody.util')
+from ._util import find_boundaries
 
 def open_(filename, *args) :
     """Open a file, determining from the filename whether to use
