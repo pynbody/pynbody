@@ -267,7 +267,7 @@ class TipsySnap(SimSnap) :
         # according to the stored metadata
         for r in res :
             fams = self._get_loadable_array_metadata(r)[1]
-            for x in fams or self.families() :
+            for x in fams or rdict.keys() :
                 rdict[x].add(r)
 
                 
