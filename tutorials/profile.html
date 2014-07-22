@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,10 @@
     
     <title>Profiles in Pynbody &mdash; pynbody 0.20-beta documentation</title>
     
-    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,11 +24,20 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Plotting Rotation Cuves" href="rotation_curve.html" />
     <link rel="prev" title="Tracing Particles between Snapshots" href="bridge.html" />
- 
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
 <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -43,31 +53,107 @@
 
   </head>
   <body>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="../py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="rotation_curve.html" title="Plotting Rotation Cuves"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="bridge.html" title="Tracing Particles between Snapshots"
-             accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
-          <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
-      </ul>
-    </div>  
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body">
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
             
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Pynbody tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Profiles in Pynbody</a><ul>
+<li><a class="reference internal" href="#radial-density-profile">Radial Density Profile</a></li>
+<li><a class="reference internal" href="#the-profile-class">The Profile Class</a></li>
+<li><a class="reference internal" href="#automatically-generated-profiles">Automatically-generated profiles</a></li>
+<li><a class="reference internal" href="#calculating-derivatives-and-dispersions">Calculating Derivatives and Dispersions</a></li>
+<li><a class="reference internal" href="#making-a-profile-using-a-different-quantity">Making a profile using a different quantity</a></li>
+<li><a class="reference internal" href="#vertical-profiles-and-inclined-profiles">Vertical Profiles and Inclined Profiles</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="bridge.html" title="Previous Chapter: Tracing Particles between Snapshots"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Tracing Particle...</span>
+    </a>
+  </li>
+  <li>
+    <a href="rotation_curve.html" title="Next Chapter: Plotting Rotation Cuves"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Plotting Rotatio... &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="profiles-in-pynbody">
 <h1>Profiles in Pynbody<a class="headerlink" href="#profiles-in-pynbody" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="radial-density-profile">
@@ -154,7 +240,6 @@ the particles belong.</p>
 <span class="go">vcen= [   1.6295435   -58.21684952 -254.25581364]</span>
 <span class="go">Calculating angular momentum vector...</span>
 <span class="go">Transforming simulation...</span>
-<span class="go"> Out[4]: &lt;pynbody.transformation.GenericRotation at 0x10feb5f50&gt;</span>
 </pre></div>
 </div>
 <p>We&#8217;re centered on the main halo (as in the cookbook example above) and
@@ -219,10 +304,10 @@ plotting a metallicity profile is as simple as:</p>
 <span class="go">SimSnap: deriving array hydrogen</span>
 <span class="go">SimSnap: deriving array hetot</span>
 <span class="go">Profile: mass()</span>
-<span class="go"> Out[8]: [&lt;matplotlib.lines.Line2D at 0x111494e90&gt;]</span>
+<span class="go"> Out[8]: [&lt;matplotlib.lines.Line2D at 0x1122692d0&gt;]</span>
 
 <span class="gp">In [9]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;[Fe/H]&#39;</span><span class="p">)</span>
-<span class="go"> Out[9]: &lt;matplotlib.text.Text at 0x1114cde10&gt;</span>
+<span class="go"> Out[9]: &lt;matplotlib.text.Text at 0x115d74590&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/profile_fig1.png"><img alt="../_images/profile_fig1.png" src="../_images/profile_fig1.png" style="width: 5in;" /></a>
@@ -248,7 +333,7 @@ example:</p>
 
 <span class="gp">In [11]: </span><span class="n">p_all</span><span class="p">[</span><span class="s">&#39;pot&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span> <span class="c"># returns the potential profile</span>
 <span class="go">Profile: pot() -- warning, disk must be in the x-y plane</span>
-<span class="go">Potential calculated in  27.5 s</span>
+<span class="go">Potential calculated in  24.8 s</span>
 <span class="gr">Out[11]: </span>
 <span class="go">SimArray([-1883725.20606321, -1774955.42301419, -1722218.33725593,</span>
 <span class="go">       -1690633.68613172, -1668854.69876005, -1652878.17689284,</span>
@@ -271,10 +356,10 @@ dispersion:</p>
 <span class="go">Profile: auto-deriving vr_disp</span>
 <span class="go">SimSnap: deriving array vr</span>
 <span class="go">SimSnap: deriving array r</span>
-<span class="gr">Out[13]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x111502f90</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="gr">Out[13]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x112242550</span><span class="o">&gt;</span><span class="p">]</span>
 
 <span class="gp">In [14]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$\sigma_{r}$&#39;</span><span class="p">)</span>
-<span class="gr">Out[14]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x1114cde10</span><span class="o">&gt;</span>
+<span class="gr">Out[14]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x115d74590</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/profile_fig2.png"><img alt="../_images/profile_fig2.png" src="../_images/profile_fig2.png" style="width: 5in;" /></a>
@@ -284,13 +369,13 @@ desired quantile range. By default, this is the mean +/- 1-sigma:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">p_quant</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">QuantileProfile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="s">&#39;0.1 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="s">&#39;50 kpc&#39;</span><span class="p">)</span>
 
 <span class="gp">In [16]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">][:,</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="gr">Out[16]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x1114b8e10</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="gr">Out[16]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x112242510</span><span class="o">&gt;</span><span class="p">]</span>
 
 <span class="gp">In [17]: </span><span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">p_quant</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span> <span class="o">=</span> <span class="s">&#39;Grey&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-<span class="gr">Out[17]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">PolyCollection</span> <span class="n">at</span> <span class="mh">0x111ed16d0</span><span class="o">&gt;</span>
+<span class="gr">Out[17]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">PolyCollection</span> <span class="n">at</span> <span class="mh">0x1112a7b10</span><span class="o">&gt;</span>
 
 <span class="gp">In [18]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;[Fe/H]&#39;</span><span class="p">)</span>
-<span class="gr">Out[18]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x1114cde10</span><span class="o">&gt;</span>
+<span class="gr">Out[18]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x115d74590</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/profile_quant.png"><img alt="../_images/profile_quant.png" src="../_images/profile_quant.png" style="width: 5in;" /></a>
@@ -315,17 +400,17 @@ halo 1 according to their age:</p>
 
 <span class="gp">In [21]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_age</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_age</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">],</span> <span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">&#39;mean [Fe/H]&#39;</span><span class="p">,</span><span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 <span class="go">Profile: mass()</span>
-<span class="gr">Out[21]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x1114cb590</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="gr">Out[21]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x112242910</span><span class="o">&gt;</span><span class="p">]</span>
 
 <span class="gp">In [22]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_age</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">p_age</span><span class="p">[</span><span class="s">&#39;feh_disp&#39;</span><span class="p">],</span> <span class="s">&#39;k--&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s">&#39;dispersion&#39;</span><span class="p">)</span>
 <span class="go">Profile: auto-deriving feh_disp</span>
-<span class="gr">Out[22]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x11d32a990</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="gr">Out[22]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x11b98db90</span><span class="o">&gt;</span><span class="p">]</span>
 
 <span class="gp">In [23]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;Age [Gyr]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;[Fe/H]&#39;</span><span class="p">)</span>
-<span class="gr">Out[23]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x1114cde10</span><span class="o">&gt;</span>
+<span class="gr">Out[23]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x115d74590</span><span class="o">&gt;</span>
 
 <span class="gp">In [24]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gr">Out[24]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x1114f0c10</span><span class="o">&gt;</span>
+<span class="gr">Out[24]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x112248150</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/profile_fig4.png"><img alt="../_images/profile_fig4.png" src="../_images/profile_fig4.png" style="width: 5in;" /></a>
@@ -343,17 +428,16 @@ be used:</p>
 <span class="gp">In [26]: </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_vert</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;pc&#39;</span><span class="p">),</span> <span class="n">p_vert</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol pc^-3&#39;</span><span class="p">),</span><span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="n">hold</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 <span class="go">Profile: density()</span>
 <span class="go">Profile: mass()</span>
-<span class="gr">Out[26]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x10ff94350</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="gr">Out[26]: </span><span class="p">[</span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">lines</span><span class="o">.</span><span class="n">Line2D</span> <span class="n">at</span> <span class="mh">0x112242110</span><span class="o">&gt;</span><span class="p">]</span>
 
 <span class="gp">In [27]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$z$ [pc]&#39;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\rho_{\star}$ [M$_{\odot}$ pc$^{-3}$]&#39;</span><span class="p">)</span>
-<span class="gr">Out[27]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x1114cde10</span><span class="o">&gt;</span>
+<span class="gr">Out[27]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x115d74590</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/profile_fig5.png"><img alt="../_images/profile_fig5.png" src="../_images/profile_fig5.png" style="width: 5in;" /></a>
 <p>Similarly, one can make inclined profiles using the
 <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.VerticalProfile" title="pynbody.analysis.profile.VerticalProfile"><tt class="xref py py-class docutils literal"><span class="pre">VerticalProfile</span></tt></a>, but the snapshot needs to be rotated first:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [28]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span> <span class="c"># rotate the snapshot by 60-degrees</span>
-<span class="gr">Out[28]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x1158bba10</span><span class="o">&gt;</span>
 
 <span class="gp">In [29]: </span><span class="n">p_inc</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">InclinedProfile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="s">&#39;0.1 kpc&#39;</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="s">&#39;50 kpc&#39;</span><span class="p">)</span>
 </pre></div>
@@ -362,74 +446,28 @@ be used:</p>
 </div>
 
 
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Profiles in Pynbody</a><ul>
-<li><a class="reference internal" href="#radial-density-profile">Radial Density Profile</a></li>
-<li><a class="reference internal" href="#the-profile-class">The Profile Class</a></li>
-<li><a class="reference internal" href="#automatically-generated-profiles">Automatically-generated profiles</a></li>
-<li><a class="reference internal" href="#calculating-derivatives-and-dispersions">Calculating Derivatives and Dispersions</a></li>
-<li><a class="reference internal" href="#making-a-profile-using-a-different-quantity">Making a profile using a different quantity</a></li>
-<li><a class="reference internal" href="#vertical-profiles-and-inclined-profiles">Vertical Profiles and Inclined Profiles</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="bridge.html"
-                        title="previous chapter">Tracing Particles between Snapshots</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="rotation_curve.html"
-                        title="next chapter">Plotting Rotation Cuves</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="../_sources/tutorials/profile.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+    </div>
+      
+  </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="../py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="rotation_curve.html" title="Plotting Rotation Cuves"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="bridge.html" title="Tracing Particles between Snapshots"
-             >previous</a> |</li>
-        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
-          <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
-      </ul>
-    </div>
-    <div class="footer">
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
-    </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../_sources/tutorials/profile.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

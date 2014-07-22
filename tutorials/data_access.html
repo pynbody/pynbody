@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,10 @@
     
     <title>A walk through pynbody’s low-level facilities &mdash; pynbody 0.20-beta documentation</title>
     
-    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,11 +24,20 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Subviews and Filters" href="filters.html" />
     <link rel="prev" title="Basic snapshot manipulation" href="snapshot_manipulation.html" />
- 
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
 <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -43,31 +53,109 @@
 
   </head>
   <body>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="../py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="filters.html" title="Subviews and Filters"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="snapshot_manipulation.html" title="Basic snapshot manipulation"
-             accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
-          <li><a href="tutorials.html" accesskey="U">Pynbody Tutorials</a> &raquo;</li> 
-      </ul>
-    </div>  
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body">
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
             
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Pynbody tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">A walk through pynbody&#8217;s low-level facilities</a><ul>
+<li><a class="reference internal" href="#first-steps">First steps</a></li>
+<li><a class="reference internal" href="#finding-out-something-about-the-file">Finding out something about the file</a></li>
+<li><a class="reference internal" href="#retrieving-data">Retrieving data</a></li>
+<li><a class="reference internal" href="#creating-your-own-arrays">Creating your own arrays</a></li>
+<li><a class="reference internal" href="#keeping-on-top-of-units">Keeping on top of units</a></li>
+<li><a class="reference internal" href="#subsnaps">Subsnaps</a></li>
+<li><a class="reference internal" href="#filters">Filters</a></li>
+<li><a class="reference internal" href="#where-next">Where next?</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="snapshot_manipulation.html" title="Previous Chapter: Basic snapshot manipulation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Basic snapshot m...</span>
+    </a>
+  </li>
+  <li>
+    <a href="filters.html" title="Next Chapter: Subviews and Filters"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Subviews and Fil... &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="a-walk-through-pynbody-s-low-level-facilities">
 <span id="data-access"></span><h1>A walk through pynbody&#8217;s low-level facilities<a class="headerlink" href="#a-walk-through-pynbody-s-low-level-facilities" title="Permalink to this headline">¶</a></h1>
 <p>The following example shows how to load a file, determine various
@@ -427,14 +515,14 @@ instance:</p>
 
 <span class="gp">In [32]: </span><span class="n">array</span>
 <span class="gr">Out[32]: </span>
-<span class="go">SimArray([ 0.37881015,  0.08799991,  0.60888021,  0.84903496,  0.98487011,</span>
-<span class="go">        0.51718426,  0.27487438,  0.63245455,  0.28390689,  0.88188353], &#39;Mpc a&#39;)</span>
+<span class="go">SimArray([ 0.90100894,  0.80154889,  0.06545876,  0.60576191,  0.32491892,</span>
+<span class="go">        0.89026102,  0.97037688,  0.00483991,  0.70079561,  0.52383946], &#39;Mpc a&#39;)</span>
 
 <span class="gp">In [33]: </span><span class="n">array</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 <span class="gr">Out[33]: </span>
-<span class="go">SimArray([ 105.22504342,   24.44441838,  169.13339346,  235.84304501,</span>
-<span class="go">        273.57503334,  143.66229521,   76.35399382,  175.68182007,</span>
-<span class="go">         78.86302692,  244.96764916], &#39;kpc&#39;)</span>
+<span class="go">SimArray([ 250.28026292,  222.65247138,   18.18298781,  168.26719977,</span>
+<span class="go">         90.25525553,  247.29472913,  269.54913512,    1.34441857,</span>
+<span class="go">        194.66544944,  145.51096148], &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>Note that the units were correctly converted into physical units in
@@ -554,76 +642,28 @@ happy to provide further assistance via our
 </div>
 
 
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">A walk through pynbody&#8217;s low-level facilities</a><ul>
-<li><a class="reference internal" href="#first-steps">First steps</a></li>
-<li><a class="reference internal" href="#finding-out-something-about-the-file">Finding out something about the file</a></li>
-<li><a class="reference internal" href="#retrieving-data">Retrieving data</a></li>
-<li><a class="reference internal" href="#creating-your-own-arrays">Creating your own arrays</a></li>
-<li><a class="reference internal" href="#keeping-on-top-of-units">Keeping on top of units</a></li>
-<li><a class="reference internal" href="#subsnaps">Subsnaps</a></li>
-<li><a class="reference internal" href="#filters">Filters</a></li>
-<li><a class="reference internal" href="#where-next">Where next?</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="snapshot_manipulation.html"
-                        title="previous chapter">Basic snapshot manipulation</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="filters.html"
-                        title="next chapter">Subviews and Filters</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="../_sources/tutorials/data_access.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+    </div>
+      
+  </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="../py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="filters.html" title="Subviews and Filters"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="snapshot_manipulation.html" title="Basic snapshot manipulation"
-             >previous</a> |</li>
-        <li><a href="../index.html">pynbody 0.20-beta documentation</a> &raquo;</li>
-          <li><a href="tutorials.html" >Pynbody Tutorials</a> &raquo;</li> 
-      </ul>
-    </div>
-    <div class="footer">
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
-    </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../_sources/tutorials/data_access.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

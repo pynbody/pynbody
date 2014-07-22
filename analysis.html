@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,10 @@
     
     <title>Analysis &mdash; pynbody 0.20-beta documentation</title>
     
-    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,10 +24,19 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="pynbody 0.20-beta documentation" href="index.html" />
     <link rel="next" title="Plotting" href="plot.html" />
     <link rel="prev" title="Automatically Derived Arrays" href="derived.html" />
- 
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
 <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -42,30 +52,117 @@
 
   </head>
   <body>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="plot.html" title="Plotting"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="derived.html" title="Automatically Derived Arrays"
-             accesskey="P">previous</a> |</li>
-        <li><a href="index.html">pynbody 0.20-beta documentation</a> &raquo;</li> 
-      </ul>
-    </div>  
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body">
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
             
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Pynbody tutorials</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="loaders.html">Simulation loaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="essentials.html">Essential generic modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="convenience.html">Convenience modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="derived.html">Derived quantities</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Analysis modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plot.html">Plotting modules</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Analysis</a><ul>
+<li><a class="reference internal" href="#angmom">angmom</a></li>
+<li><a class="reference internal" href="#cosmology">cosmology</a></li>
+<li><a class="reference internal" href="#decomp">decomp</a></li>
+<li><a class="reference internal" href="#gravity">gravity</a></li>
+<li><a class="reference internal" href="#halo">halo</a></li>
+<li><a class="reference internal" href="#halo-mass-function-hmf">halo mass function (hmf)</a></li>
+<li><a class="reference internal" href="#ionfrac">ionfrac</a></li>
+<li><a class="reference internal" href="#luminosity">luminosity</a></li>
+<li><a class="reference internal" href="#pkdgrav-cosmo">pkdgrav_cosmo</a></li>
+<li><a class="reference internal" href="#profile">profile</a></li>
+<li><a class="reference internal" href="#ramses-util">ramses_util</a><ul>
+<li><a class="reference internal" href="#loading-and-centering">Loading and centering</a></li>
+<li><a class="reference internal" href="#file-conversion">File Conversion</a></li>
+<li><a class="reference internal" href="#generating-tform">Generating tform</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="derived.html" title="Previous Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Automatically De...</span>
+    </a>
+  </li>
+  <li>
+    <a href="plot.html" title="Next Chapter: Plotting"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Plotting &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="module-pynbody.analysis.angmom">
 <span id="analysis"></span><h1>Analysis<a class="headerlink" href="#module-pynbody.analysis.angmom" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="angmom">
@@ -101,7 +198,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10b3e65f0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10b46aa28&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>top=None</em>, <em>return_transform=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -359,7 +456,7 @@ zeroing in on the wrong part of the simulation.</dd>
 <dl class="function">
 <dt id="pynbody.analysis.halo.virial_radius">
 <tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">virial_radius</tt><big>(</big><em>sim</em>, <em>cen=None</em>, <em>overden=178</em>, <em>r_max=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#virial_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.virial_radius" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate the virial radius of the halo centered on the given
+<dd><p>Calculate the virial radius of the halo centerd on the given
 coordinates.</p>
 <p>This is here defined by the sphere centerd on cen which contains a
 mean density of overden * rho_c_0 * (1+z)^3.</p>
@@ -381,23 +478,15 @@ mean density of overden * rho_c_0 * (1+z)^3.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.vel_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">vel_center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">vel_center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use stars from a sphere to calculate center of velocity. The size
 of the sphere is given by the <tt class="docutils literal"><span class="pre">cen_size</span></tt> keyword and defaults to
 1 kpc.</p>
-<p><strong>Keyword arguments:</strong></p>
-<p><em>mode</em>: reserved for future use; currently ignored</p>
-<p><em>move_all</em>: if True (default), move the entire snapshot. Otherwise only move
-the particles in the halo passed in.</p>
-<dl class="docutils">
-<dt><em>retcen</em>: if True only return the velocity center without moving the</dt>
-<dd>snapshot (default = False)</dd>
-</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of mass of the given particles using the
 specified mode, then recenter the particles (of the entire
 ancestor snapshot) accordingly</p>
@@ -422,8 +511,6 @@ ancestor snapshot) accordingly</p>
 </dl>
 <p><em>vel</em>: if True, translate velocities so that the velocity of the
 central 1kpc (default) is zeroed. Other values can be passed with cen_size.</p>
-<p><em>move_all</em>: if True (default), move the entire snapshot. Otherwise only move
-the particles in the halo passed in.</p>
 </dd></dl>
 
 </div>
@@ -1207,83 +1294,28 @@ home directory, and include</dd>
 </div>
 
 
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Analysis</a><ul>
-<li><a class="reference internal" href="#angmom">angmom</a></li>
-<li><a class="reference internal" href="#cosmology">cosmology</a></li>
-<li><a class="reference internal" href="#decomp">decomp</a></li>
-<li><a class="reference internal" href="#gravity">gravity</a></li>
-<li><a class="reference internal" href="#halo">halo</a></li>
-<li><a class="reference internal" href="#halo-mass-function-hmf">halo mass function (hmf)</a></li>
-<li><a class="reference internal" href="#ionfrac">ionfrac</a></li>
-<li><a class="reference internal" href="#luminosity">luminosity</a></li>
-<li><a class="reference internal" href="#pkdgrav-cosmo">pkdgrav_cosmo</a></li>
-<li><a class="reference internal" href="#profile">profile</a></li>
-<li><a class="reference internal" href="#ramses-util">ramses_util</a><ul>
-<li><a class="reference internal" href="#loading-and-centering">Loading and centering</a></li>
-<li><a class="reference internal" href="#file-conversion">File Conversion</a></li>
-<li><a class="reference internal" href="#generating-tform">Generating tform</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="derived.html"
-                        title="previous chapter">Automatically Derived Arrays</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="plot.html"
-                        title="next chapter">Plotting</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/analysis.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+    </div>
+      
+  </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="plot.html" title="Plotting"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="derived.html" title="Automatically Derived Arrays"
-             >previous</a> |</li>
-        <li><a href="index.html">pynbody 0.20-beta documentation</a> &raquo;</li> 
-      </ul>
-    </div>
-    <div class="footer">
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
-    </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="_sources/analysis.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>
