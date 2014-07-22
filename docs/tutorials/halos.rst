@@ -6,28 +6,77 @@
 Halos in Pynbody
 =======================
 
-`Pynbody` includes functionality to deal with "halos" in
-simulations. A :class:`~pynbody.halo.Halo` is essentially an object
-that holds information about the particle IDs and other properties
-about a given halo, and a :class:`~pynbody.halo.HaloCatalogue` is an
-object which allows one to easily access the information about all the
-halos in a given snapshot.
+Finding the groups of particles that represent galaxies is the key first
+step of simulation analysis.  There are several public group finders
+available today that find these groups of particles. 
+`Pynbody` includes interfaces to several commonly used group finders.   
 
-We currently support halo data from the Amiga Halo Finder (AHF)
-(:class:`~pynbody.halo.AHFCatalogue` class), the SKID halo finder
-(:class:`~pynbody.halo.GrpCatalogue` class) and the SubFind halo finder
-(:class:`~pynbody.halo.SubfindCatalogue`). The
-:class:`~pynbody.snapshot.SimSnap` class provides a convenience
-function :func:`~pynbody.snapshot.SimSnap.halos`, which tries to
-automatically determine whether halo data for the given output exists
-on disk already, and if so attempts to load the appropriate halo
-catalogue.
+Groups that are virialized are called "halos",
+so groups are available in `pynbody` using the 
+:class:`~pynbody.snapshot.SimSnap.halos` function on a 
+simulation object (`SimSnap`).  When :class:`~pynbody.snapshot.SimSnap.halos` 
+is called, `pynbody` creates
+a :class:`~pynbody.halo.HaloCatalogue` that consists of 
+:class:`~pynbody.halo.Halo` objects. 
+The `Halo` object holds information about the particle IDs and other properties
+about a given halo.  A :class:`~pynbody.halo.HaloCatalogue` is an
+object is a compilation of all the `Halo`s in a given snapshot.
 
-This tutorial will try to demonstrate some of the basic functionality
-of the halo catalogue implementation. If you are not familiar with
+`Pynbody` fully supports the 
+`Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_
+(:class:`~pynbody.halo.AHFCatalogue`) and
+`Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>` (:class:`~pynbody.halo.RockstarCatalogue`). 
+`Pynbody` can read data files from SKID
+(:class:`~pynbody.halo.GrpCatalogue` class) and SubFind
+(:class:`~pynbody.halo.SubfindCatalogue`). 
+
+The :func:`~pynbody.snapshot.SimSnap.halos` function in 
+:class:`~pynbody.snapshot.SimSnap`
+automatically determines whether halo data exists
+on disk already for `pynbody` to read, or if it should run a halo 
+finder to create halo data.
+
+This tutorial will show you how to setup and configure pynbody to best use
+the group finder functionality built into pynbody. If you are not familiar with
 `Pynbody` in general, it is recommended that you first have a look at
 the :ref:`snapshot_manipulation` tutorial.
 
+Configuration
+-------------
+
+To get the full benefit of analyzing halos using `pynbody`, it is necessary
+to install either the AHF or Rockstar halo finder.
+
+Rockstar
+^^^^^^^^
+
+To install Rockstar, grab the code from Peter Behroozi's bitbucket 
+repository, make it, and copy it into your `$PATH`
+::
+
+	> git clone https://bitbucket.org/pbehroozi/rockstar-galaxies.git
+	> cd rockstar-galaxies; make
+	> cp rockstar-galaxies ~/bin/
+
+AHF
+^^^
+
+To install AHF, take the most recent version from Alexander Knebe's AHF
+page, uncompress it
+::
+
+	> wget http://popia.ft.uam.es/AHF/files/ahf-v1.0-084.tgz
+	> tar zxf ahf-v1.0-084.tgz; cd ahf-v1.0-084 
+
+Edit Makefile.config appropriate for your code, make AHF, 
+and copy it into your $PATH.
+::
+
+	> make AHF
+	> cp AHF-v1.0-084 ~/bin/
+
+Now `pynbody` will use one of these halo finders to great group files
+you can use to analyze your simulations.
 
 Working with Halos and Catalogues
 --------------------------------- 
