@@ -666,7 +666,7 @@ class GrpCatalogue(HaloCatalogue) :
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        no_exist = RuntimeError("Halo %s does not exist"%(str(i)))
+        no_exist = ValueError("Halo %s does not exist"%(str(i)))
         
         if self._sorted is None :
             # one-off selection
