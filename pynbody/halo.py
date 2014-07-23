@@ -206,18 +206,28 @@ class RockstarCatalogue(HaloCatalogue):
         try : 
             f = util.open_(self._rsFilename)
         except IOError: 
-            raise IOError("Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the ahf_filename keyword")
+            raise IOError("Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the filename keyword")
 
-        for i, l in enumerate(f):
-            pass
-        self._nhalos = i
-        f.close()
+        self._head = np.fromstring(f.read(self.head_type.itemsize),
+                                   dtype=self.head_type)
+        unused = f.read(256 - self._head.itemsize)
+
+        self._nhalos = self._head['num_halos'][0]
 
         if config['verbose']:
-            print "RockstarCatalogue: loading %s..."%self._rsFilename
+            print "RockstarCatalogue: loading halos...",
+            sys.stdout.flush()
+        
+        self._load_rs_halos(f,sim)
 
-        self._load_rockstar(self._rsFilename,sim)
+        if not dummy:
+            if config['verbose']:
+                print " particles..."
+                
+            self._load_rs_particles(f,sim)
 
+        f.close()
+        
         if make_grp is None:
             make_grp = config_parser.getboolean('RockstarCatalogue', 'AutoGrp')
 
@@ -230,13 +240,16 @@ class RockstarCatalogue(HaloCatalogue):
         if config['verbose']:
             print "done!"
 
-    def make_grp(self, name='grp'):
+    def make_grp(self):
         """
         Creates a 'grp' array which labels each particle according to
         its parent halo. 
         """
         for halo in self._halos.values(): 
-            halo[name] = np.repeat([halo._halo_id], len(halo))
+            halo['grp'] = np.repeat([halo._halo_id], len(halo))
+
+        if config['verbose']:  print "writing %s"%(self._base().filename+'.grp')
+        self._base().write_array('grp',overwrite=True,binary=False)
 
     def _setup_children(self):
         """
@@ -267,61 +280,57 @@ class RockstarCatalogue(HaloCatalogue):
     def base(self):
         return self._base()
 
+    def _load_rs_halos(self, f, sim):
+        # want to read in halo properties first so that we can sort them
+        # by particle number
+        haloprops = []
+        for h in xrange(self._head['num_halos']):
+            haloprops.append(np.fromstring(f.read(self.halo_type.itemsize),dtype=self.halo_type))
+
+        self._haloprops = np.array(haloprops)
+        # sort by number of particles to make compatible with AHF
+        self._num_p_rank = np.flipud(self._haloprops[:]['num_p'].argsort(axis=0))
+
+        for h in xrange(self._head['num_halos']):
+            hn = np.where(self._num_p_rank==h)[0][0]+1
+            self._halos[hn] = DummyHalo()
+            # properties are in Msun / h, Mpc / h
+            self._halos[hn].properties = self._haloprops[h]
+
     def load_copy(self, i):
         """Load a fresh SimSnap with only the particle in halo i"""
 
         from . import load
 
-        f = util.open_(self._ahfBasename+'particles')
+        f = util.open_(self._rsFilename)
+        f.seek(self._head.itemsize + self.halo_type*self._head['num_halos'])
 
-        if self.isnew:
-            nhalos = int(f.readline())
-        else:
-            nhalos = self._nhalos
+        h = 0
+        while h != i: 
+            num_p = self._haloprops[h]['num_p'][0]
+            f.seek(num_p*8,1)
+            h=h+1
 
-        for h in xrange(i):
-            ids = self._load_ahf_particle_block(f)
-
-        f.close()
-
-        return load(self.base.filename, take=ids)
-
-    def _load_rockstar(self, filename, sim):
-        if self._use_iord :
-            iord = self._base()['iord']
-            assert len(iord)==iord.max(), "Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so"
-            self._iord_to_fpos = iord.argsort()
-            
-        f = util.open_(filename,'rb')
-
-        head = np.fromstring(f.read(self.head_type.itemsize),
-                             dtype=self.head_type)
-        unused = f.read(256 - head.itemsize)
+        num_p = self._haloprops[h]['num_p'][0]
+        h_i=sorted(np.fromstring(f.read(num_p*8),dtype=np.int64))
         
-        haloprops = []
-        for h in xrange(head['num_halos']):
-            haloprops.append(np.fromstring(f.read(self.halo_type.itemsize),
-                                     dtype=self.halo_type))
-
-        # sort by number of particles to make compatible with AHF
-        num_p_rank = np.flipud(np.argsort(np.array(haloprops)[:]['num_p'],axis=0))
-
-        if self._dummy:
-            for h in xrange(head['num_halos']):
-                self._halos[h+1] = DummyHalo()
-        else:
-            iord_arr = np.zeros(sim['iord'].max()+1,dtype=int)
-            iord_arr[sim['iord']] = np.arange(len(sim))
-            for h in xrange(head['num_halos']):
-                h_i=np.array(sorted(np.fromstring(f.read(haloprops[h]['num_p'][0]*8),dtype=np.int64)))
-                # ugly, but works
-                hn = np.where(num_p_rank==h)[0][0]+1
-                self._halos[hn]=Halo(hn, self, self.base,iord_arr[h_i])
-                self._halos[hn]._descriptor = "halo_"+str(hn)
-                # properties are in Msun / h, Mpc / h
-                self._halos[hn].properties = haloprops[h]
-
         f.close()
+
+        return load(self.base.filename, take=self._iord_to_fpos[h_i])
+
+    def _load_rs_particles(self, f, sim):
+        self._iord_to_fpos = np.zeros(self._base()['iord'].max()+1,dtype=int)
+        self._iord_to_fpos[self._base()['iord']] = np.arange(len(self._base()))
+            
+        for h in xrange(self._head['num_halos']):
+            num_p = self._haloprops[h]['num_p'][0]
+            h_i=sorted(np.fromstring(f.read(num_p*8),dtype=np.int64))
+            # ugly, but works
+            hn = np.where(self._num_p_rank==h)[0][0]+1
+            self._halos[hn]=Halo(hn, self, self.base,self._iord_to_fpos[h_i])
+            self._halos[hn]._descriptor = "halo_"+str(hn)
+            # properties are in Msun / h, Mpc / h
+            self._halos[hn].properties = self._haloprops[h]
 
 
     def _load_ahf_substructure(self, filename):
@@ -382,7 +391,7 @@ class RockstarCatalogue(HaloCatalogue):
                 'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
                 'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
                 'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
-                'softening': sim.d['eps'].in_units('Mpc a h^-1', **sim.conversion_context()).min()
+                'softening': sim.s['eps'].in_units('Mpc a h^-1', **sim.conversion_context()).min()
             })
 
         f.close()
@@ -409,6 +418,126 @@ class RockstarCatalogue(HaloCatalogue):
                 path = config_parser.get('RockstarCatalogue', 'Path')
                 return os.path.exists(path)
         return False
+
+    def writestat(self, outfile=None, hubble=None):
+        """
+        write a condensed skid.stat style ascii file from ahf_halos
+        file.  header + 1 halo per line. should reproduce `Alyson's
+        idl script' except does not do last 2 columns (Is it a
+        satellite?) and (Is central halo is `false'ly split?).  output
+        units are set to Mpc Msun, km/s.
+
+        user can specify own hubble constant hubble=(H0/(100
+        km/s/Mpc)), ignoring the snaphot arg for hubble constant
+        (which sometimes has a large roundoff error).
+        """
+        s = self._base()
+        mindarkmass = min(s.dark['mass'])
+
+        if hubble is None:
+            hubble = s.properties['h']
+
+        if outfile is None: outfile = self._base().filename+'.stat'
+        print "write stat file to ", outfile
+        fpout = open(outfile, "w")
+        header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
+        print >> fpout, header
+        for ii in np.arange(self._nhalos)+1:
+            print '%d '%ii,
+            sys.stdout.flush()
+            h = self[ii].properties  # halo index starts with 1 not 0
+##  'Contaminated'? means multiple dark matter particle masses in halo)"
+            icontam = np.where(self[ii].dark['mass'] > mindarkmass)
+            if (len(icontam[0]) > 0):
+                contam = "contam"
+            else:
+                contam = "clean"
+## may want to add implement satellite test and false central breakup test.
+            ss = "     "  # can adjust column spacing
+            outstring = str(ii)+ss
+            outstring += str(len(self[ii]))+ss+str(len(self[ii].g))+ss
+            outstring += str(len(self[ii].s)) + ss+str(len(self[ii].dark))+ss
+            outstring += str(h['m']/hubble)+ss+str(h['r']/hubble)+ss
+            outstring += str(self[ii].g['mass'].in_units('Msol').sum())+ss
+            outstring += str(self[ii].s['mass'].in_units('Msol').sum())+ss
+            outstring += str(self[ii].d['mass'].in_units('Msol').sum())+ss
+            outstring += str(h['vmax'])+ss+str(h['vmax_r']/hubble)+ss
+            outstring += str(h['vrms'])+ss
+        ## pos: convert kpc/h to mpc (no h).
+            outstring += str(h['pos'][0][0]/hubble)+ss
+            outstring += str(h['pos'][0][1]/hubble)+ss
+            outstring += str(h['pos'][0][2]/hubble)+ss
+            outstring += str(h['vel'][0][0])+ss+str(h['vel'][0][1])+ss
+            outstring += str(h['vel'][0][2])+ss
+            outstring += contam+ss
+            outstring += "unknown" + \
+                ss  # unknown means sat. test not implemented.
+            outstring += "unknown"+ss  # false central breakup.
+            print >> fpout, outstring
+        fpout.close()
+
+    def writetipsy(self, outfile=None, hubble=None):
+        """
+        write halos to tipsy file (write as stars) from ahf_halos
+        file.  returns a shapshot where each halo is a star particle.
+
+        user can specify own hubble constant hubble=(H0/(100
+        km/s/Mpc)), ignoring the snaphot arg for hubble constant
+        (which sometimes has a large roundoff error).
+        """
+        from . import analysis
+        from . import tipsy
+        from .analysis import cosmology
+        from snapshot import _new as new
+        import math
+        s = self._base()
+        if outfile is None: outfile = s.filename+'.gtp'
+        print "write tipsy file to ", outfile
+        sout = new(star=self._nhalos)  # create new tipsy snapshot written as halos.
+        sout.properties['a'] = s.properties['a']
+        sout.properties['z'] = s.properties['z']
+        sout.properties['boxsize'] = s.properties['boxsize']
+        if hubble is None: hubble = s.properties['h']
+        sout.properties['h'] = hubble
+    ### ! dangerous -- rho_crit function and unit conversions needs simplifying
+        rhocrithhco = cosmology.rho_crit(s, z=0, unit="Msol Mpc^-3 h^2")
+        lboxkpc = sout.properties['boxsize'].ratio("kpc a")
+        lboxkpch = lboxkpc*sout.properties['h']
+        lboxmpch = lboxkpc*sout.properties['h']/1000.
+        tipsyvunitkms = lboxmpch * 100. / (math.pi * 8./3.)**.5
+        tipsymunitmsun = rhocrithhco * lboxmpch**3 / sout.properties['h']
+
+        print "transforming ", self._nhalos, " halos into tipsy star particles"
+        for ii in xrange(self._nhalos):
+            h = self[ii+1].properties
+            sout.star[ii]['mass'] = h['m']/hubble / tipsymunitmsun
+            ## tipsy units: box centered at 0. (assume 0<=x<=1)
+            sout.star[ii]['x'] = h['pos'][0][0]/lboxmpch - 0.5
+            sout.star[ii]['y'] = h['pos'][0][1]/lboxmpch - 0.5
+            sout.star[ii]['z'] = h['pos'][0][2]/lboxmpch - 0.5
+            sout.star[ii]['vx'] = h['vel'][0][0]/tipsyvunitkms
+            sout.star[ii]['vy'] = h['vel'][0][1]/tipsyvunitkms
+            sout.star[ii]['vz'] = h['vel'][0][2]/tipsyvunitkms
+            sout.star[ii]['eps'] = h['r']/lboxkpch
+            sout.star[ii]['metals'] = 0.
+            sout.star[ii]['phi'] = 0.
+            sout.star[ii]['tform'] = 0.
+        print "writing tipsy outfile %s"%outfile
+        sout.write(fmt=tipsy.TipsySnap, filename=outfile)
+        return sout
+
+    def writehalos(self, hubble=None, outfile=None):
+        s = self._base()
+        if outfile is None:
+            statoutfile = s.filename+".rockstar.stat"
+            tipsyoutfile = s.filename+".rockstar.gtp"
+        else:
+            statoutfile = outfile+'.stat'
+            gtpoutfile = outfile+'.gtp'
+        self.make_grp()
+        self.writestat(statoutfile, hubble=hubble)
+        shalos = self.writetipsy(gtpoutfile, hubble=hubble)
+        return shalos
 
 class AHFCatalogue(HaloCatalogue):
     """
