@@ -222,7 +222,7 @@ def sfh(sim,filename=None,massform=True,clear=False,legend=False,
     pz.set_xticks(times)
     pz.set_xticklabels([str(x) for x in labelzs])
     pz.set_xlim(x0, x1)
-    pz.set_xlabel('z')
+    pz.set_xlabel('$z$')
 
     if legend: plt.legend(loc=1)
     if filename : 
