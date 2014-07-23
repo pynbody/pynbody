@@ -78,6 +78,16 @@ and copy it into your $PATH.
 Now `pynbody` will use one of these halo finders to great group files
 you can use to analyze your simulations.
 
+Configuration
+^^^^^^^^^^^^^
+
+As described in :ref:`configuration`, you can tell pynbody which group
+finder you prefer in your configuration file, ~/.pynbodyrc.  In the `general`
+section, you can arrange the priority of halo finders to use as you like
+::
+
+	halo-class-priority:  RockstarCatalogue, AHFCatalogue, GrpCatalogue
+
 Working with Halos and Catalogues
 --------------------------------- 
 
@@ -99,7 +109,14 @@ available halo catalogue:
 
  In [3]: h = s.halos()
 
-`h` is now the AHF halo catalogue. We can easily retrieve some basic
+`h` is now the AHF halo catalogue. 
+
+.. note:: If the halo finders have to run to find the groups, they may take
+   	some time.  AHF typically takes 5 minutes for a million particle
+	simulation while Rockstar takes 5-10 minutes running on a single
+	processor.
+
+We can easily retrieve some basic
 information, like the total number of halos in this catalogue:
 
 .. ipython::
@@ -291,32 +308,4 @@ file into Halo objects for each halo that are IndexedSubSnaps. Each
 Halo has slightly extended properties that include all the values from
 the AHF_halos file. The AHFCatalogue also loads the substructure file
 into the ['children'] property.
-
-Installing AHFstep for pynbody compatibility
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. note:: These are quite old instructions and may be out of date.
-
-From the command prompt:
-
->wget http://popia.ft.uam.es/AHF/files/ahf-v1.0.tgz
-
->tar zxf ahf-v1.0.tgz
-
->cd ahf-v1.0
-
-Edit Makefile.config. For Tipsy, uncomment the DEFINEFLAGS line under MW1.1024g1bwk, g1536, GALFOBS. Possibly switch CC line to use icc (then -fopenmp becomes -openmp) and up the OPTIMIZE line to -O3
-
-From command prompt:
-
->make AHF
-
->mkdir ~/bin/
-
->cp bin/AHF* ~/bin/
-
->export PATH="$PATH:${HOME}/bin"
-
-It is a good idea to put this last line above into your .bashrc file on Linux or .profile in Mac OS X. 
-
 
