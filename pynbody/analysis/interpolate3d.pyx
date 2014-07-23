@@ -30,7 +30,7 @@ def interpolate3d(int n,
     cdef double xi, yi, zi
     cdef unsigned int i
 
-    for i in prange(n,nogil=True) : 
+    for i in prange(n,nogil=True) :
         xi = x[i]
         yi = y[i]
         zi = z[i]
@@ -46,7 +46,6 @@ def interpolate3d(int n,
             else :
                 x_top_ind = mid_ind
 	
-    
         # find y indices
         y_top_ind = n_y_vals - 1
         y_bot_ind = 0
@@ -57,8 +56,7 @@ def interpolate3d(int n,
                 y_bot_ind = mid_ind
             else :
                 y_top_ind = mid_ind
-	
-
+                
         # find z indices 
         z_top_ind = n_z_vals - 1
         z_bot_ind = 0
@@ -70,23 +68,26 @@ def interpolate3d(int n,
             else :
                 z_top_ind = mid_ind
                 
-                
         x_fac = (xi - x_vals[x_bot_ind])/(x_vals[x_top_ind] - x_vals[x_bot_ind])
         y_fac = (yi - y_vals[y_bot_ind])/(y_vals[y_top_ind] - y_vals[y_bot_ind])
         z_fac = (zi - z_vals[z_bot_ind])/(z_vals[z_top_ind] - z_vals[z_bot_ind])        
-        
-        v111 = vals[x_top_ind,y_top_ind,z_top_ind]
-        v110 = vals[x_top_ind,y_top_ind,z_bot_ind]
-        v11 = z_fac*(v111 - v110) + v110
-        v011 = vals[x_bot_ind,y_top_ind,z_top_ind]
-        v010 = vals[x_bot_ind,y_top_ind,z_bot_ind]
-        v01 = z_fac*(v011 - v010) + v010
-        v101 = vals[x_top_ind,y_bot_ind,z_top_ind]
-        v100 = vals[x_top_ind,y_bot_ind,z_bot_ind]
-        v10 = z_fac*(v101 - v100) + v100
-        v001 = vals[x_bot_ind,y_bot_ind,z_top_ind]
+
+        # vertex values
         v000 = vals[x_bot_ind,y_bot_ind,z_bot_ind]
-        v00 = z_fac*(v001 - v000) + v000
-        v1 = x_fac*(v11 - v10) + v10
-        v0 = x_fac*(v01 - v00) + v00
-        result_array[i] = y_fac*(v1-v0) + v0
+        v001 = vals[x_bot_ind,y_bot_ind,z_top_ind]
+        v010 = vals[x_bot_ind,y_top_ind,z_bot_ind]
+        v011 = vals[x_bot_ind,y_top_ind,z_top_ind]
+        v100 = vals[x_top_ind,y_bot_ind,z_bot_ind]
+        v101 = vals[x_top_ind,y_bot_ind,z_top_ind]
+        v110 = vals[x_top_ind,y_top_ind,z_bot_ind]
+        v111 = vals[x_top_ind,y_top_ind,z_top_ind]
+
+        v00 = v000*(1.0-x_fac) + v100*x_fac
+        v10 = v010*(1.0-x_fac) + v110*x_fac
+        v01 = v001*(1.0-x_fac) + v101*x_fac
+        v11 = v011*(1.0-x_fac) + v111*x_fac
+
+        v0 = v00*(1.0-y_fac) + v10*y_fac
+        v1 = v01*(1.0-y_fac) + v11*y_fac
+
+        result_array[i] = v0*(1-z_fac) + v1*z_fac
