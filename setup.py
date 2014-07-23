@@ -77,6 +77,8 @@ except AttributeError:
 
 have_openmp = check_for_openmp()
 
+openmp_args = ['-fopenmp'] if have_openmp else ['']
+
 ext_modules = []
 libraries=[ ]
 extra_compile_args = ['-ftree-vectorize',
@@ -149,6 +151,24 @@ if build_cython :
     sph_spherical = Extension('pynbody.sph._spherical',
                       sources=['pynbody/sph/_spherical.pyx'],
                       include_dirs=incdir)
+    halo_pyx = Extension('pynbody.analysis._com',
+                         sources=['pynbody/analysis/_com.pyx'],
+                         include_dirs=incdir)
+    bridge_pyx = Extension('pynbody.bridge._bridge',
+                         sources=['pynbody/bridge/_bridge.pyx'],
+                         include_dirs=incdir)
+
+    util_pyx = Extension('pynbody._util',
+                         sources=['pynbody/_util.pyx'],
+                         include_dirs=incdir)
+
+    interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
+                                  sources = ['pynbody/analysis/interpolate3d.pyx'],
+                                  include_dirs=incdir, 
+                                  extra_compile_args=openmp_args,
+                                  extra_link_args=openmp_args)
+
+                            
 
 else :
     gravity_omp = Extension('pynbody.grav_omp',
@@ -164,6 +184,28 @@ else :
                       sources=['pynbody/sph/_spherical.c'],
                       include_dirs=incdir)
 
+<<<<<<< HEAD
+=======
+    halo_pyx = Extension('pynbody.analysis._com',
+                         sources=['pynbody/analysis/_com.c'],
+                         include_dirs=incdir)
+
+    bridge_pyx = Extension('pynbody.bridge._bridge',
+                         sources=['pynbody/bridge/_bridge.c'],
+                         include_dirs=incdir)
+
+    util_pyx = Extension('pynbody._util',
+                         sources=['pynbody/_util.c'],
+                         include_dirs=incdir)
+    interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
+                                  sources = ['pynbody/analysis/interpolate3d.c'],
+                                  include_dirs=incdir,
+                                  extra_compile_args=openmp_args,
+                                  extra_link_args=openmp_args)
+    
+
+
+>>>>>>> 5e6d469... fixed interpolate3d -- matches output from scipy.interpolate.interpn; fixed unit test; fixed openmp loop; removed interpolate3d.c from the manifest
 if have_openmp :
     ext_modules.append(gravity_omp)
     

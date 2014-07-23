@@ -18,7 +18,14 @@ import os
 from ..array import SimArray
 from pynbody import config
 
-def calculate(sim,ion='ovi') :
+import logging
+logger = logging.getLogger('pynbody.analysis.ionfrac')
+
+from . import interpolate3d
+
+from scipy.interpolate import interpn
+
+def calculate(sim,ion='ovi', mode = 'old') :
     """
 
     calculate -- documentation placeholder
@@ -63,11 +70,17 @@ def calculate(sim,ion='ovi') :
     z[np.where(z > np.max(z_vals))] = np.max(z_vals)
 
     #interpolate
+<<<<<<< HEAD
     if config['verbose']: print "Interpolating "+ion+" values"
     code = file(os.path.join(os.path.dirname(__file__),'interpolate3d.c')).read()
     inline(code,['n','n_x_vals','x_vals','n_y_vals','y_vals','n_z_vals',
                  'z_vals','x','y','z','vals','result_array'])
     
+=======
+    logger.info("Interpolation %s values"%ion)
+    interpolate3d.interpolate3d(n,n_x_vals,x_vals,n_y_vals,y_vals,n_z_vals,z_vals,x,y,z,vals,result_array)
+
+>>>>>>> 5e6d469... fixed interpolate3d -- matches output from scipy.interpolate.interpn; fixed unit test; fixed openmp loop; removed interpolate3d.c from the manifest
     return 10**result_array
 
 
