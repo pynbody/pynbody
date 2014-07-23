@@ -258,6 +258,294 @@
     
 
 </div>
+<div class="viewcode-block" id="RockstarCatalogue"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.RockstarCatalogue">[docs]</a><span class="k">class</span> <span class="nc">RockstarCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to handle catalogues produced by Rockstar (by Peter Behroozi).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">head_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;magic&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">),(</span><span class="s">&#39;snap&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;chunk&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),(</span><span class="s">&#39;scale&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;Om&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;Ol&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;h0&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;bounds&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">6</span><span class="p">),(</span><span class="s">&#39;num_halos&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;num_particles&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),(</span><span class="s">&#39;box_size&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;particle_mass&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;particle_type&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;format_revision&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;rockstar_version&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,</span><span class="mi">12</span><span class="p">)])</span>
+
+    <span class="n">halo_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;id&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),(</span><span class="s">&#39;pos&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),(</span><span class="s">&#39;vel&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;corevel&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),(</span><span class="s">&#39;bulkvel&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),(</span><span class="s">&#39;m&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;child_r&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;vmax_r&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;mgrav&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;vmax&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;rvmax&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;rs&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;klypin_rs&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;vrms&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;J&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;energy&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;spin&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;alt_m&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;Xoff&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;Voff&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;b_to_a&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;c_to_a&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;A&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),(</span><span class="s">&#39;b_to_a2&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;c_to_a2&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;A2&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">),(</span><span class="s">&#39;bullock_spin&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;kin_to_pot&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;m_pe_b&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;m_pe_d&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;dum&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;num_p&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),(</span><span class="s">&#39;num_child_particles&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;p_start&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),(</span><span class="s">&#39;desc&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;flags&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),(</span><span class="s">&#39;n_core&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;min_pos_err&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;min_vel_err&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;min_bulkvel_err&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;type&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;sm&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;gas&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;bh&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;peak_density&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),(</span><span class="s">&#39;av_density&#39;</span><span class="p">,</span><span class="s">&#39;f&#39;</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s">&#39;odum&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,</span><span class="mi">4</span><span class="p">)])</span>
+
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">make_grp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">use_iord</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize a RockstarCatalogue.</span>
+
+<span class="sd">        **kwargs** :</span>
+<span class="sd">         </span>
+<span class="sd">        *make_grp*: if True a &#39;grp&#39; array is created in the underlying</span>
+<span class="sd">                    snapshot specifying the lowest level halo that any</span>
+<span class="sd">                    given particle belongs to. If it is False, no such</span>
+<span class="sd">                    array is created; if None, the behaviour is</span>
+<span class="sd">                    determined by the configuration system.</span>
+
+<span class="sd">        *dummy*: if True, the particle file is not loaded, and all</span>
+<span class="sd">                 halos returned are just dummies (with the correct</span>
+<span class="sd">                 properties dictionary loaded). Use load_copy to get</span>
+<span class="sd">                 the actual data in this case.</span>
+
+<span class="sd">        *use_iord*: if True, the particle IDs in the Amiga catalogue</span>
+<span class="sd">                    are taken to refer to the iord array. If False,</span>
+<span class="sd">                    they are the particle offsets within the file. If</span>
+<span class="sd">                    None, the parameter defaults to True for</span>
+<span class="sd">                    GadgetSnap, False otherwise.</span>
+
+<span class="sd">        *basename*: specify the basename of the halo catalog</span>
+<span class="sd">                        file - the code will load the catalog data from the</span>
+<span class="sd">                        binary file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">import</span> <span class="nn">os.path</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_run_rockstar</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
+        <span class="n">HaloCatalogue</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_iord</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
+            <span class="n">use_iord</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span> <span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_iord</span> <span class="o">=</span> <span class="n">use_iord</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dummy</span> <span class="o">=</span> <span class="n">dummy</span>
+        
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rsFilename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rsFilename</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">cutgz</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s">&#39;halos*.bin&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="k">try</span> <span class="p">:</span> 
+            <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rsFilename</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&quot;Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the ahf_filename keyword&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nhalos</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+            <span class="k">print</span> <span class="s">&quot;RockstarCatalogue: loading </span><span class="si">%s</span><span class="s">...&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">_rsFilename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_rockstar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rsFilename</span><span class="p">,</span><span class="n">sim</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">make_grp</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">make_grp</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;AutoGrp&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">make_grp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">make_grp</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;AutoPid&#39;</span><span class="p">):</span>
+            <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+            <span class="k">print</span> <span class="s">&quot;done!&quot;</span>
+
+<div class="viewcode-block" id="RockstarCatalogue.make_grp"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.RockstarCatalogue.make_grp">[docs]</a>    <span class="k">def</span> <span class="nf">make_grp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;grp&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a &#39;grp&#39; array which labels each particle according to</span>
+<span class="sd">        its parent halo. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">halo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="o">.</span><span class="n">values</span><span class="p">():</span> 
+            <span class="n">halo</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">([</span><span class="n">halo</span><span class="o">.</span><span class="n">_halo_id</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">halo</span><span class="p">))</span>
+</div>
+    <span class="k">def</span> <span class="nf">_setup_children</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a &#39;children&#39; array inside each halo&#39;s &#39;properties&#39;</span>
+<span class="sd">        listing the halo IDs of its children. Used in case the reading</span>
+<span class="sd">        of substructure data from the AHF-supplied _substructure file</span>
+<span class="sd">        fails for some reason.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nhalos</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;children&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nhalos</span><span class="p">):</span>
+            <span class="n">host</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;hostHalo&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">host</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">host</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;children&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_get_halo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Parent SimSnap has been deleted&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">base</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="p">()</span>
+
+<div class="viewcode-block" id="RockstarCatalogue.load_copy"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.RockstarCatalogue.load_copy">[docs]</a>    <span class="k">def</span> <span class="nf">load_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load a fresh SimSnap with only the particle in halo i&quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">load</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ahfBasename</span><span class="o">+</span><span class="s">&#39;particles&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isnew</span><span class="p">:</span>
+            <span class="n">nhalos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nhalos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nhalos</span>
+
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_ahf_particle_block</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">take</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_load_rockstar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_iord</span> <span class="p">:</span>
+            <span class="n">iord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="p">()[</span><span class="s">&#39;iord&#39;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">iord</span><span class="p">)</span><span class="o">==</span><span class="n">iord</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="s">&quot;Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_iord_to_fpos</span> <span class="o">=</span> <span class="n">iord</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+            
+        <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">&#39;rb&#39;</span><span class="p">)</span>
+
+        <span class="n">head</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head_type</span><span class="o">.</span><span class="n">itemsize</span><span class="p">),</span>
+                             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">head_type</span><span class="p">)</span>
+        <span class="n">unused</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">256</span> <span class="o">-</span> <span class="n">head</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
+        
+        <span class="n">haloprops</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="s">&#39;num_halos&#39;</span><span class="p">]):</span>
+            <span class="n">haloprops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">halo_type</span><span class="o">.</span><span class="n">itemsize</span><span class="p">),</span>
+                                     <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">halo_type</span><span class="p">))</span>
+
+        <span class="c"># sort by number of particles to make compatible with AHF</span>
+        <span class="n">num_p_rank</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">haloprops</span><span class="p">)[:][</span><span class="s">&#39;num_p&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dummy</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="s">&#39;num_halos&#39;</span><span class="p">]):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">h</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">DummyHalo</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iord_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;iord&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">iord_arr</span><span class="p">[</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;iord&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="s">&#39;num_halos&#39;</span><span class="p">]):</span>
+                <span class="n">h_i</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">haloprops</span><span class="p">[</span><span class="n">h</span><span class="p">][</span><span class="s">&#39;num_p&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">8</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)))</span>
+                <span class="c"># ugly, but works</span>
+                <span class="n">hn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">num_p_rank</span><span class="o">==</span><span class="n">h</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">hn</span><span class="p">]</span><span class="o">=</span><span class="n">Halo</span><span class="p">(</span><span class="n">hn</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span><span class="n">iord_arr</span><span class="p">[</span><span class="n">h_i</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">hn</span><span class="p">]</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;halo_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">hn</span><span class="p">)</span>
+                <span class="c"># properties are in Msun / h, Mpc / h</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">hn</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">haloprops</span><span class="p">[</span><span class="n">h</span><span class="p">]</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">_load_ahf_substructure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="c">#nhalos = int(f.readline())  # number of halos?  no, some crazy number</span>
+                                    <span class="c"># that we will ignore</span>
+        <span class="n">nhalos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>  <span class="c"># Some crazy number, just need to skip it</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">haloid</span><span class="p">,</span> <span class="n">nsubhalos</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="n">haloid</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;children&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+        <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s">&#39;halos*.bin&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">_run_rockstar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">pynbody</span>
+        <span class="n">fileformat</span> <span class="o">=</span> <span class="s">&#39;TIPSY&#39;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">sim</span> <span class="ow">is</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">):</span>
+            <span class="n">fileformat</span> <span class="o">=</span> <span class="s">&#39;GADGET&#39;</span>
+        <span class="kn">import</span> <span class="nn">pynbody.units</span> <span class="kn">as</span> <span class="nn">units</span>
+
+        <span class="c"># find AHFstep</span>
+        <span class="n">groupfinder</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;Path&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">groupfinder</span> <span class="o">==</span> <span class="s">&#39;None&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s">&quot;PATH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="p">):</span>
+                <span class="n">ahfs</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&quot;rockstar-galaxies&quot;</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">iahf</span><span class="p">,</span> <span class="n">ahf</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ahfs</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">ahfs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">iahf</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ahfs</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span>
+                            <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ahf</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;rockstar&#39;</span><span class="p">)):</span>
+                        <span class="k">continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">groupfinder</span> <span class="o">=</span> <span class="n">ahf</span>
+                        <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">groupfinder</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Path to Rockstar (</span><span class="si">%s</span><span class="s">) is invalid&quot;</span> <span class="o">%</span> <span class="n">groupfinder</span><span class="p">)</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;quickstart.cfg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="k">print</span> <span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;Config&#39;</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;format&#39;</span><span class="p">:</span> <span class="n">fileformat</span><span class="p">,</span>
+                <span class="s">&#39;partmass&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Msol h^-1&#39;</span><span class="p">,</span><span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+                <span class="s">&#39;expfac&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">],</span>
+                <span class="s">&#39;hub&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">],</span>
+                <span class="s">&#39;omega0&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">],</span>
+                <span class="s">&#39;lambda0&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaL0&#39;</span><span class="p">],</span>
+                <span class="s">&#39;boxsize&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&#39;Mpc a h^-1&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()),</span>
+                <span class="s">&#39;vunit&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&#39;km s^-1 a&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()),</span>
+                <span class="s">&#39;munit&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&#39;Msol h^-1&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()),</span>
+                <span class="s">&#39;softening&#39;</span><span class="p">:</span> <span class="n">sim</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Mpc a h^-1&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+            <span class="p">})</span>
+
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="p">)):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&quot;gunzip &quot;</span><span class="o">+</span><span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot;.gz&quot;</span><span class="p">)</span>
+        <span class="c"># determine parallel possibilities</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">groupfinder</span><span class="p">):</span>
+            <span class="c"># run it</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+                <span class="k">print</span> <span class="s">&quot;RockstarCatalogue: running </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="n">groupfinder</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">groupfinder</span><span class="o">+</span><span class="s">&quot; -c quickstart.cfg &quot;</span><span class="o">+</span><span class="n">sim</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span>
+            <span class="k">return</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_can_run</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;AutoRun&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;Path&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;None&#39;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s">&quot;PATH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&quot;rockstar-galaxies&quot;</span><span class="p">)))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;RockstarCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;Path&#39;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">False</span>
+</div>
 <div class="viewcode-block" id="AHFCatalogue"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.AHFCatalogue">[docs]</a><span class="k">class</span> <span class="nc">AHFCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class to handle catalogues produced by Amiga Halo Finder (AHF).</span>
@@ -516,7 +804,6 @@
         <span class="c">#nhalos = int(f.readline())  # number of halos?  no, some crazy number</span>
                                     <span class="c"># that we will ignore</span>
         <span class="n">nhalos</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>  <span class="c"># Some crazy number, just need to skip it</span>
-        <span class="c"># import pdb; pdb.set_trace()</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_halos</span><span class="p">)):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">haloid</span><span class="p">,</span> <span class="n">nsubhalos</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span>
@@ -778,7 +1065,6 @@
                 <span class="n">path</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;AHFCatalogue&#39;</span><span class="p">,</span> <span class="s">&#39;Path&#39;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">False</span>
-
 </div>
 <div class="viewcode-block" id="GrpCatalogue"><a class="viewcode-back" href="../../convenience.html#pynbody.halo.GrpCatalogue">[docs]</a><span class="k">class</span> <span class="nc">GrpCatalogue</span><span class="p">(</span><span class="n">HaloCatalogue</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -950,8 +1236,8 @@
 <span class="c"># AmigaGrpCatalogue MUST be scanned first, because if it exists we probably</span>
 <span class="c"># want to use it, but an AHFCatalogue will probably be on-disk too.</span>
 </div>
-<span class="n">_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">GrpCatalogue</span><span class="p">,</span> <span class="n">AmigaGrpCatalogue</span><span class="p">,</span> <span class="n">AHFCatalogue</span><span class="p">,</span> <span class="n">SubfindCatalogue</span><span class="p">]</span>
-<span class="n">_runable_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">AHFCatalogue</span><span class="p">]</span>
+<span class="n">_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">GrpCatalogue</span><span class="p">,</span> <span class="n">AmigaGrpCatalogue</span><span class="p">,</span> <span class="n">AHFCatalogue</span><span class="p">,</span> <span class="n">RockstarCatalogue</span><span class="p">,</span> <span class="n">SubfindCatalogue</span><span class="p">]</span>
+<span class="n">_runable_halo_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">AHFCatalogue</span><span class="p">,</span> <span class="n">RockstarCatalogue</span><span class="p">]</span>
 </pre></div>
 
     </div>

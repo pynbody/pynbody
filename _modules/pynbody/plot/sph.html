@@ -447,7 +447,13 @@
         <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
             <span class="n">units</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">units</span>
        
-        <span class="n">units</span> <span class="o">=</span> <span class="s">&quot;$&quot;</span><span class="o">+</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&quot;$&quot;</span>
+        <span class="k">if</span> <span class="n">log</span> <span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s">r&quot;$\log_{10}\,&quot;</span><span class="o">+</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&quot;$&quot;</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="ow">is</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">units</span><span class="o">=</span><span class="s">&quot;&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">units</span> <span class="o">=</span> <span class="s">&quot;$&quot;</span><span class="o">+</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&quot;$&quot;</span>
 
         <span class="k">if</span> <span class="n">show_cbar</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">qtytitle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ims</span><span class="p">)</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="n">qtytitle</span><span class="p">)</span>

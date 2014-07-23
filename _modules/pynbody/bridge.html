@@ -157,6 +157,7 @@
 
 
 <span class="kn">import</span> <span class="nn">weakref</span><span class="o">,</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_bridge</span>
 
 <div class="viewcode-block" id="Bridge"><a class="viewcode-back" href="../../convenience.html#pynbody.bridge.Bridge">[docs]</a><span class="k">class</span> <span class="nc">Bridge</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Generic Bridge class&quot;&quot;&quot;</span>
@@ -261,8 +262,6 @@
 
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">scipy</span><span class="o">,</span> <span class="nn">scipy.weave</span>
-        <span class="kn">from</span> <span class="nn">scipy.weave</span> <span class="kn">import</span> <span class="n">inline</span>
 
         <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ends</span><span class="p">()</span>
 
@@ -289,36 +288,8 @@
             <span class="n">iord_to</span> <span class="o">=</span> <span class="n">iord_to</span><span class="p">[</span><span class="n">iord_map_to</span><span class="p">]</span>
             <span class="n">iord_from</span> <span class="o">=</span> <span class="n">iord_from</span><span class="p">[</span><span class="n">iord_map_from</span><span class="p">]</span>
             
-        <span class="n">output_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iord_from</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-
-        <span class="n">code</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">        long len = iord_from_array-&gt;dimensions[0];</span>
-<span class="s">        long len_to = iord_to_array-&gt;dimensions[0];</span>
-
-<span class="s">        long i_to=0, j=1;</span>
-
-<span class="s">        // note j starts at 1 because output length stored in position zero</span>
-
-<span class="s">        for(long i=0; i&lt;len; i++) {</span>
-<span class="s">          long i_from = IORD_FROM1(i);</span>
-<span class="s">          while(i_from&gt;IORD_TO1(i_to) &amp;&amp; i_to&lt;len_to) i_to++;</span>
-<span class="s">          if(i_from==IORD_TO1(i_to)) {</span>
-<span class="s">            output_index[j] = i_to;</span>
-<span class="s">            j++;</span>
-<span class="s">          }</span>
-<span class="s">        }</span>
-
-<span class="s">        output_index[0] = j-1;</span>
-<span class="s">        // length is j-1, because the last written index was j-1 and the</span>
-<span class="s">        // indexing is 1-based precisely because we&#39;re writing this information</span>
-<span class="s">        // into position zero.</span>
-
-<span class="s">        &quot;&quot;&quot;</span>
-
-        <span class="n">inline</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;iord_to&#39;</span><span class="p">,</span> <span class="s">&#39;iord_from&#39;</span><span class="p">,</span> <span class="s">&#39;output_index&#39;</span><span class="p">])</span>
-
-        <span class="n">output_index</span> <span class="o">=</span> <span class="n">output_index</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">output_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
-
+        <span class="n">output_index</span> <span class="o">=</span> <span class="n">_bridge</span><span class="o">.</span><span class="n">bridge</span><span class="p">(</span><span class="n">iord_to</span><span class="p">,</span> <span class="n">iord_from</span><span class="p">)</span>
+        
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">monotonic</span> <span class="p">:</span>
             <span class="n">output_index</span> <span class="o">=</span> <span class="n">iord_map_to</span><span class="p">[</span><span class="n">output_index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">iord_map_from</span><span class="p">)]]</span>
 

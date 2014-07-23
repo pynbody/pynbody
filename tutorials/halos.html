@@ -105,6 +105,12 @@
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Halos in Pynbody</a><ul>
+<li><a class="reference internal" href="#configuration">Configuration</a><ul>
+<li><a class="reference internal" href="#rockstar">Rockstar</a></li>
+<li><a class="reference internal" href="#ahf">AHF</a></li>
+<li><a class="reference internal" href="#id3">Configuration</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#working-with-halos-and-catalogues">Working with Halos and Catalogues</a></li>
 <li><a class="reference internal" href="#partial-loading-the-halos-versus-full-load">Partial loading the Halos versus full load</a></li>
 <li><a class="reference internal" href="#halos-only-usage-if-no-simulation-snapshot-present-does-this-work">Halos only usage (if no simulation snapshot present) - Does this work?)</a></li>
@@ -113,10 +119,7 @@
 <li><a class="reference internal" href="#now-convert-to-tipsy-if-serial-openmp-ahf-or-after-above-file-concatenations-made-if-mpi">Now convert to tipsy If serial/OpenMP AHF (or after above file concatenations made if MPI):</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#generating-catalogues-on-the-fly-with-pynbody">Generating catalogues on the fly with pynbody</a><ul>
-<li><a class="reference internal" href="#installing-ahfstep-for-pynbody-compatibility">Installing AHFstep for pynbody compatibility</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#generating-catalogues-on-the-fly-with-pynbody">Generating catalogues on the fly with pynbody</a></li>
 </ul>
 </li>
 </ul>
@@ -162,25 +165,73 @@
       
   <div class="section" id="halos-in-pynbody">
 <span id="halo-tutorial"></span><h1>Halos in Pynbody<a class="headerlink" href="#halos-in-pynbody" title="Permalink to this headline">¶</a></h1>
-<p><cite>Pynbody</cite> includes functionality to deal with &#8220;halos&#8221; in
-simulations. A <a class="reference internal" href="../convenience.html#pynbody.halo.Halo" title="pynbody.halo.Halo"><tt class="xref py py-class docutils literal"><span class="pre">Halo</span></tt></a> is essentially an object
-that holds information about the particle IDs and other properties
-about a given halo, and a <a class="reference internal" href="../convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">HaloCatalogue</span></tt></a> is an
-object which allows one to easily access the information about all the
-halos in a given snapshot.</p>
-<p>We currently support halo data from the Amiga Halo Finder (AHF)
-(<a class="reference internal" href="../convenience.html#pynbody.halo.AHFCatalogue" title="pynbody.halo.AHFCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">AHFCatalogue</span></tt></a> class), the SKID halo finder
-(<a class="reference internal" href="../convenience.html#pynbody.halo.GrpCatalogue" title="pynbody.halo.GrpCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">GrpCatalogue</span></tt></a> class) and the SubFind halo finder
-(<a class="reference internal" href="../convenience.html#pynbody.halo.SubfindCatalogue" title="pynbody.halo.SubfindCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">SubfindCatalogue</span></tt></a>). The
-<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> class provides a convenience
-function <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><tt class="xref py py-func docutils literal"><span class="pre">halos()</span></tt></a>, which tries to
-automatically determine whether halo data for the given output exists
-on disk already, and if so attempts to load the appropriate halo
-catalogue.</p>
-<p>This tutorial will try to demonstrate some of the basic functionality
-of the halo catalogue implementation. If you are not familiar with
+<p>Finding the groups of particles that represent galaxies is the key first
+step of simulation analysis.  There are several public group finders
+available today that find these groups of particles.
+<cite>Pynbody</cite> includes interfaces to several commonly used group finders.</p>
+<p>Groups that are virialized are called &#8220;halos&#8221;,
+so groups are available in <cite>pynbody</cite> using the
+<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><tt class="xref py py-class docutils literal"><span class="pre">halos</span></tt></a> function on a
+simulation object (<cite>SimSnap</cite>).  When <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><tt class="xref py py-class docutils literal"><span class="pre">halos</span></tt></a>
+is called, <cite>pynbody</cite> creates
+a <a class="reference internal" href="../convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">HaloCatalogue</span></tt></a> that consists of
+<a class="reference internal" href="../convenience.html#pynbody.halo.Halo" title="pynbody.halo.Halo"><tt class="xref py py-class docutils literal"><span class="pre">Halo</span></tt></a> objects.
+The <cite>Halo</cite> object holds information about the particle IDs and other properties
+about a given halo.  A <a class="reference internal" href="../convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">HaloCatalogue</span></tt></a> is an
+object is a compilation of all the <a href="#id1"><span class="problematic" id="id2">`</span></a>Halo`s in a given snapshot.</p>
+<p><cite>Pynbody</cite> fully supports the
+<a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder (AHF)</a>
+(<a class="reference internal" href="../convenience.html#pynbody.halo.AHFCatalogue" title="pynbody.halo.AHFCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">AHFCatalogue</span></tt></a>) and
+<cite>Rockstar &lt;https://bitbucket.org/pbehroozi/rockstar-galaxies&gt;</cite> (<a class="reference internal" href="../convenience.html#pynbody.halo.RockstarCatalogue" title="pynbody.halo.RockstarCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">RockstarCatalogue</span></tt></a>).
+<cite>Pynbody</cite> can read data files from SKID
+(<a class="reference internal" href="../convenience.html#pynbody.halo.GrpCatalogue" title="pynbody.halo.GrpCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">GrpCatalogue</span></tt></a> class) and SubFind
+(<a class="reference internal" href="../convenience.html#pynbody.halo.SubfindCatalogue" title="pynbody.halo.SubfindCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">SubfindCatalogue</span></tt></a>).</p>
+<p>The <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><tt class="xref py py-func docutils literal"><span class="pre">halos()</span></tt></a> function in
+<a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>
+automatically determines whether halo data exists
+on disk already for <cite>pynbody</cite> to read, or if it should run a halo
+finder to create halo data.</p>
+<p>This tutorial will show you how to setup and configure pynbody to best use
+the group finder functionality built into pynbody. If you are not familiar with
 <cite>Pynbody</cite> in general, it is recommended that you first have a look at
 the <a class="reference internal" href="snapshot_manipulation.html#snapshot-manipulation"><em>Basic snapshot manipulation</em></a> tutorial.</p>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>To get the full benefit of analyzing halos using <cite>pynbody</cite>, it is necessary
+to install either the AHF or Rockstar halo finder.</p>
+<div class="section" id="rockstar">
+<h3>Rockstar<a class="headerlink" href="#rockstar" title="Permalink to this headline">¶</a></h3>
+<p>To install Rockstar, grab the code from Peter Behroozi&#8217;s bitbucket
+repository, make it, and copy it into your <cite>$PATH</cite></p>
+<div class="highlight-python"><pre>&gt; git clone https://bitbucket.org/pbehroozi/rockstar-galaxies.git
+&gt; cd rockstar-galaxies; make
+&gt; cp rockstar-galaxies ~/bin/</pre>
+</div>
+</div>
+<div class="section" id="ahf">
+<h3>AHF<a class="headerlink" href="#ahf" title="Permalink to this headline">¶</a></h3>
+<p>To install AHF, take the most recent version from Alexander Knebe&#8217;s AHF
+page, uncompress it</p>
+<div class="highlight-python"><pre>&gt; wget http://popia.ft.uam.es/AHF/files/ahf-v1.0-084.tgz
+&gt; tar zxf ahf-v1.0-084.tgz; cd ahf-v1.0-084</pre>
+</div>
+<p>Edit Makefile.config appropriate for your code, make AHF,
+and copy it into your $PATH.</p>
+<div class="highlight-python"><pre>&gt; make AHF
+&gt; cp AHF-v1.0-084 ~/bin/</pre>
+</div>
+<p>Now <cite>pynbody</cite> will use one of these halo finders to great group files
+you can use to analyze your simulations.</p>
+</div>
+<div class="section" id="id3">
+<h3>Configuration<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>As described in <a class="reference internal" href="configuration.html#configuration"><em>Configuring pynbody</em></a>, you can tell pynbody which group
+finder you prefer in your configuration file, ~/.pynbodyrc.  In the <cite>general</cite>
+section, you can arrange the priority of halo finders to use as you like</p>
+<div class="highlight-python"><pre>halo-class-priority:  RockstarCatalogue, AHFCatalogue, GrpCatalogue</pre>
+</div>
+</div>
+</div>
 <div class="section" id="working-with-halos-and-catalogues">
 <h2>Working with Halos and Catalogues<a class="headerlink" href="#working-with-halos-and-catalogues" title="Permalink to this headline">¶</a></h2>
 <p>We will use the AHF catalogue here since that is the one that is
@@ -200,7 +251,15 @@ available halo catalogue:</p>
 <span class="go">AHFCatalogue: loading particles... halos... done!</span>
 </pre></div>
 </div>
-<p><cite>h</cite> is now the AHF halo catalogue. We can easily retrieve some basic
+<p><cite>h</cite> is now the AHF halo catalogue.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If the halo finders have to run to find the groups, they may take
+some time.  AHF typically takes 5 minutes for a million particle
+simulation while Rockstar takes 5-10 minutes running on a single
+processor.</p>
+</div>
+<p>We can easily retrieve some basic
 information, like the total number of halos in this catalogue:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [5]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 <span class="go"> Out[5]: 1411</span>
@@ -325,13 +384,6 @@ any other <a class="reference internal" href="../essentials.html#pynbody.snapsho
 
 <span class="gp">In [10]: </span><span class="n">h1</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;1e12 Msol&#39;</span><span class="p">)</span>
 <span class="go">TipsySnap: loading data from main file</span>
-<span class="go">SimSnap: converting phi units from 2.98e+06 km**2 a**-1 s**-2 to km**2 s**-2</span>
-<span class="go">SimSnap: converting pos units from 6.85e+04 kpc a to kpc</span>
-<span class="go">SimSnap: converting eps units from 6.85e+04 kpc a to kpc</span>
-<span class="go">SimSnap: converting vel units from 1.73e+03 km a s**-1 to km s**-1</span>
-<span class="go">SimSnap: converting mass units from 4.75e+16 Msol to Msol</span>
-<span class="go">SimSnap: converting tform units from 3.96e+01 s kpc km**-1 to kpc s km**-1</span>
-<span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
 <span class="gr">Out[10]: </span><span class="n">SimArray</span><span class="p">(</span><span class="mf">1.696392414687047</span><span class="p">,</span> <span class="s">&#39;1.00e+12 Msol&#39;</span><span class="p">)</span>
 
 <span class="gp">In [11]: </span><span class="n">h1</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
@@ -347,17 +399,15 @@ a given halo and analyze some of its properties. Since halos are just
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
 <span class="go">Finding halo velocity center...</span>
 <span class="go">vcen= [   1.6295435   -58.21684952 -254.25581364]</span>
-<span class="gr">Out[13]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericTranslate</span> <span class="n">at</span> <span class="mh">0x11608ef50</span><span class="o">&gt;</span>
+<span class="gr">Out[13]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericTranslate</span> <span class="n">at</span> <span class="mh">0x1163a13d0</span><span class="o">&gt;</span>
 
 <span class="gp">In [14]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;500 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
-<span class="go">SimSnap: deriving array rho</span>
 <span class="go">Building 4 trees with leafsize=16</span>
-<span class="go">Tree build done in  1.08 s</span>
+<span class="go">Tree build done in  1.05 s</span>
 <span class="go">Calculating SPH density</span>
-<span class="go">SimSnap: deriving array smooth</span>
 <span class="go">Smoothing with 64 nearest neighbours</span>
-<span class="go">Smoothing done in   5.5s</span>
-<span class="go">Density calculation done in  2.18 s</span>
+<span class="go">Smoothing done in  6.04s</span>
+<span class="go">Density calculation done in  2.51 s</span>
 <span class="go">Rendering image on 4 threads...</span>
 </pre></div>
 </div>
@@ -480,24 +530,6 @@ file into Halo objects for each halo that are IndexedSubSnaps. Each
 Halo has slightly extended properties that include all the values from
 the AHF_halos file. The AHFCatalogue also loads the substructure file
 into the [&#8216;children&#8217;] property.</p>
-<div class="section" id="installing-ahfstep-for-pynbody-compatibility">
-<h3>Installing AHFstep for pynbody compatibility<a class="headerlink" href="#installing-ahfstep-for-pynbody-compatibility" title="Permalink to this headline">¶</a></h3>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">These are quite old instructions and may be out of date.</p>
-</div>
-<p>From the command prompt:</p>
-<p>&gt;wget <a class="reference external" href="http://popia.ft.uam.es/AHF/files/ahf-v1.0.tgz">http://popia.ft.uam.es/AHF/files/ahf-v1.0.tgz</a></p>
-<p>&gt;tar zxf ahf-v1.0.tgz</p>
-<p>&gt;cd ahf-v1.0</p>
-<p>Edit Makefile.config. For Tipsy, uncomment the DEFINEFLAGS line under MW1.1024g1bwk, g1536, GALFOBS. Possibly switch CC line to use icc (then -fopenmp becomes -openmp) and up the OPTIMIZE line to -O3</p>
-<p>From command prompt:</p>
-<p>&gt;make AHF</p>
-<p>&gt;mkdir ~/bin/</p>
-<p>&gt;cp bin/AHF* ~/bin/</p>
-<p>&gt;export PATH=&#8221;$PATH:${HOME}/bin&#8221;</p>
-<p>It is a good idea to put this last line above into your .bashrc file on Linux or .profile in Mac OS X.</p>
-</div>
 </div>
 </div>
 
