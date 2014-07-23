@@ -50,7 +50,7 @@ available halo catalogue:
 
  In [3]: h = s.halos()
 
-`h` is now the AHF halo catalogue. We can easily retrieve some basic
+`h` is now the halo catalogue. We can easily retrieve some basic
 information, like the total number of halos in this catalogue:
 
 .. ipython::
@@ -60,6 +60,9 @@ information, like the total number of halos in this catalogue:
 The catalogue has halos ordered by number of particles, so the first
 halo for this zoom simulation will be the one we would most likely be
 interested in. So lets see some of its stats: 
+
+.. note:: Group finders keep units as Mpc/h and Msol/h, so be careful when
+ you use these numbers
 
 .. ipython::
 
