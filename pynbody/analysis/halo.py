@@ -8,7 +8,7 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
-from .. import filt, util, config, array,units
+from .. import filt, util, config, array,units, transformation
 from . import cosmology
 import numpy as np
 import math
@@ -117,9 +117,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     return array.SimArray(com,sim['pos'].units)
 
 def virial_radius(sim, cen=None, overden=178, r_max=None) :
-    """
-    
-    Calculate the virial radius of the halo centerd on the given
+    """Calculate the virial radius of the halo centered on the given
     coordinates.
 
     This is here defined by the sphere centerd on cen which contains a
@@ -138,16 +136,15 @@ def virial_radius(sim, cen=None, overden=178, r_max=None) :
     r_min = 0.0
 
     if cen is not None :
-        sim['pos']-=cen
+        tx = transformation.inverse_translate(sim, cen)
+    else :
+        tx = transformation.null(sim)
         
-    # sim["r"] = ((sim["pos"]-cen)**2).sum(axis=1)**(1,2)
-
-    rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
-    target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
-
-    result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
-    if cen is not None :
-        sim['pos']+=cen
+    with tx :
+        rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
+        target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
+        result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=True)
+   
 
     return result
 
@@ -185,18 +182,31 @@ def index_center(sim, **kwargs) :
         raise RuntimeError("Need to supply indices for centering")
     
 
-def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
-    """
-
-    Use stars from a sphere to calculate center of velocity. The size
+def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, move_all=True, **kwargs) :
+    """Use stars from a sphere to calculate center of velocity. The size
     of the sphere is given by the ``cen_size`` keyword and defaults to
     1 kpc.
 
+    **Keyword arguments:**
+
+    *mode*: reserved for future use; currently ignored
+
+    *move_all*: if True (default), move the entire snapshot. Otherwise only move
+    the particles in the halo passed in.
+    
+    *retcen*: if True only return the velocity center without moving the
+     snapshot (default = False)
 
     """
 
     if config['verbose'] :
         print "Finding halo velocity center..."
+
+    if move_all :
+        target = sim.ancestor
+    else :
+        target = sim
+        
     cen = sim.star[filt.Sphere(cen_size)]
     if len(cen)<5 :
         # fall-back to DM
@@ -213,10 +223,12 @@ def vel_center(sim, mode=None, cen_size = "1 kpc", retcen=False, **kwargs) :
     if config['verbose'] :
         print "vcen=",vcen
 
-    if retcen:  return vcen
-    else:  sim.ancestor["vel"]-=vcen
+    if retcen:
+        return vcen
+    else:
+        return transformation.v_translate(target, -vcen)
 
-def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
+def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=True, **kwargs) :
     """
 
     Determine the center of mass of the given particles using the
@@ -248,6 +260,9 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
 
     *vel*: if True, translate velocities so that the velocity of the
     central 1kpc (default) is zeroed. Other values can be passed with cen_size.
+
+    *move_all*: if True (default), move the entire snapshot. Otherwise only move
+    the particles in the halo passed in. 
     """
 
     global config
@@ -263,12 +278,19 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", **kwargs) :
     except KeyError :
         fn = mode
 
-    if retcen:  return fn(sim, **kwargs)
+    if move_all :
+        target = sim.ancestor
+    else :
+        target = sim
+        
+    if retcen:
+        return fn(sim, **kwargs)
     else:
         cen = fn(sim, **kwargs)
-        sim.ancestor["pos"]-=cen
+        tx = transformation.inverse_translate(target, cen)
 
     if vel :
-        #vel_center(sim, cen_size = "1 kpc")
-        vel_center(sim, cen_size=cen_size)
+        velc = vel_center(sim, cen_size=cen_size, retcen=True)
+        tx = transformation.inverse_v_translate(tx, velc)
 
+    return tx

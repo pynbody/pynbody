@@ -43,7 +43,6 @@ def vt(self) :
     """Tangential velocity"""
     return np.sqrt(self['v2']-self['vr']**2)
 
-
 @SimSnap.derived_quantity
 def ke(self) :
     """Specific kinetic energy"""
@@ -82,6 +81,18 @@ def vcxy(self) :
     f = (self['x']*self['vy']-self['y']*self['vx'])/self['rxy']
     f[np.where(f!=f)]=0
     return f
+
+@SimSnap.derived_quantity
+def vphi(self):
+    """Azimuthal velocity (synonym for vcxy)"""
+    return self['vcxy']
+
+@SimSnap.derived_quantity
+def vtheta(self):
+    """Velocity projected to polar direction"""
+    return (np.cos(self['az'])*np.cos(self['theta'])*self['vx'] +
+        np.sin(self['az'])*np.cos(self['theta'])*self['vy'] -
+        np.sin(self['theta'])*self['vy'])
 
 @SimSnap.derived_quantity
 def v_mean(self):
@@ -128,12 +139,12 @@ bands_available = ['u','b','v','r','i','j','h','k','U','B','V','R','I',
 for band in bands_available :
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s,band=b)
     X.__name__ = band+"_mag"
-    X.__doc__ = band+" magnitude from analysis.luminosity.calc_mags"""
+    X.__doc__ = band+" magnitude from analysis.luminosity.calc_mags"
     SimSnap.derived_quantity(X)
 
     X = lambda s, b=str(band): (10**(-0.4*s[b+"_mag"]))*s['rho']/s['mass']
     X.__name__ = band+"_lum_den"
-    X.__doc__ = band+" luminosity density from analysis.luminosity.calc_mags"""
+    X.__doc__ = band+" luminosity density from analysis.luminosity.calc_mags"
     SimSnap.derived_quantity(X)
 
 @SimSnap.derived_quantity

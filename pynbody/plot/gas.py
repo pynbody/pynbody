@@ -58,8 +58,9 @@ def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
     else:
         ylabel=r'log$_{10}$(T/$'+sim.gas['temp'].units.latex()+'$)'
 
-    hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],xlogrange=True,
-           ylogrange=True, xlabel=xlabel, ylabel=ylabel, **kwargs)
+    return hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],
+                  xlogrange=True,ylogrange=True,xlabel=xlabel, 
+                  ylabel=ylabel, **kwargs)
 
 
 def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln', 

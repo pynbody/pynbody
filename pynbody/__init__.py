@@ -175,7 +175,7 @@ config['gravity_calculation_mode'] = config_parser.get('general', 'gravity_calcu
 config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
 
 # Import subpackages
-from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, ramses, grafic, analysis, halo, derived, bridge, gravity, sph, nchilada
+from . import util, filt, array, family, snapshot,  tipsy, gadget, gadgethdf, ramses, grafic, analysis, halo, derived, bridge, gravity, sph, nchilada, transformation
 
 try: 
     from . import plot

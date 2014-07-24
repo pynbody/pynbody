@@ -166,7 +166,7 @@ class PowerSpectrumCAMB(object) :
 
 
 class PowerSpectrumCAMBLive(PowerSpectrumCAMB) :
-    def __init__(self, context, use_context=True, camb_params={}) :
+    def __init__(self, context, use_context=True, camb_params={}, log_interpolation=True) :
         """Run CAMB to get out a power spectrum. The default parameters are in cambtemplate.ini.
         Any of these can be modified by passing the appropriate kwarg."""
 
@@ -205,7 +205,7 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB) :
 
         
 
-        PowerSpectrumCAMB.__init__(self, context, os.path.join(folder_out,"test_matterpower.dat"))
+        PowerSpectrumCAMB.__init__(self, context, os.path.join(folder_out,"test_matterpower.dat"),log_interpolation=log_interpolation)
         
 class BiasedPowerSpectrum(PowerSpectrumCAMB) :
     def __init__(self, bias, pspec) :

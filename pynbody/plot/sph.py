@@ -25,12 +25,9 @@ def sideon_image(sim, *args, **kwargs) :
     """
 
     from ..analysis import angmom
-    if 'center' in kwargs:
-        if kwargs['center']:
-            angmom.sideon(sim)
-    else :
-        angmom.sideon(sim)
-    return image(sim, *args, **kwargs)
+    
+    with angmom.sideon(sim) :
+        return image(sim, *args, **kwargs)
 
 def faceon_image(sim, *args, **kwargs) :
     """
@@ -44,8 +41,9 @@ def faceon_image(sim, *args, **kwargs) :
     """
 
     from ..analysis import angmom
-    angmom.faceon(sim)
-    return image(sim, *args, **kwargs)
+    
+    with angmom.faceon(sim) :
+        return image(sim, *args, **kwargs)
 
 def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
         vector_resolution=40, scale=None, mode = 'quiver', key_x=0.3, key_y=0.9,
@@ -313,7 +311,13 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if units is None :
             units = im.units
        
-        units = "$"+units.latex()+"$"
+        if log :
+            units = r"$\log_{10}\,"+units.latex()+"$"
+        else :
+            if units.latex() is "":
+                units=""
+            else:
+                units = "$"+units.latex()+"$"
 
         if show_cbar:
             if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
