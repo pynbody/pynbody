@@ -4,7 +4,6 @@ include pynbody/sph_to_grid.c
 include pynbody/analysis/cmdlum.npz
 include pynbody/analysis/interpolate.c
 include pynbody/analysis/ionfracs.npz
-include pynbody/analysis/interpolate3d.c
 include pynbody/plot/tollerud2008mw
 include pynbody/kd.h
 include pynbody/smooth.h

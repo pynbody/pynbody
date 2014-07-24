@@ -76,6 +76,8 @@ except AttributeError:
 
 have_openmp = check_for_openmp()
 
+openmp_args = ['-fopenmp'] if have_openmp else ['']
+
 ext_modules = []
 libraries=[ ]
 extra_compile_args = ['-ftree-vectorize',
@@ -161,7 +163,9 @@ if build_cython :
 
     interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
                                   sources = ['pynbody/analysis/interpolate3d.pyx'],
-                                  include_dirs=incdir)
+                                  include_dirs=incdir, 
+                                  extra_compile_args=openmp_args,
+                                  extra_link_args=openmp_args)
 
                             
 
@@ -192,7 +196,9 @@ else :
                          include_dirs=incdir)
     interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
                                   sources = ['pynbody/analysis/interpolate3d.c'],
-                                  include_dirs=incdir)
+                                  include_dirs=incdir,
+                                  extra_compile_args=openmp_args,
+                                  extra_link_args=openmp_args)
     
 
 
