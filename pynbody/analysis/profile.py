@@ -606,6 +606,13 @@ def mass_enc(self):
     return self['mass'].cumsum()
 
 @Profile.profile_property
+def density_enc(self):
+    """
+    Generate the mean enclosed density profile
+    """
+    return self['mass_enc']/((4.*math.pi/3)*self['rbins']**3)
+
+@Profile.profile_property
 def dyntime(self) :
     """The dynamical time of the bin, sqrt(R^3/2GM)."""
     dyntime = (self['rbins']**3/(2*units.G*self['mass_enc']))**(1,2)
