@@ -1,6 +1,10 @@
 cimport numpy as np
 cimport cython
 import numpy as np
+
+import logging
+logger = logging.getLogger('pynbody.analysis._com')
+
         
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -15,11 +19,13 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
     cdef int npart_all = len(pos)
     cdef float r = 0    
     cdef float tot_mass=0
-    cdef np.ndarray[np.float64_t, ndim=1] com = np.zeros(3)
+    cdef np.ndarray[np.float64_t, ndim=1] com = pos.mean(axis=0)
     cdef np.ndarray[np.float64_t, ndim=1] com_x = np.zeros(3)
     cdef int i
     cdef int iternum=0
     cdef float current_rmax = np.inf
+
+    logger.info("Initial rough COM=%s",com_x)
     
     while npart>min_particles :
         with nogil:
@@ -32,6 +38,8 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
                     com[2]+=(pos[i,2]-com_x[2])*mass[i]
                     tot_mass+=mass[i]
                     npart+=1
+        if npart==0:
+            return com_x
 
         # divide out total mass and shift
         com/=tot_mass
