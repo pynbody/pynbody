@@ -9,7 +9,7 @@ Functions for dealing with and manipulating halos in simulations.
 """
 
 from .. import filt, util, config, array,units, transformation
-from . import cosmology, _com
+from . import cosmology, _com, profile
 import numpy as np
 import math
 import logging
@@ -86,7 +86,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
     mass = np.asarray(sim['mass'],dtype='double')
     pos = np.asarray(sim['pos'],dtype='double')
 
-    logger.info("Initial rough COM=%s",pos.mean(axis=0))
+    
     com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r)
     logger.info("Final COM=%s",com)
     
@@ -115,13 +115,25 @@ def virial_radius(sim, cen=None, overden=178, r_max=None) :
         tx = transformation.inverse_translate(sim, cen)
     else :
         tx = transformation.null(sim)
-        
+
+    target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
+    logger.info("target_rho=%s",target_rho)
+    
     with tx :
-        rho = lambda r : sim["mass"][np.where(sim["r"]<r)].sum()/(4.*math.pi*(r**3)/3)
-        target_rho = overden * sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0+sim.properties["z"])**3
-        logger.info("target_rho=%s",target_rho)
+        sim = sim[filt.Sphere(r_max)]
+        with sim.immediate_mode :
+            mass_ar = np.asarray(sim['mass'])
+            r_ar = np.asarray(sim['r'])
+
+        """ numexpr alternative - not much faster
+        def rho(r) :
+            r_ar; mass_ar; # just to get these into the local namespace
+            return ne.evaluate("sum((r_ar<r)*mass_ar)")/(4.*math.pi*(r**3)/3)
+        """
+
+        rho = lambda r : np.dot(mass_ar,r_ar<r)/(4.*math.pi*(r**3)/3)
         result = util.bisect(r_min, r_max, lambda r : target_rho-rho(r), epsilon=0, eta=1.e-3*target_rho, verbose=False)
-   
+
 
     return result
 
