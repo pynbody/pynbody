@@ -603,11 +603,7 @@ def mass_enc(self):
     """
     Generate the enclosed mass profile
     """
-    m_enc = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
-    m_enc.sim = self.sim
-    for i in range(self.nbins):
-        m_enc[i] = self['mass'].in_units(self.sim['mass'].units)[:i].sum()
-    return m_enc
+    return self['mass'].cumsum()
 
 @Profile.profile_property
 def dyntime(self) :
