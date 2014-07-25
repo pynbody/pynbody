@@ -19,8 +19,8 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
     cdef int npart_all = len(pos)
     cdef float r = 0    
     cdef float tot_mass=0
-    cdef np.ndarray[np.float64_t, ndim=1] com = pos.mean(axis=0)
-    cdef np.ndarray[np.float64_t, ndim=1] com_x = np.zeros(3)
+    cdef np.ndarray[np.float64_t, ndim=1] com = np.zeros(3)
+    cdef np.ndarray[np.float64_t, ndim=1] com_x = pos.mean(axis=0) 
     cdef int i
     cdef int iternum=0
     cdef float current_rmax = np.inf

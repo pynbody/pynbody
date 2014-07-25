@@ -88,7 +88,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor = 0.7, min_particles = 100, 
 
     
     com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r)
-    logger.info("Final COM=%s",com)
+    logger.info("Final SSC=%s",com)
     
     return array.SimArray(com,sim['pos'].units)
 
