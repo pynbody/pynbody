@@ -175,44 +175,8 @@ class LoadControl(object) :
     def _scan_for_next_stop(ids, offset_start, id_maximum) :
         from . import scan
         return scan.scan_for_next_stop(ids, offset_start, id_maximum)
-    
-        if len(ids)==0 :
-            return 0
-        if ids[-1]<=id_maximum :
-            return len(ids)
-        if ids[0]>id_maximum :
-            return 0
-     
-       
-        code = """
-        int left, right, mid, iter=0;
-        left = offset_start;
-        right = Nids[0]-1;
-        mid = (left+right)/2;
-        while((ids[mid-1]>id_maximum) || (ids[mid]<=id_maximum)) {
-            if (ids[mid]<=id_maximum)
-               left = mid;
-            else
-               right = mid-1;
-            mid = (left+right+1)/2;
-            iter+=1;
-            if(iter>1000) break;           
-        }
-        return_val = mid;
-        if(iter>1000) return_val=-1;
-        """
-
-        import scipy, scipy.weave
-        mid = scipy.weave.inline(code, ['ids', 'offset_start', 'id_maximum'])
-        assert mid!=-1
-
-    
-        return mid
-    
-        
 
     def generate_family_id_lists(self) :
-
         if self._ids is None :
             self._family_ids = None
             return
