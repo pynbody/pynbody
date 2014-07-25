@@ -1,8 +1,9 @@
-cimport numpy as npc
 import numpy as np
+cimport numpy as npc
+from cython cimport integral
 
-def bridge(npc.ndarray[npc.int64_t, ndim=1] iord_to,
-            npc.ndarray[npc.int64_t, ndim=1] iord_from) :
+def bridge(npc.ndarray[integral, ndim=1] iord_to,
+            npc.ndarray[integral, ndim=1] iord_from) :
     
     cdef npc.ndarray[npc.int64_t, ndim=1] output_index
     cdef int i=0, i_to=0, j=0
@@ -21,4 +22,3 @@ def bridge(npc.ndarray[npc.int64_t, ndim=1] iord_to,
             j+=1
             
     return output_index[:j]
-        
