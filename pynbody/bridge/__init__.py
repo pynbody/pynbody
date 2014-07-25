@@ -165,7 +165,7 @@ def bridge_factory(a, b) :
     """Create a bridge connecting the two specified snapshots. For
     more information see :ref:`bridge-tutorial`."""
     
-    from . import tipsy, gadget, ramses, nchilada, gadgethdf
+    from ..snapshot import tipsy, gadget, ramses, nchilada, gadgethdf
     a_top = a.ancestor
     b_top = b.ancestor
 
