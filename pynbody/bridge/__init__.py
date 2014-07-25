@@ -174,7 +174,10 @@ def bridge_factory(a, b) :
 
     
     if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NChiladaSnap)) :
-        return OrderBridge(a_top, b_top, monotonic=True)
+        if "iord" in a_top.loadable_keys() :
+            return OrderBridge(a_top, b_top, monotonic=True)
+        else :
+            return Bridge(a_top, b_top)
     elif isinstance(a_top, gadget.GadgetSnap) or isinstance(a_top, gadgethdf.GadgetHDFSnap) :
         return OrderBridge(a_top, b_top, monotonic=False)
     elif isinstance(a_top, ramses.RamsesSnap) :
