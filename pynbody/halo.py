@@ -75,10 +75,8 @@ class HaloCatalogue(object):
         return len(self._halos)
 
     def __iter__(self) : 
-        if not self.lazy_off :
-            return self._halo_generator()
-        else : 
-            return iter(self._halos.values())
+        return self._halo_generator()
+
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -99,8 +97,7 @@ class HaloCatalogue(object):
                 break
 
     def is_subhalo(self, childid, parentid):
-        """
-        Checks whether the specified 'childid' halo is a subhalo 
+        """Checks whether the specified 'childid' halo is a subhalo 
         of 'parentid' halo. 
         """
         if (childid in self._halos[parentid].properties['children']):
@@ -113,6 +110,17 @@ class HaloCatalogue(object):
             return True
         else:
             return False
+        
+    def __contains__(self, haloid):
+        return self.contains(haloid)
+    
+    def get_group_array(self):
+        """Return an array with an integer for each particle in the simulation
+        indicating which halo that particle is associated with. If there are multiple
+        levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
+        the smallest subhalo."""
+        raise NotImplementedError
+    
 
     @staticmethod
     def _can_load(self):
@@ -218,8 +226,12 @@ class AHFCatalogue(HaloCatalogue):
         Creates a 'grp' array which labels each particle according to
         its parent halo. 
         """
-        for halo in self._halos.values(): 
-            halo[name] = np.repeat([halo._halo_id], len(halo))
+        self.base[name] = self.get_group_array()
+            
+    def get_group_array(self):
+        ar = np.zeros(len(self.base),dtype=int)
+        for halo in self._halos.values() :
+            ar[halo.get_index_list(self.base)] = halo._halo_id
 
     def _setup_children(self):
         """
@@ -441,13 +453,13 @@ class AHFCatalogue(HaloCatalogue):
         nhalos = halos._nhalos
         for ii in xrange(nhalos):
             h = halos[ii+1].properties  # halo index starts with 1 not 0
-##  'Contaminated'? means multiple dark matter particle masses in halo)"
+            ##  'Contaminated'? means multiple dark matter particle masses in halo)"
             icontam = np.where(halos[ii+1].dark['mass'] > mindarkmass)
             if (len(icontam[0]) > 0):
                 contam = "contam"
             else:
                 contam = "clean"
-## may want to add implement satellite test and false central breakup test.
+            ## may want to add implement satellite test and false central breakup test.
 
             n_dark = h['npart'] - h['n_gas'] - h['n_star']
             M_dark = h['mass'] - h['M_gas'] - h['M_star']
@@ -460,7 +472,7 @@ class AHFCatalogue(HaloCatalogue):
             outstring += str(M_dark/hubble)+ss
             outstring += str(h['Vmax'])+ss+str(h['Rmax']/hubble)+ss
             outstring += str(h['sigV'])+ss
-        ## pos: convert kpc/h to mpc (no h).
+            ## pos: convert kpc/h to mpc (no h).
             outstring += str(h['Xc']/hubble/1000.)+ss
             outstring += str(h['Yc']/hubble/1000.)+ss
             outstring += str(h['Zc']/hubble/1000.)+ss
@@ -661,6 +673,8 @@ class GrpCatalogue(HaloCatalogue) :
         self._sorted = np.argsort(self.base[self._array],kind='mergesort') # mergesort for stability
         self._boundaries = util.find_boundaries(self.base[self._array][self._sorted])
         
+    def get_group_array(self) :
+        return self.base[self._array]
 
     def _get_halo(self, i):
         if self.base is None:

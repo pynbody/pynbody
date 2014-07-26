@@ -56,7 +56,7 @@ class Bridge(object) :
             raise RuntimeError, "Stale reference to start or endpoint"
         return start, end
 
-    def match_catalog(self, min_index = 1, max_index = 30) :
+    def match_catalog(self, min_index=1, max_index=30, threshold=0.5):
         """Given a Halos object groups_1, a Halos object groups_2 and a
         Bridge object connecting the two parent simulations, this identifies
         the most likely ID's in groups_2 of the objects specified in groups_1.
@@ -71,33 +71,36 @@ class Bridge(object) :
 
         If b links snapshot f1 (high redshift) to f2 (low redshift) and we set
 
-        cat = b.match_catalog()
+          cat = b.match_catalog()
 
         then cat is now a numpy index array such that f1.halos()[i] is the
         major progenitor for f2.halos()[cat[i]], assuming cat[i] is positive.
 
         cat[0:min_index+1] is set to -2. Halos which cannot be matched because
-        they have too few particles give the result -1.
+        they have too few particles in common give the result -1. This is determined
+        by the given threshold fraction of particles in common (by default, 50%).
 
         """
         start, end = self._get_ends()
-
         groups_1 = start.halos()
         groups_2 = end.halos()
 
-        mass = np.zeros((max_index+1-min_index,max_index+1-min_index),dtype=np.float128)
-        for i in xrange(min_index,max_index+1) :
-            tot_mass = len(groups_1[i])
+        restriction_end = self(self(end)).get_index_list(end.ancestor)
+        restriction_start = self(self(start)).get_index_list(start.ancestor)
 
-            if tot_mass!=0 :
-                for j in xrange(min_index,max_index+1) :
-                    if len(groups_2[j])!=0 :
-                        mass[i-min_index,j-min_index] = float(len(self(groups_1[i]).intersect(groups_2[j])))/math.sqrt(tot_mass*len(groups_2[j]))
+        assert len(restriction_end)==len(restriction_start), "Internal consistency failure in match_catalog2"
+        g1 = groups_1.get_group_array()[restriction_start]
+        g2 = groups_2.get_group_array()[restriction_end]
+
+        mass = _bridge.match(g1,g2,min_index,max_index)
 
         identification = np.argmax(mass,axis=1)+min_index
-        identification[np.where(np.sum(mass,axis=1)==0)[0]]=-1
+        frac_shared = np.array(mass[np.arange(len(identification)),identification-min_index],dtype=float)/mass.sum(axis=1)
+
+        identification[(frac_shared!=frac_shared) | (frac_shared<threshold)] = -1
 
         return np.concatenate(([-2]*min_index,identification))
+
 
 
 class OrderBridge(Bridge) :
@@ -151,9 +154,9 @@ class OrderBridge(Bridge) :
             iord_map_from = np.argsort(iord_from)
             iord_to = iord_to[iord_map_to]
             iord_from = iord_from[iord_map_from]
-            
+
         output_index = _bridge.bridge(iord_to, iord_from)
-        
+
         if not self.monotonic :
             output_index = iord_map_to[output_index[np.argsort(iord_map_from)]]
 
@@ -164,7 +167,7 @@ class OrderBridge(Bridge) :
 def bridge_factory(a, b) :
     """Create a bridge connecting the two specified snapshots. For
     more information see :ref:`bridge-tutorial`."""
-    
+
     from ..snapshot import tipsy, gadget, ramses, nchilada, gadgethdf
     a_top = a.ancestor
     b_top = b.ancestor
@@ -172,7 +175,7 @@ def bridge_factory(a, b) :
     if type(a_top) is not type(b_top) :
         raise RuntimeError, "Don't know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately."
 
-    
+
     if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NChiladaSnap)) :
         if "iord" in a_top.loadable_keys() :
             return OrderBridge(a_top, b_top, monotonic=True)
