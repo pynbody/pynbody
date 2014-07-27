@@ -74,7 +74,7 @@ try :
 except AttributeError:
     cmdclass['build_py'] =  distutils.command.build_py.build_py
 
-have_openmp = check_for_openmp() 
+have_openmp = check_for_openmp()
 
 if have_openmp :
     openmp_module_source = "openmp/openmp_real"
@@ -152,8 +152,8 @@ ext_modules+=[kdmain,gravity,chunkscan,sph_render,halo_pyx,bridge_pyx, util_pyx,
 
 if not build_cython :
     for mod in ext_modules :
-        mod.sources = map(lambda source: source.replace(".pyx",".c"),
-                          mod.sources)
+        mod.sources = list(map(lambda source: source.replace(".pyx",".c"),
+                           mod.sources))
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
