@@ -112,7 +112,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
         p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
                     r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
     elif mode == 'stream' : 
-        Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density,edgecolor=edgecolor)
+        Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density)
 
     return im
 
