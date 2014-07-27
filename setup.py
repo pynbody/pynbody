@@ -38,14 +38,14 @@ def check_for_openmp():
         "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
         "}"
         )
-        
+
     try:
         with open(os.devnull, 'w') as fnull:
             exit_code = subprocess.call([compiler, '-fopenmp', filename],
                                         stdout=fnull, stderr=fnull)
     except OSError :
         exit_code = 1
-        
+
     # Clean up
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
@@ -58,7 +58,7 @@ def check_for_openmp():
 try :
     import cython
     # check that cython version is > 0.20
-    if float(cython.__version__.partition(".")[2]) < 20 : 
+    if float(cython.__version__.partition(".")[2]) < 20 :
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
@@ -69,14 +69,20 @@ except:
 
 import distutils.command.build_py
 
-try :    
+try :
     cmdclass['build_py'] =  distutils.command.build_py.build_py_2to3
 except AttributeError:
     cmdclass['build_py'] =  distutils.command.build_py.build_py
 
-have_openmp = check_for_openmp()
+have_openmp = check_for_openmp() 
 
-openmp_args = ['-fopenmp'] if have_openmp else ['']
+if have_openmp :
+    openmp_module_source = "openmp/openmp_real"
+    openmp_args = ['-fopenmp']
+else :
+    openmp_module_source = "openmp/openmp_null"
+    openmp_args = ['']
+
 
 ext_modules = []
 libraries=[ ]
@@ -93,12 +99,9 @@ extra_compile_args = ['-ftree-vectorize',
 extra_link_args = []
 
 incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
-incdir.append('pynbody/pkdgrav2')
-incdir.append('pynbody/pkdgrav2/mdl2/null')
 
-#os.path.join(get_python_lib(plat_specific=1), 'numpy/core/include')
 kdmain = Extension('pynbody/sph/kdmain',
-                   sources = ['pynbody/sph/kdmain.c', 'pynbody/sph/kd.c', 
+                   sources = ['pynbody/sph/kdmain.c', 'pynbody/sph/kd.c',
                               'pynbody/sph/smooth.c'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
@@ -106,106 +109,51 @@ kdmain = Extension('pynbody/sph/kdmain',
                    extra_compile_args=extra_compile_args,
                    extra_link_args=extra_link_args)
 
-gravity = Extension('pynbody/pkdgrav',
-                    sources = ['pynbody/gravity/pkdgravlink.c',
-                               'pynbody/pkdgrav2/cl.c',
-                               'pynbody/pkdgrav2/cosmo.c',
-                               'pynbody/pkdgrav2/ewald.c',
-                               'pynbody/pkdgrav2/fio.c',
-                               'pynbody/pkdgrav2/grav2.c',
-                               'pynbody/pkdgrav2/ilc.c',
-                               'pynbody/pkdgrav2/ilp.c',
-                               'pynbody/pkdgrav2/listcomp.c',
-                               'pynbody/pkdgrav2/mdl2/null/mdl.c',
-                               'pynbody/pkdgrav2/moments.c',
-                               'pynbody/pkdgrav2/outtype.c',
-                               'pynbody/pkdgrav2/pkd.c',
-                               'pynbody/pkdgrav2/psd.c',
-                               'pynbody/pkdgrav2/romberg.c',
-                               'pynbody/pkdgrav2/smooth.c',
-                               'pynbody/pkdgrav2/smoothfcn.c',
-                               'pynbody/pkdgrav2/rbtree.c',
-                               'pynbody/pkdgrav2/tree.c',
-                               'pynbody/pkdgrav2/walk2.c'],
-                   include_dirs=incdir,
-                   undef_macros=['DEBUG','INSTRUMENT'],
-                   define_macros=[('HAVE_CONFIG_H',None),
-                                  ('__USE_BSD',None)],
-                   libraries=libraries,
-                   extra_compile_args=extra_compile_args,
-                   extra_link_args=extra_link_args)
+gravity = Extension('pynbody.gravity._gravity',
+                        sources = ["pynbody/gravity/_gravity.pyx"],
+                        include_dirs=incdir,
+                        extra_compile_args=openmp_args,
+                        extra_link_args=openmp_args)
 
-ext_modules += [kdmain]
-#ext_modules += [gravity]
+omp_commands = Extension('pynbody.openmp',
+                        sources = ["pynbody/"+openmp_module_source+".pyx"],
+                        include_dirs=incdir,
+                        extra_compile_args=openmp_args,
+                        extra_link_args=openmp_args)
 
-if build_cython : 
-    gravity_omp = Extension('pynbody.grav_omp',
-                            sources = ["pynbody/gravity/direct_omp.pyx"],
-                            include_dirs=incdir,
-                            extra_compile_args=['-fopenmp'],
-                            extra_link_args=['-fopenmp'])
-    chunkscan = Extension('pynbody.chunk.scan',
-                      sources=['pynbody/chunk/scan.pyx'],
-                      include_dirs=incdir)
-    sph_render = Extension('pynbody.sph._render',
-                      sources=['pynbody/sph/_render.pyx'],
-                      include_dirs=incdir)
-    halo_pyx = Extension('pynbody.analysis._com',
-                         sources=['pynbody/analysis/_com.pyx'],
-                         include_dirs=incdir)
-    bridge_pyx = Extension('pynbody.bridge._bridge',
-                         sources=['pynbody/bridge/_bridge.pyx'],
-                         include_dirs=incdir)
+chunkscan = Extension('pynbody.chunk.scan',
+                  sources=['pynbody/chunk/scan.pyx'],
+                  include_dirs=incdir)
 
-    util_pyx = Extension('pynbody._util',
-                         sources=['pynbody/_util.pyx'],
-                         include_dirs=incdir)
+sph_render = Extension('pynbody.sph._render',
+                  sources=['pynbody/sph/_render.pyx'],
+                  include_dirs=incdir)
 
-    interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
-                                  sources = ['pynbody/analysis/interpolate3d.pyx'],
-                                  include_dirs=incdir, 
-                                  extra_compile_args=openmp_args,
-                                  extra_link_args=openmp_args)
+halo_pyx = Extension('pynbody.analysis._com',
+                     sources=['pynbody/analysis/_com.pyx'],
+                     include_dirs=incdir)
 
-                            
+bridge_pyx = Extension('pynbody.bridge._bridge',
+                     sources=['pynbody/bridge/_bridge.pyx'],
+                     include_dirs=incdir)
 
-else :
-    gravity_omp = Extension('pynbody.grav_omp',
-                            sources = ["pynbody/gravity/direct_omp.c"],
-                            include_dirs=incdir,
-                            extra_compile_args=['-fopenmp'],
-                            extra_link_args=['-fopenmp'])
-    chunkscan = Extension('pynbody.chunk.scan',
-                          sources=['pynbody/chunk/scan.c'],
-                          include_dirs=incdir)
+util_pyx = Extension('pynbody._util',
+                     sources=['pynbody/_util.pyx'],
+                     include_dirs=incdir)
 
-    sph_render = Extension('pynbody.sph._render',
-                      sources=['pynbody/sph/_render.c'],
-                      include_dirs=incdir)
-
-    halo_pyx = Extension('pynbody.analysis._com',
-                         sources=['pynbody/analysis/_com.c'],
-                         include_dirs=incdir)
-
-    bridge_pyx = Extension('pynbody.bridge._bridge',
-                         sources=['pynbody/bridge/_bridge.c'],
-                         include_dirs=incdir)
-
-    util_pyx = Extension('pynbody._util',
-                         sources=['pynbody/_util.c'],
-                         include_dirs=incdir)
-    interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d', 
-                                  sources = ['pynbody/analysis/interpolate3d.c'],
-                                  include_dirs=incdir,
-                                  extra_compile_args=openmp_args,
-                                  extra_link_args=openmp_args)
-    
+interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d',
+                              sources = ['pynbody/analysis/interpolate3d.pyx'],
+                              include_dirs=incdir,
+                              extra_compile_args=openmp_args,
+                              extra_link_args=openmp_args)
 
 
-if have_openmp :
-    ext_modules.append(gravity_omp)
-    
-ext_modules+=[chunkscan,sph_render,halo_pyx,bridge_pyx, util_pyx,interpolate3d_pyx]
+ext_modules+=[kdmain,gravity,chunkscan,sph_render,halo_pyx,bridge_pyx, util_pyx,interpolate3d_pyx, omp_commands]
+
+if not build_cython :
+    for mod in ext_modules :
+        mod.sources = map(lambda source: source.replace(".pyx",".c"),
+                          mod.sources)
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
@@ -215,7 +163,7 @@ dist = setup(name = 'pynbody',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
-             packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 
+             packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules',
                          'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
                          'pynbody/snapshot', 'pynbody/bridge' ],
 # treat weave .c files like data files since weave takes
@@ -242,9 +190,8 @@ dist = setup(name = 'pynbody',
                             "Programming Language :: Python :: 2",
                             "Topic :: Scientific/Engineering :: Astronomy",
                             "Topic :: Scientific/Engineering :: Visualization"]
-                            
+
       )
 
 #if dist.have_run.get('install'):
 #    install = dist.get_command_obj('install')
-
