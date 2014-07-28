@@ -488,3 +488,224 @@ def do_properties(sim):
         sim.properties[s] = atr[s]
 
 
+# From the Tipsysnap example we replicate the various metalicity 
+#
+# calculate the number fraction YH, YHe as a function of metalicity. Cosmic 
+# production rate of helium relative to metals (in mass)  
+# delta Y/delta Z = 2.1 and primordial He Yp = 0.236 (Jimenez et al. 2003, 
+# Science 299, 5612. 
+#  piecewise linear
+#  Y = Yp + dY/dZ*ZMetal up to ZMetal = 0.1, then linear decrease to 0 at Z=1)  
+
+#  SUM_Metal = sum(ni/nH *mi),it is a fixed number for cloudy abundance. 
+#  Massfraction fmetal = Z*SUM_metal/(1 + 4*nHe/nH + Z*SUM_metal) (1)
+#  4*nHe/nH = mHe/mH = fHe/fH 
+#  also fH + fHe + fMetal = 1  (2)
+#  if fHe specified, combining the 2 eq above will solve for 
+#  fH and fMetal 
+        
+def _abundance_estimator(metal) :
+
+    Y_He = ((0.236+2.1*metal)/4.0)*(metal<=0.1)
+    Y_He+= ((-0.446*(metal-0.1)/0.9+0.446)/4.0)*(metal>0.1)
+    Y_H = 1.0-Y_He*4. - metal
+
+    return Y_H, Y_He
+
+@SubFindHDFSnap.derived_quantity
+def HII(sim) :
+    """Number of HII ions per proton mass"""
+    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
+    return Y_H - sim["HI"]
+
+#@SubFindHDFSnap.derived_quantity
+#def HeIII(sim) :
+#    """Number of HeIII ions per proton mass"""
+#    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
+#    return Y_He-sim["HeII"]-sim["HeI"]
+
+#@SubFindHDFSnap.derived_quantity
+#def ne(sim) :
+#    """Number of electrons per proton mass"""
+#    return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
+
+@SubFindHDFSnap.derived_quantity
+def hetot(self) :
+    return self['He']
+
+@SubFindHDFSnap.derived_quantity
+def hydrogen(self) :
+    return self['H']
+
+## Need to use the ionisation fraction calculation here which gives ionisation fraction
+## based on the gas temperature, density and redshift for a CLOUDY table
+
+@SubFindHDFSnap.derived_quantity
+def HI(sim) :
+    """Fraction of Neutral Hydrogen HI"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='hi')
+
+@SubFindHDFSnap.derived_quantity
+def OI(sim) :
+    """Fraction of Oxygen OI"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='oi')
+
+@SubFindHDFSnap.derived_quantity
+def OII(sim) :
+    """Fraction of Oxygen OII"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='oii')
+
+@SubFindHDFSnap.derived_quantity
+def OVI(sim) :
+    """Fraction of Oxygen OVI"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='ovi')
+
+@SubFindHDFSnap.derived_quantity
+def CIV(sim) :
+    """Fraction of Carbon CIV"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='civ')
+
+@SubFindHDFSnap.derived_quantity
+def NV(sim) :
+    """Fraction of Nitrogen NV"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='nv')
+
+@SubFindHDFSnap.derived_quantity
+def SIV(sim) :
+    """Fraction of Silicon SiIV"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='siiv')
+
+@SubFindHDFSnap.derived_quantity
+def MGII(sim) :
+    """Fraction of Magnesium MgII"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='mgii')
+
+# The Solar Abundances used in Gadget-3 OWLS / Eagle / Smaug sims
+XSOLH=0.70649785
+XSOLHe=0.28055534
+XSOLC=2.0665436E-3
+XSOLN=8.3562563E-4
+XSOLO=5.4926244E-3
+XSOLNe=1.4144605E-3
+XSOLMg=5.907064E-4
+XSOLSi=6.825874E-4
+XSOLS=4.0898522E-4
+XSOLCa=6.4355E-5
+XSOLFe=1.1032152E-3
+
+
+@SubFindHDFSnap.derived_quantity
+def feh(self) :
+    minfe = np.amin(self['Fe'][np.where(self['Fe'] > 0)])
+    self['Fe'][np.where(self['Fe'] == 0)]=minfe
+    return np.log10(self['Fe']/self['H']) - np.log10(XSOLFe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def sixh(self) :
+    minsi = np.amin(self['Si'][np.where(self['Si'] > 0)])
+    self['Si'][np.where(self['Si'] == 0)]=minsi
+    return np.log10(self['Si']/self['Si']) - np.log10(XSOLSi/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def sxh(self) :
+    minsx = np.amin(self['S'][np.where(self['S'] > 0)])
+    self['S'][np.where(self['S'] == 0)]=minsx
+    return np.log10(self['S']/self['S']) - np.log10(XSOLS/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def mgxh(self) :
+    minmg = np.amin(self['Mg'][np.where(self['Mg'] > 0)])
+    self['Mg'][np.where(self['Mg'] == 0)]=minmg
+    return np.log10(self['Mg']/self['Mg']) - np.log10(XSOLMg/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def oxh(self) :
+    minox = np.amin(self['O'][np.where(self['O'] > 0)])
+    self['O'][np.where(self['O'] == 0)]=minox
+    return np.log10(self['O']/self['H']) - np.log10(XSOLO/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def nexh(self) :
+    minne = np.amin(self['Ne'][np.where(self['Ne'] > 0)])
+    self['Ne'][np.where(self['Ne'] == 0)]=minne
+    return np.log10(self['Ne']/self['Ne']) - np.log10(XSOLNe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def hexh(self) :
+    minhe = np.amin(self['He'][np.where(self['He'] > 0)])
+    self['He'][np.where(self['He'] == 0)]=minhe
+    return np.log10(self['He']/self['He']) - np.log10(XSOLHe/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def cxh(self) :
+    mincx = np.amin(self['C'][np.where(self['C'] > 0)])
+    self['C'][np.where(self['C'] == 0)]=mincx
+    return np.log10(self['C']/self['H']) - np.log10(XSOLC/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def caxh(self) :
+    mincax = np.amin(self['Ca'][np.where(self['Ca'] > 0)])
+    self['Ca'][np.where(self['Ca'] == 0)]=mincax
+    return np.log10(self['Ca']/self['H']) - np.log10(XSOLCa/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def nxh(self) :
+    minnx = np.amin(self['N'][np.where(self['N'] > 0)])
+    self['N'][np.where(self['N'] == 0)]=minnx
+    return np.log10(self['N']/self['H']) - np.log10(XSOLH/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def ofe(self) :
+    minox = np.amin(self['O'][np.where(self['O'] > 0)])
+    self['O'][np.where(self['O'] == 0)]=minox
+    minfe = np.amin(self['Fe'][np.where(self['Fe'] > 0)])
+    self['Fe'][np.where(self['Fe'] == 0)]=minfe
+    return np.log10(self['O']/self['Fe']) - np.log10(XSOLO/XSOLFe)
+
+@SubFindHDFSnap.derived_quantity
+def mgfe(sim) :
+    minmg = np.amin(sim['Mg'][np.where(sim['Mg'] > 0)])
+    sim['Mg'][np.where(sim['Mg'] == 0)]=minmg
+    minfe = np.amin(sim['Fe'][np.where(sim['Fe'] > 0)])
+    sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
+    return np.log10(sim['Mg']/sim['Fe']) - np.log10(XSOLMg/XSOLFe)
+
+@SubFindHDFSnap.derived_quantity
+def nefe(sim) :
+    minne = np.amin(sim['Ne'][np.where(sim['Ne'] > 0)])
+    sim['Ne'][np.where(sim['Ne'] == 0)]=minne
+    minfe = np.amin(sim['Fe'][np.where(sim['Fe'] > 0)])
+    sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
+    return np.log10(sim['Ne']/sim['Fe']) - np.log10(XSOLNe/XSOLFe)
+
+@SubFindHDFSnap.derived_quantity
+def sife(sim) :
+    minsi = np.amin(sim['Si'][np.where(sim['Si'] > 0)])
+    sim['Si'][np.where(sim['Si'] == 0)]=minsi
+    minfe = np.amin(sim['Fe'][np.where(sim['Fe'] > 0)])
+    sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
+    return np.log10(sim['Si']/sim['Fe']) - np.log10(XSOLSi/XSOLFe)
