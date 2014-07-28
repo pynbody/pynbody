@@ -1336,8 +1336,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         for key in sim._hdf[0]['SUBFIND'].keys() :
             if key not in ignore : 
                 sub_properties[key] = np.array([])
-                
-        
+                        
         for h in sim._hdf : 
             for key in fof_properties.keys() :
                 fof_properties[key] = np.append(fof_properties[key],h['FOF'][key].value)
@@ -1353,6 +1352,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 if 'Mass' in key and 'Center' not in key : arr_units = sim._default_units_for('mass')
                 if 'Halo_M' in key: arr_units = sim._default_units_for('mass')
                 if 'Halo_R' in key: arr_units = sim._default_units_for('pos')
+                if 'Vmax' in key: arr_units = sim._default_units_for('vel')
+
                 if key == 'CenterOfMass' : arr_units = sim._default_units_for('pos')
             
             try : 
@@ -1363,7 +1364,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
             sub_properties[key] = sub_properties[key].view(SimArray)
             sub_properties[key].units = arr_units
-            
+
 
         # set the sim 
         for arr in fof_properties.values() + sub_properties.values() : 
@@ -1383,6 +1384,10 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                     pass
                 sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
                     
+
+        # set specific units for certain subhalo properties
+        sub_properties['StarFormationRate'].set_units_like('Msol yr^-1')
+            
 
         self._fof_properties = fof_properties
         self._sub_properties = sub_properties
