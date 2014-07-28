@@ -518,16 +518,16 @@ def HII(sim) :
     Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
     return Y_H - sim["HI"]
 
-@SubFindHDFSnap.derived_quantity
-def HeIII(sim) :
-    """Number of HeIII ions per proton mass"""
-    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
-    return Y_He-sim["HeII"]-sim["HeI"]
+#@SubFindHDFSnap.derived_quantity
+#def HeIII(sim) :
+#    """Number of HeIII ions per proton mass"""
+#    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
+#    return Y_He-sim["HeII"]-sim["HeI"]
 
-@SubFindHDFSnap.derived_quantity
-def ne(sim) :
-    """Number of electrons per proton mass"""
-    return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
+#@SubFindHDFSnap.derived_quantity
+#def ne(sim) :
+#    """Number of electrons per proton mass"""
+#    return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
 
 @SubFindHDFSnap.derived_quantity
 def hetot(self) :
@@ -536,6 +536,73 @@ def hetot(self) :
 @SubFindHDFSnap.derived_quantity
 def hydrogen(self) :
     return self['H']
+
+## Need to use the ionisation fraction calculation here which gives ionisation fraction
+## based on the gas temperature, density and redshift for a CLOUDY table
+
+@SubFindHDFSnap.derived_quantity
+def HI(sim) :
+    """Fraction of Neutral Hydrogen HI"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='hi')
+
+@SubFindHDFSnap.derived_quantity
+def OI(sim) :
+    """Fraction of Oxygen OI"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='oi')
+
+@SubFindHDFSnap.derived_quantity
+def OII(sim) :
+    """Fraction of Oxygen OII"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='oii')
+
+@SubFindHDFSnap.derived_quantity
+def OVI(sim) :
+    """Fraction of Oxygen OVI"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='ovi')
+
+@SubFindHDFSnap.derived_quantity
+def CIV(sim) :
+    """Fraction of Carbon CIV"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='civ')
+
+@SubFindHDFSnap.derived_quantity
+def NV(sim) :
+    """Fraction of Nitrogen NV"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='nv')
+
+@SubFindHDFSnap.derived_quantity
+def SIV(sim) :
+    """Fraction of Silicon SiIV"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='siiv')
+
+@SubFindHDFSnap.derived_quantity
+def MGII(sim) :
+    """Fraction of Magnesium MgII"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='mgii')
 
 #from .tipsy import TipsySnap
 # Asplund et al (2009) ARA&A solar abundances (Table 1)
