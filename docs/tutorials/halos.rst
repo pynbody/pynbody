@@ -25,7 +25,7 @@ object is a compilation of all the `Halo`s in a given snapshot.
 `Pynbody` fully supports the 
 `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_
 (:class:`~pynbody.halo.AHFCatalogue`) and
-`Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>` (:class:`~pynbody.halo.RockstarCatalogue`). 
+`Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.RockstarCatalogue`). 
 `Pynbody` can read data files from SKID
 (:class:`~pynbody.halo.GrpCatalogue` class) and SubFind
 (:class:`~pynbody.halo.SubfindCatalogue`). 
