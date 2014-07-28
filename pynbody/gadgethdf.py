@@ -604,26 +604,18 @@ def MGII(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='mgii')
 
-#from .tipsy import TipsySnap
-# Asplund et al (2009) ARA&A solar abundances (Table 1)
-# m_frac = 10.0^([X/H] - 12)*M_X/M_H*0.74
-# OR
-# http://en.wikipedia.org/wiki/Abundance_of_the_chemical_elements      
-# puts stuff more straighforwardly cites Arnett (1996)
-# A+G from http://www.t4.lanl.gov/opacity/grevand1.html
-# Anders + Grev (1989)    Asplund
-XSOLFe=0.125E-2         # 1.31e-3
-# Looks very wrong ([O/Fe] ~ 0.2-0.3 higher than solar), 
-# probably because SN ejecta are calculated with
-# Woosley + Weaver (1995) based on Anders + Grevesse (1989)
-# XSOLO=0.59E-2           # 5.8e-2
-XSOLO=0.84E-2
-XSOLH=0.706             # 0.74
-XSOLC=3.03e-3           # 2.39e-3
-XSOLN=9.2e-4          # 7e-4
-XSOLNe=1.66e-3          # 1.26e-3
-XSOLMg=6.44e-4          # 7e-4
-XSOLSi=7e-4          # 6.7e-4
+# The Solar Abundances used in Gadget-3 OWLS / Eagle / Smaug sims
+XSOLH=0.70649785
+XSOLHe=0.28055534
+XSOLC=2.0665436E-3
+XSOLN=8.3562563E-4
+XSOLO=5.4926244E-3
+XSOLNe=1.4144605E-3
+XSOLMg=5.907064E-4
+XSOLSi=6.825874E-4
+XSOLS=4.0898522E-4
+XSOLCa=6.4355E-5
+XSOLFe=1.1032152E-3
 
 
 @SubFindHDFSnap.derived_quantity
@@ -637,6 +629,12 @@ def sixh(self) :
     minsi = np.amin(self['Si'][np.where(self['Si'] > 0)])
     self['Si'][np.where(self['Si'] == 0)]=minsi
     return np.log10(self['Si']/self['Si']) - np.log10(XSOLSi/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def sxh(self) :
+    minsx = np.amin(self['S'][np.where(self['S'] > 0)])
+    self['S'][np.where(self['S'] == 0)]=minsx
+    return np.log10(self['S']/self['S']) - np.log10(XSOLS/XSOLH)
 
 @SubFindHDFSnap.derived_quantity
 def mgxh(self) :
@@ -667,6 +665,12 @@ def cxh(self) :
     mincx = np.amin(self['C'][np.where(self['C'] > 0)])
     self['C'][np.where(self['C'] == 0)]=mincx
     return np.log10(self['C']/self['H']) - np.log10(XSOLC/XSOLH)
+
+@SubFindHDFSnap.derived_quantity
+def caxh(self) :
+    mincax = np.amin(self['Ca'][np.where(self['Ca'] > 0)])
+    self['Ca'][np.where(self['Ca'] == 0)]=mincax
+    return np.log10(self['Ca']/self['H']) - np.log10(XSOLCa/XSOLH)
 
 @SubFindHDFSnap.derived_quantity
 def nxh(self) :
