@@ -1417,6 +1417,16 @@ class SimSnap(object):
                                 result = fn(self[fam])
                                 ndim = result.shape[-1] if len(
                                     result.shape) > 1 else 1
+                                
+                                # check if a family array already exists with a different dtype
+                                # if so, cast the result to the existing dtype
+                                # numpy version < 1.7 does not support doing this in-place
+                                if self._get_preferred_dtype(name) != result.dtype : 
+                                    if int(np.version.version.split('.')[1]) > 6 :
+                                        result = result.astype(self._get_preferred_dtype(name),copy=False)                                    
+                                    else : 
+                                        result = result.astype(self._get_preferred_dtype(name))
+                                    
                                 self[fam]._create_array(
                                     name, ndim, dtype=result.dtype, derived=not fn.__stable__)
                                 write_array = self[fam]._get_array(
