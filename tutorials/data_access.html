@@ -384,6 +384,7 @@ re-calculated) on demand. For example,</p>
 <p>At this point, nothing has been calculated. However, when you ask for
 the array, the values are calculated and stored</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [18]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;thricethemass&#39;</span><span class="p">]</span>
+<span class="go">SimSnap: deriving array thricethemass</span>
 <span class="gr">Out[18]: </span>
 <span class="go">SimArray([ 0.02464408,  0.02464408,  0.02464408, ...,  0.02464408,</span>
 <span class="go">        0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
@@ -394,6 +395,7 @@ automatically updated when you change the <cite>mass</cite> array:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [19]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
 <span class="gp">In [20]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;thricethemass&#39;</span><span class="p">]</span>
+<span class="go">SimSnap: deriving array thricethemass</span>
 <span class="gr">Out[20]: </span>
 <span class="go">SimArray([ 3.        ,  0.02464408,  0.02464408, ...,  0.02464408,</span>
 <span class="go">        0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
@@ -451,6 +453,12 @@ use <a class="reference internal" href="../essentials.html#pynbody.array.SimArra
 into something sensible, using
 <tt class="xref py py-func docutils literal"><span class="pre">physical_units()</span></tt>,</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [23]: </span><span class="n">f</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+<span class="go">SimSnap: converting pos units from kpc h**-1 to kpc</span>
+<span class="go">SimSnap: converting thricethemass units from 1.00e+10 Msol h**-1 to Msol</span>
+<span class="go">SimSnap: converting mass units from 1.00e+10 Msol h**-1 to Msol</span>
+<span class="go">SimSnap: converting twicethemass units from 1.00e+10 Msol h**-1 to Msol</span>
+<span class="go">SimSnap: converting myarray units from 1.00e+20 h**4 Msol**2 kpc**-6 to Msol**2 kpc**-6</span>
+<span class="go">SimSnap: converting rho units from 1.00e+10 h**2 Msol kpc**-3 to Msol kpc**-3</span>
 </pre></div>
 </div>
 <p>Take a look at what&#8217;s happened to the density:</p>
@@ -463,6 +471,7 @@ into something sensible, using
 <p>Note that the conversion will also be made when loading any arrays in
 future; for example:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [25]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span>
+<span class="go">SimSnap: converting vel units from km a**1/2 s**-1 to km s**-1</span>
 <span class="gr">Out[25]: </span>
 <span class="go">SimArray([[ 27.93829346,   4.98370504, -10.00886631],</span>
 <span class="go">       [ 15.36156368,   5.7859726 ,   4.36315632],</span>
@@ -506,14 +515,14 @@ instance:</p>
 
 <span class="gp">In [32]: </span><span class="n">array</span>
 <span class="gr">Out[32]: </span>
-<span class="go">SimArray([ 0.36925696,  0.33123207,  0.24533461,  0.79769819,  0.28367605,</span>
-<span class="go">        0.60572007,  0.66479314,  0.41701032,  0.44844147,  0.48253492], &#39;Mpc a&#39;)</span>
+<span class="go">SimArray([ 0.56517115,  0.85070196,  0.62201595,  0.92239258,  0.7311052 ,</span>
+<span class="go">        0.5389903 ,  0.89962886,  0.40723646,  0.2600943 ,  0.43102493], &#39;Mpc a&#39;)</span>
 
 <span class="gp">In [33]: </span><span class="n">array</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 <span class="gr">Out[33]: </span>
-<span class="go">SimArray([ 102.57137755,   92.0089085 ,   68.148504  ,  221.58283219,</span>
-<span class="go">         78.79890208,  168.25557594,  184.66476303,  115.83620093,</span>
-<span class="go">        124.56707638,  134.03747867], &#39;kpc&#39;)</span>
+<span class="go">SimArray([ 156.99198636,  236.30610139,  172.78220945,  256.22016371,</span>
+<span class="go">        203.08477972,  149.71952999,  249.89690855,  113.12124099,</span>
+<span class="go">         72.24841664,  119.72914833], &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>Note that the units were correctly converted into physical units in

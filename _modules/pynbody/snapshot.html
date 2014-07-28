@@ -144,14 +144,12 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">family</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">util</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">simdict</span>
-<span class="kn">from</span> <span class="nn">..units</span> <span class="kn">import</span> <span class="n">has_units</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">array</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">family</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">filt</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">simdict</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">copy</span>
@@ -164,9 +162,9 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
-<span class="kn">import</span> <span class="nn">logging</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.snapshot&#39;</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">units</span> <span class="kn">import</span> <span class="n">has_units</span>
+
 
 <span class="k">class</span> <span class="nc">SimSnap</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <div class="viewcode-block" id="SimSnap"><a class="viewcode-back" href="../../essentials.html#pynbody.snapshot.SimSnap">[docs]</a>    <span class="sd">&quot;&quot;&quot;The class for managing simulation snapshots.</span>
@@ -740,7 +738,7 @@
 <span class="sd">        If any of the units are not specified and a previous</span>
 <span class="sd">        `file_units_system` does not exist, the defaults are used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config_parser</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config_parser</span>
         <span class="kn">import</span> <span class="nn">ConfigParser</span>
 
         <span class="c"># if the units system doesn&#39;t exist (if this is a new snapshot), create one</span>
@@ -825,7 +823,8 @@
             <span class="n">new_unit</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span>
                               <span class="n">a</span><span class="o">**</span><span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">d</span><span class="p">[:</span><span class="n">ucut</span><span class="p">])])</span>
             <span class="k">if</span> <span class="n">new_unit</span> <span class="o">!=</span> <span class="n">ar</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Converting </span><span class="si">%s</span><span class="s"> units from </span><span class="si">%s</span><span class="s"> to </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">name</span><span class="p">,</span><span class="n">ar</span><span class="o">.</span><span class="n">units</span><span class="p">,</span><span class="n">new_unit</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+                    <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;SimSnap: converting&quot;</span><span class="p">,</span> <span class="n">ar</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&quot;units from&quot;</span><span class="p">,</span> <span class="n">ar</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;to&quot;</span><span class="p">,</span> <span class="n">new_unit</span>
                 <span class="n">ar</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">new_unit</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">physical_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="s">&#39;kpc&#39;</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="s">&#39;km s^-1&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="s">&#39;Msol&#39;</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
@@ -902,7 +901,7 @@
 <span class="sd">        snapshot, using the first available method (as defined in the</span>
 <span class="sd">        configuration files).&quot;&quot;&quot;</span>
 
-        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">halo</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">halo</span>
 
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;halo-class-priority&#39;</span><span class="p">]:</span>
             <span class="k">try</span><span class="p">:</span>
@@ -933,7 +932,7 @@
 <span class="sd">        documentation for :py:mod:`pynbody.bridge`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">bridge</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">bridge</span>
         <span class="k">return</span> <span class="n">bridge</span><span class="o">.</span><span class="n">bridge_factory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
 
     <span class="c">############################################</span>
@@ -1003,7 +1002,7 @@
     <span class="c"># VECTOR TRANSFORMATIONS OF THE SNAPSHOT</span>
     <span class="c">############################################</span>
     <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">)</span> <span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">transformation</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">transformation</span>
         <span class="k">return</span> <span class="n">transformation</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">)</span>
     
     <span class="k">def</span> <span class="nf">_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
@@ -1537,7 +1536,8 @@
                 <span class="k">for</span> <span class="n">cl</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__mro__</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">cl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span> \
                             <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">]:</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Deriving array </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="n">name</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+                            <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;SimSnap: deriving array&quot;</span><span class="p">,</span> <span class="n">name</span>
                         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_propagate_off</span><span class="p">:</span>
                             <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
                             <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -1552,6 +1552,16 @@
                                 <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span>
                                 <span class="n">ndim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
                                     <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span>
+                                
+                                <span class="c"># check if a family array already exists with a different dtype</span>
+                                <span class="c"># if so, cast the result to the existing dtype</span>
+                                <span class="c"># numpy version &lt; 1.7 does not support doing this in-place</span>
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> <span class="p">:</span> 
+                                    <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="p">:</span>
+                                        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>                                    
+                                    <span class="k">else</span> <span class="p">:</span> 
+                                        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                                    
                                 <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span>
                                     <span class="n">name</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">__stable__</span><span class="p">)</span>
                                 <span class="n">write_array</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
@@ -1666,7 +1676,8 @@
                 <span class="nb">hash</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">index_list</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">__inclusion_hash</span> <span class="o">=</span> <span class="nb">hash</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
             <span class="k">except</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Encountered a problem while calculating your inclusion hash. </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+                <span class="k">print</span> <span class="s">&quot;Encountered a problem while calculating your inclusion hash. The original traceback follows.&quot;</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
             <span class="n">rval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__inclusion_hash</span>
         <span class="k">return</span> <span class="n">rval</span>
 
@@ -1913,7 +1924,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index_array</span><span class="p">)</span>
 
         <span class="c"># Find the locations of the family slices</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fam</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">families</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fam</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">families</span><span class="p">()):</span>
             <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">findex</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">new_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">ids</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">ids</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
@@ -2022,7 +2033,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_derive_array</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_new</span><span class="p">(</span><span class="n">n_particles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">families</span><span class="p">):</span></div>
+<span class="k">def</span> <span class="nf">_new</span><span class="p">(</span><span class="n">n_particles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">families</span><span class="p">):</span></div>
     <span class="sd">&quot;&quot;&quot;Create a blank SimSnap, with the specified number of particles.</span>
 
 <span class="sd">    Position, velocity and mass arrays are created and filled</span>
@@ -2033,14 +2044,6 @@
 <span class="sd">    the number of particles for each family, e.g.</span>
 
 <span class="sd">    f = new(dm=50, star=25, gas=25)</span>
-
-<span class="sd">    The order in which the different families appear in the snapshot</span>
-<span class="sd">    is unspecified unless you add an &#39;order&#39; argument:</span>
-
-<span class="sd">    f = new(dm=50, star=25, gas=25, order=&#39;star,gas,dm&#39;)</span>
-
-<span class="sd">    guarantees the stars, then gas, then dark matter particles appear</span>
-<span class="sd">    in sqeuence.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">families</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -2049,18 +2052,11 @@
     <span class="n">t_fam</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">tot_particles</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">families</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">families</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 
-            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-            <span class="n">t_fam</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">family</span><span class="o">.</span><span class="n">get_family</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">))</span>
-            <span class="n">tot_particles</span> <span class="o">+=</span> <span class="n">v</span>
-    <span class="k">else</span> <span class="p">:</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">order</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span> <span class="p">:</span>
-            <span class="n">v</span> <span class="o">=</span> <span class="n">families</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-            <span class="n">t_fam</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">family</span><span class="o">.</span><span class="n">get_family</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">))</span>
-            <span class="n">tot_particles</span> <span class="o">+=</span> <span class="n">v</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">t_fam</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">family</span><span class="o">.</span><span class="n">get_family</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">))</span>
+        <span class="n">tot_particles</span> <span class="o">+=</span> <span class="n">v</span>
 
     <span class="n">x</span> <span class="o">=</span> <span class="n">SimSnap</span><span class="p">()</span>
     <span class="n">x</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="n">tot_particles</span>

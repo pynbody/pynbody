@@ -404,7 +404,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bcd5b18&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bed92a8&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -553,7 +553,7 @@ the multi-threaded routines; otherwise the pynbody.config default is used</p>
 <h2>stars<a class="headerlink" href="#stars" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="pynbody.plot.stars.render">
-<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">render</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>r_band='i'</em>, <em>g_band='v'</em>, <em>b_band='u'</em>, <em>r_scale=0.25</em>, <em>g_scale=1</em>, <em>b_scale=1</em>, <em>width=50</em>, <em>starsize=0.05</em>, <em>nonlinearity=1</em>, <em>plot=True</em>, <em>axes=None</em>, <em>ret_im=False</em>, <em>clear=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#render"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.render" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">render</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>r_band='i'</em>, <em>g_band='v'</em>, <em>b_band='u'</em>, <em>r_scale=0.5</em>, <em>g_scale=1.0</em>, <em>b_scale=1.0</em>, <em>dynamic_range=2.0</em>, <em>width=50</em>, <em>starsize=None</em>, <em>plot=True</em>, <em>axes=None</em>, <em>ret_im=False</em>, <em>clear=True</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#render"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a 3-color image of stars.</p>
 <p>The colors are based on magnitudes found using stellar Marigo
 stellar population code.  However there is no radiative transfer
@@ -568,7 +568,7 @@ to account for dust.</p>
 <dd>Determines which Johnston filter will go into the image red channel</dd>
 <dt><em>g_band</em>: string (default: &#8216;v&#8217;)</dt>
 <dd>Determines which Johnston filter will go into the image green channel</dd>
-<dt><em>b_band</em>: string (default: &#8216;u&#8217;)</dt>
+<dt><em>b_band</em>: string (default: &#8216;b&#8217;)</dt>
 <dd>Determines which Johnston filter will go into the image blue channel</dd>
 <dt><em>r_scale</em>: float (default: 0.5)</dt>
 <dd>The scaling of the red channel before channels are combined</dd>
@@ -586,6 +586,8 @@ to account for dust.</p>
 <dd>if True, the image is plotted</dd>
 <dt><em>axes</em>: matplotlib axes object (deault: None)</dt>
 <dd>if not None, the axes object to plot to</dd>
+<dt><em>dynamic_range</em>: float (default: 2.0)</dt>
+<dd>The number of dex in luminosity over which the image brightness ranges</dd>
 </dl>
 </div></blockquote>
 </dd></dl>

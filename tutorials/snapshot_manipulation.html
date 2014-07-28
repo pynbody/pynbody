@@ -262,7 +262,7 @@ halo is as follows:</p>
 <span class="go">TipsySnap: loading data from main file</span>
 <span class="go">Finding halo velocity center...</span>
 <span class="go">vcen= [ 0.00216821 -0.03459588 -0.14736437]</span>
-<span class="go"> Out[6]: &lt;pynbody.transformation.GenericTranslate at 0x115774a90&gt;</span>
+<span class="go"> Out[6]: &lt;pynbody.transformation.GenericTranslate at 0x123dcbd50&gt;</span>
 </pre></div>
 </div>
 <p>We passed <tt class="docutils literal"><span class="pre">h[1]</span></tt> to the function
@@ -368,6 +368,13 @@ You have to determine the bulk velocity separately using
 now, but to make things easier to interpret we convert to physical
 units first:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [23]: </span><span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+<span class="go">SimSnap: converting phi units from 2.98e+06 km**2 a**-1 s**-2 to km**2 s**-2</span>
+<span class="go">SimSnap: converting pos units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting eps units from 6.85e+04 kpc a to kpc</span>
+<span class="go">SimSnap: converting vel units from 1.73e+03 km a s**-1 to km s**-1</span>
+<span class="go">SimSnap: converting mass units from 4.75e+16 Msol to Msol</span>
+<span class="go">SimSnap: converting tform units from 3.96e+01 s kpc km**-1 to kpc s km**-1</span>
+<span class="go">SimSnap: converting rho units from 1.48e+02 Msol kpc**-3 a**-3 to Msol kpc**-3</span>
 
 <span class="gp">In [24]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
@@ -394,7 +401,7 @@ but let&#8217;s say we want it edge-on:</p>
 <span class="go">vcen= [   3.74602349  -59.77129742 -254.60142767]</span>
 <span class="go">Calculating angular momentum vector...</span>
 <span class="go">Transforming simulation...</span>
-<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x1157a1b10</span><span class="o">&gt;</span>
+<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x145ffba90</span><span class="o">&gt;</span>
 
 <span class="gp">In [27]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
@@ -416,7 +423,7 @@ want to just rotate the snapshot by arbitrary angles, the
 about the respective axes.</p>
 <p>We can use this to rotate the disk into a face-on orientation:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [28]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
-<span class="gr">Out[28]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x118ef7f10</span><span class="o">&gt;</span>
+<span class="gr">Out[28]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x150d994d0</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>All of these transformations behave in the way that was specified for
@@ -458,7 +465,7 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
 <p>We can also generate other profiles, like the rotation curve:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [36]: </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
-<span class="gr">Out[36]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x118e795d0</span><span class="o">&gt;</span>
+<span class="gr">Out[36]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x14fc68610</span><span class="o">&gt;</span>
 
 <span class="gp">In [37]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
 
@@ -468,20 +475,20 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 
 <span class="gp">In [40]: </span><span class="k">for</span> <span class="n">prof</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">p</span><span class="p">,</span><span class="n">pd</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">pg</span><span class="p">],[</span><span class="s">&#39;total&#39;</span><span class="p">,</span><span class="s">&#39;dm&#39;</span><span class="p">,</span><span class="s">&#39;stars&#39;</span><span class="p">,</span><span class="s">&#39;gas&#39;</span><span class="p">])</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">prof</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  3.78 s</span>
+<span class="go">Rotation curve calculated in  3.36 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  1.24 s</span>
+<span class="go">Rotation curve calculated in  1.07 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in  1.59 s</span>
+<span class="go">Rotation curve calculated in  1.78 s</span>
 <span class="go">Profile: v_circ() -- warning, disk must be in the x-y plane</span>
-<span class="go">Rotation curve calculated in 0.475 s</span>
+<span class="go">Rotation curve calculated in 0.578 s</span>
 
 <span class="gp">In [41]: </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [42]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [43]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gr">Out[43]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x11cc12350</span><span class="o">&gt;</span>
+<span class="gr">Out[43]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x142d859d0</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>

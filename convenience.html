@@ -324,7 +324,7 @@ of &#8216;parentid&#8217; halo.</p>
 <dd><p>Class to handle catalogues produced by Rockstar (by Peter Behroozi).</p>
 <dl class="method">
 <dt id="pynbody.halo.RockstarCatalogue.make_grp">
-<tt class="descname">make_grp</tt><big>(</big><em>name='grp'</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#RockstarCatalogue.make_grp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogue.make_grp" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">make_grp</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#RockstarCatalogue.make_grp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogue.make_grp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a &#8216;grp&#8217; array which labels each particle according to
 its parent halo.</p>
 </dd></dl>
@@ -333,6 +333,29 @@ its parent halo.</p>
 <dt id="pynbody.halo.RockstarCatalogue.load_copy">
 <tt class="descname">load_copy</tt><big>(</big><em>i</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#RockstarCatalogue.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogue.load_copy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a fresh SimSnap with only the particle in halo i</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.RockstarCatalogue.writestat">
+<tt class="descname">writestat</tt><big>(</big><em>outfile=None</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#RockstarCatalogue.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogue.writestat" title="Permalink to this definition">¶</a></dt>
+<dd><p>write a condensed skid.stat style ascii file from ahf_halos
+file.  header + 1 halo per line. should reproduce <a href="#id1"><span class="problematic" id="id2">`</span></a>Alyson&#8217;s
+idl script&#8217; except does not do last 2 columns (Is it a
+satellite?) and (Is central halo is <a href="#id3"><span class="problematic" id="id4">`</span></a>false&#8217;ly split?).  output
+units are set to Mpc Msun, km/s.</p>
+<p>user can specify own hubble constant hubble=(H0/(100
+km/s/Mpc)), ignoring the snaphot arg for hubble constant
+(which sometimes has a large roundoff error).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.halo.RockstarCatalogue.writetipsy">
+<tt class="descname">writetipsy</tt><big>(</big><em>outfile=None</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#RockstarCatalogue.writetipsy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogue.writetipsy" title="Permalink to this definition">¶</a></dt>
+<dd><p>write halos to tipsy file (write as stars) from ahf_halos
+file.  returns a shapshot where each halo is a star particle.</p>
+<p>user can specify own hubble constant hubble=(H0/(100
+km/s/Mpc)), ignoring the snaphot arg for hubble constant
+(which sometimes has a large roundoff error).</p>
 </dd></dl>
 
 </dd></dl>
@@ -366,9 +389,9 @@ the halo id for each particle (0 means free).</p>
 <dt id="pynbody.halo.AHFCatalogue.writestat">
 <tt class="descname">writestat</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>statoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/halo.html#AHFCatalogue.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writestat" title="Permalink to this definition">¶</a></dt>
 <dd><p>write a condensed skid.stat style ascii file from ahf_halos
-file.  header + 1 halo per line. should reproduce <a href="#id1"><span class="problematic" id="id2">`</span></a>Alyson&#8217;s
+file.  header + 1 halo per line. should reproduce <a href="#id5"><span class="problematic" id="id6">`</span></a>Alyson&#8217;s
 idl script&#8217; except does not do last 2 columns (Is it a
-satellite?) and (Is central halo is <a href="#id3"><span class="problematic" id="id4">`</span></a>false&#8217;ly split?).  output
+satellite?) and (Is central halo is <a href="#id7"><span class="problematic" id="id8">`</span></a>false&#8217;ly split?).  output
 units are set to Mpc Msun, km/s.</p>
 <p>user can specify own hubble constant hubble=(H0/(100
 km/s/Mpc)), ignoring the snaphot arg for hubble constant
@@ -422,7 +445,7 @@ a final C code to perform the rendering is derived.</p>
 <p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
 <dl class="function">
 <dt id="pynbody.sph.render_spherical_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10bcda2d0&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em>, <em>threaded=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10bed4310&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em>, <em>threaded=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image on a spherical surface. Requires healpy libraries.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>qty</em> (&#8216;rho&#8217;): The name of the simulation array to render</p>
@@ -446,7 +469,7 @@ rendering is slower than single-threaded because healpy does not release the gil
 
 <dl class="function">
 <dt id="pynbody.sph.render_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b23cb90&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b341b50&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -496,7 +519,7 @@ configuration files).</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.to_3d_grid">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b23ccd0&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b341c90&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
