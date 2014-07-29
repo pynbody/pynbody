@@ -12,9 +12,9 @@ cdef extern from "math.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def interpolate3d(int n, 
-                  np.ndarray[np.float64_t,ndim=1] x, 
-                  np.ndarray[np.float64_t,ndim=1] y, 
-                  np.ndarray[np.float64_t,ndim=1] z,
+                  np.ndarray[floating,ndim=1] x, 
+                  np.ndarray[floating,ndim=1] y, 
+                  np.ndarray[floating,ndim=1] z,
                   int n_x_vals, np.ndarray[np.float64_t,ndim=1] x_vals, 
                   int n_y_vals, np.ndarray[np.float64_t,ndim=1] y_vals, 
                   int n_z_vals, np.ndarray[np.float64_t,ndim=1] z_vals, 
