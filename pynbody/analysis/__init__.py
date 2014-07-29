@@ -2,7 +2,7 @@ import imp
 from . import profile,  cosmology, halo, luminosity, hmf
 from . import ionfrac, pkdgrav_cosmo
 from . import ramses_util
-from . import interpolate3d 
+from . import interpolate
 
 from .decomp import decomp
 from .hmf import halo_mass_function
