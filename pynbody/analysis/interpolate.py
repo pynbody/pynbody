@@ -1,9 +1,31 @@
+"""
+interpolate
+===========
+
+2D and 3D Interpolation routines written in cython
+
+"""
+
 from . import _interpolate3d
 import numpy as np
 
 # this just calls the cython interpolation function, setting the 
 # interpolation arrays to correct type
 def interpolate3d(x,y,z,x_vals,y_vals,z_vals,vals) :
+	"""
+	Interpolate on a 3D regular grid. 
+	Yields results identical to scipy.interpolate.interpn. 
+
+	Input
+	-----
+
+	x,y,z : points where the interpolation will be performed
+	
+	x_vals, y_vals, z_vals : xyz values of the reference grid
+
+	vals : grid values
+	"""
+
 	# cast x_vals, y_vals and z_vals to float64 
 
 	x_vals = x_vals.astype(np.float64)
@@ -24,6 +46,20 @@ def interpolate3d(x,y,z,x_vals,y_vals,z_vals,vals) :
 	return result_array
 
 def interpolate2d(x, y, x_vals, y_vals, vals) :
+	"""
+	Interpolate on a 2D regular grid. 
+	Yields results identical to scipy.interpolate.interpn. 
+
+	Input
+	-----
+
+	x,y : points where the interpolation will be performed
+	
+	x_vals, y_vals : xy values of the reference grid
+
+	vals : grid values
+	"""
+
 	x_vals = x_vals.astype(np.float64)
 	y_vals = y_vals.astype(np.float64)
 	z_vals = np.ndarray(1,dtype=np.float64)

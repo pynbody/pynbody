@@ -29,7 +29,7 @@ def interpolate3d(int n,
     cdef double xi, yi, zi
     cdef Py_ssize_t i
 
-    for i in range(n) :
+    for i in prange(n,nogil=True) :
         if n_x_vals > 0 :  
             xi = x[i]
         yi = y[i]

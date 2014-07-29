@@ -15,7 +15,7 @@ from pynbody import config
 import logging
 logger = logging.getLogger('pynbody.analysis.ionfrac')
 
-from . import interpolate3d
+from interpolate import interpolate3d
 
 
 def calculate(sim,ion='ovi', mode = 'old') :
@@ -63,7 +63,7 @@ def calculate(sim,ion='ovi', mode = 'old') :
 
     #interpolate
     logger.info("Interpolation %s values"%ion)
-    result_array = interpolate3d.interpolate3d(x,y,z,x_vals,y_vals,z_vals,vals)
+    result_array = interpolate3d(x,y,z,x_vals,y_vals,z_vals,vals)
 
     return 10**result_array
 

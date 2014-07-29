@@ -8,11 +8,6 @@ Calculates luminosities -- NEEDS DOCUMENTATION
 """
 
 import numpy as np
-try :
-    import scipy, scipy.weave
-    from scipy.weave import inline
-except ImportError :
-    pass
 
 import os
 from ..array import SimArray
@@ -47,15 +42,12 @@ def calc_mags(simstars, band='v') :
     # Padova group stellar populations Marigo et al (2008), Girardi et al (2010)
     lumfile = os.path.join(os.path.dirname(__file__),"cmdlum.npz")
     if os.path.exists(lumfile) :
-        # import data
-        # print "Loading luminosity data"
         lums=np.load(lumfile)
     else :
         raise IOError, "cmdlum.npz (magnitude table) not found"
 
-    #calculate star age
-    #import pdb; pdb.set_trace()
-    age_star=(simstars.properties['time'].in_units('yr', **simstars.conversion_context())-simstars['tform'].in_units('yr'))
+    
+    age_star=simstars['age'].in_units('yr')
     # allocate temporary metals that we can play with
     metals = simstars['metals']
     # get values off grid to minmax
@@ -67,8 +59,8 @@ def calc_mags(simstars, band='v') :
     age_grid = np.log10(lums['ages'])
     met_grid = lums['mets']
     mag_grid = lums[band]
- 
-    output_mags = interpolate2d(metals, age_star, met_grid, age_grid, mag_grid)
+
+    output_mags = interpolate2d(metals, np.log10(age_star), met_grid, age_grid, mag_grid)
 
     try :
         vals = output_mags - 2.5*np.log10(simstars['massform'].in_units('Msol'))
@@ -129,7 +121,7 @@ def half_light_r(sim,band='v'):
     '''
     import pynbody, pynbody.filt as f
     half_l = halo_lum(sim,band=band) * 0.5
-    #print "half_l: %g"%half_l
+
     max_high_r = np.max(sim.star['r'])
     test_r = 0.5*max_high_r
     testrf = f.LowPass('r',test_r)
@@ -140,8 +132,7 @@ def half_light_r(sim,band='v'):
         it = it+1
         if (it > 20):
             break
-        #error = np.abs(test_l - half_l)/half_l
-        #print "iteration: %d error: %6.2g test_l: %g test_r: %g"%(it,error,test_l,test_r)
+
         if (test_l > half_l):
             test_r = 0.5*(min_low_r + test_r)
         else :
