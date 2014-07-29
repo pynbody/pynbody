@@ -1,37 +1,24 @@
 cimport numpy as np
 cimport cython
 import numpy as np
+import sys
 
-#from cython cimport floating
+from cython cimport floating
 
 cdef extern from "math.h":
     int floor(double)nogil
 
 
-def interpolate2d(int n, np.ndarray vals,
-                  int n_y_vals, np.ndarray[np.float64_t,ndim=1] y_vals, 
-                  int n_z_vals, np.ndarray[np.float64_t,ndim=1] z_vals, 
-                  np.ndarray[np.float64_t,ndim=1] y, 
-                  np.ndarray[np.float64_t,ndim=1] z, 
-                  np.ndarray[np.float64_t,ndim=1] result_array) :
- 
-
-    interpolate3d(n, vals.resize((vals.shape[0],vals.shape[1],1)), 
-                  0, np.ndarray([],dtype=np.float64),
-                  n_y_vals, y_vals,
-                  n_z_vals, z_vals,
-                  np.ndarray([],dtype=np.float64), y, z, result_array)
-                
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def interpolate3d(int n, np.ndarray[np.float64_t,ndim=3] vals,
-                  int n_x_vals, np.ndarray[np.float64_t,ndim=1] x_vals, 
-                  int n_y_vals, np.ndarray[np.float64_t,ndim=1] y_vals, 
-                  int n_z_vals, np.ndarray[np.float64_t,ndim=1] z_vals, 
+def interpolate3d(int n, 
                   np.ndarray[np.float64_t,ndim=1] x, 
                   np.ndarray[np.float64_t,ndim=1] y, 
                   np.ndarray[np.float64_t,ndim=1] z,
+                  int n_x_vals, np.ndarray[np.float64_t,ndim=1] x_vals, 
+                  int n_y_vals, np.ndarray[np.float64_t,ndim=1] y_vals, 
+                  int n_z_vals, np.ndarray[np.float64_t,ndim=1] z_vals, 
+                  np.ndarray[np.float64_t,ndim=3] vals,
                   np.ndarray[np.float64_t,ndim=1] result_array) :
 
     from cython.parallel cimport prange 
@@ -42,7 +29,7 @@ def interpolate3d(int n, np.ndarray[np.float64_t,ndim=3] vals,
     cdef double xi, yi, zi
     cdef Py_ssize_t i
 
-    for i in prange(n,nogil=True) :
+    for i in range(n) :
         if n_x_vals > 0 :  
             xi = x[i]
         yi = y[i]
@@ -59,7 +46,7 @@ def interpolate3d(int n, np.ndarray[np.float64_t,ndim=3] vals,
                     x_bot_ind = mid_ind
                 else :
                     x_top_ind = mid_ind
-            #bisect(&x_top_ind,&x_bot_ind,xi,n_x_vals,x_vals)
+
         else :
             x_top_ind = 0
             x_bot_ind = 0
@@ -74,7 +61,7 @@ def interpolate3d(int n, np.ndarray[np.float64_t,ndim=3] vals,
                 y_bot_ind = mid_ind
             else :
                 y_top_ind = mid_ind
-                
+        
         # find z indices 
         z_top_ind = n_z_vals - 1
         z_bot_ind = 0
@@ -85,9 +72,10 @@ def interpolate3d(int n, np.ndarray[np.float64_t,ndim=3] vals,
                 z_bot_ind = mid_ind
             else :
                 z_top_ind = mid_ind
-                
+        
+        if n_x_vals > 0 :         
+            x_fac = (xi - x_vals[x_bot_ind])/(x_vals[x_top_ind] - x_vals[x_bot_ind])
 
-        x_fac = (xi - x_vals[x_bot_ind])/(x_vals[x_top_ind] - x_vals[x_bot_ind])
         y_fac = (yi - y_vals[y_bot_ind])/(y_vals[y_top_ind] - y_vals[y_bot_ind])
         z_fac = (zi - z_vals[z_bot_ind])/(z_vals[z_top_ind] - z_vals[z_bot_ind])        
 
@@ -118,17 +106,19 @@ def interpolate3d(int n, np.ndarray[np.float64_t,ndim=3] vals,
 
         result_array[i] = v0*(1-z_fac) + v1*z_fac
 
+
+# BISECT DOESNT WORK WITH OPENMP... YIELDS SEGFAULT??
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void bisect(int* top, int* bot, np.float64_t x, 
-                 int nval, np.float64_t [:] arr) nogil:
-    cdef int mid
-    top[0] = nval - 1
-    bot[0] = 0
+cdef int bisect(np.float64_t x, int nval, np.float64_t [:] arr) nogil:
+    cdef int mid, top, bot
+    top = nval - 1
+    bot = 0
 
     while(top > bot + 1) : 
-        mid = floor((top[0]-bot[0])/2)+bot[0]
+        mid = floor((top-bot)/2)+bot
         if (x > arr[mid]) : 
-            bot[0] = mid
+            bot = mid
         else :
-            top[0] = mid
+            top = mid
+    return bot

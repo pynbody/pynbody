@@ -52,8 +52,7 @@ def calculate(sim,ion='ovi', mode = 'old') :
     n_x_vals = len(x_vals)
     n_y_vals = len(y_vals)
     n_z_vals = len(z_vals)
-    result_array = np.zeros(n)
-
+    
     # get values off grid to minmax
     x[np.where(x < np.min(x_vals))] = np.min(x_vals)
     x[np.where(x > np.max(x_vals))] = np.max(x_vals)
@@ -64,7 +63,7 @@ def calculate(sim,ion='ovi', mode = 'old') :
 
     #interpolate
     logger.info("Interpolation %s values"%ion)
-    interpolate3d.interpolate3d(n,vals,n_x_vals,x_vals,n_y_vals,y_vals,n_z_vals,z_vals,x,y,z,result_array)
+    result_array = interpolate3d.interpolate3d(x,y,z,x_vals,y_vals,z_vals,vals)
 
     return 10**result_array
 

@@ -141,8 +141,8 @@ util_pyx = Extension('pynbody._util',
                      sources=['pynbody/_util.pyx'],
                      include_dirs=incdir)
 
-interpolate3d_pyx = Extension('pynbody.analysis.interpolate3d',
-                              sources = ['pynbody/analysis/interpolate3d.pyx'],
+interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
+                              sources = ['pynbody/analysis/_interpolate3d.pyx'],
                               include_dirs=incdir,
                               extra_compile_args=openmp_args,
                               extra_link_args=openmp_args)
