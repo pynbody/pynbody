@@ -554,6 +554,101 @@ def sbprofile(sim, band='v',diskheight='3 kpc', rmax='20 kpc', binning='equaln',
         logger.info("Saving %s",filename)
         plt.savefig(filename)
 
+def f(x,alpha,delta,g):
+    return -np.log10(10.0**(x*alpha) + 1.0) + delta*(np.log10(1+np.exp(x)))**g / (1+np.exp(10**-x))
+
+def behroozi(xmasses,z):
+    '''Based on Behroozi+ (2013) return what stellar mass corresponds to the
+    halo mass passed in.
+
+    **Usage**
+    
+       >>> from pynbody.plot.stars import moster
+       >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+       >>> ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
+       >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+                         y2=np.array(ystarmasses)*np.array(errors),
+                         facecolor='#BBBBBB',color='#BBBBBB')
+    '''
+    loghm = np.log10(xmasses)
+    # from Behroozi et al (2013)
+    EPS = -1.777
+    EPSpe = 0.133
+    EPSme = 0.146
+
+    EPSanu = -0.006
+    EPSanupe = 0.113
+    EPSanume = 0.361
+
+    EPSznu = 0
+    EPSznupe = 0.003
+    EPSznume = 0.104
+
+    EPSa = 0.119
+    EPSape = 0.061
+    EPSame = -0.012
+
+    M1=11.514
+    M1pe = 0.053
+    M1me = 0.009
+
+    M1a=-1.793
+    M1ape = 0.315
+    M1ame = 0.330
+
+    M1z=-0.251
+    M1zpe = 0.012
+    M1zme = 0.125
+
+    AL =-1.412
+    ALpe = 0.02
+    ALme = 0.105
+
+    ALa= 0.731
+    ALape = 0.344
+    ALame = 0.296
+
+    DEL= 3.508
+    DELpe = 0.087
+    DELme = 0.369
+
+    DELa= 2.608
+    DELape = 2.446
+    DELame = 1.261
+
+    DELz= -0.043
+    DELzpe = 0.958
+    DELzme = 0.071
+
+    G=0.316
+    Gpe = 0.076
+    Gme = 0.012
+
+    Ga=1.319
+    Gape = 0.584
+    Game = 0.505
+
+    Gz=0.279
+    Gzpe = 0.256
+    Gzme = 0.081
+
+    a = 1.0/(z+1.0)
+    nu = np.exp(-4*a**2)
+    logm1 = M1 + nu*(M1a*(a-1.0)+M1z*z)
+    logeps = EPS + nu*(EPSanu*(a-1.0)+EPSznu*z) - EPSa*(a-1.0)
+    alpha = AL + nu*ALa*(a-1.0)
+    delta = DEL + nu*DELa*(a-1.0)
+    g = G + nu*(Ga*(a-1.0)+z*Gz)
+
+    x = loghm - logm1
+    f0 = -np.log10(2.0) + delta*np.log10(2.0)**g/(1.0+np.exp(1))
+    smp = logm1 + logeps + f(x,alpha,delta,g) - f0
+
+    if isinstance(smp,np.ndarray):
+        scatter = np.zeros(len(smp))
+    scatter = 0.218 -0.023*(a-1.0)
+
+    return 10**smp, 10**scatter
 
 def moster(xmasses,z):
     '''Based on Moster+ (2013) return what stellar mass corresponds to the
