@@ -1273,6 +1273,27 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     
         self._base = weakref.ref(sim)
 
+        # Read in the attribute units from SubFind
+        try : 
+            atr = sim._hdf[0]['Units'].attrs
+        except KeyError : 
+            warnings.warn("No unit information found: using defaults.",RuntimeWarning)
+            sim._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+            return
+
+        # Define the SubFind units, we will parse the attribute VarDescriptions for these
+        vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
+        dist_unit = atr['UnitLength_in_cm']*units.cm
+        mass_unit = atr['UnitMass_in_g']*units.g
+        time_unit = atr['UnitTime_in_s']*units.s
+
+#        vel_unit = units.km/units.s
+#        dist_unit = units.Mpc
+#        mass_unit = units.Msol
+#        time_unit = units.yr        
+        # Create a dictionary for the units, this will come in handy later
+        unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit, 'U_T' : time_unit}
+
         # set up particle fof and subhalo group offsets
         self._fof_group_offsets = {}
         self._fof_group_lengths = {}
@@ -1310,8 +1331,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
                 self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
                 curr_subhalos += len(offset)
-            
-                
+                            
         # get all the parent groups for all the subhalos
         nsub = 0
         nfof = 0
@@ -1329,7 +1349,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                           'Mass': np.array([])}
         sub_properties = {}
        
-        ignore = ['GrNr', 'FirstSubOfHalo', 'SF', 'NSF', 'NsubPerHalo', 'Stars', 'MassType']
+        ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor', 'SF', 'NSF', 'NsubPerHalo', 'Stars']
         for t in  sim._my_type_map.values() :
             ignore.append(t[0])
 
@@ -1343,18 +1363,41 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
             for key in sub_properties.keys() :
                 sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
-        
+
         for key in sub_properties.keys() : 
             arr_units = units.NoUnit()
 
-            if key not in ignore :
-                if 'Vel' in key : arr_units = sim._default_units_for('vel')
-                if 'Mass' in key and 'Center' not in key : arr_units = sim._default_units_for('mass')
-                if 'Halo_M' in key: arr_units = sim._default_units_for('mass')
-                if 'Halo_R' in key: arr_units = sim._default_units_for('pos')
-                if 'Vmax' in key: arr_units = sim._default_units_for('vel')
+            VarDescription = sim._hdf[0]['SUBFIND'][key].attrs['VarDescription']
+            aexp = sim._hdf[0]['SUBFIND'][key].attrs['aexp-scale-exponent']
+            hexp = sim._hdf[0]['SUBFIND'][key].attrs['h-scale-exponent']
 
-                if key == 'CenterOfMass' : arr_units = sim._default_units_for('pos')
+            if key not in ignore :
+                for unitname in unitvar :
+                    if unitname in VarDescription : 
+                        sstart = VarDescription.find(unitname)
+                        if VarDescription[sstart+len(unitname)] == '^' :
+                            power = float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
+                        else :
+                            power = 1.
+
+                        if hasattr(arr_units, '_no_unit'):
+                            arr_units = unitvar[unitname]**power ## Set the new units
+                        else:
+                            arr_units *= unitvar[unitname]**power ## Combine the units
+                ## Now the cosmological units
+                arr_units *= (((units.a)**aexp) * (units.h)**hexp)
+
+                # set specific units for certain subhalo properties
+                # SFR doesn't keep the format of U_T etc in VarDescription so do by hand, has no cosmo dependencies
+                if key == 'StarFormationRate' : arr_units = units.Msol * units.yr**-1
+
+#                print "Unit for ", key, " is ", arr_units
+#                if 'Vel' in key : arr_units = sim._default_units_for('vel')
+#                if 'Mass' in key and 'Center' not in key : arr_units = sim._default_units_for('mass')
+#                if 'Halo_M' in key: arr_units = sim._default_units_for('mass')
+#                if 'Halo_R' in key: arr_units = sim._default_units_for('pos')
+#                if 'Vmax' in key: arr_units = sim._default_units_for('vel')
+#
             
             try : 
                 fof_properties[key] = fof_properties[key].view(SimArray)
@@ -1384,10 +1427,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                     pass
                 sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
                     
-
         # set specific units for certain subhalo properties
-        sub_properties['StarFormationRate'].set_units_like('Msol yr^-1')
-            
+#        sub_properties['StarFormationRate'].set_units_like('Msol yr^-1')            
 
         self._fof_properties = fof_properties
         self._sub_properties = sub_properties
