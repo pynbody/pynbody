@@ -66,8 +66,10 @@ def _append_if_array(to_list, name, obj):
 
 
 class DummyHDFData(object):
+
     """A stupid class to allow emulation of mass arrays for particles
     whose mass is in the header"""
+
     def __init__(self, value, length):
         self.value = value
         self.length = length
@@ -82,6 +84,7 @@ class DummyHDFData(object):
 
 
 class GadgetHDFSnap(SimSnap):
+
     def __init__(self, filename):
 
         global config
@@ -90,10 +93,10 @@ class GadgetHDFSnap(SimSnap):
         self._filename = filename
 
         if not h5py.is_hdf5(filename):
-            h1 = h5py.File(filename+".0.hdf5", "r")
+            h1 = h5py.File(filename + ".0.hdf5", "r")
             numfiles = h1['Header'].attrs['NumFilesPerSnapshot']
-            self._hdf = [h5py.File(filename+"."+str(
-                i)+".hdf5", "r") for i in xrange(numfiles)]
+            self._hdf = [h5py.File(filename + "." + str(
+                i) + ".hdf5", "r") for i in xrange(numfiles)]
         else:
             self._hdf = [h5py.File(filename, "r")]
 
@@ -108,21 +111,21 @@ class GadgetHDFSnap(SimSnap):
 
         my_type_map = {}
 
-        for fam, g_types in _type_map.iteritems() : 
+        for fam, g_types in _type_map.iteritems():
             my_types = []
-            for x in g_types :
-                if x in self._hdf[0].keys() : 
+            for x in g_types:
+                if x in self._hdf[0].keys():
                     my_types.append(x)
-            if len(my_types) : 
+            if len(my_types):
                 my_type_map[fam] = my_types
-        
+
         sl_start = 0
         for x in my_type_map:
             l = 0
             for name in my_type_map[x]:
                 for hdf in self._hdf:
                     l += hdf[name]['Coordinates'].shape[0]
-            self._family_slice[x] = slice(sl_start, sl_start+l)
+            self._family_slice[x] = slice(sl_start, sl_start + l)
 
             k = self._get_hdf_allarray_keys(self._hdf[0][name])
             self._loadable_keys = self._loadable_keys.union(set(k))
@@ -165,7 +168,7 @@ class GadgetHDFSnap(SimSnap):
             if filename is None:
                 filename = self._filename
 
-            logger.info('Writing main file as %s',filename)
+            logger.info('Writing main file as %s', filename)
 
             self._hdf_out = h5py.File(filename, "w")
 
@@ -239,14 +242,14 @@ class GadgetHDFSnap(SimSnap):
                     for hdf in self._hdf:
                         dataset = self._get_hdf_dataset(
                             hdf[t], translated_name)
-                        i1 = i0+len(dataset)
+                        i1 = i0 + len(dataset)
                         dataset.read_direct(self[f][array_name][i0:i1])
                         i0 = i1
 
     @staticmethod
     def _can_load(f):
         try:
-            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5"):
+            if h5py.is_hdf5(f) or h5py.is_hdf5(f + ".0.hdf5"):
                 return True
             else:
                 return False
@@ -260,29 +263,29 @@ class GadgetHDFSnap(SimSnap):
 @GadgetHDFSnap.decorator
 def do_properties(sim):
     atr = sim._hdf[0]['Header'].attrs
-    
+
     # expansion factor could be saved as redshift
     try:
         sim.properties['a'] = atr['ExpansionFactor']
-    except KeyError : 
-        sim.properties['a'] = 1./(1+atr['Redshift'])
+    except KeyError:
+        sim.properties['a'] = 1. / (1 + atr['Redshift'])
 
     # time unit might not be set in the attributes
-    try : 
-        sim.properties['time'] = units.Gyr*atr['Time_GYR']
-    except KeyError: 
+    try:
+        sim.properties['time'] = units.Gyr * atr['Time_GYR']
+    except KeyError:
         pass
-        
+
     # not all omegas need to be specified in the attributes
-    try : 
+    try:
         sim.properties['omegaB0'] = atr['OmegaBaryon']
-    except KeyError : 
+    except KeyError:
         pass
 
     sim.properties['omegaM0'] = atr['Omega0']
     sim.properties['omegaL0'] = atr['OmegaLambda']
     sim.properties['boxsize'] = atr['BoxSize']
-    sim.properties['z'] = (1./sim.properties['a'])-1
+    sim.properties['z'] = (1. / sim.properties['a']) - 1
     sim.properties['h'] = atr['HubbleParam']
     for s in sim._hdf[0]['Header'].attrs:
         if s not in ['ExpansionFactor', 'Time_GYR', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
@@ -291,28 +294,30 @@ def do_properties(sim):
 
 @GadgetHDFSnap.decorator
 def do_units(sim):
-    
+
     # this doesn't seem to be standard -- maybe use the convention
     # from tipsy.py and set cosmo = True if there is a hubble constant
     # specified?
-    try : 
+    try:
         cosmo = (sim._hdf[0]['Parameters'][
             'NumericalParameters'].attrs['ComovingIntegrationOn']) != 0
-    except KeyError : 
+    except KeyError:
         cosmo = 'HubbleParam' in sim._hdf[0]['Header'].attrs.keys()
 
-    try : 
+    try:
         atr = sim._hdf[0]['Units'].attrs
-    except KeyError : 
-        warnings.warn("No unit information found: using defaults.",RuntimeWarning)
-        sim._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+    except KeyError:
+        warnings.warn(
+            "No unit information found: using defaults.", RuntimeWarning)
+        sim._file_units_system = [
+            units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
         return
 
-    vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
-    dist_unit = atr['UnitLength_in_cm']*units.cm
+    vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
+    dist_unit = atr['UnitLength_in_cm'] * units.cm
     if cosmo:
         dist_unit /= units.h
-    mass_unit = atr['UnitMass_in_g']*units.g
+    mass_unit = atr['UnitMass_in_g'] * units.g
     if cosmo:
         mass_unit /= units.h
 

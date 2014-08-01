@@ -126,6 +126,7 @@ class UnitsException(Exception):
 
 
 class UnitBase(object):
+
     """Base class for units. To instantiate a unit, call the :func:`pynbody.units.Unit`
     factory function."""
 
@@ -140,7 +141,7 @@ class UnitBase(object):
 
     def __truediv__(self, m):
         return self.__div__(m)
-     
+
     def __div__(self, m):
         if hasattr(m, "_no_unit"):
             return NoUnit()
@@ -168,8 +169,8 @@ class UnitBase(object):
 
     def __add__(self, m):
         scale = m.in_units(self) if hasattr(m, 'in_units') else m
-        if hasattr(scale, 'units') :
-           scale.units=1
+        if hasattr(scale, 'units'):
+            scale.units = 1
         return self * (1.0 + scale)
 
     def __sub__(self, m):
@@ -202,10 +203,10 @@ class UnitBase(object):
     def __neg__(self):
         return self * (-1)
 
-    def __float__(self) :
+    def __float__(self):
         return 1.
 
-    def __hash__(self) :
+    def __hash__(self):
         return id(self)
 
     def simplify(self):
@@ -328,6 +329,7 @@ def _resurrect_named_unit(unit_name, unit_latex, represents):
 
 
 class IrreducibleUnit(UnitBase):
+
     def __init__(self, st):
         self._st_rep = st
         self._register_unit(st)
@@ -346,6 +348,7 @@ class IrreducibleUnit(UnitBase):
 
 
 class NamedUnit(UnitBase):
+
     def __init__(self, st, represents):
         self._st_rep = st
         if isinstance(represents, str):
@@ -370,6 +373,7 @@ class NamedUnit(UnitBase):
 
 
 class CompositeUnit(UnitBase):
+
     def __init__(self, scale, bases, powers):
         """Initialize a composite unit.
 
@@ -436,7 +440,7 @@ class CompositeUnit(UnitBase):
                     s += str(p)
         return s
 
-    def __float__(self) :
+    def __float__(self):
         return float(self._scale)
 
     def _expand(self, expand_to_irrep=False):
@@ -481,7 +485,7 @@ class CompositeUnit(UnitBase):
                            zip(powers, bases)),
                     reverse=True,
                     key=lambda x: x[0])
-                    # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
+        # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
 
         if len(bp) != 0:
             self._powers, self._bases = map(list, zip(*bp))
@@ -775,13 +779,15 @@ def has_unit(obj):
 
 has_units = has_unit
 
-def is_unit(obj) :
-   """Returns True if the specified object represents a unit"""
 
-   return isinstance(obj, UnitBase)
+def is_unit(obj):
+    """Returns True if the specified object represents a unit"""
 
-def is_unit_like(obj) :
-   """Returns True if the specified object is itself a unit or
-   otherwise exposes unit information"""
+    return isinstance(obj, UnitBase)
 
-   return is_unit(obj) or has_unit(obj)
+
+def is_unit_like(obj):
+    """Returns True if the specified object is itself a unit or
+    otherwise exposes unit information"""
+
+    return is_unit(obj) or has_unit(obj)

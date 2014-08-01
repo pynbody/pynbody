@@ -33,7 +33,9 @@ import logging
 
 logger = logging.getLogger('pynbody.snapshot')
 
+
 class SimSnap(object):
+
     """The class for managing simulation snapshots.
 
     For most purposes, SimSnaps should be initialized through
@@ -86,8 +88,8 @@ class SimSnap(object):
     _derived_quantity_registry = {}
 
     _dependency_chain = {}
-        # key is an array name. Value gives the set of arrays which depend on
-        # it.
+    # key is an array name. Value gives the set of arrays which depend on
+    # it.
 
     _decorator_registry = {}
 
@@ -136,7 +138,7 @@ class SimSnap(object):
         if array_name in self._split_arrays:
             array_name_1D = self._split_arrays[array_name]
         else:
-            array_name_1D = [array_name+"_"+i for i in 'x', 'y', 'z']
+            array_name_1D = [array_name + "_" + i for i in 'x', 'y', 'z']
 
         return array_name_1D
 
@@ -158,19 +160,21 @@ class SimSnap(object):
             self._family_derived_array_track[i] = []
 
         self._calculating = []
-            # maintains a list of currently-being-calculated lazy evaluations
-                               # to prevent circular references
+        # maintains a list of currently-being-calculated lazy evaluations
+        # to prevent circular references
 
         self._dependency_track = [
         ]  # getitem automatically adds any requested arrays to sets within
-                                    # this list, which allows for automatic calculation of the dependencies
-                                    # of derived arrays
+        # this list, which allows for automatic calculation of the dependencies
+        # of derived arrays
 
         self._persistent_objects = {}
 
         self._unifamily = None
 
-        self._shared_arrays = False  # If True, when new arrays are created they are in shared memory by default
+        # If True, when new arrays are created they are in shared memory by
+        # default
+        self._shared_arrays = False
 
         self.lazy_off = util.ExecutionControl()
         # use 'with lazy_off :' blocks to disable all hidden/lazy behaviour
@@ -218,9 +222,9 @@ class SimSnap(object):
 
     def __repr__(self):
         if self._filename != "":
-            return "<SimSnap \""+self._filename+"\" len="+str(len(self))+">"
+            return "<SimSnap \"" + self._filename + "\" len=" + str(len(self)) + ">"
         else:
-            return "<SimSnap len="+str(len(self))+">"
+            return "<SimSnap len=" + str(len(self)) + ">"
 
     def families(self):
         """Return the particle families which have representitives in this SimSnap.
@@ -353,7 +357,8 @@ class SimSnap(object):
 
     def __delitem__(self, name):
         if name in self._family_arrays:
-            assert name not in self._arrays  # mustn't have simulation-level array of this name
+            # mustn't have simulation-level array of this name
+            assert name not in self._arrays
             del self._family_arrays[name]
 
             for v in self._family_derived_array_track.itervalues():
@@ -408,7 +413,7 @@ class SimSnap(object):
         write to, for instance, f.dm). Second, it implements persistent objects -- properties
         which are shared between two equivalent SubSnaps."""
         if name in family.family_names():
-            raise AttributeError("Cannot assign family name "+name)
+            raise AttributeError("Cannot assign family name " + name)
 
         if name in SimSnap._persistent:
             self.ancestor._set_persist(self._inclusion_hash, name, val)
@@ -596,7 +601,7 @@ class SimSnap(object):
                 d[x] = self.properties[x]
         return d
 
-    def set_units_system(self, velocity = None, distance = None, mass = None, temperature = None) : 
+    def set_units_system(self, velocity=None, distance=None, mass=None, temperature=None):
         """Set the unit system for the snapshot by specifying any or
         all of `velocity`, `distance`, `mass` and `temperature`
         units. The units can be given as strings or as pynbody `Unit`
@@ -608,60 +613,64 @@ class SimSnap(object):
         from .. import config_parser
         import ConfigParser
 
-        # if the units system doesn't exist (if this is a new snapshot), create one
-        if len(self._file_units_system) < 3 : 
+        # if the units system doesn't exist (if this is a new snapshot), create
+        # one
+        if len(self._file_units_system) < 3:
             warnings.warn("Previous unit system incomplete -- using defaults")
-            self._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
-        
-        else : 
+            self._file_units_system = [
+                units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+
+        else:
             # we want to change the base units -- so convert to original
             # units first and then set all arrays to new unit system
             self.original_units()
 
         new_units = []
-        for x in [velocity,distance,mass,temperature] : 
-            if x is not None : 
+        for x in [velocity, distance, mass, temperature]:
+            if x is not None:
                 new_units.append(units.Unit(x))
 
         new_system = list(self._file_units_system)
 
-        for i,x in enumerate(new_system) :
-            if x is units.K : continue
-            try : 
+        for i, x in enumerate(new_system):
+            if x is units.K:
+                continue
+            try:
                 d = x.dimensional_project(new_units)
-                new_system[i] = reduce(lambda x, y: x*y, [
-                          a**b for a, b in zip(new_units, d)])
+                new_system[i] = reduce(lambda x, y: x * y, [
+                    a ** b for a, b in zip(new_units, d)])
 
-            except units.UnitsException :
+            except units.UnitsException:
                 pass
 
         # check that the new unit system is linearly independent
-        for test in ['kpc','Msol','km s^-1'] : 
+        for test in ['kpc', 'Msol', 'km s^-1']:
             test = units.Unit(test)
-            try : 
+            try:
                 test.dimensional_project(new_system)
-            except units.UnitsException : 
-                raise units.UnitsException("New units are not linearly independent")
-        
+            except units.UnitsException:
+                raise units.UnitsException(
+                    "New units are not linearly independent")
+
         self._file_units_system = new_system
-        
+
         # set new units for all known arrays
-        for arr_name in self.keys() : 
+        for arr_name in self.keys():
             arr = self[arr_name]
             # if the array has units, then use the current units, else
             # check if a default dimension for this array exists in
             # the configuration
-            if arr.units != units.NoUnit() :
+            if arr.units != units.NoUnit():
                 ref_unit = arr.units
-            else : 
-                try : 
-                    ref_unit = config_parser.get('default-array-dimensions',arr_name) 
-                except ConfigParser.NoOptionError : 
+            else:
+                try:
+                    ref_unit = config_parser.get(
+                        'default-array-dimensions', arr_name)
+                except ConfigParser.NoOptionError:
                     # give up -- no applicable dimension found
                     continue
-                    
-            arr.set_units_like(ref_unit)
 
+            arr.set_units_like(ref_unit)
 
     def original_units(self):
         """Converts all arrays'units to be consistent with the units of
@@ -687,10 +696,11 @@ class SimSnap(object):
             except units.UnitsException:
                 return
 
-            new_unit = reduce(lambda x, y: x*y, [
-                              a**b for a, b in zip(dims, d[:ucut])])
+            new_unit = reduce(lambda x, y: x * y, [
+                              a ** b for a, b in zip(dims, d[:ucut])])
             if new_unit != ar.units:
-                logger.info("Converting %s units from %s to %s"%(ar.name,ar.units,new_unit))
+                logger.info("Converting %s units from %s to %s" %
+                            (ar.name, ar.units, new_unit))
                 ar.convert_units(new_unit)
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
@@ -730,8 +740,8 @@ class SimSnap(object):
                     new_unit = v.dimensional_project(dims)
                 except units.UnitsException:
                     continue
-                new_unit = reduce(lambda x, y: x*y, [
-                                  a**b for a, b in zip(dims, new_unit[:3])])
+                new_unit = reduce(lambda x, y: x * y, [
+                                  a ** b for a, b in zip(dims, new_unit[:3])])
                 new_unit *= v.ratio(new_unit, **self.conversion_context())
                 self.properties[k] = new_unit
 
@@ -744,9 +754,10 @@ class SimSnap(object):
         """Given a unit (or string) `dimensions`, returns a unit with the same
         physical dimensions which is in the unit schema of the current file."""
         dimensions = units.Unit(dimensions)
-        d = dimensions.dimensional_project(self._file_units_system+["a", "h"])
-        new_unit = reduce(lambda x, y: x*y, [
-                          a**b for a, b in zip(self._file_units_system, d)])
+        d = dimensions.dimensional_project(
+            self._file_units_system + ["a", "h"])
+        new_unit = reduce(lambda x, y: x * y, [
+                          a ** b for a, b in zip(self._file_units_system, d)])
         return new_unit
 
     def _default_units_for(self, array_name):
@@ -771,18 +782,18 @@ class SimSnap(object):
 
         for c in config['halo-class-priority']:
             try:
-                if c._can_load(self,*args,**kwargs):
+                if c._can_load(self, *args, **kwargs):
                     return c(self, *args, **kwargs)
             except TypeError:
                 pass
 
         for c in config['halo-class-priority']:
             try:
-                if c._can_run(self,*args,**kwargs):
+                if c._can_run(self, *args, **kwargs):
                     return c(self, *args, **kwargs)
             except TypeError:
                 pass
-                
+
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 
     ############################################
@@ -847,32 +858,32 @@ class SimSnap(object):
                         self._load_array(array_name, fam_x)
 
             # Find out what was loaded
-            new_keys = set(anc.keys())-pre_keys
+            new_keys = set(anc.keys()) - pre_keys
             new_fam_keys = fk()
             for fami in new_fam_keys:
-                new_fam_keys[fami] = new_fam_keys[fami]-pre_fam_keys[fami]
+                new_fam_keys[fami] = new_fam_keys[fami] - pre_fam_keys[fami]
 
             # If the loader hasn't given units already, try to determine the defaults
             # Then, attempt to convert what was loaded into friendly units
             for v in new_keys:
-                if not units.has_units(anc[v]) :
+                if not units.has_units(anc[v]):
                     anc[v].units = anc._default_units_for(v)
                 anc._autoconvert_array_unit(anc[v])
             for f, vals in new_fam_keys.iteritems():
                 for v in vals:
-                    if not units.has_units(anc[f][v]) :
+                    if not units.has_units(anc[f][v]):
                         anc[f][v].units = anc._default_units_for(v)
                     anc._autoconvert_array_unit(anc[f][v])
 
     ############################################
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
     ############################################
-    def transform(self, matrix) :
+    def transform(self, matrix):
         from .. import transformation
         return transformation.transform(self, matrix)
-    
+
     def _transform(self, matrix):
-        """Transforms the snapshot according to the 3x3 matrix given."""        
+        """Transforms the snapshot according to the 3x3 matrix given."""
         for x in self.keys():
             ar = self[x]
             if len(ar.shape) == 2 and ar.shape[1] == 3:
@@ -880,24 +891,24 @@ class SimSnap(object):
 
     def rotate_x(self, angle):
         """Rotates the snapshot about the current x-axis by 'angle' degrees."""
-        angle *= np.pi/180
+        angle *= np.pi / 180
         return self.transform(np.matrix([[1,      0,             0],
-                                  [0, np.cos(angle), -np.sin(angle)],
-                                  [0, np.sin(angle),  np.cos(angle)]]))
+                                         [0, np.cos(angle), -np.sin(angle)],
+                                         [0, np.sin(angle),  np.cos(angle)]]))
 
     def rotate_y(self, angle):
         """Rotates the snapshot about the current y-axis by 'angle' degrees."""
-        angle *= np.pi/180
+        angle *= np.pi / 180
         return self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
-                                  [0,                1,        0],
-                                  [-np.sin(angle),   0,   np.cos(angle)]]))
+                                         [0,                1,        0],
+                                         [-np.sin(angle),   0,   np.cos(angle)]]))
 
     def rotate_z(self, angle):
         """Rotates the snapshot about the current z-axis by 'angle' degrees."""
-        angle *= np.pi/180
+        angle *= np.pi / 180
         return self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
-                                  [np.sin(angle),  np.cos(angle), 0],
-                                  [0,             0,        1]]))
+                                         [np.sin(angle),  np.cos(angle), 0],
+                                         [0,             0,        1]]))
 
     def wrap(self, boxsize=None):
         """Wraps the positions of the particles in the box to lie between
@@ -913,8 +924,8 @@ class SimSnap(object):
                             "pos"].units, **self.conversion_context()))
 
         for coord in "x", "y", "z":
-            self[coord][np.where(self[coord] < -boxsize/2)] += boxsize
-            self[coord][np.where(self[coord] > boxsize/2)] -= boxsize
+            self[coord][np.where(self[coord] < -boxsize / 2)] += boxsize
+            self[coord][np.where(self[coord] > boxsize / 2)] -= boxsize
 
     ############################################
     # WRITING FUNCTIONS
@@ -1154,21 +1165,21 @@ class SimSnap(object):
         if array_name in derive_track:
             del derive_track[derive_track.index(array_name)]
 
-    def _get_from_immediate_cache(self, name, fn) :
+    def _get_from_immediate_cache(self, name, fn):
         """Retrieves the named numpy array from the immediate cache associated
         with this snapshot. If the array does not exist in the immediate
         cache, function fn is called with no arguments and must generate
         it."""
-        
+
         if not hasattr(self, '_immediate_cache'):
-                self._immediate_cache = [{}]
+            self._immediate_cache = [{}]
         cache = self._immediate_cache[0]
         hx = hash(name)
         if hx not in cache:
             cache[hx] = fn()
 
         return cache[hx]
-                
+
     def _get_array(self, name, index=None, always_writable=False):
         """Get the array of the specified *name*, optionally
         for only the particles specified by *index*.
@@ -1207,7 +1218,7 @@ class SimSnap(object):
         try:
             x = self._family_arrays[name][fam]
         except KeyError:
-            raise KeyError("No array "+name+" for family "+fam.name)
+            raise KeyError("No array " + name + " for family " + fam.name)
 
         if x.derived and not always_writable:
             x = x.view()
@@ -1217,10 +1228,10 @@ class SimSnap(object):
             if type(index) is slice:
                 x = x[index]
             else:
-                if _subarray_immediate_mode or self.immediate_mode :
+                if _subarray_immediate_mode or self.immediate_mode:
                     x = self._get_from_immediate_cache(name,
-                                                       lambda : x[index])
-                else :
+                                                       lambda: x[index])
+                else:
                     x = array.IndexedSimArray(x, index)
         return x
 
@@ -1270,7 +1281,7 @@ class SimSnap(object):
         """Raises a ValueError if the specified array name is connected to
         a family-specific array"""
         if name in self.family_keys():
-            raise KeyError("Array "+name+" is a family-level property")
+            raise KeyError("Array " + name + " is a family-level property")
 
     def _delayed_array_promotions(self):
         """Called automatically to catch up with pending array promotions"""
@@ -1300,7 +1311,7 @@ class SimSnap(object):
                 dtype = self._family_arrays[name][x].dtype
                 for x in self._family_arrays[name].values():
                     if x.dtype != dtype:
-                        warnings.warn("Data types of family arrays do not match; assuming "+str(
+                        warnings.warn("Data types of family arrays do not match; assuming " + str(
                             dtype),  RuntimeWarning)
 
             except IndexError:
@@ -1347,7 +1358,7 @@ class SimSnap(object):
                 for v in self._array_name_ND_to_1D(name):
                     del self._family_arrays[v]
             gc.collect()
-            
+
         except KeyError:
             pass
 
@@ -1402,7 +1413,7 @@ class SimSnap(object):
                 for cl in type(self).__mro__:
                     if cl in self._derived_quantity_registry \
                             and name in self._derived_quantity_registry[cl]:
-                        logger.info("Deriving array %s"%name)
+                        logger.info("Deriving array %s" % name)
                         with self.auto_propagate_off:
                             fn = self._derived_quantity_registry[cl][name]
                             if fam is None:
@@ -1443,7 +1454,7 @@ class SimSnap(object):
                 del self._dependency_track[-1]
 
             if not calculated:
-                raise KeyError("No derivation rule for "+name)
+                raise KeyError("No derivation rule for " + name)
 
     def _dirty(self, name):
         """Declare a given array as changed, so deleting any derived
@@ -1475,18 +1486,18 @@ class SimSnap(object):
         """If the named array is auto-derived, this destroys the link so that
         the array becomes editable but no longer auto-updates."""
 
-        if self.is_derived_array(name) :
-            if name in self.family_keys():                
-                for fam in self._family_arrays[name] : 
+        if self.is_derived_array(name):
+            if name in self.family_keys():
+                for fam in self._family_arrays[name]:
                     track = self._family_derived_array_track[fam]
-                    
-                    if name in track :
+
+                    if name in track:
                         del track[track.index(name)]
-                
-            else: 
+
+            else:
                 del self._derived_array_track[
                     self._derived_array_track.index(name)]
-        
+
         else:
             raise RuntimeError("Not a derived array")
 
@@ -1496,7 +1507,8 @@ class SimSnap(object):
     def mean_by_mass(self, name):
         """Calculate the mean by mass of the specified array."""
         m = np.asanyarray(self["mass"])
-        ret = array.SimArray((self[name].transpose()*m).transpose().mean(axis=0)/m.mean(), self[name].units)
+        ret = array.SimArray(
+            (self[name].transpose() * m).transpose().mean(axis=0) / m.mean(), self[name].units)
 
         return ret
 
@@ -1531,7 +1543,8 @@ class SimSnap(object):
                 hash = hashlib.md5(index_list.data)
                 self.__inclusion_hash = hash.digest()
             except:
-                logging.warn("Encountered a problem while calculating your inclusion hash. %s"%traceback.format_exc())
+                logging.warn(
+                    "Encountered a problem while calculating your inclusion hash. %s" % traceback.format_exc())
             rval = self.__inclusion_hash
         return rval
 
@@ -1585,6 +1598,7 @@ _subarray_immediate_mode = False
 
 
 class SubSnap(SimSnap):
+
     """Represent a sub-view of a SimSnap, initialized by specifying a
     slice.  Arrays accessed through __getitem__ are automatically
     sub-viewed using the given slice."""
@@ -1605,18 +1619,18 @@ class SubSnap(SimSnap):
                 _slice = slice(0, _slice.stop, _slice.step)
             if _slice.start < 0:
                 _slice = slice(len(
-                    base)+_slice.start, _slice.stop, _slice.step)
+                    base) + _slice.start, _slice.stop, _slice.step)
             if _slice.stop is None or _slice.stop > len(base):
                 _slice = slice(_slice.start, len(base), _slice.step)
             if _slice.stop < 0:
                 _slice = slice(_slice.start, len(
-                    base)+_slice.stop, _slice.step)
+                    base) + _slice.stop, _slice.step)
 
             self._slice = _slice
 
-            descriptor = "["+str(_slice.start)+":"+str(_slice.stop)
+            descriptor = "[" + str(_slice.start) + ":" + str(_slice.stop)
             if _slice.step is not None:
-                descriptor += ":"+str(_slice.step)
+                descriptor += ":" + str(_slice.step)
             descriptor += "]"
 
         else:
@@ -1632,9 +1646,9 @@ class SubSnap(SimSnap):
 
     def _get_array(self, name, index=None, always_writable=False):
         if _subarray_immediate_mode or self.immediate_mode:
-            return self._get_from_immediate_cache(name, 
-                   lambda : self.base._get_array(
-                            name, None, always_writable)[self._slice])
+            return self._get_from_immediate_cache(name,
+                                                  lambda: self.base._get_array(
+                                                      name, None, always_writable)[self._slice])
 
         else:
             ret = self.base._get_array(name, util.concatenate_indexing(
@@ -1652,9 +1666,9 @@ class SubSnap(SimSnap):
                                  util.intersect_slices(self._slice, base_family_slice, len(self.base)))
         sl = util.concatenate_indexing(sl, index)
         if _subarray_immediate_mode or self.immediate_mode:
-            return self._get_from_immediate_cache((name,fam),
-                                                  lambda : self.base._get_family_array(
-                        name, fam, None, always_writable)[sl])
+            return self._get_from_immediate_cache((name, fam),
+                                                  lambda: self.base._get_family_array(
+                name, fam, None, always_writable)[sl])
         else:
             return self.base._get_family_array(name, fam, sl, always_writable)
 
@@ -1676,7 +1690,7 @@ class SubSnap(SimSnap):
 
     @property
     def _filename(self):
-        return self.base._filename+":"+self._descriptor
+        return self.base._filename + ":" + self._descriptor
 
     def keys(self):
         return self.base.keys()
@@ -1742,8 +1756,10 @@ class SubSnap(SimSnap):
 
 
 class IndexedSubSnap(SubSnap):
+
     """Represents a subset of the simulation particles according
     to an index array."""
+
     def __init__(self, base, index_array):
 
         self._descriptor = "indexed"
@@ -1781,10 +1797,10 @@ class IndexedSubSnap(SubSnap):
         for i, fam in enumerate(self.ancestor.families()):
             ids = np.where(findex == i)[0]
             if len(ids) > 0:
-                new_slice = slice(ids.min(), ids.max()+1)
+                new_slice = slice(ids.min(), ids.max() + 1)
                 self._family_slice[fam] = new_slice
                 self._family_indices[fam] = np.asarray(index_array[
-                                                       new_slice])-base._get_family_slice(fam).start
+                                                       new_slice]) - base._get_family_slice(fam).start
 
         """
         # old code for monotonically increasing arrays only
@@ -1817,7 +1833,9 @@ class IndexedSubSnap(SubSnap):
 
 
 class FamilySubSnap(SubSnap):
+
     """Represents a one-family portion of a parent snap object"""
+
     def __init__(self, base, fam):
         self.base = base
 
@@ -1825,9 +1843,9 @@ class FamilySubSnap(SubSnap):
 
         self._slice = base._get_family_slice(fam)
         self._unifamily = fam
-        self._descriptor = ":"+fam.name
+        self._descriptor = ":" + fam.name
         # Use the slice attributes to find sub array length
-        self._num_particles = self._slice.stop-self._slice.start
+        self._num_particles = self._slice.stop - self._slice.start
         self._file_units_system = base._file_units_system
 
     def __delitem__(self, name):
@@ -1873,7 +1891,8 @@ class FamilySubSnap(SubSnap):
             self.base._set_family_array(name, self._unifamily, value, index)
 
     def _create_family_array(self, array_name, family, ndim, dtype, derived, shared):
-        self.base._create_family_array(array_name, family, ndim, dtype, derived, shared)
+        self.base._create_family_array(
+            array_name, family, ndim, dtype, derived, shared)
 
     def _promote_family_array(self, *args, **kwargs):
         pass
@@ -1914,14 +1933,14 @@ def _new(n_particles=0, order=None, **families):
     t_fam = []
     tot_particles = 0
 
-    if order is None :
+    if order is None:
         for k, v in families.items():
 
             assert isinstance(v, int)
             t_fam.append((family.get_family(k), v))
             tot_particles += v
-    else :
-        for k in order.split(",") :
+    else:
+        for k in order.split(","):
             v = families[k]
             assert isinstance(v, int)
             t_fam.append((family.get_family(k), v))
@@ -1936,7 +1955,7 @@ def _new(n_particles=0, order=None, **families):
 
     rt = 0
     for k, v in t_fam:
-        x._family_slice[k] = slice(rt, rt+v)
+        x._family_slice[k] = slice(rt, rt + v)
         rt += v
 
     x._decorate()

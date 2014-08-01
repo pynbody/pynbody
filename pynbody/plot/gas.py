@@ -15,7 +15,8 @@ from ..units import Unit
 import logging
 logger = logging.getLogger('pynbody.plot.gas')
 
-def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
+
+def rho_T(sim, rho_units=None, rho_range=None, t_range=None, **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
@@ -35,7 +36,7 @@ def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
     """
     from matplotlib import ticker, colors
 
-    if rho_units is None: 
+    if rho_units is None:
         rho_units = sim.gas['rho'].units
 
     if t_range is not None:
@@ -46,26 +47,26 @@ def rho_T(sim, rho_units=None, rho_range = None, t_range = None, **kwargs):
         kwargs['x_range'] = rho_range
         assert len(kwargs['x_range']) == 2
     else:
-        rho_range=False
+        rho_range = False
 
     if 'xlabel' in kwargs:
         xlabel = kwargs['xlabel']
         del kwargs['xlabel']
     else:
-        xlabel=r'log$_{10}$($\rho$/$'+Unit(rho_units).latex()+'$)'
+        xlabel = r'log$_{10}$($\rho$/$' + Unit(rho_units).latex() + '$)'
 
     if 'ylabel' in kwargs:
         ylabel = kwargs['ylabel']
         del kwargs['ylabel']
     else:
-        ylabel=r'log$_{10}$(T/$'+sim.gas['temp'].units.latex()+'$)'
+        ylabel = r'log$_{10}$(T/$' + sim.gas['temp'].units.latex() + '$)'
 
-    hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],xlogrange=True,
+    hist2d(sim.gas['rho'].in_units(rho_units), sim.gas['temp'], xlogrange=True,
            ylogrange=True, xlabel=xlabel, ylabel=ylabel, **kwargs)
 
 
-def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln', 
-                 clear = True, filename=None,**kwargs) :
+def temp_profile(sim, center=True, r_units='kpc', bin_spacing='equaln',
+                 clear=True, filename=None, **kwargs):
     """
 
     Centre on potential minimum, align so that the disk is in the
@@ -74,30 +75,30 @@ def temp_profile(sim, center=True, r_units='kpc', bin_spacing = 'equaln',
 
     """
 
-    if center :
+    if center:
         angmom.sideon(sim)
 
-    if 'min' in kwargs :
+    if 'min' in kwargs:
         min_r = kwargs['min']
     else:
         min_r = sim['r'].min()
-    if 'max' in kwargs :
+    if 'max' in kwargs:
         max_r = kwargs['max']
     else:
         max_r = sim['r'].max()
 
-    pro = profile.Profile(sim.gas, type=bin_spacing, min = min_r, max = max_r)
+    pro = profile.Profile(sim.gas, type=bin_spacing, min=min_r, max=max_r)
 
     r = pro['rbins'].in_units(r_units)
     tempprof = pro['temp']
 
-    if clear : plt.clf()
+    if clear:
+        plt.clf()
 
     plt.semilogy(r, tempprof)
 
-    plt.xlabel("r / $"+r.units.latex()+"$")
+    plt.xlabel("r / $" + r.units.latex() + "$")
     plt.ylabel("Temperature [K]")
     if (filename):
-        logger.info("Saving %s",filename)
+        logger.info("Saving %s", filename)
         plt.savefig(filename)
-    

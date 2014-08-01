@@ -25,11 +25,13 @@ def _recursive_repr(user_function):
 
 
 class OrderedDict(dict, MutableMapping):
+
     'Dictionary that remembers insertion order'
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
     # The remaining methods are order-aware.
-    # Big-O running times for all methods are the same as for regular dictionaries.
+    # Big-O running times for all methods are the same as for regular
+    # dictionaries.
 
     # The internal self.__map dictionary maps keys to links in a doubly linked list.
     # The circular doubly linked list starts and ends with a sentinel element.
@@ -57,7 +59,8 @@ class OrderedDict(dict, MutableMapping):
     def __setitem__(self, key, value, PREV=0, NEXT=1, dict_setitem=dict.__setitem__):
         'od.__setitem__(i, y) <==> od[i]=y'
         # Setting a new item creates a new link which goes at the end of the linked
-        # list, and the inherited dictionary is updated with the new key/value pair.
+        # list, and the inherited dictionary is updated with the new key/value
+        # pair.
         if key not in self:
             root = self.__root
             last = root[PREV]
@@ -67,7 +70,8 @@ class OrderedDict(dict, MutableMapping):
     def __delitem__(self, key, PREV=0, NEXT=1, dict_delitem=dict.__delitem__):
         'od.__delitem__(y) <==> del od[y]'
         # Deleting an existing item uses self.__map to find the link which is
-        # then removed by updating the links in the predecessor and successor nodes.
+        # then removed by updating the links in the predecessor and successor
+        # nodes.
         dict_delitem(self, key)
         link = self.__map.pop(key)
         link_prev = link[PREV]
@@ -177,6 +181,6 @@ class OrderedDict(dict, MutableMapping):
 
         '''
         if isinstance(other, OrderedDict):
-            return len(self)==len(other) and \
-                   all(_imap(_eq, self.iteritems(), other.iteritems()))
+            return len(self) == len(other) and \
+                all(_imap(_eq, self.iteritems(), other.iteritems()))
         return dict.__eq__(self, other)

@@ -47,8 +47,8 @@ def get_family(name, create=False):
         return name
 
     name = name.lower()
-                      # or should it check and raise rather than just convert?
-                      # Not sure.
+    # or should it check and raise rather than just convert?
+    # Not sure.
     for n in _registry:
         if n.name == name or name in n.aliases:
             return n
@@ -61,11 +61,12 @@ def get_family(name, create=False):
 
 
 class Family(object):
+
     def __init__(self, name, aliases=[]):
         if name != name.lower():
             raise ValueError("Family names must be lower case")
         if name in family_names(with_aliases=True):
-            raise ValueError("Family name "+name+" is not unique")
+            raise ValueError("Family name " + name + " is not unique")
         for a in aliases:
             if a != a.lower():
                 raise ValueError("Aliases must be lower case")
@@ -75,7 +76,7 @@ class Family(object):
         _registry.append(self)
 
     def __repr__(self):
-        return "<Family "+self.name+">"
+        return "<Family " + self.name + ">"
 
     def __reduce__(self):
         return get_family, (self.name, True), {"aliases": self.aliases}
@@ -92,15 +93,15 @@ class Family(object):
         return cmp(str(self), str(other))
 
     def __eq__(self, other):
-        return str(self)==str(other)
+        return str(self) == str(other)
 
     def __lt__(self, other):
-        return str(self)<str(other)
+        return str(self) < str(other)
 
-    def __hash__(self) :
+    def __hash__(self):
         return hash(str(self))
 
-if sys.version_info[0]>=3 :
+if sys.version_info[0] >= 3:
     Family = functools.total_ordering(Family)
 
 
