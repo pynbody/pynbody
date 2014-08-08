@@ -26,7 +26,7 @@ and start the notebook server from that directory:
 ```
 $ mkdir pynbody_notebooks
 $ cd pynbody_notebooks
-$ ipython notebook --pylab inline
+$ ipython notebook
 ```
 
 This will start up the ipython session and open up a browser window
@@ -42,7 +42,7 @@ SSH tunnel.
 On remote: 
 
 ```
-remote> ipython notebook --pylab inline
+remote> ipython notebook
 ```
 
 locally:

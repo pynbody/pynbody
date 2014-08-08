@@ -6,7 +6,7 @@ angmom
 """
 
 import numpy as np
-from .. import array, filt, units, config
+from .. import array, filt, units, config, transformation
 from . import halo
 
 def ang_mom_vec(snap) :
@@ -77,8 +77,8 @@ def calc_faceon_matrix(angmom_vec, up=[0.0,1.0,0.0]) :
 
 
 def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", 
-           disk_size = "5 kpc", cen = None, vcen=None, top=None,
-           return_transform = False, **kwargs ) :
+           disk_size = "5 kpc", cen = None, vcen=None, move_all=True,
+            **kwargs ) :
     """
 
     Reposition and rotate the simulation containing the halo h to see
@@ -93,9 +93,10 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
 
     global config
 
-    if top is None :
+    if move_all :
+        top = h.ancestor
+    else :
         top = h
-        while hasattr(top,'base') : top = top.base
 
     # Top is the top-level view of the simulation, which will be
     # transformed
@@ -107,12 +108,13 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
         if config['verbose'] :
             print "cen=",cen
 
-    top['pos']-=cen
+    tx = transformation.inverse_translate(top, cen)
 
     if vcen is None :
-        vcen = halo.vel_center(h,retcen=True)
+        vcen = halo.vel_center(h,retcen=True, cen_size=cen_size)
 
-    top['vel']-=vcen
+    tx = transformation.inverse_v_translate(tx, vcen)
+
 
     # Use gas from inner 10kpc to calculate angular momentum vector
     if (len(h.gas) > 0):
@@ -126,10 +128,10 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
 
     if config['verbose'] :
         print "Transforming simulation..."
-    top.transform(trans)
 
-    if return_transform :
-        return trans
+    tx = transformation.transform(tx, trans)
+
+    return tx
 
 
 def faceon(h, **kwargs) :
@@ -145,4 +147,4 @@ def faceon(h, **kwargs) :
 
     """
 
-    sideon(h, calc_faceon_matrix, **kwargs)
+    return sideon(h, calc_faceon_matrix, **kwargs)

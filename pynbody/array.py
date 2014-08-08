@@ -189,7 +189,6 @@ class SimArray(np.ndarray) :
         
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
         new = np.array(data, **kwargs).view(subtype)
-
         if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None :
             units = data.units
             sim = data.sim
@@ -201,10 +200,25 @@ class SimArray(np.ndarray) :
             units = _units.Unit(units)
 
         new._units = units
-        new.sim = sim # will generate a weakref automatically
-       
-        new._name = None
 
+        # Always associate a SimArray with the top-level snapshot.
+        # Otherwise we run into problems with how the reference should
+        # behave: we don't want to lose the link to the simulation by
+        # storing a weakref to a SubSnap that might be deconstructed,
+        # but we also wouldn't want to store a strong ref to a SubSnap
+        # since that would keep the entire simulation alive even if
+        # deleted.
+        #
+        # So, set the sim attribute to the top-level snapshot and use
+        # the normal weak-reference system.
+
+        if sim is not None :
+            new.sim = sim.ancestor
+            # will generate a weakref automatically
+        
+            
+        new._name = None
+        
         return new
 
     def __array_finalize__(self, obj) :
@@ -223,7 +237,6 @@ class SimArray(np.ndarray) :
 
 
     def __array_wrap__(self, array, context=None) :
- 
         if context is None :
             n_array = array.view(SimArray)
             return n_array

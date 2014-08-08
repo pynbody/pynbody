@@ -8,6 +8,7 @@ routines for plotting smoothed quantities
 """
 
 import pylab as p
+import matplotlib
 import numpy as np
 from .. import sph, config
 from .. import units as _units
@@ -24,12 +25,9 @@ def sideon_image(sim, *args, **kwargs) :
     """
 
     from ..analysis import angmom
-    if 'center' in kwargs:
-        if kwargs['center']:
-            angmom.sideon(sim)
-    else :
-        angmom.sideon(sim)
-    return image(sim, *args, **kwargs)
+    
+    with angmom.sideon(sim) :
+        return image(sim, *args, **kwargs)
 
 def faceon_image(sim, *args, **kwargs) :
     """
@@ -43,50 +41,79 @@ def faceon_image(sim, *args, **kwargs) :
     """
 
     from ..analysis import angmom
-    angmom.faceon(sim)
-    return image(sim, *args, **kwargs)
+    
+    with angmom.faceon(sim) :
+        return image(sim, *args, **kwargs)
 
-def velocity_image(sim, width="10 kpc", vector_color='black',
-        vector_resolution=40, scale=None, key_x=0.3, key_y=0.9,
-        key_color='white', key_length="100 km s**-1", **kwargs):
+def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
+        vector_resolution=40, scale=None, mode = 'quiver', key_x=0.3, key_y=0.9,
+        key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
     """
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
 
-    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`.
+    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`, 
+    or see the `tutorial <http://pynbody.github.io/pynbody/tutorials/pictures.html#velocity-vectors>`_.
 
     **Keyword arguments:**
 
     *vector_color* (black): The color for the velocity vectors
+
+    *edgecolor* (black): edge color used for the lines - using a color
+     other than black for the *vector_color* and a black *edgecolor*
+     can result in poor readability in pdfs
 
     *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
 
     *scale* (None): The length of a vector that would result in a displayed length of the
     figure width/height.  
 
-    *key_x* (0.3): Display x (width) position for the vector key
+    *mode* ('quiver'): make a 'quiver' or 'stream' plot
 
-    *key_y* (0.9): Display y (height) position for the vector key
+    *key_x* (0.3): Display x (width) position for the vector key (quiver mode only)
 
-    *key_color* (white): Color for the vector key
+    *key_y* (0.9): Display y (height) position for the vector key (quiver mode only)
 
-    *key_length* (100 km/s): Velocity to use for the vector key
+    *key_color* (white): Color for the vector key (quiver mode only) 
+
+    *key_length* (100 km/s): Velocity to use for the vector key (quiver mode only)
+
+    *density* (1.0): Density of stream lines (stream mode only) 
 
     """
+    
+    subplot = kwargs.get('subplot',False)
+    if subplot : 
+        p = subplot
+    else :
+        import matplotlib.pylab as p
 
-    vx = image(sim, qty='vx', width=width, log=False, resolution=vector_resolution)
-    vy = image(sim, qty='vy', width=width, log=False, resolution=vector_resolution)
+    vx = image(sim, qty='vx', width=width, log=False, resolution=vector_resolution,noplot=True)
+    vy = image(sim, qty='vy', width=width, log=False, resolution=vector_resolution,noplot=True)
     key_unit = _units.Unit(key_length)
-    width_unit = _units.Unit(width)
-    X,Y = np.meshgrid(np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution),
-            np.arange(-width_unit/2,width_unit/2,width_unit/vector_resolution)) 
+
+    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
+        if isinstance(width,str) : 
+            width = _units.Unit(width)
+        width = width.in_units(sim['pos'].units,**sim.conversion_context())
+    
+    width = float(width)
+
+    X,Y = np.meshgrid(np.arange(-width/2,width/2,width/vector_resolution),
+            np.arange(-width/2,width/2,width/vector_resolution)) 
+
     im = image(sim, width=width, **kwargs)
-    if scale is None:
-        Q = p.quiver(X,Y,vx,vy, color=vector_color) 
-    else:
-        Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color) 
-    p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units),
-            r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
+
+    if mode == 'quiver' : 
+        if scale is None:
+            Q = p.quiver(X,Y,vx,vy, color=vector_color, edgecolor=edgecolor) 
+        else:
+            Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color, edgecolor=edgecolor) 
+        p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
+                    r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
+    elif mode == 'stream' : 
+        Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density)
+
     return im
 
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True, 
@@ -97,7 +124,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           **kwargs) :
     """
 
-    Make an SPH image of the given simulation.
+    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial 
+    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples. 
 
     **Keyword arguments:**
 
@@ -253,12 +281,12 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
                 # need to set the linear regime around zero -- set to by default start at 1/1000 of the log range
                 if linthresh is None: linthresh = np.nanmax(abs(im))/1000. 
-                norm = p.matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
+                norm = matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
             else : 
-                norm = p.matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
+                norm = matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
 
         else : 
-            norm = p.matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+            norm = matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
 
         #
         # do the actual plotting
@@ -283,7 +311,13 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if units is None :
             units = im.units
        
-        units = "$"+units.latex()+"$"
+        if log :
+            units = r"$\log_{10}\,"+units.latex()+"$"
+        else :
+            if units.latex() is "":
+                units=""
+            else:
+                units = "$"+units.latex()+"$"
 
         if show_cbar:
             if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)

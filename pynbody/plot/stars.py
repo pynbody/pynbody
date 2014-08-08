@@ -11,6 +11,7 @@ from ..analysis import profile, angmom, halo
 from .. import filt, units, config, array
 from .sph import image
 import warnings
+from .. import units as _units
 
 def bytscl(arr,mini=0,maxi=10000):
     X= (arr-mini)/(maxi-mini)
@@ -99,6 +100,11 @@ def render(sim,filename=None,
        *dynamic_range*: float (default: 2.0)
          The number of dex in luminosity over which the image brightness ranges
     '''
+    
+    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
+        if isinstance(width,str) : 
+            width = _units.Unit(width)
+        width = width.in_units(sim['pos'].units,**sim.conversion_context())
     
     if starsize is not None :
         smf = filt.HighPass('smooth',str(starsize)+' kpc')
@@ -221,7 +227,7 @@ def sfh(sim,filename=None,massform=True,clear=False,legend=False,
     pz.set_xticks(times)
     pz.set_xticklabels([str(x) for x in labelzs])
     pz.set_xlim(x0, x1)
-    pz.set_xlabel('z')
+    pz.set_xlabel('$z$')
 
     if legend: plt.legend(loc=1)
     if filename : 

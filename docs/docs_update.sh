@@ -8,7 +8,7 @@ ln -sf ../../../nose/testdata tutorials/example_code
 make clean
 make html
 cd ../
-rm -rf _images _modules _sources _static plot_directive tutorials
+rm -rf _images _modules _sources _static plot_directive tutorials docs/testdata docs/tutorials/example_code/testdata
 mv -fv docs/_build/html/* ./
 git add -A
 git commit -m 'docs update'

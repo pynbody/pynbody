@@ -1,5 +1,6 @@
 pynbody
 =======
+[![Build Status](https://travis-ci.org/pynbody/pynbody.svg?branch=master)](https://travis-ci.org/pynbody/pynbody)
 
 [Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
 portable, format-transparent analysis framework for N-body and
@@ -40,3 +41,5 @@ If you have trouble with Pynbody or you have feature
 requests/suggestions you can [submit an issue](https://github.com/pynbody/pynbody/issues), 
 and/or shoot us an email on the [Usergroup mailing
 list](https://groups.google.com/forum/?fromgroups#!forum/pynbody-users).
+
+

@@ -110,17 +110,17 @@ class Profile:
 
     **Dispersions:**
     
-    To obtain a dispersion profile, attach a `_disp` after the desired
+    To obtain a dispersion profile, attach a ``_disp`` after the desired
     quantity name.
 
     **RMS:**
     
-    The root-mean-square of a quantity can be obtained by using a `_rms` suffix
+    The root-mean-square of a quantity can be obtained by using a ``_rms`` suffix
 
     **Derivatives:**
     
-    To compute a derivative of a profile, prepend a `d_` to the
-    profile string, as in `p['d_temp']` to get a temperature gradient.
+    To compute a derivative of a profile, prepend a ``d_`` to the
+    profile string, as in ``p['d_temp']`` to get a temperature gradient.
 
     **Saving and loading previously generated profiles:**
     
@@ -189,7 +189,7 @@ class Profile:
 
     Using another quantity for binning:
 
-    >>> ps = profile.Profile(s.s, calc_x = lambda x: s.s['rform'])
+    >>> ps = profile.Profile(s.s, calc_x = lambda x: x.s['rform'])
     
     """
 
@@ -381,11 +381,14 @@ class Profile:
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False) :
         result = np.zeros(self.nbins)
+        
+        # force derivation of array if necessary:
+        self.sim[name]
+        
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
-            with self.sim.immediate_mode : 
-                name_array = subs[name].view(np.ndarray)
-                mass_array = subs['mass'].view(np.ndarray)
+            name_array = subs[name].view(np.ndarray)
+            mass_array = subs['mass'].view(np.ndarray)
 
             if dispersion :
                 sq_mean = (name_array**2*mass_array).sum()/self['mass'][i]
@@ -728,7 +731,7 @@ def beta(p) :
     """3D Anisotropy parameter as defined in Binney and Tremiane"""
     if pynbody.config['verbose'] : print 'Profile: beta()'
     assert p.ndim is 3
-    return  1-p['vt_disp']/(2*p['vr_disp'])
+    return  1.5-(p['vx_disp']**2+p['vy_disp']**2+p['vz_disp']**2)/p['vr_disp']**2/2.
 
 @Profile.profile_property
 def magnitudes(self,band='v'):

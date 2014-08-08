@@ -866,14 +866,12 @@ class SimSnap(object):
     ############################################
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
     ############################################
-    def transform(self, matrix, ortho_tol=1.e-8):
-        """Transforms the snapshot according to the 3x3 matrix given."""
-
-        # Check that the matrix is orthogonal
-        resid = np.dot(matrix, np.asarray(matrix).T) - np.eye(3)
-        resid = (resid**2).sum()
-        if resid > ortho_tol or resid != resid:
-            raise ValueError("Transformation matrix is not orthogonal")
+    def transform(self, matrix) :
+        from . import transformation
+        return transformation.transform(self, matrix)
+    
+    def _transform(self, matrix):
+        """Transforms the snapshot according to the 3x3 matrix given."""        
         for x in self.keys():
             ar = self[x]
             if len(ar.shape) == 2 and ar.shape[1] == 3:
@@ -882,21 +880,21 @@ class SimSnap(object):
     def rotate_x(self, angle):
         """Rotates the snapshot about the current x-axis by 'angle' degrees."""
         angle *= np.pi/180
-        self.transform(np.matrix([[1,      0,             0],
+        return self.transform(np.matrix([[1,      0,             0],
                                   [0, np.cos(angle), -np.sin(angle)],
                                   [0, np.sin(angle),  np.cos(angle)]]))
 
     def rotate_y(self, angle):
         """Rotates the snapshot about the current y-axis by 'angle' degrees."""
         angle *= np.pi/180
-        self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
+        return self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
                                   [0,                1,        0],
                                   [-np.sin(angle),   0,   np.cos(angle)]]))
 
     def rotate_z(self, angle):
         """Rotates the snapshot about the current z-axis by 'angle' degrees."""
         angle *= np.pi/180
-        self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
+        return self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
                                   [np.sin(angle),  np.cos(angle), 0],
                                   [0,             0,        1]]))
 
@@ -1419,6 +1417,16 @@ class SimSnap(object):
                                 result = fn(self[fam])
                                 ndim = result.shape[-1] if len(
                                     result.shape) > 1 else 1
+                                
+                                # check if a family array already exists with a different dtype
+                                # if so, cast the result to the existing dtype
+                                # numpy version < 1.7 does not support doing this in-place
+                                if self._get_preferred_dtype(name) != result.dtype : 
+                                    if int(np.version.version.split('.')[1]) > 6 :
+                                        result = result.astype(self._get_preferred_dtype(name),copy=False)                                    
+                                    else : 
+                                        result = result.astype(self._get_preferred_dtype(name))
+                                    
                                 self[fam]._create_array(
                                     name, ndim, dtype=result.dtype, derived=not fn.__stable__)
                                 write_array = self[fam]._get_array(
