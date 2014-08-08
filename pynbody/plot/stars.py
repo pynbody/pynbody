@@ -621,7 +621,7 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
     **Options:**
 
     *compare* (True): Should comparison line be plotted?
-         If compare = 'guo', Guo+ (2010) plotted instead of Moster+ (2012)
+         If compare = 'guo', Guo+ (2010) plotted instead of Behroozi+ (2013)
 
     *baryfrac* (False):  Should line be drawn for cosmic baryon fraction?
 
@@ -655,11 +655,11 @@ def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
             # from Sawala et al (2011) + Guo et al (2009)
             ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
         else :
-            ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
+            ystarmasses, errors = behroozi(xmasses,halo_catalog._halos[1].properties['z'])
         plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
                          y2=np.array(ystarmasses)*np.array(errors),
                          facecolor='#BBBBBB',color='#BBBBBB')
-        plt.loglog(xmasses,ystarmasses,label='Moster et al (2012)')
+        plt.loglog(xmasses,ystarmasses,label='Behroozi et al (2013)')
 
     if baryfrac :
         xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
