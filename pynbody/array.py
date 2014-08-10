@@ -31,15 +31,15 @@ SimArray([1.001, 1.002], "Mpc")
   tracking.  Powers to float or other powers will not be able to do
   so.
 
->>> SimArray([1,2],"Msol Mpc**-3")**2 
+>>> SimArray([1,2],"Msol Mpc**-3")**2
 SimArray([1, 4], 'Msol**2 Mpc**-6')
->>> SimArray([1,2],"Msol Mpc**-3")**(1,3) 
+>>> SimArray([1,2],"Msol Mpc**-3")**(1,3)
 SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
 
 Syntax above mirrors syntax in units module, where a length-two tuple
 can represent a rational number, in this case one third.
 
->>> SimArray([1.,2], "Msol Mpc**-3")**0.333 
+>>> SimArray([1.,2], "Msol Mpc**-3")**0.333
 SimArray([ 1.,1.26])  # Lost track of units
 
 
@@ -49,19 +49,19 @@ SimArray([ 1.,1.26])  # Lost track of units
 
 Given an array, you can convert it in-place into units of your
 own chosing:
-  
+
 >>> x = SimArray([1,2], "Msol")
 >>> x.convert_units('kg')
->>> print x 
+>>> print x
 SimArray([  1.99e+30,   3.98e+30], 'kg')
 
 Or you can leave the original array alone and get a *copy* in
 different units, correctly converted:
 
 >>> x = SimArray([1,2], "Msol")
->>> print x.in_units("kg") 
+>>> print x.in_units("kg")
 SimArray([  1.99e+30,   3.98e+30], 'kg')
->>> print x 
+>>> print x
 SimArray([1,2], "Msol")
 
 If the SimArray was created by a SimSnap (which is most likely), it
@@ -161,7 +161,7 @@ class SimArray(np.ndarray) :
     def ancestor(self) :
         """Provides the basemost SimArray that an IndexedSimArray is based on."""
         return self
-    
+
     @property
     def derived(self) :
         if self.sim and self.name :
@@ -186,7 +186,7 @@ class SimArray(np.ndarray) :
         self.sim = None
         self._name = None
         np.ndarray.__setstate__(self, args[1:])
-        
+
     def __new__(subtype, data, units=None, sim=None, **kwargs) :
         new = np.array(data, **kwargs).view(subtype)
         if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None :
@@ -215,10 +215,10 @@ class SimArray(np.ndarray) :
         if sim is not None :
             new.sim = sim.ancestor
             # will generate a weakref automatically
-        
-            
+
+
         new._name = None
-        
+
         return new
 
     def __array_finalize__(self, obj) :
@@ -294,9 +294,9 @@ class SimArray(np.ndarray) :
     @property
     def sim(self) :
         if hasattr(self.base, 'sim') :
-            if self.family and self.base.sim : 
+            if self.family and self.base.sim :
                 return self.base.sim[self.family]
-            else : 
+            else :
                 return self.base.sim
         return self._sim()
 
@@ -311,14 +311,14 @@ class SimArray(np.ndarray) :
                 self._sim = lambda : None
 
     @property
-    def family(self) : 
-        try : 
+    def family(self) :
+        try :
             return self._family
-        except AttributeError : 
+        except AttributeError :
             return None
 
     @family.setter
-    def family(self,fam) : 
+    def family(self,fam) :
         self._family = fam
 
     def __mul__(self, rhs) :
@@ -347,7 +347,7 @@ class SimArray(np.ndarray) :
             except AttributeError :
                 pass
         return self
-        
+
     def __idiv__(self, rhs) :
         if isinstance(rhs, _units.UnitBase) :
             self.units/=rhs
@@ -379,7 +379,7 @@ class SimArray(np.ndarray) :
     def _generic_add(self, x, add_op=np.add) :
         if hasattr(x, 'units') and not hasattr(self.units, "_no_unit") and not hasattr(x.units, "_no_unit") :
             # Check unit compatibility
-            
+
             try :
                 context = x.conversion_context()
             except AttributeError :
@@ -387,7 +387,7 @@ class SimArray(np.ndarray) :
 
             # Our own contextual information overrides x's
             context.update(self.conversion_context())
-            
+
             try:
                 cr = x.units.ratio(self.units,
                                      **context)
@@ -455,7 +455,7 @@ class SimArray(np.ndarray) :
         # scalars, in which case we now have a floating point number :(
         if type(r) is not SimArray :
             return r
-        
+
         if self.units is not None and (
             isinstance(x, fractions.Fraction) or
             isinstance(x, int)) :
@@ -464,9 +464,9 @@ class SimArray(np.ndarray) :
         else :
             r.units = None
             r.sim = self.sim
-            
+
         return r
-    
+
     def __repr__(self) :
         x = np.ndarray.__repr__(self)
         if not hasattr(self.units, "_no_unit") :
@@ -498,7 +498,7 @@ class SimArray(np.ndarray) :
         if hasattr(x, 'sim') and self.sim is not None :
             x.sim = self.sim
         return x
-        
+
     def prod(self, axis=None, dtype=None, out=None) :
         x = np.ndarray.prod(self, axis, dtype, out)
         if hasattr(x, 'units') and axis is not None and self.units is not None :
@@ -551,7 +551,7 @@ class SimArray(np.ndarray) :
         if hasattr(x, 'sim') and self.sim is not None :
             x.sim = self.sim
         return x
-    
+
     def std(self, *args, **kwargs) :
         x = np.ndarray.std(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None :
@@ -589,13 +589,13 @@ class SimArray(np.ndarray) :
                 if not quiet: raise
         else :
             raise RuntimeError, "No link to SimSnap"
-        
-    def in_original_units(self) : 
+
+    def in_original_units(self) :
         """Retun a copy of this array expressed in the units
         specified in the parameter file."""
-        
+
         return self.in_units(self.sim.infer_original_units(self.units))
-            
+
 
     def in_units(self, new_unit, **context_overrides) :
         """Return a copy of this array expressed relative to an alternative
@@ -603,7 +603,7 @@ class SimArray(np.ndarray) :
 
         context = self.conversion_context()
         context.update(context_overrides)
-        
+
         if self.units is not None :
             r = self * self.units.ratio(new_unit,
                                         **context)
@@ -628,7 +628,7 @@ class SimArray(np.ndarray) :
         """
         Write this array to disk according to the standard method
         associated with its base file. This is equivalent to calling
-        
+
         >>> sim.gas.write_array('array')
 
         in the case of writing out the array 'array' for the gas
@@ -666,16 +666,16 @@ def _unit_aware_comparison(ar, other, comparison_op = None) :
             raise units.UnitsException, "One side of a comparison has units and the other side does not"
 
     return comparison_op(ar,other)
-        
+
 for f in np.ndarray.__lt__, np.ndarray.__le__, np.ndarray.__eq__, \
     np.ndarray.__ne__, np.ndarray.__gt__, np.ndarray.__ge__ :
 
     # N.B. cannot use functools.partial because it doesn't implement the descriptor
-    # protocol 
+    # protocol
     @functools.wraps(f, assigned=("__name__","__doc__"))
     def wrapper_function(self, other, comparison_op=f) :
         return _unit_aware_comparison(self, other, comparison_op=comparison_op)
-    
+
     setattr(SimArray, f.__name__, wrapper_function)
 
 
@@ -686,7 +686,7 @@ def _dirty_fn(w) :
     def q(a, *y, **kw) :
         if a.sim is not None and a.name is not None :
             a.sim._dirty(a.name)
-            
+
         if kw!={} :
             return w(a, *y, **kw)
         else :
@@ -713,7 +713,7 @@ _dirty_fns = ['__setitem__', '__setslice__',
 
 for x in _dirty_fns :
     setattr(SimArray, x, _dirty_fn(getattr(SimArray, x)))
-        
+
 _u = SimArray.ufunc_rule
 
 def _get_units_or_none(*a) :
@@ -825,11 +825,11 @@ class IndexedSimArray(object) :
     @property
     def ancestor(self) :
         return self.base.ancestor
-    
+
     def __init__(self, array, ptr) :
         self.base = array
         self._ptr = ptr
-        
+
     def __array__(self, dtype=None) :
         return np.asanyarray(self.base[self._ptr], dtype=dtype)
 
@@ -863,7 +863,7 @@ class IndexedSimArray(object) :
     def __reduce__(self) :
         return SimArray(self).__reduce__()
 
-    
+
     @property
     def shape(self) :
         x = [len(self._ptr)]
@@ -967,10 +967,10 @@ def _array_factory(dims, dtype, zeros, shared) :
     is True, the returned array uses shared memory so can be efficiently
     shared across processes."""
     global _all_shared_arrays
-    
+
     if not hasattr(dims, '__len__') :
         dims  = (dims,)
-        
+
     if shared and posix_ipc :
         random.seed(os.getpid()*time.time())
         fname = "pynbody-"+("".join([random.choice('abcdefghijklmnopqrstuvwxyz') for i in xrange(10)]))
@@ -985,8 +985,8 @@ def _array_factory(dims, dtype, zeros, shared) :
             size = reduce(np.multiply, dims)
         else :
             size = dims
-        
-            
+
+
         mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
         # write zeros into the file pointer before memmaping, to get a graceful exception if the
         # promised memory isn't available (otherwise will trigger a bus error)
@@ -994,12 +994,15 @@ def _array_factory(dims, dtype, zeros, shared) :
             zeros=(b"\0")*1024*1024
             remaining = int(np.dtype(dtype).itemsize*size)
             while remaining > 0 :
+                print remaining, mem.fd
                 os.write(mem.fd, zeros[:remaining])
                 remaining-=len(zeros)
-        except OSError :
-            _shared_array_unlink(fname)
-            raise MemoryError, "Unable to create shared memory region"
-                
+
+        except OSError, exc :
+            if not (exc.errno==45 and os.uname()[0]=="Darwin"):
+                _shared_array_unlink(fname)
+                raise MemoryError, "Unable to create shared memory region"
+
         # fd, fname = tempfile.mkstemp()
         # ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)
         mapfile = mmap.mmap(mem.fd, mem.size)
@@ -1019,7 +1022,7 @@ def _array_factory(dims, dtype, zeros, shared) :
 
 
 if posix_ipc :
-    
+
     class _deconstructed_shared_array(tuple) :
         pass
 
@@ -1031,20 +1034,20 @@ if posix_ipc :
         passed between processes efficiently. If *transfer_ownership* is True,
         also transfers responsibility for deleting the underlying memory (if this
         process has it) to the reconstructing process."""
-        
+
         assert isinstance(ar, SimArray)
         ar_base = ar
         while isinstance(ar_base.base, SimArray) :
             ar_base = ar_base.base
-            
+
         assert hasattr(ar_base,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
-        
+
         ownership_out = transfer_ownership and ar_base._shared_del
         if transfer_ownership :
             ar_base._shared_del=False
 
         offset = ar.__array_interface__['data'][0]-ar_base.__array_interface__['data'][0]
-            
+
         return _deconstructed_shared_array((ar.dtype, ar.shape, ar_base._shared_fname, ownership_out,
                                             offset, ar.strides))
 
@@ -1062,12 +1065,16 @@ if posix_ipc :
         return new_ar
 
     def _shared_array_unlink(X) :
-        # os.unlink(X._shared_fname)
+        if isinstance(X,str):
+            name = X
+        else :
+            name = X._shared_fname
+
         try:
-            posix_ipc.unlink_shared_memory(X._shared_fname)
+            posix_ipc.unlink_shared_memory(name)
         except (posix_ipc.ExistentialError, OSError) :
             pass
-        
+
     def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
         """Works through items in input, deconstructing any shared memory arrays
         into transferrable references"""
@@ -1139,10 +1146,9 @@ if posix_ipc :
         net."""
 
         global _all_shared_arrays
-        
+
         for fname in _all_shared_arrays :
             try:
                 posix_ipc.unlink_shared_memory(fname)
             except (posix_ipc.ExistentialError, OSError) :
                 pass
-
