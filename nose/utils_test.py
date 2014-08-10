@@ -1,6 +1,6 @@
 import pynbody
 import numpy as np
-
+import numpy.testing as npt
 
 def random_slice(max_pos=1000, max_step=10):
     import random
@@ -78,3 +78,37 @@ def test_slice_length():
             for step in range(1, 10):
                 S = slice(0, end, step)
                 assert len(N[S]) == pynbody.util.indexing_length(S)
+
+
+def test_IC_grid_gen():
+    res1 = pynbody.util.grid_gen(slice(2,100,5),5,5,5)
+    correct1 = np.array([[ 0.5,  0.1,  0.1],
+       [ 0.5,  0.3,  0.1],
+       [ 0.5,  0.5,  0.1],
+       [ 0.5,  0.7,  0.1],
+       [ 0.5,  0.9,  0.1],
+       [ 0.5,  0.1,  0.3],
+       [ 0.5,  0.3,  0.3],
+       [ 0.5,  0.5,  0.3],
+       [ 0.5,  0.7,  0.3],
+       [ 0.5,  0.9,  0.3],
+       [ 0.5,  0.1,  0.5],
+       [ 0.5,  0.3,  0.5],
+       [ 0.5,  0.5,  0.5],
+       [ 0.5,  0.7,  0.5],
+       [ 0.5,  0.9,  0.5],
+       [ 0.5,  0.1,  0.7],
+       [ 0.5,  0.3,  0.7],
+       [ 0.5,  0.5,  0.7],
+       [ 0.5,  0.7,  0.7],
+       [ 0.5,  0.9,  0.7]])
+
+    npt.assert_almost_equal(res1,correct1)
+
+    res2 = pynbody.util.grid_gen([14,19,22,94],5,5,5)
+    correct2 = np.array([[ 0.9,  0.5,  0.1],
+       [ 0.9,  0.7,  0.1],
+       [ 0.5,  0.9,  0.1],
+       [ 0.9,  0.7,  0.7]])
+
+    npt.assert_almost_equal(res2,correct2)

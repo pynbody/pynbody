@@ -14,7 +14,7 @@ from .. import analysis
 from .. import units
 from . import SimSnap
 
-from ..util import read_fortran, read_fortran_series
+from ..util import read_fortran, read_fortran_series, grid_gen
 
 import numpy as np
 import os
@@ -44,64 +44,6 @@ def _midway_fortran_skip(f, alen, pos):
     bits = np.fromfile(f, util._head_type, 2)
     assert (alen == bits[0] and alen == bits[1]
             ), "Incorrect FORTRAN block sizes"
-
-
-def _grid_gen(indices, nx, ny, nz, pos=None):
-    """Generate the x,y,z grid coordinates in the interval (0,1) for the
-    specified indices (relative to the start of a GrafIC file) or slice of the
-    file. nx,ny,nz are the number of particles in each dimension (presumably
-    the same for all sane cases, but the file format allows for different
-    values). If *pos* is not None, copy the results into the array; otherwise
-    create a new array for the results and return it."""
-
-    import scipy.weave
-
-    if pos is None:
-        pos = np.empty((util.indexing_length(indices), 3))
-    if isinstance(indices, slice):
-        start = indices.start
-        stop = indices.stop
-        step = indices.step
-        if step is None:
-            step = 1
-        code = """
-        float x,y,z;
-        int n;
-        int i=0;
-        for(int n=start; n< stop; n+=step) {
-        x = n%nx;
-        y = (n/nx)%ny;
-        z = (n/(nx*ny))%nz;
-
-        POS2(i,0)=(float(x)+0.5)/nx;
-        POS2(i,1)=(float(y)+0.5)/ny;
-        POS2(i,2)=(float(z)+0.5)/nz;
-        i++;
-        }
-        """
-        assert type(nx) is int
-        assert type(step) is int
-        scipy.weave.inline(
-            code, ['pos', 'nx', 'ny', 'nz', 'start', 'stop', 'step'])
-    else:
-        indices = np.asarray(indices)
-        code = """
-        float x,y,z;
-        int n;
-        for(int i=0; i<Nindices[0]; i++) {
-        n=INDICES1(i);
-        x = n%nx;
-        y = (n/nx)%ny;
-        z = (n/(nx*ny))%nz;
-
-        POS2(i,0)=(float(x)+0.5)/nx;
-        POS2(i,1)=(float(y)+0.5)/ny;
-        POS2(i,2)=(float(z)+0.5)/nz;
-        }
-        """
-
-        scipy.weave.inline(code, ['pos', 'nx', 'ny', 'nz', 'indices'])
-    return pos
 
 
 _max_buflen = 1024 ** 2
@@ -160,7 +102,7 @@ class GrafICSnap(SimSnap):
         fp0 = 0
         for readlen, buf_index, mem_index in self._load_control.iterate(family.dm, family.dm):
             if mem_index is not None:
-                pos[mem_index] = _grid_gen(
+                pos[mem_index] = grid_gen(
                     slice(fp0, fp0 + readlen), nx, ny, nz, pos=pos_cache)[buf_index]
             fp0 += readlen
 
