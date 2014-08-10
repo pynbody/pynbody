@@ -4,10 +4,29 @@ from distutils.sysconfig import get_python_lib
 
 import numpy
 import numpy.distutils.misc_util
-
+import glob
 import tempfile
 import subprocess
 import shutil
+
+
+# Patch the sdist command to ensure both versions of the openmp module are
+# included with source distributions
+#
+# Solution from http://stackoverflow.com/questions/4505747/how-should-i-structure-a-python-package-that-contains-cython-code
+
+from distutils.command.sdist import sdist as _sdist
+
+class sdist(_sdist):
+    def run(self):
+        # Make sure the compiled Cython files in the distribution are up-to-date
+        from Cython.Build import cythonize
+        for f in glob.glob("pynbody/openmp/*.pyx"):
+            cythonize([f])
+        _sdist.run(self)
+
+cmdclass = {'sdist':sdist}
+
 
 def check_for_openmp():
     """Check  whether the default compiler supports OpenMP.
@@ -62,10 +81,9 @@ try :
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
-    cmdclass = {'build_ext': build_ext}
+    cmdclass['build_ext']=build_ext
 except:
     build_cython = False
-    cmdclass = {}
 
 import distutils.command.build_py
 
@@ -159,7 +177,7 @@ dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.2beta',
+             version = '0.30',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://code.google.com/p/pynbody/downloads/list',
              package_dir = {'pynbody/': ''},
@@ -183,7 +201,7 @@ dist = setup(name = 'pynbody',
                            'pynbody/gravity': ['direct.c']},
              ext_modules = ext_modules,
              cmdclass = cmdclass,
-             classifiers = ["Development Status :: 3 - Alpha",
+             classifiers = ["Development Status :: 4 - Beta",
                             "Intended Audience :: Developers",
                             "Intended Audience :: Science/Research",
                             "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
