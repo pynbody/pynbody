@@ -58,7 +58,7 @@ def check_for_openmp():
 try :
     import cython
     # check that cython version is > 0.20
-    if float(cython.__version__.partition(".")[2]) < 20 :
+    if float(cython.__version__.partition(".")[2][:2]) < 20 :
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
