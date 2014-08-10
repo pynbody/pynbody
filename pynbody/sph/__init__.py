@@ -442,7 +442,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
 
     *x1* (-x2): The x-coordinate of the left edge of the image
 
-    *y1* (-y2): The y-coordinate of the lower edge of the image 
+    *y1* (-y2): The y-coordinate of the lower edge of the image
 
     *z_plane* (0.0): The z-coordinate of the plane of the image
 
@@ -789,37 +789,17 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
         conv_ratio = (qty.units * mass.units / (rho.units * sm.units ** kernel.h_power)).ratio(out_units,
                                                                                                **x.conversion_context())
 
-    try:
-        kernel.safe.acquire(True)
-        code = kernel.get_c_code()
-    finally:
-        kernel.safe.release()
-
-    if __threaded:
-        code += "#define THREAD 1\n"
     if smooth_range is not None:
-        code += "#define SMOOTH_RANGE 1\n"
         smooth_lo = float(smooth_range[0])
         smooth_hi = float(smooth_range[1])
     else:
-        smooth_lo = 0
-        smooth_hi = 0
-
-    code += file(os.path.join(os.path.dirname(__file__),
-                              'sph_to_grid.c')).read()
-
-    # before inlining, the views on the arrays must be standard np.ndarray
-    # otherwise the normal numpy macros are not generated
-    x, y, z, sm, qty, mass, rho = [
-        q.view(np.ndarray) for q in x, y, z, sm, qty, mass, rho]
-    #qty[np.where(qty < 1e-15)] = 1e-15
+        smooth_lo = 0.0
+        smooth_hi = 100000.0
 
     logger.info("Gridding particles")
 
-    util.threadsafe_inline(code, ['result', 'nx', 'ny', 'nz', 'x', 'y', 'z', 'sm',
-                                  'x1', 'x2', 'y1', 'y2', 'z1',  'z2',
-                                  'qty', 'mass', 'rho', 'smooth_lo', 'smooth_hi'], verbose=2)
-
+    result = _render.to_3d_grid(nx,ny,nz,x,y,z,sm,x1,x2,y1,y2,z1,z2,
+                                qty,mass,rho,smooth_lo,smooth_hi,kernel)
     result = result.view(array.SimArray)
 
     # The weighting works such that there is a factor of (M_u/rho_u)h_u^3

@@ -18,5 +18,9 @@ def test_images():
 
     compare2d, compare3d = np.load("test_im_2d.npy"), np.load("test_im_3d.npy")
 
+    im_grid = pynbody.sph.to_3d_grid(f.gas,nx=200,x2=20.0)[::50]
+    compare_grid = np.load("test_im_grid.npy")
+
     assert np.log10(im2d / compare2d).abs().mean() < 0.03
     assert np.log10(im3d / compare3d).abs().mean() < 0.03
+    assert np.log10(im_grid/compare_grid).abs().mean() < 0.03
