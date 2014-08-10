@@ -24,3 +24,8 @@ def test_images():
     assert np.log10(im2d / compare2d).abs().mean() < 0.03
     assert np.log10(im3d / compare3d).abs().mean() < 0.03
     assert np.log10(im_grid/compare_grid).abs().mean() < 0.03
+
+    # check rectangular image is OK
+    im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0).in_units("m_p cm^-3")
+    compare_rect = compare3d[125:-125]
+    assert np.log10(im_rect/ compare_rect).abs().mean() < 0.03

@@ -165,7 +165,7 @@ def render_image(int nx, int ny,
 
     cdef fixed_input_type kernel_max_2 # minimize casting when same type as input
 
-    cdef np.ndarray[image_output_type,ndim=2] result = np.zeros((nx,ny),dtype=np_image_output_type)
+    cdef np.ndarray[image_output_type,ndim=2] result = np.zeros((ny,nx),dtype=np_image_output_type)
 
     z_pixel = z0
     cdef int total_ptcls = 0

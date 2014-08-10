@@ -398,8 +398,8 @@ def _interpolated_renderer(fn, levels):
                 kwargs['smooth_range'] = (1, 100000)
             kwargs['res_downgrade'] = sub
             new_im = fn(*args, **kwargs)
-            base += scipy.ndimage.interpolation.zoom(
-                new_im, float(base.shape[0]) / new_im.shape[0], order=1)
+            zoom = [float(x)/y for x,y in zip(base.shape, new_im.shape)]
+            base += scipy.ndimage.interpolation.zoom(new_im, zoom, order=1)
         return base
     return render_fn
 
