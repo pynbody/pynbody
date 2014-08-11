@@ -245,8 +245,13 @@ class RockstarCatalogue(HaloCatalogue):
         Creates a 'grp' array which labels each particle according to
         its parent halo. 
         """
+        try:
+            self.base['grp']
+        except:
+            self.base['grp'] = np.zeros(len(self.base),dtype='i')
+
         for halo in self._halos.values(): 
-            halo['grp'] = np.repeat([halo._halo_id], len(halo))
+            halo[name][:] = halo._halo_id
 
         if config['verbose']:  print "writing %s"%(self._base().filename+'.grp')
         self._base().write_array('grp',overwrite=True,binary=False)
@@ -637,8 +642,13 @@ class AHFCatalogue(HaloCatalogue):
         Creates a 'grp' array which labels each particle according to
         its parent halo. 
         """
+        try:
+            self.base['grp']
+        except:
+            self.base['grp'] = np.zeros(len(self.base),dtype='i')
+
         for halo in self._halos.values(): 
-            halo[name] = np.repeat([halo._halo_id], len(halo))
+            halo[name][:] = halo._halo_id
 
     def _setup_children(self):
         """
