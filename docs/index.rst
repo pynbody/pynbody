@@ -56,36 +56,26 @@ greeted you with a complicated error message, the fix might be
 described in :doc:`pitfalls`.
 
 
-Pynbody Users Group
-^^^^^^^^^^^^^^^^^^^
+Pynbody user group and issue tracker
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you find yourself stuck, don't hesitate to post a message to the
 `users group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. If
-you'd like to take part in the development of pynbody, joining the
-`developer group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev>`_ is
-a good idea. If you have a Google account you can join the groups
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
+  If you have a Google account you can join the groups
 easily, but if you don't have one please click on the `About` button
 of the group you are interested in and contact the owner.
 
-Reporting Issues
-^^^^^^^^^^^^^^^^
+We have found that most development discussion takes place within our
+`github issue tracker<https://github.com/pynbody/pynbody/issues>`_ -- if you
+encounter a problem, feel free to create an issue there.
 
 We really value feedback from users, especially when things are not
 working correctly because this is the best way for us to correct
-bugs. Please let us know if you find strange behavior or if you have
-ideas for improvements. The best way to do this is via the `users
-group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_
-or the `issues page <https://github.com/pynbody/pynbody/issues>`_ on
-the `Pynbody Github site
-<https://github.com/pynbody/pynbody/>`_. The documentation in particular
-is in a state of flux so if you find an error in any of the tutorials
-let us know asap. If you use the code regularly for your projects,
-consider becoming a contributor and join the `developer group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev>`_
+bugs.  This includes any problems you encounter with documentation.
 
+If you use the code regularly for your projects, please consider contributing
+your code back using a pull request.
 
 .. _acknowledging-pynbody:
 

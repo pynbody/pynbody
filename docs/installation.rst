@@ -14,31 +14,22 @@ and you end up using it for your scientific work, please see
 :ref:`acknowledging-pynbody`. Enjoy!
 
 
-If you are already a regular python/numpy/scipy user
-----------------------------------------------------
+In brief
+--------
 
-`Pynbody` is in regular development and bugs are constantly being
-fixed. We therefore recommend that you stay up to date with the code
-and use the snapshots from the git repository rather than any
-particular release version.
+To install the latest release version (which depends only on numpy and scipy), use
 
-If you have `pip` and `distutils` installed, you can make `pip` fetch the
-repository for you and do the installation:
+``pip install pynbody``
 
-1. ``pip install git+git://github.com/pynbody/pynbody.git``
+To install from our bleeding edge (which additionally requires cython), use
 
-.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`.
+``pip install git+git://github.com/pynbody/pynbody.git``
 
-If this doesn't work or you want to clone the repo and keep it around, you can
-
-2. Follow the instructions in the :ref:`install-pynbody` section
-
-If you are new to python or you are missing some of the basic packages
-(see the `must-haves` below), read on...
+If you have problems or need more help, read on.
 
 
-Before you start
-----------------
+In detail
+---------
 
 Like when you install any software, there is a certain amount of
 configuration necessary to get pynbody working.  Fortunately, Python
@@ -48,12 +39,15 @@ common to astronomers, Mac OS X and Linux.
 
 You must have:
 ^^^^^^^^^^^^^^
-  * Python 2.5, 2.6 or 2.7. We will support 3.x once `scipy` and
-    `matplotlib` do.
+  * Python 2.6, 2.7, 3.3 or 3.4. Versions prior to 2.6 and 3.3 are not supported.
 
-  * The standard `numpy` (python numeric arrays) package.
+  * The standard `numpy` (python numeric arrays) and `scipy` (scientific python) packages
 
-  * Standard development environment, i.e. compilers, libraries etc. On Mac OS that's usually Apple's XCode.
+  * If you wish to install from our git repository, you need Cython (at least version 0.20 and preferably
+  0.21). If you are going to install from a release tarball, this is not required.
+
+  * Standard development tools, i.e. compilers, libraries etc.
+  On Mac OS that's usually Apple's XCode.
 
   * **Note for Mac OS X 10.8 and 10.9 users:** XCode no longer comes
     with the `gcc` compiler and the `clang` compiler doesn't support
@@ -70,8 +64,6 @@ You will probably also want
     access everything except the built-in plots if `matplotlib` is not
     installed.
 
-  * Some functionality requires `scipy <http://new.scipy.org/>`_, but
-    you can access most functions even if `scipy` is not installed.
 
   * `ipython <http://ipython.scipy.org/moin/>`_ makes using python
     much easier.  For example it provides command history and tab
@@ -88,9 +80,6 @@ These packages are all standard and well supported.
 
 You might also want
 ^^^^^^^^^^^^^^^^^^^
-
-  * Amiga Halo Finder.  You can find some pynbody-related installation
-    notes in the :ref:`halo_tutorial` tutorial.
 
   * Installing `h5py <http://code.google.com/p/h5py/>`_ will allow you
     to work with Gadget HDF snapshots. See the :ref:`h5py-ref` below.
@@ -144,53 +133,36 @@ install all the packages in one line, for example
    yum install matplotlib scipy ipython
 
 This easy way requires root access, so you might have to ask your
-system administrator.
-
-It is not hard to perform from-source installations of these packages
-if you don't have administrative privileges or a helpful sys admin.
-Grab the source from the following sourceforge sites appropriate to
-your version of python:
-
- * `numpy <http://sourceforge.net/projects/numpy/files/>`_
-
- * `scipy <http://sourceforge.net/projects/scipy/files/>`_
-
- * `matplotlib <http://sourceforge.net/projects/matplotlib/files/>`_
-
-The three packages are standard for nearly all scientific computation
-in python, so it makes sense for them to be installed at the system
-level.  However, if you sys admin is unhelpful, now that you've set up
-distutils, you just have to ``cd`` in each directory and type:
-
-::
-
-   python setup.py install
+system administrator. Alternatively, if you don't have root access or
+you want an easier life, we recommend working with `Anaconda Python
+<https://store.continuum.io/cshop/anaconda/>`_  which
+comes with a neat package manager and can be installed without root
+privileges.
 
 
 Mac OS
 ^^^^^^
 
-Choose one of the three options below.  Any of the three options can
-be made to work. The first is easiest, the last is hardest; so if you
-don't have a strong reason to do otherwise, we'd recommend option (a).
+Apple's built-in python can be a pain to work with. The easiest route is to
+install a scientific python environment as follows:
 
 Option (a): enthought or anaconda python
 """""""""""""""""""""""""""""""""""""""""
 
-If you are at an academic institution (which is likely the case if you
-are installing pynbody) then the `Enthought python bundle
-<http://www.enthought.com/>`_ is the simplest way of getting
-everything you need and more. Go to the `Academic License
-<http://www.enthought.com/products/edudownload.php>`_ page and trust
-them with your email address to get a download link. It installs
-*everything* you need including the core python, numpy, scipy,
-matplotlib and other libraries. See the full
-`package index <http://www.enthought.com/products/epdlibraries.php>`_.
-
-A similar solution is the `Anaconda Python
+Our currently preferred solution is the `Anaconda Python
 <https://store.continuum.io/cshop/anaconda/>`_ bundle from Continuum
 Analytics that comes with a nice and easy to use package manager
-`conda`. They also provide free licenses for academic use.
+`conda`. They  provide free licenses for academic use, and the default
+installation includes all the pakages you require.
+
+If you are at an academic institution (which is likely the case if you are
+installing pynbody) then you can also use  `canopy <http://www.enthought.com/>`_
+(formerly Enthought Python Distribution). Go to the `Academic License
+<http://www.enthought.com/products/edudownload.php>`_ page and trust them with
+your email address to get a download link. See the full `package index
+<http://www.enthought.com/products/epdlibraries.php>`_.
+
+
 
 
 Option (b): python's official python
@@ -203,17 +175,12 @@ manually download binary versions of `numpy`, `scipy` and
 `matplotlib`:
 
  * Official python .dmg is available here:
-   http://www.python.org/download/. You want 2.7.x, not 3.x.
- * Links to .dmg's for `numpy
-   <http://sourceforge.net/projects/numpy/files/>`_ and `scipy
-   <http://sourceforge.net/projects/scipy/files/>`_ are here:
-   http://new.scipy.org/download.html.
- * .dmg for matplotlib is here:
-   http://sourceforge.net/projects/matplotlib/files/matplotlib/. As of
-   this writing there is no dmg for Mac OS > 10.3, but there are many
-   other ways of obtaining matplotlib without compiling from source --
-   see the `matplotlib Mac OS install notes
-   <http://matplotlib.sourceforge.net/faq/installing_faq.html#os-x-notes>`_
+   http://www.python.org/download/. If you are going to be sharing  existingcode
+   with collaborators, you probably want 2.7.x. However
+   pynbody is also now compatible with 3.3 or higher if you are starting on a
+   fresh project. (Confused? `See here <https://wiki.python.org/moin/Python2orPython3>`_.)
+ * Links to .dmg's for `numpy`, `scipy` and `matplotlib` can be found here:
+   `http://scipy.org/install.html#individual-binary-and-source-packages`_.
 
 
 .. note:: If you are installing numpy/scipy/matplotlib from .dmgs on
@@ -221,17 +188,6 @@ manually download binary versions of `numpy`, `scipy` and
  built for 10.3. If python spits out a menacing error complaining about
  an architecture mismatch, make sure you installed the dmg for the
  correct OS version.
-
-Option (c): python that came with your Mac
-""""""""""""""""""""""""""""""""""""""""""
-
-This is in general not the preferred python solution.
-
-.. note:: As of December 2011, the scipy superpack no longer appears
- to be maintained.* Therefore should you wish to use the framework
- python that ships with your mac, you'll need to manually compile
- `scipy` and `matplotlib`, and possibly an updated version of
- `numpy`. This can be painful, so we advise option (a) or option (b).
 
 
 .. _install-pynbody:
@@ -363,7 +319,9 @@ Nose tests
 ^^^^^^^^^^
 
 The root directory of the pynbody distribution includes a ``nose``
-directory, where the unit (nose) tests reside. In order to run them, you'll need to download the ``testdata`` bundle from the `downloads section <https://github.com/pynbody/pynbody/releases>`_ of the pynbody site. 
+directory, where the unit (nose) tests reside. In order to run them,
+you'll need to download the ``testdata`` bundle from the `downloads section
+<https://github.com/pynbody/pynbody/releases>`_ of the pynbody site.
 
 
 Building your own documentation
