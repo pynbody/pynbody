@@ -47,7 +47,7 @@ ctypedef np.float64_t fixed_input_type
 def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # array of particle densities
                                 np.ndarray[fused_input_type_2, ndim=1] mass, # array of particle masses
                                 np.ndarray[fused_input_type_3, ndim=1] qtyar, # array of quantity to make image of
-                                np.ndarray[fused_input_type_4, ndim=2] pos, # array of particle positions
+                                np.ndarray[fused_input_type_2, ndim=2] pos, # array of particle positions
                                 np.ndarray[fused_input_type_4, ndim=1] r, # particle radius
                                 np.ndarray[fused_input_type_4, ndim=1] h, # particle smoothing length
                                 np.ndarray[np.int64_t, ndim=1] ind, # which of the above particles to use
