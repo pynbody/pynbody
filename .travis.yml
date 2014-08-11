@@ -21,7 +21,7 @@ before_install:
   - "cd nose; wget https://pynbody.googlecode.com/files/testdata_april_2013.tar.gz; tar -zxvf testdata_april_2013.tar.gz; cd .."
 
 install:
-  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py sphinx pygments $CYTHON
+  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py sphinx pygments ipython $CYTHON
   - source activate ${PYTHON}_${NUMPY_VERSION}
   - python --version
   - python setup.py install
@@ -29,4 +29,4 @@ install:
 
 script:
   - "cd nose; nosetests"
-  - if [ ${PYTHON:0:1} -lt 3 ]; then cd ../docs; make html; fi 
+  - if [ ${PYTHON:0:1} -lt 3 ]; then cd ../docs; make html; fi
