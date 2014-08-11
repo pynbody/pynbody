@@ -254,7 +254,10 @@ class EmbeddedSphinxShell(object):
             splitter.push(line)
             more = splitter.push_accepts_more()
             if not more:
-                source_raw = splitter.source_raw_reset()[1]
+                try:
+                    source_raw = splitter.source_raw_reset()[1]
+                except AttributeError:
+                    source_raw = splitter.raw_reset()
                 self.IP.run_cell(source_raw, store_history=store_history)
         finally:
             sys.stdout = stdout
@@ -422,7 +425,7 @@ class EmbeddedSphinxShell(object):
         image_file = None
         image_directive = None
         is_doctest = False
-        
+
         for token, data in block:
             if token==COMMENT:
                 out_data = self.process_comment(data)
@@ -566,7 +569,7 @@ class IpythonDirective(Directive):
             if i.startswith('seen_doc')]
         if not hasattr(self.shell, "_docs") :
             self.shell._docs = []
-            
+
         if seen_docs:
             fname = os.path.join(tempfile.tempdir, seen_docs[0])
             docs = open(fname).read().split('\n')
@@ -603,7 +606,7 @@ class IpythonDirective(Directive):
             fout.write(self.state.document.current_source+'\n')
             fout.close()
             self.shell._docs.append(self.state.document.current_source) # AP modification
-            
+
         return rgxin, rgxout, promptin, promptout
 
 

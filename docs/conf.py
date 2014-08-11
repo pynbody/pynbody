@@ -27,20 +27,37 @@ sys.path.append(os.path.abspath('sphinxext'))
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 
-              'sphinx.ext.doctest', 
-              'sphinx.ext.todo', 
-              'sphinx.ext.coverage', 
-              'sphinx.ext.pngmath', 
-              'sphinx.ext.ifconfig', 
+extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.doctest',
+              'sphinx.ext.todo',
+              'sphinx.ext.coverage',
+              'sphinx.ext.pngmath',
+              'sphinx.ext.ifconfig',
               'sphinx.ext.viewcode',
               'matplotlib.sphinxext.mathmpl',
               'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive',
-              'ipython_console_highlighting',
-              'ipython_directive',
               'sphinx.ext.inheritance_diagram',
               'numpydoc']
+
+
+"""
+# IN PRINCIPLE,
+# newer versions of Ipython include the directive, older versions need our
+# own copy.
+#
+# HOWEVER, there is a big bug in the shipped ipython_directive, so we
+# continue to use our own patched copy.
+
+try:
+    import IPython.sphinxext.ipython_console_highlighting
+    extensions+=['IPython.sphinxext.ipython_console_highlighting',
+                 'IPython.sphinxext.ipython_directive']
+except ImportError:
+    extensions+=['ipython_console_highlighting','ipython_directive']
+"""
+
+extensions+=['ipython_console_highlighting','ipython_directive']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -194,7 +211,7 @@ htmlhelp_basename = 'pynbodydoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'pynbody.tex', u'pynbody Documentation',
-   u'pynbody team (http://code.google.com/p/pynbody/people/list)', 'manual'),
+   u'pynbody team (https://github.com/pynbody/pynbody/graphs/contributors)', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
