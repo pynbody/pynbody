@@ -137,6 +137,11 @@ class UnitBase(object):
     def __pow__(self, p):
         if isinstance(p, tuple):
             p = Fraction(p[0], p[1])
+        if not (isinstance(p, Fraction) or isinstance(p, int)):
+            if isinstance(p, float):
+                raise ValueError, "Units can only be raised to integer or fractional powers. Use python's built-in fractions module or a tuple: e.g. unit**(1,2) represents a square root."
+            else :
+                raise ValueError, "Units can only be raised to integer or fractional powers"
         return CompositeUnit(1, [self], [p]).simplify()
 
     def __truediv__(self, m):
