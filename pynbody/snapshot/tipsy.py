@@ -286,7 +286,7 @@ class TipsySnap(SimSnap):
 
     def _update_snapshot(self, arrays, filename=None, fam_out=[family.gas, family.dm, family.star]):
         """
-        Write a TIPSY file, but only updating the requested information and leaving the 
+        Write a TIPSY file, but only updating the requested information and leaving the
         rest intact on disk.
         """
 
@@ -391,7 +391,7 @@ class TipsySnap(SimSnap):
     def _write(self, filename=None, double_pos=None, double_vel=None, binary_aux_arrays=None):
         """
 
-        Write a TIPSY (standard) formatted file.   
+        Write a TIPSY (standard) formatted file.
 
         Additionally, you can specify whether you want position and/or
         velocity arrays written out in double precision. If you are
@@ -971,11 +971,13 @@ def ne(sim):
 
 @TipsySnap.derived_quantity
 def hetot(self):
+    """Helium mass fraction including correction based on metallicity"""
     return 0.236 + (2.1 * self['metals'])
 
 
 @TipsySnap.derived_quantity
 def hydrogen(self):
+    """Hydrogen mass fraction including correction based on metallicity"""
     return 1.0 - self['metals'] - self['hetot']
 
 #from .tipsy import TipsySnap
@@ -1002,6 +1004,8 @@ XSOLSi = 7e-4          # 6.7e-4
 
 @TipsySnap.derived_quantity
 def feh(self):
+    """Iron abundance [Fe/H] derived from tipsy array FeMassFrac, with solar
+    values from Asplund et al 09"""
     minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
     self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)] = minfe
     return np.log10(self['FeMassFrac'] / self['hydrogen']) - np.log10(XSOLFe / XSOLH)
@@ -1009,6 +1013,8 @@ def feh(self):
 
 @TipsySnap.derived_quantity
 def oxh(self):
+    """Oxygen abundance [O/H] derived from tipsy array FeMassFrac, with solar
+    values from Asplund et al 09"""
     minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
     self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)] = minox
     return np.log10(self['OxMassFrac'] / self['hydrogen']) - np.log10(XSOLO / XSOLH)
@@ -1016,6 +1022,8 @@ def oxh(self):
 
 @TipsySnap.derived_quantity
 def ofe(self):
+    """Oxygen-to-iron ratio [O/Fe] derived from tipsy arrays OxMassFrac and FeMassFrac
+    with solar values from Asplund et al 09"""
     minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
     self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)] = minox
     minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
@@ -1025,6 +1033,8 @@ def ofe(self):
 
 @TipsySnap.derived_quantity
 def mgfe(sim):
+    """Magnesium-to-iron ratio [Mg/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
+    with solar values from Asplund et al 09"""
     minmg = np.amin(sim['MgMassFrac'][np.where(sim['MgMassFrac'] > 0)])
     sim['MgMassFrac'][np.where(sim['MgMassFrac'] == 0)] = minmg
     minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
@@ -1034,6 +1044,8 @@ def mgfe(sim):
 
 @TipsySnap.derived_quantity
 def nefe(sim):
+    """Neon-to-iron ratio [Ne/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
+    with solar values from Asplund et al 09"""
     minne = np.amin(sim['NeMassFrac'][np.where(sim['NeMassFrac'] > 0)])
     sim['NeMassFrac'][np.where(sim['NeMassFrac'] == 0)] = minne
     minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
@@ -1043,6 +1055,8 @@ def nefe(sim):
 
 @TipsySnap.derived_quantity
 def sife(sim):
+    """Silicon-to-iron ratio [Si/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
+    with solar values from Asplund et al 09"""
     minsi = np.amin(sim['SiMassFrac'][np.where(sim['SiMassFrac'] > 0)])
     sim['SiMassFrac'][np.where(sim['SiMassFrac'] == 0)] = minsi
     minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
@@ -1052,7 +1066,7 @@ def sife(sim):
 
 @TipsySnap.derived_quantity
 def c_s(self):
-    """Ideal gas sound speed"""
+    """Ideal gas sound speed based on pressure and density"""
     #x = np.sqrt(5./3.*units.k*self['temp']*self['mu'])
     x = np.sqrt(5. / 3. * self['p'] / self['rho'])
     x.convert_units('km s^-1')
@@ -1095,7 +1109,7 @@ def ljeans(self):
 
 @TipsySnap.derived_quantity
 def ljeans_turb(self):
-    """Jeans length"""
+    """Turbulent Jeans length"""
     x = self['c_s_turb'] * np.sqrt(np.pi / (units.G * self['rho']))
     x.convert_units('kpc')
     return x

@@ -974,11 +974,11 @@ class SimSnap(object):
 
         if not hasattr(self, "_write_array"):
             raise IOError(
-                "The underlying file format class does not support writing individual arrays back to disk. See http://code.google.com/p/pynbody/wiki/WritingFiles for further information.")
+                "The underlying file format class does not support writing individual arrays back to disk")
 
         if is_update and not hasattr(self, "_update_array"):
             raise IOError(
-                "The underlying file format class does not support partially updating arrays on disk. See http://code.google.com/p/pynbody/wiki/WritingFiles for further information.")
+                "The underlying file format class does not support updating arrays on disk")
 
         # It's an overwrite if we're writing over something loadable
         is_overwriting = any([array_name in self[
@@ -987,7 +987,7 @@ class SimSnap(object):
         if is_overwriting and not overwrite:
             # User didn't specifically say overwriting is OK
             raise IOError(
-                "This operation would overwrite existing data on disk. Call again setting overwrite=True if you want to enable this behaviour. See http://code.google.com/p/pynbody/wiki/WritingFiles for further information.")
+                "This operation would overwrite existing data on disk. Call again setting overwrite=True if you want to enable this behaviour.")
 
         if is_update:
             self._update_array(array_name, fam=fam, **kwargs)
@@ -1720,7 +1720,7 @@ class SubSnap(SimSnap):
         fam = fam or self._unifamily
         if not fam or self._get_family_slice(fam) != slice(0, len(self)):
             raise IOError(
-                "Array writing is available for entire simulation arrays or family-level arrays, but not for arbitrary subarrays. See http://code.google.com/p/pynbody/wiki/WritingFiles")
+                "Array writing is available for entire simulation arrays or family-level arrays, but not for arbitrary subarrays")
 
         self.base.write_array(array_name, fam=fam, **kwargs)
 

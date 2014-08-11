@@ -14,7 +14,7 @@ simulations. We recommend you get started by reading about
 :ref:`pynbody-installation` and trying the :ref:`tutorials`. We are
 happy to provide further assistance via our
 `user group email list
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. 
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
 
 Installation and first steps
@@ -22,12 +22,12 @@ Installation and first steps
 
 Consult the :doc:`installation` documentation for instructions on how
 to get going. Then you might like to download some `test data
-<https://code.google.com/p/pynbody/downloads/list>`_ and try out the
+<https://github.com/pynbody/pynbody/releases>`_ and try out the
 :ref:`first steps tutorial <snapshot_manipulation>` or a :ref:`lower-level
 data access walkthrough <data-access>`.
 
 
-.. _getting-help: 
+.. _getting-help:
 
 Getting Help
 ------------
@@ -44,7 +44,7 @@ easy as putting a `?` at the end of a command:
 
    In [1]: import pynbody
 
-   In [2]: pynbody.load? 
+   In [2]: pynbody.load?
 
 
 Common Pitfalls
@@ -124,7 +124,7 @@ information for the seasoned users.
 .. toctree::
    :maxdepth: 2
 
-   Pynbody tutorials <tutorials/tutorials>   
+   Pynbody tutorials <tutorials/tutorials>
 
 
 Reference
@@ -132,12 +132,10 @@ Reference
 
 .. toctree::
    :maxdepth: 3
-   
+
    Simulation loaders <loaders>
-   Essential generic modules <essentials>   
+   Essential generic modules <essentials>
    Convenience modules <convenience>
    Derived quantities <derived>
    Analysis modules <analysis>
    Plotting modules <plot>
-
-

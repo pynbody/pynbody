@@ -6,11 +6,11 @@ Automatically Derived Arrays
 `Pynbody` includes a system which automatically derives one array from
 others. The idea is that this system
 
-  (1) permits analysis code to assume the existence of arrays
+  (1) permits analysis code to assume that certain arrays exist --
   whether or not they exist in the file;
 
   (2) allows arrays to be kept up-to-date when they depend on other
-  arrays which are changing.
+  arrays
 
 
 Built-in derived arrays
@@ -21,8 +21,8 @@ all simulation types. If you want, for example, to calculate the
 specific kinetic energy, you can just access the ``ke`` array and
 pynbody will calculate it:
 
-.. ipython:: 
- 
+.. ipython::
+
    In [3]: import pynbody
 
    In [4]: s = pynbody.load('testdata/g15784.lr.01024.gz')
@@ -46,10 +46,10 @@ But the array updates itself when one of its dependencies changes:
 The recalculation only takes place when required -- in the example
 above the ``ke`` array is stored (just like a normal array) until the velocity array is updated,
 at which point it is deleted. When you ask for the ``ke`` array again,
-it is recalculated. 
+it is recalculated.
 
 This is why you're not allowed to change values in a derived array --
-your changes could easily be lost, leading to confusing bugs. However,
+your changes could be overwritten, leading to confusing bugs. However,
 if you want to make a derived array back into a normal array you can
 do so.
 
@@ -62,7 +62,7 @@ do so.
    In [5]: s['ke']
 
 
-At this point, however, you've taken full responsibility for that
+At this point you've taken full responsibility for the
 array, so if you update its dependencies the framework *won't* help
 you out any longer:
 
@@ -92,23 +92,23 @@ given in the :ref:`data access tutorial <create_arrays>`.
 
 When your function is called, the framework monitors any arrays it
 retrieves from the simulation. It automatically marks the accessed
-arrays as dependencies for your function. 
+arrays as dependencies for your function.
 
 
 Built-in derived arrays for all snapshot classes
 ------------------------------------------------
 
 .. automodule:: pynbody.derived
-   :members: 
+   :members:
 
 
-tipsy 
+tipsy
 -----
-   
-.. note:: describe how abundances are calculated, give references!
+
+.. note:: These take advantage of arrays present in Gasoline snapshots
 
 .. autofunction:: pynbody.tipsy.HII
-.. autofunction:: pynbody.tipsy.HeIII 
+.. autofunction:: pynbody.tipsy.HeIII
 .. autofunction:: pynbody.tipsy.ne
 .. autofunction:: pynbody.tipsy.hetot
 .. autofunction:: pynbody.tipsy.hydrogen
@@ -136,4 +136,3 @@ Ramses
 ------
 
 .. autofunction:: pynbody.ramses.mass
-

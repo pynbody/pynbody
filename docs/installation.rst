@@ -1,6 +1,6 @@
 .. summary How to install pynbody
 
-.. _pynbody-installation: 
+.. _pynbody-installation:
 
 Pynbody Installation
 ====================
@@ -10,12 +10,12 @@ installation experience is swift and painless. If you encounter issues
 during the installation process, please let us know right away. Once
 you complete the installation, don't forget to read the
 :ref:`getting-help` section. Finally, if you decide you like pynbody
-and you end up using it for your scientific work, please see 
+and you end up using it for your scientific work, please see
 :ref:`acknowledging-pynbody`. Enjoy!
 
 
 If you are already a regular python/numpy/scipy user
----------------------------------------------------- 
+----------------------------------------------------
 
 `Pynbody` is in regular development and bugs are constantly being
 fixed. We therefore recommend that you stay up to date with the code
@@ -25,11 +25,11 @@ particular release version.
 If you have `pip` and `distutils` installed, you can make `pip` fetch the
 repository for you and do the installation:
 
-1. ``pip install git+git://github.com/pynbody/pynbody.git`` 
+1. ``pip install git+git://github.com/pynbody/pynbody.git``
 
-.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
+.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`.
 
-If this doesn't work or you want to clone the repo and keep it around, you can 
+If this doesn't work or you want to clone the repo and keep it around, you can
 
 2. Follow the instructions in the :ref:`install-pynbody` section
 
@@ -53,7 +53,7 @@ You must have:
 
   * The standard `numpy` (python numeric arrays) package.
 
-  * Standard development environment, i.e. compilers, libraries etc. On Mac OS that's usually Apple's XCode. 
+  * Standard development environment, i.e. compilers, libraries etc. On Mac OS that's usually Apple's XCode.
 
   * **Note for Mac OS X 10.8 and 10.9 users:** XCode no longer comes
     with the `gcc` compiler and the `clang` compiler doesn't support
@@ -84,7 +84,7 @@ You will probably also want
     True`` in your matplotlibrc file, but see the above webpage for
     caveats.
 
-These packages are all standard and well supported.  
+These packages are all standard and well supported.
 
 You might also want
 ^^^^^^^^^^^^^^^^^^^
@@ -111,23 +111,23 @@ below describe how to make this happen, and once you've configured it
 properly installing *most* python packages will be a breeze.
 
 1. Create a directory where python packages will be installed.  We
-recommend ``${HOME}/python``.  
+recommend ``${HOME}/python``.
 
 ::
 
-   mkdir ~/python 
- 
+   mkdir ~/python
+
 
 2. Download this `.pydistutils.cfg
 <http://pynbody.googlecode.com/files/.pydistutils.cfg>`_ file into
-your home directory.  
+your home directory.
 
-3. Set the ``PYTHONPATH`` environment variable.  
+3. Set the ``PYTHONPATH`` environment variable.
 
 ::
 
    setenv PYTHONPATH "${HOME}/python" #put into your .cshrc file OR
-   export PYTHONPATH="${HOME}/python" # in your .bashrc file 
+   export PYTHONPATH="${HOME}/python" # in your .bashrc file
 
 
 Install External Packages
@@ -137,11 +137,11 @@ Linux
 ^^^^^
 
 On Linux, use your favourite package manager (like yum or ubuntu) to
-install all the packages in one line, for example 
+install all the packages in one line, for example
 
 ::
 
-   yum install matplotlib scipy ipython 
+   yum install matplotlib scipy ipython
 
 This easy way requires root access, so you might have to ask your
 system administrator.
@@ -155,16 +155,16 @@ your version of python:
 
  * `scipy <http://sourceforge.net/projects/scipy/files/>`_
 
- * `matplotlib <http://sourceforge.net/projects/matplotlib/files/>`_ 
+ * `matplotlib <http://sourceforge.net/projects/matplotlib/files/>`_
 
 The three packages are standard for nearly all scientific computation
 in python, so it makes sense for them to be installed at the system
 level.  However, if you sys admin is unhelpful, now that you've set up
-distutils, you just have to ``cd`` in each directory and type: 
+distutils, you just have to ``cd`` in each directory and type:
 
 ::
 
-   python setup.py install 
+   python setup.py install
 
 
 Mac OS
@@ -174,7 +174,7 @@ Choose one of the three options below.  Any of the three options can
 be made to work. The first is easiest, the last is hardest; so if you
 don't have a strong reason to do otherwise, we'd recommend option (a).
 
-Option (a): enthought or anaconda python 
+Option (a): enthought or anaconda python
 """""""""""""""""""""""""""""""""""""""""
 
 If you are at an academic institution (which is likely the case if you
@@ -190,7 +190,7 @@ matplotlib and other libraries. See the full
 A similar solution is the `Anaconda Python
 <https://store.continuum.io/cshop/anaconda/>`_ bundle from Continuum
 Analytics that comes with a nice and easy to use package manager
-`conda`. They also provide free licenses for academic use. 
+`conda`. They also provide free licenses for academic use.
 
 
 Option (b): python's official python
@@ -225,7 +225,7 @@ manually download binary versions of `numpy`, `scipy` and
 Option (c): python that came with your Mac
 """"""""""""""""""""""""""""""""""""""""""
 
-This is in general not the preferred python solution. 
+This is in general not the preferred python solution.
 
 .. note:: As of December 2011, the scipy superpack no longer appears
  to be maintained.* Therefore should you wish to use the framework
@@ -246,9 +246,9 @@ You can try to type, in your shell:
    pip install git+git://github.com/pynbody/pynbody.git
 
 and everything should happen automatically. This will give you
-whatever the latest code from the `git repository <https://github.com/pynbody/pynbody>`_. 
+whatever the latest code from the `git repository <https://github.com/pynbody/pynbody>`_.
 
-.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`. 
+.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`.
 
 If you don't have `pip` or if you want to develop `pynbody` here is
 how you can do it manually.
@@ -277,9 +277,9 @@ Now the package is installed wherever your python packages reside and should be 
 
 8. ``>>> import pynbody``
 
-If this yields no errors, you are done! 
-  
-.. note:: 
+If this yields no errors, you are done!
+
+.. note::
    If you plan on joining the development efforts and you are
    unfamiliar with git, we recommend that you spend some time getting
    familiar with it. The `git documentation <http://git-scm.com/doc>`_
@@ -306,11 +306,11 @@ If you cloned or forked the git repository and installed manually, go
 into the top-level `pynbody` source directory (the one with
 ``setup.py`` in it) and do :
 
-:: 
+::
 
    git checkout master  # make sure you are on the master branch
-   git pull origin master 
-   python setup.py install 
+   git pull origin master
+   python setup.py install
 
 
 If you are testing a new feature or a bug fix that resides in a branch
@@ -326,7 +326,7 @@ When you install a new version of the code and you already have a
 python session active with `pynbody` loaded, you have to (carefully)
 reload all of the affected `pynbody` modules. The safest is to just
 quit and restart the python session if you're not sure.
-   
+
 
 Open your simulation and start analyzing
 ----------------------------------------
@@ -350,7 +350,7 @@ primer on `Basic Branching and Merging
 in the git documentation. This `description of a workflow
 <http://sandofsky.com/blog/git-workflow.html>`_ that discusses tidying
 up development branches before merging into the master branch is a
-good read. 
+good read.
 
 We are in pretty active development stage at the moment, so it's
 always a good idea to keep your code updated. If you want to see what
@@ -363,7 +363,7 @@ Nose tests
 ^^^^^^^^^^
 
 The root directory of the pynbody distribution includes a ``nose``
-directory, where the unit (nose) tests reside. In order to run them, you'll need to download the ``testdata`` bundle from the `downloads section <https://code.google.com/p/pynbody/downloads/list>`_ of the pynbody site. 
+directory, where the unit (nose) tests reside. In order to run them, you'll need to download the ``testdata`` bundle from the `downloads section <https://github.com/pynbody/pynbody/releases>`_ of the pynbody site. 
 
 
 Building your own documentation
@@ -409,11 +409,11 @@ configure the package
    --prefix=/usr/local/hdf5 --with-szlib=/usr/local/src/szip-2.1/szip
    --with-zlib=/usr/local/include,/usr/local/lib }}}
 
-Finally 
+Finally
 
 ::
- 
-   make sudo make install 
+
+   make sudo make install
 
 
 Now ``h5py`` will install without much hassle. `Download the source
