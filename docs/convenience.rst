@@ -13,11 +13,5 @@ Generic Convenience Modules
 .. automodule:: pynbody.halo
    :members:
 
-.. automodule:: pynbody.kdtree
-   :members:
-
 .. automodule:: pynbody.sph
    :members:
-
-
-      

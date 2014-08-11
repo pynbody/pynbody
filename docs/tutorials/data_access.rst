@@ -10,7 +10,7 @@ attributes, access some data and make use of unit information.
 
 If you're more interested in making pretty pictures and plots straight
 away, you may wish to read the :ref:`basic facilities tutorial
-snapshot_manipulation` first.
+<snapshot_manipulation>` first.
 
 .. note:: This tutorial discusses an
   interactive session rather than a script. This is only cosmetically
@@ -48,7 +48,6 @@ functions we'll make use of later.
  In [1]: import numpy as np
 
  In [2]: f = pynbody.load("testdata/test_g2_snap")
- Attempting to load as <class 'pynbody.gadget.GadgetSnap'>
 
 Here we've loaded a sample gadget file. Not much seems to have
 happened when you called :func:`pynbody.load`, but the variable ``f``
@@ -82,8 +81,10 @@ Finding out something about the file
 Let's start to inspect the file we've opened. The standard python operator ``len`` can be used to query the number
 of particles in the file:
 
+
 .. ipython::
 
+ @doctest
  In [3]: len(f)
  Out[3]: 8192
 
@@ -100,14 +101,18 @@ You can pick out just the particles belonging to a family by using the
 syntax ``f.family``. So, for example, we can see how many particles of
 each type are present:
 
+
 .. ipython::
 
+ @doctest
  In [4]: len(f.dm)
  Out[4]: 4096
 
+ @doctest
  In [5]: len(f.gas)
  Out[5]: 4039
 
+ @doctest
  In [6]: len(f.star)
  Out[6]: 57
 
@@ -123,7 +128,7 @@ name:
 
 .. ipython::
 
- In[4]: f.properties['a']
+ In [4]: f.properties['a']
 
 These names are standardized across different file formats. Here for example `z`
 means redshift, `a` means the cosmological scalefactor, `h` indicates
@@ -444,6 +449,7 @@ operations. Here we take every tenth particle:
 
  In [24]: every_tenth = f[::10]
 
+ @doctest
  In [25]: len(every_tenth)
  Out[25]: 820
 
@@ -459,6 +465,7 @@ new view:
 
   In [27]: every_tenth['pos'][1] = [1,2,3]
 
+  @doctest
   In [28]: every_tenth['pos'][1]
   Out[28]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
 

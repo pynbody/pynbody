@@ -138,7 +138,7 @@ halo is as follows:
 .. ipython ::
 
  In [4]: pynbody.analysis.halo.center(h1,mode='hyb')
-
+ Out [4]: <pynbody.transformation.GenericTranslate at 0x10a61e790>
 
 We passed ``h[1]`` to the function
 :func:`~pynbody.analysis.halo.center` to center the *entire* snapshot
