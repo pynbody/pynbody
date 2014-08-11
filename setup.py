@@ -206,6 +206,7 @@ dist = setup(name = 'pynbody',
                             "Intended Audience :: Science/Research",
                             "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                             "Programming Language :: Python :: 2",
+                            "Programming Language :: Python :: 3",
                             "Topic :: Scientific/Engineering :: Astronomy",
                             "Topic :: Scientific/Engineering :: Visualization"]
 
