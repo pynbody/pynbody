@@ -36,6 +36,7 @@ configuration necessary to get pynbody working.  Fortunately, Python
 is installed by default on many operating systems, particularly those
 common to astronomers, Mac OS X and Linux.
 
+.. _pynbody-installation-must-haves:
 
 You must have:
 ^^^^^^^^^^^^^^
