@@ -62,20 +62,20 @@ Pynbody user group and issue tracker
 If you find yourself stuck, don't hesitate to post a message to the
 `users group
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
-  If you have a Google account you can join the groups
+If you have a Google account you can join the groups
 easily, but if you don't have one please click on the `About` button
 of the group you are interested in and contact the owner.
 
 We have found that most development discussion takes place within our
-`github issue tracker<https://github.com/pynbody/pynbody/issues>`_ -- if you
+`github issue tracker <https://github.com/pynbody/pynbody/issues>`_ -- if you
 encounter a problem, feel free to create an issue there.
-
-We really value feedback from users, especially when things are not
+We greatly value feedback from users, especially when things are not
 working correctly because this is the best way for us to correct
 bugs.  This includes any problems you encounter with documentation.
 
 If you use the code regularly for your projects, please consider contributing
-your code back using a pull request.
+your code back using a `pull request
+<https://help.github.com/articles/using-pull-requests>`_.
 
 .. _acknowledging-pynbody:
 
@@ -97,35 +97,25 @@ using the following BibTex::
      year = 2013
    }
 
-You may also mention it either as a footnote in the text or in the
-acknowledgments section with a statement like:
-
-**We made use of pynbody (https://github.com/pynbody/pynbody) in our analysis
-for this paper.**
-
 
 Tutorials
 ---------
 
-The tutorials are not a complete guide to Pynbody, but they will help
-new users get started, as well as provide some more in-depth
-information for the seasoned users.
-
-.. toctree::
-   :maxdepth: 2
-
-   Pynbody tutorials <tutorials/tutorials>
+The :ref:`tutorials <tutorials>` are not a complete guide to Pynbody, but they will help
+you get started.
 
 
 Reference
 -------------
 
-.. toctree::
-   :maxdepth: 3
+The reference documentation is intended to fill in some details of things
+that aren't included in the tutorials and is largely generated from the
+python docstrings.
 
-   Simulation loaders <loaders>
-   Essential generic modules <essentials>
-   Convenience modules <convenience>
-   Derived quantities <derived>
-   Analysis modules <analysis>
-   Plotting modules <plot>
+.. toctree::
+   :maxdepth: 1
+
+   Welcome <index>
+   Installation <installation>
+   Tutorials & walkthroughs <tutorials/tutorials>
+   Reference <reference/index>
