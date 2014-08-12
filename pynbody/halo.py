@@ -367,7 +367,7 @@ class RockstarCatalogue(HaloCatalogue):
         f.close()
 
     @staticmethod
-    def _can_load(sim):
+    def _can_load(sim,**kwargs):
         for file in glob.glob('halos*.bin'):
             if os.path.exists(file):
                 return True
@@ -985,7 +985,7 @@ class AHFCatalogue(HaloCatalogue):
         return shalos
 
     @staticmethod
-    def _can_load(sim):
+    def _can_load(sim,**kwargs):
         for file in glob.glob(sim._filename + '*z*particles*'):
             if os.path.exists(file):
                 return True
@@ -1151,7 +1151,7 @@ class GrpCatalogue(HaloCatalogue):
         return self._base()
 
     @staticmethod
-    def _can_load(sim, array='grp'):
+    def _can_load(sim, array='grp',**kwargs):
         if (array in sim.loadable_keys()) or (array in sim.keys()):
             return True
         else:

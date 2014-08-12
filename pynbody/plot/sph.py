@@ -3,7 +3,7 @@
 sph
 ===
 
-routines for plotting smoothed quantities 
+routines for plotting smoothed quantities
 
 """
 
@@ -55,7 +55,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
 
-    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`, 
+    For a description of additional keyword arguments see :func:`~pynbody.plot.sph.image`,
     or see the `tutorial <http://pynbody.github.io/pynbody/tutorials/pictures.html#velocity-vectors>`_.
 
     **Keyword arguments:**
@@ -69,7 +69,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
 
     *scale* (None): The length of a vector that would result in a displayed length of the
-    figure width/height.  
+    figure width/height.
 
     *mode* ('quiver'): make a 'quiver' or 'stream' plot
 
@@ -77,11 +77,11 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     *key_y* (0.9): Display y (height) position for the vector key (quiver mode only)
 
-    *key_color* (white): Color for the vector key (quiver mode only) 
+    *key_color* (white): Color for the vector key (quiver mode only)
 
     *key_length* (100 km/s): Velocity to use for the vector key (quiver mode only)
 
-    *density* (1.0): Density of stream lines (stream mode only) 
+    *density* (1.0): Density of stream lines (stream mode only)
 
     """
 
@@ -116,15 +116,9 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
             Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
                 sim['vel'].units), color=vector_color, edgecolor=edgecolor)
         p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
-<<<<<<< HEAD
-                    r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
-    elif mode == 'stream' : 
-        Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density)
-=======
                     r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 16})
-    elif mode == 'stream':
+    elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
->>>>>>> snapshot_package
 
     return im
 
@@ -137,8 +131,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           **kwargs):
     """
 
-    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial 
-    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples. 
+    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial
+    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples.
 
     **Keyword arguments:**
 
@@ -173,7 +167,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     *title* (None): plot title
 
-    *qtytitle* (None): colorbar quantity title 
+    *qtytitle* (None): colorbar quantity title
 
     *show_cbar* (True): whether to plot the colorbar
 
@@ -184,7 +178,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     *ret_im* (False): return the image instance returned by imshow
 
-    *num_threads* (None) : if set, specify the number of threads for 
+    *num_threads* (None) : if set, specify the number of threads for
     the multi-threaded routines; otherwise the pynbody.config default is used
 
     *fill_nan* (True): if any of the image values are NaN, replace with fill_val
@@ -332,8 +326,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
         if units is None:
             units = im.units
-<<<<<<< HEAD
-       
+
         if log :
             units = r"$\log_{10}\,"+units.latex()+"$"
         else :
@@ -341,10 +334,6 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
                 units=""
             else:
                 units = "$"+units.latex()+"$"
-=======
-
-        units = "$" + units.latex() + "$"
->>>>>>> snapshot_package
 
         if show_cbar:
             if qtytitle is not None:
