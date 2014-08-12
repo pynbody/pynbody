@@ -70,12 +70,12 @@ class Transformation(object):
         self.revert()
 
 
-class GenericTranslate(Transformation):
+class GenericTranslation(Transformation):
 
     def __init__(self, f, arname, shift):
         self.shift = shift
         self.arname = arname
-        super(GenericTranslate, self).__init__(f)
+        super(GenericTranslation, self).__init__(f)
 
     def _apply(self, f):
         f[self.arname] += self.shift
@@ -128,7 +128,7 @@ def translate(f, shift):
 
     Performs the translation but does not revert it at any point.
     """
-    return GenericTranslate(f, 'pos', shift)
+    return GenericTranslation(f, 'pos', shift)
 
 
 def inverse_translate(f, shift):
@@ -145,7 +145,7 @@ def v_translate(f, shift):
 
     For a fuller description, see *translate* (which applies to position transformations)."""
 
-    return GenericTranslate(f, 'vel', shift)
+    return GenericTranslation(f, 'vel', shift)
 
 
 def inverse_v_translate(f, shift):
@@ -154,7 +154,7 @@ def inverse_v_translate(f, shift):
 
     For a fuller description, see *translate* (which applies to position transformations)."""
 
-    return GenericTranslate(f, 'vel', -np.asarray(shift))
+    return GenericTranslation(f, 'vel', -np.asarray(shift))
 
 
 def xv_translate(f, x_shift, v_shift):
