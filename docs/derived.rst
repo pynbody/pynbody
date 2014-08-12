@@ -107,23 +107,23 @@ tipsy
 
 .. note:: These take advantage of arrays present in Gasoline snapshots
 
-.. autofunction:: pynbody.tipsy.HII
-.. autofunction:: pynbody.tipsy.HeIII
-.. autofunction:: pynbody.tipsy.ne
-.. autofunction:: pynbody.tipsy.hetot
-.. autofunction:: pynbody.tipsy.hydrogen
-.. autofunction:: pynbody.tipsy.feh
-.. autofunction:: pynbody.tipsy.oxh
-.. autofunction:: pynbody.tipsy.ofe
-.. autofunction:: pynbody.tipsy.mgfe
-.. autofunction:: pynbody.tipsy.nefe
-.. autofunction:: pynbody.tipsy.sife
-.. autofunction:: pynbody.tipsy.c_s
-.. autofunction:: pynbody.tipsy.c_s_turb
-.. autofunction:: pynbody.tipsy.mjeans
-.. autofunction:: pynbody.tipsy.mjeans_turb
-.. autofunction:: pynbody.tipsy.ljeans
-.. autofunction:: pynbody.tipsy.ljeans_turb
+.. autofunction:: pynbody.snapshot.tipsy.HII
+.. autofunction:: pynbody.snapshot.tipsy.HeIII
+.. autofunction:: pynbody.snapshot.tipsy.ne
+.. autofunction:: pynbody.snapshot.tipsy.hetot
+.. autofunction:: pynbody.snapshot.tipsy.hydrogen
+.. autofunction:: pynbody.snapshot.tipsy.feh
+.. autofunction:: pynbody.snapshot.tipsy.oxh
+.. autofunction:: pynbody.snapshot.tipsy.ofe
+.. autofunction:: pynbody.snapshot.tipsy.mgfe
+.. autofunction:: pynbody.snapshot.tipsy.nefe
+.. autofunction:: pynbody.snapshot.tipsy.sife
+.. autofunction:: pynbody.snapshot.tipsy.c_s
+.. autofunction:: pynbody.snapshot.tipsy.c_s_turb
+.. autofunction:: pynbody.snapshot.tipsy.mjeans
+.. autofunction:: pynbody.snapshot.tipsy.mjeans_turb
+.. autofunction:: pynbody.snapshot.tipsy.ljeans
+.. autofunction:: pynbody.snapshot.tipsy.ljeans_turb
 
 
 gadget
@@ -135,4 +135,4 @@ No special derived quantities at the moment.
 Ramses
 ------
 
-.. autofunction:: pynbody.ramses.mass
+.. autofunction:: pynbody.snapshot.ramses.mass
