@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Configuring pynbody &mdash; pynbody 0.20-beta documentation</title>
+    <title>Configuring pynbody &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,9 +28,9 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
-    <link rel="next" title="Code-specific loaders" href="../loaders.html" />
+    <link rel="next" title="Pynbody reference documentation" href="../reference/index.html" />
     <link rel="prev" title="Performance optimisation in pynbody" href="performance.html" />
 
 <meta charset='utf-8'>
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -82,15 +82,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -118,7 +113,7 @@
     </a>
   </li>
   <li>
-    <a href="../loaders.html" title="Next Chapter: Code-specific loaders"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Code-specific lo... &raquo;</span>
+    <a href="../reference/index.html" title="Next Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pynbody referenc... &raquo;</span>
     </a>
   </li>
               
@@ -160,7 +155,7 @@ mutlithreading, default base units etc.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">__path__</span>
-<span class="go"> Out[2]: [&#39;/Users/rokstar/python/pynbody&#39;]</span>
+<span class="go"> Out[2]: [&#39;//anaconda/lib/python2.7/site-packages/pynbody&#39;]</span>
 </pre></div>
 </div>
 <p>to find the <cite>pynbody</cite> installation directory. The
@@ -169,9 +164,10 @@ explained in the file itself, and in order to use a different default,
 you simply override the option in <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt>. For example, if I
 want to change how many threads <cite>pynbody</cite> should use, I would put in
 <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt>:</p>
-<div class="highlight-python"><pre>[general]
+<div class="highlight-python"><div class="highlight"><pre>[general]
 
-number_of_threads: 10</pre>
+number_of_threads: 10
+</pre></div>
 </div>
 <p>Some options can also be changed at runtime. You can check which ones
 with</p>
@@ -194,16 +190,15 @@ with</p>
 <span class="go">  pynbody.halo.AHFCatalogue,</span>
 <span class="go">  pynbody.halo.SubfindCatalogue],</span>
 <span class="go"> &#39;number_of_threads&#39;: 4,</span>
-<span class="go"> &#39;snap-class-priority&#39;: [pynbody.ramses.RamsesSnap,</span>
-<span class="go">  pynbody.grafic.GrafICSnap,</span>
-<span class="go">  pynbody.nchilada.NchiladaSnap,</span>
-<span class="go">  pynbody.gadget.GadgetSnap,</span>
-<span class="go">  pynbody.gadgethdf.GadgetHDFSnap,</span>
-<span class="go">  pynbody.tipsy.TipsySnap],</span>
+<span class="go"> &#39;snap-class-priority&#39;: [pynbody.snapshot.ramses.RamsesSnap,</span>
+<span class="go">  pynbody.snapshot.grafic.GrafICSnap,</span>
+<span class="go">  pynbody.snapshot.nchilada.NchiladaSnap,</span>
+<span class="go">  pynbody.snapshot.gadget.GadgetSnap,</span>
+<span class="go">  pynbody.snapshot.gadgethdf.GadgetHDFSnap,</span>
+<span class="go">  pynbody.snapshot.tipsy.TipsySnap],</span>
 <span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 32, &#39;tree-leafsize&#39;: 16},</span>
 <span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
-<span class="go"> &#39;tracktime&#39;: True,</span>
-<span class="go"> &#39;verbose&#39;: True}</span>
+<span class="go"> &#39;verbose&#39;: False}</span>
 </pre></div>
 </div>
 <p>If you wanted to, for example, change how many particles are being
@@ -233,7 +228,7 @@ used to estimate sph kernel quantities, you could do</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

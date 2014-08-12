@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.plot.util &mdash; pynbody 0.20-beta documentation</title>
+    <title>pynbody.plot.util &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -80,15 +80,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../plot.html">Plotting modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -148,7 +143,8 @@
 <span class="kn">import</span> <span class="nn">scipy.sparse</span>
 <span class="kn">import</span> <span class="nn">scipy.signal</span>
 
-<div class="viewcode-block" id="fast_kde"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.util.fast_kde">[docs]</a><span class="k">def</span> <span class="nf">fast_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">kern_nx</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">kern_ny</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> 
+
+<div class="viewcode-block" id="fast_kde"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.util.fast_kde">[docs]</a><span class="k">def</span> <span class="nf">fast_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">kern_nx</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">kern_ny</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
              <span class="n">extents</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">nocorrelation</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">norm</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A faster gaussian kernel density estimate (KDE).  Intended for</span>
@@ -166,13 +162,13 @@
 <span class="sd">    produces an essentially identical result.</span>
 
 <span class="sd">    **Input**:</span>
-<span class="sd">    </span>
+
 <span class="sd">        *x*: array</span>
 <span class="sd">            The x-coords of the input data points</span>
-<span class="sd">        </span>
+
 <span class="sd">        *y*: array</span>
 <span class="sd">            The y-coords of the input data points</span>
-<span class="sd">        </span>
+
 <span class="sd">        *kern_nx*: float </span>
 <span class="sd">            size (in units of *x*) of the kernel</span>
 
@@ -181,17 +177,17 @@
 
 <span class="sd">        *gridsize*: (Nx , Ny) tuple (default: 200x200) </span>
 <span class="sd">            Size of the output grid</span>
-<span class="sd">                    </span>
+
 <span class="sd">        *extents*: (default: extent of input data) A (xmin, xmax, ymin, ymax)</span>
 <span class="sd">            tuple of the extents of output grid</span>
 
 <span class="sd">        *nocorrelation*: (default: False) If True, the correlation between the</span>
 <span class="sd">            x and y coords will be ignored when preforming the KDE.</span>
-<span class="sd">        </span>
+
 <span class="sd">        *weights*: (default: None) An array of the same shape as x &amp; y that </span>
 <span class="sd">            weighs each sample (x_i, y_i) by each value in weights (w_i).</span>
 <span class="sd">            Defaults to an array of ones the same size as x &amp; y.</span>
-<span class="sd">            </span>
+
 <span class="sd">        *norm*: boolean (default: False) </span>
 <span class="sd">            If False, the output is only corrected for the kernel. If True,</span>
 <span class="sd">            the result is normalized such that the integral over the area </span>
@@ -200,11 +196,11 @@
 <span class="sd">    **Output**:</span>
 <span class="sd">        A gridded 2D kernel density estimate of the input points. </span>
 <span class="sd">    &quot;&quot;&quot;</span>
-   
+
     <span class="c">#---- Setup --------------------------------------------------------------</span>
     <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
     <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-    
+
     <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;Input x &amp; y arrays must be the same size!&#39;</span><span class="p">)</span>
 
@@ -218,7 +214,7 @@
         <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">weights</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;Input weights must be an array of the same size&#39;</span>
-                    <span class="s">&#39; as input x &amp; y arrays!&#39;</span><span class="p">)</span>
+                             <span class="s">&#39; as input x &amp; y arrays!&#39;</span><span class="p">)</span>
 
     <span class="c"># Default extents are the extent of the data</span>
     <span class="k">if</span> <span class="n">extents</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -226,7 +222,7 @@
         <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">extents</span><span class="p">)</span>
-        
+
     <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">dy</span> <span class="o">=</span> <span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
@@ -234,7 +230,7 @@
 
     <span class="c"># First convert x &amp; y over to pixel coordinates</span>
     <span class="c"># (Avoiding np.digitize due to excessive memory usage!)</span>
-    <span class="n">xyi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">xyi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
     <span class="n">xyi</span> <span class="o">-=</span> <span class="p">[</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">]</span>
     <span class="n">xyi</span> <span class="o">/=</span> <span class="p">[</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">]</span>
     <span class="n">xyi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">xyi</span><span class="p">,</span> <span class="n">xyi</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
@@ -247,26 +243,26 @@
     <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">xyi</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">nocorrelation</span><span class="p">:</span>
-        <span class="n">cov</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">cov</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cov</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cov</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="c"># Scaling factor for bandwidth</span>
-    <span class="n">scotts_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span> <span class="c"># For 2D</span>
+    <span class="n">scotts_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span>  <span class="c"># For 2D</span>
 
     <span class="c">#---- Make the gaussian kernel -------------------------------------------</span>
 
     <span class="c"># First, determine how big the kernel needs to be</span>
     <span class="n">std_devs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">kern_nx</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">kern_ny</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> 
+    <span class="k">if</span> <span class="n">kern_nx</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">kern_ny</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">kern_nx</span><span class="p">,</span> <span class="n">kern_ny</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">scotts_factor</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">std_devs</span><span class="p">)</span>
-    
-    <span class="k">else</span><span class="p">:</span> 
+
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">kern_nx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">kern_nx</span> <span class="o">/</span> <span class="n">dx</span><span class="p">)</span>
         <span class="n">kern_ny</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">kern_ny</span> <span class="o">/</span> <span class="n">dy</span><span class="p">)</span>
 
     <span class="c"># Determine the bandwidth to use for the gaussian kernel</span>
-    <span class="n">inv_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">cov</span> <span class="o">*</span> <span class="n">scotts_factor</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> 
+    <span class="n">inv_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">cov</span> <span class="o">*</span> <span class="n">scotts_factor</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
     <span class="c"># x &amp; y (pixel) coords of the kernel grid, with &lt;x,y&gt; = &lt;0,0&gt; in center</span>
     <span class="n">xx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">kern_nx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span> <span class="o">-</span> <span class="n">kern_nx</span> <span class="o">/</span> <span class="mf">2.0</span>
@@ -275,9 +271,9 @@
 
     <span class="c"># Then evaluate the gaussian function on the kernel grid</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">xx</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">yy</span><span class="o">.</span><span class="n">flatten</span><span class="p">()))</span>
-    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inv_cov</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span> <span class="o">*</span> <span class="n">kernel</span> 
-    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span> 
-    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">kernel</span><span class="p">)</span> 
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inv_cov</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span> <span class="o">*</span> <span class="n">kernel</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">kernel</span><span class="p">)</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">kern_ny</span><span class="p">,</span> <span class="n">kern_nx</span><span class="p">))</span>
 
     <span class="c">#---- Produce the kernel density estimate --------------------------------</span>
@@ -287,13 +283,14 @@
     <span class="n">grid</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">convolve2d</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;same&#39;</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="s">&#39;fill&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
 
     <span class="c"># Normalization factor to divide result by so that units are in the same</span>
-    <span class="c"># units as scipy.stats.kde.gaussian_kde&#39;s output.  </span>
-    <span class="n">norm_factor</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">cov</span> <span class="o">*</span> <span class="n">scotts_factor</span><span class="o">**</span><span class="mi">2</span>
+    <span class="c"># units as scipy.stats.kde.gaussian_kde&#39;s output.</span>
+    <span class="n">norm_factor</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">cov</span> <span class="o">*</span> <span class="n">scotts_factor</span> <span class="o">**</span> <span class="mi">2</span>
     <span class="n">norm_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">norm_factor</span><span class="p">)</span>
     <span class="c">#norm_factor = n * dx * dy * np.sqrt(norm_factor)</span>
     <span class="n">norm_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm_factor</span><span class="p">)</span>
-    
-    <span class="k">if</span> <span class="n">norm</span> <span class="p">:</span> <span class="n">norm_factor</span> <span class="o">*=</span> <span class="n">n</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">dy</span>
+
+    <span class="k">if</span> <span class="n">norm</span><span class="p">:</span>
+        <span class="n">norm_factor</span> <span class="o">*=</span> <span class="n">n</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">dy</span>
 
     <span class="c"># Normalize the result</span>
     <span class="n">grid</span> <span class="o">/=</span> <span class="n">norm_factor</span>
@@ -301,7 +298,7 @@
     <span class="k">return</span> <span class="n">grid</span>
 
 </div>
-<div class="viewcode-block" id="inv_fourier"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.util.inv_fourier">[docs]</a><span class="k">def</span> <span class="nf">inv_fourier</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">nmin</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">mmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">mmax</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">nphi</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="p">:</span> 
+<div class="viewcode-block" id="inv_fourier"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.util.inv_fourier">[docs]</a><span class="k">def</span> <span class="nf">inv_fourier</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">nmin</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">mmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mmax</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">nphi</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Invert a profile with fourier coefficients to yield an overdensity</span>
@@ -312,7 +309,7 @@
 <span class="sd">    *p* : a :func:`~pynbody.analysis.profile.Profile` object</span>
 
 <span class="sd">    **Optional Keywords:**</span>
-<span class="sd">    </span>
+
 <span class="sd">    *nmin* (1000) : minimum number of particles required per bin </span>
 
 <span class="sd">    *mmin* (1)    : lowest multiplicity Fourier component</span>
@@ -324,16 +321,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">phi_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]),</span> <span class="n">nphi</span><span class="p">))</span>
-    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">nphi</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">nphi</span><span class="p">)</span>
     <span class="n">rbins</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span>
 
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rbins</span><span class="p">))</span> <span class="p">:</span> 
-        <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">nmin</span> <span class="p">:</span> 
-            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mmin</span><span class="p">,</span><span class="n">mmax</span><span class="p">)</span> <span class="p">:</span> 
-                <span class="n">phi_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">phi_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;fourier&#39;</span><span class="p">][</span><span class="s">&#39;c&#39;</span><span class="p">][</span><span class="n">m</span><span class="p">,</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1j</span><span class="o">*</span><span class="n">m</span><span class="o">*</span><span class="n">phi</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rbins</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">nmin</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mmin</span><span class="p">,</span> <span class="n">mmax</span><span class="p">):</span>
+                <span class="n">phi_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">phi_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;fourier&#39;</span><span class="p">][</span><span class="s">&#39;c&#39;</span><span class="p">][</span><span class="n">m</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1j</span><span class="o">*</span><span class="n">m</span><span class="o">*</span><span class="n">phi</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">phi_hist</span>
-                </div>
+    <span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">phi_hist</span></div>
 </pre></div>
 
     </div>
@@ -351,7 +347,7 @@
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.plot.generic &mdash; pynbody 0.20-beta documentation</title>
+    <title>pynbody.plot.generic &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -80,15 +80,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../plot.html">Plotting modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -143,35 +138,45 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">profile</span><span class="p">,</span> <span class="n">angmom</span><span class="p">,</span> <span class="n">halo</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">..array</span> <span class="kn">import</span> <span class="n">SimArray</span>
 <span class="kn">from</span> <span class="nn">..units</span> <span class="kn">import</span> <span class="n">NoUnit</span>
 
-<span class="k">def</span> <span class="nf">qprof</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&#39;metals&#39;</span><span class="p">,</span><span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">q</span><span class="o">=</span><span class="p">(</span><span class="mf">0.16</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.84</span><span class="p">),</span>
-          <span class="n">ax</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">ylabel</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">xlog</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">ylog</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">xlabel</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-          <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;#BBBBBB&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;#BBBBBB&#39;</span><span class="p">,</span><span class="n">medcolor</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">ax</span><span class="p">:</span> 
-        <span class="n">p</span><span class="o">=</span><span class="n">ax</span>
+
+<span class="k">def</span> <span class="nf">qprof</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;metals&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="p">(</span><span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.84</span><span class="p">),</span>
+          <span class="n">ax</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">xlog</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ylog</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+          <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;#BBBBBB&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;#BBBBBB&#39;</span><span class="p">,</span> <span class="n">medcolor</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ax</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">ax</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span> <span class="n">f</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="n">qp</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">QuantileProfile</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span><span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">qp</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">),</span><span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span><span class="n">y2</span><span class="o">=</span><span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span><span class="mi">2</span><span class="p">],</span>
-                   <span class="n">facecolor</span><span class="o">=</span><span class="n">facecolor</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-                   <span class="n">where</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span><span class="mi">0</span><span class="p">]))</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">qp</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">),</span><span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span><span class="mi">1</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="n">medcolor</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;r [kpc]&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">xlog</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">semilogx</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">ylog</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
+    <span class="n">qp</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">QuantileProfile</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">qp</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">),</span> <span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">y2</span><span class="o">=</span><span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">],</span>
+                   <span class="n">facecolor</span><span class="o">=</span><span class="n">facecolor</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                   <span class="n">where</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">qp</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">),</span> <span class="n">qp</span><span class="p">[</span><span class="n">qty</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">medcolor</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;r [kpc]&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">xlog</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">semilogx</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">ylog</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">filename</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
-<div class="viewcode-block" id="hist2d"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.generic.hist2d">[docs]</a><span class="k">def</span> <span class="nf">hist2d</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">yo</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">),</span> <span class="n">nbins</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">make_plot</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="hist2d"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.generic.hist2d">[docs]</a><span class="k">def</span> <span class="nf">hist2d</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">yo</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">nbins</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">make_plot</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot 2D histogram for arbitrary arrays that get passed in.</span>
 
@@ -189,7 +194,7 @@
 <span class="sd">       *y_range*: tuple</span>
 <span class="sd">         size(y_range) must be 2. Specifies the Y range.</span>
 
-<span class="sd">       *gridsize*: (int, int) (default (100,100)) </span>
+<span class="sd">       *gridsize*: (int, int) (default (100,100))</span>
 <span class="sd">         number of bins to use for the 2D histogram</span>
 
 <span class="sd">       *nbins*: int</span>
@@ -211,7 +216,7 @@
 
 <span class="sd">       *colorbar*: boolean</span>
 <span class="sd">         draw a colorbar</span>
-<span class="sd">         </span>
+
 <span class="sd">       *scalemin*: float</span>
 <span class="sd">         minimum value to use for the color scale</span>
 
@@ -219,126 +224,127 @@
 <span class="sd">         maximum value to use for the color scale</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">global</span> <span class="n">config</span>
-    
+
     <span class="c"># process keywords</span>
-    <span class="n">x_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x_range&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
-    <span class="n">y_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;y_range&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
+    <span class="n">x_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x_range&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    <span class="n">y_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;y_range&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
     <span class="n">xlogrange</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;xlogrange&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
     <span class="n">ylogrange</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ylogrange&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
-    <span class="n">ret_im</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ret_im&#39;</span><span class="p">,</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">ret_im</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ret_im&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">y_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="p">:</span> 
+    <span class="k">if</span> <span class="n">y_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Range must be a length 2 list or array&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ylogrange</span><span class="p">:</span>
-            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">)),</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">))]</span>
+            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">))]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">)]</span>
+            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">)]</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;y_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_range</span>
-            
+
     <span class="k">if</span> <span class="n">x_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Range must be a length 2 list or array&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">xlogrange</span><span class="p">:</span>
             <span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xo</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xo</span><span class="p">))]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xo</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xo</span><span class="p">)]</span>
+            <span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xo</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xo</span><span class="p">)]</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;x_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_range</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">xlogrange</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">xo</span><span class="p">)</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">xo</span>
-        
+
     <span class="k">if</span> <span class="p">(</span><span class="n">ylogrange</span><span class="p">):</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">yo</span><span class="p">)</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">yo</span>
-    
-    <span class="k">if</span> <span class="n">nbins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> 
-        <span class="n">gridsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">nbins</span><span class="p">,</span><span class="n">nbins</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nbins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">gridsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">nbins</span><span class="p">,</span> <span class="n">nbins</span><span class="p">)</span>
 
     <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&amp;</span>
                    <span class="p">(</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 
     <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
     <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-    
+
     <span class="n">draw_contours</span> <span class="o">=</span> <span class="bp">False</span>
-    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> 
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">draw_contours</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="n">mass</span> <span class="o">=</span> <span class="n">mass</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
 
-        <span class="c"># produce a mass-weighted histogram of average weight values at each bin</span>
-        <span class="n">hist</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="o">*</span><span class="n">mass</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_range</span><span class="p">,</span><span class="n">x_range</span><span class="p">])</span>
-        <span class="n">hist_mass</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_range</span><span class="p">,</span><span class="n">x_range</span><span class="p">])</span>
+        <span class="c"># produce a mass-weighted histogram of average weight values at each</span>
+        <span class="c"># bin</span>
+        <span class="n">hist</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span> <span class="o">*</span> <span class="n">mass</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_range</span><span class="p">,</span> <span class="n">x_range</span><span class="p">])</span>
+        <span class="n">hist_mass</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_range</span><span class="p">,</span> <span class="n">x_range</span><span class="p">])</span>
         <span class="n">good</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">hist_mass</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">hist</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">=</span> <span class="n">hist</span><span class="p">[</span><span class="n">good</span><span class="p">]</span><span class="o">/</span><span class="n">hist_mass</span><span class="p">[</span><span class="n">good</span><span class="p">]</span>
-            
+        <span class="n">hist</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">=</span> <span class="n">hist</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">/</span> <span class="n">hist_mass</span><span class="p">[</span><span class="n">good</span><span class="p">]</span>
+
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="c"># produce a weighted histogram</span>
             <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-        <span class="k">elif</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> 
+        <span class="k">elif</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="c"># produce a mass histogram</span>
             <span class="n">weights</span> <span class="o">=</span> <span class="n">mass</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-      
-        <span class="n">hist</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_range</span><span class="p">,</span><span class="n">x_range</span><span class="p">])</span>
-        
-    <span class="k">try</span><span class="p">:</span> 
-        <span class="n">hist</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">hist</span><span class="p">,</span><span class="n">weights</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> 
+
+        <span class="n">hist</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_range</span><span class="p">,</span> <span class="n">x_range</span><span class="p">])</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">hist</span><span class="p">,</span> <span class="n">weights</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
         <span class="n">hist</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span>
 
-        
-    <span class="k">try</span><span class="p">:</span> 
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-        <span class="n">ys</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">y</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> 
-        <span class="n">xs</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-        <span class="n">ys</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">y</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 
-
-    <span class="k">if</span> <span class="n">ret_im</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">ret_im</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">hist</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">make_plot</span> <span class="p">:</span> 
+    <span class="k">if</span> <span class="n">make_plot</span><span class="p">:</span>
         <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">hist</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">draw_contours</span><span class="p">:</span>
-            <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">SimArray</span><span class="p">(</span><span class="n">density_mass</span><span class="p">,</span> <span class="n">mass</span><span class="o">.</span><span class="n">units</span><span class="p">),</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="n">filled</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">colorbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">colors</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span><span class="n">scalemin</span><span class="o">=</span><span class="n">nmin</span><span class="p">,</span><span class="n">nlevels</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">SimArray</span><span class="p">(</span><span class="n">density_mass</span><span class="p">,</span> <span class="n">mass</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">filled</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                              <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">colorbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="n">scalemin</span><span class="o">=</span><span class="n">nmin</span><span class="p">,</span> <span class="n">nlevels</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">hist</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span>
-    
 
 </div>
-<div class="viewcode-block" id="gauss_kde"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.generic.gauss_kde">[docs]</a><span class="k">def</span> <span class="nf">gauss_kde</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">yo</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">gridsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">),</span> <span class="n">nbins</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
-              <span class="n">make_plot</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">nmin</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">nmax</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span>
-
+<div class="viewcode-block" id="gauss_kde"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.generic.gauss_kde">[docs]</a><span class="k">def</span> <span class="nf">gauss_kde</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">yo</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">nbins</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+              <span class="n">make_plot</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">nmin</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">nmax</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Plot 2D gaussian kernel density estimate (KDE) given values at points (*x*, *y*). </span>
+<span class="sd">    Plot 2D gaussian kernel density estimate (KDE) given values at points (*x*, *y*).</span>
 
-<span class="sd">    Behavior changes depending on which keywords are passed: </span>
+<span class="sd">    Behavior changes depending on which keywords are passed:</span>
 
 <span class="sd">    If a *weights* array is supplied, produce a weighted KDE.</span>
-<span class="sd">    </span>
-<span class="sd">    If a *mass* array is supplied, a mass density is computed. </span>
 
-<span class="sd">    If both *weights* and *mass* are supplied, a mass-averaged KDE of the weights is </span>
-<span class="sd">    computed. </span>
+<span class="sd">    If a *mass* array is supplied, a mass density is computed.</span>
+
+<span class="sd">    If both *weights* and *mass* are supplied, a mass-averaged KDE of the weights is</span>
+<span class="sd">    computed.</span>
 
 <span class="sd">    By default, norm=False is passed to :func:`~pynbody.plot.util.fast_kde` meaning</span>
 <span class="sd">    that the result returned *is not* normalized such that the integral over the area</span>
-<span class="sd">    equals one. </span>
+<span class="sd">    equals one.</span>
 
 <span class="sd">Since this function produces a density estimate, the units of the</span>
 <span class="sd">    output grid are different than for the output of</span>
 <span class="sd">    :func:`~pynbody.plot.generic.hist2d`. To get to the same units,</span>
 <span class="sd">    you must multiply by the size of the cells.</span>
 
-<span class="sd">    </span>
+
 <span class="sd">    **Input:**</span>
 
 <span class="sd">       *xo*: array</span>
@@ -347,17 +353,17 @@
 
 <span class="sd">    **Optional keywords:**</span>
 
-<span class="sd">       *mass*: numpy array of same length as x and y </span>
+<span class="sd">       *mass*: numpy array of same length as x and y</span>
 <span class="sd">         particle masses to be used for weighting</span>
-<span class="sd">    </span>
+
 <span class="sd">       *weights*: numpy array of same length as x and y</span>
 <span class="sd">         if weights is passed, color corresponds to</span>
 <span class="sd">         the mean value of weights in each cell</span>
 
 <span class="sd">       *nmin*: float (default None)</span>
 <span class="sd">         if *weights* and *mass* are both specified, the mass-weighted</span>
-<span class="sd">         contours are only drawn where the mass exceeds *nmin*. </span>
-<span class="sd">          </span>
+<span class="sd">         contours are only drawn where the mass exceeds *nmin*.</span>
+
 <span class="sd">       *gridsize*: (int, int) (default: 100,100)</span>
 <span class="sd">         size of grid for computing the density estimate</span>
 
@@ -366,18 +372,18 @@
 
 <span class="sd">       *make_plot*: boolean (default: True)</span>
 <span class="sd">         whether or not to produce a plot</span>
-<span class="sd">         </span>
+
 <span class="sd">    **Keywords passed to** :func:`~pynbody.plot.util.fast_kde`:</span>
-<span class="sd">       </span>
-<span class="sd">       *norm*: boolean (default: False) </span>
+
+<span class="sd">       *norm*: boolean (default: False)</span>
 <span class="sd">         If False, the output is only corrected for the kernel. If True,</span>
-<span class="sd">         the result is normalized such that the integral over the area </span>
-<span class="sd">         yields 1. </span>
-<span class="sd">    </span>
+<span class="sd">         the result is normalized such that the integral over the area</span>
+<span class="sd">         yields 1.</span>
+
 <span class="sd">       *nocorrelation*: (default: False) If True, the correlation</span>
 <span class="sd">         between the x and y coords will be ignored when preforming</span>
 <span class="sd">         the KDE.</span>
-<span class="sd">         </span>
+
 <span class="sd">    **Keywords passed to** :func:`~pynbody.plot.generic.make_contour_plot`:</span>
 
 <span class="sd">       *x_range*: list, array, or tuple</span>
@@ -385,7 +391,7 @@
 
 <span class="sd">       *y_range*: tuple</span>
 <span class="sd">         size(y_range) must be 2. Specifies the Y range.</span>
-<span class="sd">       </span>
+
 <span class="sd">       *nlevels*: int</span>
 <span class="sd">         number of levels to use for the contours</span>
 
@@ -394,7 +400,7 @@
 
 <span class="sd">       *colorbar*: boolean</span>
 <span class="sd">         draw a colorbar</span>
-<span class="sd">         </span>
+
 <span class="sd">       *scalemin*: float</span>
 <span class="sd">         minimum value to use for the color scale</span>
 
@@ -405,44 +411,43 @@
     <span class="kn">from</span> <span class="nn">scipy.stats.kde</span> <span class="kn">import</span> <span class="n">gaussian_kde</span>
 
     <span class="k">global</span> <span class="n">config</span>
-    
+
     <span class="c"># process keywords</span>
-    <span class="n">x_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x_range&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
-    <span class="n">y_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;y_range&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
+    <span class="n">x_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x_range&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    <span class="n">y_range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;y_range&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
     <span class="n">xlogrange</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;xlogrange&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
     <span class="n">ylogrange</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ylogrange&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
-    <span class="n">ret_im</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ret_im&#39;</span><span class="p">,</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">ret_im</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ret_im&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
 
-    
-    <span class="k">if</span> <span class="n">y_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="p">:</span> 
+    <span class="k">if</span> <span class="n">y_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Range must be a length 2 list or array&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ylogrange</span><span class="p">:</span>
-            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">)),</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">))]</span>
+            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">))]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">)]</span>
-            
+            <span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">yo</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">yo</span><span class="p">)]</span>
+
     <span class="k">if</span> <span class="n">x_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Range must be a length 2 list or array&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">xlogrange</span><span class="p">:</span>
             <span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xo</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xo</span><span class="p">))]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xo</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xo</span><span class="p">)]</span>
+            <span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xo</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xo</span><span class="p">)]</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">xlogrange</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">xo</span><span class="p">)</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">xo</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">ylogrange</span><span class="p">):</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">yo</span><span class="p">)</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">yo</span>
-        
+
     <span class="k">if</span> <span class="n">nbins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">gridsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">nbins</span><span class="p">,</span><span class="n">nbins</span><span class="p">)</span>
+        <span class="n">gridsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">nbins</span><span class="p">,</span> <span class="n">nbins</span><span class="p">)</span>
 
     <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&amp;</span>
                    <span class="p">(</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
@@ -451,64 +456,70 @@
     <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">xs</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">ys</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="n">y</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-        <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">ys</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-    
-    <span class="n">extents</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-    
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gridsize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="n">extents</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
     <span class="n">draw_contours</span> <span class="o">=</span> <span class="bp">False</span>
-    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> 
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">draw_contours</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="n">mass</span> <span class="o">=</span> <span class="n">mass</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-        
-        <span class="c"># produce a mass-weighted gaussian KDE of average weight values at each bin</span>
-        <span class="n">density</span> <span class="o">=</span> <span class="n">fast_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="o">*</span><span class="n">mass</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span><span class="n">extents</span><span class="o">=</span><span class="n">extents</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">density_mass</span> <span class="o">=</span> <span class="n">fast_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span><span class="n">extents</span><span class="o">=</span><span class="n">extents</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">good</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">density_mass</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">density</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">=</span> <span class="n">density</span><span class="p">[</span><span class="n">good</span><span class="p">]</span><span class="o">/</span><span class="n">density_mass</span><span class="p">[</span><span class="n">good</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">nmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
+        <span class="c"># produce a mass-weighted gaussian KDE of average weight values at each</span>
+        <span class="c"># bin</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="n">fast_kde</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span> <span class="o">*</span> <span class="n">mass</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span> <span class="n">extents</span><span class="o">=</span><span class="n">extents</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">density_mass</span> <span class="o">=</span> <span class="n">fast_kde</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span> <span class="n">extents</span><span class="o">=</span><span class="n">extents</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">good</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">density_mass</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">density</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">=</span> <span class="n">density</span><span class="p">[</span><span class="n">good</span><span class="p">]</span> <span class="o">/</span> <span class="n">density_mass</span><span class="p">[</span><span class="n">good</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">nmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">density</span> <span class="o">*=</span> <span class="n">density_mass</span> <span class="o">&gt;</span> <span class="n">nmin</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="c"># produce a weighted gaussian KDE</span>
-        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-        <span class="k">elif</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="p">:</span> 
+        <span class="k">elif</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">weights</span> <span class="o">=</span> <span class="n">mass</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
 
         <span class="n">density</span> <span class="o">=</span> <span class="n">fast_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">gridsize</span><span class="o">=</span><span class="n">gridsize</span><span class="p">,</span>
                            <span class="n">extents</span><span class="o">=</span><span class="n">extents</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">try</span><span class="p">:</span> 
-        <span class="n">density</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">density</span><span class="p">,</span><span class="n">weights</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> 
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">density</span><span class="p">,</span> <span class="n">weights</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
         <span class="n">density</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">(</span><span class="n">density</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">ret_im</span><span class="p">:</span> 
-        <span class="k">return</span> <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">density</span><span class="p">,</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ret_im</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">density</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">make_plot</span> <span class="p">:</span> 
-        <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">density</span><span class="p">,</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">make_plot</span><span class="p">:</span>
+        <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">density</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">draw_contours</span><span class="p">:</span>
-            <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">SimArray</span><span class="p">(</span><span class="n">density_mass</span><span class="p">,</span> <span class="n">mass</span><span class="o">.</span><span class="n">units</span><span class="p">),</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="n">filled</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">colorbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">colors</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span><span class="n">scalemin</span><span class="o">=</span><span class="n">nmin</span><span class="p">,</span><span class="n">nlevels</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">make_contour_plot</span><span class="p">(</span><span class="n">SimArray</span><span class="p">(</span><span class="n">density_mass</span><span class="p">,</span> <span class="n">mass</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">filled</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                              <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">colorbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="n">scalemin</span><span class="o">=</span><span class="n">nmin</span><span class="p">,</span> <span class="n">nlevels</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">density</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span>
 
 </div>
-<div class="viewcode-block" id="make_contour_plot"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.generic.make_contour_plot">[docs]</a><span class="k">def</span> <span class="nf">make_contour_plot</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">x_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">nlevels</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> 
-                      <span class="n">logscale</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">xlogrange</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ylogrange</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> 
+<div class="viewcode-block" id="make_contour_plot"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.generic.make_contour_plot">[docs]</a><span class="k">def</span> <span class="nf">make_contour_plot</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">x_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">nlevels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                      <span class="n">logscale</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">xlogrange</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ylogrange</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                       <span class="n">subplot</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">colorbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ret_im</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                      <span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">legend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">scalemin</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> 
-                      <span class="n">scalemax</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span> 
+                      <span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">scalemin</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                      <span class="n">scalemax</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot a contour plot of grid *arr* corresponding to bin centers</span>
 <span class="sd">    specified by *xs* and *ys*.  Labels the axes and colobar with</span>
@@ -516,17 +527,17 @@
 
 <span class="sd">    Called by :func:`~pynbody.plot.generic.hist2d` and</span>
 <span class="sd">    :func:`~pynbody.plot.generic.gauss_density`.</span>
-<span class="sd">    </span>
-<span class="sd">    **Input**: </span>
-<span class="sd">    </span>
+
+<span class="sd">    **Input**:</span>
+
 <span class="sd">       *arr*: 2D array to plot</span>
 
 <span class="sd">       *xs*: x-coordinates of bins</span>
-<span class="sd">       </span>
+
 <span class="sd">       *ys*: y-coordinates of bins</span>
 
 <span class="sd">    **Optional Keywords**:</span>
-<span class="sd">          </span>
+
 <span class="sd">       *x_range*: list, array, or tuple (default = None)</span>
 <span class="sd">         size(x_range) must be 2. Specifies the X range.</span>
 
@@ -547,7 +558,7 @@
 
 <span class="sd">       *colorbar*: boolean (default = False)</span>
 <span class="sd">         draw a colorbar</span>
-<span class="sd">         </span>
+
 <span class="sd">       *scalemin*: float (default = arr.min())</span>
 <span class="sd">         minimum value to use for the color scale</span>
 
@@ -555,68 +566,77 @@
 <span class="sd">         maximum value to use for the color scale</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-
     <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">ticker</span><span class="p">,</span> <span class="n">colors</span>
-    
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">subplot</span> <span class="p">:</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">subplot</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">plt</span> <span class="o">=</span> <span class="n">subplot</span>
 
-    <span class="k">if</span> <span class="n">scalemin</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="n">scalemin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">arr</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">])</span>
-    <span class="k">if</span> <span class="n">scalemax</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="n">scalemax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">arr</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">arr</span><span class="p">[</span><span class="n">arr</span><span class="o">&lt;</span><span class="n">scalemin</span><span class="p">]</span><span class="o">=</span><span class="n">scalemin</span>
-    <span class="n">arr</span><span class="p">[</span><span class="n">arr</span><span class="o">&gt;</span><span class="n">scalemax</span><span class="p">]</span><span class="o">=</span><span class="n">scalemax</span>
+    <span class="k">if</span> <span class="n">scalemin</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">scalemin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">arr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">scalemax</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">scalemax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">arr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">arr</span><span class="p">[</span><span class="n">arr</span> <span class="o">&lt;</span> <span class="n">scalemin</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalemin</span>
+    <span class="n">arr</span><span class="p">[</span><span class="n">arr</span> <span class="o">&gt;</span> <span class="n">scalemax</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalemax</span>
 
-    <span class="k">if</span> <span class="s">&#39;norm&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span> <span class="k">del</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;norm&#39;</span><span class="p">])</span>
-    
+    <span class="k">if</span> <span class="s">&#39;norm&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">del</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;norm&#39;</span><span class="p">])</span>
+
     <span class="k">if</span> <span class="n">logscale</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">scalemin</span><span class="p">),</span>       
-                                 <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">scalemax</span><span class="p">),</span><span class="n">nlevels</span><span class="p">)</span>
-            <span class="n">cont_color</span><span class="o">=</span><span class="n">colors</span><span class="o">.</span><span class="n">LogNorm</span><span class="p">()</span>
+            <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">scalemin</span><span class="p">),</span>
+                                 <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">scalemax</span><span class="p">),</span> <span class="n">nlevels</span><span class="p">)</span>
+            <span class="n">cont_color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">LogNorm</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;crazy contour levels -- try specifying the *levels* keyword or use a linear scale&#39;</span><span class="p">)</span>
-            
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&#39;crazy contour levels -- try specifying the *levels* keyword or use a linear scale&#39;</span><span class="p">)</span>
+
             <span class="k">return</span>
 
-        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="n">NoUnit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="mi">1</span> <span class="p">:</span>
-            <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$log_{10}(&#39;</span><span class="o">+</span><span class="n">arr</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&#39;)$&#39;</span>
-        <span class="k">else</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="n">NoUnit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$log_{10}(&#39;</span> <span class="o">+</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;)$&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$log_{10}(N)$&#39;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">scalemin</span><span class="p">,</span>
-                             <span class="n">scalemax</span><span class="p">,</span><span class="n">nlevels</span><span class="p">)</span>
-        <span class="n">cont_color</span><span class="o">=</span><span class="bp">None</span>
-        
-        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="n">NoUnit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="mi">1</span> <span class="p">:</span>
-            <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$&#39;</span><span class="o">+</span><span class="n">arr</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&#39;$&#39;</span>
-        <span class="k">else</span> <span class="p">:</span>
-            <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$N$&#39;</span>
-    
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">subplot</span> <span class="ow">and</span> <span class="n">clear</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+                             <span class="n">scalemax</span><span class="p">,</span> <span class="n">nlevels</span><span class="p">)</span>
+        <span class="n">cont_color</span> <span class="o">=</span> <span class="bp">None</span>
 
-    <span class="k">if</span> <span class="n">ret_im</span> <span class="p">:</span>
-        <span class="k">if</span> <span class="n">logscale</span><span class="p">:</span> <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
-        <span class="n">scalemin</span><span class="p">,</span> <span class="n">scalemax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">((</span><span class="n">scalemin</span><span class="p">,</span><span class="n">scalemax</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="n">NoUnit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$&#39;</span> <span class="o">+</span> <span class="n">arr</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;$&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cb_label</span> <span class="o">=</span> <span class="s">&#39;$N$&#39;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">subplot</span> <span class="ow">and</span> <span class="n">clear</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">ret_im</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logscale</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        <span class="n">scalemin</span><span class="p">,</span> <span class="n">scalemax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">((</span><span class="n">scalemin</span><span class="p">,</span> <span class="n">scalemax</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s">&#39;down&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">scalemin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">scalemax</span><span class="p">,</span>
-                          <span class="n">aspect</span> <span class="o">=</span> <span class="s">&#39;auto&#39;</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span><span class="n">axes</span><span class="o">=</span><span class="n">subplot</span><span class="p">,</span>
-                          <span class="c">#aspect = np.diff(x_range)/np.diff(y_range),cmap=cmap,</span>
-                          <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
-    <span class="n">cs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">,</span><span class="n">arr</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">cont_color</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                          <span class="n">aspect</span><span class="o">=</span><span class="s">&#39;auto&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">subplot</span><span class="p">,</span>
+                          <span class="c"># aspect =</span>
+                          <span class="c"># np.diff(x_range)/np.diff(y_range),cmap=cmap,</span>
+                          <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">cs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">cont_color</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;xlabel&#39;</span><span class="p">):</span>
         <span class="n">xlabel</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;xlabel&#39;</span><span class="p">]</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">xlogrange</span><span class="p">:</span> <span class="n">xlabel</span><span class="o">=</span><span class="s">r&#39;&#39;</span><span class="o">+</span><span class="s">&#39;$log_{10}(&#39;</span><span class="o">+</span><span class="n">xs</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&#39;)$&#39;</span>
-            <span class="k">else</span> <span class="p">:</span> <span class="n">xlabel</span> <span class="o">=</span> <span class="s">r&#39;&#39;</span><span class="o">+</span><span class="s">&#39;$x/&#39;</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span><span class="s">&#39;$&#39;</span>
+            <span class="k">if</span> <span class="n">xlogrange</span><span class="p">:</span>
+                <span class="n">xlabel</span> <span class="o">=</span> <span class="s">r&#39;&#39;</span> <span class="o">+</span> <span class="s">&#39;$log_{10}(&#39;</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;)$&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">xlabel</span> <span class="o">=</span> <span class="s">r&#39;&#39;</span> <span class="o">+</span> <span class="s">&#39;$x/&#39;</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;$&#39;</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="n">xlabel</span> <span class="o">=</span> <span class="bp">None</span>
 
-    <span class="k">if</span> <span class="n">xlabel</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">xlabel</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">subplot</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">subplot</span><span class="p">:</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
@@ -625,60 +645,60 @@
 
     <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;ylabel&#39;</span><span class="p">):</span>
         <span class="n">ylabel</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;ylabel&#39;</span><span class="p">]</span>
-    <span class="k">else</span> <span class="p">:</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">ylogrange</span><span class="p">:</span> <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;$log_{10}(&#39;</span><span class="o">+</span><span class="n">ys</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&#39;)$&#39;</span>
-            <span class="k">else</span> <span class="p">:</span> <span class="n">ylabel</span> <span class="o">=</span> <span class="s">r&#39;&#39;</span><span class="o">+</span><span class="s">&#39;$y/&#39;</span> <span class="o">+</span> <span class="n">ys</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span><span class="s">&#39;$&#39;</span>
+            <span class="k">if</span> <span class="n">ylogrange</span><span class="p">:</span>
+                <span class="n">ylabel</span> <span class="o">=</span> <span class="s">&#39;$log_{10}(&#39;</span> <span class="o">+</span> <span class="n">ys</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;)$&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ylabel</span> <span class="o">=</span> <span class="s">r&#39;&#39;</span> <span class="o">+</span> <span class="s">&#39;$y/&#39;</span> <span class="o">+</span> <span class="n">ys</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;$&#39;</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-            <span class="n">ylabel</span><span class="o">=</span><span class="bp">None</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="bp">None</span>
 
-    <span class="k">if</span> <span class="n">ylabel</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">ylabel</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">subplot</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="n">subplot</span><span class="p">:</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
 
-    
+
 <span class="c">#    if not subplot:</span>
 <span class="c">#        plt.xlim((x_range[0],x_range[1]))</span>
 <span class="c">#        plt.ylim((y_range[0],y_range[1]))</span>
 
-    <span class="k">if</span> <span class="n">colorbar</span> <span class="p">:</span>
-        <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%.2e</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s">r&#39;&#39;</span><span class="o">+</span><span class="n">cb_label</span><span class="p">)</span>
-        
-    <span class="k">if</span> <span class="n">legend</span> <span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">colorbar</span><span class="p">:</span>
+        <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;</span><span class="si">%.2e</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s">r&#39;&#39;</span> <span class="o">+</span> <span class="n">cb_label</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">filename</span><span class="p">):</span> 
-        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span> <span class="k">print</span> <span class="s">&quot;Saving &quot;</span><span class="o">+</span><span class="n">filename</span>
+    <span class="k">if</span> <span class="n">legend</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+            <span class="k">print</span> <span class="s">&quot;Saving &quot;</span> <span class="o">+</span> <span class="n">filename</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
-
-
-    
-
-                  </div>
-<div class="viewcode-block" id="fourier_map"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.generic.fourier_map">[docs]</a><span class="k">def</span> <span class="nf">fourier_map</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">nbins</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">nmin</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">nphi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">mmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mmax</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">rmax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
-                <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="o">.</span><span class="mo">01</span><span class="p">,</span><span class="o">.</span><span class="mo">05</span><span class="p">,</span><span class="o">.</span><span class="mi">1</span><span class="p">,</span><span class="o">.</span><span class="mi">2</span><span class="p">],</span> <span class="n">subplot</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">ret</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span> 
+</div>
+<div class="viewcode-block" id="fourier_map"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.generic.fourier_map">[docs]</a><span class="k">def</span> <span class="nf">fourier_map</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">nmin</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">nphi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">mmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mmax</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">rmax</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="o">.</span><span class="mo">01</span><span class="p">,</span> <span class="o">.</span><span class="mo">05</span><span class="p">,</span> <span class="o">.</span><span class="mi">1</span><span class="p">,</span> <span class="o">.</span><span class="mi">2</span><span class="p">],</span> <span class="n">subplot</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ret</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Plot an overdensity map generated from a Fourier expansion of the</span>
 <span class="sd">    particle distribution. A :func:`~pynbody.analysis.profile.Profile`</span>
 <span class="sd">    is made and passed to :func:`~pynbody.plot.util.inv_fourier` to</span>
 <span class="sd">    obtain an overdensity map. The map is plotted using the usual</span>
-<span class="sd">    matplotlib.contour. </span>
-<span class="sd">    </span>
+<span class="sd">    matplotlib.contour.</span>
+
 <span class="sd">    **Input**:</span>
 
 <span class="sd">    *sim* :  a :func:`~pynbody.snapshot.SimSnap` object</span>
 
 <span class="sd">    **Optional Keywords**:</span>
-<span class="sd">    </span>
+
 <span class="sd">    *nbins* (100) : number of radial bins to use for the profile</span>
 
-<span class="sd">    *nmin* (1000) : minimum number of particles required per bin </span>
+<span class="sd">    *nmin* (1000) : minimum number of particles required per bin</span>
 
 <span class="sd">    *nphi* (100)  : number of azimuthal bins to use for the map</span>
 
@@ -689,40 +709,40 @@
 <span class="sd">    *rmax* (10)   : maximum radius to use when generating the profile</span>
 
 <span class="sd">    *levels* [0.01,0.05,0.1,0.2] : tuple of levels for plotting contours</span>
-<span class="sd">    </span>
+
 <span class="sd">    *subplot* (None) : Axes object on which to plot the contours</span>
-<span class="sd">    </span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">util</span>
 
-    <span class="k">if</span> <span class="n">subplot</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span> 
+    <span class="k">if</span> <span class="n">subplot</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-    <span class="k">else</span> <span class="p">:</span> 
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">plt</span> <span class="o">=</span> <span class="n">subplot</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="n">rmax</span><span class="p">,</span><span class="n">nbins</span><span class="o">=</span><span class="n">nbins</span><span class="p">)</span>
-    <span class="n">phi</span><span class="p">,</span><span class="n">phi_inv</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">inv_fourier</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">nmin</span><span class="p">,</span><span class="n">mmin</span><span class="p">,</span><span class="n">mmax</span><span class="p">,</span><span class="n">nphi</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">rmax</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">nbins</span><span class="p">)</span>
+    <span class="n">phi</span><span class="p">,</span> <span class="n">phi_inv</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">inv_fourier</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">nmin</span><span class="p">,</span> <span class="n">mmin</span><span class="p">,</span> <span class="n">mmax</span><span class="p">,</span> <span class="n">nphi</span><span class="p">)</span>
 
-    <span class="n">rr</span><span class="p">,</span><span class="n">pp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">phi</span><span class="p">)</span>
+    <span class="n">rr</span><span class="p">,</span> <span class="n">pp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">phi</span><span class="p">)</span>
 
-    <span class="n">xx</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pp</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
-    <span class="n">yy</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">pp</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">xx</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pp</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">yy</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">pp</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
 
-    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span><span class="n">yy</span><span class="p">,</span><span class="n">phi_inv</span><span class="p">,</span><span class="n">levels</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    
-    <span class="k">if</span> <span class="n">ret</span><span class="p">:</span> 
-        <span class="k">return</span> <span class="n">xx</span><span class="p">,</span><span class="n">yy</span><span class="p">,</span><span class="n">phi_inv</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">phi_inv</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">phi_inv</span>
 
 </div>
-<div class="viewcode-block" id="prob_plot"><a class="viewcode-back" href="../../../plot.html#pynbody.plot.generic.prob_plot">[docs]</a><span class="k">def</span> <span class="nf">prob_plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">weight</span><span class="p">,</span><span class="n">nbins</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">),</span><span class="n">extent</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">axes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="p">:</span> 
-    <span class="sd">&quot;&quot;&quot; </span>
+<div class="viewcode-block" id="prob_plot"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.generic.prob_plot">[docs]</a><span class="k">def</span> <span class="nf">prob_plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">extent</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Make a plot of the probability of y given x, i.e. p(y|x). The</span>
 <span class="sd">    values are normalized such that the integral along each column is</span>
 <span class="sd">    one.</span>
 
-<span class="sd">    **Input**: </span>
+<span class="sd">    **Input**:</span>
 
 <span class="sd">    *x*: primary binning axis</span>
 
@@ -743,31 +763,31 @@
 
     <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-    <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
     <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span> 
-        <span class="n">extent</span> <span class="o">=</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="nb">min</span><span class="p">(</span><span class="n">y</span><span class="p">),</span><span class="nb">max</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
 
-    <span class="n">xbinedges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">nbins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">ybinedges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">nbins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-    
+    <span class="n">xbinedges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">nbins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ybinedges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">extent</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">extent</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">nbins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nbins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">:</span> 
-        
-        <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">xbinedges</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">&amp;</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">xbinedges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">h</span><span class="p">,</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span><span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">ybinedges</span><span class="p">,</span> <span class="n">density</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
-        <span class="n">grid</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">nbins</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
 
-    <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> 
-        <span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span><span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span><span class="n">origin</span><span class="o">=</span><span class="s">&#39;lower&#39;</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">xbinedges</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">xbinedges</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="n">ybinedges</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">grid</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
 
-    <span class="k">else</span> <span class="p">:</span> 
-        <span class="n">im</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span><span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span><span class="n">origin</span><span class="o">=</span><span class="s">&#39;lower&#39;</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s">&#39;lower&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="n">format</span><span class="o">=</span><span class="s">&#39;</span><span class="si">%.2f</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s">&#39;lower&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&#39;</span><span class="si">%.2f</span><span class="s">&#39;</span><span class="p">)</span>
     <span class="n">cb</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s">r&#39;$P(y|x)$&#39;</span><span class="p">)</span>
-    
+
     <span class="k">return</span> <span class="n">grid</span><span class="p">,</span> <span class="n">xbinedges</span><span class="p">,</span> <span class="n">ybinedges</span></div>
 </pre></div>
 
@@ -786,7 +806,7 @@
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

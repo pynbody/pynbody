@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Plotting Rotation Cuves &mdash; pynbody 0.20-beta documentation</title>
+    <title>Plotting Rotation Cuves &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Pictures in Pynbody" href="pictures.html" />
     <link rel="prev" title="Profiles in Pynbody" href="profile.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -82,15 +82,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -151,7 +146,7 @@
       
   <div class="section" id="plotting-rotation-cuves">
 <h1>Plotting Rotation Cuves<a class="headerlink" href="#plotting-rotation-cuves" title="Permalink to this headline">¶</a></h1>
-<p>Rotation curves are calculated and plotted using the <a class="reference internal" href="../analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a>
+<p>Rotation curves are calculated and plotted using the <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a>
 object. For a tutorial on profiles see <a class="reference internal" href="profile.html"><em>Profiles in Pynbody</em></a>.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
@@ -226,16 +221,15 @@ configuration like this:</p>
 <span class="go">  pynbody.halo.AHFCatalogue,</span>
 <span class="go">  pynbody.halo.SubfindCatalogue],</span>
 <span class="go"> &#39;number_of_threads&#39;: 4,</span>
-<span class="go"> &#39;snap-class-priority&#39;: [pynbody.ramses.RamsesSnap,</span>
-<span class="go">  pynbody.grafic.GrafICSnap,</span>
-<span class="go">  pynbody.nchilada.NchiladaSnap,</span>
-<span class="go">  pynbody.gadget.GadgetSnap,</span>
-<span class="go">  pynbody.gadgethdf.GadgetHDFSnap,</span>
-<span class="go">  pynbody.tipsy.TipsySnap],</span>
+<span class="go"> &#39;snap-class-priority&#39;: [pynbody.snapshot.ramses.RamsesSnap,</span>
+<span class="go">  pynbody.snapshot.grafic.GrafICSnap,</span>
+<span class="go">  pynbody.snapshot.nchilada.NchiladaSnap,</span>
+<span class="go">  pynbody.snapshot.gadget.GadgetSnap,</span>
+<span class="go">  pynbody.snapshot.gadgethdf.GadgetHDFSnap,</span>
+<span class="go">  pynbody.snapshot.tipsy.TipsySnap],</span>
 <span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 64, &#39;tree-leafsize&#39;: 16},</span>
 <span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
-<span class="go"> &#39;tracktime&#39;: True,</span>
-<span class="go"> &#39;verbose&#39;: True}</span>
+<span class="go"> &#39;verbose&#39;: False}</span>
 </pre></div>
 </div>
 <p>Here we see two options: <tt class="docutils literal"><span class="pre">gravity_calculation_mode</span> <span class="pre">=</span> <span class="pre">'direct'</span></tt> and
@@ -250,10 +244,11 @@ gravity code. We can fix this, and if your machine has more cores you can tell i
 <p>Now all gravity calculations will use the parallel gravity calculation
 on 30 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
-<a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>.</p>
+<a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>.</p>
 <p>If you want to make your configuration changes permanent, create a file called <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> in your home directory with the lines</p>
-<div class="highlight-python"><pre>gravity_calculation_mode: direct_omp
-number_of_threads: 30</pre>
+<div class="highlight-python"><div class="highlight"><pre>gravity_calculation_mode: direct_omp
+number_of_threads: 30
+</pre></div>
 </div>
 <p>See the file <tt class="docutils literal"><span class="pre">default_config.ini</span></tt> in the pynbody source distribution
 for other options.</p>
@@ -280,7 +275,7 @@ for other options.</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

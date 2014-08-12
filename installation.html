@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Pynbody Installation &mdash; pynbody 0.20-beta documentation</title>
+    <title>Pynbody Installation &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,9 @@
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="index.html" />
+    <link rel="next" title="Pynbody Tutorials" href="tutorials/tutorials.html" />
+    <link rel="prev" title="Plotting" href="reference/plot.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -62,7 +64,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -78,16 +80,11 @@
      href="index.html">Sections <b class="caret"></b></a>
   <ul class="dropdown-menu globaltoc"
       role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot.html">Plotting modules</a></li>
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Welcome</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -102,8 +99,8 @@
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Pynbody Installation</a><ul>
-<li><a class="reference internal" href="#if-you-are-already-a-regular-python-numpy-scipy-user">If you are already a regular python/numpy/scipy user</a></li>
-<li><a class="reference internal" href="#before-you-start">Before you start</a><ul>
+<li><a class="reference internal" href="#in-brief">In brief</a></li>
+<li><a class="reference internal" href="#in-detail">In detail</a><ul>
 <li><a class="reference internal" href="#you-must-have">You must have:</a></li>
 <li><a class="reference internal" href="#you-will-probably-also-want">You will probably also want</a></li>
 <li><a class="reference internal" href="#you-might-also-want">You might also want</a></li>
@@ -115,7 +112,6 @@
 <li><a class="reference internal" href="#mac-os">Mac OS</a><ul>
 <li><a class="reference internal" href="#option-a-enthought-or-anaconda-python">Option (a): enthought or anaconda python</a></li>
 <li><a class="reference internal" href="#option-b-python-s-official-python">Option (b): python&#8217;s official python</a></li>
-<li><a class="reference internal" href="#option-c-python-that-came-with-your-mac">Option (c): python that came with your Mac</a></li>
 </ul>
 </li>
 </ul>
@@ -141,6 +137,14 @@
             
               
                 
+  <li>
+    <a href="reference/plot.html" title="Previous Chapter: Plotting"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Plotting</span>
+    </a>
+  </li>
+  <li>
+    <a href="tutorials/tutorials.html" title="Next Chapter: Pynbody Tutorials"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pynbody Tutorial... &raquo;</span>
+    </a>
+  </li>
               
             
             
@@ -175,30 +179,16 @@ you complete the installation, don&#8217;t forget to read the
 <a class="reference internal" href="index.html#getting-help"><em>Getting Help</em></a> section. Finally, if you decide you like pynbody
 and you end up using it for your scientific work, please see
 <a class="reference internal" href="index.html#acknowledging-pynbody"><em>Acknowledging Pynbody in Scientific Publications</em></a>. Enjoy!</p>
-<div class="section" id="if-you-are-already-a-regular-python-numpy-scipy-user">
-<h2>If you are already a regular python/numpy/scipy user<a class="headerlink" href="#if-you-are-already-a-regular-python-numpy-scipy-user" title="Permalink to this headline">¶</a></h2>
-<p><cite>Pynbody</cite> is in regular development and bugs are constantly being
-fixed. We therefore recommend that you stay up to date with the code
-and use the snapshots from the git repository rather than any
-particular release version.</p>
-<p>If you have <cite>pip</cite> and <cite>distutils</cite> installed, you can make <cite>pip</cite> fetch the
-repository for you and do the installation:</p>
-<ol class="arabic simple">
-<li><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">git+git://github.com/pynbody/pynbody.git</span></tt></li>
-</ol>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If your distutils are not installed properly and you don&#8217;t have root permissions, this will fail &#8211; see <a class="reference internal" href="#distutils"><em>Setup Python Distutils</em></a>.</p>
+<div class="section" id="in-brief">
+<h2>In brief<a class="headerlink" href="#in-brief" title="Permalink to this headline">¶</a></h2>
+<p>To install the latest release version (which depends only on numpy and scipy), use</p>
+<p><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pynbody</span></tt></p>
+<p>To install from our bleeding edge (which additionally requires cython), use</p>
+<p><tt class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">git+git://github.com/pynbody/pynbody.git</span></tt></p>
+<p>If you have problems or need more help, read on.</p>
 </div>
-<p>If this doesn&#8217;t work or you want to clone the repo and keep it around, you can</p>
-<ol class="arabic simple" start="2">
-<li>Follow the instructions in the <a class="reference internal" href="#install-pynbody"><em>Install pynbody</em></a> section</li>
-</ol>
-<p>If you are new to python or you are missing some of the basic packages
-(see the <cite>must-haves</cite> below), read on...</p>
-</div>
-<div class="section" id="before-you-start">
-<h2>Before you start<a class="headerlink" href="#before-you-start" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="in-detail">
+<h2>In detail<a class="headerlink" href="#in-detail" title="Permalink to this headline">¶</a></h2>
 <p>Like when you install any software, there is a certain amount of
 configuration necessary to get pynbody working.  Fortunately, Python
 is installed by default on many operating systems, particularly those
@@ -207,10 +197,16 @@ common to astronomers, Mac OS X and Linux.</p>
 <h3>You must have:<a class="headerlink" href="#you-must-have" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><ul class="simple">
-<li>Python 2.5, 2.6 or 2.7. We will support 3.x once <cite>scipy</cite> and
-<cite>matplotlib</cite> do.</li>
-<li>The standard <cite>numpy</cite> (python numeric arrays) package.</li>
-<li>Standard development environment, i.e. compilers, libraries etc. On Mac OS that&#8217;s usually Apple&#8217;s XCode.</li>
+<li>Python 2.6, 2.7, 3.3 or 3.4. Versions prior to 2.6 and 3.3 are not supported.</li>
+<li>The standard <cite>numpy</cite> (python numeric arrays) and <cite>scipy</cite> (scientific python) packages</li>
+<li>If you wish to install from our git repository, you need Cython (at least version 0.20 and preferably</li>
+</ul>
+<p>0.21). If you are going to install from a release tarball, this is not required.</p>
+<ul class="simple">
+<li>Standard development tools, i.e. compilers, libraries etc.</li>
+</ul>
+<p>On Mac OS that&#8217;s usually Apple&#8217;s XCode.</p>
+<ul class="simple">
 <li><strong>Note for Mac OS X 10.8 and 10.9 users:</strong> XCode no longer comes
 with the <cite>gcc</cite> compiler and the <cite>clang</cite> compiler doesn&#8217;t support
 OpenMP &#8211; if you want to take advantage of some parallelized
@@ -228,8 +224,6 @@ implementation for <cite>clang</cite> from
 <li><cite>matplotlib</cite>: Plotting functions use <cite>matplotlib</cite>, but you can
 access everything except the built-in plots if <cite>matplotlib</cite> is not
 installed.</li>
-<li>Some functionality requires <a class="reference external" href="http://new.scipy.org/">scipy</a>, but
-you can access most functions even if <cite>scipy</cite> is not installed.</li>
 <li><a class="reference external" href="http://ipython.scipy.org/moin/">ipython</a> makes using python
 much easier.  For example it provides command history and tab
 completion.</li>
@@ -247,8 +241,6 @@ caveats.</li>
 <h3>You might also want<a class="headerlink" href="#you-might-also-want" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><ul class="simple">
-<li>Amiga Halo Finder.  You can find some pynbody-related installation
-notes in the <a class="reference internal" href="tutorials/halos.html#halo-tutorial"><em>Halos in Pynbody</em></a> tutorial.</li>
 <li>Installing <a class="reference external" href="http://code.google.com/p/h5py/">h5py</a> will allow you
 to work with Gadget HDF snapshots. See the <a class="reference internal" href="#h5py-ref"><em>Appendix: Notes on Optional Installation of h5py on Mac OS</em></a> below.</li>
 </ul>
@@ -267,15 +259,17 @@ below describe how to make this happen, and once you&#8217;ve configured it
 properly installing <em>most</em> python packages will be a breeze.</p>
 <p>1. Create a directory where python packages will be installed.  We
 recommend <tt class="docutils literal"><span class="pre">${HOME}/python</span></tt>.</p>
-<div class="highlight-python"><pre>mkdir ~/python</pre>
+<div class="highlight-python"><div class="highlight"><pre>mkdir ~/python
+</pre></div>
 </div>
 <p>2. Download this <a class="reference external" href="http://pynbody.googlecode.com/files/.pydistutils.cfg">.pydistutils.cfg</a> file into
 your home directory.</p>
 <ol class="arabic simple" start="3">
 <li>Set the <tt class="docutils literal"><span class="pre">PYTHONPATH</span></tt> environment variable.</li>
 </ol>
-<div class="highlight-python"><pre>setenv PYTHONPATH "${HOME}/python" #put into your .cshrc file OR
-export PYTHONPATH="${HOME}/python" # in your .bashrc file</pre>
+<div class="highlight-python"><div class="highlight"><pre>setenv PYTHONPATH &quot;${HOME}/python&quot; #put into your .cshrc file OR
+export PYTHONPATH=&quot;${HOME}/python&quot; # in your .bashrc file
+</pre></div>
 </div>
 </div>
 <div class="section" id="install-external-packages">
@@ -284,45 +278,29 @@ export PYTHONPATH="${HOME}/python" # in your .bashrc file</pre>
 <h3>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h3>
 <p>On Linux, use your favourite package manager (like yum or ubuntu) to
 install all the packages in one line, for example</p>
-<div class="highlight-python"><pre>yum install matplotlib scipy ipython</pre>
+<div class="highlight-python"><div class="highlight"><pre>yum install matplotlib scipy ipython
+</pre></div>
 </div>
 <p>This easy way requires root access, so you might have to ask your
-system administrator.</p>
-<p>It is not hard to perform from-source installations of these packages
-if you don&#8217;t have administrative privileges or a helpful sys admin.
-Grab the source from the following sourceforge sites appropriate to
-your version of python:</p>
-<blockquote>
-<div><ul class="simple">
-<li><a class="reference external" href="http://sourceforge.net/projects/numpy/files/">numpy</a></li>
-<li><a class="reference external" href="http://sourceforge.net/projects/scipy/files/">scipy</a></li>
-<li><a class="reference external" href="http://sourceforge.net/projects/matplotlib/files/">matplotlib</a></li>
-</ul>
-</div></blockquote>
-<p>The three packages are standard for nearly all scientific computation
-in python, so it makes sense for them to be installed at the system
-level.  However, if you sys admin is unhelpful, now that you&#8217;ve set up
-distutils, you just have to <tt class="docutils literal"><span class="pre">cd</span></tt> in each directory and type:</p>
-<div class="highlight-python"><pre>python setup.py install</pre>
-</div>
+system administrator. Alternatively, if you don&#8217;t have root access or
+you want an easier life, we recommend working with <a class="reference external" href="https://store.continuum.io/cshop/anaconda/">Anaconda Python</a>  which
+comes with a neat package manager and can be installed without root
+privileges.</p>
 </div>
 <div class="section" id="mac-os">
 <h3>Mac OS<a class="headerlink" href="#mac-os" title="Permalink to this headline">¶</a></h3>
-<p>Choose one of the three options below.  Any of the three options can
-be made to work. The first is easiest, the last is hardest; so if you
-don&#8217;t have a strong reason to do otherwise, we&#8217;d recommend option (a).</p>
+<p>Apple&#8217;s built-in python can be a pain to work with. The easiest route is to
+install a scientific python environment as follows:</p>
 <div class="section" id="option-a-enthought-or-anaconda-python">
 <h4>Option (a): enthought or anaconda python<a class="headerlink" href="#option-a-enthought-or-anaconda-python" title="Permalink to this headline">¶</a></h4>
-<p>If you are at an academic institution (which is likely the case if you
-are installing pynbody) then the <a class="reference external" href="http://www.enthought.com/">Enthought python bundle</a> is the simplest way of getting
-everything you need and more. Go to the <a class="reference external" href="http://www.enthought.com/products/edudownload.php">Academic License</a> page and trust
-them with your email address to get a download link. It installs
-<em>everything</em> you need including the core python, numpy, scipy,
-matplotlib and other libraries. See the full
-<a class="reference external" href="http://www.enthought.com/products/epdlibraries.php">package index</a>.</p>
-<p>A similar solution is the <a class="reference external" href="https://store.continuum.io/cshop/anaconda/">Anaconda Python</a> bundle from Continuum
+<p>Our currently preferred solution is the <a class="reference external" href="https://store.continuum.io/cshop/anaconda/">Anaconda Python</a> bundle from Continuum
 Analytics that comes with a nice and easy to use package manager
-<cite>conda</cite>. They also provide free licenses for academic use.</p>
+<cite>conda</cite>. They  provide free licenses for academic use, and the default
+installation includes all the pakages you require.</p>
+<p>If you are at an academic institution (which is likely the case if you are
+installing pynbody) then you can also use  <a class="reference external" href="http://www.enthought.com/">canopy</a>
+(formerly Enthought Python Distribution). Go to the <a class="reference external" href="http://www.enthought.com/products/edudownload.php">Academic License</a> page and trust them with
+your email address to get a download link. See the full <a class="reference external" href="http://www.enthought.com/products/epdlibraries.php">package index</a>.</p>
 </div>
 <div class="section" id="option-b-python-s-official-python">
 <h4>Option (b): python&#8217;s official python<a class="headerlink" href="#option-b-python-s-official-python" title="Permalink to this headline">¶</a></h4>
@@ -334,14 +312,12 @@ manually download binary versions of <cite>numpy</cite>, <cite>scipy</cite> and
 <blockquote>
 <div><ul class="simple">
 <li>Official python .dmg is available here:
-<a class="reference external" href="http://www.python.org/download/">http://www.python.org/download/</a>. You want 2.7.x, not 3.x.</li>
-<li>Links to .dmg&#8217;s for <a class="reference external" href="http://sourceforge.net/projects/numpy/files/">numpy</a> and <a class="reference external" href="http://sourceforge.net/projects/scipy/files/">scipy</a> are here:
-<a class="reference external" href="http://new.scipy.org/download.html">http://new.scipy.org/download.html</a>.</li>
-<li>.dmg for matplotlib is here:
-<a class="reference external" href="http://sourceforge.net/projects/matplotlib/files/matplotlib/">http://sourceforge.net/projects/matplotlib/files/matplotlib/</a>. As of
-this writing there is no dmg for Mac OS &gt; 10.3, but there are many
-other ways of obtaining matplotlib without compiling from source &#8211;
-see the <a class="reference external" href="http://matplotlib.sourceforge.net/faq/installing_faq.html#os-x-notes">matplotlib Mac OS install notes</a></li>
+<a class="reference external" href="http://www.python.org/download/">http://www.python.org/download/</a>. If you are going to be sharing  existingcode
+with collaborators, you probably want 2.7.x. However
+pynbody is also now compatible with 3.3 or higher if you are starting on a
+fresh project. (Confused? <a class="reference external" href="https://wiki.python.org/moin/Python2orPython3">See here</a>.)</li>
+<li>Links to .dmg&#8217;s for <cite>numpy</cite>, <cite>scipy</cite> and <cite>matplotlib</cite> can be found here:
+<a href="#id4"><span class="problematic" id="id5">`http://scipy.org/install.html#individual-binary-and-source-packages`_</span></a>.</li>
 </ul>
 </div></blockquote>
 <div class="admonition note">
@@ -353,24 +329,13 @@ an architecture mismatch, make sure you installed the dmg for the
 correct OS version.</p>
 </div>
 </div>
-<div class="section" id="option-c-python-that-came-with-your-mac">
-<h4>Option (c): python that came with your Mac<a class="headerlink" href="#option-c-python-that-came-with-your-mac" title="Permalink to this headline">¶</a></h4>
-<p>This is in general not the preferred python solution.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">As of December 2011, the scipy superpack no longer appears
-to be maintained.* Therefore should you wish to use the framework
-python that ships with your mac, you&#8217;ll need to manually compile
-<cite>scipy</cite> and <cite>matplotlib</cite>, and possibly an updated version of
-<cite>numpy</cite>. This can be painful, so we advise option (a) or option (b).</p>
-</div>
-</div>
 </div>
 </div>
 <div class="section" id="install-pynbody">
-<span id="id5"></span><h2>Install pynbody<a class="headerlink" href="#install-pynbody" title="Permalink to this headline">¶</a></h2>
+<span id="id3"></span><h2>Install pynbody<a class="headerlink" href="#install-pynbody" title="Permalink to this headline">¶</a></h2>
 <p>You can try to type, in your shell:</p>
-<div class="highlight-python"><pre>pip install git+git://github.com/pynbody/pynbody.git</pre>
+<div class="highlight-python"><div class="highlight"><pre>pip install git+git://github.com/pynbody/pynbody.git
+</pre></div>
 </div>
 <p>and everything should happen automatically. This will give you
 whatever the latest code from the <a class="reference external" href="https://github.com/pynbody/pynbody">git repository</a>.</p>
@@ -411,20 +376,23 @@ have a <a class="reference external" href="http://github.com">github</a> account
 a crucial bug has just been fixed, for example, you can easily update
 your installation. If you installed using <cite>pip</cite> to begin with, simply
 do</p>
-<div class="highlight-python"><pre>pip install -I --no-deps git+git://github.com/pynbody/pynbody@master</pre>
+<div class="highlight-python"><div class="highlight"><pre>pip install -I --no-deps git+git://github.com/pynbody/pynbody@master
+</pre></div>
 </div>
 <p>If you cloned or forked the git repository and installed manually, go
 into the top-level <cite>pynbody</cite> source directory (the one with
 <tt class="docutils literal"><span class="pre">setup.py</span></tt> in it) and do :</p>
-<div class="highlight-python"><pre>git checkout master  # make sure you are on the master branch
+<div class="highlight-python"><div class="highlight"><pre>git checkout master  # make sure you are on the master branch
 git pull origin master
-python setup.py install</pre>
+python setup.py install
+</pre></div>
 </div>
 <p>If you are testing a new feature or a bug fix that resides in a branch
 other than <cite>master</cite> this procedure is slightly different:</p>
-<div class="highlight-python"><pre>git fetch
-git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
-python setup.py install</pre>
+<div class="highlight-python"><div class="highlight"><pre>git fetch
+git checkout -b branch origin/branch  # where &quot;branch&quot; will be the name of the branch for bug fix or feature
+python setup.py install
+</pre></div>
 </div>
 <p>When you install a new version of the code and you already have a
 python session active with <cite>pynbody</cite> loaded, you have to (carefully)
@@ -455,7 +423,8 @@ the github code site</a>.</p>
 <div class="section" id="nose-tests">
 <h3>Nose tests<a class="headerlink" href="#nose-tests" title="Permalink to this headline">¶</a></h3>
 <p>The root directory of the pynbody distribution includes a <tt class="docutils literal"><span class="pre">nose</span></tt>
-directory, where the unit (nose) tests reside. In order to run them, you&#8217;ll need to download the <tt class="docutils literal"><span class="pre">testdata</span></tt> bundle from the <a class="reference external" href="https://code.google.com/p/pynbody/downloads/list">downloads section</a> of the pynbody site.</p>
+directory, where the unit (nose) tests reside. In order to run them,
+you&#8217;ll need to download the <tt class="docutils literal"><span class="pre">testdata</span></tt> bundle from the <a class="reference external" href="https://github.com/pynbody/pynbody/releases">downloads section</a> of the pynbody site.</p>
 </div>
 <div class="section" id="building-your-own-documentation">
 <h3>Building your own documentation<a class="headerlink" href="#building-your-own-documentation" title="Permalink to this headline">¶</a></h3>
@@ -485,18 +454,21 @@ work properly. Instead download and untar the HDF5
 <p>Assuming you&#8217;re running on Snow Leopard, use the following command to
 configure the package
 (<a class="reference external" href="http://hdf-forum.184993.n3.nabble.com/Can-t-install-Pytables-something-wrong-with-my-HDF5-installation-td1246998.html">discovered here</a>):</p>
-<div class="highlight-python"><pre>env ARCHFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" ./configure
+<div class="highlight-python"><div class="highlight"><pre>env ARCHFLAGS=&quot;-arch x86_64&quot; LDFLAGS=&quot;-arch x86_64&quot; ./configure
 --build=x86_64-apple-darwin10 --target=x86_64-apple-darwin10
 --prefix=/usr/local/hdf5 --with-szlib=/usr/local/src/szip-2.1/szip
---with-zlib=/usr/local/include,/usr/local/lib }}}</pre>
+--with-zlib=/usr/local/include,/usr/local/lib }}}
+</pre></div>
 </div>
 <p>Finally</p>
-<div class="highlight-python"><pre>make sudo make install</pre>
+<div class="highlight-python"><div class="highlight"><pre>make sudo make install
+</pre></div>
 </div>
 <p>Now <tt class="docutils literal"><span class="pre">h5py</span></tt> will install without much hassle. <a class="reference external" href="http://code.google.com/p/h5py/downloads/list">Download the source</a>, untar it, and type:</p>
-<div class="highlight-python"><pre>python setup.py configure --hdf5=/usr/local/hdf5/
+<div class="highlight-python"><div class="highlight"><pre>python setup.py configure --hdf5=/usr/local/hdf5/
 python setup.py build
-sudo python setup.py install</pre>
+sudo python setup.py install
+</pre></div>
 </div>
 </div>
 </div>
@@ -521,7 +493,7 @@ sudo python setup.py install</pre>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

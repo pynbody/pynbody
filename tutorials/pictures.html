@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Pictures in Pynbody &mdash; pynbody 0.20-beta documentation</title>
+    <title>Pictures in Pynbody &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Halos in Pynbody" href="halos.html" />
     <link rel="prev" title="Plotting Rotation Cuves" href="rotation_curve.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -82,15 +82,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -301,36 +296,38 @@ synthetic colors in a variety of bands:</p>
 </div>
 </div>
 <div class="section" id="creating-images-using-image">
-<h2>Creating images using <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> function is a general purpose function
-for creating an x-y map of a value from your <a class="reference internal" href="../essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a>
+<h2>Creating images using <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> function is a general purpose function
+for creating an x-y map of a value from your <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a>
 object. Under the hood, the function calls one two SPH kernels (written in c)
 to calculate the intensity values of whatever value you&#8217;re plotting - a 2d
 kernel for integrated maps, and a 3d kernel for slices. Both kernels require
 the use of a kd-tree to perform an SPH smooth, so you will notice that the
-first time <a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is called, it creates a kd-tree.
+first time <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is called, it creates a kd-tree.
 Subsequent calls on the same data set should use the already created tree,
 and thus should be faster.</p>
-<p><a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> returns an x,y array representing pixel
+<p><a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> returns an x,y array representing pixel
 intensity. The function also displays the image with automatically created
 axes and a colorbar. However, one can use the x-y array and <a class="reference external" href="http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow">plt.imshow()</a>
 (how do I link to matplotlib functions?) to create your own plot.</p>
 </div>
 <div class="section" id="common-issues">
 <h2>Common issues<a class="headerlink" href="#common-issues" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="../plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is prone to a number of common errors
+<p><a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is prone to a number of common errors
 when being used by new users. Probably the most common is</p>
-<div class="highlight-python"><pre>ValueError: zero-size array to minimum.reduce without identity</pre>
+<div class="highlight-python"><div class="highlight"><pre>ValueError: zero-size array to minimum.reduce without identity
+</pre></div>
 </div>
 <p>This can come about in a number of circumstances, but essentially it
 means that there were not enough particles in the region that was being
 plotted. It could be due to no/bad centering, passing in a very small/empty
-<a class="reference internal" href="../essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-func docutils literal"><span class="pre">SubSnap()</span></tt></a> object, or bad units (units being an issue should
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-func docutils literal"><span class="pre">SubSnap()</span></tt></a> object, or bad units (units being an issue should
 no longer be an issue. In older versions of pynbody, the width parameter
 assumed kpc, so if the simulation distances were in e.g. &#8220;au&#8221;, this could
 cause a problem).</p>
 <p>Another common error is the following:</p>
-<div class="highlight-python"><pre>TypeError: 'int' object does not support item assignment</pre>
+<div class="highlight-python"><div class="highlight"><pre>TypeError: &#39;int&#39; object does not support item assignment
+</pre></div>
 </div>
 <p>which occurs when the returned image from the kernel is a singular value
 rather than an array. In this case, the issue was because the kernel did
@@ -362,7 +359,7 @@ star particles.</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

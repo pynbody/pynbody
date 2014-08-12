@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Pynbody Tutorials &mdash; pynbody 0.20-beta documentation</title>
+    <title>Pynbody Tutorials &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,9 +28,9 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
     <link rel="next" title="Basic snapshot manipulation" href="snapshot_manipulation.html" />
-    <link rel="prev" title="Pynbody Documentation" href="../index.html" />
+    <link rel="prev" title="Pynbody Installation" href="../installation.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -64,7 +64,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -81,15 +81,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -104,15 +99,9 @@
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Pynbody Tutorials</a><ul>
-<li><a class="reference internal" href="#walkthroughs">Walkthroughs</a><ul>
-</ul>
-</li>
-<li><a class="reference internal" href="#cookbook-recipes">Cookbook/Recipes</a><ul>
-</ul>
-</li>
-<li><a class="reference internal" href="#advanced-topics">Advanced topics</a><ul>
-</ul>
-</li>
+<li><a class="reference internal" href="#walkthroughs">Walkthroughs</a></li>
+<li><a class="reference internal" href="#cookbook-recipes">Cookbook/Recipes</a></li>
+<li><a class="reference internal" href="#advanced-topics">Advanced topics</a></li>
 </ul>
 </li>
 </ul>
@@ -124,7 +113,7 @@
               
                 
   <li>
-    <a href="../index.html" title="Previous Chapter: Pynbody Documentation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pynbody Document...</span>
+    <a href="../installation.html" title="Previous Chapter: Pynbody Installation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pynbody Installa...</span>
     </a>
   </li>
   <li>
@@ -174,38 +163,10 @@ provide a more in-depth look at the inner-workings of the code.</p>
 <span id="id1"></span><h2>Walkthroughs<a class="headerlink" href="#walkthroughs" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="snapshot_manipulation.html">A first look at your data with pynbody</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="snapshot_manipulation.html#setting-up-the-interactive-environment">Setting up the interactive environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="snapshot_manipulation.html#first-steps">First steps</a></li>
-<li class="toctree-l2"><a class="reference internal" href="snapshot_manipulation.html#centering-on-something-interesting">Centering on something interesting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="snapshot_manipulation.html#taking-even-more-control">Taking even more control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="snapshot_manipulation.html#making-some-images">Making some images</a></li>
-<li class="toctree-l2"><a class="reference internal" href="snapshot_manipulation.html#aligning-the-snapshot">Aligning the Snapshot</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="data_access.html">Basic data access</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#first-steps">First steps</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#finding-out-something-about-the-file">Finding out something about the file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#retrieving-data">Retrieving data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#creating-your-own-arrays">Creating your own arrays</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#keeping-on-top-of-units">Keeping on top of units</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#subsnaps">Subsnaps</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#filters">Filters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_access.html#where-next">Where next?</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="filters.html">Subviews and Filters</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="filters.html#how-do-i-create-a-simple-subview">How do I create a simple subview?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="filters.html#conceptually-everything-is-a-pointer">Conceptually, everything is a pointer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="filters.html#filters">Filters</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="bridge.html">Tracing particles across different snapshots</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="bridge.html#basic-usage">Basic usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bridge.html#identifying-halos-between-different-outputs">Identifying halos between different outputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bridge.html#which-class-to-use">Which class to use?</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="snapshot_manipulation.html">A first look at your data with pynbody</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Basic data access</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters.html">Subviews and Filters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bridge.html">Tracing particles across different snapshots</a></li>
 </ul>
 </div>
 </div>
@@ -213,58 +174,11 @@ provide a more in-depth look at the inner-workings of the code.</p>
 <span id="cookbook"></span><h2>Cookbook/Recipes<a class="headerlink" href="#cookbook-recipes" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="profile.html">Profiles</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="profile.html#radial-density-profile">Radial Density Profile</a></li>
-<li class="toctree-l2"><a class="reference internal" href="profile.html#the-profile-class">The Profile Class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="profile.html#automatically-generated-profiles">Automatically-generated profiles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="profile.html#calculating-derivatives-and-dispersions">Calculating Derivatives and Dispersions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="profile.html#making-a-profile-using-a-different-quantity">Making a profile using a different quantity</a></li>
-<li class="toctree-l2"><a class="reference internal" href="profile.html#vertical-profiles-and-inclined-profiles">Vertical Profiles and Inclined Profiles</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="rotation_curve.html">Rotation curves</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="rotation_curve.html#speeding-up-the-gravity-calculation-in-pynbody">Speeding up the Gravity Calculation in Pynbody</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="pictures.html">Making Pictures</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#density-slice">Density Slice</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#integrated-density">Integrated Density</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#temperature-slice">Temperature Slice</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#velocity-vectors">Velocity Vectors</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#multi-band-images-of-stars">Multi-band Images of Stars</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#creating-images-using-image">Creating images using <tt class="docutils literal"><span class="pre">image()</span></tt></a></li>
-<li class="toctree-l2"><a class="reference internal" href="pictures.html#common-issues">Common issues</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="halos.html">Group finding</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="halos.html#configuration">Configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="halos.html#rockstar">Rockstar</a></li>
-<li class="toctree-l3"><a class="reference internal" href="halos.html#ahf">AHF</a></li>
-<li class="toctree-l3"><a class="reference internal" href="halos.html#id3">Configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="halos.html#working-with-halos-and-catalogues">Working with Halos and Catalogues</a></li>
-<li class="toctree-l2"><a class="reference internal" href="halos.html#partial-loading-the-halos-versus-full-load">Partial loading the Halos versus full load</a></li>
-<li class="toctree-l2"><a class="reference internal" href="halos.html#halos-only-usage-if-no-simulation-snapshot-present-does-this-work">Halos only usage (if no simulation snapshot present) - Does this work?)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="halos.html#write-halo-catalog-i-e-convert-ahf-outfiles-to-tipsy-format">Write halo catalog (i.e. convert AHF outfiles to tipsy format)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="halos.html#extra-steps-required-if-ahf-was-run-as-mpi-parallel">Extra steps required if AHF was run as MPI parallel:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="halos.html#now-convert-to-tipsy-if-serial-openmp-ahf-or-after-above-file-concatenations-made-if-mpi">Now convert to tipsy If serial/OpenMP AHF (or after above file concatenations made if MPI):</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="halos.html#generating-catalogues-on-the-fly-with-pynbody">Generating catalogues on the fly with pynbody</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="processing.html">Processing Snapshots</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="processing.html#using-pynbody-as-a-batch-system">Using pynbody as a batch system</a></li>
-<li class="toctree-l2"><a class="reference internal" href="processing.html#doall-py">doall.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="processing.html#preamble">Preamble</a></li>
-<li class="toctree-l3"><a class="reference internal" href="processing.html#pickle-data">pickle data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="processing.html#make-standard-plots">make standard plots</a></li>
-<li class="toctree-l3"><a class="reference internal" href="processing.html#make-standard-images">make standard images</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="profile.html">Profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotation_curve.html">Rotation curves</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pictures.html">Making Pictures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="halos.html">Group finding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processing.html">Processing Snapshots</a></li>
 </ul>
 </div>
 </div>
@@ -273,18 +187,7 @@ provide a more in-depth look at the inner-workings of the code.</p>
 <p>These tutorials are likely to be of interest only in special cases.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="performance.html">Performance issues</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="performance.html#overheads-of-subsnaps">Overheads of SubSnaps</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="performance.html#a-template-for-performance-critical-code">A template for performance-critical code</a></li>
-<li class="toctree-l3"><a class="reference internal" href="performance.html#what-is-a-subsnap-really">What is a SubSnap, really?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="performance.html#numpy-s-behaviour">Numpy&#8217;s behaviour</a></li>
-<li class="toctree-l3"><a class="reference internal" href="performance.html#back-to-pynbody">Back to pynbody</a></li>
-<li class="toctree-l3"><a class="reference internal" href="performance.html#how-to-remove-this-bottleneck">How to remove this bottleneck</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="performance.html#overheads-of-raw-simarrays">Overheads of raw SimArrays</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Performance issues</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuring Pynbody</a></li>
 </ul>
 </div>
@@ -311,7 +214,7 @@ provide a more in-depth look at the inner-workings of the code.</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

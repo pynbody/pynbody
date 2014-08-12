@@ -25,19 +25,21 @@ provide a more in-depth look at the inner-workings of the code.
 Walkthroughs
 ------------
 
-.. toctree:: 
+.. toctree::
+   :maxdepth: 1
 
    A first look at your data with pynbody <snapshot_manipulation>
    Basic data access <data_access>
    Subviews and Filters <filters>
-   Tracing particles across different snapshots <bridge>   
-   
+   Tracing particles across different snapshots <bridge>
+
 .. _cookbook:
 
 Cookbook/Recipes
 ----------------
 
 .. toctree::
+   :maxdepth: 1
 
    Profiles <profile>
    Rotation curves <rotation_curve>
@@ -54,6 +56,7 @@ Advanced topics
 These tutorials are likely to be of interest only in special cases.
 
 .. toctree::
+   :maxdepth: 1
 
    Performance issues <performance>
    Configuring Pynbody <configuration>

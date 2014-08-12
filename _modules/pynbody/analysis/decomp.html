@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.analysis.decomp &mdash; pynbody 0.20-beta documentation</title>
+    <title>pynbody.analysis.decomp &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -80,15 +80,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../plot.html">Plotting modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -151,8 +146,12 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
-<div class="viewcode-block" id="decomp"><a class="viewcode-back" href="../../../analysis.html#pynbody.analysis.decomp.decomp">[docs]</a><span class="k">def</span> <span class="nf">decomp</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">aligned</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">j_disk_min</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">j_disk_max</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">E_cut</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">j_circ_from_r</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-           <span class="n">cen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">log_interp</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">angmom_size</span><span class="o">=</span><span class="s">&quot;3 kpc&quot;</span><span class="p">)</span> <span class="p">:</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.analysis.decomp&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="decomp"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.decomp.decomp">[docs]</a><span class="k">def</span> <span class="nf">decomp</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">aligned</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">j_disk_min</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">j_disk_max</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">E_cut</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">j_circ_from_r</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+           <span class="n">cen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">log_interp</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">angmom_size</span><span class="o">=</span><span class="s">&quot;3 kpc&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates an array &#39;decomp&#39; for star particles in the simulation, with an</span>
 <span class="sd">    integer specifying a kinematic decomposition. The possible values are:</span>
@@ -207,19 +206,19 @@
 
     <span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="kn">as</span> <span class="nn">interp</span>
     <span class="k">global</span> <span class="n">config</span>
-        
+
     <span class="c"># Center, eliminate proper motion, rotate so that</span>
     <span class="c"># gas disk is in X-Y plane</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">aligned</span> <span class="p">:</span>
-        <span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span><span class="n">cen</span><span class="o">=</span><span class="n">cen</span><span class="p">,</span><span class="n">vcen</span><span class="o">=</span><span class="n">vcen</span><span class="p">,</span> <span class="n">disk_size</span><span class="o">=</span><span class="n">angmom_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">aligned</span><span class="p">:</span>
+        <span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="n">cen</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="n">vcen</span><span class="p">,</span> <span class="n">disk_size</span><span class="o">=</span><span class="n">angmom_size</span><span class="p">)</span>
 
     <span class="c"># Find KE, PE and TE</span>
     <span class="n">ke</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
     <span class="n">pe</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
 
-    <span class="n">h</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">ke</span><span class="o">.</span><span class="n">units</span><span class="p">)</span> <span class="c"># put PE and TE into same unit system</span>
+    <span class="n">h</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">ke</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>  <span class="c"># put PE and TE into same unit system</span>
 
-    <span class="n">te</span> <span class="o">=</span> <span class="n">ke</span><span class="o">+</span><span class="n">pe</span>
+    <span class="n">te</span> <span class="o">=</span> <span class="n">ke</span> <span class="o">+</span> <span class="n">pe</span>
     <span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">te</span>
     <span class="n">te_star</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span>
 
@@ -227,89 +226,90 @@
 
     <span class="c"># Add an arbitrary offset to the PE to reflect the idea that</span>
     <span class="c"># the group is &#39;fully bound&#39;.</span>
-    <span class="n">te</span><span class="o">-=</span><span class="n">te_max</span>
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;te_max = &quot;</span><span class="p">,</span><span class="n">te_max</span>
+    <span class="n">te</span> <span class="o">-=</span> <span class="n">te_max</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;te_max = </span><span class="si">%.2e</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">te_max</span><span class="p">)</span>
 
-    <span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span><span class="o">-=</span><span class="n">te_max</span>
+    <span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">te_max</span>
 
-    
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;Making disk rotation curve...&quot;</span>
-    
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Making disk rotation curve...&quot;</span><span class="p">)</span>
+
     <span class="c"># Now make a rotation curve for the disk. We&#39;ll take everything</span>
     <span class="c"># inside a vertical height of eps*3</span>
 
-    <span class="n">d</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Disc</span><span class="p">(</span><span class="s">&#39;1 Mpc&#39;</span><span class="p">,</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">*</span><span class="mi">3</span><span class="p">)]</span>
-    
-    <span class="k">try</span> <span class="p">:</span>
-        
+    <span class="n">d</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Disc</span><span class="p">(</span><span class="s">&#39;1 Mpc&#39;</span><span class="p">,</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+
         <span class="c"># attempt to load rotation curve off disk</span>
-        <span class="n">r</span><span class="p">,</span> <span class="n">v_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s">&quot;.rot.&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;halo_id&quot;</span><span class="p">]),</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-        
+        <span class="n">r</span><span class="p">,</span> <span class="n">v_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span> <span class="s">&quot;.rot.&quot;</span> <span class="o">+</span>
+                            <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;halo_id&quot;</span><span class="p">]),</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
         <span class="n">pro_d</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">)</span>
         <span class="n">r_me</span> <span class="o">=</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&quot;rbins&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;kpc&quot;</span><span class="p">)</span>
-        <span class="n">r_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">,</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">*</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="n">r_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">,</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]))</span>
         <span class="n">v_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">v_c</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">v_c</span><span class="p">,</span> <span class="p">[</span><span class="n">v_c</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]))</span>
         <span class="n">v_c</span> <span class="o">=</span> <span class="n">interp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">r_x</span><span class="p">,</span> <span class="n">v_c</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="bp">False</span><span class="p">)(</span><span class="n">r_me</span><span class="p">)</span>
 
-            
-        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> 
-            <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;   -- found existing rotation curve on disk, using that&quot;</span>
-            
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot; - found existing rotation curve on disk, using that&quot;</span><span class="p">)</span>
+
         <span class="n">v_c</span> <span class="o">=</span> <span class="n">v_c</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
         <span class="n">v_c</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s">&quot;km s^-1&quot;</span>
         <span class="n">v_c</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">d</span>
 
         <span class="n">v_c</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-        
+
         <span class="n">pro_d</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_c</span>
         <span class="n">pro_d</span><span class="o">.</span><span class="n">v_circ_loaded</span> <span class="o">=</span> <span class="bp">True</span>
-        
-    <span class="k">except</span> <span class="p">:</span>
-        <span class="n">pro_d</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">)</span> <span class="c">#.D()</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">pro_d</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">)</span>  <span class="c"># .D()</span>
         <span class="c"># Nasty hack follows to force the full halo to be used in calculating the</span>
         <span class="c"># gravity (otherwise get incorrect rotation curves)</span>
-        <span class="n">pro_d</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">v_circ</span><span class="p">(</span><span class="n">pro_d</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>  
-                                                    
+        <span class="n">pro_d</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">v_circ</span><span class="p">(</span><span class="n">pro_d</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+
     <span class="n">pro_phi</span> <span class="o">=</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
     <span class="c">#import pdb; pdb.set_trace()</span>
     <span class="c"># offset the potential as for the te array</span>
-    <span class="n">pro_phi</span><span class="o">-=</span><span class="n">te_max</span>
+    <span class="n">pro_phi</span> <span class="o">-=</span> <span class="n">te_max</span>
 
     <span class="c"># (will automatically be reflected in E_circ etc)</span>
     <span class="c"># calculating v_circ for j_circ and E_circ is slow</span>
 
-    <span class="k">if</span> <span class="n">j_circ_from_r</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">j_circ_from_r</span><span class="p">:</span>
         <span class="n">pro_d</span><span class="o">.</span><span class="n">create_particle_array</span><span class="p">(</span><span class="s">&quot;j_circ&quot;</span><span class="p">,</span> <span class="n">out_sim</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
         <span class="n">pro_d</span><span class="o">.</span><span class="n">create_particle_array</span><span class="p">(</span><span class="s">&quot;E_circ&quot;</span><span class="p">,</span> <span class="n">out_sim</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
-    <span class="k">else</span> <span class="p">:</span>
-        
-        <span class="k">if</span> <span class="n">log_interp</span> <span class="p">:</span>
-            <span class="n">j_from_E</span>  <span class="o">=</span> <span class="n">interp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="o">-</span><span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">ke</span><span class="o">.</span><span class="n">units</span><span class="p">))[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">bounds_error</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-            <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="n">j_from_E</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="o">-</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]))</span>
-        <span class="k">else</span> <span class="p">:</span>
-<span class="c">#            j_from_E  = interp.interp1d(-pro_d[&#39;E_circ&#39;][::-1], (pro_d[&#39;j_circ&#39;])[::-1], bounds_error=False)</span>
-            <span class="n">j_from_E</span>  <span class="o">=</span> <span class="n">interp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">ke</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">],</span> <span class="n">bounds_error</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">log_interp</span><span class="p">:</span>
+            <span class="n">j_from_E</span> <span class="o">=</span> <span class="n">interp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="o">-</span><span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">ke</span><span class="o">.</span><span class="n">units</span><span class="p">))[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">bounds_error</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+            <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">j_from_E</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="o">-</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c">#            j_from_E  = interp.interp1d(-pro_d[&#39;E_circ&#39;][::-1], (pro_d[&#39;j_circ&#39;])[::-1], bounds_error=False)</span>
+            <span class="n">j_from_E</span> <span class="o">=</span> <span class="n">interp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">ke</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">],</span> <span class="n">bounds_error</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
             <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">j_from_E</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">])</span>
 
         <span class="c"># The next line forces everything close-to-unbound into the</span>
         <span class="c"># spheroid, as per CB&#39;s original script (&#39;get rid of weird</span>
         <span class="c"># outputs&#39;, it says).</span>
-        <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
 
-        <span class="c"># There are only a handful of particles falling into the following category:</span>
-        <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span><span class="o">&lt;</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())]</span> <span class="o">=</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c"># There are only a handful of particles falling into the following</span>
+        <span class="c"># category:</span>
+        <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">pro_d</span><span class="p">[</span><span class="s">&#39;E_circ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())]</span> <span class="o">=</span> <span class="n">pro_d</span><span class="p">[</span>
+            <span class="s">&#39;j_circ&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 
-
-    <span class="n">h</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;j&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">]</span>
+    <span class="n">h</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;j&#39;</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;j_circ&#39;</span><span class="p">]</span>
     <span class="n">h_star</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">star</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">h_star</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;decomp&#39;</span><span class="p">)</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">h_star</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;decomp&#39;</span><span class="p">):</span>
         <span class="n">h_star</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;decomp&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-    <span class="n">disk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="n">j_disk_min</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="n">j_disk_max</span><span class="p">))</span>
+    <span class="n">disk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">j_disk_min</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">j_disk_max</span><span class="p">))</span>
 
     <span class="n">h_star</span><span class="p">[</span><span class="s">&#39;decomp&#39;</span><span class="p">,</span> <span class="n">disk</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="c"># h_star = h_star[np.where(h_star[&#39;decomp&#39;]!=1)]</span>
-    
 
     <span class="c"># Find disk/spheroid angular momentum cut-off to make spheroid</span>
     <span class="c"># rotational velocity exactly zero.</span>
@@ -318,39 +318,32 @@
     <span class="n">JzJcirc</span> <span class="o">=</span> <span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span>
     <span class="n">te</span> <span class="o">=</span> <span class="n">h_star</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">]</span>
 
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Finding spheroid/disk angular momentum boundary...&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> 
-        <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;Finding spheroid/disk angular momentum boundary...&quot;</span>
-    <span class="n">j_crit</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="mf">5.0</span><span class="p">,</span>
-                         <span class="k">lambda</span> <span class="n">c</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">V</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">JzJcirc</span><span class="o">&lt;</span><span class="n">c</span><span class="p">)]))</span>
+    <span class="n">j_crit</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span>
+                         <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">V</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&lt;</span> <span class="n">c</span><span class="p">)]))</span>
 
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;j_crit = </span><span class="si">%.2e</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">j_crit</span><span class="p">)</span>
 
-        
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span>
-        <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;j_crit = &quot;</span><span class="p">,</span><span class="n">j_crit</span>
-        <span class="k">if</span> <span class="n">j_crit</span><span class="o">&gt;</span><span class="n">j_disk_min</span> <span class="p">:</span>
-            <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?) !!&quot;</span>
-            <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;!! j_crit will be reset to j_disk_min =&quot;</span><span class="p">,</span><span class="n">j_disk_min</span><span class="p">,</span><span class="s">&quot;!!&quot;</span>
-            
-    <span class="k">if</span> <span class="n">j_crit</span><span class="o">&gt;</span><span class="n">j_disk_min</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">j_crit</span> <span class="o">&gt;</span> <span class="n">j_disk_min</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s">&quot;!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?)&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;!! j_crit will be reset to j_disk_min=</span><span class="si">%.2e</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">j_disk_min</span><span class="p">)</span>
         <span class="n">j_crit</span> <span class="o">=</span> <span class="n">j_disk_min</span>
 
-    <span class="n">sphere</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="n">j_crit</span><span class="p">)</span>
+    <span class="n">sphere</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;jz_by_jzcirc&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">j_crit</span><span class="p">)</span>
 
-
-    <span class="k">if</span> <span class="n">E_cut</span> <span class="ow">is</span> <span class="bp">None</span> <span class="p">:</span>
+    <span class="k">if</span> <span class="n">E_cut</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">E_cut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">h_star</span><span class="p">[</span><span class="s">&#39;te&#39;</span><span class="p">])</span>
 
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]</span> <span class="p">:</span> 
-        <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;E_cut = &quot;</span><span class="p">,</span><span class="n">E_cut</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;E_cut = </span><span class="si">%.2e</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">E_cut</span><span class="p">)</span>
 
-
-    <span class="n">halo</span> <span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span><span class="o">&gt;</span><span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span><span class="o">&lt;</span><span class="n">j_crit</span><span class="p">))</span>
-    <span class="n">bulge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span><span class="o">&lt;=</span><span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span><span class="o">&lt;</span><span class="n">j_crit</span><span class="p">))</span>
-    <span class="n">pbulge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span><span class="o">&lt;=</span><span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span><span class="o">&gt;</span><span class="n">j_crit</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">JzJcirc</span><span class="o">&lt;</span><span class="n">j_disk_min</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">JzJcirc</span><span class="o">&gt;</span><span class="n">j_disk_max</span><span class="p">))</span> <span class="p">)</span>
-    <span class="n">thick</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span><span class="o">&gt;</span><span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span><span class="o">&gt;</span><span class="n">j_crit</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">JzJcirc</span><span class="o">&lt;</span><span class="n">j_disk_min</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">JzJcirc</span><span class="o">&gt;</span><span class="n">j_disk_max</span><span class="p">))</span> <span class="p">)</span>
-
-
+    <span class="n">halo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span> <span class="o">&gt;</span> <span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&lt;</span> <span class="n">j_crit</span><span class="p">))</span>
+    <span class="n">bulge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span> <span class="o">&lt;=</span> <span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&lt;</span> <span class="n">j_crit</span><span class="p">))</span>
+    <span class="n">pbulge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span> <span class="o">&lt;=</span> <span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&gt;</span> <span class="n">j_crit</span><span class="p">)</span>
+                      <span class="o">*</span> <span class="p">((</span><span class="n">JzJcirc</span> <span class="o">&lt;</span> <span class="n">j_disk_min</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&gt;</span> <span class="n">j_disk_max</span><span class="p">)))</span>
+    <span class="n">thick</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">te</span> <span class="o">&gt;</span> <span class="n">E_cut</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&gt;</span> <span class="n">j_crit</span><span class="p">)</span>
+                     <span class="o">*</span> <span class="p">((</span><span class="n">JzJcirc</span> <span class="o">&lt;</span> <span class="n">j_disk_min</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">JzJcirc</span> <span class="o">&gt;</span> <span class="n">j_disk_max</span><span class="p">)))</span>
 
     <span class="c"># h_star[&#39;decomp&#39;, disk] = 1</span>
     <span class="n">h_star</span><span class="p">[</span><span class="s">&#39;decomp&#39;</span><span class="p">,</span> <span class="n">halo</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
@@ -377,7 +370,7 @@
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Essential Framework Modules &mdash; pynbody 0.20-beta documentation</title>
+    <title>Essential Framework Modules &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,9 +28,7 @@
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="index.html" />
-    <link rel="next" title="Generic Convenience Modules" href="convenience.html" />
-    <link rel="prev" title="Code-specific loaders" href="loaders.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="index.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -64,7 +62,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -81,15 +79,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot.html">Plotting modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -133,14 +126,6 @@
             
               
                 
-  <li>
-    <a href="loaders.html" title="Previous Chapter: Code-specific loaders"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Code-specific lo...</span>
-    </a>
-  </li>
-  <li>
-    <a href="convenience.html" title="Next Chapter: Generic Convenience Modules"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Generic Convenie... &raquo;</span>
-    </a>
-  </li>
               
             
             
@@ -200,15 +185,15 @@ specified input unit.</li>
 tracking.  Powers to float or other powers will not be able to do
 so.</li>
 </ul>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> 
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
 <span class="go">SimArray([1, 4], &#39;Msol**2 Mpc**-6&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span><span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
 <span class="go">SimArray([ 1.,1.26], &#39;Msol**1/3 Mpc**-1&#39;)</span>
 </pre></div>
 </div>
 <p>Syntax above mirrors syntax in units module, where a length-two tuple
 can represent a rational number, in this case one third.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="mf">0.333</span> 
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">SimArray</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol Mpc**-3&quot;</span><span class="p">)</span><span class="o">**</span><span class="mf">0.333</span>
 <span class="go">SimArray([ 1.,1.26])  # Lost track of units</span>
 </pre></div>
 </div>
@@ -218,16 +203,16 @@ can represent a rational number, in this case one third.</p>
 own chosing:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;kg&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span>
 <span class="go">SimArray([  1.99e+30,   3.98e+30], &#39;kg&#39;)</span>
 </pre></div>
 </div>
 <p>Or you can leave the original array alone and get a <em>copy</em> in
 different units, correctly converted:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">SimArray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;Msol&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;kg&quot;</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;kg&quot;</span><span class="p">)</span>
 <span class="go">SimArray([  1.99e+30,   3.98e+30], &#39;kg&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">x</span>
 <span class="go">SimArray([1,2], &quot;Msol&quot;)</span>
 </pre></div>
 </div>
@@ -357,7 +342,7 @@ associated with its base file. This is equivalent to calling</p>
 </div>
 <p>in the case of writing out the array &#8216;array&#8217; for the gas
 particle family.  See the description of
-<a class="reference internal" href="#pynbody.snapshot.SimSnap.write_array" title="pynbody.snapshot.SimSnap.write_array"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.snapshot.SimSnap.write_array()</span></tt></a> for options.</p>
+<a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap.write_array" title="pynbody.snapshot.SimSnap.write_array"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.snapshot.SimSnap.write_array()</span></tt></a> for options.</p>
 </dd></dl>
 
 </dd></dl>
@@ -396,39 +381,12 @@ self.ndim &lt; 2.</p>
 <dd><p>x.__ge__(y) &lt;==&gt; x&gt;=y</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="pynbody.array.shared_array_remote">
-<tt class="descclassname">pynbody.array.</tt><tt class="descname">shared_array_remote</tt><big>(</big><em>fn</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#shared_array_remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.shared_array_remote" title="Permalink to this definition">¶</a></dt>
-<dd><p>A decorator for functions returning a new function that is
-suitable for use remotely. Inputs to and outputs from the function
-can be transferred efficiently if they are backed onto shared
-memory. Ownership of any shared memory returned by the function
-is transferred.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pynbody.array.remote_map">
-<tt class="descclassname">pynbody.array.</tt><tt class="descname">remote_map</tt><big>(</big><em>pool</em>, <em>fn</em>, <em>*iterables</em><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#remote_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.remote_map" title="Permalink to this definition">¶</a></dt>
-<dd><p>A replacement for python&#8217;s in-built map function, sending out tasks
-to the pool and performing the magic required to transport shared memory arrays
-correctly. The function <em>fn</em> must be wrapped with the <em>shared_array_remote</em>
-decorator to interface correctly with this magic.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pynbody.array.exit_cleanup">
-<tt class="descclassname">pynbody.array.</tt><tt class="descname">exit_cleanup</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pynbody/array.html#exit_cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.exit_cleanup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Clean up any shared memory that has not yet been freed. In
-theory this should not be required, but it is here as a safety
-net.</p>
-</dd></dl>
-
 </div>
 </div>
 <span class="target" id="module-pynbody.simdict"></span><div class="section" id="simdict">
 <h2>simdict<a class="headerlink" href="#simdict" title="Permalink to this headline">¶</a></h2>
 <p>This submodule defines an augmented dictionary class
-(<tt class="xref py py-class docutils literal"><span class="pre">SimDict</span></tt>) for <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> properties
+(<tt class="xref py py-class docutils literal"><span class="pre">SimDict</span></tt>) for <a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> properties
 where entries need to be managed e.g.  for defining default entries,
 or for ensuring consistency between equivalent properties like
 redshift and scalefactor.</p>
@@ -481,9 +439,9 @@ object is instantiated, registered and returned.</p>
 </div>
 <span class="target" id="module-pynbody.snapshot"></span><div class="section" id="snapshot">
 <h2>snapshot<a class="headerlink" href="#snapshot" title="Permalink to this headline">¶</a></h2>
-<p>This module implements the  <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> class which manages and stores snapshot data.
-It also implements the <a class="reference internal" href="#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> class (and relatives) which
-represent different views of an existing <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>.</p>
+<p>This module implements the  <a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> class which manages and stores snapshot data.
+It also implements the <a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> class (and relatives) which
+represent different views of an existing <a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>.</p>
 <dl class="class">
 <dt id="pynbody.snapshot.SimSnap">
 <em class="property">class </em><tt class="descclassname">pynbody.snapshot.</tt><tt class="descname">SimSnap</tt><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap" title="Permalink to this definition">¶</a></dt>
@@ -493,7 +451,7 @@ represent different views of an existing <a class="reference internal" href="#py
 <p>For a basic tutorial explaining how to load a file as a SimSnap
 see <a class="reference internal" href="tutorials/data_access.html"><em>A walk through pynbody&#8217;s low-level facilities</em></a>.</p>
 <p><em>Getting arrays or subsnaps</em></p>
-<p>Once a <a class="reference internal" href="#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> object <tt class="docutils literal"><span class="pre">f</span></tt> is instantiated, it can
+<p>Once a <a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a> object <tt class="docutils literal"><span class="pre">f</span></tt> is instantiated, it can
 be used in various ways. The most common operation is to
 access something with the code <tt class="docutils literal"><span class="pre">f[x]</span></tt>.  Depending on the
 type of <tt class="docutils literal"><span class="pre">x</span></tt>, various behaviours result:</p>
@@ -628,7 +586,7 @@ to the ancestor <em>relative_to</em>, such that relative_to[get_index_list(relat
 
 <dl class="method">
 <dt id="pynbody.snapshot.SimSnap.intersect">
-<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x105de66e0&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x10445e398&gt;</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the set intersection of this simulation view with another view
 of the same simulation</p>
 </dd></dl>
@@ -708,9 +666,9 @@ configuration files).</p>
 <tt class="descname">bridge</tt><big>(</big><em>other</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.bridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.bridge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tries to construct a bridge function between this SimSnap
 and another one.</p>
-<p>This function calls <a class="reference internal" href="convenience.html#pynbody.bridge.bridge_factory" title="pynbody.bridge.bridge_factory"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.bridge.bridge_factory()</span></tt></a>. For
+<p>This function calls <a class="reference internal" href="reference/convenience.html#pynbody.bridge.bridge_factory" title="pynbody.bridge.bridge_factory"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.bridge.bridge_factory()</span></tt></a>. For
 more information see <em class="xref std std-ref">bridge-tutorial</em>, or the reference
-documentation for <a class="reference internal" href="convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.bridge</span></tt></a>.</p>
+documentation for <a class="reference internal" href="reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.bridge</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -744,7 +702,7 @@ documentation for <a class="reference internal" href="convenience.html#module-py
 <tt class="descname">write_array</tt><big>(</big><em>array_name</em>, <em>fam=None</em>, <em>overwrite=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/snapshot.html#SimSnap.write_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.write_array" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write out the array with the specified name.</p>
 <p>Some of the functionality is available via the
-<a class="reference internal" href="#pynbody.array.SimArray.write" title="pynbody.array.SimArray.write"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.array.SimArray.write()</span></tt></a> method, which calls the
+<a class="reference internal" href="reference/essentials.html#pynbody.array.SimArray.write" title="pynbody.array.SimArray.write"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.array.SimArray.write()</span></tt></a> method, which calls the
 present function with appropriate arguments.</p>
 <p><strong>Input</strong></p>
 <p><em>array_name</em> - the name of the array to write</p>
@@ -808,7 +766,7 @@ to an index array.</p>
 <span class="target" id="module-pynbody.units"></span><div class="section" id="units">
 <h2>units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h2>
 <p>The pynbody units module consists of a set of classes for tracking units.</p>
-<p>It relates closely to the <a class="reference internal" href="#module-pynbody.array" title="pynbody.array"><tt class="xref py py-mod docutils literal"><span class="pre">array</span></tt></a> module, which defines
+<p>It relates closely to the <a class="reference internal" href="reference/essentials.html#module-pynbody.array" title="pynbody.array"><tt class="xref py py-mod docutils literal"><span class="pre">array</span></tt></a> module, which defines
 an extension to numpy arrays which carries unit information.</p>
 <div class="section" id="making-units">
 <h3>Making units<a class="headerlink" href="#making-units" title="Permalink to this headline">¶</a></h3>
@@ -899,7 +857,7 @@ units which then integrate with all the standard functions.</p>
 <dl class="class">
 <dt id="pynbody.units.UnitBase">
 <em class="property">class </em><tt class="descclassname">pynbody.units.</tt><tt class="descname">UnitBase</tt><a class="reference internal" href="_modules/pynbody/units.html#UnitBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.units.UnitBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for units. To instantiate a unit, call the <a class="reference internal" href="#pynbody.units.Unit" title="pynbody.units.Unit"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.units.Unit()</span></tt></a>
+<dd><p>Base class for units. To instantiate a unit, call the <a class="reference internal" href="reference/essentials.html#pynbody.units.Unit" title="pynbody.units.Unit"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.units.Unit()</span></tt></a>
 factory function.</p>
 <dl class="method">
 <dt id="pynbody.units.UnitBase.ratio">
@@ -1138,13 +1096,6 @@ matrices!</p>
 <dd><p>Strip the .gz ending off a string</p>
 </dd></dl>
 
-<dl class="class">
-<dt id="pynbody.util.Registry">
-<em class="property">class </em><tt class="descclassname">pynbody.util.</tt><tt class="descname">Registry</tt><a class="reference internal" href="_modules/pynbody/util.html#Registry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.Registry" title="Permalink to this definition">¶</a></dt>
-<dd><p>A simple extension of the dict class to make the
-__repr__ more readable.</p>
-</dd></dl>
-
 <dl class="function">
 <dt id="pynbody.util.gamma_inc">
 <tt class="descclassname">pynbody.util.</tt><tt class="descname">gamma_inc</tt><big>(</big><em>a</em>, <em>z</em>, <em>eps=3e-07</em><big>)</big><a class="reference internal" href="_modules/pynbody/util.html#gamma_inc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.gamma_inc" title="Permalink to this definition">¶</a></dt>
@@ -1201,7 +1152,7 @@ three values:</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

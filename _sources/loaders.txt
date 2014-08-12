@@ -72,14 +72,14 @@ different loaders, as all types of simulations are loaded with
 :func:`pynbody.load` and the type is determined automatically. 
 
 
-.. automodule:: pynbody.tipsy
+.. automodule:: pynbody.snapshot.tipsy
 
-.. automodule:: pynbody.gadget
+.. automodule:: pynbody.snapshot.gadget
 
-.. automodule:: pynbody.gadgethdf
+.. automodule:: pynbody.snapshot.gadgethdf
 
-.. automodule:: pynbody.nchilada
+.. automodule:: pynbody.snapshot.nchilada
 
-.. automodule:: pynbody.ramses
+.. automodule:: pynbody.snapshot.ramses
 
-.. automodule:: pynbody.grafic
+.. automodule:: pynbody.snapshot.grafic

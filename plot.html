@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Plotting &mdash; pynbody 0.20-beta documentation</title>
+    <title>Plotting &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,8 +28,7 @@
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="index.html" />
-    <link rel="prev" title="Analysis" href="analysis.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="index.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,7 +62,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -80,15 +79,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis modules</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Plotting modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -120,10 +114,6 @@
             
               
                 
-  <li>
-    <a href="analysis.html" title="Previous Chapter: Analysis"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Analysis</span>
-    </a>
-  </li>
               
             
             
@@ -166,20 +156,20 @@
 <blockquote>
 <div><p><em>rho_units</em>: specify the density units (default is the same units as the current &#8216;rho&#8217; array)</p>
 <dl class="docutils">
-<dt><em>t_range</em>: list, array, or tuple </dt>
+<dt><em>t_range</em>: list, array, or tuple</dt>
 <dd><tt class="docutils literal"><span class="pre">size(t_range)</span></tt> must be 2. Specifies the temperature range.</dd>
-<dt><em>rho_range:</em> tuple </dt>
+<dt><em>rho_range:</em> tuple</dt>
 <dd><tt class="docutils literal"><span class="pre">size(rho_range)</span></tt> must be 2. Specifies the density range.</dd>
 </dl>
 </div></blockquote>
-<p>See <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> for other plotting keyword options</p>
+<p>See <a class="reference internal" href="reference/plot.html#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> for other plotting keyword options</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.plot.gas.temp_profile">
 <tt class="descclassname">pynbody.plot.gas.</tt><tt class="descname">temp_profile</tt><big>(</big><em>sim</em>, <em>center=True</em>, <em>r_units='kpc'</em>, <em>bin_spacing='equaln'</em>, <em>clear=True</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/gas.html#temp_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.gas.temp_profile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Centre on potential minimum, align so that the disk is in the
-x-y plane, then plot the temperature profile as a 
+x-y plane, then plot the temperature profile as a
 function of radius.</p>
 </dd></dl>
 
@@ -203,7 +193,7 @@ function of radius.</p>
 <dd>size(x_range) must be 2. Specifies the X range.</dd>
 <dt><em>y_range</em>: tuple</dt>
 <dd>size(y_range) must be 2. Specifies the Y range.</dd>
-<dt><em>gridsize</em>: (int, int) (default (100,100)) </dt>
+<dt><em>gridsize</em>: (int, int) (default (100,100))</dt>
 <dd>number of bins to use for the 2D histogram</dd>
 <dt><em>nbins</em>: int</dt>
 <dd>number of bins for the histogram - if specified, gridsize is set to (nbins,nbins)</dd>
@@ -235,16 +225,16 @@ want to weight by mass, pass the masses to weights</dd>
 <p>Behavior changes depending on which keywords are passed:</p>
 <p>If a <em>weights</em> array is supplied, produce a weighted KDE.</p>
 <p>If a <em>mass</em> array is supplied, a mass density is computed.</p>
-<p>If both <em>weights</em> and <em>mass</em> are supplied, a mass-averaged KDE of the weights is 
+<p>If both <em>weights</em> and <em>mass</em> are supplied, a mass-averaged KDE of the weights is
 computed.</p>
-<p>By default, norm=False is passed to <a class="reference internal" href="#pynbody.plot.util.fast_kde" title="pynbody.plot.util.fast_kde"><tt class="xref py py-func docutils literal"><span class="pre">fast_kde()</span></tt></a> meaning
+<p>By default, norm=False is passed to <a class="reference internal" href="reference/plot.html#pynbody.plot.util.fast_kde" title="pynbody.plot.util.fast_kde"><tt class="xref py py-func docutils literal"><span class="pre">fast_kde()</span></tt></a> meaning
 that the result returned <em>is not</em> normalized such that the integral over the area
 equals one.</p>
 </div></blockquote>
 <dl class="docutils">
 <dt>Since this function produces a density estimate, the units of the</dt>
 <dd><p class="first">output grid are different than for the output of
-<a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a>. To get to the same units,
+<a class="reference internal" href="reference/plot.html#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a>. To get to the same units,
 you must multiply by the size of the cells.</p>
 <p><strong>Input:</strong></p>
 <blockquote>
@@ -254,7 +244,7 @@ you must multiply by the size of the cells.</p>
 <p><strong>Optional keywords:</strong></p>
 <blockquote>
 <div><dl class="docutils">
-<dt><em>mass</em>: numpy array of same length as x and y </dt>
+<dt><em>mass</em>: numpy array of same length as x and y</dt>
 <dd>particle masses to be used for weighting</dd>
 <dt><em>weights</em>: numpy array of same length as x and y</dt>
 <dd>if weights is passed, color corresponds to
@@ -270,19 +260,19 @@ contours are only drawn where the mass exceeds <em>nmin</em>.</dd>
 <dd>whether or not to produce a plot</dd>
 </dl>
 </div></blockquote>
-<p><strong>Keywords passed to</strong> <a class="reference internal" href="#pynbody.plot.util.fast_kde" title="pynbody.plot.util.fast_kde"><tt class="xref py py-func docutils literal"><span class="pre">fast_kde()</span></tt></a>:</p>
+<p><strong>Keywords passed to</strong> <a class="reference internal" href="reference/plot.html#pynbody.plot.util.fast_kde" title="pynbody.plot.util.fast_kde"><tt class="xref py py-func docutils literal"><span class="pre">fast_kde()</span></tt></a>:</p>
 <blockquote>
 <div><dl class="docutils">
-<dt><em>norm</em>: boolean (default: False) </dt>
+<dt><em>norm</em>: boolean (default: False)</dt>
 <dd>If False, the output is only corrected for the kernel. If True,
-the result is normalized such that the integral over the area 
+the result is normalized such that the integral over the area
 yields 1.</dd>
 <dt><em>nocorrelation</em>: (default: False) If True, the correlation</dt>
 <dd>between the x and y coords will be ignored when preforming
 the KDE.</dd>
 </dl>
 </div></blockquote>
-<p><strong>Keywords passed to</strong> <a class="reference internal" href="#pynbody.plot.generic.make_contour_plot" title="pynbody.plot.generic.make_contour_plot"><tt class="xref py py-func docutils literal"><span class="pre">make_contour_plot()</span></tt></a>:</p>
+<p><strong>Keywords passed to</strong> <a class="reference internal" href="reference/plot.html#pynbody.plot.generic.make_contour_plot" title="pynbody.plot.generic.make_contour_plot"><tt class="xref py py-func docutils literal"><span class="pre">make_contour_plot()</span></tt></a>:</p>
 <blockquote class="last">
 <div><dl class="docutils">
 <dt><em>x_range</em>: list, array, or tuple</dt>
@@ -311,7 +301,7 @@ the KDE.</dd>
 <dd><p>Plot a contour plot of grid <em>arr</em> corresponding to bin centers
 specified by <em>xs</em> and <em>ys</em>.  Labels the axes and colobar with
 proper units taken from x</p>
-<p>Called by <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> and
+<p>Called by <a class="reference internal" href="reference/plot.html#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> and
 <tt class="xref py py-func docutils literal"><span class="pre">gauss_density()</span></tt>.</p>
 <p><strong>Input</strong>:</p>
 <blockquote>
@@ -348,12 +338,12 @@ proper units taken from x</p>
 <dt id="pynbody.plot.generic.fourier_map">
 <tt class="descclassname">pynbody.plot.generic.</tt><tt class="descname">fourier_map</tt><big>(</big><em>sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10, levels=[0.01, 0.05, 0.1, 0.2], subplot=None, ret=False, **kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/generic.html#fourier_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.generic.fourier_map" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot an overdensity map generated from a Fourier expansion of the
-particle distribution. A <a class="reference internal" href="analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a>
-is made and passed to <a class="reference internal" href="#pynbody.plot.util.inv_fourier" title="pynbody.plot.util.inv_fourier"><tt class="xref py py-func docutils literal"><span class="pre">inv_fourier()</span></tt></a> to
+particle distribution. A <a class="reference internal" href="reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a>
+is made and passed to <a class="reference internal" href="reference/plot.html#pynbody.plot.util.inv_fourier" title="pynbody.plot.util.inv_fourier"><tt class="xref py py-func docutils literal"><span class="pre">inv_fourier()</span></tt></a> to
 obtain an overdensity map. The map is plotted using the usual
 matplotlib.contour.</p>
 <p><strong>Input</strong>:</p>
-<p><em>sim</em> :  a <a class="reference internal" href="essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a> object</p>
+<p><em>sim</em> :  a <a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a> object</p>
 <p><strong>Optional Keywords</strong>:</p>
 <p><em>nbins</em> (100) : number of radial bins to use for the profile</p>
 <p><em>nmin</em> (1000) : minimum number of particles required per bin</p>
@@ -404,19 +394,19 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10bed92a8&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10b3c9050&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use <a class="reference internal" href="reference/plot.html#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
 <p><strong>Optional Keywords:</strong></p>
 <dl class="docutils">
 <dt><em>fxn</em>: a function with the same signature as functions</dt>
-<dd><a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> and
-<a class="reference internal" href="#pynbody.plot.generic.gauss_kde" title="pynbody.plot.generic.gauss_kde"><tt class="xref py py-func docutils literal"><span class="pre">gauss_kde()</span></tt></a> in
-<a class="reference internal" href="#module-pynbody.plot.generic" title="pynbody.plot.generic"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.plot.generic</span></tt></a> default:
-<a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.generic.hist2d()</span></tt></a></dd>
+<dd><a class="reference internal" href="reference/plot.html#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> and
+<a class="reference internal" href="reference/plot.html#pynbody.plot.generic.gauss_kde" title="pynbody.plot.generic.gauss_kde"><tt class="xref py py-func docutils literal"><span class="pre">gauss_kde()</span></tt></a> in
+<a class="reference internal" href="reference/plot.html#module-pynbody.plot.generic" title="pynbody.plot.generic"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.plot.generic</span></tt></a> default:
+<a class="reference internal" href="reference/plot.html#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.generic.hist2d()</span></tt></a></dd>
 </dl>
-<p>see <a class="reference internal" href="#pynbody.plot.generic.make_contour_plot" title="pynbody.plot.generic.make_contour_plot"><tt class="xref py py-func docutils literal"><span class="pre">make_contour_plot()</span></tt></a> for other
+<p>see <a class="reference internal" href="reference/plot.html#pynbody.plot.generic.make_contour_plot" title="pynbody.plot.generic.make_contour_plot"><tt class="xref py py-func docutils literal"><span class="pre">make_contour_plot()</span></tt></a> for other
 plot-related keywords.</p>
 </dd></dl>
 
@@ -465,7 +455,7 @@ function of radius.</p>
 <dd><p>Rotate the simulation so that the disc of the passed halo is
 side-on, then make an SPH image by passing the parameters into
 the function image</p>
-<p>For a description of keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>.</p>
+<p>For a description of keyword arguments see <a class="reference internal" href="reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="function">
@@ -474,14 +464,14 @@ the function image</p>
 <dd><p>Rotate the simulation so that the disc of the passed halo is
 face-on, then make an SPH image by passing the parameters into
 the function image</p>
-<p>For a description of keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>.</p>
+<p>For a description of keyword arguments see <a class="reference internal" href="reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.plot.sph.velocity_image">
 <tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">velocity_image</tt><big>(</big><em>sim</em>, <em>width='10 kpc'</em>, <em>vector_color='black'</em>, <em>edgecolor='black'</em>, <em>vector_resolution=40</em>, <em>scale=None</em>, <em>mode='quiver'</em>, <em>key_x=0.3</em>, <em>key_y=0.9</em>, <em>key_color='white'</em>, <em>key_length='100 km s**-1'</em>, <em>density=1.0</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/sph.html#velocity_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.velocity_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make an SPH image of the given simulation with velocity vectors overlaid on top.</p>
-<p>For a description of additional keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>, 
+<p>For a description of additional keyword arguments see <a class="reference internal" href="reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>,
 or see the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/pictures.html#velocity-vectors">tutorial</a>.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>vector_color</em> (black): The color for the velocity vectors</p>
@@ -537,7 +527,7 @@ the default results when av_z=True are volume-weighted).</dd>
 which the image will be shown</p>
 <p><em>noplot</em> (False): do not display the image, just return the image array</p>
 <p><em>ret_im</em> (False): return the image instance returned by imshow</p>
-<p><em>num_threads</em> (None) : if set, specify the number of threads for 
+<p><em>num_threads</em> (None) : if set, specify the number of threads for
 the multi-threaded routines; otherwise the pynbody.config default is used</p>
 <p><em>fill_nan</em> (True): if any of the image values are NaN, replace with fill_val</p>
 <p><em>fill_val</em> (0.0): the fill value to use when replacing NaNs</p>
@@ -666,7 +656,7 @@ radial annuli.</p>
 <dt id="pynbody.plot.stars.oneschmidtlawpoint">
 <tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">oneschmidtlawpoint</tt><big>(</big><em>sim</em>, <em>center=True</em>, <em>pretime='50 Myr'</em>, <em>diskheight='3 kpc'</em>, <em>rmax='20 kpc'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#oneschmidtlawpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.oneschmidtlawpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>One Schmidt Law Point</p>
-<p>Determines values for star formation surface density and gas surface 
+<p>Determines values for star formation surface density and gas surface
 density for the entire galaxy based on the half mass cold gas radius.</p>
 <p><strong>Usage:</strong>
 import pynbody.plot as pp
@@ -724,15 +714,31 @@ tipsy, this will be taken from the starlog file.</p>
 <p><em>diskheight(&#8216;3 kpc&#8217;)</em>
 <em>rmax(&#8216;20 kpc&#8217;)</em>:  Size of disk to be profiled</p>
 <dl class="docutils">
-<dt><em>binning(&#8216;equaln&#8217;)</em>:  How show bin sizes be determined? based on </dt>
+<dt><em>binning(&#8216;equaln&#8217;)</em>:  How show bin sizes be determined? based on</dt>
 <dd>pynbody.analysis.profile</dd>
 </dl>
 <p><em>center(True)</em>:  Automatically align face on and center?</p>
 <p><em>axes(False)</em>: In which axes (subplot) should it be plotted?</p>
 <p><em>filename</em> (None): name of file to which to save output</p>
 <p><strong>needs a description of all keywords</strong></p>
-<p>By default, sbprof will use the formation mass of the star.  
+<p>By default, sbprof will use the formation mass of the star.
 In tipsy, this will be taken from the starlog file.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.plot.stars.behroozi">
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">behroozi</tt><big>(</big><em>xmasses</em>, <em>z</em><big>)</big><a class="reference internal" href="_modules/pynbody/plot/stars.html#behroozi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.behroozi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Based on Behroozi+ (2013) return what stellar mass corresponds to the
+halo mass passed in.</p>
+<p><strong>Usage</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pynbody.plot.stars</span> <span class="kn">import</span> <span class="n">moster</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xmasses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">totmasshalos</span><span class="p">)),</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">totmasshalos</span><span class="p">)),</span><span class="mi">20</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ystarmasses</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n">moster</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span><span class="n">halo_catalog</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ystarmasses</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">errors</span><span class="p">),</span>
+<span class="go">                  y2=np.array(ystarmasses)*np.array(errors),</span>
+<span class="go">                  facecolor=&#39;#BBBBBB&#39;,color=&#39;#BBBBBB&#39;)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="function">
@@ -766,7 +772,7 @@ function of halo mass.</p>
 <p><strong>Options:</strong></p>
 <dl class="docutils">
 <dt><em>compare</em> (True): Should comparison line be plotted?</dt>
-<dd>If compare = &#8216;guo&#8217;, Guo+ (2010) plotted instead of Moster+ (2012)</dd>
+<dd>If compare = &#8216;guo&#8217;, Guo+ (2010) plotted instead of Behroozi+ (2013)</dd>
 </dl>
 <p><em>baryfrac</em> (False):  Should line be drawn for cosmic baryon fraction?</p>
 <p><em>filename</em> (None): name of file to which to save output</p>
@@ -827,7 +833,7 @@ yields 1.</dd>
 <dd><p>Invert a profile with fourier coefficients to yield an overdensity
 map.</p>
 <p><strong>Inputs:</strong></p>
-<p><em>p</em> : a <a class="reference internal" href="analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> object</p>
+<p><em>p</em> : a <a class="reference internal" href="reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a> object</p>
 <p><strong>Optional Keywords:</strong></p>
 <p><em>nmin</em> (1000) : minimum number of particles required per bin</p>
 <p><em>mmin</em> (1)    : lowest multiplicity Fourier component</p>
@@ -858,7 +864,7 @@ map.</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

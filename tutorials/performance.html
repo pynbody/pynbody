@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Performance optimisation in pynbody &mdash; pynbody 0.20-beta documentation</title>
+    <title>Performance optimisation in pynbody &mdash; pynbody 0.30 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.20-beta',
+        VERSION:     '0.30',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.20-beta documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Configuring pynbody" href="configuration.html" />
     <link rel="prev" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.20</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -82,15 +82,10 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Pynbody tutorials</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../loaders.html">Simulation loaders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../essentials.html">Essential generic modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../convenience.html">Convenience modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../derived.html">Derived quantities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../plot.html">Plotting modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
 </ul>
 </li>
@@ -204,7 +199,7 @@ slice the simulation (e.g. <tt class="docutils literal"><span class="pre">f[2:10
 emulating <cite>numpy</cite> arrays and this can become expensive (see below). This will
 be the cae if you ask for a list of particles (e.g. <tt class="docutils literal"><span class="pre">f[[2,10,15,22]]</span></tt>) use a <cite>numpy</cite>-like
 indexing trick (e.g. <tt class="docutils literal"><span class="pre">f[f['x']&gt;10]</span></tt> or <tt class="docutils literal"><span class="pre">f[numpy.where(f['x']&gt;10)]</span></tt>) or use a
-<a class="reference internal" href="../convenience.html#module-pynbody.filt" title="pynbody.filt"><tt class="xref py py-mod docutils literal"><span class="pre">filter</span></tt></a>.</li>
+<a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><tt class="xref py py-mod docutils literal"><span class="pre">filter</span></tt></a>.</li>
 </ul>
 </div></blockquote>
 <p>In the first case, the optimization is unchanged from the raw <cite>SimSnap</cite> case.
@@ -267,12 +262,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 222 ms, sys: 41 ms, total: 263 ms</span>
-<span class="go">Wall time: 231 ms</span>
+<span class="go">CPU times: user 296 ms, sys: 7.28 ms, total: 303 ms</span>
+<span class="go">Wall time: 298 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 20.5 ms, sys: 1.99 ms, total: 22.4 ms</span>
-<span class="go">Wall time: 20.9 ms</span>
+<span class="go">CPU times: user 39.3 ms, sys: 23.4 ms, total: 62.7 ms</span>
+<span class="go">Wall time: 45.4 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -355,7 +350,7 @@ is equivalent to <tt class="docutils literal"><span class="pre">with</span> <spa
 <p class="last">This information is provided for interest. We have never come across a realistic use case
 where the following is necessary.</p>
 </div>
-<p>In <cite>pynbody</cite>, arrays are implemented by the class <a class="reference internal" href="../essentials.html#pynbody.array.SimArray" title="pynbody.array.SimArray"><tt class="xref py py-class docutils literal"><span class="pre">SimArray</span></tt></a>. This is a wrapper
+<p>In <cite>pynbody</cite>, arrays are implemented by the class <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray" title="pynbody.array.SimArray"><tt class="xref py py-class docutils literal"><span class="pre">SimArray</span></tt></a>. This is a wrapper
 around a <cite>numpy</cite> array. There is a small extra cost associated with every operation to allow
 units to be matched and updated. For long arrays such as those found in typical simulations, this is usually a tiny fraction of the
 actual computation time. We have never found it to be a problem, but if you want to disable the
@@ -386,7 +381,7 @@ any unit handling code being called.</p>
     </p>
     <p>
         &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b1.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
     </p>
   </div>
 </footer>

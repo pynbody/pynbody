@@ -1,6 +1,6 @@
 .. snapshot_manipulation tutorial
 
-.. _snapshot_manipulation: 
+.. _snapshot_manipulation:
 
 
 Basic snapshot manipulation
@@ -30,14 +30,14 @@ will use the `ipython <http://ipython.org>`_ interpreter which offers a
 much richer interactive environment over the vanilla `python`
 interpreter. However, you can type exactly the same commands into
 vanilla `python`; only the formatting will look slightly
-different. For instance, the `ipython` prompt looks like 
+different. For instance, the `ipython` prompt looks like
 
 ::
 
   In [1]:
 
 
-while the `python` prompt looks like 
+while the `python` prompt looks like
 
 ::
 
@@ -53,11 +53,11 @@ Once `ipython` and `matplotlib` are installed, you can start the
 `ipython` shell with the ``--pylab`` flag to automatically load the
 interactive plotting environment:
 
-:: 
+::
 
   [user@domain ~]$ ipython --pylab
 
-  Python 2.7.2 |EPD 7.1-2 (64-bit)| (default, Jul 27 2011, 14:50:45) 
+  Python 2.7.2 |EPD 7.1-2 (64-bit)| (default, Jul 27 2011, 14:50:45)
   Type "copyright", "credits" or "license" for more information.
 
   IPython 0.13.1 -- An enhanced Interactive Python.
@@ -69,10 +69,10 @@ interactive plotting environment:
   Welcome to pylab, a matplotlib-based Python environment [backend: MacOSX].
   For more information, type 'help(pylab)'.
 
-  In [1]: 
+  In [1]:
 
 
-Now we can get started with the analysis. 
+Now we can get started with the analysis.
 
 
 .. note:: Before you start make sure `pynbody` is properly
@@ -80,7 +80,7 @@ Now we can get started with the analysis.
  will also need the standard `pynbody` test files, so that you can
  load the exact same data as used to write the tutorial. You need to
  download these separately here:
- <https://code.google.com/p/pynbody/downloads/list>
+ <https://github.com/pynbody/pynbody/releases>
  (`testdata.tar.gz`). You can then extract them in a directory of your
  choice with ``tar -zxvf testdata.tar.gz``
 
@@ -111,7 +111,7 @@ information on how to deal with halos):
 For later convenience, we can store the main halo in a separate
 variable:
 
-.. ipython:: 
+.. ipython::
 
  In [1]: h1 = h[1]
 
@@ -120,7 +120,7 @@ And perhaps check quickly how many particles of each type are identified there:
 
 .. ipython::
 
- In [1]: print 'ngas = %e, ndark = %e, nstar = %e\n'%(len(h1.gas),len(h1.dark),len(h1.star)) 
+ In [1]: print 'ngas = %e, ndark = %e, nstar = %e\n'%(len(h1.gas),len(h1.dark),len(h1.star))
 
 
 The halos of ``s`` are now loaded in ``h`` and ``h[1]`` yields the
@@ -136,9 +136,9 @@ interest.  The most straight-forward way to center your snapshot on a
 halo is as follows:
 
 .. ipython ::
- 
- In [4]: pynbody.analysis.halo.center(h1,mode='hyb')
 
+ In [4]: pynbody.analysis.halo.center(h1,mode='hyb')
+ Out [4]: <pynbody.transformation.GenericTranslation at 0x10a61e790>
 
 We passed ``h[1]`` to the function
 :func:`~pynbody.analysis.halo.center` to center the *entire* snapshot
@@ -211,12 +211,12 @@ to illustrate this:
 
 .. ipython::
 
- In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz'); h1 = s.halos()[1]; 
+ In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz'); h1 = s.halos()[1];
 
  In [4]: cen_hyb = pynbody.analysis.halo.center(h1,mode='hyb',retcen=True)
- 
+
  In [5]: cen_pot = pynbody.analysis.halo.center(h1,mode='pot',retcen=True)
-  
+
  In [6]: print cen_hyb
 
  In [7]: print cen_pot
@@ -232,7 +232,7 @@ it for the last step.
           center. If you perform the centering manually, this is not done.
           You have to determine the bulk velocity separately using
           :func:`~pynbody.analysis.halo.vel_center`.
-  
+
 
 Making some images
 ------------------
@@ -244,7 +244,7 @@ units first:
 .. ipython::
 
  In [5]: s.physical_units()
- 
+
  @savefig snapshot_manipulation_fig1.png width=5in
  In [9]: pynbody.plot.image(h1.g, width=100, cmap='Blues');
 
@@ -252,12 +252,12 @@ Here's a slightly more complicated example showing the larger-scale
 dark-matter distribution -- note that you can conveniently specify the
 width as a string with a unit.
 
-.. ipython:: 
+.. ipython::
 
  @savefig snapshot_manipulation_fig1_wide.png width=5in
  In [1]: pynbody.plot.image(s.d[pynbody.filt.Sphere('10 Mpc')], width='10 Mpc', units = 'Msol kpc^-2', cmap='Greys');
 
-.. note:: see the :doc:`pictures` tutorial for more examples and help regarding images. 
+.. note:: see the :doc:`pictures` tutorial for more examples and help regarding images.
 
 
 Aligning the Snapshot
@@ -287,7 +287,7 @@ want to just rotate the snapshot by arbitrary angles, the
 :func:`~pynbody.snapshot.SimSnap.rotate_x`,
 :func:`~pynbody.snapshot.SimSnap.rotate_y`,
 :func:`~pynbody.snapshot.SimSnap.rotate_z` that rotate the snapshot
-about the respective axes. 
+about the respective axes.
 
 
 We can use this to rotate the disk into a face-on orientation:
@@ -303,24 +303,24 @@ later.
 
 .. note:: High-level snapshot manipulation functions defined in
   ``pynbody.analysis`` typically transform the *entire* simulation,
-  even if you only pass in a :class:`~pynbody.snapshot.SubSnap`. This 
+  even if you only pass in a :class:`~pynbody.snapshot.SubSnap`. This
   is because you normally want to *calculate* the transform
   from a subset of particles, but *apply* the transform to the full
   simulation (e.g. when centering on a particular halo). So, for
   instance, ``pynbody.analysis.angmom.sideon(h1)`` calculates the
   transforms for halo 1, but then applies them to the entire snapshot,
-  unless you specifically ask otherwise. 
+  unless you specifically ask otherwise.
   However, *core* routines (i.e. those that are not part of the
-  ``pynbody.analysis`` module) typically operate on exactly what you 
+  ``pynbody.analysis`` module) typically operate on exactly what you
   ask them to, so ``s.g.rotate_x(90)`` rotates only the gas while
   ``s.rotate_x(90)`` rotates the entire simulation.
 
-In the face-on orientation, we may wish to make a profile of the stars: 
+In the face-on orientation, we may wish to make a profile of the stars:
 
-.. ipython:: 
+.. ipython::
 
  In [23]: ps = pynbody.analysis.profile.Profile(h1.s, min = 0.01, max = 50, type = 'log')
- 
+
  In [25]: import matplotlib.pylab as plt
 
  In [25]: plt.clf()
@@ -334,7 +334,7 @@ In the face-on orientation, we may wish to make a profile of the stars:
  @savefig snapshot_manipulation_fig3.png width=5in
  In [29]: plt.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]');
 
-We can also generate other profiles, like the rotation curve: 
+We can also generate other profiles, like the rotation curve:
 
 .. ipython::
 
@@ -358,11 +358,9 @@ We can also generate other profiles, like the rotation curve:
 See the :doc:`profile` tutorial or the
 :class:`~pynbody.analysis.profile.Profile` documentation for more
 information on available options and other profiles that you can
-generate. 
+generate.
 
 We've only touched on the basic information that `pynbody` is able to
 provide about your simulation snapshot. To learn a bit more about how
 to get closer to your data, have a look at the :ref:`data-access`
 tutorial.
-
-

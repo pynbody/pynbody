@@ -67,7 +67,7 @@ like this: ``File 'filename': format not understood or does not exist``.
 To expose the underlying problem, you need to explicitly tell pynbody
 what file format you think it is. For instance, if you have a tipsy
 file, try replacing your ``pynbody.load(filename)`` with
-``pynbody.tipsy.TipsySnap(filename)``. This will then show you the
+``pynbody.snapshot.tipsy.TipsySnap(filename)``. This will then show you the
 actual error. Most likely it's to do with file permissions, or a
 problem with a ``.param`` file. If at this point you can't see what's
 going wrong, do `drop us a line
