@@ -35,3 +35,6 @@ Analysis
 
 .. automodule:: pynbody.analysis.ramses_util
    :members:
+
+.. automodule:: pynbody.analysis.interpolate
+   :members:

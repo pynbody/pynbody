@@ -13,7 +13,8 @@ import numpy as np
 from .. import sph, config
 from .. import units as _units
 
-def sideon_image(sim, *args, **kwargs) :
+
+def sideon_image(sim, *args, **kwargs):
     """
 
     Rotate the simulation so that the disc of the passed halo is
@@ -25,11 +26,12 @@ def sideon_image(sim, *args, **kwargs) :
     """
 
     from ..analysis import angmom
-    
-    with angmom.sideon(sim) :
+
+    with angmom.sideon(sim):
         return image(sim, *args, **kwargs)
 
-def faceon_image(sim, *args, **kwargs) :
+
+def faceon_image(sim, *args, **kwargs):
     """
 
     Rotate the simulation so that the disc of the passed halo is
@@ -41,13 +43,14 @@ def faceon_image(sim, *args, **kwargs) :
     """
 
     from ..analysis import angmom
-    
-    with angmom.faceon(sim) :
+
+    with angmom.faceon(sim):
         return image(sim, *args, **kwargs)
 
+
 def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
-        vector_resolution=40, scale=None, mode = 'quiver', key_x=0.3, key_y=0.9,
-        key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
+                   vector_resolution=40, scale=None, mode='quiver', key_x=0.3, key_y=0.9,
+                   key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
     """
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
@@ -81,47 +84,57 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     *density* (1.0): Density of stream lines (stream mode only) 
 
     """
-    
-    subplot = kwargs.get('subplot',False)
-    if subplot : 
+
+    subplot = kwargs.get('subplot', False)
+    if subplot:
         p = subplot
-    else :
+    else:
         import matplotlib.pylab as p
 
-    vx = image(sim, qty='vx', width=width, log=False, resolution=vector_resolution,noplot=True)
-    vy = image(sim, qty='vy', width=width, log=False, resolution=vector_resolution,noplot=True)
+    vx = image(sim, qty='vx', width=width, log=False,
+               resolution=vector_resolution, noplot=True)
+    vy = image(sim, qty='vy', width=width, log=False,
+               resolution=vector_resolution, noplot=True)
     key_unit = _units.Unit(key_length)
 
-    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
-        if isinstance(width,str) : 
+    if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
+        if isinstance(width, str):
             width = _units.Unit(width)
-        width = width.in_units(sim['pos'].units,**sim.conversion_context())
-    
+        width = width.in_units(sim['pos'].units, **sim.conversion_context())
+
     width = float(width)
 
-    X,Y = np.meshgrid(np.arange(-width/2,width/2,width/vector_resolution),
-            np.arange(-width/2,width/2,width/vector_resolution)) 
+    X, Y = np.meshgrid(np.arange(-width / 2, width / 2, width / vector_resolution),
+                       np.arange(-width / 2, width / 2, width / vector_resolution))
 
     im = image(sim, width=width, **kwargs)
 
-    if mode == 'quiver' : 
+    if mode == 'quiver':
         if scale is None:
-            Q = p.quiver(X,Y,vx,vy, color=vector_color, edgecolor=edgecolor) 
+            Q = p.quiver(X, Y, vx, vy, color=vector_color, edgecolor=edgecolor)
         else:
-            Q = p.quiver(X,Y,vx,vy, scale=_units.Unit(scale).in_units(sim['vel'].units), color=vector_color, edgecolor=edgecolor) 
+            Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
+                sim['vel'].units), color=vector_color, edgecolor=edgecolor)
         p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
+<<<<<<< HEAD
                     r"$\mathbf{"+key_unit.latex()+"}$", labelcolor=key_color, color=key_color, fontproperties={'size':16})
     elif mode == 'stream' : 
         Q = p.streamplot(X,Y,vx,vy,color=vector_color,density=density)
+=======
+                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 16})
+    elif mode == 'stream':
+        Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
+>>>>>>> snapshot_package
 
     return im
 
-def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True, 
-          vmin=None, vmax=None, av_z = False, filename=None, 
-          z_camera=None, clear = True, cmap=None, center=False,
+
+def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
+          vmin=None, vmax=None, av_z=False, filename=None,
+          z_camera=None, clear=True, cmap=None, center=False,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
-          noplot = False, ret_im=False, fill_nan = True, fill_val=0.0, linthresh=None,
-          **kwargs) :
+          noplot=False, ret_im=False, fill_nan=True, fill_val=0.0, linthresh=None,
+          **kwargs):
     """
 
     Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial 
@@ -166,9 +179,9 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     *subplot* (False): the user can supply a AxesSubPlot instance on
     which the image will be shown
-    
+
     *noplot* (False): do not display the image, just return the image array
-    
+
     *ret_im* (False): return the image instance returned by imshow
 
     *num_threads* (None) : if set, specify the number of threads for 
@@ -177,7 +190,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     *fill_nan* (True): if any of the image values are NaN, replace with fill_val
 
     *fill_val* (0.0): the fill value to use when replacing NaNs
-    
+
     *linthresh* (None): if the image has negative and positive values
      and a log scaling is requested, the part between `-linthresh` and
      `linthresh` is shown on a linear scale to avoid divergence at 0
@@ -190,126 +203,136 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     if not noplot:
         if subplot:
             p = subplot
-        else :
+        else:
             p = plt
 
-    if isinstance(units, str) :
+    if isinstance(units, str):
         units = _units.Unit(units)
 
-    if isinstance(width,str) or issubclass(width.__class__,_units.UnitBase) : 
-        if isinstance(width,str) : 
+    if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
+        if isinstance(width, str):
             width = _units.Unit(width)
-        width = width.in_units(sim['pos'].units,**sim.conversion_context())
-    
+        width = width.in_units(sim['pos'].units, **sim.conversion_context())
+
     width = float(width)
 
     kernel = sph.Kernel()
- 
-    perspective = z_camera is not None
-    if perspective and not av_z: kernel = sph.Kernel2D()
 
-    
-    if units is not None :
-        try :
+    perspective = z_camera is not None
+    if perspective and not av_z:
+        kernel = sph.Kernel2D()
+
+    if units is not None:
+        try:
             sim[qty].units.ratio(units, **sim[qty].conversion_context())
             # if this fails, perhaps we're requesting a projected image?
 
-        except _units.UnitsException :
-            # if the following fails, there's no interpretation this routine can cope with
-            sim[qty].units.ratio(units/(sim['x'].units), **sim[qty].conversion_context())
+        except _units.UnitsException:
+            # if the following fails, there's no interpretation this routine
+            # can cope with
+            sim[qty].units.ratio(
+                units / (sim['x'].units), **sim[qty].conversion_context())
 
-            kernel = sph.Kernel2D() # if we get to this point, we want a projected image
-    
-    if av_z :
-        if isinstance(kernel, sph.Kernel2D) :
-            raise _units.UnitsException("Units already imply projected image; can't also average over line-of-sight!")
-        else :
+            # if we get to this point, we want a projected image
             kernel = sph.Kernel2D()
-            if units is not None :
-                aunits = units*sim['z'].units
-            else :
+
+    if av_z:
+        if isinstance(kernel, sph.Kernel2D):
+            raise _units.UnitsException(
+                "Units already imply projected image; can't also average over line-of-sight!")
+        else:
+            kernel = sph.Kernel2D()
+            if units is not None:
+                aunits = units * sim['z'].units
+            else:
                 aunits = None
 
-            if isinstance(av_z, str) :
-                if units is not None: 
-                    aunits = units*sim[av_z].units*sim['z'].units
-                sim["__prod"] = sim[av_z]*sim[qty]
+            if isinstance(av_z, str):
+                if units is not None:
+                    aunits = units * sim[av_z].units * sim['z'].units
+                sim["__prod"] = sim[av_z] * sim[qty]
                 qty = "__prod"
-                
-            else :
+
+            else:
                 av_z = "__one"
-                sim["__one"]=np.ones_like(sim[qty])
-                sim["__one"].units="1"
-                
-            im = sph.render_image(sim,qty,width/2,resolution,out_units=aunits, kernel = kernel, 
-                                          z_camera=z_camera, **kwargs)
-            im2 = sph.render_image(sim, av_z, width/2, resolution, kernel=kernel, 
-                                           z_camera=z_camera, **kwargs)
-            
+                sim["__one"] = np.ones_like(sim[qty])
+                sim["__one"].units = "1"
+
+            im = sph.render_image(sim, qty, width / 2, resolution, out_units=aunits, kernel=kernel,
+                                  z_camera=z_camera, **kwargs)
+            im2 = sph.render_image(sim, av_z, width / 2, resolution, kernel=kernel,
+                                   z_camera=z_camera, **kwargs)
+
             top = sim.ancestor
 
             try:
                 del top["__one"]
-            except KeyError :
+            except KeyError:
                 pass
 
             try:
                 del top["__prod"]
-            except KeyError :
+            except KeyError:
                 pass
-    
-            im = im/im2
-         
-    else :
-        im = sph.render_image(sim,qty,width/2,resolution,out_units=units, 
-                                      kernel = kernel,  z_camera = z_camera, **kwargs)
 
-    if fill_nan : 
+            im = im / im2
+
+    else:
+        im = sph.render_image(sim, qty, width / 2, resolution, out_units=units,
+                              kernel=kernel,  z_camera=z_camera, **kwargs)
+
+    if fill_nan:
         im[np.isnan(im)] = fill_val
 
     if not noplot:
-        
-        # set the log or linear normalizations        
-        if log :
+
+        # set the log or linear normalizations
+        if log:
             try:
-                im[np.where(im==0)] = abs(im[np.where(abs(im!=0))]).min()
+                im[np.where(im == 0)] = abs(im[np.where(abs(im != 0))]).min()
             except ValueError:
                 raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
 
-            # check if there are negative values -- if so, use the symmetric log normalization
-            if (im < 0).any() : 
+            # check if there are negative values -- if so, use the symmetric
+            # log normalization
+            if (im < 0).any():
 
-                # need to set the linear regime around zero -- set to by default start at 1/1000 of the log range
-                if linthresh is None: linthresh = np.nanmax(abs(im))/1000. 
-                norm = matplotlib.colors.SymLogNorm(linthresh,vmin=vmin,vmax=vmax)
-            else : 
-                norm = matplotlib.colors.LogNorm(vmin=vmin,vmax=vmax)
+                # need to set the linear regime around zero -- set to by
+                # default start at 1/1000 of the log range
+                if linthresh is None:
+                    linthresh = np.nanmax(abs(im)) / 1000.
+                norm = matplotlib.colors.SymLogNorm(
+                    linthresh, vmin=vmin, vmax=vmax)
+            else:
+                norm = matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax)
 
-        else : 
-            norm = matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+        else:
+            norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
 
         #
         # do the actual plotting
         #
-        if clear and not subplot : p.clf()
+        if clear and not subplot:
+            p.clf()
 
         if ret_im:
-            return p.imshow(im[::-1,:].view(np.ndarray),extent=(-width/2,width/2,-width/2,width/2), 
-                     vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
+            return p.imshow(im[::-1, :].view(np.ndarray), extent=(-width / 2, width / 2, -width / 2, width / 2),
+                            vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
 
-        ims = p.imshow(im[::-1,:].view(np.ndarray),extent=(-width/2,width/2,-width/2,width/2), 
+        ims = p.imshow(im[::-1, :].view(np.ndarray), extent=(-width / 2, width / 2, -width / 2, width / 2),
                        vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
 
         u_st = sim['pos'].units.latex()
         if not subplot:
-            plt.xlabel("$x/%s$"%u_st)
-            plt.ylabel("$y/%s$"%u_st)
-        else :
-            p.set_xlabel("$x/%s$"%u_st)
-            p.set_ylabel("$y/%s$"%u_st)
+            plt.xlabel("$x/%s$" % u_st)
+            plt.ylabel("$y/%s$" % u_st)
+        else:
+            p.set_xlabel("$x/%s$" % u_st)
+            p.set_ylabel("$y/%s$" % u_st)
 
-        if units is None :
+        if units is None:
             units = im.units
+<<<<<<< HEAD
        
         if log :
             units = r"$\log_{10}\,"+units.latex()+"$"
@@ -318,51 +341,58 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
                 units=""
             else:
                 units = "$"+units.latex()+"$"
+=======
+
+        units = "$" + units.latex() + "$"
+>>>>>>> snapshot_package
 
         if show_cbar:
-            if qtytitle is not None: plt.colorbar(ims).set_label(qtytitle)
-            else:                    plt.colorbar(ims).set_label(units)
+            if qtytitle is not None:
+                plt.colorbar(ims).set_label(qtytitle)
+            else:
+                plt.colorbar(ims).set_label(units)
         # colorbar doesn't work wtih subplot:  mappable is NoneType
-        #elif show_cbar:
+        # elif show_cbar:
         #    import matplotlib.pyplot as mpl
         #    if qtytitle: mpl.colorbar().set_label(qtytitle)
         #    else:        mpl.colorbar().set_label(units)
 
         if title is not None:
-            if not subplot: 
+            if not subplot:
                 p.title(title)
-            else :
+            else:
                 p.set_title(title)
-            
+
         if filename is not None:
             p.savefig(filename)
-               
+
         plt.draw()
         # plt.show() - removed by AP on 30/01/2013 - this should not be here as
-        #              for some systems you don't get back to the command prompt
+        # for some systems you don't get back to the command prompt
 
     return im
+
 
 def image_radial_profile(im, bins=100):
 
     xsize, ysize = np.shape(im)
-    x = np.arange(-xsize/2, xsize/2)
-    y = np.arange(-ysize/2, ysize/2)
-    xs, ys = np.meshgrid(x,y)
-    rs = np.sqrt(xs**2 + ys**2)
-    hist, bin_edges = np.histogram(rs,bins=bins)
+    x = np.arange(-xsize / 2, xsize / 2)
+    y = np.arange(-ysize / 2, ysize / 2)
+    xs, ys = np.meshgrid(x, y)
+    rs = np.sqrt(xs ** 2 + ys ** 2)
+    hist, bin_edges = np.histogram(rs, bins=bins)
     inds = np.digitize(rs.flatten(), bin_edges)
     ave_vals = np.zeros(bin_edges.size)
     max_vals = np.zeros(bin_edges.size)
     min_vals = np.zeros(bin_edges.size)
     for i in np.arange(bin_edges.size):
         try:
-            min_vals[i] = np.min(10**(im.flatten()[np.where(inds == i)]))
+            min_vals[i] = np.min(10 ** (im.flatten()[np.where(inds == i)]))
         except ValueError:
             min_vals[i] = float('nan')
-        ave_vals[i] = np.mean(10**(im.flatten()[np.where(inds == i)]))
+        ave_vals[i] = np.mean(10 ** (im.flatten()[np.where(inds == i)]))
         try:
-            max_vals[i] = np.max(10**(im.flatten()[np.where(inds == i)]))
+            max_vals[i] = np.max(10 ** (im.flatten()[np.where(inds == i)]))
         except ValueError:
             max_vals[i] = float('nan')
 

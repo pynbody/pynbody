@@ -1,0 +1,108 @@
+import numpy as np
+cimport numpy as np
+cimport cython
+cimport libc.math as cmath
+from libc.math cimport atan, pow
+from libc.stdlib cimport malloc, free
+
+
+ctypedef fused fused_float:
+    np.float32_t
+    np.float64_t
+
+ctypedef fused fused_int:
+    np.int32_t
+    np.int64_t
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def find_boundaries(np.ndarray[np.long_t, ndim=1] ordered) :
+    """Given an ascending-ordered integer array starting at zero, return an array that gives the first
+    element for each number. For example, calling with [0,0,0,1,2,2,3] should return [0,3,4,6]."""
+
+    cdef np.ndarray[np.long_t, ndim=1] boundaries = np.zeros(ordered[len(ordered)-1]+1,dtype=int) - 1
+    cdef int n, size = len(ordered), current=ordered[0]-1
+
+    ordered[0] = 0
+    with nogil :
+        for n in range(size) :
+            if current<ordered[n] :
+                current = ordered[n]
+                boundaries[current] = n
+
+
+    return boundaries
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def _grid_gen_from_slice(sl, int nx, int ny, int nz, np.ndarray[fused_float, ndim=2] pos):
+    cdef float x,y,z
+    cdef int i,n, start, stop, step
+
+    start = sl.start
+    stop = sl.stop
+    step = sl.step
+
+    if step is None:
+        step = 1
+
+    with nogil:
+        n = start
+        i=0
+        while n<stop :
+            x=n%nx
+            y=(n//nx)%ny
+            z=(n//(nx*ny))%nz
+            pos[i,0]=(<fused_float>(x)+0.5)/nx
+            pos[i,1]=(<fused_float>(y)+0.5)/ny
+            pos[i,2]=(<fused_float>(z)+0.5)/nz
+            i+=1
+            n+=step
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def _grid_gen_from_indices(np.ndarray[fused_int, ndim=1] ind, int nx, int ny, int nz, np.ndarray[fused_float, ndim=2] pos):
+    cdef float x,y,z
+    cdef int i,n_i,N=len(ind)
+
+
+    with nogil:
+        for i in range(N):
+            n_i = ind[i]
+            x=n_i%nx
+            y=(n_i//nx)%ny
+            z=(n_i//(nx*ny))%nz
+            pos[i,0]=(<fused_float>(x)+0.5)/nx
+            pos[i,1]=(<fused_float>(y)+0.5)/ny
+            pos[i,2]=(<fused_float>(z)+0.5)/nz
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def grid_gen(indices_or_slice,  nx,  ny,  nz, pos=None):
+    """Generate the x,y,z grid coordinates in the interval (0,1) for the
+    specified indices (relative to the start of a GrafIC file) or slice of the
+    file. nx,ny,nz are the number of particles in each dimension (presumably
+    the same for all sane cases, but the file format allows for different
+    values). If *pos* is not None, copy the results into the array; otherwise
+    create a new array for the results and return it."""
+
+    from . import util
+
+    if pos is None:
+        pos = np.empty((util.indexing_length(indices_or_slice), 3),dtype=float)
+
+    if isinstance(indices_or_slice, slice):
+        _grid_gen_from_slice(indices_or_slice,nx,ny,nz,pos)
+    else:
+        _grid_gen_from_indices(np.asarray(indices_or_slice),nx,ny,nz,pos)
+
+    return pos
+
+__all__ = ['grid_gen','find_boundaries']

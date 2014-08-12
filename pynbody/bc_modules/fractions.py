@@ -21,7 +21,7 @@ def gcd(a, b):
     b is divided by it, the result comes out positive).
     """
     while b:
-        a, b = b, a%b
+        a, b = b, a % b
     return a
 
 
@@ -40,6 +40,7 @@ _RATIONAL_FORMAT = re.compile(r"""
 
 
 class Fraction(Rational):
+
     """This class implements rational numbers.
 
     Fraction(8, 6) will produce a rational number equivalent to
@@ -70,13 +71,14 @@ class Fraction(Rational):
                 input = numerator
                 m = _RATIONAL_FORMAT.match(input)
                 if m is None:
-                    raise ValueError('Invalid literal for Fraction: %r' % input)
+                    raise ValueError(
+                        'Invalid literal for Fraction: %r' % input)
                 numerator = m.group('num')
                 decimal = m.group('decimal')
                 if decimal:
                     # The literal is a decimal number.
                     numerator = int(numerator + decimal)
-                    denominator = 10**len(decimal)
+                    denominator = 10 ** len(decimal)
                 else:
                     # The literal is an integer or fraction.
                     numerator = int(numerator)
@@ -181,17 +183,17 @@ class Fraction(Rational):
         p0, q0, p1, q1 = 0, 1, 1, 0
         n, d = self._numerator, self._denominator
         while True:
-            a = n//d
-            q2 = q0+a*q1
+            a = n // d
+            q2 = q0 + a * q1
             if q2 > max_denominator:
                 break
-            p0, q0, p1, q1 = p1, q1, p0+a*p1, q2
-            n, d = d, n-a*d
+            p0, q0, p1, q1 = p1, q1, p0 + a * p1, q2
+            n, d = d, n - a * d
 
-        k = (max_denominator-q0)//q1
-        bound1 = Fraction(p0+k*p1, q0+k*q1)
+        k = (max_denominator - q0) // q1
+        bound1 = Fraction(p0 + k * p1, q0 + k * q1)
         bound2 = Fraction(p1, q1)
-        if abs(bound2 - self) <= abs(bound1-self):
+        if abs(bound2 - self) <= abs(bound1 - self):
             return bound2
         else:
             return bound1

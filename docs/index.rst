@@ -14,7 +14,7 @@ simulations. We recommend you get started by reading about
 :ref:`pynbody-installation` and trying the :ref:`tutorials`. We are
 happy to provide further assistance via our
 `user group email list
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. 
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
 
 Installation and first steps
@@ -22,12 +22,12 @@ Installation and first steps
 
 Consult the :doc:`installation` documentation for instructions on how
 to get going. Then you might like to download some `test data
-<https://code.google.com/p/pynbody/downloads/list>`_ and try out the
+<https://github.com/pynbody/pynbody/releases>`_ and try out the
 :ref:`first steps tutorial <snapshot_manipulation>` or a :ref:`lower-level
 data access walkthrough <data-access>`.
 
 
-.. _getting-help: 
+.. _getting-help:
 
 Getting Help
 ------------
@@ -44,7 +44,7 @@ easy as putting a `?` at the end of a command:
 
    In [1]: import pynbody
 
-   In [2]: pynbody.load? 
+   In [2]: pynbody.load?
 
 
 Common Pitfalls
@@ -56,36 +56,26 @@ greeted you with a complicated error message, the fix might be
 described in :doc:`pitfalls`.
 
 
-Pynbody Users Group
-^^^^^^^^^^^^^^^^^^^
+Pynbody user group and issue tracker
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you find yourself stuck, don't hesitate to post a message to the
 `users group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. If
-you'd like to take part in the development of pynbody, joining the
-`developer group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev>`_ is
-a good idea. If you have a Google account you can join the groups
+<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
+  If you have a Google account you can join the groups
 easily, but if you don't have one please click on the `About` button
 of the group you are interested in and contact the owner.
 
-Reporting Issues
-^^^^^^^^^^^^^^^^
+We have found that most development discussion takes place within our
+`github issue tracker<https://github.com/pynbody/pynbody/issues>`_ -- if you
+encounter a problem, feel free to create an issue there.
 
 We really value feedback from users, especially when things are not
 working correctly because this is the best way for us to correct
-bugs. Please let us know if you find strange behavior or if you have
-ideas for improvements. The best way to do this is via the `users
-group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_
-or the `issues page <https://github.com/pynbody/pynbody/issues>`_ on
-the `Pynbody Github site
-<https://github.com/pynbody/pynbody/>`_. The documentation in particular
-is in a state of flux so if you find an error in any of the tutorials
-let us know asap. If you use the code regularly for your projects,
-consider becoming a contributor and join the `developer group
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-dev>`_
+bugs.  This includes any problems you encounter with documentation.
 
+If you use the code regularly for your projects, please consider contributing
+your code back using a pull request.
 
 .. _acknowledging-pynbody:
 
@@ -124,7 +114,7 @@ information for the seasoned users.
 .. toctree::
    :maxdepth: 2
 
-   Pynbody tutorials <tutorials/tutorials>   
+   Pynbody tutorials <tutorials/tutorials>
 
 
 Reference
@@ -132,12 +122,10 @@ Reference
 
 .. toctree::
    :maxdepth: 3
-   
+
    Simulation loaders <loaders>
-   Essential generic modules <essentials>   
+   Essential generic modules <essentials>
    Convenience modules <convenience>
    Derived quantities <derived>
    Analysis modules <analysis>
    Plotting modules <plot>
-
-

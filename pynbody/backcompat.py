@@ -1,7 +1,8 @@
-import sys, __builtin__
+import sys
+import __builtin__
 
 
-if sys.version_info[:2] <= (2, 5) :
+if sys.version_info[:2] <= (2, 5):
 
     from .bc_modules import fractions
 
@@ -38,16 +39,14 @@ if sys.version_info[:2] <= (2, 5) :
             return cls_ns[propname]
 
 
-
-else :
+else:
     property = __builtin__.property
     import fractions
 
 
-if sys.version_info[:2] <= (2,6) :
+if sys.version_info[:2] <= (2, 6):
     from .bc_modules import ordered_dict
     from bc_modules.ordered_dict import OrderedDict
-else :
+else:
     import collections
     from collections import OrderedDict
-    

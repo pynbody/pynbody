@@ -10,7 +10,9 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 __all__ = ["Number", "Complex", "Real", "Rational", "Integral"]
 
+
 class Number(object):
+
     """All numbers inherit from this class.
 
     If you just want to check if an argument x is a number, without
@@ -22,15 +24,16 @@ class Number(object):
     __hash__ = None
 
 
-## Notes on Decimal
-## ----------------
-## Decimal has all of the methods specified by the Real abc, but it should
-## not be registered as a Real because decimals do not interoperate with
-## binary floats (i.e.  Decimal('3.14') + 2.71828 is undefined).  But,
-## abstract reals are expected to interoperate (i.e. R1 + R2 should be
-## expected to work if R1 and R2 are both Reals).
+# Notes on Decimal
+# ----------------
+# Decimal has all of the methods specified by the Real abc, but it should
+# not be registered as a Real because decimals do not interoperate with
+# binary floats (i.e.  Decimal('3.14') + 2.71828 is undefined).  But,
+# abstract reals are expected to interoperate (i.e. R1 + R2 should be
+# expected to work if R1 and R2 are both Reals).
 
 class Complex(Number):
+
     """Complex defines the operations that work on the builtin complex type.
 
     In short, those are: a conversion to complex, .real, .imag, +, -,
@@ -46,6 +49,7 @@ class Complex(Number):
         """Return a builtin complex instance. Called for complex(self)."""
 
     # Will be __bool__ in 3.0.
+
     def __nonzero__(self):
         """True if self != 0. Called for bool(self)."""
         return self != 0
@@ -164,6 +168,7 @@ Complex.register(complex)
 
 
 class Real(Complex):
+
     """To Complex, Real adds the operations that work on real numbers.
 
     In short, those are: a conversion to float, trunc(), divmod,
@@ -263,6 +268,7 @@ Real.register(float)
 
 
 class Rational(Real):
+
     """.numerator and .denominator should be in lowest terms."""
 
     @abstractproperty
@@ -286,6 +292,7 @@ class Rational(Real):
 
 
 class Integral(Rational):
+
     """Integral adds a conversion to long and the bit-string operations."""
 
     @abstractmethod
