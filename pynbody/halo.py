@@ -347,7 +347,7 @@ class RockstarCatalogue(HaloCatalogue):
             self._halos[hn]=Halo(hn, self, self.base,self._iord_to_fpos[h_i])
             self._halos[hn]._descriptor = "halo_"+str(hn)
             # properties are in Msun / h, Mpc / h
-            self._halos[hn].properties = self._haloprops[h]
+            self._halos[hn].properties.update(dict(zip(self._haloprops[h][0].dtype.names,self._haloprops[h][0])))
 
 
     def _load_ahf_substructure(self, filename):
