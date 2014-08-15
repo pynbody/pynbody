@@ -10,33 +10,36 @@ Pynbody Documentation
 Welcome to the documentation for `pynbody
 <http://pynbody.github.io>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
-simulations. We recommend you get started by reading about
+simulations, supporting python 2.6+ and 3.3+.
+
+We recommend you get started by reading about
 :ref:`pynbody-installation` and trying the :ref:`tutorials`. We are
 happy to provide further assistance via our
 `user group email list
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
-
-Installation and first steps
-----------------------------
+Where next?
+-----------
 
 Consult the :doc:`installation` documentation for instructions on how
 to get going. Then you might like to download some `test data
 <https://github.com/pynbody/pynbody/releases>`_ and try out the
-:ref:`first steps tutorial <snapshot_manipulation>` or a :ref:`lower-level
-data access walkthrough <data-access>`.
+:ref:`first steps tutorial <snapshot_manipulation>` which gets straight
+to some of pynbody's analysis features. Or, if you prefer to learn
+a little more of how your data is organized, we also provide a :ref:`data
+access walkthrough <data-access>`.
+
+Our full documentation is organized into three sections:
+
+.. toctree::
+   :maxdepth: 1
+
+   Installation <installation>
+   Tutorials & walkthroughs <tutorials/tutorials>
+   Reference <reference/index>
 
 
-.. _getting-help:
-
-Getting Help
-------------
-
-Tutorials, Reference Documentation and Online Help
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To get started with `Pynbody`, see the tutorials and reference guide
-below. All of the information in the reference guide is also available
+All of the information in the reference guide is also available
 through the interactive python help system. In ipython, this is as
 easy as putting a `?` at the end of a command:
 
@@ -47,19 +50,16 @@ easy as putting a `?` at the end of a command:
    In [2]: pynbody.load?
 
 
-Common Pitfalls
-^^^^^^^^^^^^^^^
 
-We are compiling a list of common problems users might experience. If
-you just installed pynbody and upon trying some fancy analysis it
-greeted you with a complicated error message, the fix might be
-described in :doc:`pitfalls`.
+.. _getting-help:
 
+Seeking Further Assistance
+---------------------------
 
-Pynbody user group and issue tracker
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If the tutorials and reference documentation don't answer your question,
+any problem might be described in :doc:`pitfalls`.
 
-If you find yourself stuck, don't hesitate to post a message to the
+If you still find yourself stuck, don't hesitate to post a message to the
 `users group
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 If you have a Google account you can join the groups
@@ -96,26 +96,3 @@ using the following BibTex::
      note = {Astrophysics Source Code Library, ascl:1305.002},
      year = 2013
    }
-
-
-Tutorials
----------
-
-The :ref:`tutorials <tutorials>` are not a complete guide to Pynbody, but they will help
-you get started.
-
-
-Reference
--------------
-
-The reference documentation is intended to fill in some details of things
-that aren't included in the tutorials and is largely generated from the
-python docstrings.
-
-.. toctree::
-   :maxdepth: 1
-
-   Welcome <index>
-   Installation <installation>
-   Tutorials & walkthroughs <tutorials/tutorials>
-   Reference <reference/index>
