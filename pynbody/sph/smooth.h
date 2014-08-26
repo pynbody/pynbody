@@ -39,7 +39,7 @@ typedef struct smContext {
 	float *fList;
 	int *pList;
 #ifdef THREADING
-	pthread_mutex_t mutex;
+	pthread_mutex_t *pMutex;
 #endif
 
     int pin,pi,pNext;

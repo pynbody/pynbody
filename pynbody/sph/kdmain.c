@@ -363,7 +363,6 @@ PyObject *populate(PyObject *self, PyObject *args)
         case PROPID_HSM:
 
           Py_BEGIN_ALLOW_THREADS
-          pthread_mutex_lock(&smx_local->mutex);
             for (i=0; i < n_particles; i++)
               {
                 nCnt = smSmoothStep(smx_local, NULL);
@@ -372,7 +371,6 @@ PyObject *populate(PyObject *self, PyObject *args)
                 SET(kd->p[smx_local->pi].iOrder, kd->p[smx_local->pi].fSmooth);
                 // *((double*)PyArray_GETPTR1(dest, kd->p[smx_local->pi].iOrder)) = kd->p[smx_local->pi].fSmooth;
               }
-          pthread_mutex_unlock(&smx_local->mutex);
           Py_END_ALLOW_THREADS
 
           break;

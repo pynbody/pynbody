@@ -59,7 +59,9 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	pthread_mutexattr_init(&Attr);
 	pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_RECURSIVE);
 
-	if (pthread_mutex_init(&smx->mutex, &Attr) != 0)
+	smx->pMutex = malloc(sizeof(pthread_mutex_t));
+
+	if (pthread_mutex_init(smx->pMutex, &Attr) != 0)
 	{
     free(smx);
     return(0);
@@ -94,7 +96,7 @@ SMX smInitThreadLocalCopy(SMX from) {
 	for (pi=0;pi<smx->kd->nActive;++pi) {
 		smx->iMark[pi] = 0;
 	}
-	smx->mutex = from->mutex;
+	smx->pMutex = from->pMutex;
 	smInitPriorityQueue(smx);
 	return smx;
 }
@@ -115,7 +117,8 @@ void smFinish(SMX smx)
 	free(smx->pq);
 	free(smx->fList);
 	free(smx->pList);
-	pthread_mutex_destroy(&smx->mutex);
+	pthread_mutex_destroy(smx->pMutex);
+	free(smx->pMutex);
 	free(smx);
 
 }
@@ -340,7 +343,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 	ay = smx->ay;
 	az = smx->az;
 
-	pthread_mutex_lock(&smx->mutex);
+	pthread_mutex_lock(smx->pMutex);
 
 	if (smx->pfBall2[pin] >= 0) {
 		// the first particle we are supposed to smooth is
@@ -359,7 +362,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		if (pNext == smx->kd->nActive) {
 			// Nothing remains to be done.
 
-			pthread_mutex_unlock(&smx->mutex);
+			pthread_mutex_unlock(smx->pMutex);
 			return -1;
 		}
 
@@ -426,7 +429,10 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		az = 0.0;
 	}
 
+	pthread_mutex_unlock(smx->pMutex);
 	smBallSearch(smx,smx->pqHead->fKey,p[pi].r);
+  pthread_mutex_lock(smx->pMutex);
+
 	smx->pfBall2[pi] = smx->pqHead->fKey;
 	p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
 	/*
@@ -455,6 +461,8 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		smx->fList[nCnt++] = pq->fKey;
 
 		if (smx->pfBall2[pq->p] >= 0) continue; // already done, don't re-do
+
+
 		if (pq->fKey < h2) {
 			pin = pq->p;
 			h2 = pq->fKey;
@@ -473,7 +481,8 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 	smx->ax = ax;
 	smx->ay = ay;
 	smx->az = az;
-	pthread_mutex_unlock(&smx->mutex);
+
+	pthread_mutex_unlock(smx->pMutex);
 	return nCnt;
 }
 
