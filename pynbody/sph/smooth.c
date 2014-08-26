@@ -17,7 +17,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	root = &kd->kdNodes[ROOT];
 	assert(root != NULL);
 	/*
-	 ** Check to make sure that the bounds of the simulation agree 
+	 ** Check to make sure that the bounds of the simulation agree
 	 ** with the period specified, if not cause an error.
 	 */
 	for (j=0;j<3;++j) {
@@ -52,10 +52,61 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 		smx->kd->p[pi].fVel2 = 0.0;
 		smx->kd->p[pi].fDivv = 0.0;
 		}
-	*psmx = smx;	
+
+	#ifdef THREADING
+	pthread_mutexattr_t Attr;
+
+	pthread_mutexattr_init(&Attr);
+	pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_RECURSIVE);
+
+	if (pthread_mutex_init(&smx->mutex, &Attr) != 0)
+	{
+    free(smx);
+    return(0);
+  }
+
+
+	#endif
+	*psmx = smx;
 	return(1);
 	}
 
+SMX smInitThreadLocalCopy(SMX from) {
+
+	SMX smx;
+	KDN *root;
+	int pi,j;
+	int bError=0;
+
+	root = &from->kd->kdNodes[ROOT];
+
+	smx = (SMX)malloc(sizeof(struct smContext)); assert(smx != NULL);
+	smx->kd = from->kd;
+	smx->nSmooth = from->nSmooth;
+	smx->pq = (PQ *)malloc(from->nSmooth*sizeof(PQ));                     assert(smx->pq != NULL);
+	PQ_INIT(smx->pq,from->nSmooth);
+	smx->pfBall2 = from->pfBall2;
+	smx->iMark = (char *)malloc(from->kd->nActive*sizeof(char));          assert(smx->iMark != NULL);
+	smx->nListSize = from->nListSize;
+	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
+	smx->pList = (int *)malloc(smx->nListSize*sizeof(int));         assert(smx->pList != NULL);
+	for (j=0;j<3;++j) smx->fPeriod[j] = from->fPeriod[j];
+	for (pi=0;pi<smx->kd->nActive;++pi) {
+		smx->iMark[pi] = 0;
+	}
+	smx->mutex = from->mutex;
+	smInitPriorityQueue(smx);
+	return smx;
+}
+
+void smFinishThreadLocalCopy(SMX smx)
+{
+	free(smx->pq);
+	free(smx->fList);
+	free(smx->pList);
+	free(smx->iMark);
+	free(smx);
+}
 
 void smFinish(SMX smx)
 {
@@ -64,8 +115,10 @@ void smFinish(SMX smx)
 	free(smx->pq);
 	free(smx->fList);
 	free(smx->pList);
+	pthread_mutex_destroy(&smx->mutex);
 	free(smx);
-	}
+
+}
 
 
 void smBallSearch(SMX smx,float fBall2,float *ri)
@@ -199,11 +252,11 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 				  }
 				  smx->fList[nCnt] = fDist2;
 				  smx->pList[nCnt++] = pj;
-				  
+
 				}
-				
+
 			}
-			
+
 			}
 	GetNextCell:
 		SETNEXT(cp);
@@ -218,9 +271,9 @@ void smSmoothInitStep(SMX smx)
 {
 	KDN *c;
 	PARTICLE *p;
-    PQ *pq,*pqLast;
+  PQ *pq,*pqLast;
 	int pi,pin,pj,pNext,nSmooth;
-    float ax,ay,az;
+  float ax,ay,az;
 
 	c = smx->kd->kdNodes;
 	p = smx->kd->p;
@@ -231,175 +284,198 @@ void smSmoothInitStep(SMX smx)
 	for (pi=0;pi<smx->kd->nActive;++pi) {
 		smx->iMark[pi] = 0;
 		}
-	pqLast = &smx->pq[smx->nSmooth-1];
-	nSmooth = smx->nSmooth;
+
+
+	smInitPriorityQueue(smx);
+}
+
+void smInitPriorityQueue(SMX smx) {
 	/*
 	 ** Initialize Priority Queue.
 	 */
+
+	PARTICLE *p;
+	PQ *pq,*pqLast;
+	int pi,pin,pj,pNext,nSmooth;
+	float ax,ay,az;
+
+	pqLast = &smx->pq[smx->nSmooth-1];
+	nSmooth = smx->nSmooth;
 	pin = 0;
 	pNext = 1;
 	ax = 0.0;
 	ay = 0.0;
 	az = 0.0;
+
 	for (pq=smx->pq,pj=0;pq<=pqLast;++pq,++pj) {
 		smx->iMark[pj] = 1;
 		pq->p = pj;
 		pq->ax = ax;
 		pq->ay = ay;
 		pq->az = az;
-		}
-
-    smx->pin = pin;
-    smx->pNext = pNext;
-    smx->ax = ax;
-    smx->ay = ay;
-    smx->az = az;
 	}
+  smx->pin = pin;
+  smx->pNext = pNext;
+  smx->ax = ax;
+  smx->ay = ay;
+  smx->az = az;
+}
 
 int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 {
-       KDN *c;
-       PARTICLE *p;
-       PQ *pq,*pqLast;
-       int cell;
-       int pi,pin,pj,pNext,nCnt,nSmooth;
-       float dx,dy,dz,x,y,z,h2,ax,ay,az;
+	KDN *c;
+	PARTICLE *p;
+	PQ *pq,*pqLast;
+	int cell;
+	int pi,pin,pj,pNext,nCnt,nSmooth;
+	float dx,dy,dz,x,y,z,h2,ax,ay,az;
 
-       c = smx->kd->kdNodes;
-       p = smx->kd->p;
-       pqLast = &smx->pq[smx->nSmooth-1];
-       nSmooth = smx->nSmooth;
-       pin = smx->pin;
-       pNext = smx->pNext;
-       ax = smx->ax;
-       ay = smx->ay;
-       az = smx->az;
+	c = smx->kd->kdNodes;
+	p = smx->kd->p;
+	pqLast = &smx->pq[smx->nSmooth-1];
+	nSmooth = smx->nSmooth;
+	pin = smx->pin;
+	pNext = smx->pNext;
+	ax = smx->ax;
+	ay = smx->ay;
+	az = smx->az;
 
-	while (1) {
-		if (smx->pfBall2[pin] >= 0) {
-			/*
-			 ** Find next particle which is not done, and load the
-			 ** priority queue with nSmooth number of particles.
-			 */
+	pthread_mutex_lock(&smx->mutex);
+
+	if (smx->pfBall2[pin] >= 0) {
+		// the first particle we are supposed to smooth is
+		// actually already done. We need to search for another
+		// suitable candidate. Preferably a long way away from other
+		// threads, if this is threaded.
+
+		while (smx->pfBall2[pNext] >= 0) ++pNext;
+
+		if (pNext == smx->kd->nActive) {
+			// Hit the end of the particle list. Try wrapping around.
+			pNext = 0;
 			while (smx->pfBall2[pNext] >= 0) ++pNext;
-			/*
-			 ** Check if we are really finished.
-			 */
-			if (pNext == smx->kd->nActive) return 0;
-			pi = pNext;
-			++pNext;
-			x = p[pi].r[0];
-			y = p[pi].r[1];
-			z = p[pi].r[2];
-			/*
-			 ** First find the "local" Bucket.
-			 ** This could mearly be the closest bucket to ri[3].
-			 */
-			cell = ROOT;
-			while (cell < smx->kd->nSplit) {
-				if (p[pi].r[c[cell].iDim] < c[cell].fSplit)
-					cell = LOWER(cell);
-				else
-					cell = UPPER(cell);
-				}
-			/*
-			 ** Remove everything from the queue.
-			 */
-			smx->pqHead = NULL;
-			for (pq=smx->pq;pq<=pqLast;++pq) smx->iMark[pq->p] = 0;
-			/*
-			 ** Add everything from pj up to and including pj+nSmooth-1.
-			 */
-			pj = c[cell].pLower;
-			if (pj > smx->kd->nActive - nSmooth)
-				pj = smx->kd->nActive - nSmooth;
-			for (pq=smx->pq;pq<=pqLast;++pq) {
-				smx->iMark[pj] = 1;
-				dx = x - p[pj].r[0];
-				dy = y - p[pj].r[1];
-				dz = z - p[pj].r[2];
-				pq->fKey = dx*dx + dy*dy + dz*dz;
-				pq->p = pj++;
-				pq->ax = 0.0;
-				pq->ay = 0.0;
-				pq->az = 0.0;
-				}
-			PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
-			}
-		else {
-			/*
-			 ** Calculate the priority queue using the previous particles!
-			 */
-			pi = pin;
-			x = p[pi].r[0];
-			y = p[pi].r[1];
-			z = p[pi].r[2];
-			smx->pqHead = NULL;
-			for (pq=smx->pq;pq<=pqLast;++pq) {
-				pq->ax -= ax;
-				pq->ay -= ay;
-				pq->az -= az;
-				dx = x + pq->ax - p[pq->p].r[0];
-				dy = y + pq->ay - p[pq->p].r[1];
-				dz = z + pq->az - p[pq->p].r[2];
-				pq->fKey = dx*dx + dy*dy + dz*dz;
-				}
-			PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
-			ax = 0.0;
-			ay = 0.0;
-			az = 0.0;
-			}
-		smBallSearch(smx,smx->pqHead->fKey,p[pi].r);
-		smx->pfBall2[pi] = smx->pqHead->fKey;
-		p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
+		}
+
+		if (pNext == smx->kd->nActive) {
+			// Nothing remains to be done.
+
+			pthread_mutex_unlock(&smx->mutex);
+			return -1;
+		}
+
+		pi = pNext;
+		++pNext;
+		x = p[pi].r[0];
+		y = p[pi].r[1];
+		z = p[pi].r[2];
 		/*
-		 ** Pick next particle, 'pin'.
-		 ** Create fList and pList for function 'fncSmooth'.
-		 */
-		pin = pi;
-		nCnt = 0;
-		h2 = smx->pqHead->fKey;
+		** First find the "local" Bucket.
+		** This could merely be the closest bucket to ri[3].
+		*/
+		cell = ROOT;
+		while (cell < smx->kd->nSplit) {
+			if (p[pi].r[c[cell].iDim] < c[cell].fSplit)
+				cell = LOWER(cell);
+			else
+				cell = UPPER(cell);
+		}
+		/*
+		** Remove everything from the queue.
+		*/
+		smx->pqHead = NULL;
+		for (pq=smx->pq;pq<=pqLast;++pq) smx->iMark[pq->p] = 0;
+		/*
+		** Add everything from pj up to and including pj+nSmooth-1.
+		*/
+		pj = c[cell].pLower;
+		if (pj > smx->kd->nActive - nSmooth)
+			pj = smx->kd->nActive - nSmooth;
 		for (pq=smx->pq;pq<=pqLast;++pq) {
-
-                  /* the next line is commented out because it results in the furthest
-                     particle being excluded from the nearest-neighbor list - this means
-                     that although the user requests 32 NN, she would get back 31. By
-                     including the furthest particle, the neighbor list is always 32 long */
-
-                  //if (pq == smx->pqHead) continue;
-		        if(nCnt>=smx->nListSize) {
-			  // no room left
-			  if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
-			  smx->warnings = false;
-			  break;
-			}
-
-			smx->pList[nCnt] = pq->p;
-			smx->fList[nCnt++] = pq->fKey;
-			
-			if (smx->pfBall2[pq->p] >= 0) continue;
-			if (pq->fKey < h2) {
-				pin = pq->p;
-				h2 = pq->fKey;
-				ax = pq->ax;
-				ay = pq->ay;
-				az = pq->az;
-				}
-			
+			smx->iMark[pj] = 1;
+			dx = x - p[pj].r[0];
+			dy = y - p[pj].r[1];
+			dz = z - p[pj].r[2];
+			pq->fKey = dx*dx + dy*dy + dz*dz;
+			pq->p = pj++;
+			pq->ax = 0.0;
+			pq->ay = 0.0;
+			pq->az = 0.0;
 		}
-		
-		//(*fncSmooth)(smx,pi,nCnt,smx->pList,smx->fList);
-
-        smx->pi = pi;
-        smx->pin = pin;
-        smx->pNext = pNext;
-        smx->ax = ax;
-        smx->ay = ay;
-        smx->az = az;
-
-        return nCnt;
+		PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
+	} else {
+		/*
+		** Calculate the priority queue using the previous particles!
+		*/
+		pi = pin;
+		x = p[pi].r[0];
+		y = p[pi].r[1];
+		z = p[pi].r[2];
+		smx->pqHead = NULL;
+		for (pq=smx->pq;pq<=pqLast;++pq) {
+			pq->ax -= ax;
+			pq->ay -= ay;
+			pq->az -= az;
+			dx = x + pq->ax - p[pq->p].r[0];
+			dy = y + pq->ay - p[pq->p].r[1];
+			dz = z + pq->az - p[pq->p].r[2];
+			pq->fKey = dx*dx + dy*dy + dz*dz;
 		}
+		PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
+		ax = 0.0;
+		ay = 0.0;
+		az = 0.0;
 	}
+
+	smBallSearch(smx,smx->pqHead->fKey,p[pi].r);
+	smx->pfBall2[pi] = smx->pqHead->fKey;
+	p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
+	/*
+	** Pick next particle, 'pin'.
+	** Create fList and pList for function 'fncSmooth'.
+	*/
+	pin = pi;
+	nCnt = 0;
+	h2 = smx->pqHead->fKey;
+	for (pq=smx->pq;pq<=pqLast;++pq) {
+
+		/* the next line is commented out because it results in the furthest
+		particle being excluded from the nearest-neighbor list - this means
+		that although the user requests 32 NN, she would get back 31. By
+		including the furthest particle, the neighbor list is always 32 long */
+
+		//if (pq == smx->pqHead) continue;
+		if(nCnt>=smx->nListSize) {
+			// no room left
+			if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
+			smx->warnings = false;
+			break;
+		}
+
+		smx->pList[nCnt] = pq->p;
+		smx->fList[nCnt++] = pq->fKey;
+
+		if (smx->pfBall2[pq->p] >= 0) continue; // already done, don't re-do
+		if (pq->fKey < h2) {
+			pin = pq->p;
+			h2 = pq->fKey;
+			ax = pq->ax;
+			ay = pq->ay;
+			az = pq->az;
+		}
+
+	}
+
+	//(*fncSmooth)(smx,pi,nCnt,smx->pList,smx->fList);
+
+	smx->pi = pi;
+	smx->pin = pin;
+	smx->pNext = pNext;
+	smx->ax = ax;
+	smx->ay = ay;
+	smx->az = az;
+	pthread_mutex_unlock(&smx->mutex);
+	return nCnt;
+}
 
 
 void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
@@ -525,7 +601,7 @@ void smVelDisp(SMX smx,int pi,int nSmooth,int *pList,float *fList)
                 }
 		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/smx->kd->p[pj].fDensity*tv2;
         }
-}	
+}
 
 
 
@@ -588,4 +664,4 @@ void smVelDispNBSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 		smx->kd->p[pj].fVel2 += rs*smx->kd->p[pi].fMass/
 			smx->kd->p[pi].fDensity*tv2;
 		}
-	}	
+	}

@@ -4,6 +4,12 @@
 #include <stdbool.h>
 #include "kd.h"
 
+#define THREADING
+
+#ifdef THREADING
+#include "pthread.h"
+#endif
+
 #define RESMOOTH_SAFE  500
 
 #define M_1_PI  0.31830988618379067154
@@ -32,6 +38,9 @@ typedef struct smContext {
 	int nListSize;
 	float *fList;
 	int *pList;
+#ifdef THREADING
+	pthread_mutex_t mutex;
+#endif
 
     int pin,pi,pNext;
     float ax,ay,az;
@@ -113,5 +122,8 @@ void smDivvSym(SMX,int,int,int *,float *);
 void smVelDispSym(SMX,int,int,int *,float *);
 void smVelDispNBSym(SMX,int,int,int *,float *);
 
+SMX smInitThreadLocalCopy(SMX);
+void smFinishThreadLocalCopy(SMX);
+void smInitPriorityQueue(SMX);
 
 #endif

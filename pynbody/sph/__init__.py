@@ -78,6 +78,9 @@ def _get_tree_objects(sim):
 
 
 def build_tree_or_trees(sim):
+    build_tree(sim)
+    return
+    
     global _threaded_smooth
     _threaded_smooth = _get_threaded_smooth()
 

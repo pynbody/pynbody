@@ -1,13 +1,12 @@
 """
 
-KDTree 
+KDTree
 ======
 
 Provides access to nearest neighbour lists and smoothing lengths.
 
 """
 from . import kdmain
-
 
 class KDTree:
     PROPID_HSM = 1
@@ -22,6 +21,7 @@ class KDTree:
                        'v_mean': self.PROPID_VMEAN,
                        'v_disp': self.PROPID_VDISP}
         self.derived = True
+        self.s_len = len(pos)
         self.flags = {'WRITEABLE': False}
 
     def nn(self, nn=None):
@@ -42,6 +42,7 @@ class KDTree:
         return [x for x in self.nn(nn)]
 
     def populate(self, dest, property, nn=None, smooth=None, rho=None):
+        from . import _thread_map
         if nn is None:
             nn = 64
         if (smooth is not None) and (rho is not None):
@@ -51,7 +52,11 @@ class KDTree:
         else:
             smx = kdmain.nn_start(self.kdtree, int(nn))
 
-        kdmain.populate(self.kdtree, smx, dest, int(self.propid[property]))
+        propid = int(self.propid[property])
+        n_proc = 2
+        _thread_map(kdmain.populate,[self.kdtree]*n_proc,[smx]*n_proc,[dest]*n_proc,[propid]*n_proc,range(0,self.s_len-1,self.s_len/n_proc),
+            [self.s_len/n_proc+1]*n_proc)
+
         kdmain.nn_stop(self.kdtree, smx)
 
     def __del__(self):
