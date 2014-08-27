@@ -343,13 +343,14 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 	ay = smx->ay;
 	az = smx->az;
 
-	pthread_mutex_lock(smx->pMutex);
 
+	pthread_mutex_lock(smx->pMutex); // to be unlocked once first particle is decided on and marked
 	if (smx->pfBall2[pin] >= 0) {
 		// the first particle we are supposed to smooth is
 		// actually already done. We need to search for another
 		// suitable candidate. Preferably a long way away from other
 		// threads, if this is threaded.
+
 
 		while (smx->pfBall2[pNext] >= 0) ++pNext;
 
@@ -361,9 +362,12 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 
 		if (pNext == smx->kd->nActive) {
 			// Nothing remains to be done.
-
 			pthread_mutex_unlock(smx->pMutex);
 			return -1;
+		} else {
+			// mark particle as in-process, then unlock
+			smx->pfBall2[pNext] = 10;
+			pthread_mutex_unlock(smx->pMutex);
 		}
 
 		pi = pNext;
@@ -410,6 +414,9 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		** Calculate the priority queue using the previous particles!
 		*/
 		pi = pin;
+		smx->pfBall2[pi] = 10; // temporary value indicates to other threads we've taken control of this particle
+		pthread_mutex_unlock(smx->pMutex);
+
 		x = p[pi].r[0];
 		y = p[pi].r[1];
 		z = p[pi].r[2];
@@ -429,9 +436,10 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		az = 0.0;
 	}
 
-	pthread_mutex_unlock(smx->pMutex);
+
+
 	smBallSearch(smx,smx->pqHead->fKey,p[pi].r);
-  pthread_mutex_lock(smx->pMutex);
+
 
 	smx->pfBall2[pi] = smx->pqHead->fKey;
 	p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
@@ -482,7 +490,6 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 	smx->ay = ay;
 	smx->az = az;
 
-	pthread_mutex_unlock(smx->pMutex);
 	return nCnt;
 }
 

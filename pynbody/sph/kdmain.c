@@ -340,10 +340,12 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     long nbodies = PyArray_DIM(dest, 0);
 
+  /*
     if(n_particles>nbodies) {
       PyErr_SetString(PyExc_ValueError, "Trying to process more particles than are in simulation?");
       return NULL;
     }
+    */
 
     PyArray_Descr *descr = PyArray_DESCR(dest);
 

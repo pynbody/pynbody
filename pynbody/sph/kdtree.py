@@ -54,7 +54,11 @@ class KDTree:
 
         propid = int(self.propid[property])
         n_proc = 2
-        _thread_map(kdmain.populate,[self.kdtree]*n_proc,[smx]*n_proc,[dest]*n_proc,[propid]*n_proc,range(0,self.s_len-1,self.s_len/n_proc),
+        dest[:]=0
+
+
+        _thread_map(kdmain.populate,[self.kdtree]*n_proc,[smx]*n_proc,[dest]*n_proc,[propid]*n_proc,
+        range(0,self.s_len-1,self.s_len/n_proc),
             [self.s_len/n_proc+1]*n_proc)
 
         kdmain.nn_stop(self.kdtree, smx)
