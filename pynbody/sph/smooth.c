@@ -7,6 +7,7 @@
 #include "kd.h"
 
 
+
 int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 {
 	SMX smx;
@@ -39,19 +40,9 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	smx->nListSize = smx->nSmooth+RESMOOTH_SAFE;
 	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
 	smx->pList = (int *)malloc(smx->nListSize*sizeof(int));         assert(smx->pList != NULL);
-	/*
-	 ** Set for Periodic Boundary Conditions.
-	 */
+
 	for (j=0;j<3;++j) smx->fPeriod[j] = fPeriod[j];
-	/*
-	 ** Initialize arrays for calculated quantities.
-	 */
-	for (pi=0;pi<smx->kd->nActive;++pi) {
-		smx->kd->p[pi].fDensity = 0.0;
-		for (j=0;j<3;++j) smx->kd->p[pi].vMean[j] = 0.0;
-		smx->kd->p[pi].fVel2 = 0.0;
-		smx->kd->p[pi].fDivv = 0.0;
-		}
+
 
 #ifdef KDT_THREADING
 	smx->nCurrent=0;
@@ -83,7 +74,6 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	smx->nReady=0;
 
 	smx->smx_global=NULL;
-
 
 #endif
 	*psmx = smx;
@@ -198,14 +188,17 @@ void smFinish(SMX smx)
 }
 
 
+
 void smBallSearch(SMX smx,float fBall2,float *ri)
 {
 	KDN *c;
 	PARTICLE *p;
+	KD kd;
 	int cell,cp,ct,pj;
 	float fDist2,dx,dy,dz,lx,ly,lz,sx,sy,sz,x,y,z;
 	PQ *pq;
 
+	kd = smx->kd;
 	c = smx->kd->kdNodes;
 	p = smx->kd->p;
 	pq = smx->pqHead;
@@ -228,9 +221,9 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	 ** Now start the search from the bucket given by cell!
 	 */
 	for (pj=c[cell].pLower;pj<=c[cell].pUpper;++pj) {
-		dx = x - p[pj].r[0];
-		dy = y - p[pj].r[1];
-		dz = z - p[pj].r[2];
+		dx = x - GET2(kd->pNumpyPos,p[pj].iOrder,0);
+		dy = y - GET2(kd->pNumpyPos,p[pj].iOrder,1);
+		dz = z - GET2(kd->pNumpyPos,p[pj].iOrder,2);
 		fDist2 = dx*dx + dy*dy + dz*dz;
 		if (fDist2 < fBall2) {
 			if (smx->iMark[pj]) continue;
@@ -260,9 +253,9 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 				}
 			else {
 				for (pj=c[cp].pLower;pj<=c[cp].pUpper;++pj) {
-					dx = sx - p[pj].r[0];
-					dy = sy - p[pj].r[1];
-					dz = sz - p[pj].r[2];
+					dx = sx - GET2(kd->pNumpyPos,p[pj].iOrder,0);
+					dy = sy - GET2(kd->pNumpyPos,p[pj].iOrder,1);
+					dz = sz - GET2(kd->pNumpyPos,p[pj].iOrder,2);
 					fDist2 = dx*dx + dy*dy + dz*dz;
 					if (fDist2 < fBall2) {
 						if (smx->iMark[pj]) continue;
@@ -292,6 +285,7 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 {
 	KDN *c;
 	PARTICLE *p;
+	KD kd=smx->kd;
 	int pj,nCnt,cp,nSplit;
 	float dx,dy,dz,x,y,z,lx,ly,lz,sx,sy,sz,fDist2;
 
@@ -317,9 +311,9 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 			}
 		else {
 			for (pj=c[cp].pLower;pj<=c[cp].pUpper;++pj) {
-				dx = sx - p[pj].r[0];
-				dy = sy - p[pj].r[1];
-				dz = sz - p[pj].r[2];
+				dx = sx - GET2(kd->pNumpyPos,p[pj].iOrder,0);
+				dy = sy - GET2(kd->pNumpyPos,p[pj].iOrder,1);
+				dz = sz - GET2(kd->pNumpyPos,p[pj].iOrder,2);
 				fDist2 = dx*dx + dy*dy + dz*dz;
 				if (fDist2 <= fBall2) {
 				  if(nCnt>=smx->nListSize) {
@@ -344,7 +338,7 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 	}
 
 
-void smSmoothInitStep(SMX smx, int nProcs)
+void smSmoothInitStep(SMX smx, int nProcs_for_smooth)
 {
 	KDN *c;
 	PARTICLE *p;
@@ -362,12 +356,16 @@ void smSmoothInitStep(SMX smx, int nProcs)
 	// However in practice, up to nCpu = 8, the scaling is looking
 	// pretty linear anyway so I'm leaving that for future.
 
-	for (pi=0;pi<smx->kd->nActive;++pi) {
-        smx->pfBall2[pi] = -(float)(1+pi%nProcs);
-	}
 
 	for (pi=0;pi<smx->kd->nActive;++pi) {
 		smx->iMark[pi] = 0;
+	}
+
+
+	if(nProcs_for_smooth>0) {
+		for (pi=0;pi<smx->kd->nActive;++pi) {
+					smx->pfBall2[pi] = -(float)(1+pi%nProcs_for_smooth);
+		}
 	}
 
 
@@ -406,17 +404,21 @@ void smInitPriorityQueue(SMX smx) {
   smx->az = az;
 }
 
+
+
 int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int procid)
 {
 	KDN *c;
 	PARTICLE *p;
 	PQ *pq,*pqLast;
+	KD kd=smx->kd;
 	int cell;
 	int pi,pin,pj,pNext,nCnt,nSmooth;
 	int nScanned=0;
 
 	float dx,dy,dz,x,y,z,h2,ax,ay,az;
 	float proc_signal = -(float)(procid)-1.0;
+	float ri[3];
 
 	c = smx->kd->kdNodes;
 	p = smx->kd->p;
@@ -449,22 +451,20 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 				}
 		}
 
-		// mark particle as in-process, then unlock
 		smx->pfBall2[pNext] = 10;
-		// pthread_mutex_unlock(smx->pMutex);
 
 		pi = pNext;
 		++pNext;
-		x = p[pi].r[0];
-		y = p[pi].r[1];
-		z = p[pi].r[2];
+		x = GET2(kd->pNumpyPos,p[pi].iOrder,0);
+		y = GET2(kd->pNumpyPos,p[pi].iOrder,1);
+		z = GET2(kd->pNumpyPos,p[pi].iOrder,2);
 		/*
 		** First find the "local" Bucket.
 		** This could merely be the closest bucket to ri[3].
 		*/
 		cell = ROOT;
 		while (cell < smx->kd->nSplit) {
-			if (p[pi].r[c[cell].iDim] < c[cell].fSplit)
+			if (GET2(kd->pNumpyPos,p[pi].iOrder,c[cell].iDim) <c[cell].fSplit)
 				cell = LOWER(cell);
 			else
 				cell = UPPER(cell);
@@ -482,9 +482,9 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 			pj = smx->kd->nActive - nSmooth;
 		for (pq=smx->pq;pq<=pqLast;++pq) {
 			smx->iMark[pj] = 1;
-			dx = x - p[pj].r[0];
-			dy = y - p[pj].r[1];
-			dz = z - p[pj].r[2];
+			dx = x - GET2(kd->pNumpyPos,p[pj].iOrder,0);
+			dy = y - GET2(kd->pNumpyPos,p[pj].iOrder,1);
+			dz = z - GET2(kd->pNumpyPos,p[pj].iOrder,2);
 			pq->fKey = dx*dx + dy*dy + dz*dz;
 			pq->p = pj++;
 			pq->ax = 0.0;
@@ -493,24 +493,21 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 		}
 		PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
 	} else {
-		/*
-		** Calculate the priority queue using the previous particles!
-		*/
+		// Calculate priority queue using existing particles
 		pi = pin;
-		smx->pfBall2[pi] = 10; // temporary value indicates to other threads we've taken control of this particle
-		// pthread_mutex_unlock(smx->pMutex);
+		smx->pfBall2[pi] = 10;
+		x = GET2(kd->pNumpyPos,p[pi].iOrder,0);
+		y = GET2(kd->pNumpyPos,p[pi].iOrder,1);
+		z = GET2(kd->pNumpyPos,p[pi].iOrder,2);
 
-		x = p[pi].r[0];
-		y = p[pi].r[1];
-		z = p[pi].r[2];
 		smx->pqHead = NULL;
 		for (pq=smx->pq;pq<=pqLast;++pq) {
 			pq->ax -= ax;
 			pq->ay -= ay;
 			pq->az -= az;
-			dx = x + pq->ax - p[pq->p].r[0];
-			dy = y + pq->ay - p[pq->p].r[1];
-			dz = z + pq->az - p[pq->p].r[2];
+			dx = x + pq->ax - GET2(kd->pNumpyPos,p[pq->p].iOrder,0);
+			dy = y + pq->ay - GET2(kd->pNumpyPos,p[pq->p].iOrder,1);
+			dz = z + pq->az - GET2(kd->pNumpyPos,p[pq->p].iOrder,2);
 			pq->fKey = dx*dx + dy*dy + dz*dz;
 		}
 		PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
@@ -519,13 +516,18 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 		az = 0.0;
 	}
 
+	for(int j=0; j<3; ++j) {
+		ri[j] = GET2(kd->pNumpyPos,p[pi].iOrder,j);
+	}
 
+	smBallSearch(smx,smx->pqHead->fKey,ri);
 
-	smBallSearch(smx,smx->pqHead->fKey,p[pi].r);
 
 
 	smx->pfBall2[pi] = smx->pqHead->fKey;
-	p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
+	SET(kd->pNumpySmooth,p[pi].iOrder,0.5*sqrt(smx->pfBall2[pi]));
+
+	// p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
 	/*
 	** Pick next particle, 'pin'.
 	** Create fList and pList for function 'fncSmooth'.
@@ -550,6 +552,8 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 
 		smx->pList[nCnt] = pq->p;
 		smx->fList[nCnt++] = pq->fKey;
+
+
 
 		if (smx->pfBall2[pq->p] >= 0) continue; // already done, don't re-do
 
@@ -581,11 +585,13 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
 	float fNorm,ih2,r2,rs;
 	int i,pj;
+	KD kd = smx->kd;
 
   ih2 = 4.0/smx->pfBall2[pi];
   fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
 	for (i=0;i<nSmooth;++i) {
-                pj = pList[i];
+
+    pj = pList[i];
 		r2 = fList[i]*ih2;
                 rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
@@ -595,8 +601,8 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 		  smx->warnings=true;
 		}
 		rs *= fNorm;
-		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
-		smx->kd->p[pj].fDensity += rs*smx->kd->p[pi].fMass;
+		ACCUM(kd->pNumpyDen,kd->p[pi].iOrder,rs*GET(kd->pNumpyMass,kd->p[pj].iOrder));
+		ACCUM(kd->pNumpyDen,kd->p[pj].iOrder,rs*GET(kd->pNumpyMass,kd->p[pi].iOrder));
   }
 }
 
@@ -605,13 +611,14 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
 	float fNorm,ih2,r2,rs;
 	int i,pj;
-
+	KD kd = smx->kd;
 	ih2 = 4.0/smx->pfBall2[pi];
 	fNorm = M_1_PI*sqrt(ih2)*ih2;
+	SET(kd->pNumpyDen,kd->p[pi].iOrder,0.0);
 	for (i=0;i<nSmooth;++i) {
 		pj = pList[i];
 		r2 = fList[i]*ih2;
-								rs = 2.0 - sqrt(r2);
+		rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
 		else rs = 0.25*rs*rs*rs;
 		if(rs<0) {
@@ -619,12 +626,12 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 			smx->warnings=true;
 		}
 		rs *= fNorm;
-		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
+		ACCUM(kd->pNumpyDen,kd->p[pi].iOrder,rs*GET(kd->pNumpyMass,kd->p[pj].iOrder));
 	}
 }
 
 
-
+/*
 void smMeanVel(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
 	float fNorm,ih2,r2,rs;
@@ -668,6 +675,7 @@ void smMeanVelSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 			}
 		}
 	}
+
 
 void smDivvSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
@@ -819,3 +827,4 @@ void smVelDispNBSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 			smx->kd->p[pi].fDensity*tv2;
 		}
 	}
+*/

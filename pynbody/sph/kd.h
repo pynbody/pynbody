@@ -1,6 +1,8 @@
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
+#include <Python.h>
+#include <numpy/arrayobject.h>
 
 #ifdef KDT_THREADING
 #include "pthread.h"
@@ -23,17 +25,10 @@
 #define STAR	4
 
 typedef struct Particle {
-	float r[3];
-	float v[3];
-	float fMass;
 	int iOrder;
 	int iMark;
-	float fDensity;
-	float vMean[3];
-	float fVel2;
-	float fDivv;
-	float fSmooth;
-	} PARTICLE;
+	// float r[3];
+} PARTICLE;
 
 typedef struct bndBound {
 	float fMin[3];
@@ -51,12 +46,6 @@ typedef struct kdNode {
 typedef struct kdContext {
 	int nBucket;
 	int nParticles;
-	int nDark;
-	int nGas;
-	int nStar;
-	int bDark;
-	int bGas;
-	int bStar;
 	int nActive;
 	float fTime;
 	int nLevels;
@@ -66,6 +55,12 @@ typedef struct kdContext {
 	KDN *kdNodes;
 	int uSecond;
 	int uMicro;
+
+	PyObject *pNumpyPos;  // Nx3 Numpy array of positions
+	PyObject *pNumpyMass; // Nx1 Numpy array of masses
+	PyObject *pNumpySmooth;
+	PyObject *pNumpyDen;  // Nx1 Numpy array of density
+
 	} * KD;
 
 
@@ -172,5 +167,16 @@ void kdBuildTree(KD);
 void kdOrder(KD);
 void kdFinish(KD);
 void kdBuildNode(KD, int);
+
+#define GET(ar, i) *((double*)PyArray_GETPTR1(ar, i))
+#define GET2(ar, i,j) *((double*)PyArray_GETPTR2(ar, i,j))
+
+#define SET(ar, nn, val) *((double*)PyArray_GETPTR1(ar, nn)) = val
+#define SET2(ar, i,j, val) *((double*)PyArray_GETPTR2(ar, i,j)) = val
+
+#define ACCUM(ar, i, add) {\
+	double *p = ((double*)PyArray_GETPTR1(ar, i)); \
+	(*p)+=add; \
+}
 
 #endif

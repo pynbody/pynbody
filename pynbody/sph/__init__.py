@@ -63,10 +63,7 @@ def build_tree(sim):
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
         # has been triggered by getting an array in the calling thread.
-        pos, vel, mass = [np.asanyarray(
-            sim._get_array(x), dtype=np.float64) for x in 'pos', 'vel', 'mass']
-        sim.kdtree = kdtree.KDTree(
-            pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
+        sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'], leafsize=config['sph']['tree-leafsize'])
 
 
 def _tree_decomposition(obj):
@@ -100,8 +97,9 @@ def smooth(self):
 
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
 
+
     start = time.time()
-    self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles'])
+    self.kdtree.populate('hsm', config['sph']['smooth-particles'], sm)
     end = time.time()
 
     logger.info('Smoothing done in %5.3gs' % (end - start))
@@ -121,19 +119,7 @@ def rho(self):
 
     start = time.time()
 
-    _threaded_smooth = _get_threaded_smooth()
-
-    if _threaded_smooth:
-        _thread_map(kdtree.KDTree.populate,
-                    _get_tree_objects(self),
-                    _tree_decomposition(rho),
-                    ['rho'] * _threaded_smooth,
-                    [config['sph']['smooth-particles']] * _threaded_smooth,
-                    _tree_decomposition(smooth))
-        rho *= _threaded_smooth
-    else:
-        self.kdtree.populate(
-            rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
+    self.kdtree.populate('rho', config['sph']['smooth-particles'], smooth, rho, self['mass'])
 
     end = time.time()
     logger.info('Density calculation done in %5.3g s' % (end - start))

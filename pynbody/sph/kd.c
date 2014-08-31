@@ -10,21 +10,6 @@
 #define MAX_ROOT_ITTR	32
 
 
-void kdTime(KD kd,int *puSecond,int *puMicro)
-{
-	struct rusage ru;
-
-	getrusage(0,&ru);
-	*puMicro = ru.ru_utime.tv_usec - kd->uMicro;
-	*puSecond = ru.ru_utime.tv_sec - kd->uSecond;
-	if (*puMicro < 0) {
-		*puMicro += 1000000;
-		*puSecond -= 1;
-		}
-	kd->uSecond = ru.ru_utime.tv_sec;
-	kd->uMicro = ru.ru_utime.tv_usec;
-	}
-
 
 int kdInit(KD *pkd,int nBucket)
 {
@@ -47,15 +32,15 @@ void kdSelect(KD kd,int d,int k,int l,int r)
 
 	p = kd->p;
 	while (r > l) {
-		v = p[k].r[d];
+		v = GET2(kd->pNumpyPos,p[k].iOrder,d);
 		t = p[r];
 		p[r] = p[k];
 		p[k] = t;
 		i = l - 1;
 		j = r;
 		while (1) {
-			while (i < j) if (p[++i].r[d] >= v) break;
-			while (i < j) if (p[--j].r[d] <= v) break;
+			while (i < j) if (GET2(kd->pNumpyPos,p[++i].iOrder,d) >= v) break;
+			while (i < j) if (GET2(kd->pNumpyPos,p[--j].iOrder,d) <= v) break;
 			t = p[i];
 			p[i] = p[j];
 			p[j] = t;
@@ -94,7 +79,7 @@ void kdUpPass(KD kd,int iCell)
 {
 	KDN *c;
 	int l,u,pj,j;
-
+	double rj;
 	c = kd->kdNodes;
 	if (c[iCell].iDim != -1) {
 		l = LOWER(iCell);
@@ -107,25 +92,25 @@ void kdUpPass(KD kd,int iCell)
 		l = c[iCell].pLower;
 		u = c[iCell].pUpper;
 		for (j=0;j<3;++j) {
-			c[iCell].bnd.fMin[j] = kd->p[u].r[j];
-			c[iCell].bnd.fMax[j] = kd->p[u].r[j];
+			c[iCell].bnd.fMin[j] = GET2(kd->pNumpyPos,kd->p[u].iOrder,j);
+			c[iCell].bnd.fMax[j] = c[iCell].bnd.fMin[j];
 			}
 		for (pj=l;pj<u;++pj) {
 			for (j=0;j<3;++j) {
-				if (kd->p[pj].r[j] < c[iCell].bnd.fMin[j])
-					c[iCell].bnd.fMin[j] = kd->p[pj].r[j];
-				if (kd->p[pj].r[j] > c[iCell].bnd.fMax[j])
-					c[iCell].bnd.fMax[j] = kd->p[pj].r[j];
+				rj = GET2(kd->pNumpyPos,kd->p[pj].iOrder,j);
+				if (rj < c[iCell].bnd.fMin[j])
+					c[iCell].bnd.fMin[j] = rj;
+				if (rj > c[iCell].bnd.fMax[j])
+					c[iCell].bnd.fMax[j] = rj;
 				}
 			}
 		}
 	}
 
-
 void kdBuildTree(KD kd)
 {
 	int l,n,i,d,j;
-
+	double rj;
 	BND bnd;
 
 	n = kd->nActive;
@@ -141,19 +126,23 @@ void kdBuildTree(KD kd)
 	if (kd->kdNodes != NULL) free(kd->kdNodes);
 	kd->kdNodes = (KDN *)malloc(kd->nNodes*sizeof(KDN));
 	assert(kd->kdNodes != NULL);
-	/*
-	 ** Calculate Bounds.
-	 */
+
+	// Calculate bounds
+	// Initialize with any particle:
 	for (j=0;j<3;++j) {
-		bnd.fMin[j] = kd->p[0].r[j];
-		bnd.fMax[j] = kd->p[0].r[j];
-		}
+		rj = GET2(kd->pNumpyPos,kd->p[0].iOrder,j);
+		bnd.fMin[j] = rj;
+		bnd.fMax[j] = rj;
+	}
+
+	// Expand to enclose all particles:
 	for (i=1;i<kd->nActive;++i) {
 		for (j=0;j<3;++j) {
-			if (bnd.fMin[j] > kd->p[i].r[j])
-				bnd.fMin[j] = kd->p[i].r[j];
-			else if (bnd.fMax[j] < kd->p[i].r[j])
-				bnd.fMax[j] = kd->p[i].r[j];
+			rj = GET2(kd->pNumpyPos,kd->p[i].iOrder,j);
+			if (bnd.fMin[j] > rj)
+				bnd.fMin[j] = rj;
+			else if (bnd.fMax[j] < rj)
+				bnd.fMax[j] = rj;
 			}
 		}
 
@@ -167,6 +156,13 @@ void kdBuildTree(KD kd)
 
 	// Calculate and store bounds information by passing it up the tree
 	kdUpPass(kd,ROOT);
+
+	FILE *fp = fopen("KDOUT.txt","w");
+	for(i=0;i<kd->nActive;++i) {
+		fprintf(fp,"%d %.3f %.3e %.3e\n",kd->p[i].iOrder,(float)GET2(kd->pNumpyPos,kd->p[i].iOrder,0),(float)GET2(kd->pNumpyPos,kd->p[i].iOrder,1),(float)GET2(kd->pNumpyPos,kd->p[i].iOrder,2));
+	}
+	fclose(fp);
+
 }
 
 struct KDargs {
@@ -175,7 +171,6 @@ struct KDargs {
 };
 
 void kdBuildNodeRemote(struct KDargs *a) {
-	printf("enter remote i=%d ",a->local_root);
 	kdBuildNode(a->kd, a->local_root);
 }
 
@@ -190,8 +185,6 @@ void kdBuildNode(KD kd, int local_root) {
 	pthread_t remote_thread;
 	struct KDargs remote_args;
 #endif
-
-	printf("enter kdBuildNode i=%d (ROOT=%d)...\n",i,ROOT);
 
 	while (1) {
 		assert(nodes[i].pUpper - nodes[i].pLower + 1 > 0);
@@ -215,7 +208,7 @@ void kdBuildNode(KD kd, int local_root) {
 			kdSelect(kd,d,m,nodes[i].pLower,nodes[i].pUpper);
 
 			// Note split point based on median particle
-			nodes[i].fSplit = kd->p[m].r[d];
+			nodes[i].fSplit = GET2(kd->pNumpyPos,kd->p[m].iOrder,d);
 
 			// Set up lower cell
 			nodes[LOWER(i)].bnd = nodes[i].bnd;

@@ -34,7 +34,7 @@ typedef struct smContext {
 	float *fList;
 	int *pList;
 #ifdef KDT_THREADING
-	pthread_mutex_t *pMutex; 
+	pthread_mutex_t *pMutex;
 
 	int nCurrent; // current particle index for distributed loops
 	int nLocals; // number of local copies if this is a global smooth context
@@ -47,7 +47,7 @@ typedef struct smContext {
 
     int pin,pi,pNext;
     float ax,ay,az;
-    bool warnings; // added by AP to keep track of whether a memory-overrun  warning has been issued
+    bool warnings; //  keep track of whether a memory-overrun  warning has been issued
 	} * SMX;
 
 

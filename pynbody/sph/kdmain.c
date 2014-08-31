@@ -115,10 +115,9 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     int i;
 
     PyObject *pos;  // Nx3 Numpy array of positions
-    PyObject *vel;  // Nx3 Numpy array of velocities
     PyObject *mass; // Nx1 Numpy array of masses
 
-    if (!PyArg_ParseTuple(args, "OOOi", &pos, &vel, &mass, &nBucket))
+    if (!PyArg_ParseTuple(args, "OOi", &pos, &mass, &nBucket))
         return NULL;
 
     KD kd = malloc(sizeof(*kd));
@@ -126,41 +125,34 @@ PyObject *kdinit(PyObject *self, PyObject *args)
 
     int nbodies = PyArray_DIM(pos, 0);
 
+    kd->nParticles = nbodies;
+    kd->nActive = nbodies;
+
+    kd->pNumpyPos = pos;
+    kd->pNumpyMass = mass;
+    kd->pNumpySmooth = NULL;
+    kd->pNumpyDen = NULL;
+
+    Py_INCREF(pos);
+    Py_INCREF(mass);
+
+
     Py_BEGIN_ALLOW_THREADS
 
-    kd->nParticles = nbodies;
-    kd->nDark = kd->nParticles;
-    kd->nGas = 0;
-    kd->nStar = 0;
-    kd->fTime = 0;
-    kd->nActive = 0;
-    kd->nActive += kd->nDark;
-    kd->nActive += kd->nGas;
-    kd->nActive += kd->nStar;
-    kd->bDark = 1;
-    kd->bGas = 0;
-    kd->bStar = 0;
-    /*
-    ** Allocate particles.
-    */
+
+    // Allocate particles
     kd->p = (PARTICLE *)malloc(kd->nActive*sizeof(PARTICLE));
     assert(kd->p != NULL);
-
-
 
     for (i=0; i < nbodies; i++)
     {
         kd->p[i].iOrder = i;
         kd->p[i].iMark = 1;
+        /*
         kd->p[i].r[0] = (float)*((double *)PyArray_GETPTR2(pos, i, 0));
         kd->p[i].r[1] = (float)*((double *)PyArray_GETPTR2(pos, i, 1));
         kd->p[i].r[2] = (float)*((double *)PyArray_GETPTR2(pos, i, 2));
-        kd->p[i].v[0] = (float)*((double *)PyArray_GETPTR2(vel, i, 0));
-        kd->p[i].v[1] = (float)*((double *)PyArray_GETPTR2(vel, i, 1));
-        kd->p[i].v[2] = (float)*((double *)PyArray_GETPTR2(vel, i, 2));
-        kd->p[i].fMass = (float)*((double *)PyArray_GETPTR1(mass, i));
-        kd->p[i].fDensity = 0;
-        kd->p[i].fSmooth = 0;
+        */
     }
 
     kdBuildTree(kd);
@@ -182,7 +174,10 @@ PyObject *kdfree(PyObject *self, PyObject *args)
     kd = PyCapsule_GetPointer(kdobj, NULL);
 
     kdFinish(kd);
-
+    Py_XDECREF(kd->pNumpyPos);
+    Py_XDECREF(kd->pNumpyMass);
+    Py_XDECREF(kd->pNumpySmooth);
+    Py_XDECREF(kd->pNumpyDen);
     return Py_None;
 }
 
@@ -198,13 +193,13 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     /* Nx1 Numpy arrays for smoothing length and density for calls that pass
        in those values from existing arrays
     */
-    PyObject *smooth = NULL, *rho=NULL;
+    PyObject *smooth = NULL, *rho=NULL, *mass=NULL;
 
     int nSmooth, nProcs;
     long i;
     float hsm;
 
-    PyArg_ParseTuple(args, "Oii|OO", &kdobj, &nSmooth, &nProcs, &smooth, &rho);
+    PyArg_ParseTuple(args, "Oii|OOO", &kdobj, &nSmooth, &nProcs, &smooth, &rho, &mass);
     kd = PyCapsule_GetPointer(kdobj, NULL);
 
 #define BIGFLOAT ((float)1.0e37)
@@ -218,17 +213,24 @@ PyObject *nn_start(PyObject *self, PyObject *args)
 
     smSmoothInitStep(smx, nProcs);
 
-    if(smooth != NULL) {
-
-      for (i=0;i<smx->kd->nActive;i++) {
-        hsm = (float)*((double *)PyArray_GETPTR1(smooth, kd->p[i].iOrder));
-        if(hsm>0)
-          smx->pfBall2[i]=4.0*hsm*hsm;
-      }
+    if(mass!=NULL) {
+      if(checkArray(mass)) return NULL;
+      Py_XDECREF(kd->pNumpyMass);
+      kd->pNumpyMass = mass;
+      Py_INCREF(mass);
     }
-
-    if(rho != NULL)
-      for (i=0;i<kd->nActive;i++) kd->p[i].fDensity = (float)*((double *)PyArray_GETPTR1(rho, kd->p[i].iOrder));
+    if(rho!=NULL) {
+      if(checkArray(rho)) return NULL;
+      Py_XDECREF(kd->pNumpyDen);
+      kd->pNumpyDen = rho;
+      Py_INCREF(rho);
+    }
+    if(smooth!=NULL) {
+      if(checkArray(smooth)) return NULL;
+      Py_XDECREF(kd->pNumpySmooth);
+      kd->pNumpySmooth = smooth;
+      Py_INCREF(smooth);
+    }
 
     return PyCapsule_New(smx, NULL, NULL);
 }
@@ -318,6 +320,22 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
 /*==========================================================================*/
 /* populate                                                                 */
 /*==========================================================================*/
+int checkArray(PyObject *check) {
+
+  if(check==NULL) {
+    PyErr_SetString(PyExc_ValueError, "Unspecified array in kdtree");
+    return 1;
+  }
+
+  PyArray_Descr *descr = PyArray_DESCR(check);
+  if(descr==NULL || descr->kind!='f' || descr->elsize!=sizeof(double)) {
+    PyErr_SetString(PyExc_TypeError, "Incorrect numpy data type to kdtree - must match C double");
+    return 1;
+  }
+  return 0;
+
+}
+
 PyObject *populate(PyObject *self, PyObject *args)
 {
     long i,nCnt;
@@ -325,18 +343,19 @@ PyObject *populate(PyObject *self, PyObject *args)
     KD kd;
     SMX smx_global, smx_local;
     int propid, j;
+    float ri[3];
 
     PyObject *kdobj, *smxobj;
     PyObject *dest; // Nx1 Numpy array for the property
 
 
 
-    PyArg_ParseTuple(args, "OOOii", &kdobj, &smxobj, &dest, &propid, &procid);
+    PyArg_ParseTuple(args, "OOii", &kdobj, &smxobj, &propid, &procid);
     kd  = PyCapsule_GetPointer(kdobj, NULL);
     smx_global = PyCapsule_GetPointer(smxobj, NULL);
     #define BIGFLOAT ((float)1.0e37)
 
-    long nbodies = PyArray_DIM(dest, 0);
+    long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
   /*
     if(n_particles>nbodies) {
@@ -345,15 +364,15 @@ PyObject *populate(PyObject *self, PyObject *args)
     }
     */
 
-    PyArray_Descr *descr = PyArray_DESCR(dest);
 
-#define SET(nn, val) *((double*)PyArray_GETPTR1(dest, nn)) = val
-#define SET2(i,j, val) *((double*)PyArray_GETPTR2(dest, i,j)) = val
 
-    if(descr->kind!='f' || descr->elsize!=sizeof(double)) {
-      PyErr_SetString(PyExc_TypeError, "Incorrect numpy data type to kdtree - must match C double");
-      return NULL;
+    if (checkArray(kd->pNumpySmooth)) return NULL;
+    if(propid!=PROPID_HSM) {
+      if (checkArray(kd->pNumpyDen)) return NULL;
+      if (checkArray(kd->pNumpyMass)) return NULL;
+      if (checkArray(kd->pNumpySmooth)) return NULL;
     }
+
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings=false;
@@ -371,11 +390,8 @@ PyObject *populate(PyObject *self, PyObject *args)
                 nCnt = smSmoothStep(smx_local, NULL, procid);
                 if(nCnt==-1)
                   break; // nothing more to do
-                SET(kd->p[smx_local->pi].iOrder, kd->p[smx_local->pi].fSmooth);
                 total_particles+=1;
-                // *((double*)PyArray_GETPTR1(dest, kd->p[smx_local->pi].iOrder)) = kd->p[smx_local->pi].fSmooth;
               }
-            printf("Total particles processed = %d\n",total_particles);
           Py_END_ALLOW_THREADS
 
           break;
@@ -386,13 +402,17 @@ PyObject *populate(PyObject *self, PyObject *args)
       Py_BEGIN_ALLOW_THREADS
       while(i<nbodies)
         {
-            nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
+            for(int j=0; j<3; ++j) {
+              ri[j] = GET2(kd->pNumpyPos,kd->p[i].iOrder,j);
+            }
+            if(i<10) printf("i=%d pfB=%f ri=%f %f %f\n",i,smx_local->pfBall2[i],ri[0],ri[1],ri[2]);
+            nCnt = smBallGather(smx_local,smx_local->pfBall2[i],ri);
             smDensity(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
-            SET(kd->p[i].iOrder, kd->p[i].fDensity);
             i=smGetNext(smx_local);
         }
       Py_END_ALLOW_THREADS
 
+/*
     case PROPID_MEANVEL:
       i=smGetNext(smx_local);
       Py_BEGIN_ALLOW_THREADS
@@ -406,14 +426,10 @@ PyObject *populate(PyObject *self, PyObject *args)
         }
       Py_END_ALLOW_THREADS
 
-      /* using a symmetric kernel, so need to complete the smMeanVelSym for all
-         particles before outputting the values */
       break;
 
     case PROPID_VELDISP:
 
-      /* when using a symmetric kernel, the dependencies (in this case mean velocity
-         and div_v have to be calculated completely before using for v_disp */
 
       Py_BEGIN_ALLOW_THREADS
       for (i=0; i < nbodies; i++)
@@ -435,8 +451,7 @@ PyObject *populate(PyObject *self, PyObject *args)
 
       Py_END_ALLOW_THREADS
 
-      /* using a symmetric kernel, so need to complete the smVelDispNBSym for all
-         particles before outputting the values */
+
 
       for (i=0; i < nbodies; i++)
         {
@@ -448,6 +463,7 @@ PyObject *populate(PyObject *self, PyObject *args)
 
         default:
             break;
+      */
     }
 
     smFinishThreadLocalCopy(smx_local);
