@@ -1,16 +1,22 @@
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
+
+#ifdef KDT_THREADING
+#include "pthread.h"
+#endif
+
 #define ROOT		1
 #define LOWER(i)	(i<<1)
 #define UPPER(i)	((i<<1)+1)
 #define PARENT(i)	(i>>1)
 #define SIBLING(i) 	((i&1)?i-1:i+1)
-#define SETNEXT(i)\
+#define SETNEXT(i,localroot)\
 {\
-	while (i&1) i=i>>1;\
-	++i;\
+	while (i&1 && i!=localroot) i=i>>1;\
+	if(i!=localroot) ++i;\
 	}
+
 
 #define DARK	1
 #define GAS		2
@@ -165,16 +171,6 @@ void kdInMark(KD,char *);
 void kdBuildTree(KD);
 void kdOrder(KD);
 void kdFinish(KD);
+void kdBuildNode(KD, int);
 
 #endif
-
-
-
-
-
-
-
-
-
-
-

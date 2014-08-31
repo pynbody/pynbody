@@ -78,38 +78,16 @@ def _get_tree_objects(sim):
 
 
 def build_tree_or_trees(sim):
-    build_tree(sim)
-    return
-    
-    global _threaded_smooth
-    _threaded_smooth = _get_threaded_smooth()
 
-    if _threaded_smooth:
-        bits = _tree_decomposition(sim)
-        if all(map(hasattr, bits, ['kdtree'] * len(bits))):
-            return
-    else:
-        if hasattr(sim, 'kdtree'):
-            return
+    if hasattr(sim, 'kdtree'):
+        return
 
-    if _threaded_smooth:
-        logger.info('Building %d trees with leafsize=%d' %
-                    (_threaded_smooth, config['sph']['tree-leafsize']))
-    else:
-        logger.info('Building tree with leafsize=%d' %
-                    config['sph']['tree-leafsize'])
+    logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
 
     start = time.clock()
-
-    if _threaded_smooth:
-        # trigger any necessary 'lazy' activity from this thread,
-        # it won't be available to the individual worker threads
-        sim['pos'], sim['vel'], sim['mass']
-        _thread_map(build_tree, bits)
-    else:
-        build_tree(sim)
-
+    build_tree(sim)
     end = time.clock()
+
     logger.info('Tree build done in %5.3g s' % (end - start))
 
 
@@ -123,22 +101,9 @@ def smooth(self):
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
 
     start = time.time()
-
-    _threaded_smooth = _get_threaded_smooth()
-
-    if _threaded_smooth:
-        _thread_map(kdtree.KDTree.populate,
-                    _get_tree_objects(self),
-                    _tree_decomposition(sm),
-                    ['hsm'] * _threaded_smooth,
-                    [config['sph']['smooth-particles']] * _threaded_smooth)
-
-        sm /= _threaded_smooth ** 0.3333
-
-    else:
-        self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles'])
-
+    self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles'])
     end = time.time()
+
     logger.info('Smoothing done in %5.3gs' % (end - start))
 
     return sm

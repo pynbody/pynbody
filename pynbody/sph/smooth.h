@@ -4,11 +4,6 @@
 #include <stdbool.h>
 #include "kd.h"
 
-#define THREADING
-
-#ifdef THREADING
-#include "pthread.h"
-#endif
 
 #define RESMOOTH_SAFE  500
 
@@ -38,7 +33,7 @@ typedef struct smContext {
 	int nListSize;
 	float *fList;
 	int *pList;
-#ifdef THREADING
+#ifdef KDT_THREADING
 	pthread_mutex_t *pMutex;
 #endif
 
@@ -112,8 +107,8 @@ void smFinish(SMX);
 void smBallSearch(SMX,float,float *);
 int  smBallGather(SMX,float,float *);
 
-int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *));
-void smSmoothInitStep(SMX smx);
+int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int procid);
+void smSmoothInitStep(SMX smx, int nProcs);
 void smDensitySym(SMX,int,int,int *,float *);
 void smMeanVel(SMX,int,int,int *,float *);
 void smVelDisp(SMX,int,int,int *,float *);

@@ -124,8 +124,8 @@ void kdUpPass(KD kd,int iCell)
 
 void kdBuildTree(KD kd)
 {
-	int l,n,i,d,m,j,diff;
-	KDN *c;
+	int l,n,i,d,j;
+
 	BND bnd;
 
 	n = kd->nActive;
@@ -150,60 +150,153 @@ void kdBuildTree(KD kd)
 		}
 	for (i=1;i<kd->nActive;++i) {
 		for (j=0;j<3;++j) {
-			if (bnd.fMin[j] > kd->p[i].r[j]) 
+			if (bnd.fMin[j] > kd->p[i].r[j])
 				bnd.fMin[j] = kd->p[i].r[j];
 			else if (bnd.fMax[j] < kd->p[i].r[j])
 				bnd.fMax[j] = kd->p[i].r[j];
 			}
 		}
-	/*
-	 ** Set up ROOT node
-	 */
-	c = kd->kdNodes;
-	c[ROOT].pLower = 0;
-	c[ROOT].pUpper = kd->nActive-1;
-	c[ROOT].bnd = bnd;
-	i = ROOT;
+
+	// Set up root node
+	kd->kdNodes[ROOT].pLower = 0;
+	kd->kdNodes[ROOT].pUpper = kd->nActive-1;
+	kd->kdNodes[ROOT].bnd = bnd;
+
+	// Recursively build tree
+	kdBuildNode(kd, ROOT);
+
+	// Calculate and store bounds information by passing it up the tree
+	kdUpPass(kd,ROOT);
+}
+
+struct KDargs {
+	KD kd;
+	int local_root;
+};
+
+void kdBuildNodeRemote(struct KDargs *a) {
+	printf("enter remote i=%d ",a->local_root);
+	kdBuildNode(a->kd, a->local_root);
+}
+
+void kdBuildNode(KD kd, int local_root) {
+
+	int i=local_root;
+	int d,j,m,diff;
+	KDN *nodes;
+	nodes = kd->kdNodes;
+
+#ifdef KDT_THREADING
+	pthread_t remote_thread;
+	struct KDargs remote_args;
+#endif
+
+	printf("enter kdBuildNode i=%d (ROOT=%d)...\n",i,ROOT);
+
 	while (1) {
-		assert(c[i].pUpper - c[i].pLower + 1 > 0);
-		if (i < kd->nSplit && (c[i].pUpper - c[i].pLower) > 0) {
+		assert(nodes[i].pUpper - nodes[i].pLower + 1 > 0);
+		if (i < kd->nSplit && (nodes[i].pUpper - nodes[i].pLower) > 0) {
+
+			// Select splitting dimensions on the basis of keeping things
+			// as square as possible
 			d = 0;
 			for (j=1;j<3;++j) {
-				if (c[i].bnd.fMax[j]-c[i].bnd.fMin[j] > 
-					c[i].bnd.fMax[d]-c[i].bnd.fMin[d]) d = j;
+				if (nodes[i].bnd.fMax[j]-nodes[i].bnd.fMin[j] >
+					nodes[i].bnd.fMax[d]-nodes[i].bnd.fMin[d]) d = j;
 				}
-			c[i].iDim = d;
+			nodes[i].iDim = d;
 
-			m = (c[i].pLower + c[i].pUpper)/2;
-			kdSelect(kd,d,m,c[i].pLower,c[i].pUpper);
+			// Find mid-point of particle list at which splitting will
+			// ultimately take place
+			m = (nodes[i].pLower + nodes[i].pUpper)/2;
 
-			c[i].fSplit = kd->p[m].r[d];
-			c[LOWER(i)].bnd = c[i].bnd;
-			c[LOWER(i)].bnd.fMax[d] = c[i].fSplit;
-			c[LOWER(i)].pLower = c[i].pLower;
-			c[LOWER(i)].pUpper = m;
-			c[UPPER(i)].bnd = c[i].bnd;
-			c[UPPER(i)].bnd.fMin[d] = c[i].fSplit;
-			c[UPPER(i)].pLower = m+1;
-			c[UPPER(i)].pUpper = c[i].pUpper;
-			diff = (m-c[i].pLower+1)-(c[i].pUpper-m);
+			// Sort list to ensure particles between lower and m are to
+			// the 'left' of particles between m and upper
+			kdSelect(kd,d,m,nodes[i].pLower,nodes[i].pUpper);
+
+			// Note split point based on median particle
+			nodes[i].fSplit = kd->p[m].r[d];
+
+			// Set up lower cell
+			nodes[LOWER(i)].bnd = nodes[i].bnd;
+			nodes[LOWER(i)].bnd.fMax[d] = nodes[i].fSplit;
+			nodes[LOWER(i)].pLower = nodes[i].pLower;
+			nodes[LOWER(i)].pUpper = m;
+
+			// Set up upper cell
+			nodes[UPPER(i)].bnd = nodes[i].bnd;
+			nodes[UPPER(i)].bnd.fMin[d] = nodes[i].fSplit;
+			nodes[UPPER(i)].pLower = m+1;
+			nodes[UPPER(i)].pUpper = nodes[i].pUpper;
+			diff = (m-nodes[i].pLower+1)-(nodes[i].pUpper-m);
 			assert(diff == 0 || diff == 1);
-			i = LOWER(i);
-			}
-		else {
-			c[i].iDim = -1;
-			SETNEXT(i);
-			if (i == ROOT) break;
-			}
-		}
-	kdUpPass(kd,ROOT);
-	}
 
+#if 0
+			// Threaded KDT build is disabled at the moment.
+			//
+			// It does work, but it turns out to be slower than working on a single
+			// thread. This is presumably because the threads are writing to widely
+			// different bits of memory and the CPU cache doesn't like it?
+
+			if(i<=2) {
+				// Launch a thread to handle the lower part of the tree,
+				// handle the upper part on the current thread.
+				printf("launch thread for id=%d...\n",LOWER(i));
+
+				remote_args.kd = kd;
+				remote_args.local_root = LOWER(i);
+
+
+				// do lower part on another thread
+				if(pthread_create(&remote_thread, NULL, kdBuildNodeRemote, &remote_args)) {
+					fprintf(stderr,"Threading error");
+					return;
+				}
+
+				// do upper part locally
+				kdBuildNode(kd,UPPER(i));
+
+
+				printf("join...");
+				if(pthread_join(remote_thread,NULL)) {
+					fprintf(stderr,"Threading error");
+					return;
+				}
+
+				// at this point, we've finished processing this node and all subnodes,
+				// so continue back up the tree
+
+				SETNEXT(i,local_root);
+
+			} else{
+				// Continue processing on these threads
+				// Next cell is the lower one. Upper one will be processed
+				// on the way up.
+				i = LOWER(i);
+			}
+
+#else
+      // On single thread, always switch attention to the lower branch
+			// (and upper branch gets processed on way up).
+		  i = LOWER(i);
+#endif
+
+		} else {
+			// Cell does not need to be split. Mark as leaf
+			nodes[i].iDim = -1;
+
+			// Go back up the tree and process the UPPER cells where
+			// necessary
+			SETNEXT(i,local_root);
+		}
+		if (i == local_root) break; // We got back to the top, so we're done.
+	}
+}
 
 int cmpParticles(const void *v1,const void *v2)
 {
 	PARTICLE *p1=(PARTICLE *)v1,*p2=(PARTICLE *)v2;
-	
+
 	return(p1->iOrder - p2->iOrder);
 	}
 
@@ -220,4 +313,3 @@ void kdFinish(KD kd)
 	free(kd->kdNodes);
 	free(kd);
 	}
-

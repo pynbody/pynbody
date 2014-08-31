@@ -28,7 +28,7 @@ class KDTree:
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn))
+        smx = kdmain.nn_start(self.kdtree, int(nn), 1)
 
         while True:
             nbr_list = kdmain.nn_next(self.kdtree, smx)
@@ -43,23 +43,23 @@ class KDTree:
 
     def populate(self, dest, property, nn=None, smooth=None, rho=None):
         from . import _thread_map
+        n_proc = 4
+
         if nn is None:
             nn = 64
         if (smooth is not None) and (rho is not None):
-            smx = kdmain.nn_start(self.kdtree, int(nn), smooth, rho)
+            smx = kdmain.nn_start(self.kdtree, int(nn), n_proc, smooth, rho)
         elif smooth is not None:
-            smx = kdmain.nn_start(self.kdtree, int(nn), smooth)
+            smx = kdmain.nn_start(self.kdtree, int(nn), n_proc, smooth)
         else:
-            smx = kdmain.nn_start(self.kdtree, int(nn))
+            smx = kdmain.nn_start(self.kdtree, int(nn), n_proc)
 
         propid = int(self.propid[property])
-        n_proc = 2
+
         dest[:]=0
 
 
-        _thread_map(kdmain.populate,[self.kdtree]*n_proc,[smx]*n_proc,[dest]*n_proc,[propid]*n_proc,
-        range(0,self.s_len-1,self.s_len/n_proc),
-            [self.s_len/n_proc+1]*n_proc)
+        _thread_map(kdmain.populate,[self.kdtree]*n_proc,[smx]*n_proc,[dest]*n_proc,[propid]*n_proc,range(0,n_proc))
 
         kdmain.nn_stop(self.kdtree, smx)
 

@@ -200,11 +200,11 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     */
     PyObject *smooth = NULL, *rho=NULL;
 
-    int nSmooth;
+    int nSmooth, nProcs;
     long i;
     float hsm;
 
-    PyArg_ParseTuple(args, "Oi|OO", &kdobj, &nSmooth, &smooth, &rho);
+    PyArg_ParseTuple(args, "Oii|OO", &kdobj, &nSmooth, &nProcs, &smooth, &rho);
     kd = PyCapsule_GetPointer(kdobj, NULL);
 
 #define BIGFLOAT ((float)1.0e37)
@@ -216,7 +216,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    smSmoothInitStep(smx);
+    smSmoothInitStep(smx, nProcs);
 
     if(smooth != NULL) {
 
@@ -224,8 +224,6 @@ PyObject *nn_start(PyObject *self, PyObject *args)
         hsm = (float)*((double *)PyArray_GETPTR1(smooth, kd->p[i].iOrder));
         if(hsm>0)
           smx->pfBall2[i]=4.0*hsm*hsm;
-        else
-          smx->pfBall2[i]=-1.0;
       }
     }
 
@@ -256,7 +254,7 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
     Py_BEGIN_ALLOW_THREADS
 
-    nCnt = smSmoothStep(smx, NULL);
+    nCnt = smSmoothStep(smx, NULL,0);
 
     Py_END_ALLOW_THREADS
 
@@ -312,7 +310,7 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
 
     PyArg_ParseTuple(args, "O", &smxobj);
     smx = PyCapsule_GetPointer(smxobj, NULL);
-    smSmoothInitStep(smx);
+    smSmoothInitStep(smx, 1);
 
     return PyCapsule_New(smx, NULL, NULL);
 }
@@ -323,7 +321,7 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
 PyObject *populate(PyObject *self, PyObject *args)
 {
     long i,nCnt;
-    long id_start, n_particles;
+    long procid;
     KD kd;
     SMX smx_global, smx_local;
     int propid, j;
@@ -333,7 +331,7 @@ PyObject *populate(PyObject *self, PyObject *args)
 
 
 
-    PyArg_ParseTuple(args, "OOOikk", &kdobj, &smxobj, &dest, &propid, &id_start, &n_particles);
+    PyArg_ParseTuple(args, "OOOii", &kdobj, &smxobj, &dest, &propid, &procid);
     kd  = PyCapsule_GetPointer(kdobj, NULL);
     smx_global = PyCapsule_GetPointer(smxobj, NULL);
     #define BIGFLOAT ((float)1.0e37)
@@ -358,21 +356,25 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings=false;
-    smx_local->pi = id_start;
+    smx_local->pi = 0;
+
+    int total_particles=0;
 
     switch(propid)
     {
         case PROPID_HSM:
 
           Py_BEGIN_ALLOW_THREADS
-            for (i=0; i < n_particles; i++)
+            for (i=0; i < nbodies; i++)
               {
-                nCnt = smSmoothStep(smx_local, NULL);
+                nCnt = smSmoothStep(smx_local, NULL, procid);
                 if(nCnt==-1)
-                  break;
+                  break; // nothing more to do
                 SET(kd->p[smx_local->pi].iOrder, kd->p[smx_local->pi].fSmooth);
+                total_particles+=1;
                 // *((double*)PyArray_GETPTR1(dest, kd->p[smx_local->pi].iOrder)) = kd->p[smx_local->pi].fSmooth;
               }
+            printf("Total particles processed = %d\n",total_particles);
           Py_END_ALLOW_THREADS
 
           break;
@@ -433,8 +435,6 @@ PyObject *populate(PyObject *self, PyObject *args)
         {
 
           nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-
-
           smVelDispNBSym(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
         }
 

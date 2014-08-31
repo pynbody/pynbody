@@ -53,7 +53,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 		smx->kd->p[pi].fDivv = 0.0;
 		}
 
-	#ifdef THREADING
+#ifdef KDT_THREADING
 	pthread_mutexattr_t Attr;
 
 	pthread_mutexattr_init(&Attr);
@@ -68,7 +68,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
   }
 
 
-	#endif
+#endif
 	*psmx = smx;
 	return(1);
 	}
@@ -174,7 +174,7 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	while (cell != ROOT) {
 		cp = SIBLING(cell);
 		ct = cp;
-		SETNEXT(ct);
+		SETNEXT(ct,ROOT);
 		while (1) {
 			INTERSECT(c,cp,fBall2,lx,ly,lz,x,y,z,sx,sy,sz);
 			/*
@@ -205,7 +205,7 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 					}
 				}
 		GetNextCell:
-			SETNEXT(cp);
+			SETNEXT(cp,ROOT);
 			if (cp == ct) break;
 			}
 		cell = PARENT(cell);
@@ -262,7 +262,7 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 
 			}
 	GetNextCell:
-		SETNEXT(cp);
+		SETNEXT(cp,ROOT);
 		if (cp == ROOT) break;
 		}
 	assert(nCnt <= smx->nListSize);
@@ -270,7 +270,7 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 	}
 
 
-void smSmoothInitStep(SMX smx)
+void smSmoothInitStep(SMX smx, int nProcs)
 {
 	KDN *c;
 	PARTICLE *p;
@@ -280,13 +280,21 @@ void smSmoothInitStep(SMX smx)
 
 	c = smx->kd->kdNodes;
 	p = smx->kd->p;
+
+	// AP 31/8/2014 - Here is the domain decomposition for nProcs>1
+	// In principle one should do better by localizing the
+	// domains -- the current approach is a seriously naive decomposition.
+	// This will result in more snake collisions than necessary.
+	// However in practice, up to nCpu = 8, the scaling is looking
+	// pretty linear anyway so I'm leaving that for future.
+
 	for (pi=0;pi<smx->kd->nActive;++pi) {
-        smx->pfBall2[pi] = -1.0;
-		}
-	smx->pfBall2[smx->kd->nActive] = -1.0; /* stop condition */
+        smx->pfBall2[pi] = -(float)(1+pi%nProcs);
+	}
+
 	for (pi=0;pi<smx->kd->nActive;++pi) {
 		smx->iMark[pi] = 0;
-		}
+	}
 
 
 	smInitPriorityQueue(smx);
@@ -324,14 +332,17 @@ void smInitPriorityQueue(SMX smx) {
   smx->az = az;
 }
 
-int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
+int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int procid)
 {
 	KDN *c;
 	PARTICLE *p;
 	PQ *pq,*pqLast;
 	int cell;
 	int pi,pin,pj,pNext,nCnt,nSmooth;
+	int nScanned=0;
+
 	float dx,dy,dz,x,y,z,h2,ax,ay,az;
+	float proc_signal = -(float)(procid)-1.0;
 
 	c = smx->kd->kdNodes;
 	p = smx->kd->p;
@@ -344,7 +355,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 	az = smx->az;
 
 
-	pthread_mutex_lock(smx->pMutex); // to be unlocked once first particle is decided on and marked
+	// pthread_mutex_lock(smx->pMutex); // to be unlocked once first particle is decided on and marked
 	if (smx->pfBall2[pin] >= 0) {
 		// the first particle we are supposed to smooth is
 		// actually already done. We need to search for another
@@ -352,23 +363,21 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		// threads, if this is threaded.
 
 
-		while (smx->pfBall2[pNext] >= 0) ++pNext;
-
-		if (pNext == smx->kd->nActive) {
-			// Hit the end of the particle list. Try wrapping around.
-			pNext = 0;
-			while (smx->pfBall2[pNext] >= 0) ++pNext;
+		while (smx->pfBall2[pNext] != proc_signal) {
+		 		++pNext;
+				++nScanned;
+				if(pNext>=smx->kd->nActive)
+					pNext=0;
+				if(nScanned==smx->kd->nActive) {
+					// Nothing remains to be done.
+					// pthread_mutex_unlock(smx->pMutex);
+					return -1;
+				}
 		}
 
-		if (pNext == smx->kd->nActive) {
-			// Nothing remains to be done.
-			pthread_mutex_unlock(smx->pMutex);
-			return -1;
-		} else {
-			// mark particle as in-process, then unlock
-			smx->pfBall2[pNext] = 10;
-			pthread_mutex_unlock(smx->pMutex);
-		}
+		// mark particle as in-process, then unlock
+		smx->pfBall2[pNext] = 10;
+		// pthread_mutex_unlock(smx->pMutex);
 
 		pi = pNext;
 		++pNext;
@@ -415,7 +424,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		*/
 		pi = pin;
 		smx->pfBall2[pi] = 10; // temporary value indicates to other threads we've taken control of this particle
-		pthread_mutex_unlock(smx->pMutex);
+		// pthread_mutex_unlock(smx->pMutex);
 
 		x = p[pi].r[0];
 		y = p[pi].r[1];
