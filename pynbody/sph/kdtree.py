@@ -7,6 +7,7 @@ Provides access to nearest neighbour lists and smoothing lengths.
 
 """
 from . import kdmain
+from .. import config
 
 class KDTree(object):
     PROPID_HSM = 1
@@ -44,7 +45,7 @@ class KDTree(object):
     def populate(self, mode, nn, smooth, rho=None, mass=None):
         from . import _thread_map
 
-        n_proc=8
+        n_proc=config['number_of_threads']
 
         if nn is None:
             nn = 64

@@ -34,14 +34,11 @@ except ImportError:
 import os
 
 
-def _get_threaded_smooth():
-    return config_parser.getboolean('sph', 'threaded-smooth') and config['number_of_threads']
 
 
 def _get_threaded_image():
     return config_parser.getboolean('sph', 'threaded-image') and config['number_of_threads']
 
-_threaded_smooth = _get_threaded_smooth()
 _threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 

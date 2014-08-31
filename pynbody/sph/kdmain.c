@@ -405,7 +405,7 @@ PyObject *populate(PyObject *self, PyObject *args)
             for(int j=0; j<3; ++j) {
               ri[j] = GET2(kd->pNumpyPos,kd->p[i].iOrder,j);
             }
-            if(i<10) printf("i=%d pfB=%f ri=%f %f %f\n",i,smx_local->pfBall2[i],ri[0],ri[1],ri[2]);
+            // if(i<10) printf("i=%d pfB=%f ri=%f %f %f\n",i,smx_local->pfBall2[i],ri[0],ri[1],ri[2]);
             nCnt = smBallGather(smx_local,smx_local->pfBall2[i],ri);
             smDensity(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
             i=smGetNext(smx_local);
