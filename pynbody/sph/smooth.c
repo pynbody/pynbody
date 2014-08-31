@@ -54,6 +54,8 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 		}
 
 #ifdef KDT_THREADING
+	smx->nCurrent=0;
+
 	pthread_mutexattr_t Attr;
 
 	pthread_mutexattr_init(&Attr);
@@ -63,15 +65,32 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 
 	if (pthread_mutex_init(smx->pMutex, &Attr) != 0)
 	{
+		free(smx->pMutex);
     free(smx);
     return(0);
   }
+
+	smx->pReady = malloc(sizeof(pthread_cond_t));
+
+	if (pthread_cond_init(smx->pReady,NULL)!=0) {
+		free(smx->pMutex);
+		free(smx->pReady);
+		free(smx);
+		return(0);
+	}
+
+	smx->nLocals=0;
+	smx->nReady=0;
+
+	smx->smx_global=NULL;
 
 
 #endif
 	*psmx = smx;
 	return(1);
 	}
+
+#ifdef KDT_THREADING
 
 SMX smInitThreadLocalCopy(SMX from) {
 
@@ -97,18 +116,67 @@ SMX smInitThreadLocalCopy(SMX from) {
 		smx->iMark[pi] = 0;
 	}
 	smx->pMutex = from->pMutex;
+	smx->pReady = from->pReady;
+	from->nLocals++;
+
+	smx->smx_global = from;
+	smx->nCurrent = 0;
+	smx->nLocals=0;
 	smInitPriorityQueue(smx);
 	return smx;
 }
 
 void smFinishThreadLocalCopy(SMX smx)
 {
+	smx->smx_global->nLocals--;
+
 	free(smx->pq);
 	free(smx->fList);
 	free(smx->pList);
 	free(smx->iMark);
 	free(smx);
 }
+
+void smReset(SMX smx_local) {
+	SMX smxg = smx_local->smx_global;
+
+	pthread_mutex_lock(smxg->pMutex);
+	smxg->nReady++;
+	if(smxg->nReady==smxg->nLocals) {
+		smxg->nReady=0;
+		smxg->nCurrent=0;
+		pthread_cond_broadcast(smxg->pReady);
+	} else {
+		pthread_cond_wait(smxg->pReady,smxg->pMutex);
+	}
+	pthread_mutex_unlock(smxg->pMutex);
+	smx_local->nCurrent=0;
+}
+
+#define WORKUNIT 1000
+
+int smGetNext(SMX smx_local) {
+	int i = smx_local->nCurrent;
+
+	if(smx_local->nCurrent%WORKUNIT==0) {
+		// we have reached the end of a work unit. Get and increment the global
+		// counter.
+		pthread_mutex_lock(smx_local->pMutex);
+		smx_local->nCurrent=smx_local->smx_global->nCurrent;
+		i = smx_local->nCurrent;
+		smx_local->smx_global->nCurrent+=WORKUNIT;
+		pthread_mutex_unlock(smx_local->pMutex);
+	}
+
+	// i now has the next thing to be processed
+	// increment the local counter
+
+	smx_local->nCurrent+=1;
+
+	return i;
+}
+
+#endif
 
 void smFinish(SMX smx)
 {
@@ -117,8 +185,14 @@ void smFinish(SMX smx)
 	free(smx->pq);
 	free(smx->fList);
 	free(smx->pList);
+
+#ifdef KDT_THREADING
 	pthread_mutex_destroy(smx->pMutex);
+	pthread_cond_destroy(smx->pReady);
 	free(smx->pMutex);
+	free(smx->pReady);
+#endif
+
 	free(smx);
 
 }
@@ -355,7 +429,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 	az = smx->az;
 
 
-	// pthread_mutex_lock(smx->pMutex); // to be unlocked once first particle is decided on and marked
+	// pthread_mutex_lock(smx->pMutex); -- no longer necessary now decomposition is done before start
 	if (smx->pfBall2[pin] >= 0) {
 		// the first particle we are supposed to smooth is
 		// actually already done. We need to search for another
@@ -508,8 +582,8 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	float fNorm,ih2,r2,rs;
 	int i,pj;
 
-        ih2 = 4.0/smx->pfBall2[pi];
-        fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
+  ih2 = 4.0/smx->pfBall2[pi];
+  fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
 	for (i=0;i<nSmooth;++i) {
                 pj = pList[i];
 		r2 = fList[i]*ih2;
@@ -523,7 +597,30 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 		rs *= fNorm;
 		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
 		smx->kd->p[pj].fDensity += rs*smx->kd->p[pi].fMass;
-        }
+  }
+}
+
+
+void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs;
+	int i,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = M_1_PI*sqrt(ih2)*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+								rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		if(rs<0) {
+			fprintf(stderr, "Internal consistency error\n");
+			smx->warnings=true;
+		}
+		rs *= fNorm;
+		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
+	}
 }
 
 
@@ -602,6 +699,38 @@ void smDivvSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 			smx->kd->p[pj].fDensity*dvdotdr;
 		smx->kd->p[pj].fDivv -= rs1*smx->kd->p[pi].fMass/
 			smx->kd->p[pi].fDensity*dvdotdr;
+		}
+	}
+
+
+void smDivv(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs;
+	float r, rs1, dvdotdr, fNorm1;
+	int i,j,pj;
+
+	ih2 = 4.0/smx->pfBall2[pi];
+	fNorm = M_1_PI*sqrt(ih2)*ih2;
+	fNorm1 = fNorm*ih2;
+	for (i=0;i<nSmooth;++i) {
+		pj = pList[i];
+		r2 = fList[i]*ih2;
+		r = sqrt(r2);
+		rs = 2.0 - r;
+		if (r2 < 1.0) {
+			rs1 = -3 + 2.25*r;
+			}
+		else {
+			rs1 = -0.75*rs*rs/r;
+			}
+		rs1 *= fNorm1;
+		dvdotdr = 0.0;
+		for (j=0;j<3;++j) {
+			dvdotdr += (smx->kd->p[pj].v[j] - smx->kd->p[pi].v[j])*
+				(smx->kd->p[pj].r[j] - smx->kd->p[pi].r[j]);
+			}
+		smx->kd->p[pi].fDivv -= rs1*smx->kd->p[pj].fMass/
+			smx->kd->p[pj].fDensity*dvdotdr;
 		}
 	}
 

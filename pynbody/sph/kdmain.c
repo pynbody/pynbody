@@ -348,6 +348,7 @@ PyObject *populate(PyObject *self, PyObject *args)
     PyArray_Descr *descr = PyArray_DESCR(dest);
 
 #define SET(nn, val) *((double*)PyArray_GETPTR1(dest, nn)) = val
+#define SET2(i,j, val) *((double*)PyArray_GETPTR2(dest, i,j)) = val
 
     if(descr->kind!='f' || descr->elsize!=sizeof(double)) {
       PyErr_SetString(PyExc_TypeError, "Incorrect numpy data type to kdtree - must match C double");
@@ -381,37 +382,32 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     case PROPID_RHO:
 
+      i=smGetNext(smx_local);
       Py_BEGIN_ALLOW_THREADS
-      for (i=0; i < nbodies; i++)
+      while(i<nbodies)
         {
             nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-            smDensitySym(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
-
+            smDensity(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+            SET(kd->p[i].iOrder, kd->p[i].fDensity);
+            i=smGetNext(smx_local);
         }
       Py_END_ALLOW_THREADS
-      for(i=0;i<nbodies;i++)  SET(kd->p[i].iOrder, kd->p[i].fDensity);
-      break;
 
     case PROPID_MEANVEL:
+      i=smGetNext(smx_local);
       Py_BEGIN_ALLOW_THREADS
-      for (i=0; i < nbodies; i++)
+      while(i<nbodies)
         {
-
           nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-          smMeanVelSym(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+          smMeanVel(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+          for (j=0;j<3;j++)
+            SET2(kd->p[i].iOrder,j,kd->p[i].vMean[j]);
+          i=smGetNext(smx_local);
         }
       Py_END_ALLOW_THREADS
 
       /* using a symmetric kernel, so need to complete the smMeanVelSym for all
          particles before outputting the values */
-
-      for (i=0; i < nbodies; i++)
-        {
-          for (j=0;j<3;j++)
-            PyArray_SETITEM(dest, PyArray_GETPTR2(dest, kd->p[i].iOrder,j),
-                            PyFloat_FromDouble(kd->p[i].vMean[j]));
-        }
-
       break;
 
     case PROPID_VELDISP:
@@ -424,12 +420,11 @@ PyObject *populate(PyObject *self, PyObject *args)
         {
 
           nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-
-
-          smMeanVelSym(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
-          smDivvSym(smx_local, i, nCnt, smx_local->pList, smx_local->fList);
+          smMeanVel(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+          smDivv(smx_local, i, nCnt, smx_local->pList, smx_local->fList);
         }
 
+      smReset(smx_local);
 
       for (i=0; i < nbodies; i++)
         {
