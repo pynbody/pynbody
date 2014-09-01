@@ -8,6 +8,7 @@ import glob
 import tempfile
 import subprocess
 import shutil
+import sys
 
 
 # Patch the sdist command to ensure both versions of the openmp module are
@@ -74,10 +75,13 @@ def check_for_openmp():
     else:
         return False
 
+cython_version = None
 try :
     import cython
+    
     # check that cython version is > 0.20
-    if float(cython.__version__.partition(".")[2][:2]) < 20 :
+    cython_version = cython.__version__
+    if float(cython_version.partition(".")[2][:2]) < 20 :
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
@@ -172,6 +176,32 @@ if not build_cython :
     for mod in ext_modules :
         mod.sources = list(map(lambda source: source.replace(".pyx",".c"),
                            mod.sources))
+        for src in mod.sources:
+            if not os.path.isfile(src):
+                print ("""
+You are attempting to install pynbody without cython. Unfortunately
+this package does not include the generated .c files that are required
+to do so.
+
+You have two options. Either:
+
+ 1. Get a 'release' version of pynbody from
+    https://github.com/pynbody/pynbody/releases
+
+or
+
+ 2. Install Cython, at least version 0.20 and preferably 0.21 or higher.
+    This can normally be accomplished by typing
+
+    pip install --upgrade cython.
+
+    
+If you already did one of the above, you've encountered a bug. Please
+open an issue on github to let us know. The missing file is {0}
+and the detected cython version is {1}.
+""".format(src,cython_version))
+            
+                sys.exit(1)
 
 dist = setup(name = 'pynbody',
              install_requires='numpy>=1.5',

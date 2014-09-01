@@ -341,13 +341,14 @@ class RockstarCatalogue(HaloCatalogue):
 
         for h in xrange(self._head['num_halos']):
             num_p = self._haloprops[h]['num_p'][0]
-            h_i=sorted(np.fromstring(f.read(num_p*8),dtype=np.int64))
+            h_i=np.fromstring(f.read(num_p*8),dtype=np.int64)
+            h_i.sort()
             # ugly, but works
             hn = np.where(self._num_p_rank==h)[0][0]+1
             self._halos[hn]=Halo(hn, self, self.base,self._iord_to_fpos[h_i])
             self._halos[hn]._descriptor = "halo_"+str(hn)
             # properties are in Msun / h, Mpc / h
-            self._halos[hn].properties = self._haloprops[h]
+            self._halos[hn].properties.update(dict(zip(self._haloprops[h][0].dtype.names,self._haloprops[h][0])))
 
 
     def _load_ahf_substructure(self, filename):
@@ -388,7 +389,7 @@ class RockstarCatalogue(HaloCatalogue):
                 ahfs = glob.glob(os.path.join(directory, "rockstar-galaxies"))
                 for iahf, ahf in enumerate(ahfs):
                     if ((len(ahfs) > 1) & (iahf != len(ahfs)-1) &
-                            (os.path.basename(ahf) == 'rockstar')):
+                            (os.path.basename(ahf) == 'rockstar-galaxies')):
                         continue
                     else:
                         groupfinder = ahf
