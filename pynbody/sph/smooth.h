@@ -28,7 +28,6 @@ typedef struct smContext {
 	float fPeriod[3];
 	PQ *pq;
 	PQ *pqHead;
-	float *pfBall2;
 	char *iMark;
 	int nListSize;
 	float *fList;
@@ -126,6 +125,8 @@ void smMeanVelSym(SMX,int,int,int *,float *);
 void smDivvSym(SMX,int,int,int *,float *);
 void smVelDispSym(SMX,int,int,int *,float *);
 void smVelDispNBSym(SMX,int,int,int *,float *);
+
+void smDomainDecomposition(KD kd, int nprocs);
 
 #ifdef KDT_THREADING
 int smGetNext(SMX smx_local);

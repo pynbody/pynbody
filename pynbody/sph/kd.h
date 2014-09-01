@@ -179,4 +179,9 @@ void kdBuildNode(KD, int);
 	(*p)+=add; \
 }
 
+
+#define GETSMOOTH(pid) GET(kd->pNumpySmooth, kd->p[pid].iOrder)
+#define SETSMOOTH(pid, val) SET(kd->pNumpySmooth, kd->p[pid].iOrder, val)
+
+
 #endif

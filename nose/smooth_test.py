@@ -7,11 +7,13 @@ def test_smooth():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
 
-    npt.assert_array_almost_equal(f.dm['smooth'],
-                         np.load('test_smooth.npy'))
+    npt.assert_allclose(f.dm['smooth'],
+                         np.load('test_smooth.npy'),rtol=1e-5)
 
-    npt.assert_array_almost_equal(f.dm['rho'],
-                         np.load('test_rho.npy'))
+    p.plot((f.dm['rho']/np.load('test_rho.npy'))[::10])
+    p.savefig('testrho.png')
+    npt.assert_allclose(f.dm['rho'],
+                         np.load('test_rho.npy'),rtol=1e-5)
 
 
 

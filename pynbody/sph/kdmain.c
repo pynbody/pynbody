@@ -60,6 +60,9 @@ PyObject *nn_rewind(PyObject *self, PyObject *args);
 
 PyObject *populate(PyObject *self, PyObject *args);
 
+PyObject *domain_decomposition(PyObject *self, PyObject *args);
+PyObject *set_arrayref(PyObject *self, PyObject *args);
+
 /*==========================================================================*/
 #define PROPID_HSM      1
 #define PROPID_RHO      2
@@ -76,6 +79,9 @@ static PyMethodDef kdmain_methods[] =
     {"nn_next",   nn_next,   METH_VARARGS, "nn_next"},
     {"nn_stop",   nn_stop,   METH_VARARGS, "nn_stop"},
     {"nn_rewind", nn_rewind, METH_VARARGS, "nn_rewind"},
+
+    {"set_arrayref", set_arrayref, METH_VARARGS, "set_arrayref"},
+    {"domain_decomposition", domain_decomposition, METH_VARARGS, "domain_decomposition"},
 
     {"populate",  populate,  METH_VARARGS, "populate"},
 
@@ -199,7 +205,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     long i;
     float hsm;
 
-    PyArg_ParseTuple(args, "Oii|OOO", &kdobj, &nSmooth, &nProcs, &smooth, &rho, &mass);
+    PyArg_ParseTuple(args, "Oi", &kdobj, &nSmooth);
     kd = PyCapsule_GetPointer(kdobj, NULL);
 
 #define BIGFLOAT ((float)1.0e37)
@@ -213,24 +219,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
 
     smSmoothInitStep(smx, nProcs);
 
-    if(mass!=NULL) {
-      if(checkArray(mass)) return NULL;
-      Py_XDECREF(kd->pNumpyMass);
-      kd->pNumpyMass = mass;
-      Py_INCREF(mass);
-    }
-    if(rho!=NULL) {
-      if(checkArray(rho)) return NULL;
-      Py_XDECREF(kd->pNumpyDen);
-      kd->pNumpyDen = rho;
-      Py_INCREF(rho);
-    }
-    if(smooth!=NULL) {
-      if(checkArray(smooth)) return NULL;
-      Py_XDECREF(kd->pNumpySmooth);
-      kd->pNumpySmooth = smooth;
-      Py_INCREF(smooth);
-    }
+
 
     return PyCapsule_New(smx, NULL, NULL);
 }
@@ -273,7 +262,8 @@ PyObject *nn_next(PyObject *self, PyObject *args)
         }
 
         PyList_SetItem(retList, 0, PyLong_FromLong(smx->pi));
-        PyList_SetItem(retList, 1, PyFloat_FromDouble(smx->pfBall2[smx->pi]));
+        PyList_SetItem(retList, 1, PyFloat_FromDouble(
+                       GET(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
         PyList_SetItem(retList, 2, nnList);
         PyList_SetItem(retList, 3, nnDist);
 
@@ -317,9 +307,7 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
     return PyCapsule_New(smx, NULL, NULL);
 }
 
-/*==========================================================================*/
-/* populate                                                                 */
-/*==========================================================================*/
+
 int checkArray(PyObject *check) {
 
   if(check==NULL) {
@@ -336,6 +324,61 @@ int checkArray(PyObject *check) {
 
 }
 
+PyObject *set_arrayref(PyObject *self, PyObject *args) {
+    int arid;
+    PyObject *kdobj, *arobj, **existing;
+    KD kd;
+
+    PyArg_ParseTuple(args, "OiO", &kdobj, &arid, &arobj);
+    kd  = PyCapsule_GetPointer(kdobj, NULL);
+    if(!kd) return NULL;
+
+    if(checkArray(arobj)) return NULL;
+
+    switch(arid) {
+    case 0:
+        existing = &(kd->pNumpySmooth);
+        break;
+    case 1:
+        existing = &(kd->pNumpyDen);
+        break;
+    case 2:
+        existing = &(kd->pNumpyMass);
+        break;
+    default:
+        PyErr_SetString(PyExc_ValueError, "Unknown array to set for KD tree");
+        return NULL;
+    }
+
+    if(checkArray(arobj)) return NULL;
+
+    Py_XDECREF(*existing);
+    (*existing) = arobj;
+    Py_INCREF(arobj);
+    return Py_None;
+}
+
+PyObject *domain_decomposition(PyObject *self, PyObject *args) {
+    int nproc;
+    PyObject *smxobj;
+    KD kd;
+
+    PyArg_ParseTuple(args, "Oi", &smxobj, &nproc);
+
+    kd  = PyCapsule_GetPointer(smxobj, NULL);
+    if(!kd) return NULL;
+
+    if(checkArray(kd->pNumpySmooth)) return NULL;
+    if(nproc<0) {
+        PyErr_SetString(PyExc_ValueError, "Invalid number of processors");
+        return NULL;
+    }
+
+    smDomainDecomposition(kd,nproc);
+
+    return Py_None;
+}
+
 PyObject *populate(PyObject *self, PyObject *args)
 {
     long i,nCnt;
@@ -344,6 +387,7 @@ PyObject *populate(PyObject *self, PyObject *args)
     SMX smx_global, smx_local;
     int propid, j;
     float ri[3];
+    float hsm;
 
     PyObject *kdobj, *smxobj;
     PyObject *dest; // Nx1 Numpy array for the property
@@ -382,7 +426,8 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     switch(propid)
     {
-        case PROPID_HSM:
+
+    case PROPID_HSM:
 
           Py_BEGIN_ALLOW_THREADS
             for (i=0; i < nbodies; i++)
@@ -399,15 +444,25 @@ PyObject *populate(PyObject *self, PyObject *args)
     case PROPID_RHO:
 
       i=smGetNext(smx_local);
+
       Py_BEGIN_ALLOW_THREADS
       while(i<nbodies)
         {
+            // make a copy of the position of this particle
             for(int j=0; j<3; ++j) {
               ri[j] = GET2(kd->pNumpyPos,kd->p[i].iOrder,j);
             }
-            // if(i<10) printf("i=%d pfB=%f ri=%f %f %f\n",i,smx_local->pfBall2[i],ri[0],ri[1],ri[2]);
-            nCnt = smBallGather(smx_local,smx_local->pfBall2[i],ri);
+
+            // retrieve the existing smoothing length
+            hsm = GETSMOOTH(i);
+
+            // use it to get nearest neighbours
+            nCnt = smBallGather(smx_local,4*hsm*hsm,ri);
+
+            // calculate the density
             smDensity(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+
+            // select next particle in coordination with other threads
             i=smGetNext(smx_local);
         }
       Py_END_ALLOW_THREADS

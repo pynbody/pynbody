@@ -42,7 +42,17 @@ class KDTree(object):
     def all_nn(self, nn=None):
         return [x for x in self.nn(nn)]
 
-    def populate(self, mode, nn, smooth, rho=None, mass=None):
+    def set_array_ref(self, name, ar) :
+        if name=="smooth":
+            kdmain.set_arrayref(self.kdtree,0,ar)
+        elif name=="rho":
+            kdmain.set_arrayref(self.kdtree,1,ar)
+        elif name=="mass":
+            kdmain.set_arrayref(self.kdtree,2,ar)
+        else :
+            raise ValueError, "Unknown KDtree array "+name
+
+    def populate(self, mode, nn):
         from . import _thread_map
 
         n_proc=config['number_of_threads']
@@ -50,14 +60,12 @@ class KDTree(object):
         if nn is None:
             nn = 64
 
-        if mass!=None :
-            smx = kdmain.nn_start(self.kdtree, int(nn), 0, smooth, rho, mass)
-        elif rho!=None :
-            smx = kdmain.nn_start(self.kdtree, int(nn), 0, smooth, rho)
-        else:
-            smx = kdmain.nn_start(self.kdtree, int(nn), n_proc, smooth )
+        smx = kdmain.nn_start(self.kdtree, int(nn))
 
         propid = int(self.propid[mode])
+
+        if propid==self.PROPID_HSM:
+            kdmain.domain_decomposition(self.kdtree,n_proc)
 
         if n_proc==1 :
             kdmain.populate(self.kdtree,smx,propid,0)

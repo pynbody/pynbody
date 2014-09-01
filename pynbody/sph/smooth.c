@@ -35,7 +35,6 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	smx->nSmooth = nSmooth;
 	smx->pq = (PQ *)malloc(nSmooth*sizeof(PQ));                     assert(smx->pq != NULL);
 	PQ_INIT(smx->pq,nSmooth);
-	smx->pfBall2 = (float *)malloc((kd->nActive+1)*sizeof(int));    assert(smx->pfBall2 != NULL);
 	smx->iMark = (char *)malloc(kd->nActive*sizeof(char));          assert(smx->iMark != NULL);
 	smx->nListSize = smx->nSmooth+RESMOOTH_SAFE;
 	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
@@ -96,7 +95,6 @@ SMX smInitThreadLocalCopy(SMX from) {
 	smx->nSmooth = from->nSmooth;
 	smx->pq = (PQ *)malloc(from->nSmooth*sizeof(PQ));                     assert(smx->pq != NULL);
 	PQ_INIT(smx->pq,from->nSmooth);
-	smx->pfBall2 = from->pfBall2;
 	smx->iMark = (char *)malloc(from->kd->nActive*sizeof(char));          assert(smx->iMark != NULL);
 	smx->nListSize = from->nListSize;
 	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
@@ -170,7 +168,6 @@ int smGetNext(SMX smx_local) {
 
 void smFinish(SMX smx)
 {
-	free(smx->pfBall2);
 	free(smx->iMark);
 	free(smx->pq);
 	free(smx->fList);
@@ -338,16 +335,24 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 	}
 
 
+
+
+
 void smSmoothInitStep(SMX smx, int nProcs_for_smooth)
 {
-	KDN *c;
-	PARTICLE *p;
-  PQ *pq,*pqLast;
-	int pi,pin,pj,pNext,nSmooth;
-  float ax,ay,az;
 
-	c = smx->kd->kdNodes;
-	p = smx->kd->p;
+	PARTICLE *p;
+	int pi;
+	KD kd=smx->kd;
+
+	for (pi=0;pi<kd->nActive;++pi) {
+		smx->iMark[pi] = 0;
+	}
+
+	smInitPriorityQueue(smx);
+}
+
+void smDomainDecomposition(KD kd, int nprocs) {
 
 	// AP 31/8/2014 - Here is the domain decomposition for nProcs>1
 	// In principle one should do better by localizing the
@@ -356,20 +361,14 @@ void smSmoothInitStep(SMX smx, int nProcs_for_smooth)
 	// However in practice, up to nCpu = 8, the scaling is looking
 	// pretty linear anyway so I'm leaving that for future.
 
+	PARTICLE *p;
+	int pi;
 
-	for (pi=0;pi<smx->kd->nActive;++pi) {
-		smx->iMark[pi] = 0;
-	}
-
-
-	if(nProcs_for_smooth>0) {
-		for (pi=0;pi<smx->kd->nActive;++pi) {
-					smx->pfBall2[pi] = -(float)(1+pi%nProcs_for_smooth);
+	if(nprocs>0) {
+		for (pi=0;pi<kd->nActive;++pi) {
+			SETSMOOTH(pi,-(float)(1+pi%nprocs));
 		}
 	}
-
-
-	smInitPriorityQueue(smx);
 }
 
 void smInitPriorityQueue(SMX smx) {
@@ -405,7 +404,6 @@ void smInitPriorityQueue(SMX smx) {
 }
 
 
-
 int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int procid)
 {
 	KDN *c;
@@ -431,15 +429,14 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 	az = smx->az;
 
 
-	// pthread_mutex_lock(smx->pMutex); -- no longer necessary now decomposition is done before start
-	if (smx->pfBall2[pin] >= 0) {
+	if (GETSMOOTH(pin) >= 0) {
 		// the first particle we are supposed to smooth is
 		// actually already done. We need to search for another
 		// suitable candidate. Preferably a long way away from other
 		// threads, if this is threaded.
 
 
-		while (smx->pfBall2[pNext] != proc_signal) {
+		while (GETSMOOTH(pNext) != proc_signal) {
 		 		++pNext;
 				++nScanned;
 				if(pNext>=smx->kd->nActive)
@@ -451,7 +448,10 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 				}
 		}
 
-		smx->pfBall2[pNext] = 10;
+		// mark the particle as 'processed' by assigning a dummy positive value
+		// N.B. a race condition here doesn't matter since duplicating a bit of
+		// work is more efficient than using a mutex (verified).
+		SETSMOOTH(pNext,10);
 
 		pi = pNext;
 		++pNext;
@@ -495,7 +495,10 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 	} else {
 		// Calculate priority queue using existing particles
 		pi = pin;
-		smx->pfBall2[pi] = 10;
+
+		// Mark - see comment above
+		SETSMOOTH(pi,10);
+
 		x = GET2(kd->pNumpyPos,p[pi].iOrder,0);
 		y = GET2(kd->pNumpyPos,p[pi].iOrder,1);
 		z = GET2(kd->pNumpyPos,p[pi].iOrder,2);
@@ -521,11 +524,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 	}
 
 	smBallSearch(smx,smx->pqHead->fKey,ri);
-
-
-
-	smx->pfBall2[pi] = smx->pqHead->fKey;
-	SET(kd->pNumpySmooth,p[pi].iOrder,0.5*sqrt(smx->pfBall2[pi]));
+	SETSMOOTH(pi,0.5*sqrt(smx->pqHead->fKey));
 
 	// p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
 	/*
@@ -555,7 +554,7 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 
 
 
-		if (smx->pfBall2[pq->p] >= 0) continue; // already done, don't re-do
+		if (GETSMOOTH(pq->p) >= 0) continue; // already done, don't re-do
 
 
 		if (pq->fKey < h2) {
@@ -583,20 +582,21 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 
 void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
-	float fNorm,ih2,r2,rs;
+	float fNorm,ih2,r2,rs,ih;
 	int i,pj;
 	KD kd = smx->kd;
 
-  ih2 = 4.0/smx->pfBall2[pi];
-  fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
-	for (i=0;i<nSmooth;++i) {
+	ih = 1.0/GETSMOOTH(pi);
+	ih2 = ih*ih;
+  	fNorm = 0.5*M_1_PI*ih*ih2;
 
-    pj = pList[i];
+	for (i=0;i<nSmooth;++i) {
+    	pj = pList[i];
 		r2 = fList[i]*ih2;
                 rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
 		else rs = 0.25*rs*rs*rs;
-		if(rs<0) {
+		if(rs<0 && !smx->warnings) {
 		  fprintf(stderr, "Internal consistency error\n");
 		  smx->warnings=true;
 		}
@@ -604,31 +604,34 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 		ACCUM(kd->pNumpyDen,kd->p[pi].iOrder,rs*GET(kd->pNumpyMass,kd->p[pj].iOrder));
 		ACCUM(kd->pNumpyDen,kd->p[pj].iOrder,rs*GET(kd->pNumpyMass,kd->p[pi].iOrder));
   }
+
 }
 
 
 void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
-	float fNorm,ih2,r2,rs;
-	int i,pj;
+	float fNorm,ih2,r2,rs,ih;
+	int j,pj,pi_iord ;
 	KD kd = smx->kd;
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = M_1_PI*sqrt(ih2)*ih2;
-	SET(kd->pNumpyDen,kd->p[pi].iOrder,0.0);
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
+
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih*ih2;
+	SET(kd->pNumpyDen,pi_iord,0.0);
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
 		rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
 		else rs = 0.25*rs*rs*rs;
-		if(rs<0) {
-			fprintf(stderr, "Internal consistency error\n");
-			smx->warnings=true;
-		}
+		if(rs<0) rs=0;
 		rs *= fNorm;
-		ACCUM(kd->pNumpyDen,kd->p[pi].iOrder,rs*GET(kd->pNumpyMass,kd->p[pj].iOrder));
+		ACCUM(kd->pNumpyDen,pi_iord,rs*GET(kd->pNumpyMass,kd->p[pj].iOrder));
 	}
+
 }
+
 
 
 /*
