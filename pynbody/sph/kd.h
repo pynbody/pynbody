@@ -60,7 +60,8 @@ typedef struct kdContext {
 	PyObject *pNumpyMass; // Nx1 Numpy array of masses
 	PyObject *pNumpySmooth;
 	PyObject *pNumpyDen;  // Nx1 Numpy array of density
-
+	PyObject *pNumpyQty;  // Nx1 Numpy array of density
+	PyObject *pNumpyQtySmoothed;  // Nx1 Numpy array of density
 	} * KD;
 
 

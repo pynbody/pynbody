@@ -42,15 +42,26 @@ class KDTree(object):
     def all_nn(self, nn=None):
         return [x for x in self.nn(nn)]
 
-    def set_array_ref(self, name, ar) :
+    @staticmethod
+    def array_name_to_id(name):
         if name=="smooth":
-            kdmain.set_arrayref(self.kdtree,0,ar)
+            return 0
         elif name=="rho":
-            kdmain.set_arrayref(self.kdtree,1,ar)
+            return 1
         elif name=="mass":
-            kdmain.set_arrayref(self.kdtree,2,ar)
+            return 2
+        elif name=="qty":
+            return 3
+        elif name=="qty_sm":
+            return 4
         else :
-            raise ValueError, "Unknown KDtree array "+name
+            raise ValueError, "Unknown KDTree array"
+
+    def set_array_ref(self, name, ar) :
+        kdmain.set_arrayref(self.kdtree,self.array_name_to_id(name),ar)
+
+    def get_array_ref(self, name) :
+        return kdmain.get_arrayref(self.kdtree,self.array_name_to_id(name))
 
     def populate(self, mode, nn):
         from . import _thread_map

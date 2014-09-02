@@ -66,8 +66,8 @@ PyObject *set_arrayref(PyObject *self, PyObject *args);
 /*==========================================================================*/
 #define PROPID_HSM      1
 #define PROPID_RHO      2
-#define PROPID_MEANVEL  3
-#define PROPID_VELDISP  4
+#define PROPID_QTY1D    3
+#define PROPID_QTYKD    4
 /*==========================================================================*/
 
 static PyMethodDef kdmain_methods[] =
@@ -81,6 +81,7 @@ static PyMethodDef kdmain_methods[] =
     {"nn_rewind", nn_rewind, METH_VARARGS, "nn_rewind"},
 
     {"set_arrayref", set_arrayref, METH_VARARGS, "set_arrayref"},
+    {"get_arrayref", set_arrayref, METH_VARARGS, "get_arrayref"},
     {"domain_decomposition", domain_decomposition, METH_VARARGS, "domain_decomposition"},
 
     {"populate",  populate,  METH_VARARGS, "populate"},
@@ -324,6 +325,8 @@ int checkArray(PyObject *check) {
 
 }
 
+
+
 PyObject *set_arrayref(PyObject *self, PyObject *args) {
     int arid;
     PyObject *kdobj, *arobj, **existing;
@@ -345,10 +348,17 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     case 2:
         existing = &(kd->pNumpyMass);
         break;
+    case 3:
+        existing = &(kd->pNumpyQty);
+        break;
+    case 4:
+        existing = &(kd->pNumpyQtySmoothed);
+        break;
     default:
         PyErr_SetString(PyExc_ValueError, "Unknown array to set for KD tree");
         return NULL;
     }
+
 
     if(checkArray(arobj)) return NULL;
 
@@ -356,6 +366,43 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     (*existing) = arobj;
     Py_INCREF(arobj);
     return Py_None;
+}
+
+PyObject *get_arrayref(PyObject *self, PyObject *args) {
+    int arid;
+    PyObject *kdobj, *arobj, **existing;
+    KD kd;
+
+    PyArg_ParseTuple(args, "Oi", &kdobj, &arid);
+    kd  = PyCapsule_GetPointer(kdobj, NULL);
+    if(!kd) return NULL;
+
+    switch(arid) {
+    case 0:
+        existing = &(kd->pNumpySmooth);
+        break;
+    case 1:
+        existing = &(kd->pNumpyDen);
+        break;
+    case 2:
+        existing = &(kd->pNumpyMass);
+        break;
+    case 3:
+        existing = &(kd->pNumpyQty);
+        break;
+    case 4:
+        existing = &(kd->pNumpyQtySmoothed);
+        break;
+    default:
+        PyErr_SetString(PyExc_ValueError, "Unknown array to get from KD tree");
+        return NULL;
+    }
+
+    if(*existing==NULL)
+        return Py_None;
+    else
+        return (*existing);
+
 }
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {
@@ -411,10 +458,14 @@ PyObject *populate(PyObject *self, PyObject *args)
 
 
     if (checkArray(kd->pNumpySmooth)) return NULL;
-    if(propid!=PROPID_HSM) {
+    if(propid>PROPID_HSM) {
       if (checkArray(kd->pNumpyDen)) return NULL;
       if (checkArray(kd->pNumpyMass)) return NULL;
       if (checkArray(kd->pNumpySmooth)) return NULL;
+    }
+    if(propid>PROPID_RHO) {
+        if (checkArray(kd->pNumpyQty)) return NULL;
+        if (checkArray(kd->pNumpyQtySmoothed)) return NULL;
     }
 
 
@@ -466,6 +517,8 @@ PyObject *populate(PyObject *self, PyObject *args)
             i=smGetNext(smx_local);
         }
       Py_END_ALLOW_THREADS
+
+
 
 /*
     case PROPID_MEANVEL:
