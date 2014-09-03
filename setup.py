@@ -78,7 +78,7 @@ def check_for_openmp():
 cython_version = None
 try :
     import cython
-    
+
     # check that cython version is > 0.20
     cython_version = cython.__version__
     if float(cython_version.partition(".")[2][:2]) < 20 :
@@ -117,6 +117,12 @@ extra_compile_args = ['-ftree-vectorize',
                       '-Wall',
                       '-O0',
                       '-g']
+
+if sys.version_info[0:2]==(3,4) :
+    # this fixes the following bug with the python 3.4 build:
+    # http://bugs.python.org/issue21121
+    extra_compile_args.append("-Wno-error=declaration-after-statement")
+
 
 extra_link_args = []
 
@@ -195,12 +201,12 @@ or
 
     pip install --upgrade cython.
 
-    
+
 If you already did one of the above, you've encountered a bug. Please
 open an issue on github to let us know. The missing file is {0}
 and the detected cython version is {1}.
 """.format(src,cython_version))
-            
+
                 sys.exit(1)
 
 dist = setup(name = 'pynbody',
