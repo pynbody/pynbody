@@ -1100,6 +1100,9 @@ class GrpCatalogue(HaloCatalogue):
         self._sorted = None
         HaloCatalogue.__init__(self)
 
+    def __len__(self):
+        return self.base[self._array].max()
+
     def precalculate(self):
         """Speed up future operations by precalculating the indices
         for all halos in one operation. This is slow compared to
