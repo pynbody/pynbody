@@ -26,4 +26,4 @@ def test_gravity():
 
     v_circ = pro['v_circ'].in_units('km s^-1')
 
-    npt.assert_almost_equal(v_circ, v_circ_correct)
+    npt.assert_allclose(v_circ, v_circ_correct,atol=1e-5)
