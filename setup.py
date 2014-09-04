@@ -159,7 +159,9 @@ sph_render = Extension('pynbody.sph._render',
 
 halo_pyx = Extension('pynbody.analysis._com',
                      sources=['pynbody/analysis/_com.pyx'],
-                     include_dirs=incdir)
+                     include_dirs=incdir,
+                     extra_compile_args=openmp_args,
+                     extra_link_args=openmp_args)
 
 bridge_pyx = Extension('pynbody.bridge._bridge',
                      sources=['pynbody/bridge/_bridge.pyx'],
