@@ -163,6 +163,39 @@ class Cuboid(Filter):
                                   for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
         return "Cuboid(%s, %s, %s, %s, %s, %s)" % (x1, y1, z1, x2, y2, z2)
 
+class Ellipsoid(Filter):
+
+    """Create an ellipsoid with specified dimensions centered on the orgin
+    and aligned with the x,y,z coordinate system. See 
+    `pynbody.analysis.halo.shape` for how to use the eigenvectors of the 
+    inertia tensor to align your particle group with coordinate system.
+    `a` is the half-length along the x-axis, `b` is the half length along 
+    the y-axis and `c` is half-length along the z-axis.  If the coordinates 
+    `b` or `c` are not specified they are determined as `b=a` and `c=b`.
+
+    """
+
+    def __init__(self, a, b=None, c=None):
+
+        self._descriptor = "ellipsoid"
+        a,b,c = [units.Unit(x) if isinstance(x, str) else x for x in a,b,c]
+        if b is None:
+            b = a
+        if c is None:
+            c = b
+        self.a, self.b, self.c = a,b,c
+
+    def __call__(self, sim):
+        a,b,c = [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+                 if units.is_unit_like(x) else x
+                 for x in self.a, self.b, self.c]
+
+        return (sim["x"]*sim["x"]/a/a + sim["y"]*sim["y"]/b/b + sim["z"]*sim["z"]/c/c < 1)
+
+    def __repr__(self):
+        a,b,c = ["'%s'" % str(x) if units.is_unit_like(x) else x
+                 for x in self.a, self.b, self.c]
+        return "Ellipsoid(%s, %s, %s)" % (a,b,c)
 
 class Disc(Filter):
 
