@@ -297,7 +297,7 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
 
 def shape(sim):
     from numpy import linalg as LA
-    import pylab as plt
+    import pylab as plt, time
     """
 
     Iteratively determine the b and c shape values 
@@ -309,7 +309,7 @@ def shape(sim):
     gs = sim
     
     a=b=c=1
-    x=y=z=gs['r'].max()
+    x=y=z=(((gs['pos']**2).sum(axis=1))**(1,2)).max()
     s = b/a
     q = c/a
     
@@ -317,10 +317,18 @@ def shape(sim):
         
         r2 = x*x +(y/s)**2 + (z/q)**2
 
+        logger.info('Calculating inertia tensor')
         pos = np.asarray(gs['pos'], dtype='double')
+        start = time.clock()
         inertia_tensor = _com.inertia_tensor(pos)
+        end = time.clock()
+        print end - start
             
+        logger.info('Calculating Eigen vectors/values')
+        start = time.clock()
         evals, evecs = LA.eig(inertia_tensor / r2)
+        end = time.clock()
+        print end - start
         
         sold = s
         qold = q
@@ -336,16 +344,25 @@ def shape(sim):
         if ((np.abs((s-sold)/sold) < 0.01) and (np.abs((q-qold)/qold) < 0.01)):
             break
     
+        logger.info('Rotating simulation')
+        start = time.clock()
         sim.ancestor.transform(np.array(evecs))
+        end = time.clock()
+        print end - start
         
+        logger.info('Plotting')
         plt.clf()
         plt.scatter(gs['x'],gs['z'])
         plt.savefig('shapepartsit%d.png'%ii )
 
+        logger.info('trimming')
+        start = time.clock()
         ellipsoidf = filt.Ellipsoid(a=str(a)+' kpc',b=str(b)+' kpc',
                                     c=str(c)+' kpc')
         
         gs = gs[ellipsoidf]
+        end = time.clock()
+        print end - start
 
 
     return s,q
