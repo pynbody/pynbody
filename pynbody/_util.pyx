@@ -4,9 +4,17 @@ cimport cython
 cimport libc.math as cmath
 from libc.math cimport atan, pow
 from libc.stdlib cimport malloc, free
-
+from cython.parallel cimport prange
 
 ctypedef fused fused_float:
+    np.float32_t
+    np.float64_t
+
+ctypedef fused fused_float_2:
+    np.float32_t
+    np.float64_t
+
+ctypedef fused fused_float_3:
     np.float32_t
     np.float64_t
 
@@ -105,4 +113,83 @@ def grid_gen(indices_or_slice,  nx,  ny,  nz, pos=None):
 
     return pos
 
-__all__ = ['grid_gen','find_boundaries']
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def sum(np.ndarray[fused_float, ndim=1] ar):
+    """OpenMP summation algorithm equivalent to numpy.sum(ar)"""
+    cdef fused_float v
+    cdef long i
+    cdef long N=len(ar)
+    for i in prange(N,nogil=True,schedule='static'):
+        v+=ar[i]
+    return v
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def sum_if_gt(np.ndarray[fused_float, ndim=1] ar,
+                   np.ndarray[fused_float_2, ndim=1] cmp_ar,
+                   fused_float_2 cmp_ar_val):
+    """OpenMP summation algorithm equivalent to numpy.sum(ar*(cmp_ar>cmp_ar_val))"""
+    cdef fused_float v
+    cdef long i
+    cdef long N=len(ar)
+    assert len(cmp_ar)==len(ar)
+    for i in prange(N,nogil=True,schedule='static'):
+        if cmp_ar[i]>cmp_ar_val:
+           v+=(ar[i])
+    return v
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def sum_if_lt(np.ndarray[fused_float, ndim=1] ar,
+                   np.ndarray[fused_float_2, ndim=1] cmp_ar,
+                   fused_float_2 cmp_ar_val):
+    """OpenMP summation algorithm equivalent to numpy.sum(ar*(cmp_ar<cmp_ar_val))"""
+    cdef fused_float v
+    cdef long i
+    cdef long N=len(ar)
+    assert len(cmp_ar)==len(ar)
+    for i in prange(N,nogil=True,schedule='static'):
+        v+=(ar[i])*(cmp_ar[i]<cmp_ar_val)
+    return v
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
+                     np.ndarray[fused_float, ndim=1] cen,
+                     double r_max):
+    """OpenMP sphere selection algorithm.
+
+    Returns an array of booleans, True where the distance from
+    pos_ar to cen is less than r_max."""
+
+    cdef long i
+    cdef long N=len(pos_ar)
+    cdef fused_float cx,cy,cz,x,y,z,r2
+    cdef fused_float r_max_2
+    cdef np.ndarray[np.uint8_t, ndim=1] output = np.empty(len(pos_ar),dtype=np.uint8)
+
+    r_max_2 = r_max*r_max
+
+    assert pos_ar.shape[1]==3
+    assert len(cen)==3
+
+    cx = cen[0]
+    cy = cen[1]
+    cz = cen[2]
+
+    for i in prange(N,nogil=True,schedule='static'):
+        x=pos_ar[i,0]-cx
+        y=pos_ar[i,1]-cy
+        z=pos_ar[i,2]-cz
+        output[i]=(x*x+y*y+z*z)<r_max_2
+
+    return output
+
+
+__all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
+           '_sphere_selection']

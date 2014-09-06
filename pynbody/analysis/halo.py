@@ -61,7 +61,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
 
     *r* (default=None): initial search radius. This can be a string
      indicating the unit, i.e. "200 kpc", or an instance of
-     :func:`~pynbody.units.Unit`. 
+     :func:`~pynbody.units.Unit`.
 
     *shrink_factor* (default=0.7): the amount to shrink the search
      radius by on each iteration
@@ -131,14 +131,17 @@ def virial_radius(sim, cen=None, overden=178, r_max=None):
             mass_ar = np.asarray(sim['mass'])
             r_ar = np.asarray(sim['r'])
 
-        """ numexpr alternative - not much faster
+        """
+        #pure numpy implementation
+        rho = lambda r: np.dot(
+            mass_ar, r_ar < r) / (4. * math.pi * (r ** 3) / 3)
+
+        #numexpr alternative - not much faster because sum is not threaded
         def rho(r) :
             r_ar; mass_ar; # just to get these into the local namespace
             return ne.evaluate("sum((r_ar<r)*mass_ar)")/(4.*math.pi*(r**3)/3)
         """
-
-        rho = lambda r: np.dot(
-            mass_ar, r_ar < r) / (4. * math.pi * (r ** 3) / 3)
+        rho = lambda r: util.sum_if_lt(mass_ar,r_ar,r)/(4. * math.pi * (r ** 3) / 3)
         result = util.bisect(r_min, r_max, lambda r: target_rho -
                              rho(r), epsilon=0, eta=1.e-3 * target_rho, verbose=False)
 
@@ -262,7 +265,7 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
     central 1kpc (default) is zeroed. Other values can be passed with cen_size.
 
     *move_all*: if True (default), move the entire snapshot. Otherwise only move
-    the particles in the halo passed in. 
+    the particles in the halo passed in.
     """
 
     global config

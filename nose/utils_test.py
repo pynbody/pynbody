@@ -1,6 +1,7 @@
 import pynbody
 import numpy as np
 import numpy.testing as npt
+import time
 
 def random_slice(max_pos=1000, max_step=10):
     import random
@@ -112,3 +113,25 @@ def test_IC_grid_gen():
        [ 0.9,  0.7,  0.7]])
 
     npt.assert_almost_equal(res2,correct2)
+
+
+def test_openmp_summations():
+    np.random.seed(0)
+    a = np.random.normal(size=5e7)
+    b = np.random.normal(size=5e7)
+
+    start = time.time()
+    sum_a = np.dot(a,(b>1.0))
+    np_timing = time.time()-start
+
+    start = time.time()
+    sum_a_ne = pynbody.util.sum_if_gt(a,b,1.0)
+    ne_timing = time.time()-start
+
+
+    print ("NP: %.1f NE: %.1f"%(np_timing*1e3,ne_timing*1e3))
+    print ("  vals %.1f %.1f"%(sum_a_ne,sum_a))
+    npt.assert_allclose(sum_a_ne,sum_a)
+
+    npt.assert_allclose(pynbody.util.sum_if_lt(a,b,0.2),np.dot(a,b<0.2))
+    npt.assert_allclose(pynbody.util.sum(a),np.sum(a))

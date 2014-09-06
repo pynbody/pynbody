@@ -2,6 +2,7 @@ import pynbody
 import numpy as np
 import glob
 import os
+import time
 
 
 def setup():
@@ -35,5 +36,7 @@ def test_align():
 def test_virialradius():
     global f, h
     with pynbody.analysis.halo.center(h[1]):
+        start = time.time()
         vrad = pynbody.analysis.halo.virial_radius(f)
+        print ("time=",time.time()-start)
         np.testing.assert_allclose(vrad, 0.005946911872, atol=1.e-5)

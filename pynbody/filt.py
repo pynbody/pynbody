@@ -14,7 +14,7 @@ sample usage.
 
 
 import numpy as np
-from . import units
+from . import units, util
 
 
 class Filter(object):
@@ -87,7 +87,7 @@ class Not(Filter):
 class Sphere(Filter):
 
     """
-    Return particles that are within `radius` of the point `cen`. 
+    Return particles that are within `radius` of the point `cen`.
 
     Inputs:
     -------
@@ -110,11 +110,19 @@ class Sphere(Filter):
 
     def __call__(self, sim):
         radius = self.radius
+
+        with sim.immediate_mode:
+            pos = sim['pos']
+
         if units.is_unit_like(radius):
-            radius = float(radius.in_units(sim["pos"].units,
-                                           **sim["pos"].conversion_context()))
-        distance = ((sim["pos"] - self.cen) ** 2).sum(axis=1)
-        return distance < radius ** 2
+            radius = float(radius.in_units(pos.units,
+                                           **pos.conversion_context()))
+
+        cen = self.cen
+        if units.has_units(cen):
+            cen = cen.in_units(pos.units)
+        return util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius)
+
 
     def __repr__(self):
         if units.is_unit(self.radius):

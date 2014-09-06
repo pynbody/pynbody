@@ -105,7 +105,6 @@ else :
     openmp_module_source = "openmp/openmp_null"
     openmp_args = ['']
 
-
 ext_modules = []
 libraries=[ ]
 extra_compile_args = ['-ftree-vectorize',
@@ -169,7 +168,9 @@ bridge_pyx = Extension('pynbody.bridge._bridge',
 
 util_pyx = Extension('pynbody._util',
                      sources=['pynbody/_util.pyx'],
-                     include_dirs=incdir)
+                     include_dirs=incdir,
+                     extra_compile_args=openmp_args,
+                     extra_link_args=openmp_args)
 
 interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               sources = ['pynbody/analysis/_interpolate3d.pyx'],
