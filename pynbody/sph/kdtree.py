@@ -12,15 +12,13 @@ from .. import config
 class KDTree(object):
     PROPID_HSM = 1
     PROPID_RHO = 2
-    PROPID_VMEAN = 3
-    PROPID_VDISP = 4
+    PROPID_QTYMEAN_1D = 3
+    PROPID_QTYMEAN_ND = 4
+    PROPID_QTYDISP_1D = 5
+    PROPID_QTYDISP_ND = 6
 
     def __init__(self, pos, mass, leafsize=32):
         self.kdtree = kdmain.init(pos, mass, int(leafsize))
-        self.propid = {'hsm': self.PROPID_HSM,
-                       'rho': self.PROPID_RHO,
-                       'v_mean': self.PROPID_VMEAN,
-                       'v_disp': self.PROPID_VDISP}
         self.derived = True
         self.s_len = len(pos)
         self.flags = {'WRITEABLE': False}
@@ -59,9 +57,36 @@ class KDTree(object):
 
     def set_array_ref(self, name, ar) :
         kdmain.set_arrayref(self.kdtree,self.array_name_to_id(name),ar)
+        assert self.get_array_ref(name) is ar
 
     def get_array_ref(self, name) :
         return kdmain.get_arrayref(self.kdtree,self.array_name_to_id(name))
+
+    def smooth_operation_to_id(self,name):
+        if name=="hsm":
+            return self.PROPID_HSM
+        elif name=="rho":
+            return self.PROPID_RHO
+        elif name=="qty_mean":
+            input_array = self.get_array_ref('qty')
+            if len(input_array.shape)==1:
+                return self.PROPID_QTYMEAN_1D
+            elif len(input_array.shape)==2:
+                if input_array.shape[1]!=3:
+                    raise ValueError, "Currently only able to smooth 3D or 1D arrays"
+                return self.PROPID_QTYMEAN_ND
+        elif name=="qty_disp":
+            input_array = self.get_array_ref('qty')
+            if len(input_array.shape)==1:
+                return self.PROPID_QTYDISP_1D
+            elif len(input_array.shape)==2:
+                if input_array.shape[1]!=3:
+                    raise ValueError, "Currently only able to smooth 3D or 1D arrays"
+                return self.PROPID_QTYDISP_ND
+        else:
+            raise ValueError, "Unknown smoothing request %s"%name
+
+
 
     def populate(self, mode, nn):
         from . import _thread_map
@@ -73,7 +98,7 @@ class KDTree(object):
 
         smx = kdmain.nn_start(self.kdtree, int(nn))
 
-        propid = int(self.propid[mode])
+        propid = self.smooth_operation_to_id(mode)
 
         if propid==self.PROPID_HSM:
             kdmain.domain_decomposition(self.kdtree,n_proc)

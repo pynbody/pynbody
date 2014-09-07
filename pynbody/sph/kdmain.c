@@ -62,12 +62,14 @@ PyObject *populate(PyObject *self, PyObject *args);
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args);
 PyObject *set_arrayref(PyObject *self, PyObject *args);
-
+PyObject *get_arrayref(PyObject *self, PyObject *args);
 /*==========================================================================*/
 #define PROPID_HSM      1
 #define PROPID_RHO      2
-#define PROPID_QTY1D    3
-#define PROPID_QTYKD    4
+#define PROPID_QTYMEAN_1D    3
+#define PROPID_QTYMEAN_ND    4
+#define PROPID_QTYDISP_1D    5
+#define PROPID_QTYDISP_ND    6
 /*==========================================================================*/
 
 static PyMethodDef kdmain_methods[] =
@@ -81,7 +83,7 @@ static PyMethodDef kdmain_methods[] =
     {"nn_rewind", nn_rewind, METH_VARARGS, "nn_rewind"},
 
     {"set_arrayref", set_arrayref, METH_VARARGS, "set_arrayref"},
-    {"get_arrayref", set_arrayref, METH_VARARGS, "get_arrayref"},
+    {"get_arrayref", get_arrayref, METH_VARARGS, "get_arrayref"},
     {"domain_decomposition", domain_decomposition, METH_VARARGS, "domain_decomposition"},
 
     {"populate",  populate,  METH_VARARGS, "populate"},
@@ -139,6 +141,8 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     kd->pNumpyMass = mass;
     kd->pNumpySmooth = NULL;
     kd->pNumpyDen = NULL;
+    kd->pNumpyQty = NULL;
+    kd->pNumpyQtySmoothed = NULL;
 
     Py_INCREF(pos);
     Py_INCREF(mass);
@@ -398,6 +402,8 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
         return NULL;
     }
 
+    Py_INCREF(*existing);
+
     if(*existing==NULL)
         return Py_None;
     else
@@ -435,6 +441,8 @@ PyObject *populate(PyObject *self, PyObject *args)
     int propid, j;
     float ri[3];
     float hsm;
+
+    void (*pSmFn)(SMX ,int ,int ,int *,float *)=NULL;
 
     PyObject *kdobj, *smxobj;
     PyObject *dest; // Nx1 Numpy array for the property
@@ -475,6 +483,20 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     int total_particles=0;
 
+
+    switch(propid)
+    {
+        case PROPID_RHO:
+            pSmFn = &smDensity;
+            break;
+        case PROPID_QTYMEAN_ND:
+            pSmFn = &smMeanQtyND;
+            break;
+        case PROPID_QTYDISP_ND:
+            pSmFn = &smDispQtyND;
+            break;
+    }
+
     switch(propid)
     {
 
@@ -493,6 +515,8 @@ PyObject *populate(PyObject *self, PyObject *args)
           break;
 
     case PROPID_RHO:
+    case PROPID_QTYMEAN_ND:
+    case PROPID_QTYDISP_ND:
 
       i=smGetNext(smx_local);
 
@@ -511,7 +535,7 @@ PyObject *populate(PyObject *self, PyObject *args)
             nCnt = smBallGather(smx_local,4*hsm*hsm,ri);
 
             // calculate the density
-            smDensity(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+            (*pSmFn)(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
 
             // select next particle in coordination with other threads
             i=smGetNext(smx_local);

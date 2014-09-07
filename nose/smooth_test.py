@@ -6,15 +6,22 @@ import pylab as p
 def test_smooth():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
-
     npt.assert_allclose(f.dm['smooth'],
-                         np.load('test_smooth.npy'),rtol=1e-5)
+                         np.load('test_smooth.npy'))
 
-    p.plot((f.dm['rho']/np.load('test_rho.npy'))[::10])
-    p.savefig('testrho.png')
     npt.assert_allclose(f.dm['rho'],
                          np.load('test_rho.npy'),rtol=1e-5)
 
+
+
+    npt.assert_allclose(np.load('test_v_mean.npy'),f.dm['v_mean'][::100],rtol=1e-3)
+
+    tx = np.sqrt(f.dm['v_disp'][::100].flatten())
+    ax = np.load('test_v_disp.npy')[:].flatten()
+    p.plot((ax-tx)/ax)
+    p.savefig('test.png')
+
+    npt.assert_allclose(np.load('test_v_disp.npy'),f.dm['v_disp'][::100],rtol=1e-3)
 
 
 if __name__=="__main__":

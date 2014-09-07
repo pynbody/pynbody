@@ -632,29 +632,98 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 
 }
 
-
-
-/*
-void smMeanVel(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
-	float fNorm,ih2,r2,rs;
-	int i,j,pj;
+	float fNorm,ih2,r2,rs,ih,mass,rho;
+	int j,k,pj,pi_iord ;
+	KD kd = smx->kd;
 
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = M_1_PI*sqrt(ih2)*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih*ih2;
+
+	for(k=0;k<3;++k)
+		SET2(kd->pNumpyQtySmoothed,pi_iord,k,0.0);
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
 		rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
 		else rs = 0.25*rs*rs*rs;
+		if(rs<0) rs=0;
 		rs *= fNorm;
-		for (j=0;j<3;++j) {
-			smx->kd->p[pi].vMean[j] += rs*smx->kd->p[pj].fMass/
-				smx->kd->p[pj].fDensity*smx->kd->p[pj].v[j];
-			}
+		mass=GET(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET(kd->pNumpyDen,kd->p[pj].iOrder);
+		for(k=0;k<3;++k) {
+			ACCUM2(kd->pNumpyQtySmoothed,pi_iord,k,
+			    rs*mass*GET2(kd->pNumpyQty,kd->p[pj].iOrder,k)/rho);
 		}
 	}
+
+}
+
+void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs,ih,mass,rho;
+	int j,k,pj,pi_iord ;
+	KD kd = smx->kd;
+	float mean[3], tdiff;
+
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih*ih2;
+
+
+
+	SET(kd->pNumpyQtySmoothed,pi_iord,0.0);
+
+	for(k=0;k<3;++k) {
+
+		mean[k]=0;
+	}
+
+	// pass 1: find mean
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+		mass=GET(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET(kd->pNumpyDen,kd->p[pj].iOrder);
+		for(k=0;k<3;++k)
+			mean[k]+=rs*mass*GET2(kd->pNumpyQty,kd->p[pj].iOrder,k)/rho;
+	}
+
+	// pass 2: get dispersion
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+		mass=GET(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET(kd->pNumpyDen,kd->p[pj].iOrder);
+		for(k=0;k<3;++k) {
+			tdiff = mean[k]-GET2(kd->pNumpyQty,kd->p[pj].iOrder,k);
+			ACCUM(kd->pNumpyQtySmoothed,pi_iord,
+				rs*mass*tdiff*tdiff/rho);
+		}
+	}
+
+}
+
+
+/*
 
 void smMeanVelSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {

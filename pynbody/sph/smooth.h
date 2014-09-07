@@ -119,12 +119,21 @@ int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int proci
 void smSmoothInitStep(SMX smx, int nProcs);
 void smDensitySym(SMX,int,int,int *,float *);
 void smDensity(SMX,int,int,int *,float *);
+
+void smMeanQtyND(SMX,int,int,int *,float *);
+void smDispQtyND(SMX,int,int,int *,float *);
+void smMeanQty1D(SMX,int,int,int *,float *);
+void smDispQty1D(SMX,int,int,int *,float *);
+
+
+/*
 void smMeanVel(SMX,int,int,int *,float *);
 void smVelDisp(SMX,int,int,int *,float *);
 void smMeanVelSym(SMX,int,int,int *,float *);
 void smDivvSym(SMX,int,int,int *,float *);
 void smVelDispSym(SMX,int,int,int *,float *);
 void smVelDispNBSym(SMX,int,int,int *,float *);
+*/
 
 void smDomainDecomposition(KD kd, int nprocs);
 
