@@ -6,10 +6,10 @@ import pylab as p
 def test_smooth():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
-    npt.assert_allclose(f.dm['smooth'],
+    npt.assert_allclose(f.dm['smooth'][::100],
                          np.load('test_smooth.npy'))
 
-    npt.assert_allclose(f.dm['rho'],
+    npt.assert_allclose(f.dm['rho'][::100],
                          np.load('test_rho.npy'),rtol=1e-5)
 
 
