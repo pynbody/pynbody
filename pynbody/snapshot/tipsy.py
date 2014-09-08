@@ -1185,9 +1185,10 @@ class StarLog(SimSnap):
 
         if sort:
             tmp = g['iord'].flatten()
-            perm = tmp.argsort()
+            # mergesort for stability
+            perm = tmp.argsort(kind='mergesort')
             aux = tmp[perm]
-            flag = np.concatenate(([True], aux[1:] != aux[:-1]))
+            flag = np.concatenate((aux[1:] != aux[:-1], [True]))
             iord = aux[flag]
             indices = perm[flag]
             self._num_particles = len(indices)
