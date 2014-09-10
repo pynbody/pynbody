@@ -632,6 +632,35 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 
 }
 
+void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs,ih,mass,rho;
+	int j,pj,pi_iord ;
+	KD kd = smx->kd;
+
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih*ih2;
+
+	SET(kd->pNumpyQtySmoothed,pi_iord,0.0);
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+		mass=GET(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET(kd->pNumpyDen,kd->p[pj].iOrder);
+		ACCUM(kd->pNumpyQtySmoothed,pi_iord,
+			  rs*mass*GET(kd->pNumpyQty,kd->p[pj].iOrder)/rho);
+	}
+
+}
+
 void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
@@ -718,6 +747,61 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 			ACCUM(kd->pNumpyQtySmoothed,pi_iord,
 				rs*mass*tdiff*tdiff/rho);
 		}
+	}
+
+	// finally: take square root to get dispersion
+
+	SET(kd->pNumpyQtySmoothed,pi_iord,sqrt(GET(kd->pNumpyQtySmoothed,pi_iord)));
+
+}
+
+void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+{
+	float fNorm,ih2,r2,rs,ih,mass,rho;
+	int j,pj,pi_iord ;
+	KD kd = smx->kd;
+	float mean, tdiff;
+
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih*ih2;
+
+
+
+	SET(kd->pNumpyQtySmoothed,pi_iord,0.0);
+
+	mean=0;
+
+	// pass 1: find mean
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+		mass=GET(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET(kd->pNumpyDen,kd->p[pj].iOrder);
+		mean+=rs*mass*GET(kd->pNumpyQty,kd->p[pj].iOrder)/rho;
+	}
+
+	// pass 2: get variance
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		r2 = fList[j]*ih2;
+		rs = 2.0 - sqrt(r2);
+		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+		else rs = 0.25*rs*rs*rs;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+		mass=GET(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET(kd->pNumpyDen,kd->p[pj].iOrder);
+		tdiff = mean-GET(kd->pNumpyQty,kd->p[pj].iOrder);
+		ACCUM(kd->pNumpyQtySmoothed,pi_iord,rs*mass*tdiff*tdiff/rho);
 	}
 
 	// finally: take square root to get dispersion

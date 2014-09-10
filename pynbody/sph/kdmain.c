@@ -495,13 +495,17 @@ PyObject *populate(PyObject *self, PyObject *args)
         case PROPID_QTYDISP_ND:
             pSmFn = &smDispQtyND;
             break;
+        case PROPID_QTYMEAN_1D:
+            pSmFn = &smMeanQty1D;
+            break;
+        case PROPID_QTYDISP_1D:
+            pSmFn = &smDispQty1D;
+            break;
     }
 
-    switch(propid)
+
+    if(propid==PROPID_HSM)
     {
-
-    case PROPID_HSM:
-
           Py_BEGIN_ALLOW_THREADS
             for (i=0; i < nbodies; i++)
               {
@@ -512,11 +516,7 @@ PyObject *populate(PyObject *self, PyObject *args)
               }
           Py_END_ALLOW_THREADS
 
-          break;
-
-    case PROPID_RHO:
-    case PROPID_QTYMEAN_ND:
-    case PROPID_QTYDISP_ND:
+    } else {
 
       i=smGetNext(smx_local);
 
@@ -541,63 +541,7 @@ PyObject *populate(PyObject *self, PyObject *args)
             i=smGetNext(smx_local);
         }
       Py_END_ALLOW_THREADS
-
-
-
-/*
-    case PROPID_MEANVEL:
-      i=smGetNext(smx_local);
-      Py_BEGIN_ALLOW_THREADS
-      while(i<nbodies)
-        {
-          nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-          smMeanVel(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
-          for (j=0;j<3;j++)
-            SET2(kd->p[i].iOrder,j,kd->p[i].vMean[j]);
-          i=smGetNext(smx_local);
-        }
-      Py_END_ALLOW_THREADS
-
-      break;
-
-    case PROPID_VELDISP:
-
-
-      Py_BEGIN_ALLOW_THREADS
-      for (i=0; i < nbodies; i++)
-        {
-
-          nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-          smMeanVel(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
-          smDivv(smx_local, i, nCnt, smx_local->pList, smx_local->fList);
-        }
-
-      smReset(smx_local);
-
-      for (i=0; i < nbodies; i++)
-        {
-
-          nCnt = smBallGather(smx_local,smx_local->pfBall2[i],smx_local->kd->p[i].r);
-          smVelDispNBSym(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
-        }
-
-      Py_END_ALLOW_THREADS
-
-
-
-      for (i=0; i < nbodies; i++)
-        {
-          PyArray_SETITEM(dest, PyArray_GETPTR1(dest, kd->p[i].iOrder),
-                          PyFloat_FromDouble(sqrt(kd->p[i].fVel2)));
-        }
-
-      break;
-
-        default:
-            break;
-      */
-    }
-
-    smFinishThreadLocalCopy(smx_local);
-    return Py_None;
+  }
+  smFinishThreadLocalCopy(smx_local);
+  return Py_None;
 }

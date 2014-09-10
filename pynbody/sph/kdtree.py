@@ -8,6 +8,14 @@ Provides access to nearest neighbour lists and smoothing lengths.
 """
 from . import kdmain
 from .. import config
+from .. import array as ar
+import numpy as np
+import time
+import logging
+import weakref
+
+logger = logging.getLogger('pynbody.sph.kdtree')
+
 
 class KDTree(object):
     PROPID_HSM = 1
@@ -62,6 +70,7 @@ class KDTree(object):
     def get_array_ref(self, name) :
         return kdmain.get_arrayref(self.kdtree,self.array_name_to_id(name))
 
+
     def smooth_operation_to_id(self,name):
         if name=="hsm":
             return self.PROPID_HSM
@@ -109,6 +118,37 @@ class KDTree(object):
             _thread_map(kdmain.populate,[self.kdtree]*n_proc,[smx]*n_proc,[propid]*n_proc,range(0,n_proc))
 
         kdmain.nn_stop(self.kdtree, smx)
+
+    def sph_mean(self, array, nsmooth=64):
+        """Calculate the SPH mean of a simulation array.
+        """
+        output = ar.SimArray(np.empty_like(array),array.units)
+        self.set_array_ref('qty', array)
+        self.set_array_ref('qty_sm', output)
+
+        logger.info("Smoothing array with %d nearest neighbours"%nsmooth)
+        start = time.time()
+        self.populate('qty_mean',nsmooth)
+        end = time.time()
+
+        logger.info('SPH smooth done in %5.3g s' % (end - start))
+
+        return output
+
+    def sph_dispersion(self, array, nsmooth=64):
+        output = ar.SimArray(np.empty(len(array),dtype=array.dtype),array.units)
+        self.set_array_ref('qty', array)
+        self.set_array_ref('qty_sm', output)
+
+        logger.info("Getting dispersion of array with %d nearest neighbours"%nsmooth)
+        start = time.time()
+        self.populate('qty_disp',nsmooth)
+        end = time.time()
+
+        logger.info('SPH dispersion done in %5.3g s' % (end - start))
+
+        return output
+
 
     def __del__(self):
         if hasattr(self, 'kdtree'):
