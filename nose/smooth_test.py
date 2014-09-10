@@ -15,12 +15,6 @@ def test_smooth():
 
 
     npt.assert_allclose(np.load('test_v_mean.npy'),f.dm['v_mean'][::100],rtol=1e-3)
-
-    tx = np.sqrt(f.dm['v_disp'][::100].flatten())
-    ax = np.load('test_v_disp.npy')[:].flatten()
-    p.plot((ax-tx)/ax)
-    p.savefig('test.png')
-
     npt.assert_allclose(np.load('test_v_disp.npy'),f.dm['v_disp'][::100],rtol=1e-3)
 
 

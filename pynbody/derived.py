@@ -155,7 +155,7 @@ def v_disp(self):
         'Calculating velocity dispersion with %d nearest neighbours' % nsmooth)
 
     sm = array.SimArray(np.empty(len(self['vel']),dtype=self['vel'].dtype),
-                        self['vel'].units**2)
+                        self['vel'].units)
 
     self.kdtree.set_array_ref('rho',self['rho'])
     self.kdtree.set_array_ref('smooth',self['smooth'])

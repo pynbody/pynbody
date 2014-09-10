@@ -701,7 +701,7 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 			mean[k]+=rs*mass*GET2(kd->pNumpyQty,kd->p[pj].iOrder,k)/rho;
 	}
 
-	// pass 2: get dispersion
+	// pass 2: get variance
 
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
@@ -719,6 +719,10 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 				rs*mass*tdiff*tdiff/rho);
 		}
 	}
+
+	// finally: take square root to get dispersion
+
+	SET(kd->pNumpyQtySmoothed,pi_iord,sqrt(GET(kd->pNumpyQtySmoothed,pi_iord)));
 
 }
 
