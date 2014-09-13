@@ -5,7 +5,8 @@
 #include <numpy/arrayobject.h>
 
 #ifdef KDT_THREADING
-#include "pthread.h"
+#pragma message("KDT_THREADING is ON")
+#include <pthread.h>
 #endif
 
 #define ROOT		1
