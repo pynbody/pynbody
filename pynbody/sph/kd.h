@@ -6,6 +6,7 @@
 
 #ifdef KDT_THREADING
 #pragma message("KDT_THREADING is ON")
+#define _POSIX_C_SOURCE 200112L
 #include <pthread.h>
 #endif
 
