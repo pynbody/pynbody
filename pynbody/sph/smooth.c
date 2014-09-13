@@ -46,14 +46,9 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 #ifdef KDT_THREADING
 	smx->nCurrent=0;
 
-	pthread_mutexattr_t Attr;
-
-	pthread_mutexattr_init(&Attr);
-	pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_RECURSIVE);
-
 	smx->pMutex = malloc(sizeof(pthread_mutex_t));
 
-	if (pthread_mutex_init(smx->pMutex, &Attr) != 0)
+	if (pthread_mutex_init(smx->pMutex, NULL) != 0)
 	{
 		free(smx->pMutex);
     free(smx);
