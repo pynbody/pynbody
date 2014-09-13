@@ -1,31 +1,56 @@
 import pynbody
 import numpy as np
+import numpy.testing as npt
 import pylab as p
 import pickle
 
 
-def test_images():
-
+def setup():
+    global f
     f = pynbody.load("testdata/g15784.lr.01024")
     h = f.halos()
-    pynbody.analysis.halo.center(h[1])
+    # hard-code the centre so we're not implicitly testing the centering routine too:
+    cen = [0.024456279579533, -0.034112552174141, -0.122436359962132]
+    #cen = pynbody.analysis.halo.center(h[1],retcen=True)
+    #print "[%.15f, %.15f, %.15f]"%tuple(cen)
+    f['pos']-=cen
     f.physical_units()
 
+def test_images():
+
+    global f
+
     im3d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True)
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False)
     im2d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True)
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False )
 
     compare2d, compare3d = np.load("test_im_2d.npy"), np.load("test_im_3d.npy")
 
     im_grid = pynbody.sph.to_3d_grid(f.gas,nx=200,x2=20.0)[::50]
     compare_grid = np.load("test_im_grid.npy")
 
-    assert np.log10(im2d / compare2d).abs().mean() < 0.03
-    assert np.log10(im3d / compare3d).abs().mean() < 0.03
-    assert np.log10(im_grid/compare_grid).abs().mean() < 0.03
+    npt.assert_allclose(im2d,compare2d,rtol=1e-4)
+    npt.assert_allclose(im3d,compare3d,rtol=1e-4)
+    npt.assert_allclose(im_grid,compare_grid,rtol=1e-4)
+
 
     # check rectangular image is OK
-    im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0).in_units("m_p cm^-3")
+    im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0,
+                                        approximate_fast=False).in_units("m_p cm^-3")
     compare_rect = compare3d[125:-125]
-    assert np.log10(im_rect/ compare_rect).abs().mean() < 0.03
+    npt.assert_allclose(im_rect,compare_rect,rtol=1e-4)
+
+def test_approximate_images():
+    global f
+    im3d = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True)
+    im2d = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True )
+
+    compare2d, compare3d = np.load("test_im_2d.npy"), np.load("test_im_3d.npy")
+
+    # approximate interpolated images are only close in a mean sense
+
+    assert abs(np.log10(im2d/compare2d)).mean()<0.02
+    assert abs(np.log10(im3d/compare3d)).mean()<0.02
