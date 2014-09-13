@@ -73,6 +73,33 @@ def check_for_openmp():
     if exit_code == 0:
         return True
     else:
+        import multiprocessing, platform
+        cpus = multiprocessing.cpu_count()
+        if cpus>1:
+            print ("""WARNING
+
+OpenMP support is not available in your default C compiler, even though
+your machine has more than one core available.
+
+Some routines in pynbody are parallelized using OpenMP and these will
+only run on one core with your current configuration.
+""")
+            if platform.uname()[0]=='Darwin':
+                print ("""Since you are running on Mac OS, it's likely that the problem here
+is Apple's Clang, which does not support OpenMP at all. The easiest
+way to get around this is to download the latest version of gcc from
+here: http://hpc.sourceforge.net. After downloading, just point the
+CC environment variable to the real gcc and OpenMP support should
+get enabled automatically. Something like this -
+
+sudo tar -xzf /path/to/download.tar.gz /
+export CC='/usr/local/bin/gcc'
+python setup.py clean
+python setup.py build
+
+""")
+            print ("""Continuing your build without OpenMP...\n""")
+
         return False
 
 cython_version = None
