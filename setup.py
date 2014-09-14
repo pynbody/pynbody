@@ -140,7 +140,6 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-std=c99',
                       '-g',
                       '-DKDT_THREADING']
 
@@ -149,8 +148,8 @@ extra_link_args = []
 incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
 
 kdmain = Extension('pynbody/sph/kdmain',
-                   sources = ['pynbody/sph/kdmain.c', 'pynbody/sph/kd.c',
-                              'pynbody/sph/smooth.c'],
+                   sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
+                              'pynbody/sph/smooth.cpp'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
 

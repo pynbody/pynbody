@@ -46,16 +46,16 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 #ifdef KDT_THREADING
 	smx->nCurrent=0;
 
-	smx->pMutex = malloc(sizeof(pthread_mutex_t));
+	smx->pMutex = (pthread_mutex_t*)(malloc(sizeof(pthread_mutex_t)));
 
 	if (pthread_mutex_init(smx->pMutex, NULL) != 0)
 	{
 		free(smx->pMutex);
-    free(smx);
-    return(0);
-  }
+    	free(smx);
+    	return(0);
+  	}
 
-	smx->pReady = malloc(sizeof(pthread_cond_t));
+	smx->pReady = (pthread_cond_t*)(malloc(sizeof(pthread_cond_t)));
 
 	if (pthread_cond_init(smx->pReady,NULL)!=0) {
 		free(smx->pMutex);

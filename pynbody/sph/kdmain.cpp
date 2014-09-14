@@ -63,6 +63,10 @@ PyObject *populate(PyObject *self, PyObject *args);
 PyObject *domain_decomposition(PyObject *self, PyObject *args);
 PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
+
+template<typename T>
+int checkArray(PyObject *check);
+
 /*==========================================================================*/
 #define PROPID_HSM      1
 #define PROPID_RHO      2
@@ -129,7 +133,10 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "OOi", &pos, &mass, &nBucket))
         return NULL;
 
-    KD kd = malloc(sizeof(*kd));
+    if(checkArray<double>(pos)) return NULL;
+    if(checkArray<double>(mass)) return NULL;
+
+    KD kd = (KD)malloc(sizeof(*kd));
     kdInit(&kd, nBucket);
 
     int nbodies = PyArray_DIM(pos, 0);
@@ -159,11 +166,6 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     {
         kd->p[i].iOrder = i;
         kd->p[i].iMark = 1;
-        /*
-        kd->p[i].r[0] = (float)*((double *)PyArray_GETPTR2(pos, i, 0));
-        kd->p[i].r[1] = (float)*((double *)PyArray_GETPTR2(pos, i, 1));
-        kd->p[i].r[2] = (float)*((double *)PyArray_GETPTR2(pos, i, 2));
-        */
     }
 
     kdBuildTree(kd);
@@ -182,7 +184,7 @@ PyObject *kdfree(PyObject *self, PyObject *args)
     PyObject *kdobj;
 
     PyArg_ParseTuple(args, "O", &kdobj);
-    kd = PyCapsule_GetPointer(kdobj, NULL);
+    kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
     kdFinish(kd);
     Py_XDECREF(kd->pNumpyPos);
@@ -211,7 +213,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     float hsm;
 
     PyArg_ParseTuple(args, "Oi", &kdobj, &nSmooth);
-    kd = PyCapsule_GetPointer(kdobj, NULL);
+    kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
 #define BIGFLOAT ((float)1.0e37)
 
@@ -249,8 +251,8 @@ PyObject *nn_next(PyObject *self, PyObject *args)
     PyObject *retList;
 
     PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-    kd  = PyCapsule_GetPointer(kdobj, NULL);
-    smx = PyCapsule_GetPointer(smxobj, NULL);
+    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
+    smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
     Py_BEGIN_ALLOW_THREADS
 
@@ -293,8 +295,8 @@ PyObject *nn_stop(PyObject *self, PyObject *args)
     PyObject *kdobj, *smxobj;
 
     PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-    kd  = PyCapsule_GetPointer(kdobj,NULL);
-    smx = PyCapsule_GetPointer(smxobj,NULL);
+    kd  = (KD)PyCapsule_GetPointer(kdobj,NULL);
+    smx = (SMX)PyCapsule_GetPointer(smxobj,NULL);
 
     smFinish(smx);
 
@@ -310,13 +312,14 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
     PyObject *smxobj;
 
     PyArg_ParseTuple(args, "O", &smxobj);
-    smx = PyCapsule_GetPointer(smxobj, NULL);
+    smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
     smSmoothInitStep(smx, 1);
 
     return PyCapsule_New(smx, NULL, NULL);
 }
 
 
+template<typename T>
 int checkArray(PyObject *check) {
 
   if(check==NULL) {
@@ -325,7 +328,7 @@ int checkArray(PyObject *check) {
   }
 
   PyArray_Descr *descr = PyArray_DESCR(check);
-  if(descr==NULL || descr->kind!='f' || descr->elsize!=sizeof(double)) {
+  if(descr==NULL || descr->kind!='f' || descr->elsize!=sizeof(T)) {
     PyErr_SetString(PyExc_TypeError, "Incorrect numpy data type to kdtree - must match C double");
     return 1;
   }
@@ -341,10 +344,10 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     KD kd;
 
     PyArg_ParseTuple(args, "OiO", &kdobj, &arid, &arobj);
-    kd  = PyCapsule_GetPointer(kdobj, NULL);
+    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
     if(!kd) return NULL;
 
-    if(checkArray(arobj)) return NULL;
+    if(checkArray<double>(arobj)) return NULL;
 
     switch(arid) {
     case 0:
@@ -368,7 +371,7 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     }
 
 
-    if(checkArray(arobj)) return NULL;
+    if(checkArray<double>(arobj)) return NULL;
 
     Py_XDECREF(*existing);
     (*existing) = arobj;
@@ -382,7 +385,7 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
     KD kd;
 
     PyArg_ParseTuple(args, "Oi", &kdobj, &arid);
-    kd  = PyCapsule_GetPointer(kdobj, NULL);
+    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
     if(!kd) return NULL;
 
     switch(arid) {
@@ -422,10 +425,10 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
 
     PyArg_ParseTuple(args, "Oi", &smxobj, &nproc);
 
-    kd  = PyCapsule_GetPointer(smxobj, NULL);
+    kd  = (KD)PyCapsule_GetPointer(smxobj, NULL);
     if(!kd) return NULL;
 
-    if(checkArray(kd->pNumpySmooth)) return NULL;
+    if(checkArray<double>(kd->pNumpySmooth)) return NULL;
     if(nproc<0) {
         PyErr_SetString(PyExc_ValueError, "Invalid number of processors");
         return NULL;
@@ -454,8 +457,8 @@ PyObject *populate(PyObject *self, PyObject *args)
 
 
     PyArg_ParseTuple(args, "OOii", &kdobj, &smxobj, &propid, &procid);
-    kd  = PyCapsule_GetPointer(kdobj, NULL);
-    smx_global = PyCapsule_GetPointer(smxobj, NULL);
+    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
+    smx_global = (SMX)PyCapsule_GetPointer(smxobj, NULL);
     #define BIGFLOAT ((float)1.0e37)
 
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
@@ -469,15 +472,15 @@ PyObject *populate(PyObject *self, PyObject *args)
 
 
 
-    if (checkArray(kd->pNumpySmooth)) return NULL;
+    if (checkArray<double>(kd->pNumpySmooth)) return NULL;
     if(propid>PROPID_HSM) {
-      if (checkArray(kd->pNumpyDen)) return NULL;
-      if (checkArray(kd->pNumpyMass)) return NULL;
-      if (checkArray(kd->pNumpySmooth)) return NULL;
+      if (checkArray<double>(kd->pNumpyDen)) return NULL;
+      if (checkArray<double>(kd->pNumpyMass)) return NULL;
+      if (checkArray<double>(kd->pNumpySmooth)) return NULL;
     }
     if(propid>PROPID_RHO) {
-        if (checkArray(kd->pNumpyQty)) return NULL;
-        if (checkArray(kd->pNumpyQtySmoothed)) return NULL;
+        if (checkArray<double>(kd->pNumpyQty)) return NULL;
+        if (checkArray<double>(kd->pNumpyQtySmoothed)) return NULL;
     }
 
 
