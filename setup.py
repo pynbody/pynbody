@@ -141,8 +141,6 @@ extra_compile_args = ['-ftree-vectorize',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
                       '-std=c99',
-                      '-Wall',
-                      '-O0',
                       '-g',
                       '-DKDT_THREADING']
 
@@ -220,7 +218,7 @@ You have two options. Either:
 or
 
  2. Install Cython version 0.21 or higher.
- 
+
     This can normally be accomplished by typing
 
     pip install --upgrade cython.
