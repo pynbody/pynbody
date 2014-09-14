@@ -106,9 +106,9 @@ cython_version = None
 try :
     import cython
 
-    # check that cython version is > 0.20
+    # check that cython version is > 0.21
     cython_version = cython.__version__
-    if float(cython_version.partition(".")[2][:2]) < 20 :
+    if float(cython_version.partition(".")[2][:2]) < 21 :
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
@@ -219,7 +219,8 @@ You have two options. Either:
 
 or
 
- 2. Install Cython, at least version 0.20 and preferably 0.21 or higher.
+ 2. Install Cython version 0.21 or higher.
+ 
     This can normally be accomplished by typing
 
     pip install --upgrade cython.
