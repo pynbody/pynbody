@@ -47,8 +47,9 @@ def test_kd_issue_88() :
     # number of particles less than number of smoothing neighbours
     f = pynbody.new(gas=16)
     f['pos'] = np.random.uniform(size=(16,3))
-    with nose.tools.assert_raises(ValueError):
-        f['smooth'] # this used to segfault - issue 88
+    trigger_fn = lambda : f['smooth']
+    nose.tools.assert_raises(ValueError, trigger_fn)
+
 
 if __name__=="__main__":
     test_kd_delete()
