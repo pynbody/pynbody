@@ -2,6 +2,7 @@
 import pynbody, numpy as np
 import numpy.testing as npt
 import pylab as p
+import nose.tools
 
 f = pynbody.load("testdata/g15784.lr.01024")
 
@@ -40,6 +41,14 @@ def test_kd_delete():
 
     # position array has been updated - kdtree should be auto-deleted
     assert not hasattr(f.dm,'kdtree')
+
+
+def test_kd_issue_88() :
+    # number of particles less than number of smoothing neighbours
+    f = pynbody.new(gas=16)
+    f['pos'] = np.random.uniform(size=(16,3))
+    with nose.tools.assert_raises(ValueError):
+        f['smooth'] # this used to segfault - issue 88
 
 if __name__=="__main__":
     test_kd_delete()

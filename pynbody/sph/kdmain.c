@@ -217,6 +217,10 @@ PyObject *nn_start(PyObject *self, PyObject *args)
 
     float fPeriod[3] = {BIGFLOAT, BIGFLOAT, BIGFLOAT};
 
+    if(nSmooth>PyArray_DIM(kd->pNumpyPos,0)) {
+        PyErr_SetString(PyExc_ValueError, "Number of smoothing particles exceeds number of particles in tree");
+        return NULL;
+    }
     if(!smInit(&smx, kd, nSmooth, fPeriod)) {
         PyErr_SetString(PyExc_RuntimeError, "Unable to create smoothing context");
         return NULL;
