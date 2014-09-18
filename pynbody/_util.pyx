@@ -130,7 +130,7 @@ def sum(np.ndarray[fused_float, ndim=1] ar):
 @cython.cdivision(True)
 def sum_if_gt(np.ndarray[fused_float, ndim=1] ar,
                    np.ndarray[fused_float_2, ndim=1] cmp_ar,
-                   fused_float_2 cmp_ar_val):
+                   double cmp_ar_val):
     """OpenMP summation algorithm equivalent to numpy.sum(ar*(cmp_ar>cmp_ar_val))"""
     cdef fused_float v
     cdef long i
@@ -146,7 +146,7 @@ def sum_if_gt(np.ndarray[fused_float, ndim=1] ar,
 @cython.cdivision(True)
 def sum_if_lt(np.ndarray[fused_float, ndim=1] ar,
                    np.ndarray[fused_float_2, ndim=1] cmp_ar,
-                   fused_float_2 cmp_ar_val):
+                   double cmp_ar_val):
     """OpenMP summation algorithm equivalent to numpy.sum(ar*(cmp_ar<cmp_ar_val))"""
     cdef fused_float v
     cdef long i
