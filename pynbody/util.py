@@ -388,7 +388,16 @@ def gauss_jordan(out):
         (out[y], out[maxrow]) = (out[maxrow], out[y].copy())
 
         if out[y][y] == 0:
-            raise np.linalg.linalg.LinAlgError, "Singular matrix"
+            # this will be a problem, see if we can do a row
+            # operation to fix it
+            for y2 in range(y+1,h):
+                if out[y2][y]!=0:
+                    out[y]+=out[y2]
+                    break
+
+            # no, out of options, must be a singular matrix
+            if out[y][y]==0:
+                raise np.linalg.linalg.LinAlgError, "Singular matrix"
 
         for y2 in range(y + 1, h):    # Eliminate column y
             c = out[y2][y] / out[y][y]
