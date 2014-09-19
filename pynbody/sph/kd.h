@@ -58,6 +58,7 @@ typedef struct kdContext {
 	int uSecond;
 	int uMicro;
 
+	int nBitDepth;
 	PyObject *pNumpyPos;  // Nx3 Numpy array of positions
 	PyObject *pNumpyMass; // Nx1 Numpy array of masses
 	PyObject *pNumpySmooth;
@@ -166,29 +167,50 @@ void kdTime(KD,int *,int *);
 int kdInit(KD *,int);
 int kdReadTipsy(KD,FILE *,int,int,int,int);
 void kdInMark(KD,char *);
+
+template<typename T>
 void kdBuildTree(KD);
 void kdOrder(KD);
 void kdFinish(KD);
+
+template<typename T>
 void kdBuildNode(KD, int);
+void kdCombine(KDN *p1,KDN *p2,KDN *pOut);
 
-#define GET(ar, i) *((double*)PyArray_GETPTR1(ar, i))
-#define GET2(ar, i,j) *((double*)PyArray_GETPTR2(ar, i,j))
 
-#define SET(ar, nn, val) *((double*)PyArray_GETPTR1(ar, nn)) = val
-#define SET2(ar, i,j, val) *((double*)PyArray_GETPTR2(ar, i,j)) = val
-
-#define ACCUM(ar, i, add) {\
-	double *p = ((double*)PyArray_GETPTR1(ar, i)); \
-	(*p)+=add; \
+template<typename T>
+T GET(PyObject *ar, int i) {
+	return *((T*)PyArray_GETPTR1(ar, i));
 }
 
-#define ACCUM2(ar, i, j, add) {\
-	double *p = ((double*)PyArray_GETPTR2(ar, i, j)); \
-	(*p)+=add; \
+template<typename T>
+T GET2(PyObject *ar, int i, int j) {
+	return *((T*)PyArray_GETPTR2(ar, i, j));
 }
 
-#define GETSMOOTH(pid) GET(kd->pNumpySmooth, kd->p[pid].iOrder)
-#define SETSMOOTH(pid, val) SET(kd->pNumpySmooth, kd->p[pid].iOrder, val)
+template<typename T>
+void SET(PyObject *ar, int i, T val) {
+	*((T*)PyArray_GETPTR1(ar, i)) = val;
+}
+
+template<typename T>
+void SET2(PyObject *ar, int i, int j, T val) {
+	*((T*)PyArray_GETPTR2(ar, i,j)) = val;
+}
+
+template<typename T>
+void ACCUM(PyObject *ar, int i, T val) {
+	(*((T*)PyArray_GETPTR1(ar, i))) += val;
+}
+
+template<typename T>
+void ACCUM2(PyObject *ar, int i, int j, T val) {
+	(*((T*)PyArray_GETPTR2(ar, i, j))) += val;
+}
+
+
+#define GETSMOOTH(T, pid) GET<T>(kd->pNumpySmooth, kd->p[pid].iOrder)
+#define SETSMOOTH(T, pid, val) SET<T>(kd->pNumpySmooth, kd->p[pid].iOrder, val)
 
 
 #endif

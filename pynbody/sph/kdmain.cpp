@@ -67,6 +67,8 @@ PyObject *get_arrayref(PyObject *self, PyObject *args);
 template<typename T>
 int checkArray(PyObject *check);
 
+int getBitDepth(PyObject *check);
+
 /*==========================================================================*/
 #define PROPID_HSM      1
 #define PROPID_RHO      2
@@ -133,8 +135,23 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "OOi", &pos, &mass, &nBucket))
         return NULL;
 
-    if(checkArray<double>(pos)) return NULL;
-    if(checkArray<double>(mass)) return NULL;
+    int bitdepth = getBitDepth(pos);
+    if(bitdepth==0) {
+        PyErr_SetString(PyExc_ValueError, "Unsupported array dtype for kdtree");
+        return NULL;
+    }
+    if(bitdepth!=getBitDepth(mass)) {
+        PyErr_SetString(PyExc_ValueError, "pos and mass arrays must have matching dtypes for kdtree");
+        return NULL;
+    }
+
+    if(bitdepth==64) {
+        if(checkArray<double>(pos)) return NULL;
+        if(checkArray<double>(mass)) return NULL;
+    } else {
+        if(checkArray<float>(pos)) return NULL;
+        if(checkArray<float>(mass)) return NULL;
+    }
 
     KD kd = (KD)malloc(sizeof(*kd));
     kdInit(&kd, nBucket);
@@ -143,7 +160,7 @@ PyObject *kdinit(PyObject *self, PyObject *args)
 
     kd->nParticles = nbodies;
     kd->nActive = nbodies;
-
+    kd->nBitDepth = bitdepth;
     kd->pNumpyPos = pos;
     kd->pNumpyMass = mass;
     kd->pNumpySmooth = NULL;
@@ -168,7 +185,10 @@ PyObject *kdinit(PyObject *self, PyObject *args)
         kd->p[i].iMark = 1;
     }
 
-    kdBuildTree(kd);
+    if(bitdepth==64)
+        kdBuildTree<double>(kd);
+    else
+        kdBuildTree<float>(kd);
 
     Py_END_ALLOW_THREADS
 
@@ -256,7 +276,7 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
     Py_BEGIN_ALLOW_THREADS
 
-    nCnt = smSmoothStep(smx, NULL,0);
+    nCnt = smSmoothStep<double>(smx,0);
 
     Py_END_ALLOW_THREADS
 
@@ -274,7 +294,7 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
         PyList_SetItem(retList, 0, PyLong_FromLong(smx->pi));
         PyList_SetItem(retList, 1, PyFloat_FromDouble(
-                       GET(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
+                       GET<double>(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
         PyList_SetItem(retList, 2, nnList);
         PyList_SetItem(retList, 3, nnDist);
 
@@ -318,6 +338,22 @@ PyObject *nn_rewind(PyObject *self, PyObject *args)
     return PyCapsule_New(smx, NULL, NULL);
 }
 
+
+int getBitDepth(PyObject *check) {
+
+  if(check==NULL) {
+    return 0;
+  }
+
+  PyArray_Descr *descr = PyArray_DESCR(check);
+  if(descr!=NULL && descr->kind=='f' && descr->elsize==sizeof(float))
+      return 32;
+  else if(descr!=NULL && descr->kind=='f' && descr->elsize==sizeof(double))
+      return 64;
+  else
+      return 0;
+
+}
 
 template<typename T>
 int checkArray(PyObject *check) {
@@ -434,7 +470,7 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    smDomainDecomposition(kd,nproc);
+    smDomainDecomposition<double>(kd,nproc);
 
     return Py_None;
 }
@@ -494,19 +530,19 @@ PyObject *populate(PyObject *self, PyObject *args)
     switch(propid)
     {
         case PROPID_RHO:
-            pSmFn = &smDensity;
+            pSmFn = &smDensity<double>;
             break;
         case PROPID_QTYMEAN_ND:
-            pSmFn = &smMeanQtyND;
+            pSmFn = &smMeanQtyND<double,double>;
             break;
         case PROPID_QTYDISP_ND:
-            pSmFn = &smDispQtyND;
+            pSmFn = &smDispQtyND<double,double>;
             break;
         case PROPID_QTYMEAN_1D:
-            pSmFn = &smMeanQty1D;
+            pSmFn = &smMeanQty1D<double,double>;
             break;
         case PROPID_QTYDISP_1D:
-            pSmFn = &smDispQty1D;
+            pSmFn = &smDispQty1D<double,double>;
             break;
     }
 
@@ -516,7 +552,7 @@ PyObject *populate(PyObject *self, PyObject *args)
           Py_BEGIN_ALLOW_THREADS
             for (i=0; i < nbodies; i++)
               {
-                nCnt = smSmoothStep(smx_local, NULL, procid);
+                nCnt = smSmoothStep<double>(smx_local, procid);
                 if(nCnt==-1)
                   break; // nothing more to do
                 total_particles+=1;
@@ -532,14 +568,14 @@ PyObject *populate(PyObject *self, PyObject *args)
         {
             // make a copy of the position of this particle
             for(int j=0; j<3; ++j) {
-              ri[j] = GET2(kd->pNumpyPos,kd->p[i].iOrder,j);
+              ri[j] = GET2<double>(kd->pNumpyPos,kd->p[i].iOrder,j);
             }
 
             // retrieve the existing smoothing length
-            hsm = GETSMOOTH(i);
+            hsm = GETSMOOTH(double,i);
 
             // use it to get nearest neighbours
-            nCnt = smBallGather(smx_local,4*hsm*hsm,ri);
+            nCnt = smBallGather<double>(smx_local,4*hsm*hsm,ri);
 
             // calculate the density
             (*pSmFn)(smx_local, i, nCnt, smx_local->pList,smx_local->fList);

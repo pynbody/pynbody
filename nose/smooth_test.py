@@ -10,7 +10,7 @@ def test_smooth():
     global f
 
     npt.assert_allclose(f.dm['smooth'][::100],
-                         np.load('test_smooth.npy'))
+                         np.load('test_smooth.npy'),rtol=1e-5)
 
     npt.assert_allclose(f.dm['rho'][::100],
                          np.load('test_rho.npy'),rtol=1e-5)
@@ -50,6 +50,9 @@ def test_kd_issue_88() :
     trigger_fn = lambda : f['smooth']
     nose.tools.assert_raises(ValueError, trigger_fn)
 
+def test_float_kd():
+    f = pynbody.load("testdata/test_g2_snap")
+    print f.dm['smooth']
 
 if __name__=="__main__":
     test_kd_delete()

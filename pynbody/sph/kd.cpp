@@ -22,37 +22,7 @@ int kdInit(KD *pkd,int nBucket)
 	kd->kdNodes = NULL;
 	*pkd = kd;
 	return(1);
-	}
-
-void kdSelect(KD kd,int d,int k,int l,int r)
-{
-	PARTICLE *p,t;
-	double v;
-	int i,j;
-
-	p = kd->p;
-	while (r > l) {
-		v = GET2(kd->pNumpyPos,p[k].iOrder,d);
-		t = p[r];
-		p[r] = p[k];
-		p[k] = t;
-		i = l - 1;
-		j = r;
-		while (1) {
-			while (i < j) if (GET2(kd->pNumpyPos,p[++i].iOrder,d) >= v) break;
-			while (i < j) if (GET2(kd->pNumpyPos,p[--j].iOrder,d) <= v) break;
-			t = p[i];
-			p[i] = p[j];
-			p[j] = t;
-			if (j <= i) break;
-			}
-		p[j] = p[i];
-		p[i] = p[r];
-		p[r] = t;
-		if (i >= k) r = i - 1;
-		if (i <= k) l = i + 1;
-		}
-	}
+}
 
 
 void kdCombine(KDN *p1,KDN *p2,KDN *pOut)
@@ -75,6 +45,63 @@ void kdCombine(KDN *p1,KDN *p2,KDN *pOut)
 	}
 
 
+
+int cmpParticles(const void *v1,const void *v2)
+{
+	PARTICLE *p1=(PARTICLE *)v1,*p2=(PARTICLE *)v2;
+
+	return(p1->iOrder - p2->iOrder);
+}
+
+
+void kdOrder(KD kd)
+{
+	qsort(kd->p,kd->nActive,sizeof(PARTICLE),cmpParticles);
+}
+
+
+void kdFinish(KD kd)
+{
+	free(kd->p);
+	free(kd->kdNodes);
+	free(kd);
+}
+
+
+
+template<typename T>
+void kdSelect(KD kd,int d,int k,int l,int r)
+{
+	PARTICLE *p,t;
+	T v;
+	int i,j;
+
+	p = kd->p;
+	while (r > l) {
+		v = GET2<T>(kd->pNumpyPos,p[k].iOrder,d);
+		t = p[r];
+		p[r] = p[k];
+		p[k] = t;
+		i = l - 1;
+		j = r;
+		while (1) {
+			while (i < j) if (GET2<T>(kd->pNumpyPos,p[++i].iOrder,d) >= v) break;
+			while (i < j) if (GET2<T>(kd->pNumpyPos,p[--j].iOrder,d) <= v) break;
+			t = p[i];
+			p[i] = p[j];
+			p[j] = t;
+			if (j <= i) break;
+			}
+		p[j] = p[i];
+		p[i] = p[r];
+		p[r] = t;
+		if (i >= k) r = i - 1;
+		if (i <= k) l = i + 1;
+	}
+}
+
+
+template<typename T>
 void kdUpPass(KD kd,int iCell)
 {
 	KDN *c;
@@ -84,20 +111,20 @@ void kdUpPass(KD kd,int iCell)
 	if (c[iCell].iDim != -1) {
 		l = LOWER(iCell);
 		u = UPPER(iCell);
-		kdUpPass(kd,l);
-		kdUpPass(kd,u);
+		kdUpPass<T>(kd,l);
+		kdUpPass<T>(kd,u);
 		kdCombine(&c[l],&c[u],&c[iCell]);
 		}
 	else {
 		l = c[iCell].pLower;
 		u = c[iCell].pUpper;
 		for (j=0;j<3;++j) {
-			c[iCell].bnd.fMin[j] = GET2(kd->pNumpyPos,kd->p[u].iOrder,j);
+			c[iCell].bnd.fMin[j] = GET2<T>(kd->pNumpyPos,kd->p[u].iOrder,j);
 			c[iCell].bnd.fMax[j] = c[iCell].bnd.fMin[j];
 			}
 		for (pj=l;pj<u;++pj) {
 			for (j=0;j<3;++j) {
-				rj = GET2(kd->pNumpyPos,kd->p[pj].iOrder,j);
+				rj = GET2<T>(kd->pNumpyPos,kd->p[pj].iOrder,j);
 				if (rj < c[iCell].bnd.fMin[j])
 					c[iCell].bnd.fMin[j] = rj;
 				if (rj > c[iCell].bnd.fMax[j])
@@ -107,10 +134,11 @@ void kdUpPass(KD kd,int iCell)
 		}
 	}
 
+template <typename T>
 void kdBuildTree(KD kd)
 {
 	int l,n,i,d,j;
-	double rj;
+	T rj;
 	BND bnd;
 
 	n = kd->nActive;
@@ -130,7 +158,7 @@ void kdBuildTree(KD kd)
 	// Calculate bounds
 	// Initialize with any particle:
 	for (j=0;j<3;++j) {
-		rj = GET2(kd->pNumpyPos,kd->p[0].iOrder,j);
+		rj = GET2<T>(kd->pNumpyPos,kd->p[0].iOrder,j);
 		bnd.fMin[j] = rj;
 		bnd.fMax[j] = rj;
 	}
@@ -138,7 +166,7 @@ void kdBuildTree(KD kd)
 	// Expand to enclose all particles:
 	for (i=1;i<kd->nActive;++i) {
 		for (j=0;j<3;++j) {
-			rj = GET2(kd->pNumpyPos,kd->p[i].iOrder,j);
+			rj = GET2<T>(kd->pNumpyPos,kd->p[i].iOrder,j);
 			if (bnd.fMin[j] > rj)
 				bnd.fMin[j] = rj;
 			else if (bnd.fMax[j] < rj)
@@ -152,17 +180,10 @@ void kdBuildTree(KD kd)
 	kd->kdNodes[ROOT].bnd = bnd;
 
 	// Recursively build tree
-	kdBuildNode(kd, ROOT);
+	kdBuildNode<T>(kd, ROOT);
 
 	// Calculate and store bounds information by passing it up the tree
-	kdUpPass(kd,ROOT);
-
-	FILE *fp = fopen("KDOUT.txt","w");
-	for(i=0;i<kd->nActive;++i) {
-		fprintf(fp,"%d %.3f %.3e %.3e\n",kd->p[i].iOrder,(float)GET2(kd->pNumpyPos,kd->p[i].iOrder,0),(float)GET2(kd->pNumpyPos,kd->p[i].iOrder,1),(float)GET2(kd->pNumpyPos,kd->p[i].iOrder,2));
-	}
-	fclose(fp);
-
+	kdUpPass<T>(kd,ROOT);
 }
 
 struct KDargs {
@@ -170,10 +191,12 @@ struct KDargs {
 	int local_root;
 };
 
+template <typename T>
 void kdBuildNodeRemote(struct KDargs *a) {
-	kdBuildNode(a->kd, a->local_root);
+	kdBuildNode<T>(a->kd, a->local_root);
 }
 
+template <typename T>
 void kdBuildNode(KD kd, int local_root) {
 
 	int i=local_root;
@@ -205,10 +228,10 @@ void kdBuildNode(KD kd, int local_root) {
 
 			// Sort list to ensure particles between lower and m are to
 			// the 'left' of particles between m and upper
-			kdSelect(kd,d,m,nodes[i].pLower,nodes[i].pUpper);
+			kdSelect<T>(kd,d,m,nodes[i].pLower,nodes[i].pUpper);
 
 			// Note split point based on median particle
-			nodes[i].fSplit = GET2(kd->pNumpyPos,kd->p[m].iOrder,d);
+			nodes[i].fSplit = GET2<T>(kd->pNumpyPos,kd->p[m].iOrder,d);
 
 			// Set up lower cell
 			nodes[LOWER(i)].bnd = nodes[i].bnd;
@@ -269,9 +292,9 @@ void kdBuildNode(KD kd, int local_root) {
 			}
 
 #else
-      // On single thread, always switch attention to the lower branch
+	// On single thread, always switch attention to the lower branch
 			// (and upper branch gets processed on way up).
-		  i = LOWER(i);
+		i = LOWER(i);
 #endif
 
 		} else {
@@ -286,23 +309,37 @@ void kdBuildNode(KD kd, int local_root) {
 	}
 }
 
-int cmpParticles(const void *v1,const void *v2)
-{
-	PARTICLE *p1=(PARTICLE *)v1,*p2=(PARTICLE *)v2;
 
-	return(p1->iOrder - p2->iOrder);
-	}
+// instantiate the actual functions that are available:
+
+template
+void kdSelect<double>(KD kd,int d,int k,int l,int r);
+
+template
+void kdUpPass<double>(KD kd,int iCell);
+
+template
+void kdBuildTree<double>(KD kd);
+
+template
+void kdBuildNodeRemote<double>(struct KDargs *a);
+
+template
+void kdBuildNode<double>(KD kd, int local_root);
 
 
-void kdOrder(KD kd)
-{
-	qsort(kd->p,kd->nActive,sizeof(PARTICLE),cmpParticles);
-	}
 
+template
+void kdSelect<float>(KD kd,int d,int k,int l,int r);
 
-void kdFinish(KD kd)
-{
-	free(kd->p);
-	free(kd->kdNodes);
-	free(kd);
-	}
+template
+void kdUpPass<float>(KD kd,int iCell);
+
+template
+void kdBuildTree<float>(KD kd);
+
+template
+void kdBuildNodeRemote<float>(struct KDargs *a);
+
+template
+void kdBuildNode<float>(KD kd, int local_root);

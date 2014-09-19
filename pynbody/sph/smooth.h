@@ -112,17 +112,31 @@ double dK3(double);
 int smInit(SMX *,KD,int,float *);
 void smInitPriorityQueue(SMX);
 void smFinish(SMX);
+
+template<typename T>
 void smBallSearch(SMX,float,float *);
+
+template<typename T>
 int  smBallGather(SMX,float,float *);
 
-int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *), int procid);
+template<typename T>
+int smSmoothStep(SMX smx, int procid);
+
 void smSmoothInitStep(SMX smx, int nProcs);
+
+template<typename T>
 void smDensitySym(SMX,int,int,int *,float *);
+
+template<typename T>
 void smDensity(SMX,int,int,int *,float *);
 
+template<typename Tf, typename Tq>
 void smMeanQtyND(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
 void smDispQtyND(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
 void smMeanQty1D(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
 void smDispQty1D(SMX,int,int,int *,float *);
 
 
@@ -135,6 +149,7 @@ void smVelDispSym(SMX,int,int,int *,float *);
 void smVelDispNBSym(SMX,int,int,int *,float *);
 */
 
+template<typename T>
 void smDomainDecomposition(KD kd, int nprocs);
 
 #ifdef KDT_THREADING
