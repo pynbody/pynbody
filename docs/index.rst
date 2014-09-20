@@ -55,6 +55,7 @@ you just installed pynbody and upon trying some fancy analysis it
 greeted you with a complicated error message, the fix might be
 described in :doc:`pitfalls`.
 
+.. _user-group:
 
 Pynbody user group and issue tracker
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

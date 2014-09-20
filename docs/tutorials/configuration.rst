@@ -17,7 +17,7 @@ mutlithreading, default base units etc.
 
 To find ``default_config.ini``, you can type
 
-.. ipython:: 
+.. ipython::
 
    In [1]: import pynbody
 
@@ -27,16 +27,17 @@ to find the `pynbody` installation directory. The
 ``default_config.ini`` can be found there. Most of the options are
 explained in the file itself, and in order to use a different default,
 you simply override the option in ``.pynbodyrc``. For example, if I
-want to change how many threads `pynbody` should use, I would put in
+want to reduce the number of CPU cores that `pynbody`  uses, I would put in
 ``.pynbodyrc``:
 
 ::
 
    [general]
 
-   number_of_threads: 10
+   number_of_threads: 2
 
 
+For more information on threading, see :ref:`threading`. 
 
 Some options can also be changed at runtime. You can check which ones
 with
@@ -49,7 +50,5 @@ If you wanted to, for example, change how many particles are being
 used to estimate sph kernel quantities, you could do
 
 .. ipython::
-   
-   In [4]: pynbody.config['sph']['smooth-particles'] = 64
 
-   
+   In [4]: pynbody.config['sph']['smooth-particles'] = 64
