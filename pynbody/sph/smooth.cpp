@@ -838,6 +838,29 @@ void smDensitySym<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 template
 void smDensity<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
+
+
+template
+void smBallSearch<float>(SMX smx,float fBall2,float *ri);
+
+template
+int smBallGather<float>(SMX smx,float fBall2,float *ri);
+
+template
+void smDomainDecomposition<float>(KD kd, int nprocs);
+
+template
+int smSmoothStep<float>(SMX smx, int procid);
+
+template
+void smDensitySym<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDensity<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+
+
+
 template
 void smMeanQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
@@ -849,6 +872,45 @@ void smDispQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fL
 
 template
 void smDispQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+
+template
+void smMeanQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smMeanQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDispQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDispQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+
+template
+void smMeanQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smMeanQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDispQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDispQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+
+template
+void smMeanQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smMeanQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDispQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDispQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
 
 /*

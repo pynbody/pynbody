@@ -52,7 +52,22 @@ def test_kd_issue_88() :
 
 def test_float_kd():
     f = pynbody.load("testdata/test_g2_snap")
-    print f.dm['smooth']
+
+    assert f.dm['mass'].dtype==f.dm['pos'].dtype==np.float32
+    assert f.dm['smooth'].dtype==np.float32
+
+    # make double copy
+    g = pynbody.new(len(f.dm))
+    g.dm['pos']=f.dm['pos']
+    g.dm['mass']=f.dm['mass']
+
+    assert g.dm['mass'].dtype==g.dm['pos'].dtype==g.dm['smooth'].dtype==np.float64
+
+    # check smoothing lengths agree (they have been calculated differently
+    # using floating/double routines)
+
+    npt.assert_allclose(f.dm['smooth'],g.dm['smooth'],rtol=1e-4)
+    npt.assert_allclose(f.dm['rho'],g.dm['rho'],rtol=1e-4)
 
 if __name__=="__main__":
-    test_kd_delete()
+    test_float_kd()

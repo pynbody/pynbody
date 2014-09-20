@@ -93,7 +93,8 @@ def smooth(self):
     logger.info('Smoothing with %d nearest neighbours' %
                 config['sph']['smooth-particles'])
 
-    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
+    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units,
+                       dtype=self['pos'].dtype)
 
 
     start = time.time()
@@ -113,7 +114,8 @@ def rho(self):
 
     logger.info('Calculating SPH density')
     rho = array.SimArray(
-        np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3)
+        np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
+        dtype=self['pos'].dtype)
 
     start = time.time()
 

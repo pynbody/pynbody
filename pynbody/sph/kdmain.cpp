@@ -23,6 +23,8 @@
 #include "kd.h"
 #include "smooth.h"
 
+#include <typeinfo>
+
 /*==========================================================================*/
 /* Debugging tools                                                          */
 /*==========================================================================*/
@@ -37,7 +39,7 @@
 long total_alloc = 0;
 #define CALLOC(type, num) \
     (total_alloc += sizeof(type) * (num), \
-    fprintf(stderr, "c'allocating %ld bytes [already alloc'd: %ld].\n", sizeof(type) * (num), total_alloc), \
+    fprintf(stderr, "c"allocating %ld bytes [already alloc"d: %ld].\n", sizeof(type) * (num), total_alloc), \
     ((type *)calloc((num), sizeof(type))))
 #else
 #define CALLOC(type, num) ((type *)calloc((num), sizeof(type)))
@@ -65,7 +67,7 @@ PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
 
 template<typename T>
-int checkArray(PyObject *check);
+int checkArray(PyObject *check, const char *name);
 
 int getBitDepth(PyObject *check);
 
@@ -146,11 +148,11 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     }
 
     if(bitdepth==64) {
-        if(checkArray<double>(pos)) return NULL;
-        if(checkArray<double>(mass)) return NULL;
+        if(checkArray<double>(pos, "pos")) return NULL;
+        if(checkArray<double>(mass, "mass")) return NULL;
     } else {
-        if(checkArray<float>(pos)) return NULL;
-        if(checkArray<float>(mass)) return NULL;
+        if(checkArray<float>(pos, "pos")) return NULL;
+        if(checkArray<float>(mass, "mass")) return NULL;
     }
 
     KD kd = (KD)malloc(sizeof(*kd));
@@ -276,7 +278,10 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
     Py_BEGIN_ALLOW_THREADS
 
-    nCnt = smSmoothStep<double>(smx,0);
+    if(kd->nBitDepth==32)
+        nCnt = smSmoothStep<float>(smx,0);
+    else
+        nCnt = smSmoothStep<double>(smx,0);
 
     Py_END_ALLOW_THREADS
 
@@ -293,8 +298,13 @@ PyObject *nn_next(PyObject *self, PyObject *args)
         }
 
         PyList_SetItem(retList, 0, PyLong_FromLong(smx->pi));
-        PyList_SetItem(retList, 1, PyFloat_FromDouble(
-                       GET<double>(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
+        if(kd->nBitDepth==32)
+            PyList_SetItem(retList, 1, PyFloat_FromDouble(
+                        (double)GET<float>(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
+        else
+            PyList_SetItem(retList, 1, PyFloat_FromDouble(
+                        GET<double>(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
+
         PyList_SetItem(retList, 2, nnList);
         PyList_SetItem(retList, 3, nnDist);
 
@@ -356,7 +366,22 @@ int getBitDepth(PyObject *check) {
 }
 
 template<typename T>
-int checkArray(PyObject *check) {
+const char* c_name() {
+    return "unknown";
+}
+
+template<>
+const char* c_name<double>() {
+    return "double";
+}
+
+template<>
+const char* c_name<float>() {
+    return "float";
+}
+
+template<typename T>
+int checkArray(PyObject *check, const char* name) {
 
   if(check==NULL) {
     PyErr_SetString(PyExc_ValueError, "Unspecified array in kdtree");
@@ -365,7 +390,7 @@ int checkArray(PyObject *check) {
 
   PyArray_Descr *descr = PyArray_DESCR(check);
   if(descr==NULL || descr->kind!='f' || descr->elsize!=sizeof(T)) {
-    PyErr_SetString(PyExc_TypeError, "Incorrect numpy data type to kdtree - must match C double");
+    PyErr_Format(PyExc_TypeError, "Incorrect numpy data type for %s passed to kdtree - must match C %s",name,c_name<T>());
     return 1;
   }
   return 0;
@@ -379,35 +404,60 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     PyObject *kdobj, *arobj, **existing;
     KD kd;
 
+    const char *name0="smooth";
+    const char *name1="rho";
+    const char *name2="mass";
+    const char *name3="qty";
+    const char *name4="qty_sm";
+
+    const char *name;
+
     PyArg_ParseTuple(args, "OiO", &kdobj, &arid, &arobj);
     kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
     if(!kd) return NULL;
 
-    if(checkArray<double>(arobj)) return NULL;
+
 
     switch(arid) {
     case 0:
         existing = &(kd->pNumpySmooth);
+        name = name0;
         break;
     case 1:
         existing = &(kd->pNumpyDen);
+        name = name1;
         break;
     case 2:
         existing = &(kd->pNumpyMass);
+        name = name2;
         break;
     case 3:
         existing = &(kd->pNumpyQty);
+        name = name3;
         break;
     case 4:
         existing = &(kd->pNumpyQtySmoothed);
+        name = name4;
         break;
     default:
         PyErr_SetString(PyExc_ValueError, "Unknown array to set for KD tree");
         return NULL;
     }
 
+    int bitdepth=0;
+    if(arid<=2)
+        bitdepth=kd->nBitDepth;
+    else if(arid==3 || arid==4)
+        bitdepth=getBitDepth(arobj);
 
-    if(checkArray<double>(arobj)) return NULL;
+    if(bitdepth==32) {
+        if(checkArray<float>(arobj,name)) return NULL;
+    } else if(bitdepth==64) {
+        if(checkArray<double>(arobj,name)) return NULL;
+    } else {
+        PyErr_SetString(PyExc_ValueError, "Unsupported array dtype for kdtree");
+        return NULL;
+    }
 
     Py_XDECREF(*existing);
     (*existing) = arobj;
@@ -464,19 +514,29 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
     kd  = (KD)PyCapsule_GetPointer(smxobj, NULL);
     if(!kd) return NULL;
 
-    if(checkArray<double>(kd->pNumpySmooth)) return NULL;
+    if(kd->nBitDepth==32) {
+        if(checkArray<float>(kd->pNumpySmooth, "smooth")) return NULL;
+    } else {
+        if(checkArray<double>(kd->pNumpySmooth, "smooth")) return NULL;
+    }
+
     if(nproc<0) {
         PyErr_SetString(PyExc_ValueError, "Invalid number of processors");
         return NULL;
     }
 
-    smDomainDecomposition<double>(kd,nproc);
+    if(kd->nBitDepth==32)
+        smDomainDecomposition<float>(kd,nproc);
+    else
+        smDomainDecomposition<double>(kd,nproc);
 
     return Py_None;
 }
 
-PyObject *populate(PyObject *self, PyObject *args)
+template<typename Tf, typename Tq>
+PyObject *typed_populate(PyObject *self, PyObject *args)
 {
+
     long i,nCnt;
     long procid;
     KD kd;
@@ -499,26 +559,16 @@ PyObject *populate(PyObject *self, PyObject *args)
 
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
-  /*
-    if(n_particles>nbodies) {
-      PyErr_SetString(PyExc_ValueError, "Trying to process more particles than are in simulation?");
-      return NULL;
-    }
-    */
 
-
-
-    if (checkArray<double>(kd->pNumpySmooth)) return NULL;
+    if (checkArray<Tf>(kd->pNumpySmooth,"smooth")) return NULL;
     if(propid>PROPID_HSM) {
-      if (checkArray<double>(kd->pNumpyDen)) return NULL;
-      if (checkArray<double>(kd->pNumpyMass)) return NULL;
-      if (checkArray<double>(kd->pNumpySmooth)) return NULL;
+      if (checkArray<Tf>(kd->pNumpyDen,"rho")) return NULL;
+      if (checkArray<Tf>(kd->pNumpyMass,"mass")) return NULL;
     }
     if(propid>PROPID_RHO) {
-        if (checkArray<double>(kd->pNumpyQty)) return NULL;
-        if (checkArray<double>(kd->pNumpyQtySmoothed)) return NULL;
+        if (checkArray<Tq>(kd->pNumpyQty,"qty")) return NULL;
+        if (checkArray<Tq>(kd->pNumpyQtySmoothed,"qty_sm")) return NULL;
     }
-
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings=false;
@@ -530,19 +580,19 @@ PyObject *populate(PyObject *self, PyObject *args)
     switch(propid)
     {
         case PROPID_RHO:
-            pSmFn = &smDensity<double>;
+            pSmFn = &smDensity<Tf>;
             break;
         case PROPID_QTYMEAN_ND:
-            pSmFn = &smMeanQtyND<double,double>;
+            pSmFn = &smMeanQtyND<Tf,Tq>;
             break;
         case PROPID_QTYDISP_ND:
-            pSmFn = &smDispQtyND<double,double>;
+            pSmFn = &smDispQtyND<Tf,Tq>;
             break;
         case PROPID_QTYMEAN_1D:
-            pSmFn = &smMeanQty1D<double,double>;
+            pSmFn = &smMeanQty1D<Tf,Tq>;
             break;
         case PROPID_QTYDISP_1D:
-            pSmFn = &smDispQty1D<double,double>;
+            pSmFn = &smDispQty1D<Tf,Tq>;
             break;
     }
 
@@ -552,7 +602,7 @@ PyObject *populate(PyObject *self, PyObject *args)
           Py_BEGIN_ALLOW_THREADS
             for (i=0; i < nbodies; i++)
               {
-                nCnt = smSmoothStep<double>(smx_local, procid);
+                nCnt = smSmoothStep<Tf>(smx_local, procid);
                 if(nCnt==-1)
                   break; // nothing more to do
                 total_particles+=1;
@@ -568,14 +618,14 @@ PyObject *populate(PyObject *self, PyObject *args)
         {
             // make a copy of the position of this particle
             for(int j=0; j<3; ++j) {
-              ri[j] = GET2<double>(kd->pNumpyPos,kd->p[i].iOrder,j);
+              ri[j] = GET2<Tf>(kd->pNumpyPos,kd->p[i].iOrder,j);
             }
 
             // retrieve the existing smoothing length
-            hsm = GETSMOOTH(double,i);
+            hsm = GETSMOOTH(Tf,i);
 
             // use it to get nearest neighbours
-            nCnt = smBallGather<double>(smx_local,4*hsm*hsm,ri);
+            nCnt = smBallGather<Tf>(smx_local,4*hsm*hsm,ri);
 
             // calculate the density
             (*pSmFn)(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
@@ -587,4 +637,38 @@ PyObject *populate(PyObject *self, PyObject *args)
   }
   smFinishThreadLocalCopy(smx_local);
   return Py_None;
+}
+
+PyObject *populate(PyObject *self, PyObject *args)
+{
+    // this is really a shell function that works out what
+    // template parameters to adopt
+
+    KD kd;
+    PyObject *kdobj, *smxobj;
+    int propid, procid, nF, nQ;
+
+    PyArg_ParseTuple(args, "OOii", &kdobj, &smxobj, &propid, &procid);
+    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
+
+
+    nF = kd->nBitDepth;
+    nQ = 32;
+
+    if(kd->pNumpyQty!=NULL) {
+        nQ=getBitDepth(kd->pNumpyQty);
+    }
+
+    if(nF==64 && nQ==64)
+        return typed_populate<double,double>(self,args);
+    else if(nF==64 && nQ==32)
+        return typed_populate<double,float>(self,args);
+    else if(nF==32 && nQ==32)
+        return typed_populate<float,float>(self,args);
+    else if(nF==32 && nQ==64)
+        return typed_populate<float,double>(self,args);
+    else {
+        PyErr_SetString(PyExc_ValueError, "Unsupported array dtypes for kdtree");
+        return NULL;
+    }
 }

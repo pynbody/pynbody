@@ -209,6 +209,8 @@ class SimSnap(object):
         self.properties = simdict.SimDict({})
         self._file_units_system = []
 
+        self._default_dtype = np.float64
+
     ############################################
     # THE BASICS: SIMPLE INFORMATION
     ############################################
@@ -1010,7 +1012,7 @@ class SimSnap(object):
         elif array_name in self.family_keys():
             return self._family_arrays[array_name][self._family_arrays[array_name].keys()[0]].dtype
         else:
-            return None
+            return self._default_dtype
 
     def _create_array(self, array_name, ndim=1, dtype=None, zeros=True, derived=False, shared=None):
         """Create a single snapshot-level array of dimension len(self) x ndim, with
