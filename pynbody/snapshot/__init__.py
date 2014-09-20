@@ -209,8 +209,6 @@ class SimSnap(object):
         self.properties = simdict.SimDict({})
         self._file_units_system = []
 
-        self._default_dtype = np.float64
-
     ############################################
     # THE BASICS: SIMPLE INFORMATION
     ############################################
@@ -1012,7 +1010,7 @@ class SimSnap(object):
         elif array_name in self.family_keys():
             return self._family_arrays[array_name][self._family_arrays[array_name].keys()[0]].dtype
         else:
-            return self._default_dtype
+            return None
 
     def _create_array(self, array_name, ndim=1, dtype=None, zeros=True, derived=False, shared=None):
         """Create a single snapshot-level array of dimension len(self) x ndim, with
@@ -1434,7 +1432,8 @@ class SimSnap(object):
                                 # check if a family array already exists with a different dtype
                                 # if so, cast the result to the existing dtype
                                 # numpy version < 1.7 does not support doing this in-place
-                                if self._get_preferred_dtype(name) != result.dtype :
+                                if self._get_preferred_dtype(name) != result.dtype \
+                                   and self._get_preferred_dtype(name) is not None:
                                     if int(np.version.version.split('.')[1]) > 6 :
                                         result = result.astype(self._get_preferred_dtype(name),copy=False)
                                     else :

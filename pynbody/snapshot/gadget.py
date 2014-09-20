@@ -264,7 +264,6 @@ class GadgetFile(object):
         t_part = 0
         fd = open(filename, "rb")
         self.check_format(fd)
-        self._default_dtype = np.float64
         # If format 1, load the block definitions.
         if not self.format2:
             self.block_names = config_parser.get(
@@ -303,7 +302,6 @@ class GadgetFile(object):
                 else:
                     block.partlen = 12
                     block.data_type = np.float32
-                self._default_dtype = block.data_type
                 block.p_types = self.header.npart != 0
                 success = True
             elif name[0:4] == b"ID  ":
@@ -368,7 +366,7 @@ class GadgetFile(object):
             block.start = 0
             # In the header, mass is a double
             block.partlen = 8
-            block.data_type = self._default_type
+            block.data_type = np.float64
             self.blocks[b'MASS'] = block
 
     def get_block_types(self, block, npart):
@@ -786,9 +784,6 @@ class GadgetSnap(SimSnap):
             x, reverse=True) for x in self._loadable_keys]
         # Set up block list, with attached families, as a caching mechanism
         self._block_list = self.get_block_list()
-
-        # update default datatype
-        self._default_dtype = first_file._default_dtype
 
         self._decorate()
 

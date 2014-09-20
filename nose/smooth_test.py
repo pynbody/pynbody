@@ -69,5 +69,21 @@ def test_float_kd():
     npt.assert_allclose(f.dm['smooth'],g.dm['smooth'],rtol=1e-4)
     npt.assert_allclose(f.dm['rho'],g.dm['rho'],rtol=1e-4)
 
+    # check all combinations of float/double smoothing
+    double_ar = np.ones(len(f.dm),dtype=np.float64)
+    float_ar = np.ones(len(f.dm),dtype=np.float32)
+
+    double_double = g.dm.kdtree.sph_mean(double_ar,32)
+    double_float = g.dm.kdtree.sph_mean(float_ar,32)
+    float_double = f.dm.kdtree.sph_mean(double_ar,32)
+    float_float = f.dm.kdtree.sph_mean(float_ar,32)
+
+    # take double-double as 'gold standard' (though of course if any of these
+    # fail it could also be a problem with the double-double case)
+
+    npt.assert_allclose(double_double,double_float,rtol=1e-4)
+    npt.assert_allclose(double_double,float_double,rtol=1e-4)
+    npt.assert_allclose(double_double,float_float,rtol=1e-4)
+
 if __name__=="__main__":
     test_float_kd()

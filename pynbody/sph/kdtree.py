@@ -122,7 +122,12 @@ class KDTree(object):
     def sph_mean(self, array, nsmooth=64):
         """Calculate the SPH mean of a simulation array.
         """
-        output = ar.SimArray(np.empty_like(array),array.units)
+        output=np.empty_like(array)
+        
+        if hasattr(array,'units'):
+            output = output.view(ar.SimArray)
+            output.units=array.units
+
         self.set_array_ref('qty', array)
         self.set_array_ref('qty_sm', output)
 
@@ -136,7 +141,11 @@ class KDTree(object):
         return output
 
     def sph_dispersion(self, array, nsmooth=64):
-        output = ar.SimArray(np.empty(len(array),dtype=array.dtype),array.units)
+        output=np.empty_like(array)
+        if hasattr(array,'units'):
+            output = output.view(ar.SimArray)
+            output.units=array.units
+
         self.set_array_ref('qty', array)
         self.set_array_ref('qty_sm', output)
 
