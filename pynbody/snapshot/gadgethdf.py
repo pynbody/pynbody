@@ -187,7 +187,7 @@ class GadgetHDFSnap(SimSnap):
         """Return the HDF dataset resolving /'s into nested groups, and returning
         an apparent Mass array even if the mass is actually stored in the header"""
 
-        if hdf_name == "Mass":
+        if _translate_array_name(hdf_name,reverse=True)=='mass':
             try:
                 pgid = int(particle_group.name[-1])
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
