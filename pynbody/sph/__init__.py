@@ -317,7 +317,14 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         kwargs['__threaded'] = True  # will pass into render_image
 
         ts = []
-        outputs = []
+
+        # isolate each output in its own list so we can
+        # sum them in a predictable order. This prevents
+        # FP-accuracy introducing random noise at each
+        # rendering, but of course doesn't really fix the
+        # underlying issue that FP errors can build to percent
+        # level errors
+        outputs = [[] for i in range(num_threads)]
 
         if verbose:
             logger.info("Rendering image on %d threads..." % num_threads)
@@ -325,7 +332,7 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         for i in xrange(num_threads):
             kwargs_local = copy.copy(kwargs)
             kwargs_local['snap_slice'] = slice(i, None, num_threads)
-            args_local = [outputs, s] + list(args)
+            args_local = [outputs[i], s] + list(args)
             ts.append(threading.Thread(
                 target=_render_image_bridge(fn), args=args_local, kwargs=kwargs_local))
             ts[-1].start()
@@ -333,7 +340,8 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         for t in ts:
             t.join()
 
-    return sum(outputs)
+    # Each output is a 1-element list with a numpy array. Sum them.
+    return sum([o[0] for o in outputs])
 
 
 def _interpolated_renderer(fn, levels):
