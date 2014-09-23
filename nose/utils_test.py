@@ -135,3 +135,12 @@ def test_openmp_summations():
 
     npt.assert_allclose(pynbody.util.sum_if_lt(a,b,0.2),np.dot(a,b<0.2))
     npt.assert_allclose(pynbody.util.sum(a),np.sum(a))
+
+
+def test_invert():
+    # regression test for failure to invert some matrices
+
+    M = [[1,3,0,0,0],[3,14,-1,0,0],[0,-1,1,0,0],[0,0,0,1,0],[0,0,0,0,1]]
+    Minv = pynbody.util.rational_matrix_inv(M)
+
+    assert (np.dot(Minv,M)==np.diag([1]*5)).all()
