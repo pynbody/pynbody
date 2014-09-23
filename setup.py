@@ -82,6 +82,7 @@ try :
     # check that cython version is > 0.20
     cython_version = cython.__version__
     if float(cython_version.partition(".")[2][:2]) < 20 :
+	print "yikes! error importing correct cython", float(cython_version.partition(".")[2][:2])
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
