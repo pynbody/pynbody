@@ -235,3 +235,6 @@ def test_immediate_mode():
 def test_subsnap_by_boolean_mask():
     print((f['x'] > 0).shape, len(f))
     assert (f['x'][f['x'] > 0] == f[f['x'] > 0]['x']).all()
+
+def test_issue_206() :
+    assert len(f.s[[1,4,29]].s)==3
