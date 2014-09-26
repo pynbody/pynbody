@@ -32,12 +32,12 @@ typedef struct smContext {
 	int nListSize;
 	float *fList;
 	int *pList;
+	int nCurrent; // current particle index for distributed loops
+
 #ifdef KDT_THREADING
 	pthread_mutex_t *pMutex;
 
-	int nCurrent; // current particle index for distributed loops
 	int nLocals; // number of local copies if this is a global smooth context
-
 	int nReady; // number of local copies that are "ready" for the next stage
 	pthread_cond_t *pReady; // synchronizing condition
 
