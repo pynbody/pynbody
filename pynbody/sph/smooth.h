@@ -152,8 +152,9 @@ void smVelDispNBSym(SMX,int,int,int *,float *);
 template<typename T>
 void smDomainDecomposition(KD kd, int nprocs);
 
-#ifdef KDT_THREADING
 int smGetNext(SMX smx_local);
+
+#ifdef KDT_THREADING
 void smReset(SMX smx_local);
 SMX smInitThreadLocalCopy(SMX smx_global);
 void smFinishThreadLocalCopy(SMX smx_local);

@@ -164,7 +164,14 @@ int smGetNext(SMX smx_local) {
 	return i;
 }
 
+#else
+
+int smGetNext(SMX smx_local) {
+	return (smx_local->nCurrent++);
+}
+
 #endif
+
 
 void smFinish(SMX smx)
 {
