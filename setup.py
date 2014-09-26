@@ -28,6 +28,45 @@ class sdist(_sdist):
 
 cmdclass = {'sdist':sdist}
 
+def check_for_pthread():
+    # Create a temporary directory
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    # Get compiler invocation
+    compiler = os.environ.get('CC',
+                              distutils.sysconfig.get_config_var('CC'))
+
+    # make sure to use just the compiler name without flags
+    compiler = compiler.split()[0]
+
+    # Attempt to compile a test script.
+    # See http://openmp.org/wp/openmp-compilers/
+    filename = r'test.c'
+    with open(filename,'w') as f :
+        f.write(
+        "#include <pthread.h>\n"
+        "#include <stdio.h>\n"
+        "int main() {\n"
+        "}"
+        )
+
+    try:
+        with open(os.devnull, 'w') as fnull:
+            exit_code = subprocess.call([compiler, filename],
+                                        stdout=fnull, stderr=fnull)
+    except OSError :
+        exit_code = 1
+
+
+    # Clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+    return (exit_code==0)
+
+
 
 def check_for_openmp():
     """Check  whether the default compiler supports OpenMP.
@@ -124,6 +163,7 @@ except AttributeError:
     cmdclass['build_py'] =  distutils.command.build_py.build_py
 
 have_openmp = check_for_openmp()
+have_pthread = check_for_pthread()
 
 if have_openmp :
     openmp_module_source = "openmp/openmp_real"
@@ -140,8 +180,11 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g',
-                      '-DKDT_THREADING']
+                      '-g']
+
+if have_pthread:
+    extra_compile_args.append('-DKDT_THREADING')
+
 
 extra_link_args = []
 

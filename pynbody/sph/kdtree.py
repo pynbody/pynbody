@@ -13,6 +13,7 @@ import numpy as np
 import time
 import logging
 import weakref
+import warnings
 
 logger = logging.getLogger('pynbody.sph.kdtree')
 
@@ -102,6 +103,10 @@ class KDTree(object):
 
         n_proc=config['number_of_threads']
 
+        if kdmain.has_threading() is False and n_proc>1:
+            n_proc=1
+            warnings.warn("Pynbody is configured to use threading for the KDTree, but pthread support was not available during compilation. Reverting to single thread.", RuntimeWarning)
+
         if nn is None:
             nn = 64
 
@@ -123,7 +128,7 @@ class KDTree(object):
         """Calculate the SPH mean of a simulation array.
         """
         output=np.empty_like(array)
-        
+
         if hasattr(array,'units'):
             output = output.view(ar.SimArray)
             output.units=array.units

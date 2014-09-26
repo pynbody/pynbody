@@ -54,6 +54,7 @@ PyObject *populate(PyObject *self, PyObject *args);
 PyObject *domain_decomposition(PyObject *self, PyObject *args);
 PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
+PyObject *has_threading(PyObject *self, PyObject *args);
 
 template<typename T>
 int checkArray(PyObject *check, const char *name);
@@ -85,6 +86,8 @@ static PyMethodDef kdmain_methods[] =
 
     {"populate",  populate,  METH_VARARGS, "populate"},
 
+    {"has_threading",  has_threading,  METH_VARARGS, "populate"},
+
     {NULL, NULL, 0, NULL}
 };
 
@@ -111,6 +114,16 @@ initkdmain(void)
     (void)Py_InitModule("kdmain", kdmain_methods);
   #endif
 }
+
+PyObject *has_threading(PyObject *self, PyObject *args)
+{
+#ifdef KDT_THREADING
+    return Py_True;
+#else
+    return Py_False;
+#endif
+}
+
 
 /*==========================================================================*/
 /* kdinit                                                                   */
