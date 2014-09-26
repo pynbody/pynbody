@@ -559,10 +559,14 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
         if (checkArray<Tq>(kd->pNumpyQtySmoothed,"qty_sm")) return NULL;
     }
 
+#ifdef KDT_THREADING
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings=false;
-    smx_global->warnings=false;
     smx_local->pi = 0;
+#else
+    smx_global = smx_local;
+    smx_global->warnings=false;
+#endif
 
     int total_particles=0;
 
@@ -631,11 +635,15 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
 
 
   if(smx_local->warnings) {
+#ifdef KDT_THREADING
     smFinishThreadLocalCopy(smx_local);
+#endif
     PyErr_SetString(PyExc_RuntimeError,"Buffer overflow in smoothing operation. This probably means that your smoothing lengths are too large compared to the number of neighbours you specified.");
     return NULL;
   } else {
+#ifdef KDT_THREADING
     smFinishThreadLocalCopy(smx_local);
+#endif
     return Py_None;
   }
 
