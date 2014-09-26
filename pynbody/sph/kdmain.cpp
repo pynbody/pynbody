@@ -572,6 +572,7 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings=false;
+    smx_global->warnings=false;
     smx_local->pi = 0;
 
     int total_particles=0;
