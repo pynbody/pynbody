@@ -10,20 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <assert.h>
-
-#include <time.h>
-#include <unistd.h>
-#include <sys/times.h>
-#include <signal.h>
-
-#include <sched.h>
-#include <errno.h>
 
 #include "kd.h"
 #include "smooth.h"
-
-#include <typeinfo>
 
 /*==========================================================================*/
 /* Debugging tools                                                          */
