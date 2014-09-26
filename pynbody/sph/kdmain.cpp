@@ -632,11 +632,23 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
 
             // select next particle in coordination with other threads
             i=smGetNext(smx_local);
+
+            if(smx_global->warnings)
+                break;
         }
       Py_END_ALLOW_THREADS
   }
-  smFinishThreadLocalCopy(smx_local);
-  return Py_None;
+
+
+  if(smx_local->warnings) {
+    smFinishThreadLocalCopy(smx_local);
+    PyErr_SetString(PyExc_RuntimeError,"Buffer overflow in smoothing operation. This probably means that your smoothing lengths are too large compared to the number of neighbours you specified.");
+    return NULL;
+  } else {
+    smFinishThreadLocalCopy(smx_local);
+    return Py_None;
+  }
+
 }
 
 PyObject *populate(PyObject *self, PyObject *args)

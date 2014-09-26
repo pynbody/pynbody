@@ -42,11 +42,18 @@ def _get_threaded_image():
 _threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 
+def _exception_catcher(call_fn, exception_list, *args):
+    try:
+        call_fn(*args)
+    except Exception, e:
+        exception_list.append(sys.exc_info())
 
 def _thread_map(func, *args):
     threads = []
+    exceptions = []
     for arg_this in zip(*args):
-        threads.append(threading.Thread(target=func, args=arg_this))
+        arg_ec_this = [func,exceptions]+list(arg_this)
+        threads.append(threading.Thread(target=_exception_catcher, args=arg_ec_this))
         threads[-1].start()
     for t in threads:
         while t.is_alive():
@@ -54,6 +61,10 @@ def _thread_map(func, *args):
             # debug deadlocks!
             t.join(1.0)
 
+    if len(exceptions)>0:
+        # Here we re-raise the exception that was actually generated in a thread
+        t,obj,trace= exceptions[0]
+        raise t,obj,trace
 
 def build_tree(sim):
     if hasattr(sim, 'kdtree') is False:

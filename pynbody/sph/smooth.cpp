@@ -139,6 +139,11 @@ void smReset(SMX smx_local) {
 #define WORKUNIT 1000
 
 int smGetNext(SMX smx_local) {
+
+	// synchronize warning state
+	if(smx_local->warnings)
+		smx_local->smx_global->warnings=true;
+
 	int i = smx_local->nCurrent;
 
 	if(smx_local->nCurrent%WORKUNIT==0) {
@@ -546,7 +551,7 @@ int smSmoothStep(SMX smx, int procid)
 		if(nCnt>=smx->nListSize) {
 			// no room left
 			if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
-			smx->warnings = false;
+			smx->warnings = true;
 			break;
 		}
 
