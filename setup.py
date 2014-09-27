@@ -255,9 +255,9 @@ if not build_cython :
         for src in mod.sources:
             if not os.path.isfile(src):
                 print ("""
-You are attempting to install pynbody without cython. Unfortunately
-this package does not include the generated .c files that are required
-to do so.
+You are attempting to install pynbody without a recent version of cython.
+Unfortunately this pynbody package does not include the generated .c files that
+are required to do so.
 
 You have two options. Either:
 
