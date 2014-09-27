@@ -578,8 +578,9 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
     smx_local->pi = 0;
 #else
     smx_global = smx_local;
-    smx_global->warnings=false;
 #endif
+
+    smx_global->warnings=false;
 
     int total_particles=0;
 
