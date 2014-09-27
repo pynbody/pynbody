@@ -101,7 +101,7 @@ def load_hop(s, hop=hop_script_path):
         dir = s.filename[:-12] if len(s.filename[:-12]) else './'
 
         os.system(
-            'cd %s;/home/itp/roskar/ramses/galaxy_formation/script_hop.sh %d;cd ..' % (dir, int(name)))
+            'cd %s;%s %d;cd ..' % (dir, hop_script_path, int(name)))
         data = np.genfromtxt(filename, unpack=True)
 
     return data
