@@ -80,7 +80,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
@@ -519,7 +518,16 @@
         <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">y</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="n">maxrow</span><span class="p">])</span> <span class="o">=</span> <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">maxrow</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
 
         <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">y</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">,</span> <span class="s">&quot;Singular matrix&quot;</span>
+            <span class="c"># this will be a problem, see if we can do a row</span>
+            <span class="c"># operation to fix it</span>
+            <span class="k">for</span> <span class="n">y2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">y</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">h</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="n">y2</span><span class="p">][</span><span class="n">y</span><span class="p">]</span><span class="o">!=</span><span class="mi">0</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">+=</span><span class="n">out</span><span class="p">[</span><span class="n">y2</span><span class="p">]</span>
+                    <span class="k">break</span>
+
+            <span class="c"># no, out of options, must be a singular matrix</span>
+            <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">y</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">,</span> <span class="s">&quot;Singular matrix&quot;</span>
 
         <span class="k">for</span> <span class="n">y2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>    <span class="c"># Eliminate column y</span>
             <span class="n">c</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">y2</span><span class="p">][</span><span class="n">y</span><span class="p">]</span> <span class="o">/</span> <span class="n">out</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">y</span><span class="p">]</span>

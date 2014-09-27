@@ -30,7 +30,7 @@
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
-    <link rel="next" title="Pynbody reference documentation" href="../reference/index.html" />
+    <link rel="next" title="Use of multiple processors by pynbody" href="threads.html" />
     <link rel="prev" title="Performance optimisation in pynbody" href="performance.html" />
 
 <meta charset='utf-8'>
@@ -82,7 +82,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
@@ -113,7 +112,7 @@
     </a>
   </li>
   <li>
-    <a href="../reference/index.html" title="Next Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pynbody referenc... &raquo;</span>
+    <a href="threads.html" title="Next Chapter: Use of multiple processors by pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Use of multiple ... &raquo;</span>
     </a>
   </li>
               
@@ -162,13 +161,14 @@ mutlithreading, default base units etc.</p>
 <tt class="docutils literal"><span class="pre">default_config.ini</span></tt> can be found there. Most of the options are
 explained in the file itself, and in order to use a different default,
 you simply override the option in <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt>. For example, if I
-want to change how many threads <cite>pynbody</cite> should use, I would put in
+want to reduce the number of CPU cores that <cite>pynbody</cite>  uses, I would put in
 <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt>:</p>
 <div class="highlight-python"><div class="highlight"><pre>[general]
 
-number_of_threads: 10
+number_of_threads: 2
 </pre></div>
 </div>
+<p>For more information on threading, see <em class="xref std std-ref">threading</em>.</p>
 <p>Some options can also be changed at runtime. You can check which ones
 with</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span>
@@ -189,7 +189,7 @@ with</p>
 <span class="go">  pynbody.halo.RockstarCatalogue,</span>
 <span class="go">  pynbody.halo.AHFCatalogue,</span>
 <span class="go">  pynbody.halo.SubfindCatalogue],</span>
-<span class="go"> &#39;number_of_threads&#39;: 4,</span>
+<span class="go"> &#39;number_of_threads&#39;: 8,</span>
 <span class="go"> &#39;snap-class-priority&#39;: [pynbody.snapshot.ramses.RamsesSnap,</span>
 <span class="go">  pynbody.snapshot.grafic.GrafICSnap,</span>
 <span class="go">  pynbody.snapshot.nchilada.NchiladaSnap,</span>
@@ -197,7 +197,7 @@ with</p>
 <span class="go">  pynbody.snapshot.gadgethdf.GadgetHDFSnap,</span>
 <span class="go">  pynbody.snapshot.tipsy.TipsySnap],</span>
 <span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 32, &#39;tree-leafsize&#39;: 16},</span>
-<span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
+<span class="go"> &#39;threading&#39;: &#39;True&#39;,</span>
 <span class="go"> &#39;verbose&#39;: False}</span>
 </pre></div>
 </div>

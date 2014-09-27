@@ -79,7 +79,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
@@ -449,7 +448,7 @@ a final C code to perform the rendering is derived.</p>
 <p>For most users, the function of interest will be <a class="reference internal" href="reference/convenience.html#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
 <dl class="function">
 <dt id="pynbody.sph.render_spherical_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10b3c1310&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em>, <em>threaded=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10995b690&gt;</em>, <em>kstep=0.5</em>, <em>denoise=False</em>, <em>out_units=None</em>, <em>threaded=None</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image on a spherical surface. Requires healpy libraries.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>qty</em> (&#8216;rho&#8217;): The name of the simulation array to render</p>
@@ -473,7 +472,7 @@ rendering is slower than single-threaded because healpy does not release the gil
 
 <dl class="function">
 <dt id="pynbody.sph.render_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x1099b1810&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x1099ab810&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
@@ -523,7 +522,7 @@ configuration files).</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.to_3d_grid">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x1099b1850&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x1099ab850&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=False</em><big>)</big><a class="reference internal" href="_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>

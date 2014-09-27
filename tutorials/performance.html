@@ -82,7 +82,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
@@ -157,7 +156,11 @@
 <p><cite>Pynbody</cite> is built on top of <cite>numpy</cite>, which means that learning how to optimize <cite>numpy</cite>
 array manipulations is the most important route to writing efficient code; see <a class="reference external" href="http://scipy-lectures.github.com/advanced/optimizing/index.html">http://scipy-lectures.github.com/advanced/optimizing/index.html</a>
 for an introduction.</p>
-<p>However there are a few issues which are specific to <cite>pynbody</cite>. By far the most important of these
+<p>However there are a few issues which are specific to <cite>pynbody</cite>. First, a large
+number of <cite>pynbody</cite>&#8216;s most common operations are parallelized: make sure you
+have set up these routines to behave in a way that matches your needs by reading
+the page on <a class="reference internal" href="threads.html#threads"><em>Use of multiple processors by pynbody</em></a>.</p>
+<p>Other than that, there are some more subtle issues. The most important of these
 that we have come across is the overheads incurred by using <a href="#id1"><span class="problematic" id="id2">`</span></a>SubSnap`s
 which are explained
 below.</p>
@@ -262,12 +265,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">d</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 296 ms, sys: 7.28 ms, total: 303 ms</span>
-<span class="go">Wall time: 298 ms</span>
+<span class="go">CPU times: user 309 ms, sys: 9.25 ms, total: 318 ms</span>
+<span class="go">Wall time: 311 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="n">time</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span> <span class="p">:</span> <span class="n">a</span><span class="o">+=</span><span class="mi">1</span>
-<span class="go">CPU times: user 39.3 ms, sys: 23.4 ms, total: 62.7 ms</span>
-<span class="go">Wall time: 45.4 ms</span>
+<span class="go">CPU times: user 34.7 ms, sys: 8.61 ms, total: 43.3 ms</span>
+<span class="go">Wall time: 36.8 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!

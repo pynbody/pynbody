@@ -80,7 +80,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
@@ -1400,7 +1399,7 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_index_cached</span>
 
         <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int8&#39;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">families</span><span class="p">()):</span>
             <span class="n">ind</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span> <span class="o">=</span> <span class="n">i</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_family_index_cached</span> <span class="o">=</span> <span class="n">ind</span>
@@ -1558,16 +1557,18 @@
                                 <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span>
                                 <span class="n">ndim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
                                     <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span>
-                                
+
                                 <span class="c"># check if a family array already exists with a different dtype</span>
                                 <span class="c"># if so, cast the result to the existing dtype</span>
                                 <span class="c"># numpy version &lt; 1.7 does not support doing this in-place</span>
-                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> <span class="p">:</span> 
+
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> \
+                                   <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
                                     <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="p">:</span>
-                                        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>                                    
-                                    <span class="k">else</span> <span class="p">:</span> 
+                                        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+                                    <span class="k">else</span> <span class="p">:</span>
                                         <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-                                    
+
                                 <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span>
                                     <span class="n">name</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">__stable__</span><span class="p">)</span>
                                 <span class="n">write_array</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
@@ -1600,8 +1601,13 @@
         <span class="sd">&quot;&quot;&quot;Declare a given array as changed, so deleting any derived</span>
 <span class="sd">        quantities which depend on it&quot;&quot;&quot;</span>
 
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_name_1D_to_ND</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="n">name</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">==</span><span class="s">&#39;pos&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">_persistent_objects</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+                <span class="k">if</span> <span class="s">&#39;kdtree&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">v</span><span class="p">[</span><span class="s">&#39;kdtree&#39;</span><span class="p">]</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_propagate_off</span><span class="p">:</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_name_1D_to_ND</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="n">name</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dependency_chain</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">d_ar</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dependency_chain</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
                     <span class="k">if</span> <span class="n">d_ar</span> <span class="ow">in</span> <span class="bp">self</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_family_key</span><span class="p">(</span><span class="n">d_ar</span><span class="p">):</span>

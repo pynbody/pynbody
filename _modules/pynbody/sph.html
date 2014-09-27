@@ -80,7 +80,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
@@ -165,22 +164,26 @@
 <span class="kn">import</span> <span class="nn">os</span>
 
 
-<span class="k">def</span> <span class="nf">_get_threaded_smooth</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s">&#39;sph&#39;</span><span class="p">,</span> <span class="s">&#39;threaded-smooth&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span>
 
 
 <span class="k">def</span> <span class="nf">_get_threaded_image</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s">&#39;sph&#39;</span><span class="p">,</span> <span class="s">&#39;threaded-image&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span>
 
-<span class="n">_threaded_smooth</span> <span class="o">=</span> <span class="n">_get_threaded_smooth</span><span class="p">()</span>
 <span class="n">_threaded_image</span> <span class="o">=</span> <span class="n">_get_threaded_image</span><span class="p">()</span>
 <span class="n">_approximate_image</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s">&#39;sph&#39;</span><span class="p">,</span> <span class="s">&#39;approximate-fast-images&#39;</span><span class="p">)</span>
 
+<span class="k">def</span> <span class="nf">_exception_catcher</span><span class="p">(</span><span class="n">call_fn</span><span class="p">,</span> <span class="n">exception_list</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">call_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">exception_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">())</span>
 
 <span class="k">def</span> <span class="nf">_thread_map</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">exceptions</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">arg_this</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">arg_this</span><span class="p">))</span>
+        <span class="n">arg_ec_this</span> <span class="o">=</span> <span class="p">[</span><span class="n">func</span><span class="p">,</span><span class="n">exceptions</span><span class="p">]</span><span class="o">+</span><span class="nb">list</span><span class="p">(</span><span class="n">arg_this</span><span class="p">)</span>
+        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_exception_catcher</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">arg_ec_this</span><span class="p">))</span>
         <span class="n">threads</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
         <span class="k">while</span> <span class="n">t</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
@@ -188,16 +191,18 @@
             <span class="c"># debug deadlocks!</span>
             <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exceptions</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="c"># Here we re-raise the exception that was actually generated in a thread</span>
+        <span class="n">t</span><span class="p">,</span><span class="n">obj</span><span class="p">,</span><span class="n">trace</span><span class="o">=</span> <span class="n">exceptions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">raise</span> <span class="n">t</span><span class="p">,</span><span class="n">obj</span><span class="p">,</span><span class="n">trace</span>
 
 <span class="k">def</span> <span class="nf">build_tree</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s">&#39;kdtree&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
         <span class="c"># n.b. getting the following arrays through the full framework is</span>
         <span class="c"># not possible because it can cause a deadlock if the build_tree</span>
         <span class="c"># has been triggered by getting an array in the calling thread.</span>
-        <span class="n">pos</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">mass</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span>
-            <span class="n">sim</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="s">&#39;vel&#39;</span><span class="p">,</span> <span class="s">&#39;mass&#39;</span><span class="p">]</span>
-        <span class="n">sim</span><span class="o">.</span><span class="n">kdtree</span> <span class="o">=</span> <span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="p">(</span>
-            <span class="n">pos</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">leafsize</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">])</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">kdtree</span> <span class="o">=</span> <span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">],</span>
+                        <span class="n">leafsize</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">])</span>
 
 
 <span class="k">def</span> <span class="nf">_tree_decomposition</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
@@ -209,35 +214,16 @@
 
 
 <span class="k">def</span> <span class="nf">build_tree_or_trees</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
-    <span class="k">global</span> <span class="n">_threaded_smooth</span>
-    <span class="n">_threaded_smooth</span> <span class="o">=</span> <span class="n">_get_threaded_smooth</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">_threaded_smooth</span><span class="p">:</span>
-        <span class="n">bits</span> <span class="o">=</span> <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">hasattr</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;kdtree&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">bits</span><span class="p">))):</span>
-            <span class="k">return</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s">&#39;kdtree&#39;</span><span class="p">):</span>
-            <span class="k">return</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s">&#39;kdtree&#39;</span><span class="p">):</span>
+        <span class="k">return</span>
 
-    <span class="k">if</span> <span class="n">_threaded_smooth</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Building </span><span class="si">%d</span><span class="s"> trees with leafsize=</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span>
-                    <span class="p">(</span><span class="n">_threaded_smooth</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">]))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Building tree with leafsize=</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span>
-                    <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">])</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Building tree with leafsize=</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">])</span>
 
     <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">_threaded_smooth</span><span class="p">:</span>
-        <span class="c"># trigger any necessary &#39;lazy&#39; activity from this thread,</span>
-        <span class="c"># it won&#39;t be available to the individual worker threads</span>
-        <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>
-        <span class="n">_thread_map</span><span class="p">(</span><span class="n">build_tree</span><span class="p">,</span> <span class="n">bits</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">build_tree</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
-
+    <span class="n">build_tree</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
     <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
+
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Tree build done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
 
 
@@ -248,25 +234,15 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Smoothing with </span><span class="si">%d</span><span class="s"> nearest neighbours&#39;</span> <span class="o">%</span>
                 <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">])</span>
 
-    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">])),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">])),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
+                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
 
     <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-
-    <span class="n">_threaded_smooth</span> <span class="o">=</span> <span class="n">_get_threaded_smooth</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">_threaded_smooth</span><span class="p">:</span>
-        <span class="n">_thread_map</span><span class="p">(</span><span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="o">.</span><span class="n">populate</span><span class="p">,</span>
-                    <span class="n">_get_tree_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
-                    <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">sm</span><span class="p">),</span>
-                    <span class="p">[</span><span class="s">&#39;hsm&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">_threaded_smooth</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="n">_threaded_smooth</span><span class="p">)</span>
-
-        <span class="n">sm</span> <span class="o">/=</span> <span class="n">_threaded_smooth</span> <span class="o">**</span> <span class="mf">0.3333</span>
-
-    <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="s">&#39;hsm&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">])</span>
-
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="n">sm</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="s">&#39;hsm&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">])</span>
     <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Smoothing done in </span><span class="si">%5.3g</span><span class="s">s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">sm</span>
@@ -276,27 +252,19 @@
 <span class="k">def</span> <span class="nf">rho</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">build_tree_or_trees</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="n">smooth</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Calculating SPH density&#39;</span><span class="p">)</span>
     <span class="n">rho</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">])),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">])),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
-    <span class="n">_threaded_smooth</span> <span class="o">=</span> <span class="n">_get_threaded_smooth</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="n">rho</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">_threaded_smooth</span><span class="p">:</span>
-        <span class="n">_thread_map</span><span class="p">(</span><span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="o">.</span><span class="n">populate</span><span class="p">,</span>
-                    <span class="n">_get_tree_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
-                    <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">rho</span><span class="p">),</span>
-                    <span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">_threaded_smooth</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="n">_threaded_smooth</span><span class="p">,</span>
-                    <span class="n">_tree_decomposition</span><span class="p">(</span><span class="n">smooth</span><span class="p">))</span>
-        <span class="n">rho</span> <span class="o">*=</span> <span class="n">_threaded_smooth</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span>
-            <span class="n">rho</span><span class="p">,</span> <span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">],</span> <span class="n">smooth</span><span class="o">=</span><span class="n">smooth</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">])</span>
 
     <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Density calculation done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
@@ -490,7 +458,14 @@
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;__threaded&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>  <span class="c"># will pass into render_image</span>
 
         <span class="n">ts</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c"># isolate each output in its own list so we can</span>
+        <span class="c"># sum them in a predictable order. This prevents</span>
+        <span class="c"># FP-accuracy introducing random noise at each</span>
+        <span class="c"># rendering, but of course doesn&#39;t really fix the</span>
+        <span class="c"># underlying issue that FP errors can build to percent</span>
+        <span class="c"># level errors</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_threads</span><span class="p">)]</span>
 
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Rendering image on </span><span class="si">%d</span><span class="s"> threads...&quot;</span> <span class="o">%</span> <span class="n">num_threads</span><span class="p">)</span>
@@ -498,7 +473,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">num_threads</span><span class="p">):</span>
             <span class="n">kwargs_local</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="n">kwargs_local</span><span class="p">[</span><span class="s">&#39;snap_slice&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">num_threads</span><span class="p">)</span>
-            <span class="n">args_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">outputs</span><span class="p">,</span> <span class="n">s</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">args_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">outputs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">s</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
             <span class="n">ts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">_render_image_bridge</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="n">args</span><span class="o">=</span><span class="n">args_local</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs_local</span><span class="p">))</span>
             <span class="n">ts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -506,7 +481,8 @@
         <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">:</span>
             <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
 
-    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+    <span class="c"># Each output is a 1-element list with a numpy array. Sum them.</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span><span class="n">o</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">])</span>
 
 
 <span class="k">def</span> <span class="nf">_interpolated_renderer</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">levels</span><span class="p">):</span>
@@ -633,11 +609,11 @@
 
     <span class="k">if</span> <span class="n">denoise</span><span class="p">:</span>
         <span class="c"># call self to render a &#39;flat field&#39;</span>
-        <span class="n">snap</span><span class="p">[</span><span class="s">&#39;__one&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">im2</span> <span class="o">=</span> <span class="n">render_image</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="s">&#39;__one&#39;</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z_plane</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span>
+        <span class="n">snap</span><span class="p">[</span><span class="s">&#39;__denoise_one&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">im2</span> <span class="o">=</span> <span class="n">render_image</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="s">&#39;__denoise_one&#39;</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z_plane</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span>
                            <span class="n">xy_units</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">z_camera</span><span class="p">,</span> <span class="n">smooth</span><span class="p">,</span> <span class="n">smooth_in_pixels</span><span class="p">,</span>
                            <span class="n">force_quiet</span><span class="p">,</span> <span class="n">approximate_fast</span><span class="p">,</span> <span class="n">threaded</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
-        <span class="k">del</span> <span class="n">snap</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="s">&#39;__one&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">snap</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="s">&#39;__denoise_one&#39;</span><span class="p">]</span>
         <span class="n">im2</span> <span class="o">=</span> <span class="n">im</span> <span class="o">/</span> <span class="n">im2</span>
         <span class="n">im2</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">units</span>
         <span class="k">return</span> <span class="n">im2</span>

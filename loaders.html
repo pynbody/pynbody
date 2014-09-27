@@ -79,7 +79,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
@@ -241,25 +240,12 @@ particles at refinement level 10 or (numerically) lower.</td></tr>
 <table class="docutils footnote" frame="void" id="id11" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id6">[4]</a></td><td><p class="first">Ramses loading is enormously speeded up if you enable the
+<tr><td class="label"><a class="fn-backref" href="#id6">[4]</a></td><td>Ramses loading is enormously speeded up if you enable the
 parallel loading facility, which splits the task of loading the
 multiple files and decoding the awkward format across multiple
 processes. To do this, you need to install the <a class="reference external" href="http://semanchuk.com/philip/posix_ipc/">posix_ipc</a> module which should be
 as simple as typing <tt class="docutils literal"><span class="pre">easy_install</span> <span class="pre">posix_ipc</span></tt> into your
-shell. Then, update your configuration; for instance, create a
-<tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> file in your home directory with the following
-section:</p>
-<div class="highlight-none"><div class="highlight"><pre>[ramses]
-parallel-read: 4
-</pre></div>
-</div>
-<p>This specifies 4 processes. You can experiment with this number to
-see what works best on your system, which depends on a combination
-of CPU and IO performance.</p>
-<p class="last">Note that many systems limit the amount of shared memory available,
-which can cause problems once you enable parallel-reading. See
-<a class="reference internal" href="pitfalls.html#pitfall-ramses-sharedmem"><em>our separate note on this issue</em></a>.</p>
-</td></tr>
+shell. See also important notes on <a class="reference internal" href="tutorials/threads.html#posix-ipc"><em>Parallel ramses reader support</em></a>.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id12" rules="none">

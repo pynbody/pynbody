@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Use of multiple processors by pynbody &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="next" title="Pynbody reference documentation" href="../reference/index.html" />
+    <link rel="prev" title="Configuring pynbody" href="configuration.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Use of multiple processors by pynbody</a><ul>
+<li><a class="reference internal" href="#limiting-the-number-of-cpus-used-by-pynbody">Limiting the number of CPUs used by pynbody</a></li>
+<li><a class="reference internal" href="#checking-and-fixing-openmp-support">Checking and fixing OpenMP support</a></li>
+<li><a class="reference internal" href="#parallel-ramses-reader-support">Parallel ramses reader support</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="configuration.html" title="Previous Chapter: Configuring pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Configuring pynb...</span>
+    </a>
+  </li>
+  <li>
+    <a href="../reference/index.html" title="Next Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pynbody referenc... &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <div class="section" id="use-of-multiple-processors-by-pynbody">
+<span id="threads"></span><h1>Use of multiple processors by pynbody<a class="headerlink" href="#use-of-multiple-processors-by-pynbody" title="Permalink to this headline">¶</a></h1>
+<p>A large amount of the code in pynbody is designed to run on multiple processors
+on a single shared-memory machine. There are three distinct ways in which
+parallelization works in pynbody.</p>
+<ol class="arabic simple">
+<li><em>Native threading</em>, using the <cite>python</cite> module <tt class="docutils literal"><span class="pre">threading</span></tt>, or in C code,
+the POSIX standard <tt class="docutils literal"><span class="pre">pthread</span></tt> library. On any modern Mac and Linux machine,
+this &#8220;just works&#8221;. This is mainly used in the SPH module where we have
+gone to some lengths to create algorithms that scale well to moderately
+large numbers of cores (16 certainly, often 32) that you&#8217;d fine on a
+typical analysis workstation.</li>
+<li><em>OpenMP threading</em>. This is used by a large number of parts of the library,
+for example some of the halo analysis code, where simple, inexpensive
+parallelization is possible. If you have an OpenMP compiler this will also
+&#8220;just work&#8221;. However, you might not do - <a class="reference internal" href="#openmp-fix"><em>see below</em></a>.</li>
+<li><em>Process threading</em>. This is currently used only by the ramses loader to
+get around problems with the python GIL. It requires shared memory support,
+for which you need the <a class="reference internal" href="#posix-ipc"><em>the appropriate python module</em></a>.</li>
+</ol>
+<p>In cases (2) and (3), you may have to do some work to get everything working.
+For (1), it should just work out the box.</p>
+<div class="section" id="limiting-the-number-of-cpus-used-by-pynbody">
+<h2>Limiting the number of CPUs used by pynbody<a class="headerlink" href="#limiting-the-number-of-cpus-used-by-pynbody" title="Permalink to this headline">¶</a></h2>
+<p>In most cases, one just wants the code to be as responsive as possible and
+so by default pynbody uses all CPUs on your machine.  However, sometimes this
+is not so desirable - perhaps you need to leave resources for other users,
+or for other processes you are running.</p>
+<p>Therefore you can limit the number of processors used by pynbody, either
+during a session or permanently. During a python session, you can type</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">2</span>
+</pre></div>
+</div>
+<p>which, as an example, limits the number of CPUs in use to 2. To make the
+change permanent, create a <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> file in your home directory
+with the following section:</p>
+<div class="highlight-none"><div class="highlight"><pre>[general]
+number-of-threads: 2
+</pre></div>
+</div>
+<p>More information on the pynbody configuration system is
+<a class="reference internal" href="configuration.html#configuration"><em>available here</em></a>.</p>
+</div>
+<div class="section" id="checking-and-fixing-openmp-support">
+<span id="openmp-fix"></span><h2>Checking and fixing OpenMP support<a class="headerlink" href="#checking-and-fixing-openmp-support" title="Permalink to this headline">¶</a></h2>
+<p>If pynbody is installed on a machine without OpenMP support, it&#8217;ll normally
+throw up some complaint during the installation procedure. The installation
+will succeed, but many parallel procedures will run only on one core.</p>
+<p>To check if this has happened to you, try the following commands</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+
+<span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span>
+<span class="gr">Out[2]: </span><span class="mi">8</span>
+</pre></div>
+</div>
+<p>So far, we can see that the main pynbody configuration has seen more than
+one core on the machine. But let&#8217;s see how many cores OpenMP can see:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
+<span class="gr">Out[3]: </span><span class="mi">1</span>
+</pre></div>
+</div>
+<p>If this number is larger than one, OpenMP support is enabled and you don&#8217;t
+need to do anything more. If it&#8217;s 1, however, OpenMP support is disabled
+and you&#8217;re losing out.</p>
+<p>This happens when, during setup, pynbody could not find the OpenMP library.
+The most common scenario where this happens is on a Mac - Apple&#8217;s default
+compilers do not support OpenMP. A fast solution is to download
+the latest GNU compilers <a class="reference external" href="http://hpc.sourceforge.net">http://hpc.sourceforge.net</a>, install them, and
+point the setup procedure to gcc. At your shell, something like this would do
+it -</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">export </span><span class="nv">CC</span><span class="o">=</span><span class="s1">&#39;/usr/local/bin/gcc&#39;</span>
+<span class="nv">$ </span><span class="nb">cd </span>pynbody
+<span class="nv">$ </span>rm -rf build/
+<span class="nv">$ </span>python setup.py build
+<span class="nv">$ </span>python setup.py install
+</pre></div>
+</div>
+<p>Now, with luck, you&#8217;ll see that OpenMP is enabled.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+
+<span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
+<span class="gr">Out[2]: </span><span class="mi">8</span>
+</pre></div>
+</div>
+<p>If you&#8217;re still having trouble, you can try
+<a class="reference internal" href="../index.html#getting-help"><em>asking us for further help</em></a>.</p>
+</div>
+<div class="section" id="parallel-ramses-reader-support">
+<span id="posix-ipc"></span><h2>Parallel ramses reader support<a class="headerlink" href="#parallel-ramses-reader-support" title="Permalink to this headline">¶</a></h2>
+<p>The ramses reader speeds up load times by using multiple concurrent
+processes to read files. There are two differences between this and the
+standard threading techniques used above.</p>
+<p>First, the correct number of processes to use may not be the number of CPUs
+on your machine - it&#8217;s tied more to IO performance than to raw computing power.
+Second, for technical reasons related to the
+<a class="reference external" href="https://wiki.python.org/moin/GlobalInterpreterLock">Python GIL</a>
+you need an extra module to make this work. The module is known as <tt class="docutils literal"><span class="pre">posix_ipc</span></tt>,
+and it normally compiles very straight-forwardly on Linux or Mac OS. At your
+standard command prompt just type:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>easy_install posix_ipc
+</pre></div>
+</div>
+<p>and you should be done. There&#8217;s not even any need to reinstall pynbody.</p>
+<p>As explained above, you may well want to change the number of
+processes used for the reading process. This can be done using pynbody&#8217;s
+standard <a class="reference internal" href="configuration.html#configuration"><em>configuration</em></a> system; for instance, create a
+<tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> file in your home directory with the following
+section:</p>
+<div class="highlight-none"><div class="highlight"><pre>[ramses]
+parallel-read: 4
+</pre></div>
+</div>
+<p>This specifies 4 processes. You can experiment with this number to
+see what works best on your system, which depends on a combination
+of CPU and IO performance.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Many systems limit the amount of shared memory available,
+which can cause problems once you enable parallel-reading. See
+<a class="reference internal" href="../pitfalls.html#pitfall-ramses-sharedmem"><em>our separate note on this issue</em></a>.</p>
+</div>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../_sources/tutorials/threads.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

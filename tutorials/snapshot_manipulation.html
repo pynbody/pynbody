@@ -82,7 +82,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
@@ -253,7 +252,7 @@ profiles) in pynbody like your data to be centered on a point of
 interest.  The most straight-forward way to center your snapshot on a
 halo is as follows:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [6]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;hyb&#39;</span><span class="p">)</span>
-<span class="go"> Out[6]: &lt;pynbody.transformation.GenericTranslation at 0x11cf7ab50&gt;</span>
+<span class="go"> Out[6]: &lt;pynbody.transformation.GenericTranslation at 0x113a67810&gt;</span>
 </pre></div>
 </div>
 <p>We passed <tt class="docutils literal"><span class="pre">h[1]</span></tt> to the function
@@ -280,7 +279,7 @@ notice halo 1 doesn&#8217;t move at all.</p>
 <span class="go">[-0.00091414 -0.00044175 -0.00365938]</span>
 
 <span class="gp">In [11]: </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c"># should be changed</span>
-<span class="go">[  7.33513674e-05   8.42662980e-05   1.28258848e-04]</span>
+<span class="go">[  7.33513675e-05   8.42662979e-05   1.28258847e-04]</span>
 </pre></div>
 </div>
 <p>Note however that the data inside <tt class="docutils literal"><span class="pre">h[5]</span></tt> (or any halo) just <em>points</em>
@@ -302,7 +301,7 @@ allows you to undo the operation:</p>
 you want to process <tt class="docutils literal"><span class="pre">h[5]</span></tt> in some way, but be sure that the
 centering is unaffected after you are done. This is the thing to do:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="k">with</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;hyb&#39;</span><span class="p">):</span> <span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-<span class="go">[  7.33513674e-05   8.42662980e-05   1.28258848e-04]</span>
+<span class="go">[  7.33513675e-05   8.42662979e-05   1.28258847e-04]</span>
 
 <span class="gp">In [16]: </span><span class="k">print</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 <span class="go">[-0.0009267   0.00129999 -0.00042312]</span>
@@ -376,7 +375,7 @@ width as a string with a unit.</p>
 <p>In this example, the disk seems to be aligned more or less face-on,
 but let&#8217;s say we want it edge-on:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [26]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x114458150</span><span class="o">&gt;</span>
+<span class="gr">Out[26]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x114651590</span><span class="o">&gt;</span>
 
 <span class="gp">In [27]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
@@ -398,7 +397,7 @@ want to just rotate the snapshot by arbitrary angles, the
 about the respective axes.</p>
 <p>We can use this to rotate the disk into a face-on orientation:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [28]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
-<span class="gr">Out[28]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x114dce650</span><span class="o">&gt;</span>
+<span class="gr">Out[28]: </span><span class="o">&lt;</span><span class="n">pynbody</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">GenericRotation</span> <span class="n">at</span> <span class="mh">0x11422e4d0</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>All of these transformations behave in the way that was specified for
@@ -440,7 +439,7 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
 <p>We can also generate other profiles, like the rotation curve:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [36]: </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
-<span class="gr">Out[36]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x114446650</span><span class="o">&gt;</span>
+<span class="gr">Out[36]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span> <span class="n">at</span> <span class="mh">0x11422ef50</span><span class="o">&gt;</span>
 
 <span class="gp">In [37]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s">&#39;log&#39;</span><span class="p">)</span>
 
@@ -455,7 +454,7 @@ ask them to, so <tt class="docutils literal"><span class="pre">s.g.rotate_x(90)<
 <span class="gp">In [42]: </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [43]: </span><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gr">Out[43]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x114446950</span><span class="o">&gt;</span>
+<span class="gr">Out[43]: </span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">Legend</span> <span class="n">at</span> <span class="mh">0x1144e0d50</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>

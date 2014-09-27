@@ -80,7 +80,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
@@ -192,7 +191,7 @@
 
 <span class="sd">    *r* (default=None): initial search radius. This can be a string</span>
 <span class="sd">     indicating the unit, i.e. &quot;200 kpc&quot;, or an instance of</span>
-<span class="sd">     :func:`~pynbody.units.Unit`. </span>
+<span class="sd">     :func:`~pynbody.units.Unit`.</span>
 
 <span class="sd">    *shrink_factor* (default=0.7): the amount to shrink the search</span>
 <span class="sd">     radius by on each iteration</span>
@@ -262,14 +261,17 @@
             <span class="n">mass_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
             <span class="n">r_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
 
-        <span class="sd">&quot;&quot;&quot; numexpr alternative - not much faster</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        #pure numpy implementation</span>
+<span class="sd">        rho = lambda r: np.dot(</span>
+<span class="sd">            mass_ar, r_ar &lt; r) / (4. * math.pi * (r ** 3) / 3)</span>
+
+<span class="sd">        #numexpr alternative - not much faster because sum is not threaded</span>
 <span class="sd">        def rho(r) :</span>
 <span class="sd">            r_ar; mass_ar; # just to get these into the local namespace</span>
 <span class="sd">            return ne.evaluate(&quot;sum((r_ar&lt;r)*mass_ar)&quot;)/(4.*math.pi*(r**3)/3)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">rho</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-            <span class="n">mass_ar</span><span class="p">,</span> <span class="n">r_ar</span> <span class="o">&lt;</span> <span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">util</span><span class="o">.</span><span class="n">sum_if_lt</span><span class="p">(</span><span class="n">mass_ar</span><span class="p">,</span><span class="n">r_ar</span><span class="p">,</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">4.</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">target_rho</span> <span class="o">-</span>
                              <span class="n">rho</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.e-3</span> <span class="o">*</span> <span class="n">target_rho</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 
@@ -393,7 +395,7 @@
 <span class="sd">    central 1kpc (default) is zeroed. Other values can be passed with cen_size.</span>
 
 <span class="sd">    *move_all*: if True (default), move the entire snapshot. Otherwise only move</span>
-<span class="sd">    the particles in the halo passed in. </span>
+<span class="sd">    the particles in the halo passed in.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">global</span> <span class="n">config</span>

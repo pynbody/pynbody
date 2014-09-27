@@ -29,7 +29,7 @@
     <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="pynbody 0.30 documentation" href="#" />
-    <link rel="next" title="Pynbody Documentation" href="" />
+    <link rel="next" title="Pynbody Installation" href="installation.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -79,8 +79,7 @@
      href="#">Sections <b class="caret"></b></a>
   <ul class="dropdown-menu globaltoc"
       role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">Welcome</a></li>
+      aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
@@ -98,16 +97,9 @@
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Pynbody Documentation</a><ul>
-<li><a class="reference internal" href="#installation-and-first-steps">Installation and first steps</a></li>
-<li><a class="reference internal" href="#getting-help">Getting Help</a><ul>
-<li><a class="reference internal" href="#tutorials-reference-documentation-and-online-help">Tutorials, Reference Documentation and Online Help</a></li>
-<li><a class="reference internal" href="#common-pitfalls">Common Pitfalls</a></li>
-<li><a class="reference internal" href="#pynbody-user-group-and-issue-tracker">Pynbody user group and issue tracker</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#where-next">Where next?</a></li>
+<li><a class="reference internal" href="#seeking-further-assistance">Seeking Further Assistance</a></li>
 <li><a class="reference internal" href="#acknowledging-pynbody-in-scientific-publications">Acknowledging Pynbody in Scientific Publications</a></li>
-<li><a class="reference internal" href="#tutorials">Tutorials</a></li>
-<li><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
 </ul>
@@ -119,7 +111,7 @@
               
                 
   <li>
-    <a href="" title="Next Chapter: Pynbody Documentation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pynbody Document... &raquo;</span>
+    <a href="installation.html" title="Next Chapter: Pynbody Installation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pynbody Installa... &raquo;</span>
     </a>
   </li>
               
@@ -151,30 +143,35 @@
 <h1>Pynbody Documentation<a class="headerlink" href="#pynbody-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Welcome to the documentation for <a class="reference external" href="http://pynbody.github.io">pynbody</a> &#8211; an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
-simulations. We recommend you get started by reading about
+simulations, supporting python 2.6+ and 3.3+.</p>
+<p>We recommend you get started by reading about
 <a class="reference internal" href="installation.html#pynbody-installation"><em>Pynbody Installation</em></a> and trying the <a class="reference internal" href="tutorials/tutorials.html#tutorials"><em>Pynbody Tutorials</em></a>. We are
 happy to provide further assistance via our
 <a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">user group email list</a>.</p>
-<div class="section" id="installation-and-first-steps">
-<h2>Installation and first steps<a class="headerlink" href="#installation-and-first-steps" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="where-next">
+<h2>Where next?<a class="headerlink" href="#where-next" title="Permalink to this headline">¶</a></h2>
 <p>Consult the <a class="reference internal" href="installation.html"><em>Pynbody Installation</em></a> documentation for instructions on how
 to get going. Then you might like to download some <a class="reference external" href="https://github.com/pynbody/pynbody/releases">test data</a> and try out the
-<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><em>first steps tutorial</em></a> or a <a class="reference internal" href="tutorials/data_access.html#data-access"><em>lower-level
-data access walkthrough</em></a>.</p>
+<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><em>first steps tutorial</em></a> which gets straight
+to some of pynbody&#8217;s analysis features. Or, if you prefer to learn
+a little more of how your data is organized, we also provide a <a class="reference internal" href="tutorials/data_access.html#data-access"><em>data
+access walkthrough</em></a>.</p>
+<p>Our full documentation is organized into three sections:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
+</ul>
 </div>
-<div class="section" id="getting-help">
-<span id="id1"></span><h2>Getting Help<a class="headerlink" href="#getting-help" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="tutorials-reference-documentation-and-online-help">
-<h3>Tutorials, Reference Documentation and Online Help<a class="headerlink" href="#tutorials-reference-documentation-and-online-help" title="Permalink to this headline">¶</a></h3>
-<p>To get started with <cite>Pynbody</cite>, see the tutorials and reference guide
-below. All of the information in the reference guide is also available
+<p>All of the information in the reference guide is also available
 through the interactive python help system. In ipython, this is as
 easy as putting a <cite>?</cite> at the end of a command:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="err">?</span>
 <span class="go">Type:       function</span>
-<span class="go">String Form:&lt;function load at 0x10a280f50&gt;</span>
+<span class="go">String Form:&lt;function load at 0x109e8e140&gt;</span>
 <span class="go">File:       //anaconda/lib/python2.7/site-packages/pynbody/__init__.py</span>
 <span class="go">Definition: pynbody.load(filename, *args, **kwargs)</span>
 <span class="go">Docstring:</span>
@@ -183,16 +180,11 @@ easy as putting a <cite>?</cite> at the end of a command:</p>
 </pre></div>
 </div>
 </div>
-<div class="section" id="common-pitfalls">
-<h3>Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Permalink to this headline">¶</a></h3>
-<p>We are compiling a list of common problems users might experience. If
-you just installed pynbody and upon trying some fancy analysis it
-greeted you with a complicated error message, the fix might be
-described in <a class="reference internal" href="pitfalls.html"><em>Common Pitfalls</em></a>.</p>
-</div>
-<div class="section" id="pynbody-user-group-and-issue-tracker">
-<h3>Pynbody user group and issue tracker<a class="headerlink" href="#pynbody-user-group-and-issue-tracker" title="Permalink to this headline">¶</a></h3>
-<p>If you find yourself stuck, don&#8217;t hesitate to post a message to the
+<div class="section" id="seeking-further-assistance">
+<span id="getting-help"></span><h2>Seeking Further Assistance<a class="headerlink" href="#seeking-further-assistance" title="Permalink to this headline">¶</a></h2>
+<p>If the tutorials and reference documentation don&#8217;t answer your question,
+any problem might be described in <a class="reference internal" href="pitfalls.html"><em>Common Pitfalls</em></a>.</p>
+<p>If you still find yourself stuck, don&#8217;t hesitate to post a message to the
 <a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">users group</a>.
 If you have a Google account you can join the groups
 easily, but if you don&#8217;t have one please click on the <cite>About</cite> button
@@ -205,7 +197,6 @@ working correctly because this is the best way for us to correct
 bugs.  This includes any problems you encounter with documentation.</p>
 <p>If you use the code regularly for your projects, please consider contributing
 your code back using a <a class="reference external" href="https://help.github.com/articles/using-pull-requests">pull request</a>.</p>
-</div>
 </div>
 <div class="section" id="acknowledging-pynbody-in-scientific-publications">
 <span id="acknowledging-pynbody"></span><h2>Acknowledging Pynbody in Scientific Publications<a class="headerlink" href="#acknowledging-pynbody-in-scientific-publications" title="Permalink to this headline">¶</a></h2>
@@ -223,25 +214,6 @@ using the following BibTex:</p>
   year = 2013
 }
 </pre></div>
-</div>
-</div>
-<div class="section" id="tutorials">
-<h2>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="tutorials/tutorials.html#tutorials"><em>tutorials</em></a> are not a complete guide to Pynbody, but they will help
-you get started.</p>
-</div>
-<div class="section" id="reference">
-<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
-<p>The reference documentation is intended to fill in some details of things
-that aren&#8217;t included in the tutorials and is largely generated from the
-python docstrings.</p>
-<div class="toctree-wrapper compound">
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">Welcome</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
-</ul>
 </div>
 </div>
 </div>

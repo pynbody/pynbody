@@ -82,7 +82,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
@@ -187,71 +186,41 @@ object. For a tutorial on profiles see <a class="reference internal" href="profi
 <p>The rotation curve is calculated by calculating the forces in a
 plane. The force calculation is a direct <img src="../_images/mathmpl/math-9d10ebcd52.png" style="position: relative; bottom: -3px"/> calculation, so
 it takes a while and it is therefore done in <cite>C</cite>. It is even faster if
-you use the parallel Open-MP version. This requires <cite>Cython</cite> and a
-multi-core machine (which includes all modern computers...).</p>
-<p>Check if you have <cite>Cython</cite> installed:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">cython</span>
+you use the parallel Open-MP version. This was installed automatically
+if pynbody detected an Open-MP C compiler during setup. To see whether
+this happened or not, you can ask how many cores your machine has:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+
+<span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
+<span class="go"> Out[2]: 8</span>
 </pre></div>
 </div>
-<p>If this doesn&#8217;t raise an error you&#8217;re good to go! If this fails,
-you&#8217;ll need to <a class="reference external" href="http://cython.org/">install Cython</a> first.</p>
-<p>Once you have <cite>Cython</cite>, the parallel version should be compiled and
-installed automatically. Now, to use the parallel version in the
-gravity calculation for the rotation curve, you need to make sure that
-your pynbody options are set correctly. You can check the current
-configuration like this:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [2]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
-
-<span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span>
-<span class="go"> Out[3]: </span>
-<span class="go">{&#39;centering-scheme&#39;: &#39;ssc&#39;,</span>
-<span class="go"> &#39;default-cosmology&#39;: {&#39;a&#39;: 1.0,</span>
-<span class="go">  &#39;h&#39;: 0.6777,</span>
-<span class="go">  &#39;ns&#39;: 0.96,</span>
-<span class="go">  &#39;omegaB0&#39;: 0.0482,</span>
-<span class="go">  &#39;omegaL0&#39;: 0.691,</span>
-<span class="go">  &#39;omegaM0&#39;: 0.309,</span>
-<span class="go">  &#39;running&#39;: 0.0,</span>
-<span class="go">  &#39;sigma8&#39;: 0.8288},</span>
-<span class="go"> &#39;disk-fit-function&#39;: &#39;expsech&#39;,</span>
-<span class="go"> &#39;gravity_calculation_mode&#39;: &#39;direct_omp&#39;,</span>
-<span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.GrpCatalogue,</span>
-<span class="go">  pynbody.halo.AmigaGrpCatalogue,</span>
-<span class="go">  pynbody.halo.RockstarCatalogue,</span>
-<span class="go">  pynbody.halo.AHFCatalogue,</span>
-<span class="go">  pynbody.halo.SubfindCatalogue],</span>
-<span class="go"> &#39;number_of_threads&#39;: 4,</span>
-<span class="go"> &#39;snap-class-priority&#39;: [pynbody.snapshot.ramses.RamsesSnap,</span>
-<span class="go">  pynbody.snapshot.grafic.GrafICSnap,</span>
-<span class="go">  pynbody.snapshot.nchilada.NchiladaSnap,</span>
-<span class="go">  pynbody.snapshot.gadget.GadgetSnap,</span>
-<span class="go">  pynbody.snapshot.gadgethdf.GadgetHDFSnap,</span>
-<span class="go">  pynbody.snapshot.tipsy.TipsySnap],</span>
-<span class="go"> &#39;sph&#39;: {&#39;smooth-particles&#39;: 64, &#39;tree-leafsize&#39;: 16},</span>
-<span class="go"> &#39;threading&#39;: &#39;False&#39;,</span>
-<span class="go"> &#39;verbose&#39;: False}</span>
-</pre></div>
-</div>
-<p>Here we see two options: <tt class="docutils literal"><span class="pre">gravity_calculation_mode</span> <span class="pre">=</span> <span class="pre">'direct'</span></tt> and
-<tt class="docutils literal"><span class="pre">number_of_threads</span> <span class="pre">=</span> <span class="pre">4</span></tt>. The second option tells pynbody to use 4
-threads, but the first instructs it to use the serial version of the
-gravity code. We can fix this, and if your machine has more cores you can tell it to use them:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;gravity_calculation_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;direct_omp&#39;</span>
-
-<span class="gp">In [5]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span>
+<p>If this returns 1 but you have more than one core, pynbody has not
+been installed with OpenMP support (check your <a class="reference internal" href="../installation.html#pynbody-installation-must-haves"><em>compiler</em></a>, especially on Mac OS - then <a class="reference external" href="https://github.com/pynbody/pynbody/issues">raise
+an issue</a> if you can&#8217;t
+fix the problem) . If it returns the number of cores on your
+machine, you&#8217;re in luck.</p>
+<p>Assuming OpenMP support is enabled, the actual number of cores used by
+pynbody is determined by the configuration option
+<tt class="docutils literal"><span class="pre">number_of_threads</span></tt>, which is the number of CPUs detected on your</p>
+<blockquote>
+<div>machine by default. If you want to reduce this (e.g. you are running on
+a login node or have multiple analyses going on in parallel), you can
+specify the number of cores explicitly:</div></blockquote>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
 </pre></div>
 </div>
 <p>Now all gravity calculations will use the parallel gravity calculation
-on 30 cpus. Note that the number of threads you specify in this option
+on only 2 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
-<a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>.</p>
-<p>If you want to make your configuration changes permanent, create a file called <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> in your home directory with the lines</p>
-<div class="highlight-python"><div class="highlight"><pre>gravity_calculation_mode: direct_omp
-number_of_threads: 30
+<a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>. See <a class="reference internal" href="threads.html#threads"><em>Use of multiple processors by pynbody</em></a>.</p>
+<p>If you want to make your configuration changes permanent, create a
+file called <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> in your home directory with the lines</p>
+<div class="highlight-python"><div class="highlight"><pre>[general]
+number_of_threads: 2
 </pre></div>
 </div>
-<p>See the file <tt class="docutils literal"><span class="pre">default_config.ini</span></tt> in the pynbody source distribution
-for other options.</p>
+<p>See  <a class="reference internal" href="configuration.html#configuration"><em>Configuring pynbody</em></a> for more information.</p>
 </div>
 </div>
 

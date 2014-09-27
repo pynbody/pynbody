@@ -79,7 +79,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
@@ -216,7 +215,14 @@ substantially less than the total amount of memory on your
 machine. You can tell the kernel to allow more; see
 <a class="reference external" href="https://www.zabbix.org/wiki/How_to/configure_shared_memory">here</a>,
 for instance.</p>
-<p>Alternatively, you can disable parallel loading on ramses (see <a class="reference internal" href="loaders.html#loaders"><em>Code-specific loaders</em></a>).</p>
+<p>Alternatively, you can disable parallel loading on ramses. Create a
+<tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> file in your home directory with the following
+section:</p>
+<div class="highlight-none"><div class="highlight"><pre>[ramses]
+parallel-read: 0
+</pre></div>
+</div>
+<p>If you are still having trouble, <a class="reference internal" href="index.html#getting-help"><em>contact us</em></a>.</p>
 </div>
 <div class="section" id="when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one">
 <h2>When processing multiple files I run out of memory, even if I process them one-by-one<a class="headerlink" href="#when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one" title="Permalink to this headline">¶</a></h2>

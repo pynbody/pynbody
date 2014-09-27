@@ -80,7 +80,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
@@ -177,6 +176,8 @@
 <span class="n">multiprocess_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;parallel-read&quot;</span><span class="p">))</span>
 <span class="n">multiprocess</span> <span class="o">=</span> <span class="p">(</span><span class="n">multiprocess_num</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
 
+<span class="n">issue_multiprocess_warning</span> <span class="o">=</span> <span class="bp">False</span>
+
 <span class="k">if</span> <span class="n">multiprocess</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">multiprocessing</span>
@@ -184,8 +185,7 @@
         <span class="n">remote_exec</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">shared_array_remote</span>
         <span class="n">remote_map</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">remote_map</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s">&quot;RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+        <span class="n">issue_multiprocess_warning</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="n">multiprocess</span> <span class="o">=</span> <span class="bp">False</span>
 
 <span class="k">if</span> <span class="ow">not</span> <span class="n">multiprocess</span><span class="p">:</span>
@@ -486,6 +486,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_shared_arrays</span> <span class="o">=</span> <span class="bp">True</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">RamsesSnap</span><span class="o">.</span><span class="n">reader_pool</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
                 <span class="n">RamsesSnap</span><span class="o">.</span><span class="n">reader_pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">multiprocess_num</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">issue_multiprocess_warning</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+            
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">=</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">dirname</span>

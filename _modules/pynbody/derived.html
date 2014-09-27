@@ -80,7 +80,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
@@ -148,6 +147,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.derived&#39;</span><span class="p">)</span>
 
@@ -254,11 +254,20 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="s">&#39;Calculating mean velocity with </span><span class="si">%d</span><span class="s"> nearest neighbours&#39;</span> <span class="o">%</span> <span class="n">nsmooth</span><span class="p">)</span>
 
-    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]),</span> <span class="mi">3</span><span class="p">)),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span>
-        <span class="n">sm</span><span class="p">,</span> <span class="s">&#39;v_mean&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">=</span><span class="n">nsmooth</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">],</span> <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span>
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]),</span>
+                        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Mean velocity done.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty_sm&#39;</span><span class="p">,</span><span class="n">sm</span><span class="p">)</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="s">&#39;qty_mean&#39;</span><span class="p">,</span><span class="n">nsmooth</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Mean velocity done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">sm</span>
 
@@ -275,10 +284,20 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="s">&#39;Calculating velocity dispersion with </span><span class="si">%d</span><span class="s"> nearest neighbours&#39;</span> <span class="o">%</span> <span class="n">nsmooth</span><span class="p">)</span>
 
-    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">])),</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span>
-        <span class="n">sm</span><span class="p">,</span> <span class="s">&#39;v_disp&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">=</span><span class="n">nsmooth</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">],</span> <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Velocity dispersion done.&#39;</span><span class="p">)</span>
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]),</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty_sm&#39;</span><span class="p">,</span><span class="n">sm</span><span class="p">)</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="s">&#39;qty_disp&#39;</span><span class="p">,</span><span class="n">nsmooth</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Velocity dispersion done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">sm</span>
 
