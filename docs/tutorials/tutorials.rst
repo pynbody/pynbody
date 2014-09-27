@@ -1,6 +1,5 @@
 .. pynbody tutorials main index
 
-
 .. _tutorials:
 
 Pynbody Tutorials
@@ -60,3 +59,4 @@ These tutorials are likely to be of interest only in special cases.
 
    Performance issues <performance>
    Configuring Pynbody <configuration>
+   Understanding threading <threads>

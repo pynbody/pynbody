@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "kd.h"
 
+
 #define RESMOOTH_SAFE  500
 
 #define M_1_PI  0.31830988618379067154
@@ -27,15 +28,25 @@ typedef struct smContext {
 	float fPeriod[3];
 	PQ *pq;
 	PQ *pqHead;
-	float *pfBall2;
 	char *iMark;
 	int nListSize;
 	float *fList;
 	int *pList;
+	int nCurrent; // current particle index for distributed loops
+
+#ifdef KDT_THREADING
+	pthread_mutex_t *pMutex;
+
+	int nLocals; // number of local copies if this is a global smooth context
+	int nReady; // number of local copies that are "ready" for the next stage
+	pthread_cond_t *pReady; // synchronizing condition
+
+	struct smContext *smx_global;
+#endif
 
     int pin,pi,pNext;
     float ax,ay,az;
-    bool warnings; // added by AP to keep track of whether a memory-overrun  warning has been issued
+    bool warnings; //  keep track of whether a memory-overrun  warning has been issued
 	} * SMX;
 
 
@@ -99,19 +110,54 @@ double K3(double);
 double dK3(double);
 
 int smInit(SMX *,KD,int,float *);
+void smInitPriorityQueue(SMX);
 void smFinish(SMX);
+
+template<typename T>
 void smBallSearch(SMX,float,float *);
+
+template<typename T>
 int  smBallGather(SMX,float,float *);
 
-int smSmoothStep(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *));
-void smSmoothInitStep(SMX smx);
+template<typename T>
+int smSmoothStep(SMX smx, int procid);
+
+void smSmoothInitStep(SMX smx, int nProcs);
+
+template<typename T>
 void smDensitySym(SMX,int,int,int *,float *);
+
+template<typename T>
+void smDensity(SMX,int,int,int *,float *);
+
+template<typename Tf, typename Tq>
+void smMeanQtyND(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
+void smDispQtyND(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
+void smMeanQty1D(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
+void smDispQty1D(SMX,int,int,int *,float *);
+
+
+/*
 void smMeanVel(SMX,int,int,int *,float *);
 void smVelDisp(SMX,int,int,int *,float *);
 void smMeanVelSym(SMX,int,int,int *,float *);
 void smDivvSym(SMX,int,int,int *,float *);
 void smVelDispSym(SMX,int,int,int *,float *);
 void smVelDispNBSym(SMX,int,int,int *,float *);
+*/
 
+template<typename T>
+void smDomainDecomposition(KD kd, int nprocs);
+
+int smGetNext(SMX smx_local);
+
+#ifdef KDT_THREADING
+void smReset(SMX smx_local);
+SMX smInitThreadLocalCopy(SMX smx_global);
+void smFinishThreadLocalCopy(SMX smx_local);
+#endif
 
 #endif

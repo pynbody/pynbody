@@ -17,6 +17,7 @@ from . import units
 import numpy as np
 import sys
 import logging
+import time
 
 logger = logging.getLogger('pynbody.derived')
 
@@ -123,11 +124,20 @@ def v_mean(self):
     logger.info(
         'Calculating mean velocity with %d nearest neighbours' % nsmooth)
 
-    sm = array.SimArray(np.empty((len(self['pos']), 3)), self['vel'])
-    self.kdtree.populate(
-        sm, 'v_mean', nn=nsmooth, smooth=self['smooth'], rho=self['rho'])
+    sm = array.SimArray(np.empty_like(self['vel']),
+                        self['vel'].units)
 
-    logger.info('Mean velocity done.')
+    self.kdtree.set_array_ref('rho',self['rho'])
+    self.kdtree.set_array_ref('smooth',self['smooth'])
+    self.kdtree.set_array_ref('mass',self['mass'])
+    self.kdtree.set_array_ref('qty',self['vel'])
+    self.kdtree.set_array_ref('qty_sm',sm)
+
+    start = time.time()
+    self.kdtree.populate('qty_mean',nsmooth)
+    end = time.time()
+
+    logger.info('Mean velocity done in %5.3g s' % (end - start))
 
     return sm
 
@@ -144,10 +154,20 @@ def v_disp(self):
     logger.info(
         'Calculating velocity dispersion with %d nearest neighbours' % nsmooth)
 
-    sm = array.SimArray(np.empty(len(self['pos'])), self['vel'].units)
-    self.kdtree.populate(
-        sm, 'v_disp', nn=nsmooth, smooth=self['smooth'], rho=self['rho'])
-    logger.info('Velocity dispersion done.')
+    sm = array.SimArray(np.empty(len(self['vel']),dtype=self['vel'].dtype),
+                        self['vel'].units)
+
+    self.kdtree.set_array_ref('rho',self['rho'])
+    self.kdtree.set_array_ref('smooth',self['smooth'])
+    self.kdtree.set_array_ref('mass',self['mass'])
+    self.kdtree.set_array_ref('qty',self['vel'])
+    self.kdtree.set_array_ref('qty_sm',sm)
+
+    start = time.time()
+    self.kdtree.populate('qty_disp',nsmooth)
+    end = time.time()
+
+    logger.info('Velocity dispersion done in %5.3g s' % (end - start))
 
     return sm
 

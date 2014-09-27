@@ -46,6 +46,8 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
 
+issue_multiprocess_warning = False
+
 if multiprocess:
     try:
         import multiprocessing
@@ -53,8 +55,7 @@ if multiprocess:
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
     except ImportError:
-        warnings.warn(
-            "RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
+        issue_multiprocess_warning = True
         multiprocess = False
 
 if not multiprocess:
@@ -355,6 +356,9 @@ class RamsesSnap(SimSnap):
             self._shared_arrays = True
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
+        elif issue_multiprocess_warning:
+            warnings.warn("RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
+            
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
