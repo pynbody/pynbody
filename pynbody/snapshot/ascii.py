@@ -47,7 +47,7 @@ class AsciiSnap(SimSnap):
                     num_particles+=1
 
         self._filename = filename
-        self._file_units_system = [units.G, units.kpc, units.Msol]
+        self._file_units_system = [units.Unit("G"), units.Unit("kpc"), units.Unit("Msol")]
         self._setup_slices(num_particles,take=take)
         self._decorate()
 
