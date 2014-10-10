@@ -324,10 +324,17 @@ def do_units(sim):
     try:
         atr = sim._hdf[0]['Units'].attrs
     except KeyError:
-        warnings.warn(
-            "No unit information found: using defaults.", RuntimeWarning)
-        sim._file_units_system = [
-            units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+        try:
+            vel_unit = config_parser.get('gadget-units', 'vel')
+            dist_unit = config_parser.get('gadget-units', 'pos')
+            mass_unit = config_parser.get('gadget-units', 'mass')
+            sim._file_units_system = [units.Unit(x) for x in [
+                                      vel_unit, dist_unit, mass_unit, "K"]]
+        except:
+            warnings.warn(
+                "No unit information found: using defaults.", RuntimeWarning)
+            sim._file_units_system = [
+                units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
         return
 
     vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
