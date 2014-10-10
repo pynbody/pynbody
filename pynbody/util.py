@@ -23,6 +23,8 @@ import ConfigParser
 import multiprocessing
 import functools
 import logging
+import random
+import math
 logger = logging.getLogger('pynbody.util')
 from ._util import *
 
@@ -432,6 +434,22 @@ def rational_matrix_inv(matrix):
             x[i, j] = fractions.Fraction(matrix[i][j])
 
     return gauss_jordan(x)[:, len(x):]
+
+
+def random_rotation_matrix():
+    """Return a random rotation matrix (Haar measure for 3x3 case)"""
+
+    # pick a random vector
+    vec = np.random.normal(size=3)
+    vec/=np.linalg.norm(vec)
+
+    # pick a random angle
+    angle = random.random()*2*math.pi
+
+    # use Rodrigues rotation formula
+    W = np.array([[0,-vec[2],vec[1]],[vec[2],0,-vec[0]],[-vec[1],vec[0],0]])
+    I = np.eye(3)
+    return I+math.sin(angle)*W+(2*math.sin(angle/2)**2)*np.dot(W,W)
 
 
 def cutgz(x):
