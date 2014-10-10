@@ -29,4 +29,7 @@ install:
 
 script:
   - "cd nose; nosetests"
-  - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx_bootstrap_theme; cd ../docs; make html; fi
+
+# Removing need to build docs as getting seg faults which seem to be tied to
+# a current problem with sphinx. Should be investigated and reinstated.
+#  - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx_bootstrap_theme; cd ../docs; make html; fi
