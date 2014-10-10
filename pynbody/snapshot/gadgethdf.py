@@ -328,9 +328,11 @@ def do_units(sim):
             vel_unit = config_parser.get('gadget-units', 'vel')
             dist_unit = config_parser.get('gadget-units', 'pos')
             mass_unit = config_parser.get('gadget-units', 'mass')
+            warnings.warn(
+                "No unit information found: using gadget-units in config.", RuntimeWarning)
             sim._file_units_system = [units.Unit(x) for x in [
                                       vel_unit, dist_unit, mass_unit, "K"]]
-        except:
+        except ConfigParser.Error:
             warnings.warn(
                 "No unit information found: using defaults.", RuntimeWarning)
             sim._file_units_system = [
