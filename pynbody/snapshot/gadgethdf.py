@@ -70,11 +70,11 @@ class DummyHDFData(object):
     """A stupid class to allow emulation of mass arrays for particles
     whose mass is in the header"""
 
-    def __init__(self, value, length):
+    def __init__(self, value, length, dtype):
         self.value = value
         self.length = length
         self.shape = (length, )
-        self.dtype = np.dtype(float)
+        self.dtype = np.dtype(dtype)
 
     def __len__(self):
         return self.length
@@ -114,6 +114,7 @@ class GadgetHDFSnap(SimSnap):
         for fam, g_types in _type_map.iteritems():
             my_types = []
             for x in g_types:
+                # Get all keys from all hdf files
                 for hdf in self._hdf:
                     if x in hdf.keys():
                         my_types.append(x)
@@ -126,6 +127,7 @@ class GadgetHDFSnap(SimSnap):
             l = 0
             for name in my_type_map[x]:
                 for hdf in self._hdf:
+                    # Skip PartType if not in this hdf file
                     try:
                         l += hdf[name]['Coordinates'].shape[0]
                         k = self._get_hdf_allarray_keys(hdf[name])
@@ -135,8 +137,6 @@ class GadgetHDFSnap(SimSnap):
                         else: raise e
             self._family_slice[x] = slice(sl_start, sl_start + l)
 
-            #k = self._get_hdf_allarray_keys(self._hdf[0][name])
-            #self._loadable_keys = self._loadable_keys.union(set(k))
             sl_start += l
 
         self._loadable_keys = [_translate_array_name(
@@ -205,7 +205,8 @@ class GadgetHDFSnap(SimSnap):
                 pgid = int(particle_group.name[-1])
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
                 if mtab > 0:
-                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0])
+                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0], 
+                                        particle_group['Coordinates'].dtype)
             except (IndexError, KeyError):
                 pass
 
@@ -225,11 +226,15 @@ class GadgetHDFSnap(SimSnap):
 
             translated_name = _translate_array_name(array_name)
 
-            hdf0 = self._hdf[0]
-
-            dset0 = self._get_hdf_dataset(hdf0[
-                                          _type_map[famx][0]], translated_name)
-
+            # Search for first hdf file with this family
+            for hdf in self._hdf:
+                try:
+                    dset0 = self._get_hdf_dataset(hdf[
+                            _type_map[famx][0]], translated_name)
+                    break
+                except ValueError:
+                    continue
+            
             assert len(dset0.shape) <= 2
             dy = 1
             if len(dset0.shape) > 1:
@@ -324,19 +329,14 @@ def do_units(sim):
     try:
         atr = sim._hdf[0]['Units'].attrs
     except KeyError:
-        try:
-            vel_unit = config_parser.get('gadget-units', 'vel')
-            dist_unit = config_parser.get('gadget-units', 'pos')
-            mass_unit = config_parser.get('gadget-units', 'mass')
-            warnings.warn(
-                "No unit information found: using gadget-units in config.", RuntimeWarning)
-            sim._file_units_system = [units.Unit(x) for x in [
-                                      vel_unit, dist_unit, mass_unit, "K"]]
-        except ConfigParser.Error:
-            warnings.warn(
-                "No unit information found: using defaults.", RuntimeWarning)
-            sim._file_units_system = [
-                units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+        # Use default values, from default_config.ini if necessary
+        vel_unit = config_parser.get('gadget-units', 'vel')
+        dist_unit = config_parser.get('gadget-units', 'pos')
+        mass_unit = config_parser.get('gadget-units', 'mass')
+        warnings.warn(
+            "No unit information found: using gadget-units.", RuntimeWarning)
+        sim._file_units_system = [units.Unit(x) for x in [
+                vel_unit, dist_unit, mass_unit, "K"]]
         return
 
     vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
