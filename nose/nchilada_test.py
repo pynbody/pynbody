@@ -1,8 +1,7 @@
 import pynbody
 import numpy as np
 
-correct_pos_3000 = np.array([[-6.31451965e+02,  -7.66135132e+02,  -6.96583740e+02],
-                             [4.80664825e+01,  -8.99647751e+01,
+correct_pos_3000 = np.array([[4.80664825e+01,  -8.99647751e+01,
                                  3.74038162e+01],
                              [-5.44153690e+00,
                                  1.38918352e+00,  -4.13906145e+00],
@@ -164,13 +163,13 @@ def setup():
 
 def test_get():
     global correct_pos_3000, x_pos_3000
-    current = f['pos'][::3000]
+    current = f['pos'][2998::3000]
     x_pos_3000 = current
     assert (np.abs(current - correct_pos_3000).mean() < 1.e-6)
 
 
 def test_get_gas():
-    correct = [2.23225154e-08,   1.19859905e-07,   8.66461534e-08,
+    correct = [ 1.19859905e-07,   8.66461534e-08,
                1.36909285e-03,   2.11048416e-07,   2.63381509e-07,
                2.98710262e-07,   1.08983599e-07,   1.07130404e-07,
                7.49599457e-01,   2.05589359e-07,   1.20924241e-07,
@@ -181,7 +180,7 @@ def test_get_gas():
                1.15718933e-07,   7.49949515e-01,   7.47042358e-01,
                1.99594979e-07,   2.19145448e-07,   6.16430157e-07,
                4.46814852e-07]
-    current = f.gas['HI'][::3000]
+    current = f.gas['HI'][2998::3000]
 
     assert (np.abs(current - correct).sum() < 1.e-9)
 
@@ -195,7 +194,7 @@ def test_array_completion_unit_sanity():
     f.gas['pos'].convert_units("Mpc")
     f.star['pos'].convert_units("pc")
 
-    assert (np.abs(f['pos'][::3000] - x_pos_3000).mean() < 1.e-6)
+    assert (np.abs(f['pos'][2998::3000] - x_pos_3000).mean() < 1.e-6)
 
 
 def test_partial_loading():
