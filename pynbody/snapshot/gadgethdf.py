@@ -114,8 +114,10 @@ class GadgetHDFSnap(SimSnap):
         for fam, g_types in _type_map.iteritems():
             my_types = []
             for x in g_types:
-                if x in self._hdf[0].keys():
-                    my_types.append(x)
+                for hdf in self._hdf:
+                    if x in hdf.keys():
+                        my_types.append(x)
+                        break
             if len(my_types):
                 my_type_map[fam] = my_types
 
@@ -124,11 +126,17 @@ class GadgetHDFSnap(SimSnap):
             l = 0
             for name in my_type_map[x]:
                 for hdf in self._hdf:
-                    l += hdf[name]['Coordinates'].shape[0]
+                    try:
+                        l += hdf[name]['Coordinates'].shape[0]
+                        k = self._get_hdf_allarray_keys(hdf[name])
+                        self._loadable_keys = self._loadable_keys.union(set(k))
+                    except KeyError as e:
+                        if 'PartType' in name: continue
+                        else: raise e
             self._family_slice[x] = slice(sl_start, sl_start + l)
 
-            k = self._get_hdf_allarray_keys(self._hdf[0][name])
-            self._loadable_keys = self._loadable_keys.union(set(k))
+            #k = self._get_hdf_allarray_keys(self._hdf[0][name])
+            #self._loadable_keys = self._loadable_keys.union(set(k))
             sl_start += l
 
         self._loadable_keys = [_translate_array_name(
@@ -150,8 +158,13 @@ class GadgetHDFSnap(SimSnap):
         else:
             translated_name = _translate_array_name(name)
             for n in _type_map[fam]:
-                if translated_name not in self._get_hdf_allarray_keys(self._hdf[0][n]):
-                    return False
+                for hdf in self._hdf:
+                    try:
+                        if translated_name not in self._get_hdf_allarray_keys(hdf[n]):
+                            return False
+                    except KeyError as e:
+                        if 'PartType' in n: continue
+                        else: raise e
             return True
 
     def loadable_keys(self, fam=None):
@@ -240,8 +253,12 @@ class GadgetHDFSnap(SimSnap):
                 i0 = 0
                 for t in _type_map[f]:
                     for hdf in self._hdf:
-                        dataset = self._get_hdf_dataset(
-                            hdf[t], translated_name)
+                        try:
+                            dataset = self._get_hdf_dataset(
+                                hdf[t], translated_name)
+                        except KeyError as e:
+                            if 'PartType' in t: continue
+                            else: raise e
                         i1 = i0 + len(dataset)
                         dataset.read_direct(self[f][array_name][i0:i1])
                         i0 = i1
