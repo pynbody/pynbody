@@ -231,8 +231,7 @@ class GadgetHDFSnap(SimSnap):
                 try:
                     dset0 = self._get_hdf_dataset(hdf[
                             _type_map[famx][0]], translated_name)
-                    break
-                except ValueError:
+                except KeyError:
                     continue
             
             assert len(dset0.shape) <= 2
