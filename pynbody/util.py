@@ -437,19 +437,30 @@ def rational_matrix_inv(matrix):
 
 
 def random_rotation_matrix():
-    """Return a random rotation matrix (Haar measure for 3x3 case)"""
+    """Return a random rotation matrix (Haar measure for 3x3 case), using
+    fast algorithm from Graphics Gems III
 
-    # pick a random vector
-    vec = np.random.normal(size=3)
-    vec/=np.linalg.norm(vec)
+    (http://tog.acm.org/resources/GraphicsGems/gemsiii/rand_rotation.c)"""
 
-    # pick a random angle
-    angle = random.random()*2*math.pi
+    x = np.random.uniform(size=3)
+    theta = x[0]*2*math.pi
+    phi = x[1]*2*math.pi
+    z = x[2]*2
 
-    # use Rodrigues rotation formula
-    W = np.array([[0,-vec[2],vec[1]],[vec[2],0,-vec[0]],[-vec[1],vec[0],0]])
-    I = np.eye(3)
-    return I+math.sin(angle)*W+(2*math.sin(angle/2)**2)*np.dot(W,W)
+    r = math.sqrt(z)
+    vx = math.sin(phi)*r
+    vy = math.cos(phi)*r
+    vz = math.sqrt(2.0-z)
+
+    st = math.sin(theta)
+    ct = math.cos(theta)
+
+    sx = vx*ct-vy*st
+    sy = vx*st+vy*ct
+
+    return np.array([[vx*sx-ct, vx*sy-st, vx*vz],
+                     [vy*sx+st, vy*sy-ct, vy*vz],
+                     [vz*sx,vz*sy,1.0-z]])
 
 
 def cutgz(x):
