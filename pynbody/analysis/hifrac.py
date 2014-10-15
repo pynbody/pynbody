@@ -1,9 +1,9 @@
 """ 
 
-ionfrac
+hifrac
 =======
 
-calculates ionization fractions - NEEDS DOCUMENTATION
+calculates Hydrogen ionization fraction - limited version of ionfrac to make use of CLOUDY HI table
 
 """
 
@@ -14,11 +14,13 @@ try :
 except ImportError :
     pass
 
+import h5py
 import os
 from ..array import SimArray
 from pynbody import config
+from pynbody import units
 
-def calculate(sim,ion='ovi') :
+def calculate(sim,ion='hi',selfshield=False) :
     """
 
     calculate -- documentation placeholder
@@ -29,25 +31,27 @@ def calculate(sim,ion='ovi') :
     # ionization fractions calculated for optically thin case with
     # CLOUDY v 10.0.  J. Xavier Prochaska + Joe Hennawi have many 
     # helper idl routines for running CLOUDY
-    iffile = os.path.join(os.path.dirname(__file__),"ionfracs.npz")
+    iffile = os.path.join(os.path.dirname(__file__),"h1.hdf5")
     if os.path.exists(iffile) :
         # import data
         if config['verbose']: print "Loading "+iffile
-        ifs=np.load(iffile)
-    else :
-        raise IOError, "ionfracs.npz (Ion Fraction table) not found"
+        ifs=h5py.File(iffile,'r')
+    else : 
+        raise IOError, "h1.hdf5 (HI Fraction table) not found"
 
     # allocate temporary metals that we can play with
     # before inlining, the views on the arrays must be standard np.ndarray
     # otherwise the normal numpy macros are not generated
-    x_vals = ifs['redshiftvals'].view(np.ndarray)
-    y_vals = ifs['tempvals'].view(np.ndarray)
-    z_vals = ifs['denvals'].view(np.ndarray)
-    vals = ifs[ion+'if'].view(np.ndarray)
-    x = np.zeros(len(sim.gas))
-    x[:] = sim.properties['z']
+    x_vals = ifs['logd'][:].view(np.ndarray)
+    y_vals = ifs['logt'][:].view(np.ndarray)
+    z_vals = ifs['redshift'][:].view(np.ndarray)
+    vals = np.log10(ifs['ionbal'][:]).view(np.ndarray)
+    ifs.close()
+
+    z = np.zeros(len(sim.gas)).view(np.ndarray)
+    z[:] = sim.properties['z']
     y = np.log10(sim.gas['temp']).view(np.ndarray)
-    z = np.log10(sim.gas['rho'].in_units('m_p cm^-3')).view(np.ndarray)
+    x = np.log10(sim.gas['rho'].in_units('m_p cm^-3')).view(np.ndarray)
     n = len(sim.gas)
     n_x_vals = len(x_vals)
     n_y_vals = len(y_vals)
@@ -67,5 +71,18 @@ def calculate(sim,ion='ovi') :
     code = file(os.path.join(os.path.dirname(__file__),'interpolate3d.c')).read()
     inline(code,['n','n_x_vals','x_vals','n_y_vals','y_vals','n_z_vals',
                  'z_vals','x','y','z','vals','result_array'])
+
+    ## Selfshield criteria assume all EoS gas
+    if selfshield != False:
+        result_array[sim.g['OnEquationOfState'] == 1.] = 0.
+    ## Selfshield criteria from Duffy et al 2012a (in addition to EoS gas)
+        if selfshield == 'duffy12':
+            result_array[(sim.g['p'].in_units('m_p K cm**-3') > 150.) & (sim.g['temp'].in_units('K') < 10.**(4.5))] = 0.
     
-    return 10**result_array
+    ## Get as HI per proton mass (essentially multiplying the HI fraction by the Hydrogen mass fraction)
+    result_array += np.log10(sim.g['hydrogen'])
+
+    result_array = (10.**result_array).view(SimArray)
+    result_array.units = units.m_p**-1
+
+    return result_array

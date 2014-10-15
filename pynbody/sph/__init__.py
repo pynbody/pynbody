@@ -987,8 +987,9 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     if sm.units!=x.units :
         sm = sm.in_units(x.units)
 
-    nucleons = {'H':1, 'He':4, 'Li':6, 'C':12, 'N':14, 'O':16, 'Mg':24, 'Si':28,
+    nucleons = {'H':1, 'He':4, 'Li':6, 'Ne':10, 'C':12, 'N':14, 'O':16, 'Mg':24, 'Si':28,
                 'S':32, 'Ca':40, 'Fe':56}
+
     nnucleons = nucleons[element]
     
     qty_s = qty

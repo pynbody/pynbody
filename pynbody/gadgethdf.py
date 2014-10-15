@@ -487,71 +487,126 @@ def do_properties(sim):
     for s in atr : 
         sim.properties[s] = atr[s]
 
+## Gadget has internal energy variable
+@GadgetHDFSnap.derived_quantity
+def u(self) :
+    """Gas internal energy derived from snapshot variable or temperature"""
+    try:    
+        u = self['InternalEnergy']        
+    except KeyError:
+        gamma = 5./3
+        u = self['temp']*units.k/(self['mu']*units.m_p*(gamma-1))
 
-# From the Tipsysnap example we replicate the various metalicity 
-#
-# calculate the number fraction YH, YHe as a function of metalicity. Cosmic 
-# production rate of helium relative to metals (in mass)  
-# delta Y/delta Z = 2.1 and primordial He Yp = 0.236 (Jimenez et al. 2003, 
-# Science 299, 5612. 
-#  piecewise linear
-#  Y = Yp + dY/dZ*ZMetal up to ZMetal = 0.1, then linear decrease to 0 at Z=1)  
+    return u
 
-#  SUM_Metal = sum(ni/nH *mi),it is a fixed number for cloudy abundance. 
-#  Massfraction fmetal = Z*SUM_metal/(1 + 4*nHe/nH + Z*SUM_metal) (1)
-#  4*nHe/nH = mHe/mH = fHe/fH 
-#  also fH + fHe + fMetal = 1  (2)
-#  if fHe specified, combining the 2 eq above will solve for 
-#  fH and fMetal 
-        
-def _abundance_estimator(metal) :
+@GadgetHDFSnap.derived_quantity
+def p(sim) :
+    """Calculate the pressure for gas particles, including polytropic equation of state gas"""
 
-    Y_He = ((0.236+2.1*metal)/4.0)*(metal<=0.1)
-    Y_He+= ((-0.446*(metal-0.1)/0.9+0.446)/4.0)*(metal>0.1)
-    Y_H = 1.0-Y_He*4. - metal
+    critpres = 2300. * units.K * units.m_p / units.cm**3 ## m_p K cm^-3
+    critdens = 0.1 * units.m_p / units.cm**3 ## m_p cm^-3
+    gammaeff = 4./3.
 
-    return Y_H, Y_He
+    oneos = sim.g['OnEquationOfState'] == 1.
+
+    p = sim.g['rho'].in_units('m_p cm**-3') * sim.g['temp'].in_units('K')
+    p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
+
+    return p
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def HII(sim) :
     """Number of HII ions per proton mass"""
-    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
-    return Y_H - sim["HI"]
+
+    return sim["hydrogen"] - sim["HI"]
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def HeIII(sim) :
     """Number of HeIII ions per proton mass"""
-    Y_H, Y_He = _abundance_estimator(sim["Metallicity"])
-    return Y_He-sim["HeII"]-sim["HeI"]
+
+    return sim["hetot"] - sim["HeII"] - sim["HeI"]
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def ne(sim) :
-    """Number of electrons per proton mass"""
-    return sim["HII"] + sim["HeII"] + 2*sim["HeIII"]
+    """Number of electrons per proton mass, ignoring the contribution from He!"""
+    ne = sim["HII"]  #+ sim["HeII"] + 2*sim["HeIII"]
+    ne.units = units.m_p**-1
+
+    return ne
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def rho_ne(sim) :
+    """Electron number density per SPH particle, currently ignoring the contribution from He!"""
+
+    return sim["ne"].in_units("m_p**-1") * sim["rho"].in_units("m_p cm**-3")
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def hetot(self) :
-    return self['He']
+    return self["He"]
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def hydrogen(self) :
-    return self['H']
+    return self["H"]
 
 ## Need to use the ionisation fraction calculation here which gives ionisation fraction
 ## based on the gas temperature, density and redshift for a CLOUDY table
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def HI(sim) :
-    """Fraction of Neutral Hydrogen HI"""
+    """Fraction of Neutral Hydrogen HI use limited CLOUDY table"""
+
+    import pynbody.analysis.hifrac
+
+    return pynbody.analysis.hifrac.calculate(sim.g,ion='hi')
+
+## Need to use the ionisation fraction calculation here which gives ionisation fraction
+## based on the gas temperature, density and redshift for a CLOUDY table, then applying
+## selfshielding for the dense, star forming gas on the equation of state
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def HIeos(sim) :
+    """Fraction of Neutral Hydrogen HI use limited CLOUDY table, assuming dense EoS gas is selfshielded"""
+
+    import pynbody.analysis.hifrac
+
+    return pynbody.analysis.hifrac.calculate(sim.g,ion='hi', selfshield='eos')
+
+## Need to use the ionisation fraction calculation here which gives ionisation fraction
+## based on the gas temperature, density and redshift for a CLOUDY table, then applying
+## selfshielding for the dense, star forming gas on the equation of state AND a further
+## pressure based limit for 
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def HID12(sim) :
+    """Fraction of Neutral Hydrogen HI use limited CLOUDY table, using the Duffy +12a prescription for selfshielding"""
+
+    import pynbody.analysis.hifrac
+
+    return pynbody.analysis.hifrac.calculate(sim.g,ion='hi', selfshield='duffy12')
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def HeI(sim) :
+    """Fraction of Helium HeI"""
 
     import pynbody.analysis.ionfrac
 
-    return pynbody.analysis.ionfrac.calculate(sim.g,ion='hi')
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='hei')
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def HeII(sim) :
+    """Fraction of Helium HeII"""
+
+    import pynbody.analysis.ionfrac
+
+    return pynbody.analysis.ionfrac.calculate(sim.g,ion='heii')
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
