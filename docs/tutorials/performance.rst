@@ -5,11 +5,16 @@
 Performance optimisation in pynbody
 ===================================
 
-`Pynbody` is built on top of `numpy`, which means that learning how to optimize `numpy` 
+`Pynbody` is built on top of `numpy`, which means that learning how to optimize `numpy`
 array manipulations is the most important route to writing efficient code; see http://scipy-lectures.github.com/advanced/optimizing/index.html
 for an introduction.
 
-However there are a few issues which are specific to `pynbody`. By far the most important of these
+However there are a few issues which are specific to `pynbody`. First, a large
+number of `pynbody`'s most common operations are parallelized: make sure you
+have set up these routines to behave in a way that matches your needs by reading
+the page on :ref:`threads`.
+
+Other than that, there are some more subtle issues. The most important of these
 that we have come across is the overheads incurred by using `SubSnap`s
 which are explained
 below.
@@ -23,14 +28,14 @@ A template for performance-critical code
 ********************************************
 
 To cut a long story short, if your routine does a lot of array access on an object which might
-be a `SubSnap` of a certain flavour (explained further below), you will find that wrapping your 
+be a `SubSnap` of a certain flavour (explained further below), you will find that wrapping your
 code as follows speeds it up.
 
 .. code-block:: python
 
  def my_expensive_operation(sim_or_subsim) :
      with sim_or_subsim.immediate_mode :
-         mass_array = sim_or_subsim['mass'] 
+         mass_array = sim_or_subsim['mass']
          other_array = sim_or_subsim['other']
          # ... get other arrays required...
 
@@ -49,29 +54,29 @@ What is a SubSnap, really?
 
 When you construct a `SubSnap`, the framework records which particles of the underlying
 `SimSnap` are included and which are not. Thereafter, if you access an array from the `SubSnap`,
-it is constructed in one of two ways. 
+it is constructed in one of two ways.
 
- - If the set of particles indexed by the `SubSnap` is expressable a slice, the 
+ - If the set of particles indexed by the `SubSnap` is expressable a slice, the
    arrays constructed are still `numpy` arrays.  This will be the case if you explicitly
    slice the simulation (e.g. ``f[2:100:3]``), or if you ask for a specific particle family (e.g. ``f.dm``).
 
  - If the set of particles is not expressable in this way, the arrays constructed are
    emulating `numpy` arrays and this can become expensive (see below). This will
    be the cae if you ask for a list of particles (e.g. ``f[[2,10,15,22]]``) use a `numpy`-like
-   indexing trick (e.g. ``f[f['x']>10]`` or ``f[numpy.where(f['x']>10)]``) or use a 
+   indexing trick (e.g. ``f[f['x']>10]`` or ``f[numpy.where(f['x']>10)]``) or use a
    :py:mod:`filter <pynbody.filt>`.
 
-In the first case, the optimization is unchanged from the raw `SimSnap` case.  
-In the second case, the situation is different. 
-To understand how and why, we 
+In the first case, the optimization is unchanged from the raw `SimSnap` case.
+In the second case, the situation is different.
+To understand how and why, we
 need to look at the difference between an indexed and a sliced `numpy` array.
 
 
 Numpy's behaviour
 ***********************
 
-This section explains why the reason for the slightly awkward design of `IndexedSubArray`. 
-The `pynbody` framework requires all sub-arrays to continue pointing to the original data 
+This section explains why the reason for the slightly awkward design of `IndexedSubArray`.
+The `pynbody` framework requires all sub-arrays to continue pointing to the original data
 but a simple experiment with numpy shows that it does not enable this behaviour in all
 cases that we want to cover.
 
@@ -107,7 +112,7 @@ On the other hand, when you *index* a `numpy` array, the behaviour is different.
 Here changing `c` has not updated `a`. That's because the construction of `c` actually
 *copied* the relevant data instead of just pointing back at it.  This is necessitated by
 the underlying design of `numpy` arrays requiring the data to lie in a predictable
-pattern in the memory. 
+pattern in the memory.
 
 Back to pynbody
 ******************
@@ -125,8 +130,8 @@ The `IndexedSubArray` class fixes this problem:
  In [14]: a
  Out[14]: array([   0.,    0.,    0.,    0.,  100.,  200.,    0.,    0.,    0.,    0.])
 
-Note that `a` has been updated correctly. This is achieved by the `IndexedSimArray` 
-*emulating*, rather than *wrapping*, a `numpy` array; internally 
+Note that `a` has been updated correctly. This is achieved by the `IndexedSimArray`
+*emulating*, rather than *wrapping*, a `numpy` array; internally
 the syntax `d[1]=200` is then translated into `a[[4,5,6][1]]=200`.
 
 The cost of this is that each time you call a function that requires a `numpy` array
@@ -143,8 +148,8 @@ Have a look at the following timings:
  CPU times: user 0.04 s, sys: 0.00 s, total: 0.04 s
  Wall time: 0.04 s
 
-Adding to the subarray is *slower* than adding to the entire array! 
-This is because of the overheads of continually constructing proxy 
+Adding to the subarray is *slower* than adding to the entire array!
+This is because of the overheads of continually constructing proxy
 `numpy` arrays to pass to the ``__add__`` method.
 
 
@@ -152,16 +157,16 @@ How to remove this bottleneck
 ***************************************
 
 We should emphasize that the example above is quite contrived, since it forces
-re-construction of the `numpy` proxy 10000 times. In user code, 
-the number of `numpy` proxies that have to be constructed will be vastly smaller, 
+re-construction of the `numpy` proxy 10000 times. In user code,
+the number of `numpy` proxies that have to be constructed will be vastly smaller,
 so the fractional overheads are normally quite small.
 
-Nonetheless, it does sometimes become a problem for performance-critical code. 
+Nonetheless, it does sometimes become a problem for performance-critical code.
 For that reason, it's possible to avoid constructing `IndexedSimArray`s altogether
 and force only `numpy` arrays to be returned. This means you must take responsibility
 for understanding which operations copy, as opposed to referencing, data.
 
-This is known as `immediate mode` and is activated using python's `with` mechanism. 
+This is known as `immediate mode` and is activated using python's `with` mechanism.
 Let's create a test snapshot and a subview into that snapshot to try it out.
 
 .. ipython ::
@@ -193,7 +198,7 @@ parent snapshot.
 
  In [32]: with f.immediate_mode :
     ....:     sub_mass = sub_f['mass']
-    ....: 
+    ....:
 
  In [30]: type(sub_mass)
 
@@ -216,8 +221,8 @@ critical code which might be operating on a `SubSnap` follows.
 .. note::
 
  ``with f_sub.immediate_mode``
- is equivalent to ``with f.immediate_mode`` where `f_sub` is any `SubSnap` of `f`. 
- 
+ is equivalent to ``with f.immediate_mode`` where `f_sub` is any `SubSnap` of `f`.
+
 So in summary, the template code at the start of this document advocates:
 
  - storing a *copy* of the data for the subset of particles
@@ -235,9 +240,9 @@ Overheads of raw SimArrays
 
 In `pynbody`, arrays are implemented by the class :class:`~pynbody.array.SimArray`. This is a wrapper
 around a `numpy` array. There is a small extra cost associated with every operation to allow
-units to be matched and updated. For long arrays such as those found in typical simulations, this is usually a tiny fraction of the 
+units to be matched and updated. For long arrays such as those found in typical simulations, this is usually a tiny fraction of the
 actual computation time. We have never found it to be a problem, but if you want to disable the
 unit tracking you can always do so using `numpy`'s view mechanism to get a raw `numpy` array.
 Suppose you have a `SimSnap` ``f``; then ``pos = f['pos'].view(numpy.ndarray)`` (for example) will return the position
 array without any of the `SimArray` wrapping. The new `pos` variable can be manipulated without
-any unit handling code being called. 
+any unit handling code being called.

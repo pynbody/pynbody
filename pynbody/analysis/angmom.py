@@ -4,12 +4,15 @@ angmom
 ======
 
 """
-
+import logging
 import numpy as np
 from .. import array, filt, units, config, transformation
 from . import halo
 
-def ang_mom_vec(snap) :
+logger = logging.getLogger('pynbody.analysis.angmom')
+
+
+def ang_mom_vec(snap):
     """
 
     Return the angular momentum vector of the specified snapshot.
@@ -18,11 +21,13 @@ def ang_mom_vec(snap) :
     snapshot.
 
     """
-    
-    angmom = (snap['mass'].reshape((len(snap),1))*np.cross(snap['pos'], snap['vel'])).sum(axis=0).view(np.ndarray)
+
+    angmom = (snap['mass'].reshape((len(snap), 1)) *
+              np.cross(snap['pos'], snap['vel'])).sum(axis=0).view(np.ndarray)
     return angmom
 
-def ang_mom_vec_units(snap) :
+
+def ang_mom_vec_units(snap):
     """
 
     Return the angular momentum vector of the specified snapshot
@@ -34,9 +39,10 @@ def ang_mom_vec_units(snap) :
     """
 
     angmom = ang_mom_vec(snap)
-    return array.SimArray(angmom, snap['mass'].units*snap['pos'].units*snap['vel'].units)
+    return array.SimArray(angmom, snap['mass'].units * snap['pos'].units * snap['vel'].units)
 
-def spin_parameter(snap) :
+
+def spin_parameter(snap):
     """
 
     Return the spin parameter \lambda' of a centered halo
@@ -49,36 +55,39 @@ def spin_parameter(snap) :
     """
 
     m3 = snap['mass'].sum()
-    m3 = m3*m3*m3
-    l = np.sqrt(((ang_mom_vec_units(snap)**2).sum())/(2*units.G*m3*snap['r'].max()))
+    m3 = m3 * m3 * m3
+    l = np.sqrt(((ang_mom_vec_units(snap) ** 2).sum()) /
+                (2 * units.G * m3 * snap['r'].max()))
     return float(l.in_units('1', **snap.conversion_context()))
 
-def calc_sideon_matrix(angmom_vec) :
+
+def calc_sideon_matrix(angmom_vec):
     vec_in = np.asarray(angmom_vec)
-    vec_in = vec_in/np.sum(vec_in**2).sum()**0.5
-    vec_p1 = np.cross([1,0,0],vec_in)
-    vec_p1 = vec_p1/np.sum(vec_p1**2).sum()**0.5
-    vec_p2 = np.cross(vec_in,vec_p1)
+    vec_in = vec_in / np.sum(vec_in ** 2).sum() ** 0.5
+    vec_p1 = np.cross([1, 0, 0], vec_in)
+    vec_p1 = vec_p1 / np.sum(vec_p1 ** 2).sum() ** 0.5
+    vec_p2 = np.cross(vec_in, vec_p1)
 
-    matr = np.concatenate((vec_p2,vec_in,vec_p1)).reshape((3,3))
-
-    return matr
-
-def calc_faceon_matrix(angmom_vec, up=[0.0,1.0,0.0]) :
-    vec_in = np.asarray(angmom_vec)
-    vec_in = vec_in/np.sum(vec_in**2).sum()**0.5
-    vec_p1 = np.cross(up,vec_in)
-    vec_p1 = vec_p1/np.sum(vec_p1**2).sum()**0.5
-    vec_p2 = np.cross(vec_in,vec_p1)
-
-    matr = np.concatenate((vec_p1,vec_p2,vec_in)).reshape((3,3))
+    matr = np.concatenate((vec_p2, vec_in, vec_p1)).reshape((3, 3))
 
     return matr
 
 
-def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc", 
-           disk_size = "5 kpc", cen = None, vcen=None, move_all=True,
-            **kwargs ) :
+def calc_faceon_matrix(angmom_vec, up=[0.0, 1.0, 0.0]):
+    vec_in = np.asarray(angmom_vec)
+    vec_in = vec_in / np.sum(vec_in ** 2).sum() ** 0.5
+    vec_p1 = np.cross(up, vec_in)
+    vec_p1 = vec_p1 / np.sum(vec_p1 ** 2).sum() ** 0.5
+    vec_p2 = np.cross(vec_in, vec_p1)
+
+    matr = np.concatenate((vec_p1, vec_p2, vec_in)).reshape((3, 3))
+
+    return matr
+
+
+def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
+           disk_size="5 kpc", cen=None, vcen=None, move_all=True,
+           **kwargs):
     """
 
     Reposition and rotate the simulation containing the halo h to see
@@ -93,28 +102,26 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
 
     global config
 
-    if move_all :
+    if move_all:
         top = h.ancestor
-    else :
+    else:
         top = h
 
     # Top is the top-level view of the simulation, which will be
     # transformed
 
-    if cen is None :
-        if config['verbose'] :
-            print "Finding halo center..."
-        cen = halo.center(h,retcen=True,**kwargs) # or h['pos'][h['phi'].argmin()]
-        if config['verbose'] :
-            print "cen=",cen
+    if cen is None:
+        logger.info("Finding halo center...")
+        # or h['pos'][h['phi'].argmin()]
+        cen = halo.center(h, retcen=True, **kwargs)
+        logger.info("... cen=%s" % cen)
 
     tx = transformation.inverse_translate(top, cen)
 
-    if vcen is None :
-        vcen = halo.vel_center(h,retcen=True, cen_size=cen_size)
+    if vcen is None:
+        vcen = halo.vel_center(h, retcen=True, cen_size=cen_size)
 
     tx = transformation.inverse_v_translate(tx, vcen)
-
 
     # Use gas from inner 10kpc to calculate angular momentum vector
     if (len(h.gas) > 0):
@@ -122,19 +129,19 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size = "1 kpc",
     else:
         cen = h[filt.Sphere(disk_size)]
 
-    if config['verbose'] :
-        print "Calculating angular momentum vector..."
+    logger.info("Calculating angular momentum vector...")
     trans = vec_to_xform(ang_mom_vec(cen))
 
-    if config['verbose'] :
-        print "Transforming simulation..."
+    logger.info("Transforming simulation...")
 
     tx = transformation.transform(tx, trans)
+
+    logger.info("...done!")
 
     return tx
 
 
-def faceon(h, **kwargs) :
+def faceon(h, **kwargs):
     """
 
     Reposition and rotate the simulation containing the halo h to see

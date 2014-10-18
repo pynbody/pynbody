@@ -1,33 +1,36 @@
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
+#include <Python.h>
+#include <numpy/arrayobject.h>
+
+#ifdef KDT_THREADING
+#pragma message("KDT_THREADING is ON")
+#define _POSIX_C_SOURCE 200112L
+#include <pthread.h>
+#endif
+
 #define ROOT		1
 #define LOWER(i)	(i<<1)
 #define UPPER(i)	((i<<1)+1)
 #define PARENT(i)	(i>>1)
 #define SIBLING(i) 	((i&1)?i-1:i+1)
-#define SETNEXT(i)\
+#define SETNEXT(i,localroot)\
 {\
-	while (i&1) i=i>>1;\
-	++i;\
+	while (i&1 && i!=localroot) i=i>>1;\
+	if(i!=localroot) ++i;\
 	}
+
 
 #define DARK	1
 #define GAS		2
 #define STAR	4
 
 typedef struct Particle {
-	float r[3];
-	float v[3];
-	float fMass;
 	int iOrder;
 	int iMark;
-	float fDensity;
-	float vMean[3];
-	float fVel2;
-	float fDivv;
-	float fSmooth;
-	} PARTICLE;
+	// float r[3];
+} PARTICLE;
 
 typedef struct bndBound {
 	float fMin[3];
@@ -45,12 +48,6 @@ typedef struct kdNode {
 typedef struct kdContext {
 	int nBucket;
 	int nParticles;
-	int nDark;
-	int nGas;
-	int nStar;
-	int bDark;
-	int bGas;
-	int bStar;
 	int nActive;
 	float fTime;
 	int nLevels;
@@ -60,6 +57,14 @@ typedef struct kdContext {
 	KDN *kdNodes;
 	int uSecond;
 	int uMicro;
+
+	int nBitDepth;
+	PyObject *pNumpyPos;  // Nx3 Numpy array of positions
+	PyObject *pNumpyMass; // Nx1 Numpy array of masses
+	PyObject *pNumpySmooth;
+	PyObject *pNumpyDen;  // Nx1 Numpy array of density
+	PyObject *pNumpyQty;  // Nx1 Numpy array of density
+	PyObject *pNumpyQtySmoothed;  // Nx1 Numpy array of density
 	} * KD;
 
 
@@ -162,19 +167,50 @@ void kdTime(KD,int *,int *);
 int kdInit(KD *,int);
 int kdReadTipsy(KD,FILE *,int,int,int,int);
 void kdInMark(KD,char *);
+
+template<typename T>
 void kdBuildTree(KD);
 void kdOrder(KD);
 void kdFinish(KD);
 
+template<typename T>
+void kdBuildNode(KD, int);
+void kdCombine(KDN *p1,KDN *p2,KDN *pOut);
+
+
+template<typename T>
+T GET(PyObject *ar, int i) {
+	return *((T*)PyArray_GETPTR1(ar, i));
+}
+
+template<typename T>
+T GET2(PyObject *ar, int i, int j) {
+	return *((T*)PyArray_GETPTR2(ar, i, j));
+}
+
+template<typename T>
+void SET(PyObject *ar, int i, T val) {
+	*((T*)PyArray_GETPTR1(ar, i)) = val;
+}
+
+template<typename T>
+void SET2(PyObject *ar, int i, int j, T val) {
+	*((T*)PyArray_GETPTR2(ar, i,j)) = val;
+}
+
+template<typename T>
+void ACCUM(PyObject *ar, int i, T val) {
+	(*((T*)PyArray_GETPTR1(ar, i))) += val;
+}
+
+template<typename T>
+void ACCUM2(PyObject *ar, int i, int j, T val) {
+	(*((T*)PyArray_GETPTR2(ar, i, j))) += val;
+}
+
+
+#define GETSMOOTH(T, pid) GET<T>(kd->pNumpySmooth, kd->p[pid].iOrder)
+#define SETSMOOTH(T, pid, val) SET<T>(kd->pNumpySmooth, kd->p[pid].iOrder, val)
+
+
 #endif
-
-
-
-
-
-
-
-
-
-
-
