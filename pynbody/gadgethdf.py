@@ -544,6 +544,20 @@ def rho_ne(sim) :
 
     return sim["ne"].in_units("m_p**-1") * sim["rho"].in_units("m_p cm**-3")
 
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def c_n_sq(sim) :
+    """Turbulent amplitude C_N^2 for use in SM calculations (e.g. Eqn 20 of Macquart & Koay 2013 ApJ 776 2) """
+
+    ## Spectrum of turbulence below the SPH resolution, assume Kolmogorov
+    beta = 11./3.
+    L_min = 0.1*units.Mpc
+    c_n_sq = ((beta - 3.)/((2.)*(2.*np.pi)**(4.-beta)))*L_min**(3.-beta)*sim["rho_ne"]*sim["rho_ne"]
+    c_n_sq.units = units.m**(-20,3)
+
+    return c_n_sq
+
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def hetot(self) :

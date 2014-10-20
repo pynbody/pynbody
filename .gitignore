@@ -2,6 +2,7 @@
 build
 _build
 *.pyc
+*.DS_Store
 direct_omp.c
 testdata
 docs/_static/*png
