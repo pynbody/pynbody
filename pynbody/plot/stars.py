@@ -56,10 +56,9 @@ def combine(r, g, b, dynamic_range):
 def render(sim, filename=None,
            r_band='i', g_band='v', b_band='u',
            r_scale=0.5, g_scale=1.0, b_scale=1.0,
-           dynamic_range=2.0,
-           width=50,
-           starsize=None,
-           plot=True, axes=None, ret_im=False, clear=True):
+           dynamic_range=2.0, width=50, starsize=None,
+           plot=True, axes=None, ret_im=False, clear=True,
+           z_camera=None):
     '''
     Make a 3-color image of stars.
 
@@ -121,11 +120,11 @@ def render(sim, filename=None,
         sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
 
     r = image(sim.s, qty=r_band + '_lum_den', width=width, log=False,
-              av_z=True, clear=False, noplot=True) * r_scale
+              av_z=True, clear=False, noplot=True, z_camera=z_camera) * r_scale
     g = image(sim.s, qty=g_band + '_lum_den', width=width, log=False,
-              av_z=True, clear=False, noplot=True) * g_scale
+              av_z=True, clear=False, noplot=True, z_camera=z_camera) * g_scale
     b = image(sim.s, qty=b_band + '_lum_den', width=width, log=False,
-              av_z=True, clear=False, noplot=True) * b_scale
+              av_z=True, clear=False, noplot=True, z_camera=z_camera) * b_scale
 
     #r,g,b = nw_scale_rgb(r,g,b)
     #r,g,b = nw_arcsinh_fit(r,g,b)
