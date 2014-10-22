@@ -231,8 +231,9 @@ class GadgetHDFSnap(SimSnap):
                 try:
                     dset0 = self._get_hdf_dataset(hdf[
                             _type_map[famx][0]], translated_name)
-                except KeyError:
-                    continue
+                except KeyError as e:
+                    if 'parttype' in e.args[0]: continue
+                    else: raise e
             
             assert len(dset0.shape) <= 2
             dy = 1
@@ -261,7 +262,7 @@ class GadgetHDFSnap(SimSnap):
                             dataset = self._get_hdf_dataset(
                                 hdf[t], translated_name)
                         except KeyError as e:
-                            if 'PartType' in t: continue
+                            if 'parttype' in e.args[0]: continue
                             else: raise e
                         i1 = i0 + len(dataset)
                         dataset.read_direct(self[f][array_name][i0:i1])
