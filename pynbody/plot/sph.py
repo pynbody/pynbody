@@ -127,6 +127,30 @@ def volume(sim, qty='rho', width=None, resolution=200,
            color=(1.0,1.0,1.0),vmin=None,vmax=None,
            dynamic_range=4.0,log=True,
            create_figure=True):
+    """Create a volume rendering of the given simulation using mayavi.
+
+    **Keyword arguments:**
+
+    *qty* (rho): The name of the array to interpolate
+
+    *width* (None): The width of the cube to generate, centered on the origin
+
+    *resolution* (200): The number of elements along each side of the cube
+
+    *color* (white): The color of the volume rendering. The value of each voxel
+       is used to set the opacity.
+
+    *vmin* (None): The value for zero opacity (calculated using dynamic_range if None)
+
+    *vmax* (None): The value for full opacity (calculated from the maximum
+       value in the region if None)
+
+    *dynamic_range*: The dynamic range to use if vmin and vmax are not specified
+
+    *log* (True): log-scale the image before passing to mayavi
+
+    *create_figure* (True): create a new mayavi figure before rendering
+    """
 
     import mayavi
     from mayavi import mlab
@@ -166,8 +190,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           **kwargs):
     """
 
-    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial
-    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples.
+    Make an SPH image of the given simulation.
 
     **Keyword arguments:**
 
