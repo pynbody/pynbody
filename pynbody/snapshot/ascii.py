@@ -32,20 +32,21 @@ class AsciiSnap(SimSnap):
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
 
-    def __init__(self, filename, take=None, paramfile=None):
+    def __init__(self, filename, take=None, header=None):
         super(AsciiSnap, self).__init__()
 
         num_particles = 0
 
+        self._header = header
+
         with open(filename) as f:
-            header = True
             for l in f:
-                if header:
-                    self._loadable_keys = l.split()
-                    header = False
+                if not header:
+                    header = l
                 else:
                     num_particles+=1
 
+        self._loadable_keys = header.split()
         self._filename = filename
         self._file_units_system = [units.Unit("G"), units.Unit("kpc"), units.Unit("Msol")]
         self._setup_slices(num_particles,take=take)
@@ -57,7 +58,7 @@ class AsciiSnap(SimSnap):
     def _load_arrays(self, array_name_list):
         with open(self._filename,'r') as f:
 
-            f.readline()
+            if not self._header: f.readline()
             rs=[]
             for array_name in array_name_list:
                 self._create_array(array_name, ndim=1)
