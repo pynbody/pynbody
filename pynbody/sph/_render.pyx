@@ -332,7 +332,7 @@ def to_3d_grid(int nx, int ny, int nz,
             total_ptcls+=1
 
             # check particle is within bounds
-            if not (z_i>z1-2*sm_i and z_i<z2*sm_i \
+            if not (z_i>z1-2*sm_i and z_i<z2+2*sm_i \
                     and x_i>x1-2*sm_i and x_i<x2+2*sm_i \
                     and y_i>y1-2*sm_i and y_i<y2+2*sm_i) :
                 continue

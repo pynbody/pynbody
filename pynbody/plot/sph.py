@@ -123,6 +123,65 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     return im
 
 
+def volume(sim, qty='rho', width=None, resolution=200,
+           color=(1.0,1.0,1.0),vmin=None,vmax=None,
+           dynamic_range=4.0,log=True,
+           create_figure=True):
+    """Create a volume rendering of the given simulation using mayavi.
+
+    **Keyword arguments:**
+
+    *qty* (rho): The name of the array to interpolate
+
+    *width* (None): The width of the cube to generate, centered on the origin
+
+    *resolution* (200): The number of elements along each side of the cube
+
+    *color* (white): The color of the volume rendering. The value of each voxel
+       is used to set the opacity.
+
+    *vmin* (None): The value for zero opacity (calculated using dynamic_range if None)
+
+    *vmax* (None): The value for full opacity (calculated from the maximum
+       value in the region if None)
+
+    *dynamic_range*: The dynamic range to use if vmin and vmax are not specified
+
+    *log* (True): log-scale the image before passing to mayavi
+
+    *create_figure* (True): create a new mayavi figure before rendering
+    """
+
+    import mayavi
+    from mayavi import mlab
+
+    if create_figure:
+        fig = mlab.figure(size=(500,500),bgcolor=(0,0,0))
+
+    grid_data = sph.to_3d_grid(sim,qty=qty,nx=resolution,
+                               x2=None if width is None else width/2)
+
+
+
+    if log:
+        grid_data = np.log10(grid_data)
+        if vmin is None:
+            vmin = grid_data.max()-dynamic_range
+        if vmax is None:
+            vmax = grid_data.max()
+    else:
+        if vmin is None:
+            vmin = np.min(grid_data)
+        if vmax is None:
+            vmax = np.max(grid_data)
+
+    grid_data[grid_data<vmin]=vmin
+    grid_data[grid_data>vmax]=vmax
+    sf = mayavi.tools.pipeline.scalar_field(grid_data)
+    mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+
+
+
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z=False, filename=None,
           z_camera=None, clear=True, cmap=None, center=False,
@@ -131,8 +190,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           **kwargs):
     """
 
-    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial
-    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples.
+    Make an SPH image of the given simulation.
 
     **Keyword arguments:**
 

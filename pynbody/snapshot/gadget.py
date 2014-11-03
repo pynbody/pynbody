@@ -1180,6 +1180,6 @@ def do_properties(sim):
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
         sim.properties['omegaL0'] = h.OmegaLambda
-        sim.properties['boxsize'] = h.BoxSize
+        sim.properties['boxsize'] = sim.infer_original_units("kpc")*h.BoxSize
         sim.properties['z'] = h.redshift
         sim.properties['h'] = h.HubbleParam
