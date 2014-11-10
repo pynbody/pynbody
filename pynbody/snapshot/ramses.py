@@ -556,7 +556,11 @@ class RamsesSnap(SimSnap):
 
     def _load_particle_block(self, blockname):
         offset = self._particle_blocks.index(blockname)
-        _type = np.dtype(particle_format[offset])
+        try:
+            _type = np.dtype(particle_format[offset])
+        except IndexError:
+            warnings.warn("Field does not have format configured - assuming double", RuntimeWarning)
+            _type = np.dtype('f8')
         ind0_dm = 0
         ind0_star = 0
 
