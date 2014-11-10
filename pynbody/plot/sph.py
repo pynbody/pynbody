@@ -154,6 +154,9 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     import mayavi
     from mayavi import mlab
+    from tvtk.util.ctf import PiecewiseFunction
+
+
 
     if create_figure:
         fig = mlab.figure(size=(500,500),bgcolor=(0,0,0))
@@ -177,8 +180,16 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     grid_data[grid_data<vmin]=vmin
     grid_data[grid_data>vmax]=vmax
+
+    otf = PiecewiseFunction()
+    otf.add_point(vmin,0.0)
+    otf.add_point(vmax,1.0)
+    
     sf = mayavi.tools.pipeline.scalar_field(grid_data)
-    mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+    V = mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+    V.trait_get('volume_mapper')['volume_mapper'].blend_mode = 'maximum_intensity'
+    V._otf = otf
+    V._volume_property.set_scalar_opacity(otf)
 
 
 
