@@ -149,7 +149,7 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
         p.savefig(filename)
 
 
-def density_profile(sim, linestyle=False, center=True, clear=True,
+def density_profile(sim, linestyle=False, center=True, clear=True, in_units=None, 
                     filename=None, **kwargs):
     '''
 
@@ -188,7 +188,11 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     critden = (units.Unit('100 km s^-1 Mpc^-1')
                * sim.properties['h']) ** 2 / 8.0 / np.pi / units.G
     r = ps['rbins'].in_units('kpc')
-    den = ps['density'].in_units(critden)
+    if in_units is None:
+        den = ps['density'].in_units(critden)
+    else:
+        den = ps['density'].in_units(in_units)
+
     if linestyle:
         plt.errorbar(r, den, yerr=den / np.sqrt(ps['n']),
                      linestyle=linestyle, **kwargs)
@@ -198,7 +202,10 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     plt.yscale('log')
     plt.xscale('log')
     plt.xlabel('r [kpc]')
-    plt.ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+    if in_units is None:
+        plt.ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+    else:
+        plt.ylabel(r'$\rho / '+den.units.latex()+'$')
     if (filename):
         logger.info("Saving %s", filename)
         plt.savefig(filename)
