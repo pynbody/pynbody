@@ -154,7 +154,7 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     import mayavi
     from mayavi import mlab
-    from tvtk.util.ctf import PiecewiseFunction
+    from tvtk.util.ctf import PiecewiseFunction, ColorTransferFunction
 
 
 
@@ -184,12 +184,31 @@ def volume(sim, qty='rho', width=None, resolution=200,
     otf = PiecewiseFunction()
     otf.add_point(vmin,0.0)
     otf.add_point(vmax,1.0)
-    
+
     sf = mayavi.tools.pipeline.scalar_field(grid_data)
     V = mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+
+
+
+
     V.trait_get('volume_mapper')['volume_mapper'].blend_mode = 'maximum_intensity'
+
+    if color is None:
+        ctf = ColorTransferFunction()
+        ctf.add_rgb_point(vmin,107./255,124./255,132./255)
+        ctf.add_rgb_point(vmin+(vmax-vmin)*0.8,200./255,178./255,164./255)
+        ctf.add_rgb_point(vmin+(vmax-vmin)*0.9,1.0,210./255,149./255)
+        ctf.add_rgb_point(vmax,1.0,222./255,141./255)
+        print vmin,vmax
+        V._volume_property.set_color(ctf)
+        V._ctf = ctf
+        V.update_ctf = True
+
     V._otf = otf
     V._volume_property.set_scalar_opacity(otf)
+
+
+    return V
 
 
 
