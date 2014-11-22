@@ -708,10 +708,11 @@ def translate_info(sim):
 
     cosmo = 'aexp' in sim._info
 
-    sim.properties['a'] = sim._info['aexp']
-    sim.properties['omegaM0'] = sim._info['omega_m']
-    sim.properties['omegaL0'] = sim._info['omega_l']
-    sim.properties['h'] = sim._info['H0'] / 100.
+    if sim._info['H0']>10:
+        sim.properties['a'] = sim._info['aexp']
+        sim.properties['omegaM0'] = sim._info['omega_m']
+        sim.properties['omegaL0'] = sim._info['omega_l']
+        sim.properties['h'] = sim._info['H0'] / 100.
 
     # N.B. these conversion factors provided by ramses already have the
     # correction from comoving to physical units
