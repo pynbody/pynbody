@@ -210,6 +210,36 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     return V
 
+def contour(*args, **kwargs):
+    """
+    Make an SPH image of the given simulation and render it as contours.
+    nlevels and levels are passed to pyplot's contour command.
+
+    Other arguments are as for *image*.
+    """
+
+    import copy
+    kwargs_image = copy.copy(kwargs)
+    nlevels = kwargs_image.pop('nlevels',None)
+    levels = kwargs_image.pop('levels',None)
+    width = kwargs_image.get('width','10 kpc')
+    kwargs_image['noplot']=True
+    im = image(*args, **kwargs_image)
+    res = im.shape
+
+    units = kwargs_image.get('units',None)
+
+    if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
+        if isinstance(width, str):
+            width = _units.Unit(width)
+        sim = args[0]
+        width = width.in_units(sim['pos'].units, **sim.conversion_context())
+
+    width = float(width)
+    x,y = np.meshgrid(np.linspace(-width/2,width/2,res[0]),np.linspace(-width/2,width/2,res[0]))
+
+    p.contour(x,y,im,nlevels=nlevels,levels=levels)
+
 
 
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
