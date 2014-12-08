@@ -149,7 +149,7 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
         p.savefig(filename)
 
 
-def density_profile(sim, linestyle=False, center=True, clear=True, fit=True,
+def density_profile(sim, linestyle=False, center=True, clear=True, fit=True,in_units=None,
                     filename=None, fit_factor=0.02, axes=False, **kwargs):
     '''
 
@@ -190,23 +190,32 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=True,
     critden = (units.Unit('100 km s^-1 Mpc^-1')
                * sim.properties['h']) ** 2 / 8.0 / np.pi / units.G
     r = ps['rbins'].in_units('kpc')
-    den = ps['density'].in_units(critden)
+    if in_units is None:
+        den = ps['density'].in_units(critden)
+    else:
+        den = ps['density'].in_units(in_units)
+
     if linestyle:
         plt.errorbar(r, den, yerr=den / np.sqrt(ps['n']),
                      linestyle=linestyle, **kwargs)
     else:
         plt.errorbar(r, den, yerr=den / np.sqrt(ps['n']),
                      fmt='o', **kwargs)
+
+    if in_units is None:
+        ylabel=r'$\rho / \rho_{cr}$'  # +den.units.latex()+'$]')
+    else:
+        ylabel=r'$\rho / '+den.units.latex()+'$'
     if axes:
         plt.set_yscale('log')
         plt.set_xscale('log')
         plt.set_xlabel('r [kpc]')
-        plt.set_ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+        plt.set_ylabel(ylabel) #r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
     else:
         plt.yscale('log')
         plt.xscale('log')
         plt.xlabel('r [kpc]')
-        plt.ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+        plt.ylabel(ylabel) #r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
 
 
     if (filename):

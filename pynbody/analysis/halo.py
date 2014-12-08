@@ -46,7 +46,7 @@ def center_of_mass_velocity(sim):
     return v
 
 
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False):
+def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False, num_threads = config['number_of_threads']):
     """
 
     Return the center according to the shrinking-sphere method of
@@ -75,9 +75,9 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
      zeroing in on the wrong part of the simulation.
 
     """
-    import os
 
     if r is None:
+
         # use rough estimate for a maximum radius
         # results will be insensitive to the exact value chosen
         r = (sim["x"].max() - sim["x"].min()) / 2
@@ -90,7 +90,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
     mass = np.asarray(sim['mass'], dtype='double')
     pos = np.asarray(sim['pos'], dtype='double')
 
-    com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r)
+    com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
     logger.info("Final SSC=%s", com)
 
     return array.SimArray(com, sim['pos'].units)
@@ -231,7 +231,7 @@ def vel_center(sim, mode=None, cen_size="1 kpc", retcen=False, move_all=True, **
         return transformation.v_translate(target, -vcen)
 
 
-def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=True, **kwargs):
+def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=True, wrap=False, **kwargs):
     """
 
     Determine the center of mass of the given particles using the
@@ -266,6 +266,9 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
 
     *move_all*: if True (default), move the entire snapshot. Otherwise only move
     the particles in the halo passed in.
+
+    *wrap*: if True, pre-centre and wrap the simulation so that halos on the edge
+    of the box are handled correctly. Default False.
     """
 
     global config
@@ -285,6 +288,11 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
         target = sim.ancestor
     else:
         target = sim
+
+    if wrap:
+        # centre on something within the halo and wrap
+        target = transformation.inverse_translate(target, sim['pos'][0])
+        target.sim.wrap()
 
     if retcen:
         return fn(sim, **kwargs)

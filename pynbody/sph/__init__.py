@@ -66,6 +66,18 @@ def _thread_map(func, *args):
         t,obj,trace= exceptions[0]
         raise t,obj,trace
 
+def _auto_denoise(sim):
+    """Returns True if pynbody thinks denoise flag should be on for best
+    results with this simulation.
+
+    At the moment it inspects to see if it's a RamsesSnap, and if so, returns
+    True."""
+
+    if isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
+        return True
+    else:
+        return False
+
 def build_tree(sim):
     if hasattr(sim, 'kdtree') is False:
         # n.b. getting the following arrays through the full framework is
@@ -207,7 +219,7 @@ class TopHatKernel(object):
 
 
 def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
-                           kstep=0.5, denoise=False, out_units=None, threaded=None):
+                           kstep=0.5, denoise=None, out_units=None, threaded=None):
     """Render an SPH image on a spherical surface. Requires healpy libraries.
 
     **Keyword arguments:**
@@ -232,6 +244,10 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
       Defaults to a value specified in your configuration files. *Currently multi-threaded
       rendering is slower than single-threaded because healpy does not release the gil*.
     """
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
+
     renderer = _render_spherical_image
 
     if threaded is None:
@@ -247,9 +263,12 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
 
 
 def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
-                            kstep=0.5, denoise=False, out_units=None, __threaded=False, snap_slice=None):
+                            kstep=0.5, denoise=None, out_units=None, __threaded=False, snap_slice=None):
 
     import healpy as hp
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
 
     if out_units is not None:
         conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * snap['smooth'].units ** kernel.h_power)).ratio(out_units,
@@ -399,7 +418,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
                  threaded=None,
-                 denoise=False):
+                 denoise=None):
     """
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -457,6 +476,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
       the number of threads to use (defaults to a value specified in your
       configuration files).
     """
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
 
     if approximate_fast:
         base_renderer = _interpolated_renderer(
@@ -613,7 +635,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=None, snap_slice=None, denoise=False):
+               threaded=None, snap_slice=None, denoise=None):
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -648,6 +670,9 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     import os
     import os.path
     global config
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
 
     in_time = time.time()
 

@@ -1318,13 +1318,15 @@ class SubfindCatalogue(HaloCatalogue):
         snapnum = os.path.basename(
             os.path.dirname(sim.filename)).split("_")[-1]
         parent_dir = os.path.dirname(os.path.dirname(sim.filename))
-        if os.path.exists(parent_dir + "/groups_" + snapnum):
-            return parent_dir + "/groups_" + snapnum
+        dir_path=os.path.join(parent_dir,"groups_" + snapnum)
+
+        if os.path.exists(dir_path):
+            return dir_path
         # alternative path if snapshot is single file
         else:
             snapnum = os.path.basename(sim.filename).split("_")[-1]
             parent_dir = os.path.dirname(sim.filename)
-            return parent_dir + "/groups_" + snapnum
+            return os.path.join(parent_dir,"groups_" + snapnum)
 
     @property
     def base(self):
