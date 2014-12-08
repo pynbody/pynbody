@@ -659,6 +659,7 @@ class AHFCatalogue(HaloCatalogue):
         ar = np.zeros(len(self.base), dtype=int)
         for halo in self._halos.values():
             ar[halo.get_index_list(self.base)] = halo._halo_id
+        return ar
 
     def _setup_children(self):
         """
