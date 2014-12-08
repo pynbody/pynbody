@@ -355,16 +355,16 @@ class RockstarCatalogue(HaloCatalogue):
         f = util.open_(filename)
         #nhalos = int(f.readline())  # number of halos?  no, some crazy number
                                     # that we will ignore
-        nhalos = f.readline()  # Some crazy number, just need to skip it
+        #nhalos = f.readline()  # Some crazy number, just need to skip it
         for i in xrange(len(self._halos)):
-            try:
-                haloid, nsubhalos = [int(x) for x in f.readline().split()]
-                self._halos[haloid+1].properties['children'] = [
-                    int(x)+1 for x in f.readline().split()]
-            except KeyError:
-                pass
-            except ValueError:
-                break
+            #try:
+            haloid, nsubhalos = [int(x) for x in f.readline().split()]
+            self._halos[haloid+1].properties['children'] = [
+                int(x)+1 for x in f.readline().split()]
+            #except KeyError:
+            #    pass
+            #except ValueError:
+            #    break
         f.close()
 
     @staticmethod
@@ -609,7 +609,7 @@ class AHFCatalogue(HaloCatalogue):
             self._ahfBasename = ahf_basename
         else:
             self._ahfBasename = util.cutgz(
-                glob.glob(sim._filename + '*z*halos*')[0])[:-5]
+                glob.glob(sim._filename + '*z*AHF_halos*')[0])[:-5]
 
         try:
             f = util.open_(self._ahfBasename + 'halos')
@@ -816,12 +816,13 @@ class AHFCatalogue(HaloCatalogue):
         f = util.open_(filename)
         # nhalos = int(f.readline())  # number of halos?  no, some crazy number
         # that we will ignore
-        nhalos = f.readline()  # Some crazy number, just need to skip it
         for i in xrange(len(self._halos)):
             try:
                 haloid, nsubhalos = [int(x) for x in f.readline().split()]
                 self._halos[haloid + 1].properties['children'] = [
                     int(x) + 1 for x in f.readline().split()]
+                for ichild in self._halos[haloid + 1].properties['children']:
+                    self._halos[ichild].properties['parentid'] = haloid+1
             except KeyError:
                 pass
             except ValueError:
