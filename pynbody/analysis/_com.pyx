@@ -39,16 +39,29 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
         cx=com_x[0]; cy=com_x[1]; cz=com_x[2]
         with nogil:
             npart = 0
-            for i in prange(npart_all, schedule='static', num_threads=num_threads):
-                pix=pos[i,0]-cx; piy=pos[i,1]-cy; piz=pos[i,2]-cz
-                r = pix*pix+piy*piy+piz*piz
-                if r<current_rmax :
-                    mi = mass[i]
-                    nx+=pix*mi
-                    ny+=piy*mi
-                    nz+=piz*mi
-                    tot_mass+=mi
-                    npart+=1
+
+            if num_threads > 1 : 
+                for i in prange(npart_all, schedule='static', num_threads=num_threads):
+                    pix=pos[i,0]-cx; piy=pos[i,1]-cy; piz=pos[i,2]-cz
+                    r = pix*pix+piy*piy+piz*piz
+                    if r<current_rmax :
+                        mi = mass[i]
+                        nx+=pix*mi
+                        ny+=piy*mi
+                        nz+=piz*mi
+                        tot_mass+=mi
+                        npart+=1
+            else : 
+                for i in range(npart_all):
+                    pix=pos[i,0]-cx; piy=pos[i,1]-cy; piz=pos[i,2]-cz
+                    r = pix*pix+piy*piy+piz*piz
+                    if r<current_rmax :
+                        mi = mass[i]
+                        nx+=pix*mi
+                        ny+=piy*mi
+                        nz+=piz*mi
+                        tot_mass+=mi
+                        npart+=1
 
         if npart==0:
             return com_x
