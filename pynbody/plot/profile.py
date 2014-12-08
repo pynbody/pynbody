@@ -149,8 +149,8 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
         p.savefig(filename)
 
 
-def density_profile(sim, linestyle=False, center=True, clear=True,
-                    filename=None, **kwargs):
+def density_profile(sim, linestyle=False, center=True, clear=True, fit=True,
+                    filename=None, fit_factor=0.02, axes=False, **kwargs):
     '''
 
     3d density profile
@@ -167,7 +167,9 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
 
 
     '''
-    import matplotlib.pyplot as plt
+    if axes: plt = axes
+    else: import matplotlib.pyplot as plt
+
     global config
 
     logger.info("Centering...")
@@ -183,7 +185,7 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     else:
         ps = profile.Profile(sim, ndim=3, type='log', nbins=40)
 
-    if clear:
+    if clear and not axes:
         plt.clf()
     critden = (units.Unit('100 km s^-1 Mpc^-1')
                * sim.properties['h']) ** 2 / 8.0 / np.pi / units.G
@@ -195,10 +197,32 @@ def density_profile(sim, linestyle=False, center=True, clear=True,
     else:
         plt.errorbar(r, den, yerr=den / np.sqrt(ps['n']),
                      fmt='o', **kwargs)
-    plt.yscale('log')
-    plt.xscale('log')
-    plt.xlabel('r [kpc]')
-    plt.ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+    if axes:
+        plt.set_yscale('log')
+        plt.set_xscale('log')
+        plt.set_xlabel('r [kpc]')
+        plt.set_ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+    else:
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.xlabel('r [kpc]')
+        plt.ylabel(r'$\rho / \rho_{cr}$')  # +den.units.latex()+'$]')
+
+
     if (filename):
         logger.info("Saving %s", filename)
         plt.savefig(filename)
+
+    if fit:
+        fit_inds = np.where(r < fit_factor*sim['r'].max())
+        alphfit = np.polyfit(np.log10(logr[fit_inds]),
+                             np.log10(barden[fit_inds]), 1)
+        
+        print "alpha: ", alphfit[0], "  norm:", alphfit[1]
+        
+        fit = np.poly1d(alphfit)
+        plt.plot(r[fit_inds], 10**fit(np.log10(r[fit_inds])), 
+                 color='k',linestyle='dashed',
+                 label=r'$\alpha$=%.1f'%alphfit[0])
+
+        return alphfit[0]
