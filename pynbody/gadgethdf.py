@@ -563,7 +563,7 @@ def halpha(sim) :
     #alpha.units = units.cm**(3) * units.s**(-1)
 
     ## H alpha intensity = (h Nu(Halpha)/4Pi) * 7.864e-14 T_1e4K from http://astro.berkeley.edu/~ay216/08/NOTES/Lecture08-08.pdf
-    alpha = (6.6260755e-27) * (6562.81) * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) / (4.*np.pi)
+    alpha = (6.6260755e-27) * (299792458. / 6562.81e-10) * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) / (4.*np.pi)
     alpha.units = units.erg * units.cm**(3) * units.s**(-1) ## It's intensity
 
     return alpha * sim["em"]
