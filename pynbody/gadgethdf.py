@@ -519,20 +519,20 @@ def p(sim) :
 def HII(sim) :
     """Number of HII ions per proton mass"""
 
-    return sim["hydrogen"] - sim["HI"]
+    return sim.g["hydrogen"] - sim.g["HI"]
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def HeIII(sim) :
     """Number of HeIII ions per proton mass"""
 
-    return sim["hetot"] - sim["HeII"] - sim["HeI"]
+    return sim.g["hetot"] - sim.g["HeII"] - sim.g["HeI"]
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def ne(sim) :
     """Number of electrons per proton mass, ignoring the contribution from He!"""
-    ne = sim["HII"]  #+ sim["HeII"] + 2*sim["HeIII"]
+    ne = sim.g["HII"]  #+ sim["HeII"] + 2*sim["HeIII"]
     ne.units = units.m_p**-1
 
     return ne
@@ -542,8 +542,32 @@ def ne(sim) :
 def rho_ne(sim) :
     """Electron number density per SPH particle, currently ignoring the contribution from He!"""
 
-    return sim["ne"].in_units("m_p**-1") * sim["rho"].in_units("m_p cm**-3")
+    return sim.g["ne"].in_units("m_p**-1") * sim.g["rho"].in_units("m_p cm**-3")
 
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def em(sim) :
+    """Emission Measure (n_e^2) per particle to be integrated along LoS"""
+
+    return sim.g["rho_ne"]*sim.g["rho_ne"]
+
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def halpha(sim) :
+    """H alpha (based on Emission Measure n_e^2) per particle to be integrated along LoS"""
+
+    ## Rate at which recombining electrons and protons produce Halpha photons. 
+    ## Case B recombination assumed from Draine (2011)    
+    #alpha = 2.54e-13 * (sim.g['temp'].in_units('K') / 1e4)**(-0.8163-0.0208*np.log(sim.g['temp'].in_units('K') / 1e4))
+    #alpha.units = units.cm**(3) * units.s**(-1)
+
+    ## http://astro.berkeley.edu/~ay216/08/NOTES/Lecture08-08.pdf
+    alpha = (6.6260755e-27) * (6562.81) * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) / (4.*np.pi)
+    alpha.units = (units.erg * units.s) * (units.angst) * units.cm**(3) * units.s**(-1)
+
+    return alpha * sim["em"]
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
@@ -553,7 +577,7 @@ def c_n_sq(sim) :
     ## Spectrum of turbulence below the SPH resolution, assume Kolmogorov
     beta = 11./3.
     L_min = 0.1*units.Mpc
-    c_n_sq = ((beta - 3.)/((2.)*(2.*np.pi)**(4.-beta)))*L_min**(3.-beta)*sim["rho_ne"]*sim["rho_ne"]
+    c_n_sq = ((beta - 3.)/((2.)*(2.*np.pi)**(4.-beta)))*L_min**(3.-beta)*sim["em"]
     c_n_sq.units = units.m**(-20,3)
 
     return c_n_sq
