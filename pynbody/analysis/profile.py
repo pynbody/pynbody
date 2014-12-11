@@ -276,7 +276,10 @@ class Profile:
             else:
                 raise RuntimeError, "Bin type must be one of: lin, log, equaln"
 
-            self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
+            if hasattr(x, 'units') and not hasattr(self['bin_edges'], 'units'):
+                self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
+            else:
+                self['bin_edges'] = array.SimArray(self['bin_edges'])
             self['bin_edges'].sim = self.sim
 
             n, bins = np.histogram(self._x, self['bin_edges'])
