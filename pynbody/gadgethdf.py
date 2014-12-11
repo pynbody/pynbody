@@ -555,16 +555,19 @@ def em(sim) :
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def halpha(sim) :
-    """H alpha (based on Emission Measure n_e^2) per particle to be integrated along LoS"""
+    """H alpha intensity (based on Emission Measure n_e^2) per particle to be integrated along LoS"""
 
     ## Rate at which recombining electrons and protons produce Halpha photons. 
     ## Case B recombination assumed from Draine (2011)    
     #alpha = 2.54e-13 * (sim.g['temp'].in_units('K') / 1e4)**(-0.8163-0.0208*np.log(sim.g['temp'].in_units('K') / 1e4))
     #alpha.units = units.cm**(3) * units.s**(-1)
 
-    ## H alpha intensity = (h Nu(Halpha)/4Pi) * 7.864e-14 T_1e4K from http://astro.berkeley.edu/~ay216/08/NOTES/Lecture08-08.pdf
-    alpha = (6.6260755e-27) * (299792458. / 6562.81e-10) * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) / (4.*np.pi)
-    alpha.units = units.erg * units.cm**(3) * units.s**(-1) ## It's intensity
+    ## H alpha intensity = coeff * EM 
+    ## where coeff is h (c / Lambda_Halpha) / 4Pi) and EM is int rho_e * rho_p * alpha
+    ## alpha = 7.864e-14 T_1e4K from http://astro.berkeley.edu/~ay216/08/NOTES/Lecture08-08.pdf
+    coeff = (6.6260755e-27) * (299792458. / 656.281e-9) / (4.*np.pi) ## units are erg
+    alpha = coeff * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) 
+    alpha.units = units.erg * units.cm**(3) * units.s**(-1) ## It's intensity in erg cm^3 s^-1 sr^-1
 
     return alpha * sim["em"]
 
