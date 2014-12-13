@@ -14,6 +14,7 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
                          int min_particles,
                          float shrink_factor,
                          float starting_rmax,
+                         int num_threads,
                          int itermax=1000) :
 
     cdef int npart = len(pos)
@@ -38,7 +39,7 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
         cx=com_x[0]; cy=com_x[1]; cz=com_x[2]
         with nogil:
             npart = 0
-            for i in prange(npart_all,schedule='static'):
+            for i in prange(npart_all, schedule='static', num_threads=num_threads):
                 pix=pos[i,0]-cx; piy=pos[i,1]-cy; piz=pos[i,2]-cz
                 r = pix*pix+piy*piy+piz*piz
                 if r<current_rmax :
