@@ -544,6 +544,26 @@ def rho_ne(sim) :
 
     return sim.g["ne"].in_units("m_p**-1") * sim.g["rho"].in_units("m_p cm**-3")
 
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def dm(sim) :
+    """Dispersion measure per SPH particle currently ignoring n_e contribution from He """
+
+    return sim.g["rho_ne"] 
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def cosmodm(sim) :
+    """Cosmological Dispersion measure per SPH particle includes (1+z) factor, currently ignoring n_e contribution from He """
+
+    return sim.g["rho_ne"] * (1. + sim.g["redshift"])
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def redshift(sim) :
+    """Redshift from LoS Velocity 'losvel' """
+
+    return np.exp( sim['losvel'].in_units('c') / units.c ) - 1.
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
@@ -565,11 +585,11 @@ def halpha(sim) :
     ## H alpha intensity = coeff * EM 
     ## where coeff is h (c / Lambda_Halpha) / 4Pi) and EM is int rho_e * rho_p * alpha
     ## alpha = 7.864e-14 T_1e4K from http://astro.berkeley.edu/~ay216/08/NOTES/Lecture08-08.pdf
-    coeff = (6.6260755e-27) * (299792458. / 656.281e-9) / (4.*np.pi) ## units are erg
+    coeff = (6.6260755e-27) * (299792458. / 656.281e-9) / (4.*np.pi) ## units are erg sr^-1
     alpha = coeff * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) 
     alpha.units = units.erg * units.cm**(3) * units.s**(-1) ## It's intensity in erg cm^3 s^-1 sr^-1
 
-    return alpha * sim["em"]
+    return alpha * sim["em"] # Flux erg cm^-3 s^-1 sr^-1
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity

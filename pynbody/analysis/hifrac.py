@@ -74,13 +74,13 @@ def calculate(sim,ion='hi',selfshield=False) :
 
     ## Selfshield criteria assume all EoS gas
     if selfshield != False:
-        result_array[sim.g['OnEquationOfState'] == 1.] = 0.
+        result_array[sim.gas['OnEquationOfState'] == 1.] = 0.
     ## Selfshield criteria from Duffy et al 2012a (in addition to EoS gas)
         if selfshield == 'duffy12':
-            result_array[(sim.g['p'].in_units('m_p K cm**-3') > 150.) & (sim.g['temp'].in_units('K') < 10.**(4.5))] = 0.
+            result_array[(sim.gas['p'].in_units('m_p K cm**-3') > 150.) & (sim.gas['temp'].in_units('K') < 10.**(4.5))] = 0.
     
     ## Get as HI per proton mass (essentially multiplying the HI fraction by the Hydrogen mass fraction)
-    result_array += np.log10(sim.g['hydrogen'])
+    result_array += np.log10(sim.gas['hydrogen'])
 
     result_array = (10.**result_array).view(SimArray)
     result_array.units = units.m_p**-1
