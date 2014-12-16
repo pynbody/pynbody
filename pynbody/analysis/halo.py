@@ -100,8 +100,8 @@ def virial_radius(sim, cen=None, overden=178, r_max=None):
     """Calculate the virial radius of the halo centered on the given
     coordinates.
 
-    This is here defined by the sphere centerd on cen which contains a
-    mean density of overden * rho_c_0 * (1+z)^3.
+    This is here defined by the sphere centered on cen which contains a
+    mean density of overden * rho_M_0 * (1+z)^3.
 
     """
 
