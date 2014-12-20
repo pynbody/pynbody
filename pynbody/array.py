@@ -812,7 +812,7 @@ def _pow_units(a, b):
 @_u(np.tanh)
 @_u(np.cosh)
 def _trig_units(*a):
-    return None
+    return 1
 
 
 @_u(np.greater)
