@@ -588,17 +588,16 @@ def halpha(sim) :
     coeff = (6.6260755e-27) * (299792458. / 656.281e-9) / (4.*np.pi) ## units are erg sr^-1
     alpha = coeff * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) 
 
-    rad_to_deg = 180./np.pi
-    rad_to_arcmin = 60.*rad_to_deg
-    rad_to_arcsec = 60.*rad_to_arcmin
-    sr_to_deg = (rad_to_deg)**2.
-    sr_to_arcmin = (rad_to_arcmin)**2.
-    sr_to_arcsec = (rad_to_arcsec)**2.
+    ## Define own units
+    rad = units.IrreducibleUnit("rad")
+    sr = units.NamedUnit("sr", rad**2.)
+    deg = units.NamedUnit("deg", (np.pi/180.)*rad )
+    arcmin = units.NamedUnit("arcmin", deg / 60. )
+    arcsec = units.NamedUnit("arcsec", arcmin / 60. )
 
-    alpha /= sr_to_arcsec ## now it's erg s^-1 cm^-3 arcsec^-2
-    alpha.units = units.erg * units.cm**(3) * units.s**(-1) #* units.sr**(-1) ## It's intensity in erg cm^3 s^-1 arcsec^-2
+    alpha.units = units.erg * units.cm**(3) * units.s**(-1) * sr**(-1) ## It's intensity in erg cm^3 s^-1 sr^-1
 
-    return alpha * sim["em"] # Flux erg cm^-3 s^-1 arcsec^-2
+    return alpha * sim["em"] # Flux erg cm^-3 s^-1 sr^-1
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
