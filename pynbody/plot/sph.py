@@ -48,9 +48,10 @@ def faceon_image(sim, *args, **kwargs):
         return image(sim, *args, **kwargs)
 
 
-def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
-                   vector_resolution=40, scale=None, mode='quiver', key_x=0.3, key_y=0.9,
-                   key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
+def velocity_image(sim, width="10 kpc", vector_color='black',
+        edgecolor='black', vector_resolution=40, scale=None, mode='quiver',
+        key_x=0.3, key_y=0.9, key_pos='N', key_color='white', 
+        key_length="100 km s**-1", density=1.0, **kwargs):
     """
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
@@ -78,6 +79,8 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     *key_y* (0.9): Display y (height) position for the vector key (quiver mode only)
 
     *key_color* (white): Color for the vector key (quiver mode only)
+
+    *key_pos* (N): Position of the label relative to the vector key in cardinal directions (quiver mode only)
 
     *key_length* (100 km/s): Velocity to use for the vector key (quiver mode only)
 
@@ -116,7 +119,8 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
             Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
                 sim['vel'].units), color=vector_color, edgecolor=edgecolor)
         p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
-                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 16})
+                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, labelpos=key_pos,
+                    fontproperties={'size': 16})
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
 
