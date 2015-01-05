@@ -265,7 +265,7 @@ diskgas=s.gas[diskf]
 try:
     pp.sph.image(h[i].gas,filename=simname+'.facegas.png',width=30,
                  units='m_p cm^-3')
-    pp.stars.render(h[i].star,file=simname+'.facestar.png')
+    pp.stars.render(h[i].star,filename=simname+'.facestar.png')
     pp.sph.image(diskgas,qty='temp',filename=simname+'.tempgasdiskface.png',
                  width=30,vmin=3,vmax=7)
     s.gas['hiden'] = s.gas['rho']*s.gas['HI']
@@ -295,7 +295,7 @@ try:
     pynbody.analysis.angmom.sideon(h[i])
     pp.sph.image(h[i].gas,filename=simname+'.sidegas.png',width=30,
                  units='m_p cm^-3')
-    pp.stars.render(h[i].star,file=simname+'.sidestar.png')
+    pp.stars.render(h[i].star,filename=simname+'.sidestar.png')
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasside.png',
                  width=320,vmin=3,vmax=7)
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasdiskside.png',
