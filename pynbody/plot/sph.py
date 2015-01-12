@@ -154,6 +154,9 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     import mayavi
     from mayavi import mlab
+    from tvtk.util.ctf import PiecewiseFunction, ColorTransferFunction
+
+
 
     if create_figure:
         fig = mlab.figure(size=(500,500),bgcolor=(0,0,0))
@@ -177,8 +180,65 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     grid_data[grid_data<vmin]=vmin
     grid_data[grid_data>vmax]=vmax
+
+    otf = PiecewiseFunction()
+    otf.add_point(vmin,0.0)
+    otf.add_point(vmax,1.0)
+
     sf = mayavi.tools.pipeline.scalar_field(grid_data)
-    mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+    V = mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+
+
+
+
+    V.trait_get('volume_mapper')['volume_mapper'].blend_mode = 'maximum_intensity'
+
+    if color is None:
+        ctf = ColorTransferFunction()
+        ctf.add_rgb_point(vmin,107./255,124./255,132./255)
+        ctf.add_rgb_point(vmin+(vmax-vmin)*0.8,200./255,178./255,164./255)
+        ctf.add_rgb_point(vmin+(vmax-vmin)*0.9,1.0,210./255,149./255)
+        ctf.add_rgb_point(vmax,1.0,222./255,141./255)
+        print vmin,vmax
+        V._volume_property.set_color(ctf)
+        V._ctf = ctf
+        V.update_ctf = True
+
+    V._otf = otf
+    V._volume_property.set_scalar_opacity(otf)
+
+
+    return V
+
+def contour(*args, **kwargs):
+    """
+    Make an SPH image of the given simulation and render it as contours.
+    nlevels and levels are passed to pyplot's contour command.
+
+    Other arguments are as for *image*.
+    """
+
+    import copy
+    kwargs_image = copy.copy(kwargs)
+    nlevels = kwargs_image.pop('nlevels',None)
+    levels = kwargs_image.pop('levels',None)
+    width = kwargs_image.get('width','10 kpc')
+    kwargs_image['noplot']=True
+    im = image(*args, **kwargs_image)
+    res = im.shape
+
+    units = kwargs_image.get('units',None)
+
+    if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
+        if isinstance(width, str):
+            width = _units.Unit(width)
+        sim = args[0]
+        width = width.in_units(sim['pos'].units, **sim.conversion_context())
+
+    width = float(width)
+    x,y = np.meshgrid(np.linspace(-width/2,width/2,res[0]),np.linspace(-width/2,width/2,res[0]))
+
+    p.contour(x,y,im,nlevels=nlevels,levels=levels)
 
 
 

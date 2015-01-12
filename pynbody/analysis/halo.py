@@ -46,7 +46,7 @@ def center_of_mass_velocity(sim):
     return v
 
 
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False,**kwargs):
+def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False, num_threads = config['number_of_threads'],**kwargs):
     """
 
     Return the center according to the shrinking-sphere method of
@@ -90,7 +90,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
     mass = np.asarray(sim['mass'], dtype='double')
     pos = np.asarray(sim['pos'], dtype='double')
 
-    com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r)
+    com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
     logger.info("Final SSC=%s", com)
 
     return array.SimArray(com, sim['pos'].units)
@@ -100,8 +100,8 @@ def virial_radius(sim, cen=None, overden=178, r_max=None):
     """Calculate the virial radius of the halo centered on the given
     coordinates.
 
-    This is here defined by the sphere centerd on cen which contains a
-    mean density of overden * rho_c_0 * (1+z)^3.
+    This is here defined by the sphere centered on cen which contains a
+    mean density of overden * rho_M_0 * (1+z)^3.
 
     """
 

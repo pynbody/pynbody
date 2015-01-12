@@ -6,6 +6,7 @@
 #include "smooth.h"
 #include "kd.h"
 
+#include <iostream>
 
 
 int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
@@ -448,7 +449,9 @@ int smSmoothStep(SMX smx, int procid)
 		// suitable candidate. Preferably a long way away from other
 		// threads, if this is threaded.
 
-
+                if(pNext>=smx->kd->nActive) 
+		  pNext=0;
+		
 		while (GETSMOOTH(T,pNext) != proc_signal) {
 		 		++pNext;
 				++nScanned;
