@@ -42,6 +42,7 @@ s = pynbody.load(simname)
 h = s.halos()
 diskf = filt.Disc('40 kpc','3 kpc')
 fifmyrf = filt.LowPass('age','15 Myr')
+fhmyrf = filt.LowPass('age','500 Myr')
 twokpcf = filt.Sphere('2 kpc')
 i=1
 if (len(sys.argv) > 2):
@@ -83,19 +84,20 @@ mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
 # 3D density profile
 rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
 gashaloprof = profile.Profile(h[i].g,ndim=3,type='log')
-spheregasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,bins=200)
-spherecoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,bins=200)
-spherehotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,bins=200)
-spherestarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,bins=200)
-spheredarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,bins=200)
+spheregasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,nbins=200)
+spherecoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,nbins=200)
+spherehotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,nbins=200)
+spherestarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,nbins=200)
+spheredarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,nbins=200)
 # Rotation curve
 rcpro = profile.Profile(h[i], type='equaln', nbins = 200, max = '40 kpc')
 # surface brightness profile
 diskstars = h[i].star[diskf]
-sbprof = profile.Profile(diskstars,type='equaln',bins=200)
-surfcoldgasprof = profile.Profile(h[i].g[diskf][cold],type='equaln',bins=200)
-surfhotgasprof = profile.Profile(h[i].g[diskf][hot],type='equaln',bins=200)
-surfgasprof = profile.Profile(h[i].g[diskf],type='equaln',bins=200)
+sbprof = profile.Profile(diskstars,type='equaln',nbins=200)
+surfcoldgasprof = profile.Profile(h[i].g[diskf][cold],type='equaln',nbins=200)
+surfhotgasprof = profile.Profile(h[i].g[diskf][hot],type='equaln',nbins=200)
+surfgasprof = profile.Profile(h[i].g[diskf],type='equaln',nbins=200)
+surfyoungstarprof = profile.Profile(diskstars[fhmyrf],type='equaln',nbins=200)
 # Kinematic decomposition
 #decompprof = pynbody.analysis.decomp(h[i])
 #dec = h[i].star['decomp']
@@ -128,7 +130,7 @@ pickle.dump({'z':s.properties['z'],
 #             'mthick': np.sum(h[i].star[np.where(dec == 4)]['mass'].in_units('Msol')),
 #             'mpseudob': np.sum(h[i].star[np.where(dec == 5)]['mass'].in_units('Msol')),
              'mgashot': np.sum(h[i].gas[hot]['mass'].in_units('Msol')),
-             'mgascool': np.sum(h[i].gas[cool]['mass'].in_units('Msol')),
+             'mgascool': np.sum(h[i].gas[cold]['mass'].in_units('Msol')),
              'mdiskbary': np.sum(h[i][diskf].s['mass'].in_units('Msol')) +
                           np.sum(h[i][diskf].g['mass'].in_units('Msol')),
              'mdiskgas': mdiskgas,
@@ -224,6 +226,10 @@ try:
 except:
     pass
 
+pp.ofefeh(h[i].stars, filename=simname+'.ofefeh.png',
+          weights=h[i].stars['mass'].in_units('Msol'), scalemin=1e3,
+          scalemax=1e9, x_range=[-3,0.3],y_range=[-0.5,0.7])
+
 try:
     pp.sbprofile(h[i],filename=simname+'.sbprof.png',center=False)
     pp.sfh(h[i],filename=simname+'.sfh.png',nbins=500,clear=True)
@@ -233,9 +239,6 @@ try:
                       parts=True, legend=True, max='40 kpc',center=False)
     pp.rho_T(h[i].gas,filename=simname+'.phase.png',rho_units='m_p cm^-3',
              x_range=[-5,2], y_range=[3,8])
-    pp.ofefeh(h[i].stars, filename=simname+'.ofefeh.png',
-              weights=h[i].stars['mass'].in_units('Msol'), scalemin=1e3,
-              scalemax=1e9, x_range=[-3,0.3],y_range=[-0.5,1.0])
     pp.mdf(h[i].stars,filename=simname+'.mdf.png', range=[-4,0.5])
     pp.density_profile(h[i].dark,filename=simname+'.dmprof.png',center=False)
     plt.clf()
@@ -255,6 +258,19 @@ try:
     plt.ylabel('T [K]')
     plt.savefig(simname+'.gastempprof.png')
     plt.clf()
+    plt.plot(sbprof['rbins'].in_units('kpc'),
+             sbprof['vz_disp'].in_units('km s^-1'),label="All stars")
+    plt.plot(surfcoldgasprof['rbins'].in_units('kpc'),
+             surfcoldgasprof['vz_disp'].in_units('km s^-1'),label="Cold (<3e4 K) gas")
+    plt.plot(surfyoungstarprof['rbins'].in_units('kpc'),
+             surfyoungstarprof['vz_disp'].in_units('km s^-1'),label="Young (<500 Myr) stars")
+    plt.ylim(0,100)
+    plt.xlim(0,20)
+    plt.xlabel('R$_{xy}$ [kpc]')
+    plt.ylabel(r'$\sigma_{vz}$ [km s$^{-1}$')
+    plt.legend(loc=0)
+    plt.savefig(simname+'.vz_disp.png')
+    plt.clf()
     pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
     pp.schmidtlaw(h[i],filename=simname+'.schmidt.png',center=False)
     pp.satlf(h[i],filename=simname+'.satlf.png')
@@ -268,15 +284,15 @@ try:
                  units='m_p cm^-3')
     pp.stars.render(h[i].star,filename=simname+'.facestar.png')
     pp.sph.image(diskgas,qty='temp',filename=simname+'.tempgasdiskface.png',
-                 width=30,vmin=3,vmax=7)
+                 width=30,vmin=1e3,vmax=1e7)
     s.gas['hiden'] = s.gas['rho']*s.gas['HI']
     s.gas['hiden'].units = s.gas['rho'].units
     pynbody.plot.image(s.gas,qty='hiden',units='m_p cm^-2',width=1000,
                        center=False,filename=simname+'.hi500kpc.png',
-                       vmin=14,vmax=22)
+                       vmin=1e14,vmax=1e22)
     pynbody.plot.image(s.gas,qty='hiden',units='m_p cm^-2',width=500,
                        center=False,filename=simname+'.hi250kpc.png',
-                       vmin=14,vmax=22)
+                       vmin=1e14,vmax=1e22)
 except:
     pass
 
@@ -287,24 +303,24 @@ try:
     soviim = pynbody.plot.image(s.gas[notdiskf],qty='oviden',
                                 units='16 m_p cm^-2', width=1000,
                                 filename=simname+'.ovi500kpc.png',
-                                vmin=12,vmax=17)
+                                vmin=1e12,vmax=1e17)
     s.gas['oxden'] = s.gas['rho']*s.gas['OxMassFrac']
     s.gas['oxden'].units = s.gas['rho'].units
     pynbody.plot.image(s.gas,qty='oxden',units='16 m_p cm^-2',
                        width=500,center=False,
-                       filename=simname+'.ox500kpc.png',vmin=12,vmax=18)
+                       filename=simname+'.ox500kpc.png',vmin=1e12,vmax=1e18)
     pynbody.analysis.angmom.sideon(h[i])
     pp.sph.image(h[i].gas,filename=simname+'.sidegas.png',width=30,
                  units='m_p cm^-3')
     pp.stars.render(h[i].star,filename=simname+'.sidestar.png')
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasside.png',
-                 width=320,vmin=3,vmax=7)
+                 width=320,vmin=1e3,vmax=1e7)
     pp.sph.image(s.gas,qty='temp',filename=simname+'.tempgasdiskside.png',
-                 width=30,vmin=3,vmax=7)
+                 width=30,vmin=1e3,vmax=1e7)
     pynbody.plot.image(s.gas,qty='temp',width=500,center=False,
-                       filename=simname+'.temp500kpc.png',vmin=3,vmax=7)
+                       filename=simname+'.temp500kpc.png',vmin=1e3,vmax=1e7)
     pynbody.plot.image(s.gas,qty='hiden',units='m_p cm^-2',width=200,
                        center=False,filename=simname+'.sidehi100kpc.png',
-                       vmin=14,vmax=22)
+                       vmin=1e14,vmax=1e22)
 except:
     pass
