@@ -77,10 +77,17 @@ absE = np.fabs(W+K)
 mvir=np.sum(h[i]['mass'].in_units('Msol'))
 r = s['r']
 rvir=pynbody.array.SimArray(np.max(h[i]['r'].in_units('kpc')),'kpc')
-mdiskgas=np.sum([h[i][diskf].g['mass'].in_units('Msol')]),
-mtwokpcgas=np.sum([h[i][twokpcf].g['mass'].in_units('Msol')]),
-mtwokpcstar=np.sum([h[i][twokpcf].s['mass'].in_units('Msol')]),
-mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
+galf = pynbody.filt.LowPass('r',0.2*rvir)#.in_units('kpc'))+' kpc')
+
+mdiskgas=np.sum([h[i][diskf].g['mass'].in_units('Msol')])
+mtwokpcgas=np.sum([h[i][twokpcf].g['mass'].in_units('Msol')])
+mtwokpcstar=np.sum([h[i][twokpcf].s['mass'].in_units('Msol')])
+mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')])
+mhi = (h[i].g[galf]['mass'].in_units('Msol')*
+       h[i].g[galf]['HI']).sum() + \
+       (h[i].g[galf]['mass'].in_units('Msol')*
+        h[i].g[galf]['HeI']).sum()
+
 # 3D density profile
 rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
 gashaloprof = profile.Profile(h[i].g,ndim=3,type='log')
@@ -115,6 +122,8 @@ mtfhalogas = np.sum(halogas['mass'].in_units('Msol'))
 igasords = np.in1d(halogas['iord'],stfrvir.s['igasorder'])
 halooxhist, halooxbins = mdf(halogas,totmass=mtfhalogas)
 #cohalooxhist, cohalooxbins = mdf(halogas[iposcoolontime],totmass=mtfhalogas)
+alpha=pp.density_profile(h[i].dark,filename=simname+'.dmprof.png',center=False,
+                         fit=True)
 
 ### Save important numbers using pickle.  Currently not working for SimArrays
 pickle.dump({'z':s.properties['z'],
@@ -122,6 +131,7 @@ pickle.dump({'z':s.properties['z'],
              'rvir':rvir,
              'mvir':mvir,
              'mgas': np.sum(h[i].gas['mass'].in_units('Msol')),
+             'mhi':mhi,
              'mstar': np.sum(h[i].star['mass'].in_units('Msol')),
              'sfr': sfr,
 #             'mdisk': np.sum(h[i].star[np.where(dec == 1)]['mass'].in_units('Msol')),
@@ -155,7 +165,7 @@ pickle.dump({'z':s.properties['z'],
 #             'cohalooxmdf':{'bins':cohalooxbins,'hist':cohalooxhist},
 #             'Jtot':Jtot,'lambda':(Jtot / np.sqrt(2*np.power(mvir,3)*rvir*units.G)).in_units('1'),
              'denprof':{'r':rhoprof['rbins'].in_units('kpc'), 
-                        'den':rhoprof['density']},
+                        'den':rhoprof['density'],'alpha':alpha},
              'gashaloprof':{'r':gashaloprof['rbins'].in_units('kpc'), 
                             'den':gashaloprof['density'].in_units('m_p cm^-3'),
                             'temp':gashaloprof['temp']},
@@ -240,7 +250,6 @@ try:
     pp.rho_T(h[i].gas,filename=simname+'.phase.png',rho_units='m_p cm^-3',
              x_range=[-5,2], y_range=[3,8])
     pp.mdf(h[i].stars,filename=simname+'.mdf.png', range=[-4,0.5])
-    pp.density_profile(h[i].dark,filename=simname+'.dmprof.png',center=False)
     plt.clf()
     plt.loglog(gashaloprof['rbins'].in_units('kpc'),
                gashaloprof['density'].in_units('m_p cm^-3'))
