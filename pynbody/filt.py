@@ -109,8 +109,10 @@ class Sphere(Filter):
         if isinstance(radius[0], str):
             radius = map(units.Unit,radius)
 
-        if len(cen) != len(radius) : 
-            radius = radius * len(cen)
+        # check if many different centers were passed in
+            if isinstance(cen, list) or isinstance(cen, np.ndarray) : 
+                if len(cen) != len(radius) : 
+                    radius = radius * len(cen)
 
         self.radius = radius
 
@@ -124,6 +126,8 @@ class Sphere(Filter):
         if units.is_unit_like(radius[0]):
             radius = np.asarray([r.in_units(pos.units, **pos.conversion_context()) for r in radius], dtype='float')
 
+        else : 
+            radius = np.asarray(radius, dtype='float')
 
         cen = self.cen
         if units.has_units(cen):
