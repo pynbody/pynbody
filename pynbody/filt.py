@@ -78,7 +78,7 @@ class Not(Filter):
 
     def __call__(self, sim):
         x = self.f(sim)
-        return ~x
+        return np.logical_not(x)
 
     def __repr__(self):
         return "~" + repr(self.f)
