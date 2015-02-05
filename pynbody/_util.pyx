@@ -160,33 +160,36 @@ def sum_if_lt(np.ndarray[fused_float, ndim=1] ar,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
-                     np.ndarray[fused_float, ndim=1] cen,
-                     double r_max):
+                     np.ndarray[fused_float, ndim=2] cens,
+                     np.ndarray[fused_float, ndim=1] r_max):
     """OpenMP sphere selection algorithm.
 
     Returns an array of booleans, True where the distance from
     pos_ar to cen is less than r_max."""
 
-    cdef long i
+    cdef int j
+    cdef long i, Ncen = len(cens)
     cdef long N=len(pos_ar)
     cdef fused_float cx,cy,cz,x,y,z,r2
     cdef fused_float r_max_2
-    cdef np.ndarray[np.uint8_t, ndim=1] output = np.empty(len(pos_ar),dtype=np.uint8)
-
-    r_max_2 = r_max*r_max
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] output = np.zeros(len(pos_ar),dtype=np.uint8)
 
     assert pos_ar.shape[1]==3
-    assert len(cen)==3
-
-    cx = cen[0]
-    cy = cen[1]
-    cz = cen[2]
 
     for i in prange(N,nogil=True,schedule='static'):
-        x=pos_ar[i,0]-cx
-        y=pos_ar[i,1]-cy
-        z=pos_ar[i,2]-cz
-        output[i]=(x*x+y*y+z*z)<r_max_2
+        for j in range(Ncen) : 
+            cx = cens[j,0]
+            cy = cens[j,1]
+            cz = cens[j,2]
+            
+            x=pos_ar[i,0]-cx
+            y=pos_ar[i,1]-cy
+            z=pos_ar[i,2]-cz
+
+            r_max_2 = r_max[j]*r_max[j]
+            
+            if (x*x+y*y+z*z) < r_max_2 : 
+                output[i] = 1
 
     return output
 

@@ -100,13 +100,22 @@ class Sphere(Filter):
     def __init__(self, radius, cen=(0, 0, 0)):
         self._descriptor = "sphere"
         self.cen = np.asarray(cen)
-        if self.cen.shape != (3,):
-            raise ValueError, "Centre must be length 3 array"
+#        if self.cen.shape != (3,):
+#            raise ValueError, "Centre must be length 3 array"
 
-        if isinstance(radius, str):
-            radius = units.Unit(radius)
+        if not isinstance(radius, list) : 
+            radius = [radius]
+
+        if isinstance(radius[0], str):
+            radius = map(units.Unit,radius)
+
+        # check if many different centers were passed in
+            if isinstance(cen, list) or isinstance(cen, np.ndarray) : 
+                if len(cen) != len(radius) : 
+                    radius = radius * len(cen)
 
         self.radius = radius
+
 
     def __call__(self, sim):
         radius = self.radius
@@ -114,22 +123,27 @@ class Sphere(Filter):
         with sim.immediate_mode:
             pos = sim['pos']
 
-        if units.is_unit_like(radius):
-            radius = float(radius.in_units(pos.units,
-                                           **pos.conversion_context()))
+        if units.is_unit_like(radius[0]):
+            radius = np.asarray([r.in_units(pos.units, **pos.conversion_context()) for r in radius], dtype='float')
+
+        else : 
+            radius = np.asarray(radius, dtype='float')
 
         cen = self.cen
         if units.has_units(cen):
             cen = cen.in_units(pos.units)
+
+        if len(cen.shape) == 1 : 
+            cen = np.expand_dims(cen,axis=0)
+
         return util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius)
 
 
     def __repr__(self):
-        if units.is_unit(self.radius):
-
-            return "Sphere('%s', %s)" % (str(self.radius), repr(self.cen))
+        if units.is_unit(self.radius[0]):
+            return " & ".join(["Sphere('%s', %s)" % (str(radius), repr(cen)) for radius, cen in zip(self.radius, self.cen)])
         else:
-            return "Sphere(%.2e, %s)" % (self.radius, repr(self.cen))
+            return " & ".join(["Sphere(%.2e, %s)" % (radius, repr(cen)) for radius, cen in zip(self.radius, self.cen)])
 
 
 class Cuboid(Filter):
