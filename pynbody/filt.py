@@ -136,9 +136,8 @@ class Sphere(Filter):
 
 
     def __repr__(self):
-        if units.is_unit(self.radius):
-
-            return "Sphere('%s', %s)" % (str(self.radius), repr(self.cen))
+        if units.is_unit(self.radius[0]):
+            return " & ".join(["Sphere('%s', %s)" % (str(radius), repr(cen)) for radius, cen in zip(self.radius, self.cen)])
         else:
             return "Sphere(%.2e, %s)" % (self.radius, repr(self.cen))
 
