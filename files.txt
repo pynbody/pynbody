@@ -27,6 +27,7 @@
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/halo.py
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/hmf.py
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/ionfrac.py
+/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/hifrac.py
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/luminosity.py
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/pkdgrav_cosmo.py
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/profile.py
@@ -53,6 +54,7 @@
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/sph_to_grid.c
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/cmdlum.npz
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/ionfracs.npz
+/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/h1.hdf5
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/interpolate.c
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/interpolate3d.c
 /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/pynbody/analysis/com.c

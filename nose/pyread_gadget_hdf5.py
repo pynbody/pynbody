@@ -160,6 +160,8 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
             6/09/13 Added ' noloop ' as an option to force a read in from one file alone
             6/09/13 Changed header information to match flake8 standard
             25/09/13 Added ' leaveh ' as an option to make units remain in code 'h' dependency
+            08/01/14 Fixed bug on looping over subfiles
+            08/01/14 Force C-Contiguous array
 
             Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
     """
@@ -209,10 +211,14 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ##
 #########################################################
     folder_index = filename.rfind(inputname)
+    snapnum_index = filename[:folder_index-1].rfind('_')
+    snapnum = int(filename[snapnum_index+1:folder_index-1])
     numfile = len(fnmatch.filter(os.listdir(filename[:folder_index]), '*.hdf5'))
     if noloop != None:
         numfile = 1 ## Force the code to only consider the input file
 
+    if silent == None:
+        print "Considering "+str(numfile)+" subfiles"
 #########################################################
 ##
 ##  Read in common header parameters
@@ -304,9 +310,13 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 #########################################################
     prefix_index = filename.rfind('.hdf5') ## First HDF5
     for ifile in range(0,numfile):
-        newinfile = filename[0:prefix_index-1]+str(ifile)+filename[prefix_index:]   
+        if noloop != None:
+            newinfile = filename
+        else:
+            newinfile = filename[0:folder_index] + inputname +'_'+str(snapnum).zfill(3)+'.'+str(ifile)+filename[prefix_index:]   
         if silent == None:
             print "Reading from "+newinfile
+
         with h5py.File(newinfile, "r") as fin:
 ## If the dataset is present in the file then read it into tmpset, and if dataset exists concatenate them
             e = global_var_name in fin
@@ -433,6 +443,6 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
     
     ## User wants to change from Dataframe to numpy format
     if nopanda != None:
-        dataset = numpy.array(dataset)
+        dataset = numpy.ascontiguousarray(dataset)
 
     return dataset

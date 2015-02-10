@@ -140,8 +140,10 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100,100), nbins = None, ma
         hist, ys, xs = np.histogram2d(y, x, weights=weights*mass, bins=gridsize,range=[y_range,x_range])
         hist_mass, ys, xs = np.histogram2d(y, x, weights=mass,bins=gridsize,range=[y_range,x_range])
         good = np.where(hist_mass > 0)
-        hist[good] = hist[good]/hist_mass[good]
-            
+        if good:
+            hist[good] = hist[good]/hist_mass[good]
+        else:
+            print "Warning: No pixels greater than zero "        
     else:
         if weights is not None : 
             # produce a weighted histogram
