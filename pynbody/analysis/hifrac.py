@@ -29,8 +29,9 @@ def calculate(sim,ion='hi',selfshield=False) :
 
     global config
     # ionization fractions calculated for optically thin case with
-    # CLOUDY v 10.0.  J. Xavier Prochaska + Joe Hennawi have many 
-    # helper idl routines for running CLOUDY
+    # CLOUDY for Duffy et al. (2012) overall h1frac.py based on 
+    # ionfrac.py routine, ultimately should be merged when other
+    # elements are added to the hdf5 file
     iffile = os.path.join(os.path.dirname(__file__),"h1.hdf5")
     if os.path.exists(iffile) :
         # import data
