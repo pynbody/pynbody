@@ -46,7 +46,7 @@ def center_of_mass_velocity(sim):
     return v
 
 
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False, num_threads = config['number_of_threads']):
+def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False, num_threads = config['number_of_threads'],**kwargs):
     """
 
     Return the center according to the shrinking-sphere method of
