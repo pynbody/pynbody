@@ -67,6 +67,7 @@ notcooldenf = filt.And(filt.LowPass('rho','0.1 m_p cm^-3'),
                        filt.HighPass('temp',3e4))
 hot=filt.HighPass('temp',3e4)
 cold=filt.LowPass('temp',3e4)
+cool=filt.LowPass('temp',1e5)
 Jtot = np.sqrt(((np.multiply(h[i]['j'].transpose(),h[i]['mass']).sum(axis=1))**2).sum())
 W = np.sum(h[i]['phi']*h[i]['mass'])
 K = np.sum(h[i]['ke']*h[i]['mass'])
@@ -81,19 +82,19 @@ mhalogas=np.sum([h[i][notdiskf].g['mass'].in_units('Msol')]),
 # 3D density profile
 rhoprof = profile.Profile(h[i].dm,ndim=3,type='log')
 gashaloprof = profile.Profile(h[i].g,ndim=3,type='log')
-spheregasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,bins=200)
-spherecoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,bins=200)
-spherehotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,bins=200)
-spherestarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,bins=200)
-spheredarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,bins=200)
+spheregasprof = profile.Profile(s.g,ndim=3,type='equaln',max=2*rvir,nbins=200)
+spherecoldgasprof = profile.Profile(s.g[cold],ndim=3,type='equaln',max=2*rvir,nbins=200)
+spherehotgasprof = profile.Profile(s.g[hot],ndim=3,type='equaln',max=2*rvir,nbins=200)
+spherestarprof = profile.Profile(s.s,ndim=3,type='equaln',max=2*rvir,nbins=200)
+spheredarkprof = profile.Profile(s.dm,ndim=3,type='equaln',max=2*rvir,nbins=200)
 # Rotation curve
 rcpro = profile.Profile(h[i], type='equaln', nbins = 200, max = '40 kpc')
 # surface brightness profile
 diskstars = h[i].star[diskf]
-sbprof = profile.Profile(diskstars,type='equaln',bins=200)
-surfcoldgasprof = profile.Profile(h[i].g[diskf][cold],type='equaln',bins=200)
-surfhotgasprof = profile.Profile(h[i].g[diskf][hot],type='equaln',bins=200)
-surfgasprof = profile.Profile(h[i].g[diskf],type='equaln',bins=200)
+sbprof = profile.Profile(diskstars,type='equaln',nbins=200)
+surfcoldgasprof = profile.Profile(h[i].g[diskf][cold],type='equaln',nbins=200)
+surfhotgasprof = profile.Profile(h[i].g[diskf][hot],type='equaln',nbins=200)
+surfgasprof = profile.Profile(h[i].g[diskf],type='equaln',nbins=200)
 # Kinematic decomposition
 #decompprof = pynbody.analysis.decomp(h[i])
 #dec = h[i].star['decomp']
