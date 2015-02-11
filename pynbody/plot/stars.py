@@ -201,27 +201,30 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
         bins = kwargs['nbins']
         del kwargs['nbins']
 
+    if ((len(sim.g)>0) | (len(sim.d)>0)): simstars = sim.star
+    else: simstars = sim
+
     if trange:
         assert len(trange) == 2
     else:
-        trange = [sim.star['tform'].in_units(
-            "Gyr").min(), sim.star['tform'].in_units("Gyr").max()]
+        trange = [simstars['tform'].in_units(
+            "Gyr").min(), simstars['tform'].in_units("Gyr").max()]
     binnorm = 1e-9 * bins / (trange[1] - trange[0])
 
     trangefilt = filt.And(filt.HighPass('tform', str(trange[0]) + ' Gyr'),
                           filt.LowPass('tform', str(trange[1]) + ' Gyr'))
-    tforms = sim.star[trangefilt]['tform'].in_units('Gyr')
+    tforms = simstars[trangefilt]['tform'].in_units('Gyr')
 
     if massform:
         try:
-            weight = sim.star[trangefilt][
+            weight = simstars[trangefilt][
                 'massform'].in_units('Msol') * binnorm
         except (KeyError, units.UnitsException):
             warnings.warn(
                 "Could not load massform array -- falling back to current stellar masses", RuntimeWarning)
-            weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
+            weight = simstars[trangefilt]['mass'].in_units('Msol') * binnorm
     else:
-        weight = sim.star[trangefilt]['mass'].in_units('Msol') * binnorm
+        weight = simstars[trangefilt]['mass'].in_units('Msol') * binnorm
 
     if clear:
         plt.clf()
@@ -589,7 +592,7 @@ def f(x, alpha, delta, g):
     return -np.log10(10.0 ** (x * alpha) + 1.0) + delta * (np.log10(1 + np.exp(x))) ** g / (1 + np.exp(10 ** -x))
 
 
-def behroozi(xmasses, z):
+def behroozi(xmasses, z, alpha=-1.412, Kravtsov=False):
     '''Based on Behroozi+ (2013) return what stellar mass corresponds to the
     halo mass passed in.
 
@@ -604,7 +607,8 @@ def behroozi(xmasses, z):
     '''
     loghm = np.log10(xmasses)
     # from Behroozi et al (2013)
-    EPS = -1.777
+    if Kravtsov: EPS = -1.642
+    else: EPS = -1.777
     EPSpe = 0.133
     EPSme = 0.146
 
@@ -632,7 +636,8 @@ def behroozi(xmasses, z):
     M1zpe = 0.012
     M1zme = 0.125
 
-    AL = -1.412
+    if Kravtsov: alpha=-1.779
+    AL = alpha
     ALpe = 0.02
     ALme = 0.105
 
@@ -640,7 +645,8 @@ def behroozi(xmasses, z):
     ALape = 0.344
     ALame = 0.296
 
-    DEL = 3.508
+    if Kravtsov: DEL=4.394
+    else: DEL = 3.508
     DELpe = 0.087
     DELme = 0.369
 
@@ -652,7 +658,8 @@ def behroozi(xmasses, z):
     DELzpe = 0.958
     DELzme = 0.071
 
-    G = 0.316
+    if Kravtsov: G=0.547
+    else: G = 0.316
     Gpe = 0.076
     Gme = 0.012
 
@@ -668,13 +675,13 @@ def behroozi(xmasses, z):
     nu = np.exp(-4 * a ** 2)
     logm1 = M1 + nu * (M1a * (a - 1.0) + M1z * z)
     logeps = EPS + nu * (EPSanu * (a - 1.0) + EPSznu * z) - EPSa * (a - 1.0)
-    alpha = AL + nu * ALa * (a - 1.0)
+    analpha = AL + nu * ALa * (a - 1.0)
     delta = DEL + nu * DELa * (a - 1.0)
     g = G + nu * (Ga * (a - 1.0) + z * Gz)
 
     x = loghm - logm1
     f0 = -np.log10(2.0) + delta * np.log10(2.0) ** g / (1.0 + np.exp(1))
-    smp = logm1 + logeps + f(x, alpha, delta, g) - f0
+    smp = logm1 + logeps + f(x, analpha, delta, g) - f0
 
     if isinstance(smp, np.ndarray):
         scatter = np.zeros(len(smp))
