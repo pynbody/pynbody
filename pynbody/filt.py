@@ -14,7 +14,7 @@ sample usage.
 
 
 import numpy as np
-from . import units, util
+from . import units, util, _util
 
 
 class Filter(object):
@@ -121,7 +121,7 @@ class Sphere(Filter):
         cen = self.cen
         if units.has_units(cen):
             cen = cen.in_units(pos.units)
-        return util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius)
+        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius)
 
 
     def __repr__(self):
