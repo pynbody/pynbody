@@ -379,11 +379,16 @@ class Profile:
             return self._profiles[name]
             # else :
             #    raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
+        elif "_percentile" in name and name[:name.find("_percentile")] in self.keys() or name[:name.find("_percentile")] in self.derivable_keys() or name[:name.find("_percentile")] in self.sim.all_keys():
+            name_end_ind = name.find("_percentile")
+            p = float(name[name_end_ind+11:])
+            logger.info("Auto-deriving {0:f}-th percentile of {1}".format(p, name[:name_end_ind]))
+            self._profiles[name] = self._auto_profile(name[:name_end_ind], percentile=p)
 
         else:
             raise KeyError, name + " is not a valid profile"
 
-    def _auto_profile(self, name, dispersion=False, rms=False, median=False):
+    def _auto_profile(self, name, dispersion=False, rms=False, median=False, percentile=None):
         result = np.zeros(self.nbins)
 
         # force derivation of array if necessary:
@@ -411,6 +416,8 @@ class Profile:
             elif median:
                 sorted_name = sorted(name_array)
                 result[i] = sorted_name[int(np.floor(0.5 * len(subs)))]
+            elif percentile is not None:
+                result[i] = np.percentile(name_array, percentile)
             else:
                 result[i] = (name_array * mass_array).sum() / self['mass'][i]
 
