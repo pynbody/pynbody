@@ -379,7 +379,7 @@ class Profile:
             return self._profiles[name]
             # else :
             #    raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
-        elif "_percentile" in name and name[:name.find("_percentile")] in self.keys() or name[:name.find("_percentile")] in self.derivable_keys() or name[:name.find("_percentile")] in self.sim.all_keys():
+        elif "_percentile" in name and (name[:name.find("_percentile")] in self.keys() or name[:name.find("_percentile")] in self.derivable_keys() or name[:name.find("_percentile")] in self.sim.all_keys()):
             name_end_ind = name.find("_percentile")
             p = float(name[name_end_ind+11:])
             logger.info("Auto-deriving {0:f}-th percentile of {1}".format(p, name[:name_end_ind]))
