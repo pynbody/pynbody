@@ -409,8 +409,11 @@ class Profile:
                 result[i] = np.sqrt(
                     (name_array ** 2 * mass_array).sum() / self['mass'][i])
             elif median:
-                sorted_name = sorted(name_array)
-                result[i] = sorted_name[int(np.floor(0.5 * len(subs)))]
+                if len(subs) == 0:
+                    result[i] = np.nan
+                else:
+                    sorted_name = sorted(name_array)
+                    result[i] = sorted_name[int(np.floor(0.5 * len(subs)))]
             else:
                 result[i] = (name_array * mass_array).sum() / self['mass'][i]
 
