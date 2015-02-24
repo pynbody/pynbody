@@ -352,26 +352,26 @@ class Profile:
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-5:] == "_disp" and name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys():
+        elif name[-5:] == "_disp" and (name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(
                 name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_rms" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys():
+        elif name[-4:] == "_rms" and (name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(name[:-4], rms=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_med" and name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys():
+        elif name[-4:] == "_med" and (name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(name[:-4], median=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[0:2] == "d_" and name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys():
+        elif name[0:2] == "d_" and (name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys()):
             #            if np.diff(self['dr']).all() < 1e-13 :
             logger.info("Auto-deriving %s/dR" % name)
             self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
