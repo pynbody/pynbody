@@ -625,34 +625,28 @@ class SimSnap(object):
             # units first and then set all arrays to new unit system
             self.original_units()
 
+
+        # if any are missing, work them out from what we already have:
+
+        if velocity is None:
+            velocity = self.infer_original_units('km s^-1')
+
+        if distance is None:
+            distance = self.infer_original_units('kpc')
+
+        if mass is None:
+            mass = self.infer_original_units('Msol')
+
+        if temperature is None:
+            temperature = self.infer_original_units('K')
+
         new_units = []
         for x in [velocity, distance, mass, temperature]:
             if x is not None:
                 new_units.append(units.Unit(x))
 
-        new_system = list(self._file_units_system)
 
-        for i, x in enumerate(new_system):
-            if x is units.K:
-                continue
-            try:
-                d = x.dimensional_project(new_units)
-                new_system[i] = reduce(lambda x, y: x * y, [
-                    a ** b for a, b in zip(new_units, d)])
-
-            except units.UnitsException:
-                pass
-
-        # check that the new unit system is linearly independent
-        for test in ['kpc', 'Msol', 'km s^-1']:
-            test = units.Unit(test)
-            try:
-                test.dimensional_project(new_system)
-            except units.UnitsException:
-                raise units.UnitsException(
-                    "New units are not linearly independent")
-
-        self._file_units_system = new_system
+        self._file_units_system = new_units
 
         # set new units for all known arrays
         for arr_name in self.keys():
@@ -928,7 +922,7 @@ class SimSnap(object):
             for coord in "x", "y", "z":
                 self[coord][np.where(self[coord] < -boxsize / 2)] += boxsize
                 self[coord][np.where(self[coord] > boxsize / 2)] -= boxsize
-        elif convention=='upper':            
+        elif convention=='upper':
             for coord in "x", "y", "z":
                 self[coord][np.where(self[coord] < 0)] += boxsize
                 self[coord][np.where(self[coord] > boxsize)] -= boxsize
