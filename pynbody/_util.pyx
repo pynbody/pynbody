@@ -161,7 +161,7 @@ def sum_if_lt(np.ndarray[fused_float, ndim=1] ar,
 @cython.cdivision(True)
 def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
                      np.ndarray[fused_float, ndim=1] cen,
-                     double r_max):
+                     double r_max, double wrap):
     """OpenMP sphere selection algorithm.
 
     Returns an array of booleans, True where the distance from
@@ -172,6 +172,7 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
     cdef fused_float cx,cy,cz,x,y,z,r2
     cdef fused_float r_max_2
     cdef np.ndarray[np.uint8_t, ndim=1] output = np.empty(len(pos_ar),dtype=np.uint8)
+    cdef double wrap_by_two = wrap/2
 
     r_max_2 = r_max*r_max
 
@@ -182,12 +183,26 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
     cy = cen[1]
     cz = cen[2]
 
+
     for i in prange(N,nogil=True,schedule='static'):
         x=pos_ar[i,0]-cx
         y=pos_ar[i,1]-cy
         z=pos_ar[i,2]-cz
+        if wrap>0:
+            if x>wrap_by_two:
+                x=x-wrap
+            if y>wrap_by_two:
+                y=y-wrap
+            if z>wrap_by_two:
+                z=z-wrap
+            if x<-wrap_by_two:
+                x=x+wrap
+            if y<-wrap_by_two:
+                y=y+wrap
+            if z<-wrap_by_two:
+                z=z+wrap
         output[i]=(x*x+y*y+z*z)<r_max_2
-
+    
     return output
 
 
