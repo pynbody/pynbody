@@ -131,6 +131,9 @@ class NchiladaSnap(SimSnap):
 
         b = np.empty(buf_shape)
 
+        # skip over min and max values (see issue #211)
+        np.fromfile(f, dtype=disk_dtype, count=2 * ndim)
+
         for readlen, buf_index, mem_index in self._load_control.iterate(fam, fam):
             b = np.fromfile(f, dtype=disk_dtype, count=readlen * ndim)
             if ndim > 1:

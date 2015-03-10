@@ -123,6 +123,125 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     return im
 
 
+def volume(sim, qty='rho', width=None, resolution=200,
+           color=(1.0,1.0,1.0),vmin=None,vmax=None,
+           dynamic_range=4.0,log=True,
+           create_figure=True):
+    """Create a volume rendering of the given simulation using mayavi.
+
+    **Keyword arguments:**
+
+    *qty* (rho): The name of the array to interpolate
+
+    *width* (None): The width of the cube to generate, centered on the origin
+
+    *resolution* (200): The number of elements along each side of the cube
+
+    *color* (white): The color of the volume rendering. The value of each voxel
+       is used to set the opacity.
+
+    *vmin* (None): The value for zero opacity (calculated using dynamic_range if None)
+
+    *vmax* (None): The value for full opacity (calculated from the maximum
+       value in the region if None)
+
+    *dynamic_range*: The dynamic range to use if vmin and vmax are not specified
+
+    *log* (True): log-scale the image before passing to mayavi
+
+    *create_figure* (True): create a new mayavi figure before rendering
+    """
+
+    import mayavi
+    from mayavi import mlab
+    from tvtk.util.ctf import PiecewiseFunction, ColorTransferFunction
+
+
+
+    if create_figure:
+        fig = mlab.figure(size=(500,500),bgcolor=(0,0,0))
+
+    grid_data = sph.to_3d_grid(sim,qty=qty,nx=resolution,
+                               x2=None if width is None else width/2)
+
+
+
+    if log:
+        grid_data = np.log10(grid_data)
+        if vmin is None:
+            vmin = grid_data.max()-dynamic_range
+        if vmax is None:
+            vmax = grid_data.max()
+    else:
+        if vmin is None:
+            vmin = np.min(grid_data)
+        if vmax is None:
+            vmax = np.max(grid_data)
+
+    grid_data[grid_data<vmin]=vmin
+    grid_data[grid_data>vmax]=vmax
+
+    otf = PiecewiseFunction()
+    otf.add_point(vmin,0.0)
+    otf.add_point(vmax,1.0)
+
+    sf = mayavi.tools.pipeline.scalar_field(grid_data)
+    V = mlab.pipeline.volume(sf,color=color,vmin=vmin,vmax=vmax)
+
+
+
+
+    V.trait_get('volume_mapper')['volume_mapper'].blend_mode = 'maximum_intensity'
+
+    if color is None:
+        ctf = ColorTransferFunction()
+        ctf.add_rgb_point(vmin,107./255,124./255,132./255)
+        ctf.add_rgb_point(vmin+(vmax-vmin)*0.8,200./255,178./255,164./255)
+        ctf.add_rgb_point(vmin+(vmax-vmin)*0.9,1.0,210./255,149./255)
+        ctf.add_rgb_point(vmax,1.0,222./255,141./255)
+        print vmin,vmax
+        V._volume_property.set_color(ctf)
+        V._ctf = ctf
+        V.update_ctf = True
+
+    V._otf = otf
+    V._volume_property.set_scalar_opacity(otf)
+
+
+    return V
+
+def contour(*args, **kwargs):
+    """
+    Make an SPH image of the given simulation and render it as contours.
+    nlevels and levels are passed to pyplot's contour command.
+
+    Other arguments are as for *image*.
+    """
+
+    import copy
+    kwargs_image = copy.copy(kwargs)
+    nlevels = kwargs_image.pop('nlevels',None)
+    levels = kwargs_image.pop('levels',None)
+    width = kwargs_image.get('width','10 kpc')
+    kwargs_image['noplot']=True
+    im = image(*args, **kwargs_image)
+    res = im.shape
+
+    units = kwargs_image.get('units',None)
+
+    if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
+        if isinstance(width, str):
+            width = _units.Unit(width)
+        sim = args[0]
+        width = width.in_units(sim['pos'].units, **sim.conversion_context())
+
+    width = float(width)
+    x,y = np.meshgrid(np.linspace(-width/2,width/2,res[0]),np.linspace(-width/2,width/2,res[0]))
+
+    p.contour(x,y,im,nlevels=nlevels,levels=levels)
+
+
+
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z=False, filename=None,
           z_camera=None, clear=True, cmap=None, center=False,
@@ -131,8 +250,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           **kwargs):
     """
 
-    Make an SPH image of the given simulation. See the `"Pictures in Pynbody" tutorial
-    <http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody>`_ for examples.
+    Make an SPH image of the given simulation.
 
     **Keyword arguments:**
 

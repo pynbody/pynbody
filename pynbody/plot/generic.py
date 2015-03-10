@@ -387,7 +387,7 @@ Since this function produces a density estimate, the units of the
 def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
                       logscale=True, xlogrange=False, ylogrange=False,
                       subplot=False, colorbar=False, ret_im=False, cmap=None,
-                      clear=True, legend=False, scalemin=None,
+                      clear=True, legend=False, scalemin=None,levels=None,
                       scalemax=None, filename=None, **kwargs):
     """
     Plot a contour plot of grid *arr* corresponding to bin centers

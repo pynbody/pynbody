@@ -34,22 +34,26 @@ except ImportError:
 import os
 
 
-def _get_threaded_smooth():
-    return config_parser.getboolean('sph', 'threaded-smooth') and config['number_of_threads']
 
 
 def _get_threaded_image():
     return config_parser.getboolean('sph', 'threaded-image') and config['number_of_threads']
 
-_threaded_smooth = _get_threaded_smooth()
 _threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 
+def _exception_catcher(call_fn, exception_list, *args):
+    try:
+        call_fn(*args)
+    except Exception, e:
+        exception_list.append(sys.exc_info())
 
 def _thread_map(func, *args):
     threads = []
+    exceptions = []
     for arg_this in zip(*args):
-        threads.append(threading.Thread(target=func, args=arg_this))
+        arg_ec_this = [func,exceptions]+list(arg_this)
+        threads.append(threading.Thread(target=_exception_catcher, args=arg_ec_this))
         threads[-1].start()
     for t in threads:
         while t.is_alive():
@@ -57,16 +61,30 @@ def _thread_map(func, *args):
             # debug deadlocks!
             t.join(1.0)
 
+    if len(exceptions)>0:
+        # Here we re-raise the exception that was actually generated in a thread
+        t,obj,trace= exceptions[0]
+        raise t,obj,trace
+
+def _auto_denoise(sim):
+    """Returns True if pynbody thinks denoise flag should be on for best
+    results with this simulation.
+
+    At the moment it inspects to see if it's a RamsesSnap, and if so, returns
+    True."""
+
+    if isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
+        return True
+    else:
+        return False
 
 def build_tree(sim):
     if hasattr(sim, 'kdtree') is False:
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
         # has been triggered by getting an array in the calling thread.
-        pos, vel, mass = [np.asanyarray(
-            sim._get_array(x), dtype=np.float64) for x in 'pos', 'vel', 'mass']
-        sim.kdtree = kdtree.KDTree(
-            pos, vel, mass, leafsize=config['sph']['tree-leafsize'])
+        sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
+                        leafsize=config['sph']['tree-leafsize'])
 
 
 def _tree_decomposition(obj):
@@ -78,35 +96,16 @@ def _get_tree_objects(sim):
 
 
 def build_tree_or_trees(sim):
-    global _threaded_smooth
-    _threaded_smooth = _get_threaded_smooth()
 
-    if _threaded_smooth:
-        bits = _tree_decomposition(sim)
-        if all(map(hasattr, bits, ['kdtree'] * len(bits))):
-            return
-    else:
-        if hasattr(sim, 'kdtree'):
-            return
+    if hasattr(sim, 'kdtree'):
+        return
 
-    if _threaded_smooth:
-        logger.info('Building %d trees with leafsize=%d' %
-                    (_threaded_smooth, config['sph']['tree-leafsize']))
-    else:
-        logger.info('Building tree with leafsize=%d' %
-                    config['sph']['tree-leafsize'])
+    logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
 
     start = time.clock()
-
-    if _threaded_smooth:
-        # trigger any necessary 'lazy' activity from this thread,
-        # it won't be available to the individual worker threads
-        sim['pos'], sim['vel'], sim['mass']
-        _thread_map(build_tree, bits)
-    else:
-        build_tree(sim)
-
+    build_tree(sim)
     end = time.clock()
+
     logger.info('Tree build done in %5.3g s' % (end - start))
 
 
@@ -117,25 +116,15 @@ def smooth(self):
     logger.info('Smoothing with %d nearest neighbours' %
                 config['sph']['smooth-particles'])
 
-    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units)
+    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units,
+                       dtype=self['pos'].dtype)
+
 
     start = time.time()
-
-    _threaded_smooth = _get_threaded_smooth()
-
-    if _threaded_smooth:
-        _thread_map(kdtree.KDTree.populate,
-                    _get_tree_objects(self),
-                    _tree_decomposition(sm),
-                    ['hsm'] * _threaded_smooth,
-                    [config['sph']['smooth-particles']] * _threaded_smooth)
-
-        sm /= _threaded_smooth ** 0.3333
-
-    else:
-        self.kdtree.populate(sm, 'hsm', nn=config['sph']['smooth-particles'])
-
+    self.kdtree.set_array_ref('smooth',sm)
+    self.kdtree.populate('hsm', config['sph']['smooth-particles'])
     end = time.time()
+
     logger.info('Smoothing done in %5.3gs' % (end - start))
 
     return sm
@@ -145,27 +134,19 @@ def smooth(self):
 def rho(self):
     build_tree_or_trees(self)
 
-    smooth = self['smooth']
 
     logger.info('Calculating SPH density')
     rho = array.SimArray(
-        np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3)
+        np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
+        dtype=self['pos'].dtype)
 
     start = time.time()
 
-    _threaded_smooth = _get_threaded_smooth()
+    self.kdtree.set_array_ref('smooth',self['smooth'])
+    self.kdtree.set_array_ref('mass',self['mass'])
+    self.kdtree.set_array_ref('rho',rho)
 
-    if _threaded_smooth:
-        _thread_map(kdtree.KDTree.populate,
-                    _get_tree_objects(self),
-                    _tree_decomposition(rho),
-                    ['rho'] * _threaded_smooth,
-                    [config['sph']['smooth-particles']] * _threaded_smooth,
-                    _tree_decomposition(smooth))
-        rho *= _threaded_smooth
-    else:
-        self.kdtree.populate(
-            rho, 'rho', nn=config['sph']['smooth-particles'], smooth=smooth)
+    self.kdtree.populate('rho', config['sph']['smooth-particles'])
 
     end = time.time()
     logger.info('Density calculation done in %5.3g s' % (end - start))
@@ -238,7 +219,7 @@ class TopHatKernel(object):
 
 
 def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
-                           kstep=0.5, denoise=False, out_units=None, threaded=None):
+                           kstep=0.5, denoise=None, out_units=None, threaded=None):
     """Render an SPH image on a spherical surface. Requires healpy libraries.
 
     **Keyword arguments:**
@@ -263,6 +244,10 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
       Defaults to a value specified in your configuration files. *Currently multi-threaded
       rendering is slower than single-threaded because healpy does not release the gil*.
     """
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
+
     renderer = _render_spherical_image
 
     if threaded is None:
@@ -278,9 +263,12 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
 
 
 def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
-                            kstep=0.5, denoise=False, out_units=None, __threaded=False, snap_slice=None):
+                            kstep=0.5, denoise=None, out_units=None, __threaded=False, snap_slice=None):
 
     import healpy as hp
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
 
     if out_units is not None:
         conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * snap['smooth'].units ** kernel.h_power)).ratio(out_units,
@@ -359,7 +347,14 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         kwargs['__threaded'] = True  # will pass into render_image
 
         ts = []
-        outputs = []
+
+        # isolate each output in its own list so we can
+        # sum them in a predictable order. This prevents
+        # FP-accuracy introducing random noise at each
+        # rendering, but of course doesn't really fix the
+        # underlying issue that FP errors can build to percent
+        # level errors
+        outputs = [[] for i in range(num_threads)]
 
         if verbose:
             logger.info("Rendering image on %d threads..." % num_threads)
@@ -367,7 +362,7 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         for i in xrange(num_threads):
             kwargs_local = copy.copy(kwargs)
             kwargs_local['snap_slice'] = slice(i, None, num_threads)
-            args_local = [outputs, s] + list(args)
+            args_local = [outputs[i], s] + list(args)
             ts.append(threading.Thread(
                 target=_render_image_bridge(fn), args=args_local, kwargs=kwargs_local))
             ts[-1].start()
@@ -375,7 +370,8 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         for t in ts:
             t.join()
 
-    return sum(outputs)
+    # Each output is a 1-element list with a numpy array. Sum them.
+    return sum([o[0] for o in outputs])
 
 
 def _interpolated_renderer(fn, levels):
@@ -422,7 +418,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
                  threaded=None,
-                 denoise=False):
+                 denoise=None):
     """
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -480,6 +476,9 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
       the number of threads to use (defaults to a value specified in your
       configuration files).
     """
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
 
     if approximate_fast:
         base_renderer = _interpolated_renderer(
@@ -636,7 +635,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
                xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
-               threaded=None, snap_slice=None, denoise=False):
+               threaded=None, snap_slice=None, denoise=None):
     """
 
     Project SPH onto a grid using a typical (mass/rho)-weighted 'scatter'
@@ -671,6 +670,9 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     import os
     import os.path
     global config
+
+    if denoise is None:
+        denoise = _auto_denoise(snap)
 
     in_time = time.time()
 

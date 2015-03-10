@@ -23,6 +23,8 @@ import ConfigParser
 import multiprocessing
 import functools
 import logging
+import random
+import math
 logger = logging.getLogger('pynbody.util')
 from ._util import *
 
@@ -432,6 +434,33 @@ def rational_matrix_inv(matrix):
             x[i, j] = fractions.Fraction(matrix[i][j])
 
     return gauss_jordan(x)[:, len(x):]
+
+
+def random_rotation_matrix():
+    """Return a random rotation matrix (Haar measure for 3x3 case), using
+    fast algorithm from Graphics Gems III
+
+    (http://tog.acm.org/resources/GraphicsGems/gemsiii/rand_rotation.c)"""
+
+    x = np.random.uniform(size=3)
+    theta = x[0]*2*math.pi
+    phi = x[1]*2*math.pi
+    z = x[2]*2
+
+    r = math.sqrt(z)
+    vx = math.sin(phi)*r
+    vy = math.cos(phi)*r
+    vz = math.sqrt(2.0-z)
+
+    st = math.sin(theta)
+    ct = math.cos(theta)
+
+    sx = vx*ct-vy*st
+    sy = vx*st+vy*ct
+
+    return np.array([[vx*sx-ct, vx*sy-st, vx*vz],
+                     [vy*sx+st, vy*sy-ct, vy*vz],
+                     [vz*sx,vz*sy,1.0-z]])
 
 
 def cutgz(x):

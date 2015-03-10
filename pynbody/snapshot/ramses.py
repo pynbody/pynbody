@@ -46,6 +46,8 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
 
+issue_multiprocess_warning = False
+
 if multiprocess:
     try:
         import multiprocessing
@@ -53,8 +55,7 @@ if multiprocess:
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
     except ImportError:
-        warnings.warn(
-            "RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
+        issue_multiprocess_warning = True
         multiprocess = False
 
 if not multiprocess:
@@ -85,9 +86,7 @@ def _cpu_id(i):
 
 
 @remote_exec
-def _cpui_count_particles(filename):
-    distinguisher_field = int(particle_distinguisher[0])
-    distinguisher_type = np.dtype(particle_distinguisher[1])
+def _cpui_count_particles(filename, distinguisher_field, distinguisher_type):
 
     f = open(filename, "rb")
     header = read_fortran_series(f, ramses_particle_header)
@@ -355,6 +354,9 @@ class RamsesSnap(SimSnap):
             self._shared_arrays = True
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
+        elif issue_multiprocess_warning:
+            warnings.warn("RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
+
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
@@ -456,9 +458,27 @@ class RamsesSnap(SimSnap):
         if not os.path.exists(self._particle_filename(1)):
             return 0, 0
 
+        if not self._new_format:
+            distinguisher_field = int(particle_distinguisher[0])
+            distinguisher_type = np.dtype(particle_distinguisher[1])
+        else:
+            # be more cunning about finding the distinguisher field (likely 'age') -
+            # as it may have moved around in some patches of ramses
+
+            distinguisher_name = particle_blocks[int(particle_distinguisher[0])]
+            try:
+                distinguisher_field = self._particle_blocks.index('distinguisher_name')
+            except ValueError:
+                distinguisher_field = 10000 # anything out of range will do!
+
+
+            distinguisher_type = np.dtype(particle_distinguisher[1])
+
         results = remote_map(self.reader_pool,
                              _cpui_count_particles,
-                             [self._particle_filename(i) for i in self._cpus])
+                             [self._particle_filename(i) for i in self._cpus],
+                             [distinguisher_field]*len(self._cpus),
+                             [distinguisher_type]*len(self._cpus))
 
         for npart_this, nstar_this, my_mask in results:
             self._dm_i0.append(dm_i0)
@@ -552,7 +572,11 @@ class RamsesSnap(SimSnap):
 
     def _load_particle_block(self, blockname):
         offset = self._particle_blocks.index(blockname)
-        _type = np.dtype(particle_format[offset])
+        try:
+            _type = np.dtype(particle_format[offset])
+        except IndexError:
+            warnings.warn("Field does not have format configured - assuming double", RuntimeWarning)
+            _type = np.dtype('f8')
         ind0_dm = 0
         ind0_star = 0
 
@@ -700,10 +724,11 @@ def translate_info(sim):
 
     cosmo = 'aexp' in sim._info
 
-    sim.properties['a'] = sim._info['aexp']
-    sim.properties['omegaM0'] = sim._info['omega_m']
-    sim.properties['omegaL0'] = sim._info['omega_l']
-    sim.properties['h'] = sim._info['H0'] / 100.
+    if sim._info['H0']>10:
+        sim.properties['a'] = sim._info['aexp']
+        sim.properties['omegaM0'] = sim._info['omega_m']
+        sim.properties['omegaL0'] = sim._info['omega_l']
+        sim.properties['h'] = sim._info['H0'] / 100.
 
     # N.B. these conversion factors provided by ramses already have the
     # correction from comoving to physical units

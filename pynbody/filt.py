@@ -14,7 +14,7 @@ sample usage.
 
 
 import numpy as np
-from . import units, util
+from . import units, util, _util
 
 
 class Filter(object):
@@ -78,7 +78,7 @@ class Not(Filter):
 
     def __call__(self, sim):
         x = self.f(sim)
-        return ~x
+        return np.logical_not(x)
 
     def __repr__(self):
         return "~" + repr(self.f)
@@ -110,6 +110,7 @@ class Sphere(Filter):
 
     def __call__(self, sim):
         radius = self.radius
+        wrap = -1.0
 
         with sim.immediate_mode:
             pos = sim['pos']
@@ -118,10 +119,16 @@ class Sphere(Filter):
             radius = float(radius.in_units(pos.units,
                                            **pos.conversion_context()))
 
+        if 'boxsize' in sim.properties:
+            wrap = sim.properties['boxsize']
+        
+        if units.is_unit_like(wrap):
+            wrap = float(wrap.in_units(pos.units,**pos.conversion_context()))
+
         cen = self.cen
         if units.has_units(cen):
             cen = cen.in_units(pos.units)
-        return util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius)
+        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
 
 
     def __repr__(self):

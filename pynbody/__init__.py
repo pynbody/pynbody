@@ -7,7 +7,7 @@ for N-body and SPH astrophysical simulations.
 
 For more information, either build the latest documentation included
 in our git repository, or view the online version here:
-http://pynbody.github.io/pynbody/ 
+http://pynbody.github.io/pynbody/
 
 """
 
@@ -21,6 +21,7 @@ import numpy
 import warnings
 import sys
 import logging
+import multiprocessing
 
 
 # Create config dictionaries which will be required by subpackages
@@ -65,6 +66,9 @@ config['threading'] = config_parser.get('general', 'threading')
 config['number_of_threads'] = int(
     config_parser.get('general', 'number_of_threads'))
 
+if config['number_of_threads']<0:
+    config['number_of_threads']=multiprocessing.cpu_count()
+
 config['gravity_calculation_mode'] = config_parser.get(
     'general', 'gravity_calculation_mode')
 config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
@@ -105,7 +109,7 @@ you can customize the behaviour. See here https://docs.python.org/2/howto/loggin
 
 # Import subpackages
 from . import util, filt, array, family, snapshot
-from .snapshot import tipsy, gadget, gadgethdf, ramses, grafic, nchilada
+from .snapshot import tipsy, gadget, gadgethdf, ramses, grafic, nchilada, ascii
 from . import analysis, halo, derived, bridge, gravity, sph, transformation
 
 try:
@@ -142,7 +146,8 @@ except:
 # This is our definitive list of classes which are able to
 # load snapshots
 _snap_classes = [gadgethdf.GadgetHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap,
-                 tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap]
+                 tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
+                 ascii.AsciiSnap]
 
 # Turn the config strings for snapshot/halo classes into lists of
 # actual classes

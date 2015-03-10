@@ -30,7 +30,7 @@ The most common causes of uninformative errors in the
 :ref:`image-making process <pictures>` are that:
 
  1. there are no particles in the view you tried to generate; or
- 2. all the particles are clustered in the central pixel. 
+ 2. all the particles are clustered in the central pixel.
 
 To tackle both of these issues in turn:
 
@@ -48,10 +48,10 @@ To tackle both of these issues in turn:
  ``pynbody.plot.sph.image(my_snapshot, width=0.01)``) or *convert
  to sensible units first*. The easiest way to do the latter is to call
  :func:`~pynbody.snapshot.SimSnap.physical_units` on your snapshot,
- e.g. ``s.physical_units()`` if your simulation is called ``s``. 
+ e.g. ``s.physical_units()`` if your simulation is called ``s``.
 
-.. note:: Point 2. above should be fixed by commit a11df5af1f10. 
- 
+.. note:: Point 2. above should be fixed by commit a11df5af1f10.
+
 
 
 I'm trying to load a file which I'm sure is fine, but it says the format isn't recognized
@@ -94,7 +94,16 @@ machine. You can tell the kernel to allow more; see
 `here <https://www.zabbix.org/wiki/How_to/configure_shared_memory>`_,
 for instance.
 
-Alternatively, you can disable parallel loading on ramses (see :ref:`loaders`).
+Alternatively, you can disable parallel loading on ramses. Create a
+``.pynbodyrc`` file in your home directory with the following
+section:
+
+.. code-block:: none
+
+  [ramses]
+  parallel-read: 0
+
+If you are still having trouble, :ref:`contact us <getting-help>`.
 
 .. _no_memory
 
@@ -106,7 +115,7 @@ each is stored in a self-contained objection. Clearly, if you try to
 load too many at once, you're going to run out of memory.
 
 However sometimes you might intend to load files one-by-one and still
-find the memory usage is cumulative. 
+find the memory usage is cumulative.
 
 ::
 
@@ -139,7 +148,7 @@ reference fall out of scope, before the garbage collector will do
 anything.
 
 ::
-   
+
     import gc
     s = pynbody.load("my_file")
     s2 = s
@@ -156,7 +165,7 @@ references, so it won't keep a ``SimSnap`` alive.
 
 
 ::
-   
+
     import gc
     s = pynbody.load("my_file")
     s2 = s.dm
@@ -165,5 +174,3 @@ references, so it won't keep a ``SimSnap`` alive.
     gc.collect() # does nothing
     del s2
     gc.collect() # success, ar alone is left in memory
-
-   

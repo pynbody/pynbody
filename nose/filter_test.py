@@ -70,3 +70,7 @@ def test_logic():
 
     assert comp.union(not_test) == f
     assert len(comp.intersect(not_test)) == 0
+
+    assert len(comp)+len(not_test)==len(f)
+    assert len(comp)!=0
+    assert len(not_test)!=0

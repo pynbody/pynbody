@@ -28,6 +28,45 @@ class sdist(_sdist):
 
 cmdclass = {'sdist':sdist}
 
+def check_for_pthread():
+    # Create a temporary directory
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    # Get compiler invocation
+    compiler = os.environ.get('CC',
+                              distutils.sysconfig.get_config_var('CC'))
+
+    # make sure to use just the compiler name without flags
+    compiler = compiler.split()[0]
+
+    # Attempt to compile a test script.
+    # See http://openmp.org/wp/openmp-compilers/
+    filename = r'test.c'
+    with open(filename,'w') as f :
+        f.write(
+        "#include <pthread.h>\n"
+        "#include <stdio.h>\n"
+        "int main() {\n"
+        "}"
+        )
+
+    try:
+        with open(os.devnull, 'w') as fnull:
+            exit_code = subprocess.call([compiler, filename],
+                                        stdout=fnull, stderr=fnull)
+    except OSError :
+        exit_code = 1
+
+
+    # Clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+    return (exit_code==0)
+
+
 
 def check_for_openmp():
     """Check  whether the default compiler supports OpenMP.
@@ -73,16 +112,41 @@ def check_for_openmp():
     if exit_code == 0:
         return True
     else:
+        import multiprocessing, platform
+        cpus = multiprocessing.cpu_count()
+        if cpus>1:
+            print ("""WARNING
+
+OpenMP support is not available in your default C compiler, even though
+your machine has more than one core available.
+
+Some routines in pynbody are parallelized using OpenMP and these will
+only run on one core with your current configuration.
+""")
+            if platform.uname()[0]=='Darwin':
+                print ("""Since you are running on Mac OS, it's likely that the problem here
+is Apple's Clang, which does not support OpenMP at all. The easiest
+way to get around this is to download the latest version of gcc from
+here: http://hpc.sourceforge.net. After downloading, just point the
+CC environment variable to the real gcc and OpenMP support should
+get enabled automatically. Something like this -
+
+sudo tar -xzf /path/to/download.tar.gz /
+export CC='/usr/local/bin/gcc'
+python setup.py clean
+python setup.py build
+
+""")
+            print ("""Continuing your build without OpenMP...\n""")
+
         return False
 
 cython_version = None
 try :
     import cython
-
-    # check that cython version is > 0.20
+    # check that cython version is > 0.21
     cython_version = cython.__version__
-    if float(cython_version.partition(".")[2][:2]) < 20 :
-	print "yikes! error importing correct cython", float(cython_version.partition(".")[2][:2])
+    if float(cython_version.partition(".")[2][:2]) < 21 :
         raise ImportError
     from Cython.Distutils import build_ext
     build_cython = True
@@ -98,6 +162,7 @@ except AttributeError:
     cmdclass['build_py'] =  distutils.command.build_py.build_py
 
 have_openmp = check_for_openmp()
+have_pthread = check_for_pthread()
 
 if have_openmp :
     openmp_module_source = "openmp/openmp_real"
@@ -113,26 +178,27 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-std=c99',
-                      '-Wall',
-                      '-O0',
                       '-g']
+
 
 if sys.version_info[0:2]==(3,4) :
     # this fixes the following bug with the python 3.4 build:
     # http://bugs.python.org/issue21121
     extra_compile_args.append("-Wno-error=declaration-after-statement")
 
+if have_pthread:
+    extra_compile_args.append('-DKDT_THREADING')
 
 extra_link_args = []
 
 incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
 
 kdmain = Extension('pynbody/sph/kdmain',
-                   sources = ['pynbody/sph/kdmain.c', 'pynbody/sph/kd.c',
-                              'pynbody/sph/smooth.c'],
+                   sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
+                              'pynbody/sph/smooth.cpp'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
+
                    libraries=libraries,
                    extra_compile_args=extra_compile_args,
                    extra_link_args=extra_link_args)
@@ -189,9 +255,9 @@ if not build_cython :
         for src in mod.sources:
             if not os.path.isfile(src):
                 print ("""
-You are attempting to install pynbody without cython. Unfortunately
-this package does not include the generated .c files that are required
-to do so.
+You are attempting to install pynbody without a recent version of cython.
+Unfortunately this pynbody package does not include the generated .c files that
+are required to do so.
 
 You have two options. Either:
 
@@ -200,7 +266,8 @@ You have two options. Either:
 
 or
 
- 2. Install Cython, at least version 0.20 and preferably 0.21 or higher.
+ 2. Install Cython version 0.21 or higher.
+
     This can normally be accomplished by typing
 
     pip install --upgrade cython.

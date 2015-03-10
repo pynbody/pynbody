@@ -56,6 +56,7 @@ easy as putting a `?` at the end of a command:
 Seeking Further Assistance
 ---------------------------
 
+
 If the tutorials and reference documentation don't answer your question,
 any problem might be described in :doc:`pitfalls`.
 

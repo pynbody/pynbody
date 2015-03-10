@@ -625,34 +625,28 @@ class SimSnap(object):
             # units first and then set all arrays to new unit system
             self.original_units()
 
+
+        # if any are missing, work them out from what we already have:
+
+        if velocity is None:
+            velocity = self.infer_original_units('km s^-1')
+
+        if distance is None:
+            distance = self.infer_original_units('kpc')
+
+        if mass is None:
+            mass = self.infer_original_units('Msol')
+
+        if temperature is None:
+            temperature = self.infer_original_units('K')
+
         new_units = []
         for x in [velocity, distance, mass, temperature]:
             if x is not None:
                 new_units.append(units.Unit(x))
 
-        new_system = list(self._file_units_system)
 
-        for i, x in enumerate(new_system):
-            if x is units.K:
-                continue
-            try:
-                d = x.dimensional_project(new_units)
-                new_system[i] = reduce(lambda x, y: x * y, [
-                    a ** b for a, b in zip(new_units, d)])
-
-            except units.UnitsException:
-                pass
-
-        # check that the new unit system is linearly independent
-        for test in ['kpc', 'Msol', 'km s^-1']:
-            test = units.Unit(test)
-            try:
-                test.dimensional_project(new_system)
-            except units.UnitsException:
-                raise units.UnitsException(
-                    "New units are not linearly independent")
-
-        self._file_units_system = new_system
+        self._file_units_system = new_units
 
         # set new units for all known arrays
         for arr_name in self.keys():
@@ -910,11 +904,12 @@ class SimSnap(object):
                                          [np.sin(angle),  np.cos(angle), 0],
                                          [0,             0,        1]]))
 
-    def wrap(self, boxsize=None):
+    def wrap(self, boxsize=None, convention='center'):
         """Wraps the positions of the particles in the box to lie between
         [-boxsize/2, boxsize/2].
 
         If no boxsize is specified, self.properties["boxsize"] is used."""
+
 
         if boxsize is None:
             boxsize = self.properties["boxsize"]
@@ -923,9 +918,16 @@ class SimSnap(object):
             boxsize = float(boxsize.ratio(self[
                             "pos"].units, **self.conversion_context()))
 
-        for coord in "x", "y", "z":
-            self[coord][np.where(self[coord] < -boxsize / 2)] += boxsize
-            self[coord][np.where(self[coord] > boxsize / 2)] -= boxsize
+        if convention=='center':
+            for coord in "x", "y", "z":
+                self[coord][np.where(self[coord] < -boxsize / 2)] += boxsize
+                self[coord][np.where(self[coord] > boxsize / 2)] -= boxsize
+        elif convention=='upper':
+            for coord in "x", "y", "z":
+                self[coord][np.where(self[coord] < 0)] += boxsize
+                self[coord][np.where(self[coord] > boxsize)] -= boxsize
+        else:
+            raise ValueError, "Unknown wrapping convention"
 
     ############################################
     # WRITING FUNCTIONS
@@ -1270,7 +1272,7 @@ class SimSnap(object):
             return self._family_index_cached
 
         ind = np.empty((len(self),), dtype='int8')
-        for i, f in enumerate(self.families()):
+        for i, f in enumerate(self.ancestor.families()):
             ind[self._get_family_slice(f)] = i
 
         self._family_index_cached = ind
@@ -1428,16 +1430,18 @@ class SimSnap(object):
                                 result = fn(self[fam])
                                 ndim = result.shape[-1] if len(
                                     result.shape) > 1 else 1
-                                
+
                                 # check if a family array already exists with a different dtype
                                 # if so, cast the result to the existing dtype
                                 # numpy version < 1.7 does not support doing this in-place
-                                if self._get_preferred_dtype(name) != result.dtype : 
+
+                                if self._get_preferred_dtype(name) != result.dtype \
+                                   and self._get_preferred_dtype(name) is not None:
                                     if int(np.version.version.split('.')[1]) > 6 :
-                                        result = result.astype(self._get_preferred_dtype(name),copy=False)                                    
-                                    else : 
+                                        result = result.astype(self._get_preferred_dtype(name),copy=False)
+                                    else :
                                         result = result.astype(self._get_preferred_dtype(name))
-                                    
+
                                 self[fam]._create_array(
                                     name, ndim, dtype=result.dtype, derived=not fn.__stable__)
                                 write_array = self[fam]._get_array(
@@ -1470,8 +1474,13 @@ class SimSnap(object):
         """Declare a given array as changed, so deleting any derived
         quantities which depend on it"""
 
+        name = self._array_name_1D_to_ND(name) or name
+        if name=='pos':
+            for v in self.ancestor._persistent_objects.itervalues():
+                if 'kdtree' in v:
+                    del v['kdtree']
+
         if not self.auto_propagate_off:
-            name = self._array_name_1D_to_ND(name) or name
             if name in self._dependency_chain:
                 for d_ar in self._dependency_chain[name]:
                     if d_ar in self or self.has_family_key(d_ar):
