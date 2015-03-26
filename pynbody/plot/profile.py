@@ -149,7 +149,7 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
         p.savefig(filename)
 
 
-def density_profile(sim, linestyle=False, center=True, clear=True, fit=True,in_units=None,
+def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_units=None,
                     filename=None, fit_factor=0.02, axes=False, **kwargs):
     '''
 
@@ -224,14 +224,15 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=True,in_u
 
     if fit:
         fit_inds = np.where(r < fit_factor*sim['r'].max())
-        alphfit = np.polyfit(np.log10(logr[fit_inds]),
-                             np.log10(barden[fit_inds]), 1)
+        alphfit = np.polyfit(np.log10(r[fit_inds]),
+                             np.log10(den[fit_inds]), 1)
         
-        print "alpha: ", alphfit[0], "  norm:", alphfit[1]
+#        print "alpha: ", alphfit[0], "  norm:", alphfit[1]
         
         fit = np.poly1d(alphfit)
         plt.plot(r[fit_inds], 10**fit(np.log10(r[fit_inds])), 
                  color='k',linestyle='dashed',
                  label=r'$\alpha$=%.1f'%alphfit[0])
+        plt.legend(loc=3)
 
         return alphfit[0]

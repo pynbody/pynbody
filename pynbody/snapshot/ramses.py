@@ -86,9 +86,7 @@ def _cpu_id(i):
 
 
 @remote_exec
-def _cpui_count_particles(filename):
-    distinguisher_field = int(particle_distinguisher[0])
-    distinguisher_type = np.dtype(particle_distinguisher[1])
+def _cpui_count_particles(filename, distinguisher_field, distinguisher_type):
 
     f = open(filename, "rb")
     header = read_fortran_series(f, ramses_particle_header)
@@ -358,7 +356,7 @@ class RamsesSnap(SimSnap):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
         elif issue_multiprocess_warning:
             warnings.warn("RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
-            
+
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
@@ -460,9 +458,27 @@ class RamsesSnap(SimSnap):
         if not os.path.exists(self._particle_filename(1)):
             return 0, 0
 
+        if not self._new_format:
+            distinguisher_field = int(particle_distinguisher[0])
+            distinguisher_type = np.dtype(particle_distinguisher[1])
+        else:
+            # be more cunning about finding the distinguisher field (likely 'age') -
+            # as it may have moved around in some patches of ramses
+
+            distinguisher_name = particle_blocks[int(particle_distinguisher[0])]
+            try:
+                distinguisher_field = self._particle_blocks.index('distinguisher_name')
+            except ValueError:
+                distinguisher_field = 10000 # anything out of range will do!
+
+
+            distinguisher_type = np.dtype(particle_distinguisher[1])
+
         results = remote_map(self.reader_pool,
                              _cpui_count_particles,
-                             [self._particle_filename(i) for i in self._cpus])
+                             [self._particle_filename(i) for i in self._cpus],
+                             [distinguisher_field]*len(self._cpus),
+                             [distinguisher_type]*len(self._cpus))
 
         for npart_this, nstar_this, my_mask in results:
             self._dm_i0.append(dm_i0)
