@@ -292,7 +292,8 @@ class GadgetFile(object):
                 if record_size != 256:
                     raise IOError("Bad record size for HEAD in " + filename)
                 t_part = self.header.npart.sum()
-                if ((self.header.npart!=0)*(self.header.mass==0)).sum()==0:
+                if  ((not self.format2) and 
+                	((self.header.npart != 0) * (self.header.mass == 0)).sum()==0):
                     # The "Spec" says that if all the existing particle masses
                     # are in the header, we shouldn't have a MASS block
                     self.block_names.remove('MASS')
