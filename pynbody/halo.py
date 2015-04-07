@@ -1286,11 +1286,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         dist_unit = atr['UnitLength_in_cm']*units.cm
         mass_unit = atr['UnitMass_in_g']*units.g
         time_unit = atr['UnitTime_in_s']*units.s
-
-#        vel_unit = units.km/units.s
-#        dist_unit = units.Mpc
-#        mass_unit = units.Msol
-#        time_unit = units.yr        
+     
         # Create a dictionary for the units, this will come in handy later
         unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit, 'U_T' : time_unit}
 
@@ -1349,7 +1345,9 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                           'Mass': np.array([])}
         sub_properties = {}
        
-        ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor', 'SF', 'NSF', 'NsubPerHalo', 'Stars']
+        ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor', 
+                  'SF', 'NSF', 'NsubPerHalo', 'Stars']
+
         for t in  sim._my_type_map.values() :
             ignore.append(t[0])
 

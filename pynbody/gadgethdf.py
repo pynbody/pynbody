@@ -557,13 +557,19 @@ def cosmodm(sim) :
     """Cosmological Dispersion measure per SPH particle includes (1+z) factor, currently ignoring n_e contribution from He """
 
     return sim.g["rho_ne"] * (1. + sim.g["redshift"])
-
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def redshift(sim) :
     """Redshift from LoS Velocity 'losvel' """
 
-    return np.exp( sim['losvel'].in_units('c') / units.c ) - 1.
+    return np.exp( sim['losvel'].in_units('c') ) - 1.
+
+@GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
+def doppler_redshift(sim) :
+    """Doppler Redshift from LoS Velocity 'losvel' using SR """
+
+    return np.sqrt( (1. + sim['losvel'].in_units('c')) / (1. - sim['losvel'].in_units('c'))  ) - 1. 
 
 @GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
