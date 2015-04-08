@@ -271,22 +271,18 @@ class GadgetHDFSnap(snapshot.SimSnap):
             # this next chunk of code is just to determine the
             # dimensionality of the data
 
-            i=0
-            not_loaded = True
-
             # not all arrays are present in all hdfs so need to loop
             # until we find one
-            while(not_loaded) :
-                if subgroup is None : 
-                    hdf0 = self._hdf[i]
-                else : 
-                    hdf0 = self._hdf[i][subgroup]
+            for hdf0 in self._hdf : 
+                if subgroup is not None : 
+                    hdf0 = hdf0[subgroup]     
                 try : 
                     dset0 = self._get_hdf_dataset(hdf0[
                         self._my_type_map[famx][0]], translated_name)
-                    not_loaded = False
+                    break
+
                 except KeyError: 
-                    i+=1
+                    continue
 
             assert len(dset0.shape) <= 2
             dy = 1
