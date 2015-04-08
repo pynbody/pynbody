@@ -6,7 +6,7 @@ gadgethdf
 
 Implementation of backend reader for GadgetHDF files by Andrew Pontzen.
 
-The gadget array names are mapped into pynbody array names according
+The gadget array names are mapped into pynbody array mes according
 to the mappings given by the config.ini section [gadgethdf-name-mapping].
 
 The gadget particle groups are mapped into pynbody families according
@@ -35,7 +35,7 @@ import ConfigParser
 import struct
 import os
 import numpy as np
-import functools
+import functools, itertools
 import warnings
 import sys
 import weakref 
@@ -79,6 +79,29 @@ class DummyHDFData(object):
         target[:] = self.value
 
 
+class HdfFileGenerator(object) :
+    def __init__(self, filename, numfiles) :
+        self.filename = filename
+        self.numfiles = numfiles
+        self._open_files = {}
+
+    def __iter__(self) : 
+        i = 0
+        while i < self.numfiles : 
+            try : 
+                yield self._open_files[i]
+            except KeyError: 
+                yield h5py.File(self.filename+"."+str(i)+".hdf5", "r")
+            i+=1
+
+    def __getitem__(self, i) : 
+        try : 
+            return self._open_files[i]
+        except KeyError : 
+            self._open_files[i] = next(itertools.islice(self,i,i+1))
+            return self._open_files[i]
+
+    
 class GadgetHDFSnap(snapshot.SimSnap):
     """
     Class that reads HDF Gadget data
@@ -94,8 +117,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
         if not h5py.is_hdf5(filename):
             h1 = h5py.File(filename+".0.hdf5", "r")
             numfiles = h1['Header'].attrs['NumFilesPerSnapshot']
-            self._hdf = [h5py.File(filename+"."+str(
-                i)+".hdf5", "r") for i in xrange(numfiles)]
+            self._hdf = HdfFileGenerator(filename, numfiles)
         else:
             self._hdf = [h5py.File(filename, "r")]
 
@@ -137,6 +159,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
         self._my_type_map = my_type_map
 
         self._decorate()
+
 
     def _family_has_loadable_array(self, fam, name, subgroup = None):
         """Returns True if the array can be loaded for the specified family.
@@ -421,12 +444,10 @@ class SubFindHDFSnap(GadgetHDFSnap) :
         # get the properties from the FOF HDF group and other metadata
         self._decorate()
 
-        # load the rest of the hdfs if the user doesn't specify a single hdf
-        if not h5py.is_hdf5(filename) :
-            numfiles = self.properties['NTask']
-            self._hdf = [h5py.File(filename+"."+str(
-                i)+".hdf5", "r") for i in xrange(numfiles)]
-        
+        numfiles = self.properties['NTask']
+                    
+        self._hdf = HdfFileGenerator(filename, numfiles)
+
         # set up the particle type mapping
         my_type_map = {}
 
@@ -457,6 +478,9 @@ class SubFindHDFSnap(GadgetHDFSnap) :
         self._num_particles = sl_start
 
         self._my_type_map = my_type_map
+
+
+    
 
 
     def _load_array(self, array_name, fam=None, subgroup = 'FOF') : 
