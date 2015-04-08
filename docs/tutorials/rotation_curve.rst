@@ -5,7 +5,7 @@
 Plotting Rotation Cuves
 =======================
 
-Rotation curves are calculated and plotted using the :func:`~pynbody.analysis.profile.Profile` 
+Rotation curves are calculated and plotted using the :func:`~pynbody.analysis.profile.Profile`
 object. For a tutorial on profiles see :doc:`profile`.
 
 .. plot:: tutorials/example_code/rotcurve.py
@@ -18,54 +18,46 @@ Speeding up the Gravity Calculation in Pynbody
 The rotation curve is calculated by calculating the forces in a
 plane. The force calculation is a direct :math:`N^2` calculation, so
 it takes a while and it is therefore done in `C`. It is even faster if
-you use the parallel Open-MP version. This requires `Cython` and a
-multi-core machine (which includes all modern computers...). 
-
-Check if you have `Cython` installed: 
+you use the parallel Open-MP version. This was installed automatically
+if pynbody detected an Open-MP C compiler during setup. To see whether
+this happened or not, you can ask how many cores your machine has:
 
 .. ipython::
 
- In [1]: import cython
-   
-If this doesn't raise an error you're good to go! If this fails,
-you'll need to `install Cython <http://cython.org/>`_ first.
+ In [4]: import pynbody
 
-Once you have `Cython`, the parallel version should be compiled and
-installed automatically. Now, to use the parallel version in the
-gravity calculation for the rotation curve, you need to make sure that
-your pynbody options are set correctly. You can check the current
-configuration like this:
+ In [4]: pynbody.openmp.get_cpus()
 
-.. ipython:: 
+If this returns 1 but you have more than one core, pynbody has not
+been installed with OpenMP support (check your :ref:`compiler
+<pynbody-installation-must-haves>`, especially on Mac OS - then `raise
+an issue <https://github.com/pynbody/pynbody/issues>`_ if you can't
+fix the problem) . If it returns the number of cores on your
+machine, you're in luck.
 
- In [2]: import pynbody
+Assuming OpenMP support is enabled, the actual number of cores used by
+pynbody is determined by the configuration option
+``number_of_threads``, which is the number of CPUs detected on your
+ machine by default. If you want to reduce this (e.g. you are running on
+ a login node or have multiple analyses going on in parallel), you can
+ specify the number of cores explicitly:
 
- In [3]: pynbody.config
+.. ipython::
 
-
-Here we see two options: ``gravity_calculation_mode = 'direct'`` and
-``number_of_threads = 4``. The second option tells pynbody to use 4
-threads, but the first instructs it to use the serial version of the
-gravity code. We can fix this, and if your machine has more cores you can tell it to use them: 
-
-.. ipython:: 
-
- In [4]: pynbody.config['gravity_calculation_mode'] = 'direct_omp'
-
- In [5]: pynbody.config['number_of_threads'] = 30
+ In [5]: pynbody.config['number_of_threads'] = 2
 
 Now all gravity calculations will use the parallel gravity calculation
-on 30 cpus. Note that the number of threads you specify in this option
+on only 2 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
-:func:`pynbody.plot.sph.image`.
+:func:`pynbody.plot.sph.image`. See :ref:`threads`.
 
-If you want to make your configuration changes permanent, create a file called ``.pynbodyrc`` in your home directory with the lines
+If you want to make your configuration changes permanent, create a
+file called ``.pynbodyrc`` in your home directory with the lines
 
-:: 
+::
 
-   gravity_calculation_mode: direct_omp
-   number_of_threads: 30
+   [general]
+   number_of_threads: 2
 
 
-See the file ``default_config.ini`` in the pynbody source distribution
-for other options.
+See  :ref:`configuration` for more information.
