@@ -256,6 +256,18 @@ class GadgetHDFSnap(snapshot.SimSnap):
             return units.Unit('1.0'), units.Unit('1.0')
 
 
+    @staticmethod
+    def _get_hdf_units(hdf, arr_name) :
+        """Return the units based on HDF attributes VarDescription"""
+        match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
+        if len(match) > 0 : 
+            VarDescription = hdf[match[0]].attrs['VarDescription']
+            # Need to search for [*] and the * for K, g, cm, s and set up the units automatically 
+            return units.Msol
+        else : 
+            return units.Unit('1.0')
+
+
     def _load_array(self, array_name, fam=None, subgroup = None):
         if not self._family_has_loadable_array(fam, array_name, subgroup):
             raise IOError("No such array on disk")
@@ -306,6 +318,10 @@ class GadgetHDFSnap(snapshot.SimSnap):
             else:
                 self[fam]._create_array(array_name, dy, dtype=dtype)
                 self[fam][array_name].set_default_units()
+
+            # Have to manually set the Star Formation Rate units
+            if array_name == 'StarFormationRate':
+                self[fam][array_name].units = units.Msol * units.yr**-1
 
             if fam is not None:
                 fams = [fam]
@@ -444,6 +460,8 @@ class SubFindHDFSnap(GadgetHDFSnap) :
         # set up the particle type mapping
         my_type_map = {}
 
+        # defines the link between PartType0, 1, 4 in my_types 
+        # and the pynbody nomenclature, gas, dm and stars in fam
         for fam, g_types in _type_map.iteritems() : 
             my_types = []
             for x in g_types :
@@ -451,7 +469,7 @@ class SubFindHDFSnap(GadgetHDFSnap) :
                     my_types.append(x)
             if len(my_types) : 
                 my_type_map[fam] = my_types
-        
+
         # set up family slices
         sl_start = 0
         self._loadable_keys = set([])
