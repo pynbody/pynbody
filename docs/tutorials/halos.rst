@@ -372,4 +372,5 @@ appending to an array:
  In [18]: for halo in h: 
  In [18]: 	for subhalo in halo.sub:
  In [18]:		SubStellarVelDisp.append(subhalo.properties['SubStellarVelDisp'])
+ In [19]: print SubStellarVelDisp[0:3]
   

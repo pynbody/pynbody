@@ -353,7 +353,6 @@ class GadgetHDFSnap(snapshot.SimSnap):
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
 
-
 @GadgetHDFSnap.decorator
 def do_properties(sim):
     atr = sim._hdf[0]['Header'].attrs
@@ -385,7 +384,6 @@ def do_properties(sim):
         if s not in ['ExpansionFactor', 'Time_GYR', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
             sim.properties[s] = sim._hdf[0]['Header'].attrs[s]
 
-
 @GadgetHDFSnap.decorator
 def do_units(sim):
     
@@ -415,7 +413,6 @@ def do_units(sim):
 
     sim._file_units_system = [units.Unit(x) for x in [
                               vel_unit, dist_unit, mass_unit, "K"]]
-
 
 
 ###################
@@ -476,9 +473,6 @@ class SubFindHDFSnap(GadgetHDFSnap) :
         self._my_type_map = my_type_map
 
 
-    
-
-
     def _load_array(self, array_name, fam=None, subgroup = 'FOF') : 
         return GadgetHDFSnap._load_array(self, array_name, fam, subgroup)
 
@@ -509,6 +503,7 @@ def do_properties(sim):
 
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
 def u(self) :
     """Gas internal energy derived from snapshot variable or temperature"""
     try:    
@@ -520,6 +515,7 @@ def u(self) :
     return u
 
 @GadgetHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_quantity
 def p(sim) :
     """Calculate the pressure for gas particles, including polytropic equation of state gas"""
 
@@ -704,6 +700,7 @@ def OI(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='oi')
 
+@GadgetHDFSnap.derived_quantity
 @SubFindHDFSnap.derived_quantity
 def OII(sim) :
     """Fraction of Oxygen OII"""

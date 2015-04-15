@@ -1348,7 +1348,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor', 
                   'SF', 'NSF', 'NsubPerHalo', 'Stars']
 
-        for t in  sim._my_type_map.values() :
+        for t in sim._my_type_map.values() :
             ignore.append(t[0])
 
         for key in sim._hdf[0]['SUBFIND'].keys() :
@@ -1387,16 +1387,9 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
                 # set specific units for certain subhalo properties
                 # SFR doesn't keep the format of U_T etc in VarDescription so do by hand, has no cosmo dependencies
+
                 if key == 'StarFormationRate' : arr_units = units.Msol * units.yr**-1
 
-#                print "Unit for ", key, " is ", arr_units
-#                if 'Vel' in key : arr_units = sim._default_units_for('vel')
-#                if 'Mass' in key and 'Center' not in key : arr_units = sim._default_units_for('mass')
-#                if 'Halo_M' in key: arr_units = sim._default_units_for('mass')
-#                if 'Halo_R' in key: arr_units = sim._default_units_for('pos')
-#                if 'Vmax' in key: arr_units = sim._default_units_for('vel')
-#
-            
             try : 
                 fof_properties[key] = fof_properties[key].view(SimArray)
                 fof_properties[key].units = arr_units
@@ -1405,7 +1398,6 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
             sub_properties[key] = sub_properties[key].view(SimArray)
             sub_properties[key].units = arr_units
-
 
         # set the sim 
         for arr in fof_properties.values() + sub_properties.values() : 
@@ -1416,23 +1408,32 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
         # reshape multi-D arrays
         for key in sub_properties.keys() : 
-            ndim = len(sub_properties[key])/self.nsubhalos
+            fof_array = 0
+            subhalo_array = 0
+
+            # Test if array is FOF groups or Subhalos
+            if len(sub_properties[key]) % self.ngroups == 0:
+                fof_array = 1
+                ndim = len(sub_properties[key])/self.ngroups
+            elif len(sub_properties[key]) % self.nsubhalos == 0:
+                subhalo_array = 1
+                ndim = len(sub_properties[key])/self.nsubhalos
+            else:
+                print "Halo array isn't integer multiple of the FOF or Subhalo count "
+
+            if fof_array == 1 and subhalo_array == 1:
+                print "Halo array is integer multiple of both FOF and Subhalo count, check this "
 
             if ndim > 1 : 
-                try : 
+                if fof_array:
                     fof_properties[key] = fof_properties[key].reshape(self.ngroups,ndim)
-                except KeyError : 
-                    pass
-                sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
-                    
+                elif subhalo_array:
+                    sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
+                        
         # set specific units for certain subhalo properties
 #        sub_properties['StarFormationRate'].set_units_like('Msol yr^-1')            
-
         self._fof_properties = fof_properties
         self._sub_properties = sub_properties
-        
-
-        
                 
     def _get_halo(self, i) : 
         if self.base is None : 
