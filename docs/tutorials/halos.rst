@@ -348,7 +348,7 @@ before (e.g. dark matter velocities):
 
 .. ipython::
 
- In [12]: h[1].sub[0].d['Velocity']
+ In [12]: h[1].sub[0].d['vel']
 
 for the main (i.e. first) subhalo of the second FOF halo. As with AHF additional halo
 catalogue values such as the centre of mass, or the velocity dispersion, can be accessed
