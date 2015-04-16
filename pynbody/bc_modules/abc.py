@@ -25,6 +25,7 @@ def abstractmethod(funcobj):
 
 
 class abstractproperty(property):
+
     """A decorator indicating abstract properties.
 
     Requires that the metaclass is ABCMeta or derived from it.  A
@@ -76,8 +77,8 @@ class ABCMeta(type):
         cls = super(ABCMeta, mcls).__new__(mcls, name, bases, namespace)
         # Compute set of abstract method names
         abstracts = set(name
-                     for name, value in namespace.items()
-                     if getattr(value, "__isabstractmethod__", False))
+                        for name, value in namespace.items()
+                        if getattr(value, "__isabstractmethod__", False))
         for base in bases:
             for name in getattr(base, "__abstractmethods__", set()):
                 value = getattr(cls, name, None)
@@ -123,8 +124,8 @@ class ABCMeta(type):
         subtype = type(instance)
         if subtype is subclass or subclass is None:
             if (cls._abc_negative_cache_version ==
-                ABCMeta._abc_invalidation_counter and
-                subtype in cls._abc_negative_cache):
+                    ABCMeta._abc_invalidation_counter and
+                    subtype in cls._abc_negative_cache):
                 return False
             # Fall back to the subclass check.
             return cls.__subclasscheck__(subtype)
