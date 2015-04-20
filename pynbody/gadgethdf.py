@@ -257,15 +257,49 @@ class GadgetHDFSnap(snapshot.SimSnap):
 
 
     @staticmethod
-    def _get_hdf_units(hdf, arr_name) :
+    def _get_hdf_units(hdfattrs, unitvar, cgsvar) :
         """Return the units based on HDF attributes VarDescription"""
-        match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
-        if len(match) > 0 : 
-            VarDescription = hdf[match[0]].attrs['VarDescription']
-            # Need to search for [*] and the * for K, g, cm, s and set up the units automatically 
-            return units.Msol
-        else : 
-            return units.Unit('1.0')
+
+        # Default is '1.0' unit
+        arr_units = units.Unit('1.0')
+        conversion = 1.0
+
+        VarDescription = hdfattrs['VarDescription']
+        CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
+        aexp = hdfattrs['aexp-scale-exponent']
+        hexp = hdfattrs['h-scale-exponent']
+
+        # First test using the gadget Unit list, U_M, U_L, U_V
+        for unitname in unitvar.keys() :
+            power = 1.
+            if unitname in VarDescription : 
+                sstart = VarDescription.find(unitname)
+                if sstart > 0 :
+                    if VarDescription[sstart-1] == "/" :
+                        power *= -1.
+                if len(VarDescription) > sstart+len(unitname):
+                    # Just check we're not at the end of the line
+                    if VarDescription[sstart+len(unitname)] == '^' :
+                        ## Has an index, check if this is negative
+                        if VarDescription[sstart+len(unitname)+1] == "-" :
+                            power *= -1.
+                            power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
+                        else:
+                            power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
+
+                arr_units *= unitvar[unitname]**power
+                conversion *= unitvar[unitname].in_units(cgsvar[unitname])**power
+
+        # sanity check
+        if not np.isclose(conversion,CGSConversionFactor,rtol=1e-3):
+            print "Error with unit read out from HDF "
+            print "conversion is ",conversion
+            print "but HDF requires ",CGSConversionFactor
+
+        ## Now the cosmological units
+        arr_units *= (((units.a)**aexp) * (units.h)**hexp)
+
+        return arr_units
 
 
     def _load_array(self, array_name, fam=None, subgroup = None):
@@ -279,7 +313,31 @@ class GadgetHDFSnap(snapshot.SimSnap):
 
             translated_name = _translate_array_name(array_name)
 
-            
+            # Set the global units for these arrays
+
+            # Read in the attribute units from SubFind
+            try : 
+                atr = self._hdf[0]['Units'].attrs
+            except KeyError : 
+                warnings.warn("No unit information found!",RuntimeWarning)
+                return                        
+
+            # Define the SubFind units, we will parse the attribute VarDescriptions for these
+            vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
+            dist_unit = atr['UnitLength_in_cm']*units.cm
+            mass_unit = atr['UnitMass_in_g']*units.g
+            time_unit = atr['UnitTime_in_s']*units.s
+
+            # Create a dictionary for the units, this will come in handy later
+            unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit, 
+                       'U_T' : time_unit, '[K]' : units.K, 
+                       'SEC_PER_YEAR' : units.yr, 'SOLAR_MASS' : units.Msol}
+            # Last two units are to catch occasional arrays like StarFormationRate which don't 
+            # follow the patter of U_ units unfortunately
+             
+            cgsvar = {'U_M' : 'g', 'SOLAR_MASS' : 'g', 'U_T': 's', 
+                      'SEC_PER_YEAR': 's', 'U_V' : 'cm s**-1', 'U_L' : 'cm', '[K]' : 'K'}
+
             # this next chunk of code is just to determine the
             # dimensionality of the data
 
@@ -291,6 +349,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
                 try : 
                     dset0 = self._get_hdf_dataset(hdf0[
                         self._my_type_map[famx][0]], translated_name)
+                    units0 = self._get_hdf_units(dset0.attrs, unitvar, cgsvar)
                     break
 
                 except KeyError: 
@@ -319,9 +378,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
                 self[fam]._create_array(array_name, dy, dtype=dtype)
                 self[fam][array_name].set_default_units()
 
-            # Have to manually set the Star Formation Rate units
-            if array_name == 'StarFormationRate':
-                self[fam][array_name].units = units.Msol * units.yr**-1
+            self[fam][array_name].units = units0 
 
             if fam is not None:
                 fams = [fam]
