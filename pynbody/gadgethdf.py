@@ -249,9 +249,9 @@ class GadgetHDFSnap(snapshot.SimSnap):
         """Return the cosmological factors for a given array"""
         match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
         if len(match) > 0 : 
-            a_exp = hdf[match[0]].attrs['aexp-scale-exponent']
-            h_exp = hdf[match[0]].attrs['h-scale-exponent']
-            return units.a**a_exp, units.h**h_exp
+            aexp = hdf[match[0]].attrs['aexp-scale-exponent']
+            hexp = hdf[match[0]].attrs['h-scale-exponent']
+            return (units.a)**util.fractions.Fraction(float(aexp)).limit_denominator(), (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator()
         else : 
             return units.Unit('1.0'), units.Unit('1.0')
 
@@ -286,9 +286,8 @@ class GadgetHDFSnap(snapshot.SimSnap):
                             power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
                         else:
                             power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
-
-                arr_units *= unitvar[unitname]**power
-                conversion *= unitvar[unitname].in_units(cgsvar[unitname])**power
+                arr_units *= unitvar[unitname]**util.fractions.Fraction(float(power)).limit_denominator() 
+                conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction(float(power)).limit_denominator() 
 
         # sanity check
         if not np.isclose(conversion,CGSConversionFactor,rtol=1e-3):
@@ -297,8 +296,9 @@ class GadgetHDFSnap(snapshot.SimSnap):
             print "but HDF requires ",CGSConversionFactor
 
         ## Now the cosmological units
-        arr_units *= (((units.a)**aexp) * (units.h)**hexp)
-
+        arr_units *= ((units.a)**util.fractions.Fraction(float(aexp)).limit_denominator()*\
+                     (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator())
+  
         return arr_units
 
 
