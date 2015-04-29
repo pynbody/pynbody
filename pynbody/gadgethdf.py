@@ -251,7 +251,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
         if len(match) > 0 : 
             aexp = hdf[match[0]].attrs['aexp-scale-exponent']
             hexp = hdf[match[0]].attrs['h-scale-exponent']
-            return (units.a)**util.fractions.Fraction(float(aexp)).limit_denominator(), (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator()
+            return units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator(), units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
         else : 
             return units.Unit('1.0'), units.Unit('1.0')
 
@@ -286,8 +286,8 @@ class GadgetHDFSnap(snapshot.SimSnap):
                             power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
                         else:
                             power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
-                arr_units *= unitvar[unitname]**util.fractions.Fraction(float(power)).limit_denominator() 
-                conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction(float(power)).limit_denominator() 
+                arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
+                conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction.from_float(float(power)).limit_denominator()
 
         # sanity check
         if not np.isclose(conversion,CGSConversionFactor,rtol=1e-3):

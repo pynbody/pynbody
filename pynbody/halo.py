@@ -1398,11 +1398,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                                 else:
                                     power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
                         ## Combine the units
-                        arr_units *= unitvar[unitname]**util.fractions.Fraction(float(power)).limit_denominator() 
+                        arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
 
                 ## Now the cosmological units
-                arr_units *= ((units.a)**util.fractions.Fraction(float(aexp)).limit_denominator()*\
-                             (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator())
+                arr_units *= (units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()*\
+                              units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator())
             try : 
                 fof_properties[key] = fof_properties[key].view(SimArray)
                 fof_properties[key].units = arr_units
