@@ -286,8 +286,10 @@ class GadgetHDFSnap(snapshot.SimSnap):
                             power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
                         else:
                             power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
-                arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
-                conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction.from_float(float(power)).limit_denominator()
+                if not np.allclose(power, 0.0):
+                    arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
+                if not np.allclose(power, 0.0):
+                    conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction.from_float(float(power)).limit_denominator()
 
         # sanity check
         if not np.allclose(conversion,CGSConversionFactor,rtol=1e-3):
@@ -295,9 +297,13 @@ class GadgetHDFSnap(snapshot.SimSnap):
             print "conversion is ",conversion
             print "but HDF requires ",CGSConversionFactor
 
+        print type(aexp)
+        print type(hexp)
         ## Now the cosmological units
-        arr_units *= ((units.a)**util.fractions.Fraction(float(aexp)).limit_denominator()*\
-                     (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator())
+        if not np.allclose(aexp, 0.0):
+            arr_units *= (units.a)**util.fractions.Fraction(float(aexp)).limit_denominator()
+        if not np.allclose(hexp, 0.0):    
+            arr_units *= (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator()
   
         return arr_units
 
