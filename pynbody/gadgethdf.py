@@ -301,9 +301,9 @@ class GadgetHDFSnap(snapshot.SimSnap):
         print type(hexp)
         ## Now the cosmological units
         if not np.allclose(aexp, 0.0):
-            arr_units *= (units.a)**util.fractions.Fraction(float(aexp)).limit_denominator()
+            arr_units *= (units.a)**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
         if not np.allclose(hexp, 0.0):    
-            arr_units *= (units.h)**util.fractions.Fraction(float(hexp)).limit_denominator()
+            arr_units *= (units.h)**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
   
         return arr_units
 
