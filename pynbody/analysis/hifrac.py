@@ -84,6 +84,6 @@ def calculate(sim,ion='hi',selfshield=False) :
     result_array += np.log10(sim.gas['hydrogen'])
 
     result_array = (10.**result_array).view(SimArray)
-    result_array.units = units.m_p**-1
+#    result_array.units = units.m_p**-1
 
     return result_array

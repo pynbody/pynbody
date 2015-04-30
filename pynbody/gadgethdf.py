@@ -377,11 +377,11 @@ class GadgetHDFSnap(snapshot.SimSnap):
             if fam is None:
                 self._create_array(array_name, dy, dtype=dtype)
                 self[array_name].set_default_units()
+                self[array_name].units = units0 
             else:
                 self[fam]._create_array(array_name, dy, dtype=dtype)
                 self[fam][array_name].set_default_units()
-
-            self[fam][array_name].units = units0 
+                self[fam][array_name].units = units0 
 
             if fam is not None:
                 fams = [fam]
