@@ -349,7 +349,10 @@ class GadgetHDFSnap(snapshot.SimSnap):
                 try : 
                     dset0 = self._get_hdf_dataset(hdf0[
                         self._my_type_map[famx][0]], translated_name)
-                    units0 = self._get_hdf_units(dset0.attrs, unitvar, cgsvar)
+                    if hasattr(dset0, "attrs"):
+                        units0 = self._get_hdf_units(dset0.attrs, unitvar, cgsvar)
+                    else:
+                        units0 = units.NoUnit()
                     break
 
                 except KeyError: 
