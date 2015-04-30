@@ -290,7 +290,7 @@ class GadgetHDFSnap(snapshot.SimSnap):
                 conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction.from_float(float(power)).limit_denominator()
 
         # sanity check
-        if not np.isclose(conversion,CGSConversionFactor,rtol=1e-3):
+        if not np.allclose(conversion,CGSConversionFactor,rtol=1e-3):
             print "Error with unit read out from HDF "
             print "conversion is ",conversion
             print "but HDF requires ",CGSConversionFactor
