@@ -6,3 +6,4 @@ direct_omp.c
 testdata
 docs/_static/*png
 docs/*png
+.DS_Store
