@@ -24,7 +24,8 @@ import sys
 from array import SimArray
 import gzip
 import logging
-from . import snapshot, util, config, config_parser, gadget, units
+from . import snapshot, util, config, config_parser, units
+from .snapshot import gadget
 
 logger = logging.getLogger("pynbody.halo")
 
