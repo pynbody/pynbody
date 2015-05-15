@@ -26,7 +26,7 @@ def test_standard_arrays() :
         s['vel']
         s['iord']
         s.gas['rho']
-        s.gas['u']
+       # s.gas['u']
         s.star['mass']
         
 def test_halo_loading() : 
