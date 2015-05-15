@@ -316,8 +316,6 @@ class GadgetHDFSnap(SimSnap):
             print "conversion is ",conversion
             print "but HDF requires ",CGSConversionFactor
 
-        print type(aexp)
-        print type(hexp)
         ## Now the cosmological units
         if not np.allclose(aexp, 0.0):
             arr_units *= (units.a)**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
