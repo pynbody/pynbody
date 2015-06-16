@@ -904,17 +904,25 @@ class TipsySnap(SimSnap):
 
         logger.info("Bridging starlog into SimSnap")
         b = pynbody.bridge.OrderBridge(self, sl)
-        b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
-        b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
-        b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
-        b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
-        b(sl)['posform'] = sl['pos'][:len(self.star), :]
-        b(sl)['velform'] = sl['vel'][:len(self.star), :]
+        b(b(b(sl))).star['iorderGas'] = b(b(sl)).star['iorderGas']
+        b(b(b(sl))).star['massform'] = b(b(sl)).star['massform']
+        b(b(b(sl))).star['rhoform'] = b(b(sl)).star['rhoform']
+        b(b(b(sl))).star['tempform'] = b(b(sl)).star['tempform']
+        b(b(b(sl)))['posform'] = b(b(sl))['pos']
+        b(b(b(sl)))['velform'] = b(b(sl))['vel']
+	#b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
+        #b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
+        #b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
+        #b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
+        #b(sl)['posform'] = sl['pos'][:len(self.star), :]
+        #b(sl)['velform'] = sl['vel'][:len(self.star), :]
 	if 'h2form' in sl.star.keys():
-		b(sl).star['h2form'] = sl.star['h2form'][:len(self.star)]
+		b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
+	#	b(sl).star['h2form'] = sl.star['h2form'][:len(self.star)]	
 	else: print "No H2 data found in StarLog file"
 	if 'tcoolform' in sl.star.keys():
-		b(sl).star['tcoolform'] = sl.star['tcoolform'][:len(self.star)]
+		b(b(b(sl))).star['tcoolform'] = b(b(sl)).star['tcoolform']
+	#	b(sl).star['tcoolform'] = sl.star['tcoolform'][:len(self.star)]
 	else: print "No tcoolform data found in StarLog file"
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
