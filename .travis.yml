@@ -3,6 +3,8 @@
 language: c
 # use language: c to be able to use a matrix of python and numpy versions -- see https://github.com/rmcgibbo/mdtraj/blob/master/.travis.yml
 
+sudo: false
+
 # specify different versions of python and numpy
 env:
   - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20"
