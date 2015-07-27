@@ -40,6 +40,10 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
         with nogil:
             npart = 0
 
+            # using openmp prange causes problems with multiprocessing, so if 
+            # num_threads is set to 1, explicitly avoid openmp by calling 
+            # the standard single-threaded range
+            
             if num_threads > 1 : 
                 for i in prange(npart_all, schedule='static', num_threads=num_threads):
                     pix=pos[i,0]-cx; piy=pos[i,1]-cy; piz=pos[i,2]-cz
