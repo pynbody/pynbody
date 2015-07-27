@@ -1415,8 +1415,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self.ngroups = sim._hdf[0]['FOF'].attrs['Total_Number_of_groups']
         self.nsubhalos = sim._hdf[0]['FOF'].attrs['Total_Number_of_subgroups']
 
-        self._subfind_halo_parent_groups = np.empty(self.nsubhalos)
-        self._fof_group_first_subhalo = np.empty(self.ngroups)
+        self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
+        self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
 
         for ptype in sim._my_type_map.values() : 
             ptype = ptype[0] 
@@ -1488,7 +1488,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             arr_units = units.NoUnit()
             #cosmo_units = units.NoUnit()
 
-            VarDescription = sim._hdf[0]['SUBFIND'][key].attrs['VarDescription']
+            VarDescription = str(sim._hdf[0]['SUBFIND'][key].attrs['VarDescription'])
             aexp = sim._hdf[0]['SUBFIND'][key].attrs['aexp-scale-exponent']
             hexp = sim._hdf[0]['SUBFIND'][key].attrs['h-scale-exponent']
 

@@ -23,22 +23,17 @@ be loaded.
 
 from __future__ import with_statement  # for py2.5
 
-from .. import snapshot, array, util, halo
+from .. import util, halo
 from .. import family
 from .. import units
-from .. import config
 from .. import config_parser
 from . import SimSnap
 
 import ConfigParser
 
-import struct
-import os
 import numpy as np
 import functools, itertools
 import warnings
-import sys
-import weakref 
 
 import logging
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -283,7 +278,7 @@ class GadgetHDFSnap(SimSnap):
         arr_units = units.Unit('1.0')
         conversion = 1.0
 
-        VarDescription = hdfattrs['VarDescription']
+        VarDescription = str(hdfattrs['VarDescription'])
         CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
         aexp = hdfattrs['aexp-scale-exponent']
         hexp = hdfattrs['h-scale-exponent']
@@ -312,9 +307,9 @@ class GadgetHDFSnap(SimSnap):
 
         # sanity check
         if not np.allclose(conversion,CGSConversionFactor,rtol=1e-3):
-            print "Error with unit read out from HDF "
-            print "conversion is ",conversion
-            print "but HDF requires ",CGSConversionFactor
+            print("Error with unit read out from HDF ")
+            print("conversion is ",conversion)
+            print("but HDF requires ",CGSConversionFactor)
 
         ## Now the cosmological units
         if not np.allclose(aexp, 0.0):
