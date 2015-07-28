@@ -145,7 +145,7 @@ except:
 
 # This is our definitive list of classes which are able to
 # load snapshots
-_snap_classes = [gadgethdf.GadgetHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap,
+_snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap,
                  tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
                  ascii.AsciiSnap]
 

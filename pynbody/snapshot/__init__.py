@@ -1056,7 +1056,7 @@ class SimSnap(object):
             if array_name not in self._derived_array_track:
                 self._derived_array_track.append(array_name)
 
-        if ndim is 3:
+        if ndim == 3:
             array_name_1D = self._array_name_ND_to_1D(array_name)
 
             for i, a in enumerate(array_name_1D):
