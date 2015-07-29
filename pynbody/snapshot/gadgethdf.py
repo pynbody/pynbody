@@ -211,8 +211,12 @@ class GadgetHDFSnap(SimSnap):
         return list(set(l))
 
     def loadable_keys(self, fam=None):
-        return self._loadable_keys
+        if fam is not None:
+            return [x for x in self._loadable_keys if self._family_has_loadable_array(fam, x)]
+        else:
+            return [x for x in self._loadable_keys if self._family_has_loadable_array(None, x)]
 
+        
     @staticmethod
     def _write(self, filename=None):
         raise RuntimeError("Not implemented")
