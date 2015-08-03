@@ -28,6 +28,14 @@ def test_standard_arrays() :
         s.gas['rho']
        # s.gas['u']
         s.star['mass']
+
+def test_issue_256() :
+    assert 'pos' in snap.loadable_keys()
+    assert 'pos' in snap.dm.loadable_keys()
+    assert 'pos' in snap.gas.loadable_keys()
+    assert 'He' not in snap.loadable_keys()
+    assert 'He' not in snap.dm.loadable_keys()
+    assert 'He' in snap.gas.loadable_keys()
         
 def test_halo_loading() : 
     """ Check that halo loading works """
