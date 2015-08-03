@@ -22,24 +22,49 @@ import warnings
 import sys
 import logging
 import multiprocessing
+import copy
+
+def _get_config_parser_with_defaults():
+    # Create config dictionaries which will be required by subpackages
+    # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
+    # the backcompat module. This keeps things in the order they were parsed (important
+    # for units module, for instance).
+    config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
+    config_parser.optionxform = str
+    config_parser.read(
+        os.path.join(os.path.dirname(__file__), "default_config.ini"))
+    return config_parser
+
+def _merge_defaults_for_problematic_keys(config_parser):
+    """This unfortunate routine is made necessary by issue #261"""
+    config_parser_defaults = _get_config_parser_with_defaults()
+    merge = (('irreducible-units','names'),)
+
+    for merge_i in merge:
+        opt = config_parser.get(*merge_i)
+        default_opt = config_parser_defaults.get(*merge_i)
+
+        items = map(str.strip,opt.split(","))
+        default_items = map(str.strip,default_opt.split(","))
+
+        for checking_item in default_items:
+            if checking_item not in items:
+                warnings.warn("Pynbody spotted a potential problem with your .pynbodyrc or config.ini. Overriding it by adding %r to config section %r item %r"%(checking_item, merge_i[0], merge_i[1]))
+                opt+=", "+checking_item
+                config_parser.set(merge_i[0],merge_i[1],opt)
+
+def _add_overrides_to_config_parser(config_parser):
+    config_parser.read(os.path.join(os.path.dirname(__file__), "config.ini"))
+    config_parser.read(os.path.expanduser("~/.pynbodyrc"))
+    config_parser.read("config.ini")
+    _merge_defaults_for_problematic_keys(config_parser)
 
 
-# Create config dictionaries which will be required by subpackages
-# We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
-# the backcompat module. This keeps things in the order they were parsed (important
-# for units module, for instance).
-config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
+
 config = {}
 
-
-# Process configuration options
-config_parser.optionxform = str
-config_parser.read(
-    os.path.join(os.path.dirname(__file__), "default_config.ini"))
-config_parser.read(os.path.join(os.path.dirname(__file__), "config.ini"))
-config_parser.read(os.path.expanduser("~/.pynbodyrc"))
-config_parser.read("config.ini")
-
+config_parser = _get_config_parser_with_defaults()
+_add_overrides_to_config_parser(config_parser)
 
 config = {'verbose': config_parser.getboolean('general', 'verbose'),
           'centering-scheme': config_parser.get('general', 'centering-scheme')}
