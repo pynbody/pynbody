@@ -1,4 +1,4 @@
-""" 
+"""
 
 hifrac
 =======
@@ -10,11 +10,11 @@ calculates Hydrogen ionization fraction - limited version of ionfrac to make use
 import numpy as np
 try :
     import scipy, scipy.weave
+    import h5py
     from scipy.weave import inline
 except ImportError :
     pass
 
-import h5py
 import os
 from ..array import SimArray
 from pynbody import config
@@ -29,7 +29,7 @@ def calculate(sim,ion='hi',selfshield=False) :
 
     global config
     # ionization fractions calculated for optically thin case with
-    # CLOUDY for Duffy et al. (2012) overall h1frac.py based on 
+    # CLOUDY for Duffy et al. (2012) overall h1frac.py based on
     # ionfrac.py routine, ultimately should be merged when other
     # elements are added to the hdf5 file
     iffile = os.path.join(os.path.dirname(__file__),"h1.hdf5")
@@ -37,7 +37,7 @@ def calculate(sim,ion='hi',selfshield=False) :
         # import data
         if config['verbose']: print "Loading "+iffile
         ifs=h5py.File(iffile,'r')
-    else : 
+    else :
         raise IOError, "h1.hdf5 (HI Fraction table) not found"
 
     # allocate temporary metals that we can play with
@@ -79,7 +79,7 @@ def calculate(sim,ion='hi',selfshield=False) :
     ## Selfshield criteria from Duffy et al 2012a (in addition to EoS gas)
         if selfshield == 'duffy12':
             result_array[(sim.gas['p'].in_units('m_p K cm**-3') > 150.) & (sim.gas['temp'].in_units('K') < 10.**(4.5))] = 0.
-    
+
     ## Get as HI per proton mass (essentially multiplying the HI fraction by the Hydrogen mass fraction)
     result_array += np.log10(sim.gas['hydrogen'])
 
