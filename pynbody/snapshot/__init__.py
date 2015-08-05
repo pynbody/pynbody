@@ -324,17 +324,19 @@ class SimSnap(object):
             self._dependency_tracker.touching(name)
             return self._get_array(name)
         else:
-            with self._dependency_tracker.calculating(name), self._getting_array_lock:
+            # N.B. py2.6 does not support multi-clause with statements, so have to nest as follows
+            with self._dependency_tracker.calculating(name):
+                with self._getting_array_lock:
 
-                self.__resolve_obscuring_family_array(name)
+                    self.__resolve_obscuring_family_array(name)
 
-                if not self.lazy_off:
-                    if not self.lazy_load_off:
-                        self.__load_if_required(name)
-                    if not self.lazy_derive_off:
-                        self.__derive_if_required(name)
+                    if not self.lazy_off:
+                        if not self.lazy_load_off:
+                            self.__load_if_required(name)
+                        if not self.lazy_derive_off:
+                            self.__derive_if_required(name)
 
-                return self._get_array(name)
+                    return self._get_array(name)
 
 
 
