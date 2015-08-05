@@ -16,6 +16,7 @@ from .. import filt
 from .. import units
 from .. import config
 from .. import simdict
+from .. import dependencytracker
 from ..units import has_units
 
 import numpy as np
@@ -87,10 +88,6 @@ class SimSnap(object):
 
     _derived_quantity_registry = {}
 
-    _dependency_chain = {}
-    # key is an array name. Value gives the set of arrays which depend on
-    # it.
-
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
@@ -99,8 +96,8 @@ class SimSnap(object):
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = [
         "lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
-        "_getting_array_lock", "properties", "_derived_array_track", "_family_derived_array_track",
-        "_dependency_track", "_calculating", "immediate_mode", "delay_promotion"]
+        "_getting_array_lock", "properties", "_derived_array_names", "_family_derived_array_names",
+        "_dependency_tracker", "immediate_mode", "delay_promotion"]
 
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it
@@ -153,20 +150,14 @@ class SimSnap(object):
         self._num_particles = 0
         self._family_slice = {}
         self._family_arrays = {}
-        self._derived_array_track = []
-        self._autoconvert = None
-        self._family_derived_array_track = {}
+        self._derived_array_names = []
+        self._family_derived_array_names = {}
         for i in family._registry:
-            self._family_derived_array_track[i] = []
+            self._family_derived_array_names[i] = []
+        self._autoconvert = None
 
-        self._calculating = []
-        # maintains a list of currently-being-calculated lazy evaluations
-        # to prevent circular references
+        self._dependency_tracker = dependencytracker.DependencyTracker()
 
-        self._dependency_track = [
-        ]  # getitem automatically adds any requested arrays to sets within
-        # this list, which allows for automatic calculation of the dependencies
-        # of derived arrays
 
         self._persistent_objects = {}
 
@@ -248,63 +239,13 @@ class SimSnap(object):
         the class documentation (:class:`SimSnap`) for more information."""
 
         if isinstance(i, str):
-            with self._getting_array_lock:
-
-                if len(self._dependency_track) > 0:
-                    self._dependency_track[-1].add(i)
-
-                if i in self.family_keys():
-                    if self.is_derived_array(i):
-                        del self[i]
-                    else:
-                        in_fam = []
-                        out_fam = []
-                        for x in self.families():
-                            if i in self[x]:
-                                in_fam.append(x)
-                            else:
-                                out_fam.append(x)
-                        # it's possible that we computed this array for the derived
-                        # family previously and saved it on disk
-                        try:
-                            for fam in out_fam:
-                                self.__load_array_with_magic(i, fam=fam)
-                        except IOError:
-                            raise KeyError("""%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s.""" % (
-                                i, in_fam, out_fam))
-
-                try:
-                    return self._get_array(i)
-                except KeyError:
-                    if not self.lazy_off:
-                        try:
-                            if not self.lazy_load_off:
-                                self.__load_array_with_magic(i)
-                            else:
-                                raise IOError
-
-                            if i in self.family_keys():
-                                self._promote_family_array(i)
-
-                            return self._get_array(i)
-
-                        except IOError:
-                            if not self.lazy_derive_off:
-                                self._derive_array(i)
-                                return self._get_array(i)
-
-                    # All available methods of getting this array have failed
-            raise KeyError("No such array %r" % i)
-
+            return self._get_array_with_lazy_actions(i)
         elif isinstance(i, slice):
             return SubSnap(self, i)
         elif isinstance(i, family.Family):
             return FamilySubSnap(self, i)
         elif isinstance(i, np.ndarray) and np.issubdtype(np.bool, i.dtype):
-            if len(i.shape) > 1 or i.shape[0] > len(self):
-                raise ValueError("Incorrect shape for masking array")
-            else:
-                return self[np.where(i)]
+            return self._get_subsnap_from_mask_array(i)
         elif isinstance(i, (list, tuple, np.ndarray, filt.Filter)):
             return IndexedSubSnap(self, i)
         elif isinstance(i, int) or isinstance(i, np.int32) or isinstance(i, np.int64):
@@ -361,15 +302,90 @@ class SimSnap(object):
             assert name not in self._arrays
             del self._family_arrays[name]
 
-            for v in self._family_derived_array_track.itervalues():
+            for v in self._family_derived_array_names.itervalues():
                 if name in v:
                     del v[v.index(name)]
 
         else:
             del self._arrays[name]
-            if name in self._derived_array_track:
-                del self._derived_array_track[
-                    self._derived_array_track.index(name)]
+            if name in self._derived_array_names:
+                del self._derived_array_names[
+                    self._derived_array_names.index(name)]
+
+
+    def _get_subsnap_from_mask_array(self,mask_array):
+        if len(mask_array.shape) > 1 or mask_array.shape[0] > len(self):
+            raise ValueError("Incorrect shape for masking array")
+        else:
+            return self[np.where(mask_array)]
+
+    def _get_array_with_lazy_actions(self, name):
+        if name in self.keys():
+            self._dependency_tracker.touching(name)
+            return self._get_array(name)
+        else:
+            with self._dependency_tracker.calculating(name), self._getting_array_lock:
+
+                self.__resolve_obscuring_family_array(name)
+
+                if not self.lazy_off:
+                    if not self.lazy_load_off:
+                        self.__load_if_required(name)
+                    if not self.lazy_derive_off:
+                        self.__derive_if_required(name)
+
+                return self._get_array(name)
+
+
+
+    def __load_if_required(self, name):
+        if name not in self.keys():
+            try:
+                self.__load_array_and_perform_postprocessing(name)
+            except IOError:
+                pass
+
+    def __derive_if_required(self, name):
+        if name not in self.keys():
+            self._derive_array(name)
+
+    def __resolve_obscuring_family_array(self, name):
+        if name in self.family_keys():
+            self.__remove_family_array_if_derived(name)
+
+        if name in self.family_keys():
+            self.__load_remaining_families_if_loadable(name)
+
+        if name in self.family_keys():
+            in_fam, out_fam = self.__get_included_and_excluded_families_for_array(name)
+            raise KeyError("""%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s.""" % (
+                name, in_fam, out_fam))
+
+    def __get_included_and_excluded_families_for_array(self,name):
+        in_fam = []
+        out_fam = []
+        for x in self.families():
+            if name in self[x]:
+                in_fam.append(x)
+            else:
+                out_fam.append(x)
+
+        return in_fam, out_fam
+
+    def __remove_family_array_if_derived(self, name):
+        if self.is_derived_array(name):
+            del self[name]
+
+
+    def __load_remaining_families_if_loadable(self, name):
+        in_fam, out_fam = self.__get_included_and_excluded_families_for_array(name)
+        try:
+            for fam in out_fam:
+                self.__load_array_and_perform_postprocessing(name, fam=fam)
+        except IOError:
+            pass
+
+
 
     def _get_persist(self, hash, name):
         try:
@@ -818,7 +834,7 @@ class SimSnap(object):
         """
         raise IOError("No lazy-loading implemented")
 
-    def __load_array_with_magic(self, array_name, fam=None):
+    def __load_array_and_perform_postprocessing(self, array_name, fam=None):
         """Calls _load_array for the appropriate subclass, but also attempts to convert
         units of anything that gets loaded and automatically loads the whole ND array
         if this is a subview of an ND array"""
@@ -868,6 +884,8 @@ class SimSnap(object):
                     if not units.has_units(anc[f][v]):
                         anc[f][v].units = anc._default_units_for(v)
                     anc._autoconvert_array_unit(anc[f][v])
+
+
 
     ############################################
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
@@ -1053,8 +1071,8 @@ class SimSnap(object):
         self._arrays[array_name] = new_array
 
         if derived:
-            if array_name not in self._derived_array_track:
-                self._derived_array_track.append(array_name)
+            if array_name not in self._derived_array_names:
+                self._derived_array_names.append(array_name)
 
         if ndim == 3:
             array_name_1D = self._array_name_ND_to_1D(array_name)
@@ -1148,8 +1166,8 @@ class SimSnap(object):
 
         sfa(array_name, new_ar)
         if derived:
-            if array_name not in self._family_derived_array_track[family]:
-                self._family_derived_array_track[family].append(array_name)
+            if array_name not in self._family_derived_array_names[family]:
+                self._family_derived_array_names[family].append(array_name)
 
         if ndim is 3:
             array_name_1D = self._array_name_ND_to_1D(array_name)
@@ -1163,7 +1181,7 @@ class SimSnap(object):
         if len(self._family_arrays[array_name]) == 0:
             del self._family_arrays[array_name]
 
-        derive_track = self._family_derived_array_track[family]
+        derive_track = self._family_derived_array_names[family]
         if array_name in derive_track:
             del derive_track[derive_track.index(array_name)]
 
@@ -1319,7 +1337,7 @@ class SimSnap(object):
             except IndexError:
                 pass
 
-        dmap = [name in self._family_derived_array_track[
+        dmap = [name in self._family_derived_array_names[
             i] for i in self._family_arrays[name]]
         some_derived = any(dmap)
         all_derived = all(dmap)
@@ -1366,11 +1384,11 @@ class SimSnap(object):
 
         if some_derived:
             if all_derived:
-                self._derived_array_track.append(name)
+                self._derived_array_names.append(name)
             else:
                 warnings.warn(
                     "Conjoining derived and non-derived arrays. Assuming result is non-derived, so no further updates will be made.", RuntimeWarning)
-            for v in self._family_derived_array_track.itervalues():
+            for v in self._family_derived_array_names.itervalues():
                 if name in v:
                     del v[v.index(name)]
 
@@ -1406,69 +1424,51 @@ class SimSnap(object):
         global config
 
         calculated = False
-        if name in self._calculating:
-            raise ValueError("Circular reference in derived quantity")
-        else:
-            try:
-                self._calculating.append(name)
-                self._dependency_track.append(set())
-                for cl in type(self).__mro__:
-                    if cl in self._derived_quantity_registry \
-                            and name in self._derived_quantity_registry[cl]:
-                        logger.info("Deriving array %s" % name)
-                        with self.auto_propagate_off:
-                            fn = self._derived_quantity_registry[cl][name]
-                            if fam is None:
-                                result = fn(self)
-                                ndim = result.shape[-1] if len(
-                                    result.shape) > 1 else 1
-                                self._create_array(
-                                    name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                                write_array = self._get_array(
-                                    name, always_writable=True)
-                            else:
-                                result = fn(self[fam])
-                                ndim = result.shape[-1] if len(
-                                    result.shape) > 1 else 1
 
-                                # check if a family array already exists with a different dtype
-                                # if so, cast the result to the existing dtype
-                                # numpy version < 1.7 does not support doing this in-place
+        for cl in type(self).__mro__:
+            if cl in self._derived_quantity_registry \
+                    and name in self._derived_quantity_registry[cl]:
+                logger.info("Deriving array %s" % name)
+                with self.auto_propagate_off:
+                    fn = self._derived_quantity_registry[cl][name]
+                    if fam is None:
+                        result = fn(self)
+                        ndim = result.shape[-1] if len(
+                            result.shape) > 1 else 1
+                        self._create_array(
+                            name, ndim, dtype=result.dtype, derived=not fn.__stable__)
+                        write_array = self._get_array(
+                            name, always_writable=True)
+                    else:
+                        result = fn(self[fam])
+                        ndim = result.shape[-1] if len(
+                            result.shape) > 1 else 1
 
-                                if self._get_preferred_dtype(name) != result.dtype \
-                                   and self._get_preferred_dtype(name) is not None:
-                                    if int(np.version.version.split('.')[1]) > 6 :
-                                        result = result.astype(self._get_preferred_dtype(name),copy=False)
-                                    else :
-                                        result = result.astype(self._get_preferred_dtype(name))
+                        # check if a family array already exists with a different dtype
+                        # if so, cast the result to the existing dtype
+                        # numpy version < 1.7 does not support doing this in-place
 
-                                self[fam]._create_array(
-                                    name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                                write_array = self[fam]._get_array(
-                                    name, always_writable=True)
+                        if self._get_preferred_dtype(name) != result.dtype \
+                           and self._get_preferred_dtype(name) is not None:
+                            if int(np.version.version.split('.')[1]) > 6 :
+                                result = result.astype(self._get_preferred_dtype(name),copy=False)
+                            else :
+                                result = result.astype(self._get_preferred_dtype(name))
 
-                            self.ancestor._autoconvert_array_unit(result)
+                        self[fam]._create_array(
+                            name, ndim, dtype=result.dtype, derived=not fn.__stable__)
+                        write_array = self[fam]._get_array(
+                            name, always_writable=True)
 
-                            write_array[:] = result
-                            if units.has_units(result):
-                                write_array.units = result.units
+                    self.ancestor._autoconvert_array_unit(result)
 
-                        calculated = True
-                        for x in self._dependency_track[-1]:
-                            if x != name:
-                                if x not in self._dependency_chain:
-                                    self._dependency_chain[x] = set()
+                    write_array[:] = result
+                    if units.has_units(result):
+                        write_array.units = result.units
 
-                                self._dependency_chain[x].add(name)
 
-                        break
-            finally:
-                assert self._calculating[-1] == name
-                del self._calculating[-1]
-                del self._dependency_track[-1]
 
-            if not calculated:
-                raise KeyError("No derivation rule for " + name)
+
 
     def _dirty(self, name):
         """Declare a given array as changed, so deleting any derived
@@ -1481,23 +1481,22 @@ class SimSnap(object):
                     del v['kdtree']
 
         if not self.auto_propagate_off:
-            if name in self._dependency_chain:
-                for d_ar in self._dependency_chain[name]:
-                    if d_ar in self or self.has_family_key(d_ar):
-                        if self.is_derived_array(d_ar):
-                            del self[d_ar]
-                            self._dirty(d_ar)
+            for d_ar in self._dependency_tracker.get_dependents(name):
+                if d_ar in self or self.has_family_key(d_ar):
+                    if self.is_derived_array(d_ar):
+                        del self[d_ar]
+                        self._dirty(d_ar)
 
     def is_derived_array(self, name, fam=None):
         """Returns True if the array or family array of given name is
         auto-derived (and therefore read-only)."""
         fam = fam or self._unifamily
         if fam:
-            return (name in self._family_derived_array_track[fam]) or name in self._derived_array_track
+            return (name in self._family_derived_array_names[fam]) or name in self._derived_array_names
         elif name in self.keys():
-            return name in self._derived_array_track
+            return name in self._derived_array_names
         elif name in self.family_keys():
-            return all([name in self._family_derived_array_track[i] for i in self._family_arrays[name]])
+            return all([name in self._family_derived_array_names[i] for i in self._family_arrays[name]])
         else:
             return False
 
@@ -1508,14 +1507,14 @@ class SimSnap(object):
         if self.is_derived_array(name):
             if name in self.family_keys():
                 for fam in self._family_arrays[name]:
-                    track = self._family_derived_array_track[fam]
+                    track = self._family_derived_array_names[fam]
 
                     if name in track:
                         del track[track.index(name)]
 
             else:
-                del self._derived_array_track[
-                    self._derived_array_track.index(name)]
+                del self._derived_array_names[
+                    self._derived_array_names.index(name)]
 
         else:
             raise RuntimeError("Not a derived array")
@@ -1588,26 +1587,26 @@ class SimSnap(object):
             if sl.start != sl.stop:
                 create_args[fam.name] = len(self[fam])
 
-        new = _new(**create_args)
+        new_snap = new(**create_args)
 
         # ordering fix
-        for k in copy.copy(new._family_slice.keys()):
-            new._family_slice[k] = copy.copy(self._get_family_slice(k))
+        for k in copy.copy(new_snap._family_slice.keys()):
+            new_snap._family_slice[k] = copy.copy(self._get_family_slice(k))
 
         for k in self.keys():
-            new[k] = self[k]
+            new_snap[k] = self[k]
 
         for k in self.family_keys():
             for fam in family._registry:
                 if len(self[fam]) > 0:
                     self_fam = self[fam]
                     if k in self_fam.keys() and not self_fam.is_derived_array(k):
-                        new[fam][k] = self_fam[k]
+                        new_snap[fam][k] = self_fam[k]
 
-        new.properties = copy.deepcopy(self.properties, memo)
-        new._file_units_system = copy.deepcopy(self._file_units_system, memo)
+        new_snap.properties = copy.deepcopy(self.properties, memo)
+        new_snap._file_units_system = copy.deepcopy(self._file_units_system, memo)
 
-        return new
+        return new_snap
 
 
 _subarray_immediate_mode = False
@@ -1821,16 +1820,6 @@ class IndexedSubSnap(SubSnap):
                 self._family_indices[fam] = np.asarray(index_array[
                                                        new_slice]) - base._get_family_slice(fam).start
 
-        """
-        # old code for monotonically increasing arrays only
-        for fam in family._registry :
-            base_slice = base._get_family_slice(fam)
-            start = util.index_of_first(index_array,base_slice.start)
-            stop = util.index_of_first(index_array, base_slice.stop)
-            new_slice=slice(start,stop)
-            self._family_slice[fam] = new_slice
-            self._family_indices[fam] = np.asarray(index_array[new_slice])-base_slice.start
-        """
 
     def _get_family_slice(self, fam):
         # A bit messy: jump out the SubSnap inheritance chain
@@ -1925,7 +1914,20 @@ class FamilySubSnap(SubSnap):
             self.base._derive_array(array_name, self._unifamily)
 
 
-def _new(n_particles=0, order=None, **families):
+
+def load(filename, *args, **kwargs):
+    """Loads a file using the appropriate class, returning a SimSnap
+    instance."""
+
+    for c in config['snap-class-priority']:
+        if c._can_load(filename):
+            logger.info("Loading using backend %s" % str(c))
+            return c(filename, *args, **kwargs)
+
+    raise IOError(
+        "File %r: format not understood or does not exist" % filename)
+
+def new(n_particles=0, order=None, **families):
     """Create a blank SimSnap, with the specified number of particles.
 
     Position, velocity and mass arrays are created and filled
@@ -1979,3 +1981,18 @@ def _new(n_particles=0, order=None, **families):
 
     x._decorate()
     return x
+
+def _get_snap_classes():
+    from . import gadgethdf
+    from . import nchilada
+    from . import gadget
+    from . import tipsy
+    from . import ramses
+    from . import grafic
+    from . import ascii
+
+    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap,
+                     tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
+                     ascii.AsciiSnap]
+
+    return _snap_classes
