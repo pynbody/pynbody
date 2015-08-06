@@ -59,7 +59,7 @@ class Halo(snapshot.IndexedSubSnap):
 
 
 # ----------------------------#
-# General HaloCatalogue class # 
+# General HaloCatalogue class #
 #-----------------------------#
 
 class HaloCatalogue(object):
@@ -94,19 +94,19 @@ class HaloCatalogue(object):
             return res
         else:
             return self.calc_item(item)
-    
-    def _halo_generator(self, i_start=None, i_stop=None) : 
+
+    def _halo_generator(self, i_start=None, i_stop=None) :
         if len(self) == 0 : return
         if i_start is None :
-            try : 
+            try :
                 self[0]
                 i = 0
             except KeyError :
                 i = 1
-        else : 
+        else :
             i = i_start
-            
-        if i_stop is None : 
+
+        if i_stop is None :
             i_stop = len(self)
 
         while True:
@@ -114,7 +114,7 @@ class HaloCatalogue(object):
                 yield self[i]
                 i+=1
                 if len(self[i]) == 0: continue
-            except RuntimeError: 
+            except RuntimeError:
                 break
             if i == i_stop: raise StopIteration
 
@@ -1188,7 +1188,7 @@ class GrpCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
-        if (arr_name in sim.loadable_keys()) or (arr_name in sim.keys()) : 
+        if (arr_name in sim.loadable_keys()) or (arr_name in sim.keys()) :
             return True
         else:
             return False
@@ -1374,20 +1374,20 @@ class SubfindCatalogue(HaloCatalogue):
             return False
 
 
-class SubFindHDFHaloCatalogue(HaloCatalogue) : 
+class SubFindHDFHaloCatalogue(HaloCatalogue) :
     """
     Gadget's SubFind Halo catalogue -- used in concert with :class:`~SubFindHDFSnap`
     """
 
-    def __init__(self, sim) : 
+    def __init__(self, sim) :
         super(SubFindHDFHaloCatalogue,self).__init__()
-    
+
         self._base = weakref.ref(sim)
 
         # Read in the attribute units from SubFind
-        try : 
+        try :
             atr = sim._hdf[0]['Units'].attrs
-        except KeyError : 
+        except KeyError :
             warnings.warn("No unit information found: using defaults.",RuntimeWarning)
             sim._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
             return
@@ -1399,10 +1399,10 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         time_unit = atr['UnitTime_in_s']*units.s
 
         # Create a dictionary for the units, this will come in handy later
-        unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit, 
-                   'U_T' : time_unit, '[K]' : units.K, 
+        unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit,
+                   'U_T' : time_unit, '[K]' : units.K,
                    'SEC_PER_YEAR' : units.yr, 'SOLAR_MASS' : units.Msol}
-        # Last two units are to catch occasional arrays like StarFormationRate which don't 
+        # Last two units are to catch occasional arrays like StarFormationRate which don't
         # follow the patter of U_ units unfortunately
 
         # set up particle fof and subhalo group offsets
@@ -1418,8 +1418,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
         self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
 
-        for ptype in sim._my_type_map.values() : 
-            ptype = ptype[0] 
+        for ptype in sim._my_type_map.values() :
+            ptype = ptype[0]
             self._fof_group_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
             self._fof_group_lengths[ptype] = np.empty(self.ngroups,dtype='int64')
             self._subfind_halo_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
@@ -1428,7 +1428,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             curr_groups = 0
             curr_subhalos = 0
 
-            for h in sim._hdf : 
+            for h in sim._hdf :
                 # fof groups
                 offset = h['FOF'][ptype]['Offset']
                 length = h['FOF'][ptype]['Length']
@@ -1442,11 +1442,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
                 self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
                 curr_subhalos += len(offset)
-                            
+
         # get all the parent groups for all the subhalos
         nsub = 0
         nfof = 0
-        for h in sim._hdf : 
+        for h in sim._hdf :
             parent_groups = h['SUBFIND']['GrNr']
             self._subfind_halo_parent_groups[nsub:nsub+len(parent_groups)] = parent_groups
             nsub += len(parent_groups)
@@ -1461,30 +1461,30 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         fof_ignore = ['SF', 'NSF', 'Stars']
 
         sub_properties = {}
-       
-        sub_ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor', 
+
+        sub_ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor',
                   'SF', 'NSF', 'NsubPerHalo', 'Stars']
 
         for t in sim._my_type_map.values() :
-            sub_ignore.append(t[0]) # Don't add SubFind particles ever as this list is actually spherical overdensity 
-            fof_ignore.append(t[0]) # Ignore here, will read in from gadgethdf 
+            sub_ignore.append(t[0]) # Don't add SubFind particles ever as this list is actually spherical overdensity
+            fof_ignore.append(t[0]) # Ignore here, will read in from gadgethdf
 
         for key in sim._hdf[0]['FOF'].keys() :
-            if key not in fof_ignore : 
+            if key not in fof_ignore :
                 fof_properties[key] = np.array([])
 
         for key in sim._hdf[0]['SUBFIND'].keys() :
-            if key not in sub_ignore : 
+            if key not in sub_ignore :
                 sub_properties[key] = np.array([])
 
-        for h in sim._hdf : 
+        for h in sim._hdf :
             for key in fof_properties.keys() :
                 fof_properties[key] = np.append(fof_properties[key],h['FOF'][key].value)
 
             for key in sub_properties.keys() :
                 sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
 
-        for key in sub_properties.keys() : 
+        for key in sub_properties.keys() :
             arr_units = units.NoUnit()
             #cosmo_units = units.NoUnit()
 
@@ -1495,7 +1495,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             if key not in sub_ignore :
                 for unitname in unitvar :
                     power = 1.
-                    if unitname in VarDescription : 
+                    if unitname in VarDescription :
                         sstart = VarDescription.find(unitname)
                         if sstart > 0 :
                             if VarDescription[sstart-1] == "/" :
@@ -1514,7 +1514,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 ## Now the cosmological units
                 arr_units *= (units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()*\
                               units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator())
-            try : 
+            try :
                 fof_properties[key] = fof_properties[key].view(SimArray)
                 fof_properties[key].units = arr_units
             except KeyError :
@@ -1523,140 +1523,140 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             sub_properties[key] = sub_properties[key].view(SimArray)
             sub_properties[key].units = arr_units
 
-        # set the sim 
-        for arr in fof_properties.values() + sub_properties.values() : 
-            try : 
+        # set the sim
+        for arr in fof_properties.values() + sub_properties.values() :
+            try :
                 arr.sim = sim
-            except AttributeError : 
+            except AttributeError :
                 pass
 
         # reshape multi-D arrays
-        for key in sub_properties.keys() : 
+        for key in sub_properties.keys() :
             # Test if there are no remainders, i.e. array is multiple of halo length
             # then solve for the case where this is 1, 2 or 3 dimension
             if len(sub_properties[key]) % self.nsubhalos == 0:
                 ndim = len(sub_properties[key])/self.nsubhalos
-                if ndim > 1 : 
+                if ndim > 1 :
                     sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
 
-            try: 
-                # The case fof FOF 
+            try:
+                # The case fof FOF
                 if len(fof_properties[key]) % self.ngroups == 0:
                     ndim = len(fof_properties[key])/self.ngroups
                     if ndim > 1 :
                         fof_properties[key] = fof_properties[key].reshape(self.ngroups,ndim)
             except KeyError :
                 pass
-                        
+
         self._fof_properties = fof_properties
         self._sub_properties = sub_properties
-                
-    def _get_halo(self, i) : 
-        if self.base is None : 
+
+    def _get_halo(self, i) :
+        if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
-        
-        if i > len(self)-1 : 
+
+        if i > len(self)-1 :
             raise RuntimeError("Group %d does not exist"%i)
 
         type_map = self.base._my_type_map
 
         # create the particle lists
         tot_len = 0
-        for g_ptype in type_map.values() : 
+        for g_ptype in type_map.values() :
             g_ptype = g_ptype[0]
             tot_len += self._fof_group_lengths[g_ptype][i]
 
         plist = np.zeros(tot_len,dtype='int64')
 
         npart = 0
-        for ptype in type_map.keys() : 
-            # family slice in the SubFindHDFSnap 
+        for ptype in type_map.keys() :
+            # family slice in the SubFindHDFSnap
             sl = self.base._family_slice[ptype]
-            
+
             # gadget ptype
             g_ptype = type_map[ptype][0]
 
             # add the particle indices to the particle list
             offset = self._fof_group_offsets[g_ptype][i]
             length = self._fof_group_lengths[g_ptype][i]
-            ind = np.arange(sl.start + offset, sl.start + offset + length) 
+            ind = np.arange(sl.start + offset, sl.start + offset + length)
             plist[npart:npart+length] = ind
             npart += length
-            
-        return SubFindFOFGroup(i, self, self.base, plist)
-        
 
-    def __len__(self) : 
+        return SubFindFOFGroup(i, self, self.base, plist)
+
+
+    def __len__(self) :
         return self.base._hdf[0]['FOF'].attrs['Total_Number_of_groups']
-        
-        
+
+
     @property
     def base(self):
         return self._base()
 
 
 
-class SubFindFOFGroup(Halo) : 
+class SubFindFOFGroup(Halo) :
     """
     SubFind FOF group class
     """
 
-    def __init__(self, group_id, *args) : 
+    def __init__(self, group_id, *args) :
         super(SubFindFOFGroup,self).__init__(group_id, *args)
 
         self._subhalo_catalogue = SubFindHDFSubhaloCatalogue(group_id, self._halo_catalogue)
-        
+
         self._descriptor = "fof_group_"+str(group_id)
 
         # load properties
-        for key in self._halo_catalogue._fof_properties.keys() : 
+        for key in self._halo_catalogue._fof_properties.keys() :
             self.properties[key] = SimArray(self._halo_catalogue._fof_properties[key][group_id],
                                             self._halo_catalogue._fof_properties[key].units)
             self.properties[key].sim = self.base
-            
+
 
     def __getattr__(self, name):
         if name == 'sub':
             return self._subhalo_catalogue
-        else : 
+        else :
             return super(SubFindFOFGroup,self).__getattr__(name)
 
-        
-class SubFindHDFSubhaloCatalogue(HaloCatalogue) : 
+
+class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
     """
-    Gadget's SubFind HDF Subhalo catalogue. 
+    Gadget's SubFind HDF Subhalo catalogue.
 
     Initialized with the parent FOF group catalogue and created
     automatically when an fof group is created
     """
 
-    def __init__(self, group_id, group_catalogue) : 
+    def __init__(self, group_id, group_catalogue) :
         super(SubFindHDFSubhaloCatalogue,self).__init__()
 
         self._base = weakref.ref(group_catalogue.base)
-        
+
         self._group_id = group_id
         self._group_catalogue = group_catalogue
 
 
 
-    def __len__(self): 
-        if self._group_id == (len(self._group_catalogue._fof_group_first_subhalo)-1) : 
+    def __len__(self):
+        if self._group_id == (len(self._group_catalogue._fof_group_first_subhalo)-1) :
             return self._group_catalogue.nsubhalos - self._group_catalogue._fof_group_first_subhalo[self._group_id]
-        else: 
-            return (self._group_catalogue._fof_group_first_subhalo[self._group_id + 1] - 
+        else:
+            return (self._group_catalogue._fof_group_first_subhalo[self._group_id + 1] -
                     self._group_catalogue._fof_group_first_subhalo[self._group_id])
-        
+
     def _get_halo(self, i):
-        if self.base is None : 
+        if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
-        
-        if i > len(self)-1 : 
+
+        if i > len(self)-1 :
             raise RuntimeError("FOF group %d does not have subhalo %d"%(self._group_id, i))
 
         # need this to index the global offset and length arrays
         absolute_id = self._group_catalogue._fof_group_first_subhalo[self._group_id] + i
-                               
+
         # now form the particle IDs needed for this subhalo
         type_map = self.base._my_type_map
 
@@ -1665,60 +1665,60 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
 
         # create the particle lists
         tot_len = 0
-        for g_ptype in type_map.values() : 
+        for g_ptype in type_map.values() :
             g_ptype = g_ptype[0]
             tot_len += halo_lengths[g_ptype][absolute_id]
 
         plist = np.zeros(tot_len,dtype='int64')
 
         npart = 0
-        for ptype in type_map.keys() : 
-            # family slice in the SubFindHDFSnap 
+        for ptype in type_map.keys() :
+            # family slice in the SubFindHDFSnap
             sl = self.base._family_slice[ptype]
-            
+
             # gadget ptype
             g_ptype = type_map[ptype][0]
 
             # add the particle indices to the particle list
             offset = halo_offsets[g_ptype][absolute_id]
             length = halo_lengths[g_ptype][absolute_id]
-            ind = np.arange(sl.start + offset, sl.start + offset + length) 
+            ind = np.arange(sl.start + offset, sl.start + offset + length)
             plist[npart:npart+length] = ind
             npart += length
-            
+
         return SubFindHDFSubHalo(i, self._group_id, self, self.base, plist)
-        
-        
+
+
     @property
-    def base(self) : 
+    def base(self) :
         return self._base()
-        
-class SubFindHDFSubHalo(Halo) : 
+
+class SubFindHDFSubHalo(Halo) :
     """
     SubFind subhalo class
     """
 
-    def __init__(self,halo_id, group_id, *args) : 
+    def __init__(self,halo_id, group_id, *args) :
         super(SubFindHDFSubHalo,self).__init__(halo_id, *args)
-    
+
         self._group_id = group_id
         self._descriptor = "fof_group_%d_subhalo_%d"%(group_id,halo_id)
 
         # need this to index the global offset and length arrays
         absolute_id = self._halo_catalogue._group_catalogue._fof_group_first_subhalo[self._group_id] + halo_id
-        
+
         # load properties
         sub_props = self._halo_catalogue._group_catalogue._sub_properties
-        for key in sub_props : 
+        for key in sub_props :
             self.properties[key] = SimArray(sub_props[key][absolute_id], sub_props[key].units)
             self.properties[key].sim = self.base
-        
 
 
-# AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
-# want to use it, but an AHFCatalogue will probably be on-disk too.
-_halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue, 
-                 RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue]
 
-_runable_halo_classes = [AHFCatalogue, RockstarCatalogue]
+def _get_halo_classes():
+    # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
+    # want to use it, but an AHFCatalogue will probably be on-disk too.
+    _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
+                     RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue]
 
+    return _halo_classes

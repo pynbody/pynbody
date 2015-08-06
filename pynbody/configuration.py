@@ -1,0 +1,135 @@
+import ConfigParser
+import os
+import numpy
+import warnings
+import sys
+import logging
+import multiprocessing
+import copy
+from . import backcompat
+
+def _get_config_parser_with_defaults():
+    # Create config dictionaries which will be required by subpackages
+    # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
+    # the backcompat module. This keeps things in the order they were parsed (important
+    # for units module, for instance).
+    config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
+    config_parser.optionxform = str
+    config_parser.read(
+        os.path.join(os.path.dirname(__file__), "default_config.ini"))
+    return config_parser
+
+def _merge_defaults_for_problematic_keys(config_parser):
+    """This unfortunate routine is made necessary by issue #261"""
+    config_parser_defaults = _get_config_parser_with_defaults()
+    merge = (('irreducible-units','names'),)
+
+    for merge_i in merge:
+        opt = config_parser.get(*merge_i)
+        default_opt = config_parser_defaults.get(*merge_i)
+
+        items = map(str.strip,opt.split(","))
+        default_items = map(str.strip,default_opt.split(","))
+
+        for checking_item in default_items:
+            if checking_item not in items:
+                warnings.warn("Pynbody spotted a potential problem with your .pynbodyrc or config.ini. Overriding it by adding %r to config section %r item %r"%(checking_item, merge_i[0], merge_i[1]))
+                opt+=", "+checking_item
+                config_parser.set(merge_i[0],merge_i[1],opt)
+
+def _add_overrides_to_config_parser(config_parser):
+    config_parser.read(os.path.join(os.path.dirname(__file__), "config.ini"))
+    config_parser.read(os.path.expanduser("~/.pynbodyrc"))
+    config_parser.read("config.ini")
+    _merge_defaults_for_problematic_keys(config_parser)
+
+def _get_basic_config_from_parser(config_parser):
+
+    config = {'verbose': config_parser.getboolean('general', 'verbose'),
+              'centering-scheme': config_parser.get('general', 'centering-scheme')}
+
+    config['snap-class-priority'] = map(str.strip,
+                                        config_parser.get('general', 'snap-class-priority').split(","))
+    config['halo-class-priority'] = map(str.strip,
+                                        config_parser.get('general', 'halo-class-priority').split(","))
+
+
+    config['default-cosmology'] = {}
+    for k in config_parser.options('default-cosmology'):
+        config[
+            'default-cosmology'][k] = float(config_parser.get('default-cosmology', k))
+
+    config['sph'] = {}
+    for k in config_parser.options('sph'):
+        try:
+            config['sph'][k] = int(config_parser.get('sph', k))
+        except ValueError:
+            pass
+
+    config['threading'] = config_parser.get('general', 'threading')
+    config['number_of_threads'] = int(
+        config_parser.get('general', 'number_of_threads'))
+
+    if config['number_of_threads']<0:
+        config['number_of_threads']=multiprocessing.cpu_count()
+
+    config['gravity_calculation_mode'] = config_parser.get(
+        'general', 'gravity_calculation_mode')
+    config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
+
+    return config
+
+def _issue_quiet_warning_if_necessary():
+    warning = """
+Welcome to pynbody v0.30. Note this new version by default is much quieter than old versions.
+To get back the verbose output, edit your config.ini or .pynbodyrc file and insert the following
+section
+
+[general]
+verbose: True
+
+The information is now parsed through python's standard logging module; using logging.getLogger('pynbody')
+you can customize the behaviour. See here https://docs.python.org/2/howto/logging-cookbook.html#logging-cookbook."""
+
+    if not os.path.exists(os.path.expanduser("~/.pynbody_v03_touched")):
+        print warning
+        with open(os.path.expanduser("~/.pynbody_v03_touched"), "w") as f:
+            print>>f, "This file tells pynbody not to reprint the welcome-to-v-0.3 warning"
+
+def _setup_logger(config):
+    logger = logging.getLogger('pynbody')
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(name)s : %(message)s')
+    for existing_handler in list(logger.handlers):
+        logger.removeHandler(existing_handler)
+
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    if config['verbose']:
+        ch.setLevel(logging.INFO)
+        logger.info("Verbose mode is on")
+    else:
+        ch.setLevel(logging.WARNING)
+        _issue_quiet_warning_if_necessary()
+
+
+def configure_snapshot_and_halo_loading_priority():
+    from . import snapshot
+    from . import halo
+
+    # Turn the config strings for snapshot/halo classes into lists of
+    # actual classes
+    _snap_classes_dict = dict([(x.__name__, x) for x in snapshot._get_snap_classes()])
+    _halo_classes_dict = dict([(x.__name__, x) for x in halo._get_halo_classes()])
+    config['snap-class-priority'] = [_snap_classes_dict[x]
+                                     for x in config['snap-class-priority']]
+    config['halo-class-priority'] = [_halo_classes_dict[x]
+                                     for x in config['halo-class-priority']]
+
+
+config_parser = _get_config_parser_with_defaults()
+_add_overrides_to_config_parser(config_parser)
+config = _get_basic_config_from_parser(config_parser)
+logger = _setup_logger(config)
