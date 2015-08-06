@@ -1,4 +1,5 @@
-import contextlib
+import threading
+
 
 class DependencyError(RuntimeError):
     pass
@@ -9,18 +10,21 @@ class DependencyContext(object):
         self.name = name
 
     def __enter__(self):
+        self.tracker._calculation_lock.__enter__()
         self.tracker._push(self.name)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.tracker._pop(self.name)
         if exc_type is None:
             self.tracker._add_me_to_dependents(self.name)
+        self.tracker._calculation_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class DependencyTracker(object):
     def __init__(self):
         self._dependencies = {}
         self._current_calculation_stack = []
+        self._calculation_lock = threading.RLock()
 
     def _setup_my_dependencies(self,name):
         if name not in self._dependencies:

@@ -96,7 +96,7 @@ class SimSnap(object):
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = [
         "lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
-        "_getting_array_lock", "properties", "_derived_array_names", "_family_derived_array_names",
+        "properties", "_derived_array_names", "_family_derived_array_names",
         "_dependency_tracker", "immediate_mode", "delay_promotion"]
 
     # These 3D arrays get four views automatically created, one reflecting the
@@ -195,7 +195,7 @@ class SimSnap(object):
         )
         self.__delayed_promotions = []
 
-        self._getting_array_lock = threading.RLock()
+
 
         self.properties = simdict.SimDict({})
         self._file_units_system = []
@@ -324,19 +324,17 @@ class SimSnap(object):
             self._dependency_tracker.touching(name)
             return self._get_array(name)
         else:
-            # N.B. py2.6 does not support multi-clause with statements, so have to nest as follows
             with self._dependency_tracker.calculating(name):
-                with self._getting_array_lock:
 
-                    self.__resolve_obscuring_family_array(name)
+                self.__resolve_obscuring_family_array(name)
 
-                    if not self.lazy_off:
-                        if not self.lazy_load_off:
-                            self.__load_if_required(name)
-                        if not self.lazy_derive_off:
-                            self.__derive_if_required(name)
+                if not self.lazy_off:
+                    if not self.lazy_load_off:
+                        self.__load_if_required(name)
+                    if not self.lazy_derive_off:
+                        self.__derive_if_required(name)
 
-                    return self._get_array(name)
+                return self._get_array(name)
 
 
 
