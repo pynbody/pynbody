@@ -94,7 +94,7 @@ class SimSnap(object):
     _persistent = ["kdtree", "_immediate_cache"]
 
     # The following will be objects common to a SimSnap and all its SubSnaps
-    _inherited = [
+    _inherited = ["_immediate_cache_lock",
         "lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
         "properties", "_derived_array_names", "_family_derived_array_names",
         "_dependency_tracker", "immediate_mode", "delay_promotion"]
@@ -157,7 +157,7 @@ class SimSnap(object):
         self._autoconvert = None
 
         self._dependency_tracker = dependencytracker.DependencyTracker()
-
+        self._immediate_cache_lock = threading.RLock()
 
         self._persistent_objects = {}
 
@@ -1191,12 +1191,13 @@ class SimSnap(object):
         cache, function fn is called with no arguments and must generate
         it."""
 
-        if not hasattr(self, '_immediate_cache'):
-            self._immediate_cache = [{}]
-        cache = self._immediate_cache[0]
-        hx = hash(name)
-        if hx not in cache:
-            cache[hx] = fn()
+        with self._immediate_cache_lock:
+            if not hasattr(self, '_immediate_cache'):
+                self._immediate_cache = [{}]
+            cache = self._immediate_cache[0]
+            hx = hash(name)
+            if hx not in cache:
+                cache[hx] = fn()
 
         return cache[hx]
 
