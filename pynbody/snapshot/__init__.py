@@ -320,21 +320,21 @@ class SimSnap(object):
             return self[np.where(mask_array)]
 
     def _get_array_with_lazy_actions(self, name):
+
         if name in self.keys():
             self._dependency_tracker.touching(name)
             return self._get_array(name)
-        else:
-            with self._dependency_tracker.calculating(name):
+        
+        with self._dependency_tracker.calculating(name):
+            self.__resolve_obscuring_family_array(name)
 
-                self.__resolve_obscuring_family_array(name)
+            if not self.lazy_off:
+                if not self.lazy_load_off:
+                    self.__load_if_required(name)
+                if not self.lazy_derive_off:
+                    self.__derive_if_required(name)
 
-                if not self.lazy_off:
-                    if not self.lazy_load_off:
-                        self.__load_if_required(name)
-                    if not self.lazy_derive_off:
-                        self.__derive_if_required(name)
-
-                return self._get_array(name)
+            return self._get_array(name)
 
 
 
