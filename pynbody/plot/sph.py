@@ -244,7 +244,7 @@ def contour(*args, **kwargs):
 
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z=False, filename=None,
-          z_camera=None, clear=True, cmap=None, center=False,
+          z_camera=None, clear=True, cmap=None,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
           noplot=False, ret_im=False, fill_nan=True, fill_val=0.0, linthresh=None,
           **kwargs):
@@ -278,7 +278,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
                 :func:`pynbody.sph.image` for more details.
 
     *filename* (None): if set, the image will be saved in a file
-
+    
     *clear* (True): whether to call clf() on the axes first
 
     *cmap* (None): user-supplied colormap instance
