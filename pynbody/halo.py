@@ -1387,59 +1387,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             raise ValueError, "SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation"
         unitvar = sim._hdf_unitvar
 
-        # set up particle fof and subhalo group offsets
-        self._fof_group_offsets = {}
-        self._fof_group_lengths = {}
-        self._subfind_halo_offsets = {}
-        self._subfind_halo_lengths = {}
-        
+        self.__init_halo_offset_data()
+        self.__init_subhalo_relationships()
+
         hdf0 = sim._hdf_files.get_file0_root()
 
-
-        self.ngroups = hdf0['FOF'].attrs['Total_Number_of_groups']
-        self.nsubhalos = hdf0['FOF'].attrs['Total_Number_of_subgroups']
-
-        self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
-        self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
-
-        for ptype in sim._family_to_group_map.values() :
-            ptype = ptype[0]
-            self._fof_group_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
-            self._fof_group_lengths[ptype] = np.empty(self.ngroups,dtype='int64')
-            self._subfind_halo_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
-            self._subfind_halo_lengths[ptype] = np.empty(self.ngroups,dtype='int64')
-
-            curr_groups = 0
-            curr_subhalos = 0
-
-            for h in sim._hdf_files :
-                # fof groups
-                offset = h[ptype]['Offset']
-                length = h[ptype]['Length']
-                self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
-                self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
-                curr_groups += len(offset)
-
-                # subfind subhalos
-                offset = h[ptype]['SUB_Offset']
-                length = h[ptype]['SUB_Length']
-                self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
-                self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
-                curr_subhalos += len(offset)
-
-        # get all the parent groups for all the subhalos
-        nsub = 0
-        nfof = 0
-        for h in sim._hdf_files.iterroot() :
-            parent_groups = h['SUBFIND']['GrNr']
-            self._subfind_halo_parent_groups[nsub:nsub+len(parent_groups)] = parent_groups
-            nsub += len(parent_groups)
-
-            first_groups = h['SUBFIND']['FirstSubOfHalo']
-            self._fof_group_first_subhalo[nfof:nfof+len(first_groups)] = first_groups
-            nfof += len(first_groups)
-
-        # get the properties of fof groups and subhalos calculated by subfind
         fof_properties = {}
 
         fof_ignore = ['SF', 'NSF', 'Stars']
@@ -1534,6 +1486,58 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
         self._fof_properties = fof_properties
         self._sub_properties = sub_properties
+
+    def __init_subhalo_relationships(self):
+
+        nsub = 0
+        nfof = 0
+        for h in self.base._hdf_files.iterroot():
+            parent_groups = h['SUBFIND']['GrNr']
+            self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups
+            nsub += len(parent_groups)
+
+            first_groups = h['SUBFIND']['FirstSubOfHalo']
+            self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups
+            nfof += len(first_groups)
+
+    def __init_halo_offset_data(self):
+
+        hdf0 = self.base._hdf_files.get_file0_root()
+
+        self._fof_group_offsets = {}
+        self._fof_group_lengths = {}
+        self._subfind_halo_offsets = {}
+        self._subfind_halo_lengths = {}
+
+        self.ngroups = hdf0['FOF'].attrs['Total_Number_of_groups']
+        self.nsubhalos = hdf0['FOF'].attrs['Total_Number_of_subgroups']
+        self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
+        self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
+        for ptype in self.base._family_to_group_map.values():
+            ptype = ptype[0]
+            self._fof_group_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
+            self._fof_group_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
+            self._subfind_halo_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
+            self._subfind_halo_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
+
+            curr_groups = 0
+            curr_subhalos = 0
+
+            for h in self.base._hdf_files:
+                # fof groups
+                offset = h[ptype]['Offset']
+                length = h[ptype]['Length']
+                self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
+                self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
+                curr_groups += len(offset)
+
+                # subfind subhalos
+                offset = h[ptype]['SUB_Offset']
+                length = h[ptype]['SUB_Length']
+                self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
+                self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
+                curr_subhalos += len(offset)
+
 
     def _get_halo(self, i) :
         if self.base is None :
