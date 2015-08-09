@@ -20,7 +20,6 @@ def test_standard_arrays() :
     for s in [snap, subfind] : 
         s.dm['pos']
         s.gas['pos']
-        print len(s.dm),len(s.gas),len(s.star)
         s.star['pos']
         s['pos']
         s['mass']
