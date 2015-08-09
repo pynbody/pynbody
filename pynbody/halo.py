@@ -1381,44 +1381,28 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def __init__(self, sim) :
         super(SubFindHDFHaloCatalogue,self).__init__()
-
         self._base = weakref.ref(sim)
 
-        # Read in the attribute units from SubFind
-        try :
-            atr = sim._hdf[0]['Units'].attrs
-        except KeyError :
-            warnings.warn("No unit information found: using defaults.",RuntimeWarning)
-            sim._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
-            return
-
-        # Define the SubFind units, we will parse the attribute VarDescriptions for these
-        vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
-        dist_unit = atr['UnitLength_in_cm']*units.cm
-        mass_unit = atr['UnitMass_in_g']*units.g
-        time_unit = atr['UnitTime_in_s']*units.s
-
-        # Create a dictionary for the units, this will come in handy later
-        unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit,
-                   'U_T' : time_unit, '[K]' : units.K,
-                   'SEC_PER_YEAR' : units.yr, 'SOLAR_MASS' : units.Msol}
-        # Last two units are to catch occasional arrays like StarFormationRate which don't
-        # follow the patter of U_ units unfortunately
+        if not isinstance(sim, snapshot.gadgethdf.SubFindHDFSnap):
+            raise ValueError, "SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation"
+        unitvar = sim._hdf_unitvar
 
         # set up particle fof and subhalo group offsets
         self._fof_group_offsets = {}
         self._fof_group_lengths = {}
         self._subfind_halo_offsets = {}
         self._subfind_halo_lengths = {}
+        
+        hdf0 = sim._hdf_files.get_file0_root()
 
 
-        self.ngroups = sim._hdf[0]['FOF'].attrs['Total_Number_of_groups']
-        self.nsubhalos = sim._hdf[0]['FOF'].attrs['Total_Number_of_subgroups']
+        self.ngroups = hdf0['FOF'].attrs['Total_Number_of_groups']
+        self.nsubhalos = hdf0['FOF'].attrs['Total_Number_of_subgroups']
 
         self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
         self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
 
-        for ptype in sim._my_type_map.values() :
+        for ptype in sim._family_to_group_map.values() :
             ptype = ptype[0]
             self._fof_group_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
             self._fof_group_lengths[ptype] = np.empty(self.ngroups,dtype='int64')
@@ -1428,17 +1412,17 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             curr_groups = 0
             curr_subhalos = 0
 
-            for h in sim._hdf :
+            for h in sim._hdf_files :
                 # fof groups
-                offset = h['FOF'][ptype]['Offset']
-                length = h['FOF'][ptype]['Length']
+                offset = h[ptype]['Offset']
+                length = h[ptype]['Length']
                 self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
                 self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
                 curr_groups += len(offset)
 
                 # subfind subhalos
-                offset = h['FOF'][ptype]['SUB_Offset']
-                length = h['FOF'][ptype]['SUB_Length']
+                offset = h[ptype]['SUB_Offset']
+                length = h[ptype]['SUB_Length']
                 self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
                 self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
                 curr_subhalos += len(offset)
@@ -1446,7 +1430,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         # get all the parent groups for all the subhalos
         nsub = 0
         nfof = 0
-        for h in sim._hdf :
+        for h in sim._hdf_files.iterroot() :
             parent_groups = h['SUBFIND']['GrNr']
             self._subfind_halo_parent_groups[nsub:nsub+len(parent_groups)] = parent_groups
             nsub += len(parent_groups)
@@ -1465,19 +1449,19 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         sub_ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor',
                   'SF', 'NSF', 'NsubPerHalo', 'Stars']
 
-        for t in sim._my_type_map.values() :
+        for t in sim._family_to_group_map.values() :
             sub_ignore.append(t[0]) # Don't add SubFind particles ever as this list is actually spherical overdensity
             fof_ignore.append(t[0]) # Ignore here, will read in from gadgethdf
 
-        for key in sim._hdf[0]['FOF'].keys() :
+        for key in hdf0['FOF'].keys() :
             if key not in fof_ignore :
                 fof_properties[key] = np.array([])
 
-        for key in sim._hdf[0]['SUBFIND'].keys() :
+        for key in hdf0['SUBFIND'].keys() :
             if key not in sub_ignore :
                 sub_properties[key] = np.array([])
 
-        for h in sim._hdf :
+        for h in sim._hdf_files.iterroot() :
             for key in fof_properties.keys() :
                 fof_properties[key] = np.append(fof_properties[key],h['FOF'][key].value)
 
@@ -1488,9 +1472,9 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             arr_units = units.NoUnit()
             #cosmo_units = units.NoUnit()
 
-            VarDescription = str(sim._hdf[0]['SUBFIND'][key].attrs['VarDescription'])
-            aexp = sim._hdf[0]['SUBFIND'][key].attrs['aexp-scale-exponent']
-            hexp = sim._hdf[0]['SUBFIND'][key].attrs['h-scale-exponent']
+            VarDescription = str(hdf0['SUBFIND'][key].attrs['VarDescription'])
+            aexp = hdf0['SUBFIND'][key].attrs['aexp-scale-exponent']
+            hexp = hdf0['SUBFIND'][key].attrs['h-scale-exponent']
 
             if key not in sub_ignore :
                 for unitname in unitvar :
@@ -1558,7 +1542,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         if i > len(self)-1 :
             raise RuntimeError("Group %d does not exist"%i)
 
-        type_map = self.base._my_type_map
+        type_map = self.base._family_to_group_map
 
         # create the particle lists
         tot_len = 0
@@ -1587,7 +1571,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
 
     def __len__(self) :
-        return self.base._hdf[0]['FOF'].attrs['Total_Number_of_groups']
+        return self.base._hdf_files[0].attrs['Total_Number_of_groups']
 
 
     @property
@@ -1658,7 +1642,7 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
         absolute_id = self._group_catalogue._fof_group_first_subhalo[self._group_id] + i
 
         # now form the particle IDs needed for this subhalo
-        type_map = self.base._my_type_map
+        type_map = self.base._family_to_group_map
 
         halo_lengths = self._group_catalogue._subfind_halo_lengths
         halo_offsets = self._group_catalogue._subfind_halo_offsets

@@ -1733,7 +1733,7 @@ class SubSnap(SimSnap):
         return sl
 
     def _load_array(self, array_name, fam=None, **kwargs):
-        self.base._load_array(array_name, fam, **kwargs)
+        self.base._load_array(array_name, fam)
 
     def write_array(self, array_name, fam=None, **kwargs):
         fam = fam or self._unifamily
@@ -1908,7 +1908,7 @@ class FamilySubSnap(SubSnap):
 
     def _load_array(self, array_name, fam=None, **kwargs):
         if fam is self._unifamily or fam is None:
-            self.base._load_array(array_name, self._unifamily, **kwargs)
+            self.base._load_array(array_name, self._unifamily)
 
     def _derive_array(self, array_name, fam=None):
         if fam is self._unifamily or fam is None:

@@ -1,6 +1,8 @@
 import pynbody 
 import numpy as np
 from itertools import chain 
+import shutil
+import h5py
 
 def setup() : 
     global snap,subfind
@@ -18,6 +20,7 @@ def test_standard_arrays() :
     for s in [snap, subfind] : 
         s.dm['pos']
         s.gas['pos']
+        print len(s.dm),len(s.gas),len(s.star)
         s.star['pos']
         s['pos']
         s['mass']
@@ -28,6 +31,26 @@ def test_standard_arrays() :
         s.gas['rho']
        # s.gas['u']
         s.star['mass']
+
+
+def _h5py_copy_with_key_rename(src,dest):
+    shutil.copy(src,dest)
+    f = h5py.File(dest)
+    for tp in f:
+        if "Mass" in tp:
+            tp.move("Mass","Masses")
+    f.close()
+
+
+
+
+def test_alt_names():
+    _h5py_copy_with_key_rename('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5',
+                'testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103_altnames.hdf5')
+
+    snap_alt = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103_altnames.hdf5')
+    assert 'mass' in snap_alt.loadable_keys()
+    assert all(snap_alt['mass']==snap['mass'])
 
 def test_issue_256() :
     assert 'pos' in snap.loadable_keys()
@@ -49,7 +72,7 @@ def test_halo_loading() :
     for i,halo in enumerate(h[0:10]) : 
         halo['mass'].sum()
         for fam in [halo.g, halo.d, halo.s] : 
-            assert(len(fam['iord']) == subfind._hdf[0]['FOF'][subfind._my_type_map[fam.families()[0]][0]]['Length'][i])
+            assert(len(fam['iord']) == subfind._hdf_files[0][subfind._family_to_group_map[fam.families()[0]][0]]['Length'][i])
         for s in halo.sub : 
             s['mass'].sum()
             

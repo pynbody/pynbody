@@ -278,7 +278,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
                 :func:`pynbody.sph.image` for more details.
 
     *filename* (None): if set, the image will be saved in a file
-    
+
     *clear* (True): whether to call clf() on the axes first
 
     *cmap* (None): user-supplied colormap instance
