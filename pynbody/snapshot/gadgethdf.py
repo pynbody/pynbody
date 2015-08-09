@@ -146,6 +146,7 @@ class GadgetHDFSnap(SimSnap):
 
     _multifile_manager_class = GadgetHdfMultiFileManager
     _readable_hdf5_test_key = "PartType0"
+    _size_from_hdf5_key = "ParticleIDs"
 
     def __init__(self, filename):
         super(GadgetHDFSnap, self).__init__()
@@ -191,7 +192,7 @@ class GadgetHDFSnap(SimSnap):
         for hdf_family_name in self._family_to_group_map[fam]:
             for hdf in self._hdf_files:
                 if hdf_family_name in hdf:
-                    if 'Coordinates' in hdf[hdf_family_name]:
+                    if self._size_from_hdf5_key in hdf[hdf_family_name]:
                         yield hdf[hdf_family_name]
 
     def __init_file_map(self):
@@ -199,10 +200,11 @@ class GadgetHDFSnap(SimSnap):
         for fam in self._family_to_group_map:
             family_length = 0
             for hdf_group in self._all_hdf_groups_in_family(fam):
-                family_length += hdf_group['Coordinates'].shape[0]
+                family_length += hdf_group[self._size_from_hdf5_key].size
 
             self._family_slice[fam] = slice(family_slice_start, family_slice_start + family_length)
             family_slice_start += family_length
+
 
         self._num_particles = family_slice_start
 
@@ -289,7 +291,7 @@ class GadgetHDFSnap(SimSnap):
                 pgid = int(particle_group.name[-1])
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
                 if mtab > 0:
-                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0], 
+                    return DummyHDFData(mtab, particle_group[self._size_from_hdf5_key].size,
                                         particle_group['Coordinates'].dtype)
             except (IndexError, KeyError):
                 pass
@@ -392,7 +394,7 @@ class GadgetHDFSnap(SimSnap):
             for loading_fam in all_fams_to_load:
                 i0 = 0
                 for hdf in self._all_hdf_groups_in_family(loading_fam):
-                    npart = len(hdf['ParticleIDs'])
+                    npart = hdf['ParticleIDs'].size
                     i1 = i0+npart
 
                     dataset = self._get_hdf_dataset(hdf, translated_name)
@@ -465,7 +467,7 @@ class GadgetHDFSnap(SimSnap):
 
     @classmethod
     def _test_for_hdf5_key(cls, f):
-        with h5py.File(f) as h5test:
+        with h5py.File(f, "r") as h5test:
             return cls._readable_hdf5_test_key in h5test
 
     @classmethod
