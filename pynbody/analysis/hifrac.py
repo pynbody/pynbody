@@ -11,17 +11,13 @@ import numpy as np
 
 from .interpolate import interpolate3d
 
-try :
-    import scipy, scipy.weave
-    import h5py
-    from scipy.weave import inline
-except ImportError :
-    pass
-
 import os
 from ..array import SimArray
+import logging
+logger = logging.getLogger('pynbody.analysis.hifrac')
+
 from pynbody import config
-from pynbody import units
+
 
 def calculate(sim,ion='hi',selfshield=False) :
     """
@@ -29,7 +25,7 @@ def calculate(sim,ion='hi',selfshield=False) :
     calculate -- documentation placeholder
 
     """
-
+    import h5py
     global config
     # ionization fractions calculated for optically thin case with
     # CLOUDY for Duffy et al. (2012) overall h1frac.py based on
@@ -38,7 +34,7 @@ def calculate(sim,ion='hi',selfshield=False) :
     iffile = os.path.join(os.path.dirname(__file__),"h1.hdf5")
     if os.path.exists(iffile) :
         # import data
-        if config['verbose']: print "Loading "+iffile
+        logger.info("Loading %s" % iffile)
         ifs=h5py.File(iffile,'r')
     else :
         raise IOError, "h1.hdf5 (HI Fraction table) not found"
@@ -71,7 +67,7 @@ def calculate(sim,ion='hi',selfshield=False) :
     z[np.where(z > np.max(z_vals))] = np.max(z_vals)
 
     #interpolate
-    if config['verbose']: print "Interpolating "+ion+" values"
+    logger.info("Interpolation %s values" % ion)
     result_array = interpolate3d(x, y, z, x_vals, y_vals, z_vals, vals)
 
     ## Selfshield criteria assume all EoS gas
