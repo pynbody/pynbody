@@ -8,6 +8,9 @@ calculates Hydrogen ionization fraction - limited version of ionfrac to make use
 """
 
 import numpy as np
+
+from .interpolate import interpolate3d
+
 try :
     import scipy, scipy.weave
     import h5py
@@ -69,9 +72,7 @@ def calculate(sim,ion='hi',selfshield=False) :
 
     #interpolate
     if config['verbose']: print "Interpolating "+ion+" values"
-    code = file(os.path.join(os.path.dirname(__file__),'interpolate3d.c')).read()
-    inline(code,['n','n_x_vals','x_vals','n_y_vals','y_vals','n_z_vals',
-                 'z_vals','x','y','z','vals','result_array'])
+    result_array = interpolate3d(x, y, z, x_vals, y_vals, z_vals, vals)
 
     ## Selfshield criteria assume all EoS gas
     if selfshield != False:
