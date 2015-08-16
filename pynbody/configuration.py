@@ -108,10 +108,10 @@ def _setup_logger(config):
     logger.addHandler(ch)
 
     if config['verbose']:
-        ch.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO)
         logger.info("Verbose mode is on")
     else:
-        ch.setLevel(logging.WARNING)
+        logger.setLevel(logging.WARNING)
         _issue_quiet_warning_if_necessary()
 
 

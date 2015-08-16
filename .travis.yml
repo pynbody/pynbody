@@ -7,10 +7,10 @@ sudo: false
 
 # specify different versions of python and numpy
 env:
-  - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20"
-  - PYTHON=2.7  NUMPY_VERSION=1.7.1 CYTHON="cython>=0.20"
-  - PYTHON=2.7  NUMPY_VERSION=1.8.1 CYTHON="cython>=0.20"
-  - PYTHON=3.4  NUMPY_VERSION=1.8.1 CYTHON="cython>=0.20"
+  - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20" IPYTHON="ipython"
+  - PYTHON=2.7  NUMPY_VERSION=1.7.1 CYTHON="cython>=0.20" IPYTHON="ipython=3"
+  - PYTHON=2.7  NUMPY_VERSION=1.8.1 CYTHON="cython>=0.20" IPYTHON="ipython=3"
+  - PYTHON=3.4  NUMPY_VERSION=1.8.1 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
 
 
 # use anaconda from continuum to avoid building numpy/scipy
@@ -23,7 +23,7 @@ before_install:
   - "cd nose; wget https://pynbody.googlecode.com/files/testdata_april_2013.tar.gz; tar -zxvf testdata_april_2013.tar.gz; cd testdata; wget https://www.dropbox.com/s/96d90tivlda46e2/Test_NOSN_NOZCOOL_L010N0128.tar.gz; tar -zxvf Test_NOSN_NOZCOOL_L010N0128.tar.gz; cd ../.."
 
 install:
-  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip sphinx pygments ipython pandas $CYTHON
+  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip sphinx pygments pandas $IPYTHON $CYTHON
   - source activate ${PYTHON}_${NUMPY_VERSION}
   - python --version
   - python setup.py install
