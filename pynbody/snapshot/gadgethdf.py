@@ -313,7 +313,7 @@ class GadgetHDFSnap(SimSnap):
             return units.Unit('1.0'), units.Unit('1.0')
 
 
-    def __get_units_from_hdf_attr(self, hdfattrs) :
+    def _get_units_from_hdf_attr(self, hdfattrs) :
         """Return the units based on HDF attributes VarDescription"""
 
 
@@ -323,7 +323,7 @@ class GadgetHDFSnap(SimSnap):
         aexp = hdfattrs['aexp-scale-exponent']
         hexp = hdfattrs['h-scale-exponent']
 
-        arr_units = self.__get_units_from_description(VarDescription, CGSConversionFactor)
+        arr_units = self._get_units_from_description(VarDescription, CGSConversionFactor)
 
         if not np.allclose(aexp, 0.0):
             arr_units *= (units.a)**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
@@ -332,7 +332,7 @@ class GadgetHDFSnap(SimSnap):
   
         return arr_units
 
-    def __get_units_from_description(self, description, expectedCgsConversionFactor=None):
+    def _get_units_from_description(self, description, expectedCgsConversionFactor=None):
         arr_units = units.Unit('1.0')
         conversion = 1.0
         for unitname in self._hdf_unitvar.keys():
@@ -419,7 +419,7 @@ class GadgetHDFSnap(SimSnap):
                 dset0 = self._get_hdf_dataset(hdf0[
                                                   self._family_to_group_map[fam][0]], translated_name)
                 if hasattr(dset0, "attrs"):
-                    units0 = self.__get_units_from_hdf_attr(dset0.attrs)
+                    units0 = self._get_units_from_hdf_attr(dset0.attrs)
                 break
             except KeyError:
                 continue

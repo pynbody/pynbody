@@ -1421,35 +1421,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
 
         for key in sub_properties.keys() :
-            arr_units = units.NoUnit()
-            #cosmo_units = units.NoUnit()
-
-            VarDescription = str(hdf0['SUBFIND'][key].attrs['VarDescription'])
-            aexp = hdf0['SUBFIND'][key].attrs['aexp-scale-exponent']
-            hexp = hdf0['SUBFIND'][key].attrs['h-scale-exponent']
-
-            if key not in sub_ignore :
-                for unitname in unitvar :
-                    power = 1.
-                    if unitname in VarDescription :
-                        sstart = VarDescription.find(unitname)
-                        if sstart > 0 :
-                            if VarDescription[sstart-1] == "/" :
-                                power *= -1.
-                        if len(VarDescription) > sstart+len(unitname):
-                            if VarDescription[sstart+len(unitname)] == '^' :
-                                ## Has an index, check if this is negative
-                                if VarDescription[sstart+len(unitname)+1] == "-" :
-                                    power *= -1.
-                                    power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
-                                else:
-                                    power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
-                        ## Combine the units
-                        arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
-
-                ## Now the cosmological units
-                arr_units *= (units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()*\
-                              units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator())
+            arr_units = sim._get_units_from_hdf_attr(hdf0['SUBFIND'][key].attrs)
             try :
                 fof_properties[key] = fof_properties[key].view(SimArray)
                 fof_properties[key].units = arr_units
@@ -1466,26 +1438,43 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             except AttributeError :
                 pass
 
-        # reshape multi-D arrays
-        for key in sub_properties.keys() :
+        self._fof_properties = fof_properties
+        self._sub_properties = sub_properties
+
+        self.__reshape_multidimensional_properties()
+        self.__reassign_properties_from_sub_to_fof()
+
+    def __reshape_multidimensional_properties(self):
+        sub_properties = self._sub_properties
+        fof_properties = self._fof_properties
+
+        for key in sub_properties.keys():
             # Test if there are no remainders, i.e. array is multiple of halo length
             # then solve for the case where this is 1, 2 or 3 dimension
             if len(sub_properties[key]) % self.nsubhalos == 0:
-                ndim = len(sub_properties[key])/self.nsubhalos
-                if ndim > 1 :
-                    sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
+                ndim = len(sub_properties[key]) / self.nsubhalos
+                if ndim > 1:
+                    sub_properties[key] = sub_properties[key].reshape(self.nsubhalos, ndim)
 
             try:
                 # The case fof FOF
                 if len(fof_properties[key]) % self.ngroups == 0:
-                    ndim = len(fof_properties[key])/self.ngroups
-                    if ndim > 1 :
-                        fof_properties[key] = fof_properties[key].reshape(self.ngroups,ndim)
-            except KeyError :
+                    ndim = len(fof_properties[key]) / self.ngroups
+                    if ndim > 1:
+                        fof_properties[key] = fof_properties[key].reshape(self.ngroups, ndim)
+            except KeyError:
                 pass
 
-        self._fof_properties = fof_properties
-        self._sub_properties = sub_properties
+    def __reassign_properties_from_sub_to_fof(self):
+        reassign = []
+        for k,v in self._sub_properties.iteritems():
+            if v.shape[0]==self.ngroups:
+                reassign.append(k)
+
+        for reassign_i in reassign:
+            self._fof_properties[reassign_i] = self._sub_properties[reassign_i]
+            del self._sub_properties[reassign_i]
+
 
     def __init_subhalo_relationships(self):
 
