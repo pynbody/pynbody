@@ -1379,70 +1379,58 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     Gadget's SubFind Halo catalogue -- used in concert with :class:`~SubFindHDFSnap`
     """
 
+
     def __init__(self, sim) :
         super(SubFindHDFHaloCatalogue,self).__init__()
         self._base = weakref.ref(sim)
 
         if not isinstance(sim, snapshot.gadgethdf.SubFindHDFSnap):
             raise ValueError, "SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation"
-        unitvar = sim._hdf_unitvar
 
         self.__init_halo_offset_data()
         self.__init_subhalo_relationships()
-
-        hdf0 = sim._hdf_files.get_file0_root()
-
-        fof_properties = {}
-
-        fof_ignore = ['SF', 'NSF', 'Stars']
-
-        sub_properties = {}
-
-        sub_ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor',
-                  'SF', 'NSF', 'NsubPerHalo', 'Stars']
-
-        for t in sim._family_to_group_map.values() :
-            sub_ignore.append(t[0]) # Don't add SubFind particles ever as this list is actually spherical overdensity
-            fof_ignore.append(t[0]) # Ignore here, will read in from gadgethdf
-
-        for key in hdf0['FOF'].keys() :
-            if key not in fof_ignore :
-                fof_properties[key] = np.array([])
-
-        for key in hdf0['SUBFIND'].keys() :
-            if key not in sub_ignore :
-                sub_properties[key] = np.array([])
-
-        for h in sim._hdf_files.iterroot() :
-            for key in fof_properties.keys() :
-                fof_properties[key] = np.append(fof_properties[key],h['FOF'][key].value)
-
-            for key in sub_properties.keys() :
-                sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
-
-        for key in sub_properties.keys() :
-            arr_units = sim._get_units_from_hdf_attr(hdf0['SUBFIND'][key].attrs)
-            try :
-                fof_properties[key] = fof_properties[key].view(SimArray)
-                fof_properties[key].units = arr_units
-            except KeyError :
-                pass
-
-            sub_properties[key] = sub_properties[key].view(SimArray)
-            sub_properties[key].units = arr_units
-
-        # set the sim
-        for arr in fof_properties.values() + sub_properties.values() :
-            try :
-                arr.sim = sim
-            except AttributeError :
-                pass
-
-        self._fof_properties = fof_properties
-        self._sub_properties = sub_properties
-
+        self.__init_halo_properties()
         self.__reshape_multidimensional_properties()
         self.__reassign_properties_from_sub_to_fof()
+
+    def __init_ignorable_keys(self):
+        self.fof_ignore = map(str.strip,config_parser.get("SubfindHDF","FoF-ignore").split(","))
+        self.sub_ignore = map(str.strip,config_parser.get("SubfindHDF","Sub-ignore").split(","))
+
+        for t in self.base._family_to_group_map.values():
+            # Don't add SubFind particles ever as this list is actually spherical overdensity
+            self.sub_ignore.append(t[0])
+            self.fof_ignore.append(t[0])
+
+    def __init_halo_properties(self):
+        self.__init_ignorable_keys()
+        self._fof_properties = self.__get_property_dictionary_from_hdf('FOF')
+        self._sub_properties = self.__get_property_dictionary_from_hdf('SUBFIND')
+
+
+    def __get_property_dictionary_from_hdf(self, hdf_key):
+        sim = self.base
+        hdf0 = sim._hdf_files.get_file0_root()
+
+        props = {}
+        for property_key in hdf0[hdf_key].keys():
+            if property_key not in self.fof_ignore:
+                props[property_key] = np.array([])
+
+        for h in sim._hdf_files.iterroot():
+            for property_key in props.keys():
+                props[property_key] = np.append(props[property_key], h[hdf_key][property_key].value)
+
+        for property_key in props.keys():
+            arr_units = sim._get_units_from_hdf_attr(hdf0[hdf_key][property_key].attrs)
+            if property_key in props:
+                props[property_key] = props[property_key].view(SimArray)
+                props[property_key].units = arr_units
+                props[property_key].sim = sim
+
+        return props
+
+
 
     def __reshape_multidimensional_properties(self):
         sub_properties = self._sub_properties
