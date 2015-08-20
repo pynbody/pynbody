@@ -1379,177 +1379,142 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     Gadget's SubFind Halo catalogue -- used in concert with :class:`~SubFindHDFSnap`
     """
 
+
     def __init__(self, sim) :
         super(SubFindHDFHaloCatalogue,self).__init__()
-
         self._base = weakref.ref(sim)
 
-        # Read in the attribute units from SubFind
-        try :
-            atr = sim._hdf[0]['Units'].attrs
-        except KeyError :
-            warnings.warn("No unit information found: using defaults.",RuntimeWarning)
-            sim._file_units_system = [units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
-            return
+        if not isinstance(sim, snapshot.gadgethdf.SubFindHDFSnap):
+            raise ValueError, "SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation"
 
-        # Define the SubFind units, we will parse the attribute VarDescriptions for these
-        vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
-        dist_unit = atr['UnitLength_in_cm']*units.cm
-        mass_unit = atr['UnitMass_in_g']*units.g
-        time_unit = atr['UnitTime_in_s']*units.s
+        self.__init_halo_offset_data()
+        self.__init_subhalo_relationships()
+        self.__init_halo_properties()
+        self.__reshape_multidimensional_properties()
+        self.__reassign_properties_from_sub_to_fof()
 
-        # Create a dictionary for the units, this will come in handy later
-        unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit,
-                   'U_T' : time_unit, '[K]' : units.K,
-                   'SEC_PER_YEAR' : units.yr, 'SOLAR_MASS' : units.Msol}
-        # Last two units are to catch occasional arrays like StarFormationRate which don't
-        # follow the patter of U_ units unfortunately
+    def __init_ignorable_keys(self):
+        self.fof_ignore = map(str.strip,config_parser.get("SubfindHDF","FoF-ignore").split(","))
+        self.sub_ignore = map(str.strip,config_parser.get("SubfindHDF","Sub-ignore").split(","))
 
-        # set up particle fof and subhalo group offsets
+        for t in self.base._family_to_group_map.values():
+            # Don't add SubFind particles ever as this list is actually spherical overdensity
+            self.sub_ignore.append(t[0])
+            self.fof_ignore.append(t[0])
+
+    def __init_halo_properties(self):
+        self.__init_ignorable_keys()
+        self._fof_properties = self.__get_property_dictionary_from_hdf('FOF')
+        self._sub_properties = self.__get_property_dictionary_from_hdf('SUBFIND')
+
+
+    def __get_property_dictionary_from_hdf(self, hdf_key):
+        sim = self.base
+        hdf0 = sim._hdf_files.get_file0_root()
+
+        props = {}
+        for property_key in hdf0[hdf_key].keys():
+            if property_key not in self.fof_ignore:
+                props[property_key] = np.array([])
+
+        for h in sim._hdf_files.iterroot():
+            for property_key in props.keys():
+                props[property_key] = np.append(props[property_key], h[hdf_key][property_key].value)
+
+        for property_key in props.keys():
+            arr_units = sim._get_units_from_hdf_attr(hdf0[hdf_key][property_key].attrs)
+            if property_key in props:
+                props[property_key] = props[property_key].view(SimArray)
+                props[property_key].units = arr_units
+                props[property_key].sim = sim
+
+        return props
+
+
+
+    def __reshape_multidimensional_properties(self):
+        sub_properties = self._sub_properties
+        fof_properties = self._fof_properties
+
+        for key in sub_properties.keys():
+            # Test if there are no remainders, i.e. array is multiple of halo length
+            # then solve for the case where this is 1, 2 or 3 dimension
+            if len(sub_properties[key]) % self.nsubhalos == 0:
+                ndim = len(sub_properties[key]) / self.nsubhalos
+                if ndim > 1:
+                    sub_properties[key] = sub_properties[key].reshape(self.nsubhalos, ndim)
+
+            try:
+                # The case fof FOF
+                if len(fof_properties[key]) % self.ngroups == 0:
+                    ndim = len(fof_properties[key]) / self.ngroups
+                    if ndim > 1:
+                        fof_properties[key] = fof_properties[key].reshape(self.ngroups, ndim)
+            except KeyError:
+                pass
+
+    def __reassign_properties_from_sub_to_fof(self):
+        reassign = []
+        for k,v in self._sub_properties.iteritems():
+            if v.shape[0]==self.ngroups:
+                reassign.append(k)
+
+        for reassign_i in reassign:
+            self._fof_properties[reassign_i] = self._sub_properties[reassign_i]
+            del self._sub_properties[reassign_i]
+
+
+    def __init_subhalo_relationships(self):
+
+        nsub = 0
+        nfof = 0
+        for h in self.base._hdf_files.iterroot():
+            parent_groups = h['SUBFIND']['GrNr']
+            self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups
+            nsub += len(parent_groups)
+
+            first_groups = h['SUBFIND']['FirstSubOfHalo']
+            self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups
+            nfof += len(first_groups)
+
+    def __init_halo_offset_data(self):
+
+        hdf0 = self.base._hdf_files.get_file0_root()
+
         self._fof_group_offsets = {}
         self._fof_group_lengths = {}
         self._subfind_halo_offsets = {}
         self._subfind_halo_lengths = {}
 
-
-        self.ngroups = sim._hdf[0]['FOF'].attrs['Total_Number_of_groups']
-        self.nsubhalos = sim._hdf[0]['FOF'].attrs['Total_Number_of_subgroups']
-
+        self.ngroups = hdf0['FOF'].attrs['Total_Number_of_groups']
+        self.nsubhalos = hdf0['FOF'].attrs['Total_Number_of_subgroups']
         self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
         self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
-
-        for ptype in sim._my_type_map.values() :
+        for ptype in self.base._family_to_group_map.values():
             ptype = ptype[0]
-            self._fof_group_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
-            self._fof_group_lengths[ptype] = np.empty(self.ngroups,dtype='int64')
-            self._subfind_halo_offsets[ptype] = np.empty(self.ngroups,dtype='int64')
-            self._subfind_halo_lengths[ptype] = np.empty(self.ngroups,dtype='int64')
+            self._fof_group_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
+            self._fof_group_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
+            self._subfind_halo_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
+            self._subfind_halo_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
 
             curr_groups = 0
             curr_subhalos = 0
 
-            for h in sim._hdf :
+            for h in self.base._hdf_files:
                 # fof groups
-                offset = h['FOF'][ptype]['Offset']
-                length = h['FOF'][ptype]['Length']
+                offset = h[ptype]['Offset']
+                length = h[ptype]['Length']
                 self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
                 self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
                 curr_groups += len(offset)
 
                 # subfind subhalos
-                offset = h['FOF'][ptype]['SUB_Offset']
-                length = h['FOF'][ptype]['SUB_Length']
+                offset = h[ptype]['SUB_Offset']
+                length = h[ptype]['SUB_Length']
                 self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
                 self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
                 curr_subhalos += len(offset)
 
-        # get all the parent groups for all the subhalos
-        nsub = 0
-        nfof = 0
-        for h in sim._hdf :
-            parent_groups = h['SUBFIND']['GrNr']
-            self._subfind_halo_parent_groups[nsub:nsub+len(parent_groups)] = parent_groups
-            nsub += len(parent_groups)
-
-            first_groups = h['SUBFIND']['FirstSubOfHalo']
-            self._fof_group_first_subhalo[nfof:nfof+len(first_groups)] = first_groups
-            nfof += len(first_groups)
-
-        # get the properties of fof groups and subhalos calculated by subfind
-        fof_properties = {}
-
-        fof_ignore = ['SF', 'NSF', 'Stars']
-
-        sub_properties = {}
-
-        sub_ignore = ['GrNr', 'FirstSubOfHalo', 'SubParentHalo', 'SubMostBoundID', 'InertiaTensor',
-                  'SF', 'NSF', 'NsubPerHalo', 'Stars']
-
-        for t in sim._my_type_map.values() :
-            sub_ignore.append(t[0]) # Don't add SubFind particles ever as this list is actually spherical overdensity
-            fof_ignore.append(t[0]) # Ignore here, will read in from gadgethdf
-
-        for key in sim._hdf[0]['FOF'].keys() :
-            if key not in fof_ignore :
-                fof_properties[key] = np.array([])
-
-        for key in sim._hdf[0]['SUBFIND'].keys() :
-            if key not in sub_ignore :
-                sub_properties[key] = np.array([])
-
-        for h in sim._hdf :
-            for key in fof_properties.keys() :
-                fof_properties[key] = np.append(fof_properties[key],h['FOF'][key].value)
-
-            for key in sub_properties.keys() :
-                sub_properties[key] = np.append(sub_properties[key],h['SUBFIND'][key].value)
-
-        for key in sub_properties.keys() :
-            arr_units = units.NoUnit()
-            #cosmo_units = units.NoUnit()
-
-            VarDescription = str(sim._hdf[0]['SUBFIND'][key].attrs['VarDescription'])
-            aexp = sim._hdf[0]['SUBFIND'][key].attrs['aexp-scale-exponent']
-            hexp = sim._hdf[0]['SUBFIND'][key].attrs['h-scale-exponent']
-
-            if key not in sub_ignore :
-                for unitname in unitvar :
-                    power = 1.
-                    if unitname in VarDescription :
-                        sstart = VarDescription.find(unitname)
-                        if sstart > 0 :
-                            if VarDescription[sstart-1] == "/" :
-                                power *= -1.
-                        if len(VarDescription) > sstart+len(unitname):
-                            if VarDescription[sstart+len(unitname)] == '^' :
-                                ## Has an index, check if this is negative
-                                if VarDescription[sstart+len(unitname)+1] == "-" :
-                                    power *= -1.
-                                    power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
-                                else:
-                                    power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
-                        ## Combine the units
-                        arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
-
-                ## Now the cosmological units
-                arr_units *= (units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()*\
-                              units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator())
-            try :
-                fof_properties[key] = fof_properties[key].view(SimArray)
-                fof_properties[key].units = arr_units
-            except KeyError :
-                pass
-
-            sub_properties[key] = sub_properties[key].view(SimArray)
-            sub_properties[key].units = arr_units
-
-        # set the sim
-        for arr in fof_properties.values() + sub_properties.values() :
-            try :
-                arr.sim = sim
-            except AttributeError :
-                pass
-
-        # reshape multi-D arrays
-        for key in sub_properties.keys() :
-            # Test if there are no remainders, i.e. array is multiple of halo length
-            # then solve for the case where this is 1, 2 or 3 dimension
-            if len(sub_properties[key]) % self.nsubhalos == 0:
-                ndim = len(sub_properties[key])/self.nsubhalos
-                if ndim > 1 :
-                    sub_properties[key] = sub_properties[key].reshape(self.nsubhalos,ndim)
-
-            try:
-                # The case fof FOF
-                if len(fof_properties[key]) % self.ngroups == 0:
-                    ndim = len(fof_properties[key])/self.ngroups
-                    if ndim > 1 :
-                        fof_properties[key] = fof_properties[key].reshape(self.ngroups,ndim)
-            except KeyError :
-                pass
-
-        self._fof_properties = fof_properties
-        self._sub_properties = sub_properties
 
     def _get_halo(self, i) :
         if self.base is None :
@@ -1558,7 +1523,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         if i > len(self)-1 :
             raise RuntimeError("Group %d does not exist"%i)
 
-        type_map = self.base._my_type_map
+        type_map = self.base._family_to_group_map
 
         # create the particle lists
         tot_len = 0
@@ -1587,7 +1552,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
 
     def __len__(self) :
-        return self.base._hdf[0]['FOF'].attrs['Total_Number_of_groups']
+        return self.base._hdf_files[0].attrs['Total_Number_of_groups']
 
 
     @property
@@ -1658,7 +1623,7 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
         absolute_id = self._group_catalogue._fof_group_first_subhalo[self._group_id] + i
 
         # now form the particle IDs needed for this subhalo
-        type_map = self.base._my_type_map
+        type_map = self.base._family_to_group_map
 
         halo_lengths = self._group_catalogue._subfind_halo_lengths
         halo_offsets = self._group_catalogue._subfind_halo_offsets

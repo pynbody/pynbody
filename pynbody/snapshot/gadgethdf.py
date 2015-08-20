@@ -36,6 +36,8 @@ import functools, itertools
 import warnings
 
 import logging
+from . import namemapper
+
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
 
 try:
@@ -43,17 +45,20 @@ try:
 except ImportError:
     h5py = None
 
-_type_map = {}
+_default_type_map = {}
 for x in family.family_names():
     try:
-        _type_map[family.get_family(x)] = \
-                 [q for q in config_parser.get(
-                     'gadgethdf-type-mapping', x).split(",")]
+        _default_type_map[family.get_family(x)] = \
+                 [q.strip() for q in config_parser.get('gadgethdf-type-mapping', x).split(",")]
     except ConfigParser.NoOptionError:
         pass
 
-_name_map, _rev_name_map = util.setup_name_maps('gadgethdf-name-mapping')
-_translate_array_name = util.name_map_function(_name_map, _rev_name_map)
+_all_hdf_particle_groups = []
+for hdf_groups in _default_type_map.itervalues():
+    for hdf_group in hdf_groups:
+        _all_hdf_particle_groups.append(hdf_group)
+
+
 
 
 def _append_if_array(to_list, name, obj):
@@ -69,6 +74,7 @@ class DummyHDFData(object):
     def __init__(self, value, length, dtype):
         self.value = value
         self.length = length
+        self.size = length
         self.shape = (length, )
         self.dtype = np.dtype(dtype)
 
@@ -79,20 +85,30 @@ class DummyHDFData(object):
         target[:] = self.value
 
 
-class HdfFileGenerator(object) :
-    def __init__(self, filename, numfiles) :
-        self.filename = filename
-        self.numfiles = numfiles
+class GadgetHdfMultiFileManager(object) :
+    _nfiles_groupname = "Header"
+    _nfiles_attrname = "NumFilesPerSnapshot"
+    _subgroup_name = None
+
+    def __init__(self, filename) :
+        if h5py.is_hdf5(filename):
+            self._filenames = [filename]
+            self._numfiles = 1
+        else:
+            h1 = h5py.File(filename + ".0.hdf5", "r")
+            self._numfiles = h1[self._nfiles_groupname].attrs[self._nfiles_attrname]
+            self._filenames = [filename+"."+str(i)+".hdf5" for i in range(self._numfiles)]
+
         self._open_files = {}
 
-    def __iter__(self) : 
-        i = 0
-        while i < self.numfiles : 
-            try : 
-                yield self._open_files[i]
-            except KeyError: 
-                yield h5py.File(self.filename+"."+str(i)+".hdf5", "r")
-            i+=1
+    def __iter__(self) :
+        for i in range(self._numfiles) :
+            if i not in self._open_files:
+                self._open_files[i] = h5py.File(self._filenames[i], "r")
+                if self._subgroup_name is not None:
+                    self._open_files[i] = self._open_files[i][self._subgroup_name]
+
+            yield self._open_files[i]
 
     def __getitem__(self, i) : 
         try : 
@@ -101,111 +117,135 @@ class HdfFileGenerator(object) :
             self._open_files[i] = next(itertools.islice(self,i,i+1))
             return self._open_files[i]
 
+    def get_header_attrs(self):
+        return self[0].parent['Header'].attrs
+
+    def get_unit_attrs(self):
+        return self[0].parent['Units'].attrs
+
+
+    def get_file0_root(self):
+        return self[0].parent
+
+    def iterroot(self):
+        for item in self:
+            yield item.parent
+
+
+
+class SubfindHdfMultiFileManager(GadgetHdfMultiFileManager):
+    _nfiles_groupname = "FOF"
+    _nfiles_attrname = "NTask"
+    _subgroup_name = "FOF"
+
     
 class GadgetHDFSnap(SimSnap):
     """
     Class that reads HDF Gadget data
     """
 
-    def __init__(self, filename):
+    _multifile_manager_class = GadgetHdfMultiFileManager
+    _readable_hdf5_test_key = "PartType0"
+    _size_from_hdf5_key = "ParticleIDs"
 
-        global config
+    def __init__(self, filename):
         super(GadgetHDFSnap, self).__init__()
 
         self._filename = filename
 
-        if not h5py.is_hdf5(filename):
-            h1 = h5py.File(filename + ".0.hdf5", "r")
-            numfiles = h1['Header'].attrs['NumFilesPerSnapshot']
-            self._hdf = HdfFileGenerator(filename, numfiles)
-        else:
-            self._hdf = [h5py.File(filename, "r")]
+        self._init_hdf_filemanager(filename)
 
-        self._family_slice = {}
+        self._translate_array_name = namemapper.AdaptiveNameMapper('gadgethdf-name-mapping')
+        self.__init_unit_information()
+        self.__init_family_map()
+        self.__init_file_map()
+        self.__init_loadable_keys()
 
-        self._loadable_keys = set([])
-        self._family_arrays = {}
-        self._arrays = {}
-        self.properties = {}
+        self._decorate()
 
-        # determine which particle types are in the output
+    def _get_hdf_header_attrs(self):
+        return self._hdf_files.get_header_attrs()
 
-        my_type_map = {}
+    def _get_hdf_unit_attrs(self):
+        return self._hdf_files.get_unit_attrs()
 
-        for fam, g_types in _type_map.iteritems():
+    def _init_hdf_filemanager(self, filename):
+        self._hdf_files = self._multifile_manager_class(filename)
+
+    def __init_loadable_keys(self):
+        self._loadable_keys = set()
+
+        for hdf_group in self._all_hdf_groups():
+            hdf_array_names = self._get_hdf_allarray_keys(hdf_group)
+            pynbody_array_names = [self._translate_array_name(x, reverse=True) for x in hdf_array_names]
+            self._loadable_keys.update(pynbody_array_names)
+
+        self._loadable_keys = list(self._loadable_keys)
+
+    def _all_hdf_groups(self):
+        for hdf in self._hdf_files:
+            for hdf_family_name in _all_hdf_particle_groups:
+                if hdf_family_name in hdf:
+                    yield hdf[hdf_family_name]
+
+    def _all_hdf_groups_in_family(self, fam):
+        for hdf_family_name in self._family_to_group_map[fam]:
+            for hdf in self._hdf_files:
+                if hdf_family_name in hdf:
+                    if self._size_from_hdf5_key in hdf[hdf_family_name]:
+                        yield hdf[hdf_family_name]
+
+    def __init_file_map(self):
+        family_slice_start = 0
+        for fam in self._family_to_group_map:
+            family_length = 0
+            for hdf_group in self._all_hdf_groups_in_family(fam):
+                family_length += hdf_group[self._size_from_hdf5_key].size
+
+            self._family_slice[fam] = slice(family_slice_start, family_slice_start + family_length)
+            family_slice_start += family_length
+
+
+        self._num_particles = family_slice_start
+
+    def __init_family_map(self):
+        type_map = {}
+        for fam, g_types in _default_type_map.iteritems():
             my_types = []
             for x in g_types:
                 # Get all keys from all hdf files
-                for hdf in self._hdf:
+                for hdf in self._hdf_files:
                     if x in hdf.keys():
                         my_types.append(x)
                         break
             if len(my_types):
-                my_type_map[fam] = my_types
+                type_map[fam] = my_types
+        self._family_to_group_map = type_map
 
-        sl_start = 0
-        for x in my_type_map:
-            l = 0
-            for name in my_type_map[x]:
-                for hdf in self._hdf:
-                    # Skip PartType if not in this hdf file
-                    try:
-                        l += hdf[name]['Coordinates'].shape[0]
-                        k = self._get_hdf_allarray_keys(hdf[name])
-                        self._loadable_keys = self._loadable_keys.union(set(k))
-                    except KeyError as e:
-                        if 'PartType' in name: continue
-                        else: raise e
-            self._family_slice[x] = slice(sl_start, sl_start + l)
-
-            sl_start += l
-
-        self._loadable_keys = [_translate_array_name(
-            x, reverse=True) for x in self._loadable_keys]
-        self._num_particles = sl_start
-
-        self._my_type_map = my_type_map
-
-        self._decorate()
-
-
-    def _family_has_loadable_array(self, fam, name, subgroup = None):
+    def _family_has_loadable_array(self, fam, name):
         """Returns True if the array can be loaded for the specified family.
         If fam is None, returns True if the array can be loaded for all families."""
 
         if name == "mass":
             return True
 
-        if subgroup is None : 
-            hdf = self._hdf[0]
-        else : 
-            hdf = self._hdf[0][subgroup]
-
-
         if fam is None:
-            return all([self._family_has_loadable_array(fam_x, name, subgroup) for fam_x in self._family_slice])
+            return all([self._family_has_loadable_array(fam_x, name) for fam_x in self._family_slice])
 
         else:
-            translated_name = _translate_array_name(name)
+            translated_name = self._translate_array_name(name)
 
-            for n in _type_map[fam]:
-                for hdf in self._hdf:
-                    try:
-                        if translated_name not in self._get_hdf_allarray_keys(hdf[n]):
-                            return False
-                    except KeyError as e:
-                        if 'PartType' in n: continue
-                        else: raise e
+            for hdf_group in self._all_hdf_groups_in_family(fam):
+                if translated_name not in self._get_hdf_allarray_keys(hdf_group):
+                    return False
+
             return True
 
-    def _get_all_particle_arrays(self, gtype, subgroup=None): 
+    def _get_all_particle_arrays(self, gtype):
         """Return all array names for a given gadget particle type"""
 
         # this is a hack to flatten a list of lists
-        if subgroup is not None : 
-            l = [item for sublist in [self._get_hdf_allarray_keys(x[subgroup][gtype]) for x in self._hdf] for item in sublist]
-        else : 
-            l = [item for sublist in [self._get_hdf_allarray_keys(x[gtype]) for x in self._hdf] for item in sublist]
+        l = [item for sublist in [self._get_hdf_allarray_keys(x[gtype]) for x in self._hdf_files] for item in sublist]
 
         # now just return the unique items by converting to a set
         return list(set(l))
@@ -242,17 +282,16 @@ class GadgetHDFSnap(SimSnap):
         group.visititems(functools.partial(_append_if_array, k))
         return k
 
-    @staticmethod
-    def _get_hdf_dataset(particle_group, hdf_name):
+    def _get_hdf_dataset(self, particle_group, hdf_name):
         """Return the HDF dataset resolving /'s into nested groups, and returning
         an apparent Mass array even if the mass is actually stored in the header"""
 
-        if _translate_array_name(hdf_name,reverse=True)=='mass':
+        if self._translate_array_name(hdf_name,reverse=True)=='mass':
             try:
                 pgid = int(particle_group.name[-1])
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
                 if mtab > 0:
-                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0], 
+                    return DummyHDFData(mtab, particle_group[self._size_from_hdf5_key].size,
                                         particle_group['Coordinates'].dtype)
             except (IndexError, KeyError):
                 pass
@@ -274,48 +313,18 @@ class GadgetHDFSnap(SimSnap):
             return units.Unit('1.0'), units.Unit('1.0')
 
 
-    @staticmethod
-    def _get_hdf_units(hdfattrs, unitvar, cgsvar) :
+    def _get_units_from_hdf_attr(self, hdfattrs) :
         """Return the units based on HDF attributes VarDescription"""
 
-        # Default is '1.0' unit
-        arr_units = units.Unit('1.0')
-        conversion = 1.0
+
 
         VarDescription = str(hdfattrs['VarDescription'])
         CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
         aexp = hdfattrs['aexp-scale-exponent']
         hexp = hdfattrs['h-scale-exponent']
 
-        # First test using the gadget Unit list, U_M, U_L, U_V
-        for unitname in unitvar.keys() :
-            power = 1.
-            if unitname in VarDescription : 
-                sstart = VarDescription.find(unitname)
-                if sstart > 0 :
-                    if VarDescription[sstart-1] == "/" :
-                        power *= -1.
-                if len(VarDescription) > sstart+len(unitname):
-                    # Just check we're not at the end of the line
-                    if VarDescription[sstart+len(unitname)] == '^' :
-                        ## Has an index, check if this is negative
-                        if VarDescription[sstart+len(unitname)+1] == "-" :
-                            power *= -1.
-                            power *= float(VarDescription[sstart+len(unitname)+2:-1].split()[0]) ## Search for the power
-                        else:
-                            power *= float(VarDescription[sstart+len(unitname)+1:-1].split()[0]) ## Search for the power
-                if not np.allclose(power, 0.0):
-                    arr_units *= unitvar[unitname]**util.fractions.Fraction.from_float(float(power)).limit_denominator()
-                if not np.allclose(power, 0.0):
-                    conversion *= unitvar[unitname].in_units(cgsvar[unitname])**util.fractions.Fraction.from_float(float(power)).limit_denominator()
+        arr_units = self._get_units_from_description(VarDescription, CGSConversionFactor)
 
-        # sanity check
-        if not np.allclose(conversion,CGSConversionFactor,rtol=1e-3):
-            print("Error with unit read out from HDF ")
-            print("conversion is ",conversion)
-            print("but HDF requires ",CGSConversionFactor)
-
-        ## Now the cosmological units
         if not np.allclose(aexp, 0.0):
             arr_units *= (units.a)**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
         if not np.allclose(hexp, 0.0):    
@@ -323,142 +332,155 @@ class GadgetHDFSnap(SimSnap):
   
         return arr_units
 
+    def _get_units_from_description(self, description, expectedCgsConversionFactor=None):
+        arr_units = units.Unit('1.0')
+        conversion = 1.0
+        for unitname in self._hdf_unitvar.keys():
+            power = 1.
+            if unitname in description:
+                sstart = description.find(unitname)
+                if sstart > 0:
+                    if description[sstart - 1] == "/":
+                        power *= -1.
+                if len(description) > sstart + len(unitname):
+                    # Just check we're not at the end of the line
+                    if description[sstart + len(unitname)] == '^':
+                        ## Has an index, check if this is negative
+                        if description[sstart + len(unitname) + 1] == "-":
+                            power *= -1.
+                            power *= float(
+                                description[sstart + len(unitname) + 2:-1].split()[0])  ## Search for the power
+                        else:
+                            power *= float(
+                                description[sstart + len(unitname) + 1:-1].split()[0])  ## Search for the power
+                if not np.allclose(power, 0.0):
+                    arr_units *= self._hdf_unitvar[unitname] ** util.fractions.Fraction.from_float(
+                        float(power)).limit_denominator()
+                if not np.allclose(power, 0.0):
+                    conversion *= self._hdf_unitvar[unitname].in_units(
+                        self._hdf_cgsvar[unitname]) ** util.fractions.Fraction.from_float(
+                        float(power)).limit_denominator()
 
-    def _load_array(self, array_name, fam=None, subgroup = None):
-        if not self._family_has_loadable_array(fam, array_name, subgroup):
+        if expectedCgsConversionFactor is not None:
+            if not np.allclose(conversion, expectedCgsConversionFactor, rtol=1e-3):
+                raise units.UnitsException(
+                    "Error with unit read out from HDF. Inferred CGS conversion factor is %r but HDF requires %r" % (
+                    conversion, expectedCgsConversionFactor))
+
+        return arr_units
+
+    def _load_array(self, array_name, fam=None):
+        if not self._family_has_loadable_array(fam, array_name):
             raise IOError("No such array on disk")
         else:
-            if fam is not None:
-                famx = fam
-            else:
-                famx = self._family_slice.keys()[0]
 
-            translated_name = _translate_array_name(array_name)
-
-            # Set the global units for these arrays
-
-            # Read in the attribute units from SubFind
-            try : 
-                atr = self._hdf[0]['Units'].attrs
-            except KeyError : 
-                warnings.warn("No unit information found!",RuntimeWarning)
-                return                        
-
-            # Define the SubFind units, we will parse the attribute VarDescriptions for these
-            vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
-            dist_unit = atr['UnitLength_in_cm']*units.cm
-            mass_unit = atr['UnitMass_in_g']*units.g
-            time_unit = atr['UnitTime_in_s']*units.s
-
-            # Create a dictionary for the units, this will come in handy later
-            unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit, 
-                       'U_T' : time_unit, '[K]' : units.K, 
-                       'SEC_PER_YEAR' : units.yr, 'SOLAR_MASS' : units.Msol}
-            # Last two units are to catch occasional arrays like StarFormationRate which don't 
-            # follow the patter of U_ units unfortunately
-             
-            cgsvar = {'U_M' : 'g', 'SOLAR_MASS' : 'g', 'U_T': 's', 
-                      'SEC_PER_YEAR': 's', 'U_V' : 'cm s**-1', 'U_L' : 'cm', '[K]' : 'K'}
-
-            # this next chunk of code is just to determine the
-            # dimensionality of the data
-
-            # not all arrays are present in all hdfs so need to loop
-            # until we find one
-            for hdf0 in self._hdf : 
-                if subgroup is not None : 
-                    hdf0 = hdf0[subgroup]     
-                try : 
-                    dset0 = self._get_hdf_dataset(hdf0[
-                        self._my_type_map[famx][0]], translated_name)
-                    if hasattr(dset0, "attrs"):
-                        units0 = self._get_hdf_units(dset0.attrs, unitvar, cgsvar)
-                    else:
-                        units0 = units.NoUnit()
-                    break
-
-                except KeyError: 
-                    continue
-
-            assert len(dset0.shape) <= 2
-            dy = 1
-            if len(dset0.shape) > 1:
-                dy = dset0.shape[1]
-
-            # check if the dimensions make sense -- if
-            # not, assume we're looking at an array that
-            # is 3D and cross your fingers
-            npart = len(hdf0[self._my_type_map[famx][0]]['ParticleIDs'])
-            if len(dset0) != npart :
-                dy = len(dset0)/npart                     
-
-            dtype = dset0.dtype
-
-            # got the dimension -- now make the arrays and load the data
+            translated_name = self._translate_array_name(array_name)
+            dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_name)
 
             if fam is None:
-                self._create_array(array_name, dy, dtype=dtype)
-                self[array_name].set_default_units()
-                self[array_name].units = units0 
+                target = self
+                all_fams_to_load = self.families()
             else:
-                self[fam]._create_array(array_name, dy, dtype=dtype)
-                self[fam][array_name].set_default_units()
-                self[fam][array_name].units = units0 
+                target = self[fam]
+                all_fams_to_load = [fam]
 
-            if fam is not None:
-                fams = [fam]
+            target._create_array(array_name, dy, dtype=dtype)
+
+            if units is not None:
+                target[array_name].units = units
             else:
-                fams = self._family_slice.keys()
+                target[array_name].set_default_units()
 
-            for f in fams:
+            for loading_fam in all_fams_to_load:
                 i0 = 0
-                for t in self._my_type_map[f]:
-                    for hdf in self._hdf:
-                        if subgroup is not None : 
-                            hdf = hdf[subgroup]
-                        try : 
-                            npart = len(hdf[t]['ParticleIDs'])
-                        except KeyError: 
-                            npart = 0
-                        
-                        if npart > 0 : 
-                            dataset = self._get_hdf_dataset(hdf[t], translated_name)
+                for hdf in self._all_hdf_groups_in_family(loading_fam):
+                    npart = hdf['ParticleIDs'].size
+                    i1 = i0+npart
 
-                            # check if the dimensions make sense -- if
-                            # not, assume we're looking at an array that
-                            # is 3D and cross your fingers
-                            if len(dataset) != npart : 
-                                temp = dataset[:].reshape((len(dataset)/3,3))
-                                i1 = i0+len(temp)
-                                self[f][array_name][i0:i1] = temp
-                            
-                            else : 
-                                i1 = i0+len(dataset)
-                                dataset.read_direct(self[f][array_name][i0:i1])
+                    dataset = self._get_hdf_dataset(hdf, translated_name)
 
-                            i0 = i1
+                    target_array = self[loading_fam][array_name][i0:i1]
+                    assert target_array.size == dataset.size
 
-### This was put in in a recent pull request -- it's not immediately obvious to me 
-### that the dimensinality checks would work out so I'm keeping the checks above and
-### commenting out this block below -- it would replace lines 348 - 371
- #                       try:
- #                           dataset = self._get_hdf_dataset(
- #                               hdf[t], translated_name)
- #                       except KeyError as e:
- #                           if 'parttype' in e.args[0]: continue
- #                           else: raise e
- #                       i1 = i0 + len(dataset)
- #                       dataset.read_direct(self[f][array_name][i0:i1])
- #                       i0 = i1
+                    dataset.read_direct(target_array.reshape(dataset.shape))
 
-    @staticmethod
-    def _can_load(f):
+                    i0 = i1
+
+    def __get_dtype_dims_and_units(self, fam, translated_name):
+        if fam is None:
+            fam = self.families()[0]
+
+        units0 = units.NoUnit()
+        dset0 = None
+        # not all arrays are present in all hdfs so need to loop
+        # until we find one
+        for hdf0 in self._hdf_files:
+            try:
+                dset0 = self._get_hdf_dataset(hdf0[
+                                                  self._family_to_group_map[fam][0]], translated_name)
+                if hasattr(dset0, "attrs"):
+                    units0 = self._get_units_from_hdf_attr(dset0.attrs)
+                break
+            except KeyError:
+                continue
+        if dset0 is None:
+            raise KeyError, "Array is not present in HDF file"
+
+
+        assert len(dset0.shape) <= 2
+        dy = 1
+        if len(dset0.shape) > 1:
+            dy = dset0.shape[1]
+
+        # check if the dimensions make sense -- if
+        # not, assume we're looking at an array that
+        # is 3D and cross your fingers
+        npart = len(hdf0[self._family_to_group_map[fam][0]]['ParticleIDs'])
+        if len(dset0) != npart:
+            dy = len(dset0) / npart
+        dtype = dset0.dtype
+        return dtype, dy, units0
+
+    def __init_unit_information(self):
         try:
-            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5") and ('sub' not in f):
-                return True
+            atr = self._hdf_files.get_unit_attrs()
+        except KeyError:
+            warnings.warn("No unit information found!", RuntimeWarning)
+            return {},{}
+
+        # Define the SubFind units, we will parse the attribute VarDescriptions for these
+        vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
+        dist_unit = atr['UnitLength_in_cm'] * units.cm
+        mass_unit = atr['UnitMass_in_g'] * units.g
+        time_unit = atr['UnitTime_in_s'] * units.s
+        # Create a dictionary for the units, this will come in handy later
+        unitvar = {'U_V': vel_unit, 'U_L': dist_unit, 'U_M': mass_unit,
+                   'U_T': time_unit, '[K]': units.K,
+                   'SEC_PER_YEAR': units.yr, 'SOLAR_MASS': units.Msol}
+        # Last two units are to catch occasional arrays like StarFormationRate which don't
+        # follow the patter of U_ units unfortunately
+        cgsvar = {'U_M': 'g', 'SOLAR_MASS': 'g', 'U_T': 's',
+                  'SEC_PER_YEAR': 's', 'U_V': 'cm s**-1', 'U_L': 'cm', '[K]': 'K'}
+
+        self._hdf_cgsvar = cgsvar
+        self._hdf_unitvar = unitvar
+
+    @classmethod
+    def _test_for_hdf5_key(cls, f):
+        with h5py.File(f, "r") as h5test:
+            return cls._readable_hdf5_test_key in h5test
+
+    @classmethod
+    def _can_load(cls, f):
+
+        if hasattr(h5py, "is_hdf5"):
+            if h5py.is_hdf5(f):
+                return cls._test_for_hdf5_key(f)
+            elif h5py.is_hdf5(f+".0.hdf5"):
+                return cls._test_for_hdf5_key(f+".0.hdf5")
             else:
                 return False
-        except AttributeError:
+        else:
             if "hdf5" in f:
                 warnings.warn(
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
@@ -466,7 +488,7 @@ class GadgetHDFSnap(SimSnap):
 
 @GadgetHDFSnap.decorator
 def do_properties(sim):
-    atr = sim._hdf[0]['Header'].attrs
+    atr = sim._get_hdf_header_attrs()
 
     # expansion factor could be saved as redshift
     try:
@@ -491,24 +513,17 @@ def do_properties(sim):
     sim.properties['boxsize'] = atr['BoxSize']
     sim.properties['z'] = (1. / sim.properties['a']) - 1
     sim.properties['h'] = atr['HubbleParam']
-    for s in sim._hdf[0]['Header'].attrs:
+    for s,value in sim._get_hdf_header_attrs().iteritems():
         if s not in ['ExpansionFactor', 'Time_GYR', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
-            sim.properties[s] = sim._hdf[0]['Header'].attrs[s]
+            sim.properties[s] = value
 
 @GadgetHDFSnap.decorator
 def do_units(sim):
 
-    # this doesn't seem to be standard -- maybe use the convention
-    # from tipsy.py and set cosmo = True if there is a hubble constant
-    # specified?
-    try:
-        cosmo = (sim._hdf[0]['Parameters'][
-            'NumericalParameters'].attrs['ComovingIntegrationOn']) != 0
-    except KeyError:
-        cosmo = 'HubbleParam' in sim._hdf[0]['Header'].attrs.keys()
+    cosmo = 'HubbleParam' in sim._get_hdf_header_attrs().keys()
 
     try:
-        atr = sim._hdf[0]['Units'].attrs
+        atr = sim._get_hdf_unit_attrs()
     except KeyError:
         # Use default values, from default_config.ini if necessary
         vel_unit = config_parser.get('gadget-units', 'vel')
@@ -525,9 +540,9 @@ def do_units(sim):
     mass_unit = atr['UnitMass_in_g']*units.g
 
     if cosmo:
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf[0],'Coordinates') : dist_unit *= fac
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf[0],'Velocity') : vel_unit *= fac
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf[0],'Mass') : mass_unit *= fac
+        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Coordinates') : dist_unit *= fac
+        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Velocity') : vel_unit *= fac
+        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Mass') : mass_unit *= fac
 
     sim._file_units_system = [units.Unit(x) for x in [
                               vel_unit, dist_unit, mass_unit, "K"]]
@@ -541,85 +556,17 @@ class SubFindHDFSnap(GadgetHDFSnap) :
     """
     Class to read Gadget's SubFind HDF data
     """
+    _multifile_manager_class = SubfindHdfMultiFileManager
+    _readable_hdf5_test_key = "FOF"
 
-    def __init__(self, filename) : 
-        
-        global config
+    def __init__(self, filename) :
         super(SubFindHDFSnap,self).__init__(filename)
-
-        # the super constructor does almost nothing because most of
-        # the relevant data on particles is stored in the FOF group
-        # attributes -- but it does set up the array and slice
-        # dictionaries and the properties dictionary
-
-        # get the properties from the FOF HDF group and other metadata
-        self._decorate()
-
-        numfiles = self.properties['NTask']
-                    
-        self._hdf = HdfFileGenerator(filename, numfiles)
-
-        # set up the particle type mapping
-        my_type_map = {}
-
-        # defines the link between PartType0, 1, 4 in my_types 
-        # and the pynbody nomenclature, gas, dm and stars in fam
-        for fam, g_types in _type_map.iteritems() : 
-            my_types = []
-            for x in g_types :
-                if x in self._hdf[0]['FOF'].keys() : 
-                    my_types.append(x)
-            if len(my_types) : 
-                my_type_map[fam] = my_types
-
-        # set up family slices
-        sl_start = 0
-        self._loadable_keys = set([])
-        for x in my_type_map:
-            l = 0
-            for name in my_type_map[x]:
-                for hdf in self._hdf:
-                    l += hdf['FOF'].attrs['Number_per_Type'][int(name[-1])]
-            self._family_slice[x] = slice(sl_start, sl_start+l)
-
-            k = self._get_hdf_allarray_keys(self._hdf[0]['FOF'][name])
-            self._loadable_keys = self._loadable_keys.union(set(k))
-            sl_start += l
-        self._loadable_keys = [_translate_array_name(
-            x, reverse=True) for x in self._loadable_keys]
-        
-        self._num_particles = sl_start
-
-        self._my_type_map = my_type_map
-
-
-    def _load_array(self, array_name, fam=None, subgroup = 'FOF') : 
-        return GadgetHDFSnap._load_array(self, array_name, fam, subgroup)
 
     def halos(self) : 
         return halo.SubFindHDFHaloCatalogue(self)
 
-    @staticmethod
-    def _can_load(f):
-        try:
-            if h5py.is_hdf5(f) or h5py.is_hdf5(f+".0.hdf5"):
-                return True
-            else:
-                return False
-        except AttributeError:
-            if "hdf5" in f:
-                warnings.warn(
-                    "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
-            return False
 
             
-@SubFindHDFSnap.decorator
-def do_properties(sim): 
-
-    atr = sim._hdf[0]['FOF'].attrs
-
-    for s in atr : 
-        sim.properties[s] = atr[s]
 
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_quantity
