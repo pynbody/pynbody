@@ -36,15 +36,16 @@ def nw_arcsinh_fit(r, g, b, nonlinearity=3):
     return r * val, g * val, b * val
 
 
-def combine(r, g, b, dynamic_range):
-    maxi = []
+def combine(r, g, b, dynamic_range, maxi):
+    if maxi is None:
+        maxi = []
 
-    # find something close to the maximum that is not quite the maximum
-    for x in r, g, b:
-        ordered = np.sort(x.flatten())
-        maxi.append(ordered[-len(ordered) / 5000])
+        # find something close to the maximum that is not quite the maximum
+        for x in r, g, b:
+            ordered = np.sort(x.flatten())
+            maxi.append(ordered[-len(ordered) / 5000])
 
-    maxi = np.log10(max(maxi))
+        maxi = np.log10(max(maxi))
 
     rgbim = np.zeros((r.shape[0], r.shape[1], 3))
     rgbim[:, :, 0] = bytscl(np.log10(r), maxi - dynamic_range, maxi)
@@ -58,7 +59,7 @@ def render(sim, filename=None,
            r_scale=0.5, g_scale=1.0, b_scale=1.0,
            dynamic_range=2.0, width=50, starsize=None,
            plot=True, axes=None, ret_im=False, clear=True,
-           z_camera=None):
+           z_camera=None, maxi=None):
     '''
     Make a 3-color image of stars.
 
@@ -129,7 +130,7 @@ def render(sim, filename=None,
     #r,g,b = nw_scale_rgb(r,g,b)
     #r,g,b = nw_arcsinh_fit(r,g,b)
 
-    rgbim = combine(r, g, b, dynamic_range)
+    rgbim = combine(r, g, b, dynamic_range, maxi)
 
     if plot:
         if clear:
