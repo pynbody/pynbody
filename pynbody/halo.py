@@ -190,9 +190,10 @@ class RockstarCatalogue(HaloCatalogue):
         self._cpus[0]._init_iord_to_fpos()
         for cpu in self._cpus:
             cpu._iord_to_fpos = self._cpus[0]._iord_to_fpos
-        self._index_ar = None
+        
+        self._init_index_ar()
         if sort:
-            self._sort()
+            self._sort_index_ar()
 
     def _prune_files_from_wrong_scalefactor(self):
         new_cpus = []
@@ -271,17 +272,28 @@ class RockstarCatalogue(HaloCatalogue):
             os.system(groupfinder+" -c quickstart.cfg "+sim._filename)
             return
 
-    def _sort(self):
-        sort_ar = np.empty((len(self),2),dtype=np.int32)
+    def _init_index_ar(self):
+        index_ar = np.empty((len(self),2),dtype=np.int32)
+
+        for cpu_id, cpu in enumerate(self._cpus):
+            i0 = cpu._halo_min
+            i1 = cpu._halo_max
+            index_ar[i0:i1,0]=cpu_id
+            index_ar[i0:i1,1]=np.arange(i0,i1,dtype=np.int32)
+
+        self._index_ar = index_ar
+    
+
+    def _sort_index_ar(self):
         num_ar = np.empty(len(self))
-        i0 = 0
-        for cpu_id in range(len(self._cpus)):
-            i1 = i0 + len(self._cpus[cpu_id])
-            sort_ar[i0:i1,0]=cpu_id
-            sort_ar[i0:i1,1]=np.arange(i1-i0,dtype=np.int32)+self._cpus[cpu_id]._halo_min
+
+        for cpu_id, cpu in enumerate(self._cpus):
+            i0 = cpu._halo_min
+            i1 = cpu._halo_max
             num_ar[i0:i1]=self._cpus[cpu_id]._halo_lens
+
         num_ar = np.argsort(num_ar)[::-1]
-        self._index_ar = sort_ar[num_ar]
+        self._index_ar = self._index_ar[num_ar]
     
     @property
     def base(self):
@@ -475,7 +487,9 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             
     def load_copy(self, i):
         """Load a fresh SimSnap with only the particles in halo i"""
-
+        if i<self._halo_min or i>=self._halo_max:
+            raise KeyError, "No such halo"
+        
         from . import load
         return load(self.base.filename, take=self._get_particles_for_halo(i))
 
@@ -505,8 +519,8 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
-            self._iord_to_fpos = np.zeros(self._base()['iord'].max()+1,dtype=int)
-            self._iord_to_fpos[self._base()['iord']] = np.arange(len(self._base()))
+            self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
+            self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
 
 
     def _load_ahf_substructure(self, filename):
