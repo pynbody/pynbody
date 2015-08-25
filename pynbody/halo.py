@@ -519,8 +519,8 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
-            self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
-            self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
+            self._iord_to_fpos = np.empty(self.base['iord'].astype(np.int64).max()+1,dtype=np.int64)
+            self._iord_to_fpos[self.base['iord'].astype(np.int64)] = np.arange(len(self.base))
 
 
     def _load_ahf_substructure(self, filename):
@@ -855,7 +855,7 @@ class AHFCatalogue(HaloCatalogue):
 
     def _load_ahf_particles(self, filename):
         if self._use_iord:
-            iord = self._base()['iord']
+            iord = self._base()['iord'].astype(np.int64)
             assert len(iord) == iord.max(
             ), "Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so"
             self._iord_to_fpos = iord.argsort()
