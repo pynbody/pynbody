@@ -8,16 +8,28 @@ from cython cimport floating
 cdef extern from "math.h":
     int floor(double)nogil
 
+ctypedef fused fused_input_type_1:
+    np.float32_t
+    np.float64_t
+
+ctypedef fused fused_input_type_2:
+    np.float32_t
+    np.float64_t
+
+ctypedef fused fused_input_type_3:
+    np.float32_t
+    np.float64_t
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def interpolate3d(int n, 
-                  np.ndarray[floating,ndim=1] x, 
-                  np.ndarray[floating,ndim=1] y, 
-                  np.ndarray[floating,ndim=1] z,
-                  int n_x_vals, np.ndarray[np.float64_t,ndim=1] x_vals, 
-                  int n_y_vals, np.ndarray[np.float64_t,ndim=1] y_vals, 
-                  int n_z_vals, np.ndarray[np.float64_t,ndim=1] z_vals, 
+                  np.ndarray[fused_input_type_1,ndim=1] x,
+                  np.ndarray[fused_input_type_2,ndim=1] y,
+                  np.ndarray[fused_input_type_3,ndim=1] z,
+                  int n_x_vals, np.ndarray[np.float64_t,ndim=1] x_vals,
+                  int n_y_vals, np.ndarray[np.float64_t,ndim=1] y_vals,
+                  int n_z_vals, np.ndarray[np.float64_t,ndim=1] z_vals,
                   np.ndarray[np.float64_t,ndim=3] vals,
                   np.ndarray[np.float64_t,ndim=1] result_array) :
 

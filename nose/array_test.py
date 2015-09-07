@@ -11,6 +11,12 @@ def test_pickle():
     assert y[3] == 4
     assert str(y.units) == 'kpc'
 
+def test_issue255() :
+    r = SA(0.5, 'au')
+    assert isinstance(r**2, SA)
+    assert float(r**2)==0.25
+    assert str((r**2).units)=="au**2"
+
 
 def test_return_types():
 
