@@ -8,8 +8,8 @@ sudo: false
 addons:
   apt:
     packages:
-    - gfortran-4.9
-    
+    - gfortran
+
 # specify different versions of python and numpy
 env:
   - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20" IPYTHON="ipython"
