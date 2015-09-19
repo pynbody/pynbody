@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Tracing Particles between Snapshots &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="next" title="Profiles in Pynbody" href="profile.html" />
+    <link rel="prev" title="Subviews and Filters" href="filters.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Tracing Particles between Snapshots</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li><a class="reference internal" href="#identifying-halos-between-different-outputs">Identifying halos between different outputs</a></li>
+<li><a class="reference internal" href="#which-class-to-use">Which class to use?</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="filters.html" title="Previous Chapter: Subviews and Filters"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Subviews and Fil...</span>
+    </a>
+  </li>
+  <li>
+    <a href="profile.html" title="Next Chapter: Profiles in Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Profiles in Pynb... &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <div class="section" id="tracing-particles-between-snapshots">
+<span id="bridge-tutorial"></span><h1>Tracing Particles between Snapshots<a class="headerlink" href="#tracing-particles-between-snapshots" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference internal" href="../reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">bridge</span></tt></a> module has tools for connecting different
+outputs which allows you to trace particles from one snapshot of the
+simulation to another. Normally, matching up particle IDs between
+different snapshots can be a pain, but <a class="reference internal" href="../reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">bridge</span></tt></a> does all
+of this for you transparently. All that is needed is to initialize a
+<a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><tt class="xref py py-class docutils literal"><span class="pre">Bridge</span></tt></a> object that links two snapshots
+together. Once connected, a bridge object called on a specific subset
+of particles in one snapshot will trace these particles back (or
+forward) to the second snapshot.</p>
+<div class="section" id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>Load the data:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">high_redshift_file</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f2</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">low_redshift_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Load the halo catalogue:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">h_high_z</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Create the bridge object:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">OrderBridge</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span> <span class="c"># Or a different class, see &quot;Which class to use&quot; below</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">b</span></tt> is now an <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><tt class="xref py py-class docutils literal"><span class="pre">OrderBridge</span></tt></a> object that links
+the two outputs <tt class="docutils literal"><span class="pre">f1</span></tt> and <tt class="docutils literal"><span class="pre">f2</span></tt> together. Passing a <tt class="docutils literal"><span class="pre">SubSnap</span></tt> from
+one of the two linked snapshots to <tt class="docutils literal"><span class="pre">b</span></tt> will return a <tt class="docutils literal"><span class="pre">SubSnap</span></tt>
+with the same particles in the <em>other</em> snapshot. So, if we want to see
+where all the particles that were in halo 1 in the high-redshift
+snapshot (<tt class="docutils literal"><span class="pre">f1</span></tt>) end up at low redshift (<tt class="docutils literal"><span class="pre">f2</span></tt>), we can simply do:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">h1_at_low_z</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">h1_at_low_z</span> <span class="pre">now</span></tt> contains the particles which were in h[1] in the high redshift output</p>
+</div>
+<div class="section" id="identifying-halos-between-different-outputs">
+<h2>Identifying halos between different outputs<a class="headerlink" href="#identifying-halos-between-different-outputs" title="Permalink to this headline">¶</a></h2>
+<p>You may wish to work out how a halo catalogue maps onto a halo
+catalogue for a different output. For this purpose a simple function,
+match_catalog, is provided. Extending the example above,
+this would be called as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">cat</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">match_catalog</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">cat</span></tt> is now a numpy index array such that <tt class="docutils literal"><span class="pre">f1.halos()[i]</span></tt> is
+(probably!) the major progenitor for <tt class="docutils literal"><span class="pre">f2.halos()[cat[i]]</span></tt>.</p>
+</div>
+<div class="section" id="which-class-to-use">
+<h2>Which class to use?<a class="headerlink" href="#which-class-to-use" title="Permalink to this headline">¶</a></h2>
+<p>For files where the particle ordering is static, so that the particle
+with index i in the first snapshot also has index i in the second
+snapshot, use the <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><tt class="xref py py-class docutils literal"><span class="pre">Bridge</span></tt></a> class.</p>
+<p>For files which can spawn new particles, and therefore have a monotonically
+increasing particle ordering array (e.g. &#8220;iord&#8221; in gasoline), use the
+<a class="reference internal" href="../reference/convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><tt class="xref py py-class docutils literal"><span class="pre">OrderBridge</span></tt></a> class.</p>
+<p>Snapshot formats where the particle ordering can change are not currently supported.</p>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../_sources/tutorials/bridge.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
