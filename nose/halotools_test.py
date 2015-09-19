@@ -26,11 +26,11 @@ def test_center():
 def test_align():
     global f, h
     with pynbody.analysis.angmom.faceon(h[1]):
-        np.testing.assert_allclose(f['pos'][:2], [[-0.01069893, -0.00150329, -0.04478709],
-                                                  [-0.01000654,  0.00244104, -0.04465359]], atol=1e-5)
+        np.testing.assert_allclose(f['pos'][:2], [[-0.010718, -0.001504, -0.044783],
+                                                  [-0.010026,  0.002441, -0.04465 ]], atol=1e-5)
 
-        np.testing.assert_allclose(f['vel'][:2], [[0.02047303,  0.01907281, -0.01987804],
-                                                  [0.05459918,  0.02794922, -0.01030767]], atol=1e-5)
+        np.testing.assert_allclose(f['vel'][:2], [[ 0.017203,  0.01848 , -0.019859],
+                                                  [ 0.051333,  0.027357, -0.010303]], atol=1e-5)
 
 
 def test_virialradius():
@@ -40,3 +40,11 @@ def test_virialradius():
         vrad = pynbody.analysis.halo.virial_radius(f)
         print ("time=",time.time()-start)
         np.testing.assert_allclose(vrad, 0.005946911872, atol=1.e-5)
+
+
+def test_ssc_bighalo():
+    s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    s.physical_units()
+    h = s.halos()
+    pynbody.analysis.halo.center(h[1])
+    assert h[1]['r'].min()<0.02
