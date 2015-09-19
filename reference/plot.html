@@ -81,7 +81,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a></li>
@@ -303,7 +302,7 @@ the KDE.</dd>
 
 <dl class="function">
 <dt id="pynbody.plot.generic.make_contour_plot">
-<tt class="descclassname">pynbody.plot.generic.</tt><tt class="descname">make_contour_plot</tt><big>(</big><em>arr</em>, <em>xs</em>, <em>ys</em>, <em>x_range=None</em>, <em>y_range=None</em>, <em>nlevels=20</em>, <em>logscale=True</em>, <em>xlogrange=False</em>, <em>ylogrange=False</em>, <em>subplot=False</em>, <em>colorbar=False</em>, <em>ret_im=False</em>, <em>cmap=None</em>, <em>clear=True</em>, <em>legend=False</em>, <em>scalemin=None</em>, <em>scalemax=None</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/generic.html#make_contour_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.generic.make_contour_plot" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.generic.</tt><tt class="descname">make_contour_plot</tt><big>(</big><em>arr</em>, <em>xs</em>, <em>ys</em>, <em>x_range=None</em>, <em>y_range=None</em>, <em>nlevels=20</em>, <em>logscale=True</em>, <em>xlogrange=False</em>, <em>ylogrange=False</em>, <em>subplot=False</em>, <em>colorbar=False</em>, <em>ret_im=False</em>, <em>cmap=None</em>, <em>clear=True</em>, <em>legend=False</em>, <em>scalemin=None</em>, <em>levels=None</em>, <em>scalemax=None</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/generic.html#make_contour_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.generic.make_contour_plot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot a contour plot of grid <em>arr</em> corresponding to bin centers
 specified by <em>xs</em> and <em>ys</em>.  Labels the axes and colobar with
 proper units taken from x</p>
@@ -400,7 +399,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10b3c9050&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10a278050&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -439,7 +438,7 @@ function of radius.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.profile.density_profile">
-<tt class="descclassname">pynbody.plot.profile.</tt><tt class="descname">density_profile</tt><big>(</big><em>sim</em>, <em>linestyle=False</em>, <em>center=True</em>, <em>clear=True</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/profile.html#density_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.profile.density_profile" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.profile.</tt><tt class="descname">density_profile</tt><big>(</big><em>sim</em>, <em>linestyle=False</em>, <em>center=True</em>, <em>clear=True</em>, <em>fit=False</em>, <em>in_units=None</em>, <em>filename=None</em>, <em>fit_factor=0.02</em>, <em>axes=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/profile.html#density_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.profile.density_profile" title="Permalink to this definition">¶</a></dt>
 <dd><p>3d density profile</p>
 <p><strong>Options:</strong></p>
 <p><em>filename</em> (None):  name of file to which to save output</p>
@@ -498,9 +497,39 @@ figure width/height.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="pynbody.plot.sph.volume">
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">volume</tt><big>(</big><em>sim</em>, <em>qty='rho'</em>, <em>width=None</em>, <em>resolution=200</em>, <em>color=(1.0</em>, <em>1.0</em>, <em>1.0)</em>, <em>vmin=None</em>, <em>vmax=None</em>, <em>dynamic_range=4.0</em>, <em>log=True</em>, <em>create_figure=True</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#volume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a volume rendering of the given simulation using mayavi.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>qty</em> (rho): The name of the array to interpolate</p>
+<p><em>width</em> (None): The width of the cube to generate, centered on the origin</p>
+<p><em>resolution</em> (200): The number of elements along each side of the cube</p>
+<dl class="docutils">
+<dt><em>color</em> (white): The color of the volume rendering. The value of each voxel</dt>
+<dd>is used to set the opacity.</dd>
+</dl>
+<p><em>vmin</em> (None): The value for zero opacity (calculated using dynamic_range if None)</p>
+<dl class="docutils">
+<dt><em>vmax</em> (None): The value for full opacity (calculated from the maximum</dt>
+<dd>value in the region if None)</dd>
+</dl>
+<p><em>dynamic_range</em>: The dynamic range to use if vmin and vmax are not specified</p>
+<p><em>log</em> (True): log-scale the image before passing to mayavi</p>
+<p><em>create_figure</em> (True): create a new mayavi figure before rendering</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.plot.sph.contour">
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">contour</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#contour"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.contour" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make an SPH image of the given simulation and render it as contours.
+nlevels and levels are passed to pyplot&#8217;s contour command.</p>
+<p>Other arguments are as for <em>image</em>.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="pynbody.plot.sph.image">
-<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">image</tt><big>(</big><em>sim</em>, <em>qty='rho'</em>, <em>width='10 kpc'</em>, <em>resolution=500</em>, <em>units=None</em>, <em>log=True</em>, <em>vmin=None</em>, <em>vmax=None</em>, <em>av_z=False</em>, <em>filename=None</em>, <em>z_camera=None</em>, <em>clear=True</em>, <em>cmap=None</em>, <em>center=False</em>, <em>title=None</em>, <em>qtytitle=None</em>, <em>show_cbar=True</em>, <em>subplot=False</em>, <em>noplot=False</em>, <em>ret_im=False</em>, <em>fill_nan=True</em>, <em>fill_val=0.0</em>, <em>linthresh=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.image" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make an SPH image of the given simulation. See the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/pictures.html#pictures-in-pynbody">&#8220;Pictures in Pynbody&#8221; tutorial</a> for examples.</p>
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">image</tt><big>(</big><em>sim</em>, <em>qty='rho'</em>, <em>width='10 kpc'</em>, <em>resolution=500</em>, <em>units=None</em>, <em>log=True</em>, <em>vmin=None</em>, <em>vmax=None</em>, <em>av_z=False</em>, <em>filename=None</em>, <em>z_camera=None</em>, <em>clear=True</em>, <em>cmap=None</em>, <em>title=None</em>, <em>qtytitle=None</em>, <em>show_cbar=True</em>, <em>subplot=False</em>, <em>noplot=False</em>, <em>ret_im=False</em>, <em>fill_nan=True</em>, <em>fill_val=0.0</em>, <em>linthresh=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make an SPH image of the given simulation.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>qty</em> (rho): The name of the array to interpolate</p>
 <dl class="docutils">
@@ -732,6 +761,22 @@ In tipsy, this will be taken from the starlog file.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="pynbody.plot.stars.moster">
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">moster</tt><big>(</big><em>xmasses</em>, <em>z</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/stars.html#moster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.moster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Based on Moster+ (2013) return what stellar mass corresponds to the
+halo mass passed in.</p>
+<p><strong>Usage</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pynbody.plot.stars</span> <span class="kn">import</span> <span class="n">moster</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xmasses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">totmasshalos</span><span class="p">)),</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">totmasshalos</span><span class="p">)),</span><span class="mi">20</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ystarmasses</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n">moster</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span><span class="n">halo_catalog</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ystarmasses</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">errors</span><span class="p">),</span>
+<span class="go">                  y2=np.array(ystarmasses)*np.array(errors),</span>
+<span class="go">                  facecolor=&#39;#BBBBBB&#39;,color=&#39;#BBBBBB&#39;)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
 <dt id="pynbody.plot.stars.behroozi">
 <tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">behroozi</tt><big>(</big><em>xmasses</em>, <em>z</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/stars.html#behroozi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.behroozi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Based on Behroozi+ (2013) return what stellar mass corresponds to the
@@ -748,19 +793,24 @@ halo mass passed in.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pynbody.plot.stars.moster">
-<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">moster</tt><big>(</big><em>xmasses</em>, <em>z</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/stars.html#moster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.moster" title="Permalink to this definition">¶</a></dt>
-<dd><p>Based on Moster+ (2013) return what stellar mass corresponds to the
-halo mass passed in.</p>
-<p><strong>Usage</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pynbody.plot.stars</span> <span class="kn">import</span> <span class="n">moster</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">xmasses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">totmasshalos</span><span class="p">)),</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">totmasshalos</span><span class="p">)),</span><span class="mi">20</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ystarmasses</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n">moster</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span><span class="n">halo_catalog</span><span class="o">.</span><span class="n">_halos</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ystarmasses</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">errors</span><span class="p">),</span>
-<span class="go">                  y2=np.array(ystarmasses)*np.array(errors),</span>
-<span class="go">                  facecolor=&#39;#BBBBBB&#39;,color=&#39;#BBBBBB&#39;)</span>
+<dt id="pynbody.plot.stars.subfindguo">
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">subfindguo</tt><big>(</big><em>halo_catalog</em>, <em>clear=False</em>, <em>compare=True</em>, <em>baryfrac=False</em>, <em>filename=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/stars.html#subfindguo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.subfindguo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stellar Mass vs. Halo Mass</p>
+<p>Takes a halo catalogue and plots the member stellar masses as a
+function of halo mass.</p>
+<p>Usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody.plot</span> <span class="kn">as</span> <span class="nn">pp</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pp</span><span class="o">.</span><span class="n">guo</span><span class="p">(</span><span class="n">h</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s">&#39;+&#39;</span><span class="p">,</span><span class="n">markerfacecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><strong>Options:</strong></p>
+<dl class="docutils">
+<dt><em>compare</em> (True): Should comparison line be plotted?</dt>
+<dd>If compare = &#8216;guo&#8217;, Guo+ (2010) plotted instead of Behroozi+ (2013)</dd>
+</dl>
+<p><em>baryfrac</em> (False):  Should line be drawn for cosmic baryon fraction?</p>
+<p><em>filename</em> (None): name of file to which to save output</p>
 </dd></dl>
 
 <dl class="function">
@@ -869,8 +919,8 @@ map.</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>
 </footer>

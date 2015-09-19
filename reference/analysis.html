@@ -82,7 +82,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a></li>
@@ -195,7 +194,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10970ab18&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10939f668&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -429,7 +428,7 @@ points. Used primarily by <a class="reference internal" href="#pynbody.analysis.
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.shrink_sphere_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em>, <em>num_threads=8</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the center according to the shrinking-sphere method of
 Power et al (2003)</p>
 <p><strong>Input</strong>:</p>
@@ -455,8 +454,8 @@ zeroing in on the wrong part of the simulation.</dd>
 <tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">virial_radius</tt><big>(</big><em>sim</em>, <em>cen=None</em>, <em>overden=178</em>, <em>r_max=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#virial_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.virial_radius" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the virial radius of the halo centered on the given
 coordinates.</p>
-<p>This is here defined by the sphere centerd on cen which contains a
-mean density of overden * rho_c_0 * (1+z)^3.</p>
+<p>This is here defined by the sphere centered on cen which contains a
+mean density of overden * rho_M_0 * (1+z)^3.</p>
 </dd></dl>
 
 <dl class="function">
@@ -491,7 +490,7 @@ the particles in the halo passed in.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>move_all=True</em>, <em>wrap=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of mass of the given particles using the
 specified mode, then recenter the particles (of the entire
 ancestor snapshot) accordingly</p>
@@ -518,6 +517,8 @@ ancestor snapshot) accordingly</p>
 central 1kpc (default) is zeroed. Other values can be passed with cen_size.</p>
 <p><em>move_all</em>: if True (default), move the entire snapshot. Otherwise only move
 the particles in the halo passed in.</p>
+<p><em>wrap</em>: if True, pre-centre and wrap the simulation so that halos on the edge
+of the box are handled correctly. Default False.</p>
 </dd></dl>
 
 </div>
@@ -1343,8 +1344,8 @@ Yields results identical to scipy.interpolate.interpn.</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>
 </footer>

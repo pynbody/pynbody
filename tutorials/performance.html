@@ -265,12 +265,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="k">time</span> for i in xrange(10000) : d+=1
-<span class="go">CPU times: user 182 ms, sys: 27.1 ms, total: 209 ms</span>
-<span class="go">Wall time: 190 ms</span>
+<span class="go">CPU times: user 181 ms, sys: 27.6 ms, total: 208 ms</span>
+<span class="go">Wall time: 189 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="k">time</span> for i in xrange(10000) : a+=1
-<span class="go">CPU times: user 11.9 ms, sys: 1.45 ms, total: 13.3 ms</span>
-<span class="go">Wall time: 12.3 ms</span>
+<span class="go">CPU times: user 9.8 ms, sys: 1.49 ms, total: 11.3 ms</span>
+<span class="go">Wall time: 10.1 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -383,7 +383,7 @@ any unit handling code being called.</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+        &copy; Copyright 2011-15, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

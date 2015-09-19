@@ -100,9 +100,9 @@
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Halos in Pynbody</a><ul>
 <li><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li><a class="reference internal" href="#id3">Rockstar</a></li>
+<li><a class="reference internal" href="#id1">Rockstar</a></li>
 <li><a class="reference internal" href="#ahf">AHF</a></li>
-<li><a class="reference internal" href="#id4">Configuration</a></li>
+<li><a class="reference internal" href="#id2">Configuration</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#working-with-halos-and-catalogues">Working with Halos and Catalogues</a></li>
@@ -169,14 +169,16 @@ a <a class="reference internal" href="../reference/convenience.html#pynbody.halo
 <a class="reference internal" href="../reference/convenience.html#pynbody.halo.Halo" title="pynbody.halo.Halo"><tt class="xref py py-class docutils literal"><span class="pre">Halo</span></tt></a> objects.
 The <cite>Halo</cite> object holds information about the particle IDs and other properties
 about a given halo.  A <a class="reference internal" href="../reference/convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">HaloCatalogue</span></tt></a> is an
-object is a compilation of all the <a href="#id1"><span class="problematic" id="id2">`</span></a>Halo`s in a given snapshot.</p>
-<p><cite>Pynbody</cite> fully supports the
-<a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder (AHF)</a>
-(<a class="reference internal" href="../reference/convenience.html#pynbody.halo.AHFCatalogue" title="pynbody.halo.AHFCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">AHFCatalogue</span></tt></a>) and
-<a class="reference external" href="https://bitbucket.org/pbehroozi/rockstar-galaxies">Rockstar</a> (<tt class="xref py py-class docutils literal"><span class="pre">RockstarCatalogue</span></tt>).
-<cite>Pynbody</cite> can read data files from SKID
-(<a class="reference internal" href="../reference/convenience.html#pynbody.halo.GrpCatalogue" title="pynbody.halo.GrpCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">GrpCatalogue</span></tt></a> class) and SubFind
-(<a class="reference internal" href="../reference/convenience.html#pynbody.halo.SubfindCatalogue" title="pynbody.halo.SubfindCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">SubfindCatalogue</span></tt></a>).</p>
+object is a compilation of all the halos in a given snapshot.</p>
+<p>Some possible halo finders that pynbody recognises include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder (AHF)</a> (<a class="reference internal" href="../reference/convenience.html#pynbody.halo.AHFCatalogue" title="pynbody.halo.AHFCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">AHFCatalogue</span></tt></a>);</li>
+<li><a class="reference external" href="https://bitbucket.org/pbehroozi/rockstar-galaxies">Rockstar</a> (<tt class="xref py py-class docutils literal"><span class="pre">RockstarCatalogue</span></tt>);</li>
+<li>SKID (<a class="reference internal" href="../reference/convenience.html#pynbody.halo.GrpCatalogue" title="pynbody.halo.GrpCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">GrpCatalogue</span></tt></a> class);</li>
+<li>SubFind (<a class="reference internal" href="../reference/convenience.html#pynbody.halo.SubfindCatalogue" title="pynbody.halo.SubfindCatalogue"><tt class="xref py py-class docutils literal"><span class="pre">SubfindCatalogue</span></tt></a>).</li>
+</ul>
+</div></blockquote>
 <p>The <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><tt class="xref py py-func docutils literal"><span class="pre">halos()</span></tt></a> function in
 <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-class docutils literal"><span class="pre">SimSnap</span></tt></a>
 automatically determines whether halo data exists
@@ -192,8 +194,8 @@ the <a class="reference internal" href="snapshot_manipulation.html#snapshot-mani
 <cite>subfind</cite>. However, it is most comfortable with either AHF or (more
 experimentally) Rockstar and can in many cases actually run these codes
 for you if you haven&#8217;t already generated halo catalogues for your simulation.</p>
-<div class="section" id="id3">
-<h3>Rockstar<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id1">
+<h3>Rockstar<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <p>To install Rockstar, grab the code from Peter Behroozi&#8217;s bitbucket
 repository, make it, and copy it into your <cite>$PATH</cite></p>
 <div class="highlight-python"><div class="highlight"><pre>&gt; git clone https://bitbucket.org/pbehroozi/rockstar-galaxies.git
@@ -219,8 +221,8 @@ and copy it into your $PATH.</p>
 <p>Now <cite>pynbody</cite> will use one of these halo finders to create group files
 you can use to analyze your simulations.</p>
 </div>
-<div class="section" id="id4">
-<h3>Configuration<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id2">
+<h3>Configuration<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <p>As described in <a class="reference internal" href="configuration.html#configuration"><em>Configuring pynbody</em></a>, you can tell pynbody which group
 finder you prefer in your configuration file, ~/.pynbodyrc.  In the <cite>general</cite>
 section, you can arrange the priority of halo finders to use as you like.</p>
@@ -288,7 +290,7 @@ in halo 1 and see the position of its first few particles as follows:</p>
 a given halo and analyze some of its properties. Since halos are just
 <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> objects, this is easy to do:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [9]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="gh">Out[9]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x115cedcd0&gt;</span>
+<span class="gh">Out[9]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x115374790&gt;</span>
 
 <span class="gp">In [10]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;500 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
 </pre></div>
@@ -457,13 +459,11 @@ and see the position of its first few particles as follows:</p>
 </pre></div>
 </div>
 <p>A really common use-case is that one wants to center the simulation on
-a given halo and analyze some of its properties. Since halos are related to the
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> objects they can access most of the routines
-that AHF halos can, so this is easy to do:</p>
+a given halo and analyze some of its properties:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [33]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vel</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="gh">Out[33]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x10d0801d0&gt;</span>
+<span class="gh">Out[33]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x10a781250&gt;</span>
 
-<span class="gp">In [34]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;50 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
+<span class="gp">In [34]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;40 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/halo1_image_subfind.png"><img alt="../_images/halo1_image_subfind.png" src="../_images/halo1_image_subfind.png" style="width: 5in;" /></a>
@@ -601,9 +601,14 @@ is far more extensive than the FOF halo:</p>
 <p>To access the entire dataset of a given property (say all of the Stellar
 Velocity Dispersions) requires an embedded for loop over the HDF5 catalogue and
 appending to an array:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [41]: </span><span class="n">SubStellarVelDisp</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [41]: </span><span class="n">SubStellarVelDisp</span> <span class="o">=</span> <span class="p">[[</span><span class="n">subhalo</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;SubStellarVelDisp&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">subhalo</span> <span class="ow">in</span> <span class="n">halo</span><span class="o">.</span><span class="n">sub</span><span class="p">]</span> <span class="k">for</span> <span class="n">halo</span> <span class="ow">in</span> <span class="n">h</span><span class="p">]</span>
 
-<span class="gp">In [42]: </span><span class="k">for</span> <span class="n">halo</span> <span class="ow">in</span> <span class="n">h</span><span class="p">:</span>
+<span class="gp">In [42]: </span><span class="n">SubStellarVelDisp</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+<span class="gh">Out[42]: </span><span class="go"></span>
+<span class="go">[SimArray(41.94170323667739, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> SimArray(33.54862683657804, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> SimArray(17.48874067370036, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> SimArray(0.0, &#39;1.00e+05 cm s**-1&#39;)]</span>
 </pre></div>
 </div>
 </div>
@@ -628,7 +633,7 @@ appending to an array:</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
+        &copy; Copyright 2011-15, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

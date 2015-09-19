@@ -82,7 +82,6 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a></li>
@@ -173,40 +172,40 @@ pynbody will calculate it:</p>
 <span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 
 <span class="gp">In [3]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="go"> Out[3]: </span>
+<span class="gh">Out[3]: </span><span class="go"></span>
 <span class="go">SimArray([ 0.01443704,  0.01435218,  0.01545113, ...,  0.02690037,</span>
 <span class="go">        0.02084463,  0.02266956], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
 </div>
 <p>Note that you cannot directly alter a derived array:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [4]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="go">---------------------------------------------------------------------------</span>
-<span class="go">ValueError                                Traceback (most recent call last)</span>
-<span class="go">&lt;ipython-input-4-6eb96c8ef7aa&gt; in &lt;module&gt;()</span>
-<span class="go">----&gt; 1 s[&#39;ke&#39;][0] = 0</span>
+<span class="gt">---------------------------------------------------------------------------</span>
+<span class="ne">ValueError</span><span class="g-Whitespace">                                </span>Traceback (most recent call last)
+<span class="nn">&lt;ipython-input-4-6eb96c8ef7aa&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
+<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-<span class="go">//anaconda/lib/python2.7/site-packages/pynbody/array.pyc in q(a, *y, **kw)</span>
-<span class="go">    689             return w(a, *y, **kw)</span>
-<span class="go">    690         else:</span>
-<span class="go">--&gt; 691             return w(a, *y)</span>
-<span class="go">    692 </span>
-<span class="go">    693     q.__name__ = w.__name__</span>
+<span class="nn">/Users/app/anaconda/lib/python2.7/site-packages/pynbody/array.pyc</span> in <span class="ni">q</span><span class="nt">(a, *y, **kw)</span>
+<span class="g-Whitespace">    </span><span class="mi">689</span>             <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+<span class="g-Whitespace">    </span><span class="mi">690</span>         <span class="k">else</span><span class="p">:</span>
+<span class="ne">--&gt; </span><span class="mi">691</span>             <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span>
+<span class="g-Whitespace">    </span><span class="mi">692</span> 
+<span class="g-Whitespace">    </span><span class="mi">693</span>     <span class="n">q</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">__name__</span>
 
-<span class="go">//anaconda/lib/python2.7/site-packages/pynbody/array.pyc in __setitem__(self, item, to)</span>
-<span class="go">    477             np.ndarray.__setitem__(self, item, to.in_units(self.units))</span>
-<span class="go">    478         else:</span>
-<span class="go">--&gt; 479             np.ndarray.__setitem__(self, item, to)</span>
-<span class="go">    480 </span>
-<span class="go">    481     def __setslice__(self, a, b, to):</span>
+<span class="nn">/Users/app/anaconda/lib/python2.7/site-packages/pynbody/array.pyc</span> in <span class="ni">__setitem__</span><span class="nt">(self, item, to)</span>
+<span class="g-Whitespace">    </span><span class="mi">477</span>             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">))</span>
+<span class="g-Whitespace">    </span><span class="mi">478</span>         <span class="k">else</span><span class="p">:</span>
+<span class="ne">--&gt; </span><span class="mi">479</span>             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
+<span class="g-Whitespace">    </span><span class="mi">480</span> 
+<span class="g-Whitespace">    </span><span class="mi">481</span>     <span class="k">def</span> <span class="nf">__setslice__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
 
-<span class="go">ValueError: assignment destination is read-only</span>
+<span class="ne">ValueError</span>: assignment destination is read-only
 </pre></div>
 </div>
 <p>But the array updates itself when one of its dependencies changes:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [5]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
 
 <span class="gp">In [6]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="go"> Out[6]: </span>
+<span class="gh">Out[6]: </span><span class="go"></span>
 <span class="go">SimArray([ 0.05774817,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
 <span class="go">        0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
@@ -224,7 +223,7 @@ do so.</p>
 <span class="gp">In [8]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
 <span class="gp">In [9]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="go"> Out[9]: </span>
+<span class="gh">Out[9]: </span><span class="go"></span>
 <span class="go">SimArray([ 0.        ,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
 <span class="go">        0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
@@ -235,7 +234,7 @@ you out any longer:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [10]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
 
 <span class="gp">In [11]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="gr">Out[11]: </span>
+<span class="gh">Out[11]: </span><span class="go"></span>
 <span class="go">SimArray([ 0.        ,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
 <span class="go">        0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
@@ -245,7 +244,7 @@ array:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [12]: </span><span class="k">del</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
 
 <span class="gp">In [13]: </span><span class="n">s</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span>
-<span class="gr">Out[13]: </span>
+<span class="gh">Out[13]: </span><span class="go"></span>
 <span class="go">SimArray([ 0.23099267,  0.22963485,  0.247218  , ...,  0.43040596,</span>
 <span class="go">        0.33351406,  0.36271291], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
@@ -588,8 +587,8 @@ with solar values from Asplund et al 09</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-14, pynbody team https://github.com/pynbody/pynbody/graphs/contributors.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.1.<br/>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>
 </footer>
