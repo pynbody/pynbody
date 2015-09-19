@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.derived &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <h1>Source code for pynbody.derived</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">derived</span>
+<span class="sd">=======</span>
+
+<span class="sd">Holds procedures for creating new arrays from existing ones, e.g. for</span>
+<span class="sd">getting the radial position. For more information see :ref:`derived`.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">snapshot</span>
+<span class="kn">from</span> <span class="nn">snapshot</span> <span class="kn">import</span> <span class="n">SimSnap</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">array</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">analysis</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">sph</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.derived&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="r"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.r">[docs]</a><span class="k">def</span> <span class="nf">r</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Radial position&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="rxy"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.rxy">[docs]</a><span class="k">def</span> <span class="nf">rxy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Cylindrical radius in the x-y plane&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vr"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.vr">[docs]</a><span class="k">def</span> <span class="nf">vr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Radial velocity&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">]</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="v2"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.v2">[docs]</a><span class="k">def</span> <span class="nf">v2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Squared velocity&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vt"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.vt">[docs]</a><span class="k">def</span> <span class="nf">vt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tangential velocity&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;v2&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vr&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="ke"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.ke">[docs]</a><span class="k">def</span> <span class="nf">ke</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specific kinetic energy&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="te"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.te">[docs]</a><span class="k">def</span> <span class="nf">te</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specific total energy&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;ke&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="j"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.j">[docs]</a><span class="k">def</span> <span class="nf">j</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specific angular momentum&quot;&quot;&quot;</span>
+    <span class="n">angmom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
+    <span class="n">angmom</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="k">return</span> <span class="n">angmom</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="j2"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.j2">[docs]</a><span class="k">def</span> <span class="nf">j2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Square of the specific angular momentum&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;j&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="jz"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.jz">[docs]</a><span class="k">def</span> <span class="nf">jz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;z-component of the angular momentum&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;j&#39;</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vrxy"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.vrxy">[docs]</a><span class="k">def</span> <span class="nf">vrxy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Cylindrical radial velocity in the x-y plane&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;rxy&#39;</span><span class="p">]</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vcxy"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.vcxy">[docs]</a><span class="k">def</span> <span class="nf">vcxy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Cylindrical tangential velocity in the x-y plane&quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vx&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;rxy&#39;</span><span class="p">]</span>
+    <span class="n">f</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">f</span> <span class="o">!=</span> <span class="n">f</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">f</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vphi"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.vphi">[docs]</a><span class="k">def</span> <span class="nf">vphi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Azimuthal velocity (synonym for vcxy)&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vcxy&#39;</span><span class="p">]</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="vtheta"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.vtheta">[docs]</a><span class="k">def</span> <span class="nf">vtheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Velocity projected to polar direction&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;az&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vx&#39;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;az&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">]</span> <span class="o">-</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">])</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="v_mean"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.v_mean">[docs]</a><span class="k">def</span> <span class="nf">v_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;SPH-smoothed mean velocity&quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">sph</span>
+
+    <span class="n">sph</span><span class="o">.</span><span class="n">build_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="n">nsmooth</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s">&#39;Calculating mean velocity with </span><span class="si">%d</span><span class="s"> nearest neighbours&#39;</span> <span class="o">%</span> <span class="n">nsmooth</span><span class="p">)</span>
+
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]),</span>
+                        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty_sm&#39;</span><span class="p">,</span><span class="n">sm</span><span class="p">)</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="s">&#39;qty_mean&#39;</span><span class="p">,</span><span class="n">nsmooth</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Mean velocity done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">sm</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="v_disp"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.v_disp">[docs]</a><span class="k">def</span> <span class="nf">v_disp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;SPH-smoothed local velocity dispersion&quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">sph</span>
+
+    <span class="n">sph</span><span class="o">.</span><span class="n">build_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="n">nsmooth</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;smooth-particles&#39;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s">&#39;Calculating velocity dispersion with </span><span class="si">%d</span><span class="s"> nearest neighbours&#39;</span> <span class="o">%</span> <span class="n">nsmooth</span><span class="p">)</span>
+
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]),</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;rho&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty&#39;</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">set_array_ref</span><span class="p">(</span><span class="s">&#39;qty_sm&#39;</span><span class="p">,</span><span class="n">sm</span><span class="p">)</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">kdtree</span><span class="o">.</span><span class="n">populate</span><span class="p">(</span><span class="s">&#39;qty_disp&#39;</span><span class="p">,</span><span class="n">nsmooth</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Velocity dispersion done in </span><span class="si">%5.3g</span><span class="s"> s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">sm</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="age"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.age">[docs]</a><span class="k">def</span> <span class="nf">age</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stellar age determined from formation time and current snapshot time&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span> <span class="o">-</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span>
+</div>
+<span class="n">bands_available</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;u&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="s">&#39;v&#39;</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">,</span> <span class="s">&#39;i&#39;</span><span class="p">,</span> <span class="s">&#39;j&#39;</span><span class="p">,</span> <span class="s">&#39;h&#39;</span><span class="p">,</span> <span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="s">&#39;U&#39;</span><span class="p">,</span> <span class="s">&#39;B&#39;</span><span class="p">,</span> <span class="s">&#39;V&#39;</span><span class="p">,</span> <span class="s">&#39;R&#39;</span><span class="p">,</span> <span class="s">&#39;I&#39;</span><span class="p">,</span>
+                   <span class="s">&#39;J&#39;</span><span class="p">,</span> <span class="s">&#39;H&#39;</span><span class="p">,</span> <span class="s">&#39;K&#39;</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="n">bands_available</span><span class="p">:</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">band</span><span class="p">):</span> <span class="n">analysis</span><span class="o">.</span><span class="n">luminosity</span><span class="o">.</span><span class="n">calc_mags</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot;_mag&quot;</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot; magnitude from analysis.luminosity.calc_mags&quot;&quot;&quot;</span>
+    <span class="n">SimSnap</span><span class="o">.</span><span class="n">derived_quantity</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">band</span><span class="p">):</span> <span class="p">(</span>
+        <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4</span> <span class="o">*</span> <span class="n">s</span><span class="p">[</span><span class="n">b</span> <span class="o">+</span> <span class="s">&quot;_mag&quot;</span><span class="p">]))</span> <span class="o">*</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot;_lum_den&quot;</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> \
+        <span class="s">&quot; luminosity density from analysis.luminosity.calc_mags&quot;&quot;&quot;</span>
+    <span class="n">SimSnap</span><span class="o">.</span><span class="n">derived_quantity</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="theta"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.theta">[docs]</a><span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Angle from the z axis, from [0:2pi]&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="alt"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.alt">[docs]</a><span class="k">def</span> <span class="nf">alt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Angle from the horizon, from [-pi/2:pi/2]&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;theta&#39;</span><span class="p">]</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="az"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.az">[docs]</a><span class="k">def</span> <span class="nf">az</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Angle in the xy plane from the x axis, from [-pi:pi]&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">])</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="cs"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.cs">[docs]</a><span class="k">def</span> <span class="nf">cs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sound speed&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">5.0</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mu&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">m_p</span><span class="p">)</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<span class="k">def</span> <span class="nf">mu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Estimate of mean molecular mass&quot;&quot;&quot;</span>
+
+
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="mu"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.mu">[docs]</a><span class="k">def</span> <span class="nf">mu</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">t0</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Relative atomic mass, i.e. number of particles per</span>
+<span class="sd">    proton mass, ignoring metals (since we generally only know the</span>
+<span class="sd">    mass fraction of metals, not their specific atomic numbers)&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;HI&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;HII&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;HeI&quot;</span><span class="p">]</span> <span class="o">+</span> \
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;HeII&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;HeIII&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t0</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">t0</span> <span class="o">&gt;=</span> <span class="mf">1e4</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">0.59</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">t0</span> <span class="o">&lt;</span> <span class="mf">1e4</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">1.3</span>
+
+    <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;1&quot;</span><span class="p">)</span>
+    <span class="c">#x.units = units.m_p**-1</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="p"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.p">[docs]</a><span class="k">def</span> <span class="nf">p</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Pressure&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;u&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;rho&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&quot;Pa&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="u"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.u">[docs]</a><span class="k">def</span> <span class="nf">u</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gas internal energy derived from temperature&quot;&quot;&quot;</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="mf">5.</span> <span class="o">/</span> <span class="mi">3</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">k</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mu&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">m_p</span> <span class="o">*</span> <span class="p">(</span><span class="n">gamma</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="temp"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.temp">[docs]</a><span class="k">def</span> <span class="nf">temp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gas temperature derived from internal energy&quot;&quot;&quot;</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="mf">5.</span> <span class="o">/</span> <span class="mi">3</span>
+    <span class="n">mu_est</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;u&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">m_p</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">mu_est</span> <span class="o">*</span> <span class="p">(</span><span class="n">gamma</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">temp</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&quot;K&quot;</span><span class="p">)</span>
+        <span class="n">mu_est</span> <span class="o">=</span> <span class="n">mu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">temp</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="zeldovich_offset"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.zeldovich_offset">[docs]</a><span class="k">def</span> <span class="nf">zeldovich_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The position offset in the current snapshot according to</span>
+<span class="sd">    the Zel&#39;dovich approximation applied to the current velocities.</span>
+<span class="sd">    (Only useful in the generation or analysis of initial conditions.)&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">analysis</span>
+    <span class="n">bdot_by_b</span> <span class="o">=</span> <span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">rate_linear_growth</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;km Mpc^-1 s^-1&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">linear_growth_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
+
+    <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">bdot_by_b</span><span class="p">)</span>
+    <span class="n">offset</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&#39;km Mpc^-1 s^-1 a^-1&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">offset</span>
+
+</div>
+<span class="nd">@SimSnap.derived_quantity</span>
+<div class="viewcode-block" id="aform"><a class="viewcode-back" href="../../reference/derived.html#pynbody.derived.aform">[docs]</a><span class="k">def</span> <span class="nf">aform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The expansion factor at the time specified by the tform array.&quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">analysis</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">redshift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">])</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">z</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">a</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.snapshot.ramses &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="up" title="pynbody.snapshot" href="../snapshot.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <h1>Source code for pynbody.snapshot.ramses</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">ramses</span>
+<span class="sd">======</span>
+
+<span class="sd">Implements classes and functions for handling RAMSES files. AMR cells</span>
+<span class="sd">are loaded as particles. You rarely need to access this module</span>
+<span class="sd">directly as it will be invoked automatically via pynbody.load.</span>
+
+
+<span class="sd">For a complete demo on how to use RAMSES outputs with pynbody, look at</span>
+<span class="sd">the `ipython notebook demo</span>
+<span class="sd">&lt;http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb&gt;`_</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">with_statement</span>  <span class="c"># for py2.5</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">family</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span><span class="p">,</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">chunk</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">analysis</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">SimSnap</span>
+<span class="kn">from</span> <span class="nn">..util</span> <span class="kn">import</span> <span class="n">read_fortran</span><span class="p">,</span> <span class="n">read_fortran_series</span><span class="p">,</span> <span class="n">skip_fortran</span>
+
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">types</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.snapshot.ramses&#39;</span><span class="p">)</span>
+
+<span class="n">multiprocess_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;parallel-read&quot;</span><span class="p">))</span>
+<span class="n">multiprocess</span> <span class="o">=</span> <span class="p">(</span><span class="n">multiprocess_num</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">issue_multiprocess_warning</span> <span class="o">=</span> <span class="bp">False</span>
+
+<span class="k">if</span> <span class="n">multiprocess</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">multiprocessing</span>
+        <span class="kn">import</span> <span class="nn">posix_ipc</span>
+        <span class="n">remote_exec</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">shared_array_remote</span>
+        <span class="n">remote_map</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">remote_map</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">issue_multiprocess_warning</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="n">multiprocess</span> <span class="o">=</span> <span class="bp">False</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">multiprocess</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">remote_exec</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">r</span>
+        <span class="k">return</span> <span class="n">q</span>
+
+    <span class="k">def</span> <span class="nf">remote_map</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">map</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="n">_float_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s">&#39;f8&#39;</span><span class="p">)</span>
+<span class="n">_int_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s">&#39;i4&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_timestep_id</span><span class="p">(</span><span class="n">basename</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;output_([0-9]*)/*$&quot;</span><span class="p">,</span> <span class="n">basename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="k">def</span> <span class="nf">_cpu_id</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s">&quot;0&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@remote_exec</span>
+<span class="k">def</span> <span class="nf">_cpui_count_particles</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">distinguisher_field</span><span class="p">,</span> <span class="n">distinguisher_type</span><span class="p">):</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_particle_header</span><span class="p">)</span>
+    <span class="n">npart_this</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">distinguisher_field</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">distinguisher_type</span><span class="p">,</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">npart_this</span><span class="p">)</span>
+
+    <span class="n">my_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">nstar_this</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">npart_this</span><span class="p">,</span> <span class="n">nstar_this</span><span class="p">,</span> <span class="n">my_mask</span>
+
+
+<span class="nd">@remote_exec</span>
+<span class="k">def</span> <span class="nf">_cpui_load_particle_block</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">dm_ar</span><span class="p">,</span> <span class="n">star_ar</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">ind0_dm</span><span class="p">,</span> <span class="n">ind0_star</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">star_mask</span><span class="p">,</span> <span class="n">nstar</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_particle_header</span><span class="p">)</span>
+
+    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+
+    <span class="n">ind1_dm</span> <span class="o">=</span> <span class="n">ind0_dm</span> <span class="o">+</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nstar</span>
+    <span class="n">ind1_star</span> <span class="o">=</span> <span class="n">ind0_star</span> <span class="o">+</span> <span class="n">nstar</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">star_mask</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dm_ar</span><span class="p">[</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">star_mask</span><span class="p">]</span>
+            <span class="n">star_ar</span><span class="p">[</span><span class="n">ind0_star</span><span class="p">:</span><span class="n">ind1_star</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">star_mask</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dm_ar</span><span class="p">[</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="c"># this translates into the data block loaded from disk not being</span>
+        <span class="c"># long enough</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Could not load particle block&quot;</span>
+
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_cpui_level_iterator</span><span class="p">(</span><span class="n">cpu</span><span class="p">,</span> <span class="n">amr_filename</span><span class="p">,</span> <span class="n">bisection_order</span><span class="p">,</span> <span class="n">maxlevel</span><span class="p">,</span> <span class="n">ndim</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">amr_filename</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_amr_header</span><span class="p">)</span>
+    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
+
+    <span class="n">n_per_level</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_int_type</span><span class="p">,</span> <span class="n">header</span><span class="p">[</span>
+                               <span class="s">&#39;nlevelmax&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;ncpu&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">],</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;ncpu&#39;</span><span class="p">]))</span>
+    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nboundary&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">n_per_level_boundary</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_int_type</span><span class="p">,</span> <span class="n">header</span><span class="p">[</span>
+                                            <span class="s">&#39;nlevelmax&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nboundary&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">],</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nboundary&#39;</span><span class="p">]))</span>
+
+    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bisection_order</span><span class="p">:</span>
+        <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;ng&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;f8&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">offset</span> <span class="o">-=</span> <span class="mf">0.5</span>
+
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_float_type</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">maxlevel</span> <span class="ow">or</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">]):</span>
+
+        <span class="c"># loop through those CPUs with grid data (includes ghost regions)</span>
+        <span class="k">for</span> <span class="n">cpuf</span> <span class="ow">in</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">n_per_level</span><span class="p">[</span><span class="n">level</span><span class="p">,</span> <span class="p">:]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="c"># print &quot;CPU=&quot;,cpu,&quot;CPU on</span>
+            <span class="c"># disk=&quot;,cpuf,&quot;npl=&quot;,n_per_level[level,cpuf-1]</span>
+
+            <span class="k">if</span> <span class="n">cpuf</span> <span class="o">==</span> <span class="n">cpu</span><span class="p">:</span>
+
+                <span class="c"># this is the data we want</span>
+                <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c"># grid, next, prev index</span>
+
+                <span class="c"># store the coordinates in temporary arrays. We only want</span>
+                <span class="c"># to copy it if the cell is not refined</span>
+                <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_float_type</span><span class="p">,</span> <span class="n">n_per_level</span><span class="p">[</span><span class="n">level</span><span class="p">,</span> <span class="n">cpu</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">)]</span>
+
+                <span class="c"># stick on zeros if we&#39;re in less than 3D</span>
+                <span class="n">coords</span> <span class="o">+=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span> <span class="o">-</span> <span class="n">ndim</span><span class="p">)]</span>
+
+                <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span>  <span class="c"># father index</span>
+                             <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">ndim</span>  <span class="c"># nbor index</span>
+                             <span class="c"># son index,cpumap,refinement map</span>
+                             <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)</span>
+                             <span class="p">)</span>
+
+                <span class="n">refine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_int_type</span><span class="p">,</span> <span class="n">n_per_level</span><span class="p">[</span><span class="n">level</span><span class="p">,</span> <span class="n">cpu</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)])</span>
+
+                <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="n">maxlevel</span><span class="p">:</span>
+                    <span class="n">refine</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">coords</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="c"># x0-=offset[0]; y0-=offset[1]; z0-=offset[2]</span>
+
+                <span class="k">yield</span> <span class="n">coords</span><span class="p">,</span> <span class="n">refine</span><span class="p">,</span> <span class="n">cpuf</span><span class="p">,</span> <span class="n">level</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="c"># skip ghost regions from other CPUs</span>
+                <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nboundary&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">boundaryf</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">n_per_level_boundary</span><span class="p">[</span><span class="n">level</span><span class="p">,</span> <span class="p">:]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+
+                <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)</span>
+
+
+<span class="nd">@remote_exec</span>
+<span class="k">def</span> <span class="nf">_cpui_count_gas_cells</span><span class="p">(</span><span class="n">level_iterator_args</span><span class="p">):</span>
+    <span class="n">ncell</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">coords</span><span class="p">,</span> <span class="n">refine</span><span class="p">,</span> <span class="n">cpu</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">_cpui_level_iterator</span><span class="p">(</span><span class="o">*</span><span class="n">level_iterator_args</span><span class="p">):</span>
+        <span class="n">ncell</span> <span class="o">+=</span> <span class="p">(</span><span class="n">refine</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">ncell</span>
+
+
+<span class="nd">@remote_exec</span>
+<span class="k">def</span> <span class="nf">_cpui_load_gas_pos</span><span class="p">(</span><span class="n">pos_array</span><span class="p">,</span> <span class="n">smooth_array</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">boxlen</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">level_iterator_args</span><span class="p">):</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">pos_array</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">)]</span>
+    <span class="n">subgrid_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">subgrid_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">subgrid_index</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">subgrid_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">subgrid_index</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">subgrid_z</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">subgrid_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">subgrid_index</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">subgrid_y</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">subgrid_z</span><span class="p">)</span>
+    <span class="n">subgrid_x</span> <span class="o">-=</span> <span class="mf">0.5</span>
+    <span class="n">subgrid_y</span> <span class="o">-=</span> <span class="mf">0.5</span>
+    <span class="n">subgrid_z</span> <span class="o">-=</span> <span class="mf">0.5</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">z0</span><span class="p">),</span> <span class="n">refine</span><span class="p">,</span> <span class="n">cpu</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">_cpui_level_iterator</span><span class="p">(</span><span class="o">*</span><span class="n">level_iterator_args</span><span class="p">):</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">boxlen</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">**</span> <span class="p">(</span><span class="n">level</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">boxlen</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">subgrid_x</span>
+        <span class="n">y0</span> <span class="o">=</span> <span class="n">boxlen</span> <span class="o">*</span> <span class="n">y0</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">subgrid_y</span>
+        <span class="n">z0</span> <span class="o">=</span> <span class="n">boxlen</span> <span class="o">*</span> <span class="n">z0</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">subgrid_z</span>
+
+        <span class="n">mark</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">refine</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mark</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="p">[</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">z0</span><span class="p">][:</span><span class="n">ndim</span><span class="p">]):</span>
+            <span class="n">q</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">mark</span><span class="p">]</span>
+
+        <span class="n">smooth_array</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dx</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="n">i1</span>
+
+<span class="n">_gv_load_hydro</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">_gv_load_gravity</span> <span class="o">=</span> <span class="mi">1</span>
+
+
+<span class="nd">@remote_exec</span>
+<span class="k">def</span> <span class="nf">_cpui_load_gas_vars</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">maxlevel</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">cpu</span><span class="p">,</span> <span class="n">lia</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="n">_gv_load_hydro</span><span class="p">):</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading data from CPU </span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">cpu</span><span class="p">)</span>
+
+    <span class="n">nvar</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
+    <span class="n">grid_info_iter</span> <span class="o">=</span> <span class="n">_cpui_level_iterator</span><span class="p">(</span><span class="o">*</span><span class="n">lia</span><span class="p">)</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
+
+    <span class="n">check_nvar_file</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="n">_gv_load_hydro</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_hydro_header</span><span class="p">)</span>
+
+        <span class="n">nvar_file</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nvarh&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_grav_header</span><span class="p">)</span>
+        <span class="n">nvar_file</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="k">if</span> <span class="n">nvar_file</span> <span class="o">&lt;</span> <span class="n">nvar</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected </span><span class="si">%d</span><span class="s">, got </span><span class="si">%d</span><span class="s"> in file)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">nvar</span><span class="p">,</span> <span class="n">nvar_file</span><span class="p">),</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+        <span class="n">nvar</span> <span class="o">=</span> <span class="n">nvar_file</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="n">dims</span><span class="p">[:</span><span class="n">nvar</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">nvar_file</span> <span class="o">&gt;</span> <span class="n">nvar</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;More hydro variables (</span><span class="si">%d</span><span class="s">) are in this RAMSES dump than are defined in config.ini (</span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">nvar_file</span><span class="p">,</span> <span class="n">nvar</span><span class="p">),</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">maxlevel</span> <span class="ow">or</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">]):</span>
+
+        <span class="k">for</span> <span class="n">cpuf</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;ncpu&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">flevel</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">ncache</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">flevel</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">level</span>
+
+            <span class="k">if</span> <span class="n">ncache</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cpuf</span> <span class="o">==</span> <span class="n">cpu</span><span class="p">:</span>
+
+                    <span class="n">coords</span><span class="p">,</span> <span class="n">refine</span><span class="p">,</span> <span class="n">gi_cpu</span><span class="p">,</span> <span class="n">gi_level</span> <span class="o">=</span> <span class="n">grid_info_iter</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                    <span class="n">mark</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">refine</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
+                    <span class="k">assert</span> <span class="n">gi_level</span> <span class="o">==</span> <span class="n">level</span>
+                    <span class="k">assert</span> <span class="n">gi_cpu</span> <span class="o">==</span> <span class="n">cpu</span>
+
+                <span class="k">if</span> <span class="n">cpuf</span> <span class="o">==</span> <span class="n">cpu</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mark</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">icel</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">):</span>
+                        <span class="n">i0</span> <span class="o">=</span> <span class="n">i1</span>
+                        <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="p">(</span><span class="n">refine</span><span class="p">[</span><span class="n">icel</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">:</span>
+                            <span class="n">ar</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span>
+                                <span class="n">f</span><span class="p">,</span> <span class="n">_float_type</span><span class="p">,</span> <span class="n">ncache</span><span class="p">)[(</span><span class="n">refine</span><span class="p">[</span><span class="n">icel</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)]</span>
+
+                        <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">nvar_file</span> <span class="o">-</span> <span class="n">nvar</span><span class="p">))</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)</span> <span class="o">*</span> <span class="n">nvar_file</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">boundary</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;nboundary&#39;</span><span class="p">]):</span>
+            <span class="n">flevel</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">ncache</span> <span class="o">=</span> <span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ncache</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">skip_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)</span> <span class="o">*</span> <span class="n">nvar_file</span><span class="p">)</span>
+
+
+<span class="n">ramses_particle_header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;ncpu&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ndim&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;npart&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span>
+                                   <span class="p">(</span><span class="s">&#39;randseed&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,)),</span> <span class="p">(</span><span class="s">&#39;nstar&#39;</span><span class="p">,</span>
+                                                              <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;mstar&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">),</span>
+                                   <span class="p">(</span><span class="s">&#39;mstar_lost&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nsink&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)])</span>
+
+<span class="n">ramses_amr_header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;ncpu&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ndim&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ng&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)),</span>
+                              <span class="p">(</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ngridmax&#39;</span><span class="p">,</span>
+                                                    <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nboundary&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s">&#39;ngrid&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;boxlen&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">)])</span>
+
+<span class="n">ramses_hydro_header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;ncpu&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nvarh&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ndim&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span>
+                                <span class="p">(</span><span class="s">&#39;nboundary&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;gamma&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">)])</span>
+
+<span class="n">ramses_grav_header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;ncpu&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ndim&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span>
+                               <span class="p">(</span><span class="s">&#39;nboundary&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)])</span>
+
+<span class="n">particle_blocks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;particle-blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+<span class="n">particle_format</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;particle-format&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+
+<span class="n">hydro_blocks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;hydro-blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+<span class="n">grav_blocks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;gravity-blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+
+<span class="n">particle_distinguisher</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&#39;particle-distinguisher&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">RamsesSnap</span><span class="p">(</span><span class="n">SimSnap</span><span class="p">):</span>
+    <span class="n">reader_pool</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dirname</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize a RamsesSnap. Extra kwargs supported:</span>
+
+<span class="sd">         *cpus* : a list of the CPU IDs to load. If not set, load all CPU&#39;s data.</span>
+<span class="sd">         *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.</span>
+<span class="sd">         &quot;&quot;&quot;</span>
+
+        <span class="k">global</span> <span class="n">config</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RamsesSnap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">multiprocess</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_shared_arrays</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">RamsesSnap</span><span class="o">.</span><span class="n">reader_pool</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+                <span class="n">RamsesSnap</span><span class="o">.</span><span class="n">reader_pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">multiprocess_num</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">issue_multiprocess_warning</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">=</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">dirname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_infofile</span><span class="p">()</span>
+
+        <span class="c"># determine whether we have explicit information about</span>
+        <span class="c"># what particle blocks are present</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new_format</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&#39;particle-blocks&#39;</span><span class="p">,</span> <span class="n">particle_blocks</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s">&#39;particle-blocks&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new_format</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">,</span> <span class="s">&#39;vx&#39;</span><span class="p">,</span> <span class="s">&#39;vy&#39;</span><span class="p">,</span> <span class="s">&#39;vz&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;ndim&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;ndim&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s">&quot;Snapshots with less than three dimensions are supported only experimentally&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;ndim&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncpu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;ncpu&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s">&#39;cpus&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;cpus&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncpu</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maxlevel</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;maxlevel&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+        <span class="n">ndm</span><span class="p">,</span> <span class="n">nstar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count_particles</span><span class="p">()</span>
+
+        <span class="n">has_gas</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hydro_filename</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;force_gas&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+        <span class="n">ngas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count_gas_cells</span><span class="p">()</span> <span class="k">if</span> <span class="n">has_gas</span> <span class="k">else</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="n">ndm</span> <span class="o">+</span> <span class="n">ngas</span> <span class="o">+</span> <span class="n">nstar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ndm</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">ndm</span><span class="p">,</span> <span class="n">ndm</span> <span class="o">+</span> <span class="n">nstar</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">ndm</span> <span class="o">+</span> <span class="n">nstar</span><span class="p">,</span> <span class="n">ndm</span> <span class="o">+</span> <span class="n">nstar</span> <span class="o">+</span> <span class="n">ngas</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_load_infofile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/info_&quot;</span> <span class="o">+</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;=&#39;</span><span class="p">))</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/header_&quot;</span> <span class="o">+</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+            <span class="c"># most of this file is unhelpful, but in the latest ramses</span>
+            <span class="c"># version, there is information on the particle fields present</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;particle-blocks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s">&quot;No header file found -- no particle block information available&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_particle_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/part_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">+</span> <span class="s">&quot;.out&quot;</span> <span class="o">+</span> <span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_amr_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/amr_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">+</span> <span class="s">&quot;.out&quot;</span> <span class="o">+</span> <span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_hydro_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/hydro_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">+</span> <span class="s">&quot;.out&quot;</span> <span class="o">+</span> <span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_grav_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/grav_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">+</span> <span class="s">&quot;.out&quot;</span> <span class="o">+</span> <span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_count_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns ndm, nstar where ndm is the number of dark matter particles</span>
+<span class="sd">        and nstar is the number of star particles.&quot;&quot;&quot;</span>
+
+        <span class="n">npart</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">nstar</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">dm_i0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">star_i0</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_star_mask</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nstar</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dm_i0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_star_i0</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_particle_filename</span><span class="p">(</span><span class="mi">1</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_format</span><span class="p">:</span>
+            <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">distinguisher_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># be more cunning about finding the distinguisher field (likely &#39;age&#39;) -</span>
+            <span class="c"># as it may have moved around in some patches of ramses</span>
+
+            <span class="n">distinguisher_name</span> <span class="o">=</span> <span class="n">particle_blocks</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;distinguisher_name&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="mi">10000</span> <span class="c"># anything out of range will do!</span>
+
+
+            <span class="n">distinguisher_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">remote_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_pool</span><span class="p">,</span>
+                             <span class="n">_cpui_count_particles</span><span class="p">,</span>
+                             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_particle_filename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">],</span>
+                             <span class="p">[</span><span class="n">distinguisher_field</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                             <span class="p">[</span><span class="n">distinguisher_type</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">npart_this</span><span class="p">,</span> <span class="n">nstar_this</span><span class="p">,</span> <span class="n">my_mask</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dm_i0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dm_i0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_star_i0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">star_i0</span><span class="p">)</span>
+            <span class="n">dm_i0</span> <span class="o">+=</span> <span class="p">(</span><span class="n">npart_this</span> <span class="o">-</span> <span class="n">nstar_this</span><span class="p">)</span>
+            <span class="n">star_i0</span> <span class="o">+=</span> <span class="n">nstar_this</span>
+            <span class="n">npart</span> <span class="o">+=</span> <span class="n">npart_this</span>
+            <span class="n">nstar</span> <span class="o">+=</span> <span class="n">nstar_this</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nstar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nstar_this</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_star_mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">my_mask</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">npart</span> <span class="o">-</span> <span class="n">nstar</span><span class="p">,</span> <span class="n">nstar</span>
+
+    <span class="k">def</span> <span class="nf">_count_gas_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ncells</span> <span class="o">=</span> <span class="n">remote_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_pool</span><span class="p">,</span> <span class="n">_cpui_count_gas_cells</span><span class="p">,</span>
+                            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpui_level_iterator_args</span><span class="p">(</span><span class="n">xcpu</span><span class="p">)</span> <span class="k">for</span> <span class="n">xcpu</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gas_i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">ncells</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ncells</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_cpui_level_iterator_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">cpu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cpu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_amr_filename</span><span class="p">(</span><span class="n">cpu</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;ordering type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;bisection&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maxlevel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpui_level_iterator_args</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_level_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Walks the AMR grid levels on disk, yielding a tuplet of coordinates and</span>
+<span class="sd">        refinement maps and levels working through the available CPUs and levels.&quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">cpu</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_cpui_level_iterator</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpui_level_iterator_args</span><span class="p">(</span><span class="n">cpu</span><span class="p">)):</span>
+                <span class="k">yield</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">_load_gas_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_default_units</span><span class="p">()</span>
+        <span class="n">smooth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span>
+        <span class="n">smooth</span><span class="o">.</span><span class="n">set_default_units</span><span class="p">()</span>
+
+        <span class="n">boxlen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;boxlen&#39;</span><span class="p">]</span>
+
+        <span class="n">remote_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_pool</span><span class="p">,</span>
+                   <span class="n">_cpui_load_gas_pos</span><span class="p">,</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="n">boxlen</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_gas_i0</span><span class="p">,</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_cpui_level_iterator_args</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_load_gas_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">_gv_load_hydro</span><span class="p">):</span>
+        <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="n">hydro_blocks</span><span class="p">,</span> <span class="n">grav_blocks</span><span class="p">][</span><span class="n">mode</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span> <span class="o">&lt;</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;z&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;y&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_default_units</span><span class="p">()</span>
+
+        <span class="n">nvar</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
+
+        <span class="n">grid_info_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_level_iterator</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading </span><span class="si">%s</span><span class="s"> files&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;hydro&#39;</span><span class="p">,</span> <span class="s">&#39;grav&#39;</span><span class="p">][</span><span class="n">mode</span><span class="p">])</span>
+
+        <span class="n">filenamer</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_hydro_filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grav_filename</span><span class="p">][</span><span class="n">mode</span><span class="p">]</span>
+
+        <span class="n">remote_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_pool</span><span class="p">,</span>
+                   <span class="n">_cpui_load_gas_vars</span><span class="p">,</span>
+                   <span class="p">[</span><span class="n">dims</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_maxlevel</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="n">filenamer</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">],</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">,</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_cpui_level_iterator_args</span><span class="p">(),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_gas_i0</span><span class="p">,</span>
+                   <span class="p">[</span><span class="n">mode</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="n">_gv_load_gravity</span><span class="p">:</span>
+            <span class="c"># potential is awkwardly in expected units divided by box size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;boxlen&#39;</span><span class="p">]</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Done&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_load_particle_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blockname</span><span class="p">):</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">blockname</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">particle_format</span><span class="p">[</span><span class="n">offset</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Field does not have format configured - assuming double&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+            <span class="n">_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s">&#39;f8&#39;</span><span class="p">)</span>
+        <span class="n">ind0_dm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ind0_star</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">blockname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dm</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dm</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="n">blockname</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">blockname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="n">blockname</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_type</span><span class="p">)</span>
+
+        <span class="n">dm_ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="n">blockname</span><span class="p">]</span>
+        <span class="n">star_ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">blockname</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">star_ar</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">star_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">star_ar</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dm_ar</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dm_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dm_ar</span><span class="p">)</span>
+
+        <span class="n">remote_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_pool</span><span class="p">,</span>
+                   <span class="n">_cpui_load_particle_block</span><span class="p">,</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_particle_filename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">],</span>
+                   <span class="p">[</span><span class="n">dm_ar</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="n">star_ar</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="p">[</span><span class="n">offset</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_dm_i0</span><span class="p">,</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_star_i0</span><span class="p">,</span>
+                   <span class="p">[</span><span class="n">_type</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_star_mask</span><span class="p">,</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_nstar</span><span class="p">)</span>
+
+        <span class="c"># The potential is awkwardly not in physical units, but in</span>
+        <span class="c"># physical units divided by the box size. This was different</span>
+        <span class="c"># in an intermediate version, but then later made consistent</span>
+        <span class="c"># with the AMR phi output. So, we need to make a correction here</span>
+        <span class="c"># IF we are dealing with the latest ramses format.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_format</span> <span class="ow">and</span> <span class="n">blockname</span> <span class="ow">is</span> <span class="s">&#39;phi&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;boxlen&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;boxlen&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_load_particle_cpuid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ind0_dm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ind0_star</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">star_mask</span><span class="p">,</span> <span class="n">nstar</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpus</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_star_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nstar</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_particle_filename</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_particle_header</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">ind1_dm</span> <span class="o">=</span> <span class="n">ind0_dm</span> <span class="o">+</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;npart&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">nstar</span>
+            <span class="n">ind1_star</span> <span class="o">=</span> <span class="n">ind0_star</span> <span class="o">+</span> <span class="n">nstar</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s">&#39;cpu&#39;</span><span class="p">][</span><span class="n">ind0_dm</span><span class="p">:</span><span class="n">ind1_dm</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;cpu&#39;</span><span class="p">][</span><span class="n">ind0_star</span><span class="p">:</span><span class="n">ind1_star</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="n">ind0_dm</span><span class="p">,</span> <span class="n">ind0_star</span> <span class="o">=</span> <span class="n">ind1_dm</span><span class="p">,</span> <span class="n">ind1_star</span>
+
+    <span class="k">def</span> <span class="nf">_load_gas_cpuid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">gas_cpu_ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;cpu&#39;</span><span class="p">]</span>
+        <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">coords</span><span class="p">,</span> <span class="n">refine</span><span class="p">,</span> <span class="n">cpu</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_level_iterator</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span><span class="p">):</span>
+                <span class="n">i0</span> <span class="o">=</span> <span class="n">i1</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="p">(</span><span class="n">refine</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="n">gas_cpu_ar</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpu</span>
+
+    <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">f0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">():</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">(</span><span class="n">f0</span><span class="p">))</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span> <span class="ow">or</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span>
+            <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">,</span> <span class="s">&#39;smooth&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">hydro_blocks</span>
+
+    <span class="k">def</span> <span class="nf">_load_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s">&#39;cpu&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s">&#39;cpu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_particle_cpuid</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_cpuid</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span> <span class="ow">or</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">:</span>
+            <span class="c"># Framework always calls with 3D name. Ramses particle blocks are</span>
+            <span class="c"># stored as 1D slices.</span>
+            <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">array_1D</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_name_ND_to_1D</span><span class="p">(</span><span class="n">array_name</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_load_array</span><span class="p">(</span><span class="n">array_1D</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_particle_block</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;No such array on disk&quot;</span>
+        <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s">&#39;pos&#39;</span> <span class="ow">or</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s">&#39;smooth&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s">&#39;pos&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s">&#39;smooth&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_pos</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s">&#39;vel&#39;</span> <span class="ow">or</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">hydro_blocks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_vars</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">grav_blocks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_vars</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;No such array on disk&quot;</span>
+        <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="s">&#39;vel&#39;</span><span class="p">]:</span>
+            <span class="c"># synchronized loading of pos/vel information</span>
+            <span class="k">if</span> <span class="s">&#39;pos&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&#39;vel&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;vel&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&#39;smooth&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;smooth&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_pos</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_vars</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_array</span><span class="p">(</span><span class="s">&#39;vel&#39;</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_array</span><span class="p">(</span><span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">array_name</span> <span class="ow">is</span> <span class="s">&#39;mass&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_particle_block</span><span class="p">(</span><span class="s">&#39;mass&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_default_units</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">gasmass</span> <span class="o">=</span> <span class="n">mass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span>
+                <span class="n">gasmass</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gasmass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;No such array on disk&quot;</span>
+
+        <span class="n">self_fam</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span> <span class="k">if</span> <span class="n">fam</span> <span class="k">else</span> <span class="bp">self</span>
+
+        <span class="c"># The following is now done by SnapShot (and done better):</span>
+        <span class="c"># if array_name in self_fam and hasattr(self_fam[array_name].units, &quot;_no_unit&quot;) :</span>
+        <span class="c">#    self_fam[array_name].units = self._default_units_for(array_name)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="n">tsid</span> <span class="o">=</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tsid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="s">&quot;/info_&quot;</span> <span class="o">+</span> <span class="n">tsid</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+
+<span class="nd">@RamsesSnap.decorator</span>
+<span class="k">def</span> <span class="nf">translate_info</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+
+    <span class="n">cosmo</span> <span class="o">=</span> <span class="s">&#39;aexp&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span>
+
+    <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;H0&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">10</span><span class="p">:</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;aexp&#39;</span><span class="p">]</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;omega_m&#39;</span><span class="p">]</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaL0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;omega_l&#39;</span><span class="p">]</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;H0&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">100.</span>
+
+    <span class="c"># N.B. these conversion factors provided by ramses already have the</span>
+    <span class="c"># correction from comoving to physical units</span>
+    <span class="n">d_unit</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;unit_d&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;g cm^-3&quot;</span><span class="p">)</span>
+    <span class="n">t_unit</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;unit_t&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">)</span>
+    <span class="n">l_unit</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;unit_l&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;cm&quot;</span><span class="p">)</span>
+
+    <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;boxlen&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">l_unit</span>
+
+    <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;omega_k&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;omega_l&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;omega_b&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">t_unit</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">age</span><span class="p">(</span>
+            <span class="n">sim</span><span class="p">)</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&#39;Gyr&#39;</span><span class="p">)</span>
+
+    <span class="n">sim</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="p">[</span><span class="n">d_unit</span><span class="p">,</span> <span class="n">t_unit</span><span class="p">,</span> <span class="n">l_unit</span><span class="p">]</span>
+
+
+<span class="nd">@RamsesSnap.derived_quantity</span>
+<div class="viewcode-block" id="mass"><a class="viewcode-back" href="../../../reference/derived.html#pynbody.snapshot.ramses.mass">[docs]</a><span class="k">def</span> <span class="nf">mass</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">3</span>
+
+</div>
+<span class="nd">@RamsesSnap.derived_quantity</span>
+<span class="k">def</span> <span class="nf">tform</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;age&#39;</span><span class="p">]</span>
+
+
+<span class="nd">@RamsesSnap.derived_quantity</span>
+<span class="k">def</span> <span class="nf">temp</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;p&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.22</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">m_p</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">k</span><span class="p">))</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&quot;K&quot;</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

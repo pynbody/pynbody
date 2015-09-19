@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.array &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <h1>Source code for pynbody.array</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">array</span>
+<span class="sd">=====</span>
+
+<span class="sd">Defines a shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.</span>
+
+<span class="sd">For most purposes, the differences between numpy.ndarray and</span>
+<span class="sd">array.SimArray are not important. However, when units are specified</span>
+<span class="sd">(by setting the ``units`` attribute), the behaviour is slightly</span>
+<span class="sd">different. In particular,</span>
+
+<span class="sd">* it becomes impossible to add or subtract arrays with incompatible dimensions</span>
+
+<span class="sd">&gt;&gt;&gt; SimArray([1,2], &quot;Mpc&quot;) + SimArray([1,2], &quot;Msol&quot;))</span>
+<span class="sd">ValueError</span>
+
+<span class="sd">* addition or subtraction causes auto-unit conversion. For example</span>
+
+<span class="sd">&gt;&gt;&gt; SimArray([1,2], &quot;Mpc&quot;) + SimArray([1,2], &quot;kpc&quot;)</span>
+<span class="sd">SimArray([1.001, 1.002], &quot;Mpc&quot;)</span>
+
+<span class="sd">* Note that in this context the left value takes precedence in</span>
+<span class="sd">  specifying the return units, so that reversing the order of the</span>
+<span class="sd">  operation here would return results in kpc.</span>
+
+<span class="sd">* If only one of the arrays specifies a Unit, no checking occurs and</span>
+<span class="sd">  the unit of the returned array is assumed to be the same as the one</span>
+<span class="sd">  specified input unit.</span>
+
+<span class="sd">* Powers to single integer or rational powers will maintain unit</span>
+<span class="sd">  tracking.  Powers to float or other powers will not be able to do</span>
+<span class="sd">  so.</span>
+
+<span class="sd">&gt;&gt;&gt; SimArray([1,2],&quot;Msol Mpc**-3&quot;)**2</span>
+<span class="sd">SimArray([1, 4], &#39;Msol**2 Mpc**-6&#39;)</span>
+<span class="sd">&gt;&gt;&gt; SimArray([1,2],&quot;Msol Mpc**-3&quot;)**(1,3)</span>
+<span class="sd">SimArray([ 1.,1.26], &#39;Msol**1/3 Mpc**-1&#39;)</span>
+
+<span class="sd">Syntax above mirrors syntax in units module, where a length-two tuple</span>
+<span class="sd">can represent a rational number, in this case one third.</span>
+
+<span class="sd">&gt;&gt;&gt; SimArray([1.,2], &quot;Msol Mpc**-3&quot;)**0.333</span>
+<span class="sd">SimArray([ 1.,1.26])  # Lost track of units</span>
+
+
+
+<span class="sd">*Getting the array in specified units*</span>
+<span class="sd">--------------------------------------</span>
+
+<span class="sd">Given an array, you can convert it in-place into units of your</span>
+<span class="sd">own chosing:</span>
+
+<span class="sd">&gt;&gt;&gt; x = SimArray([1,2], &quot;Msol&quot;)</span>
+<span class="sd">&gt;&gt;&gt; x.convert_units(&#39;kg&#39;)</span>
+<span class="sd">&gt;&gt;&gt; print x</span>
+<span class="sd">SimArray([  1.99e+30,   3.98e+30], &#39;kg&#39;)</span>
+
+<span class="sd">Or you can leave the original array alone and get a *copy* in</span>
+<span class="sd">different units, correctly converted:</span>
+
+<span class="sd">&gt;&gt;&gt; x = SimArray([1,2], &quot;Msol&quot;)</span>
+<span class="sd">&gt;&gt;&gt; print x.in_units(&quot;kg&quot;)</span>
+<span class="sd">SimArray([  1.99e+30,   3.98e+30], &#39;kg&#39;)</span>
+<span class="sd">&gt;&gt;&gt; print x</span>
+<span class="sd">SimArray([1,2], &quot;Msol&quot;)</span>
+
+<span class="sd">If the SimArray was created by a SimSnap (which is most likely), it</span>
+<span class="sd">has a pointer into the SimSnap&#39;s properties so that the cosmological</span>
+<span class="sd">context is automatically fetched. For example, comoving -&gt; physical</span>
+<span class="sd">conversions are correctly achieved:</span>
+
+<span class="sd">&gt;&gt;&gt; f = pynbody.load(&quot;fname&quot;)</span>
+<span class="sd">&gt;&gt;&gt; f[&#39;pos&#39;]</span>
+<span class="sd">SimArray([[ 0.05419805, -0.0646539 , -0.15700017],</span>
+<span class="sd">         [ 0.05169899, -0.06193341, -0.14475258],</span>
+<span class="sd">         [ 0.05672406, -0.06384531, -0.15909944],</span>
+<span class="sd">         ...,</span>
+<span class="sd">         [ 0.0723075 , -0.07650762, -0.07657281],</span>
+<span class="sd">         [ 0.07166634, -0.07453796, -0.08020873],</span>
+<span class="sd">         [ 0.07165282, -0.07468577, -0.08020587]], &#39;2.86e+04 kpc a&#39;)</span>
+
+<span class="sd">&gt;&gt;&gt; f[&#39;pos&#39;].convert_units(&#39;kpc&#39;)</span>
+<span class="sd">&gt;&gt;&gt; f[&#39;pos&#39;]</span>
+<span class="sd">SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],</span>
+<span class="sd">         [ 1477.1124212 , -1769.52421398, -4135.78377699],</span>
+<span class="sd">         [ 1620.68592366, -1824.15000686, -4545.69387564],</span>
+<span class="sd">         ...,</span>
+<span class="sd">         [ 2065.9264273 , -2185.92982874, -2187.79225915],</span>
+<span class="sd">         [ 2047.60759667, -2129.6537339 , -2291.6758134 ],</span>
+<span class="sd">         [ 2047.2214441 , -2133.87693163, -2291.59406997]], &#39;kpc&#39;)</span>
+
+
+<span class="sd">*Specifying rules for ufunc&#39;s*</span>
+<span class="sd">------------------------------</span>
+
+<span class="sd">In general, it&#39;s not possible to infer what the output units from a given</span>
+<span class="sd">ufunc should be. While numpy built-in ufuncs should be handled OK, other</span>
+<span class="sd">ufuncs will need their output units defined (otherwise a numpy.ndarray</span>
+<span class="sd">will be returned instead of our custom type.)</span>
+
+<span class="sd">To do this, decorate a function with SimArray.ufunc_rule(ufunc). The function</span>
+<span class="sd">you define should take the same number of parameters as the ufunc. These will</span>
+<span class="sd">be the input parameters of the ufunc. You should return the correct units for</span>
+<span class="sd">the output, or raise units.UnitsException (in the latter case, the return</span>
+<span class="sd">array will be made into a numpy.ndarray.)</span>
+
+<span class="sd">For example, here is the code for the correct addition/subtraction</span>
+<span class="sd">handler:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    @SimArray.ufunc_rule(np.add)</span>
+<span class="sd">    @SimArray.ufunc_rule(np.subtract)</span>
+<span class="sd">    def _consistent_units(a,b) :</span>
+
+<span class="sd">        # This will be called whenever the standard numpy ufuncs np.add</span>
+<span class="sd">        # or np.subtract are called with parameters a,b.</span>
+
+<span class="sd">        # You should always be ready for the inputs to have no units.</span>
+
+<span class="sd">        a_units = a.units if hasattr(a, &#39;units&#39;) else None</span>
+<span class="sd">        b_units = b.units if hasattr(b, &#39;units&#39;) else None</span>
+
+<span class="sd">        # Now do the logic. If we&#39;re adding incompatible units,</span>
+<span class="sd">        # we want just to get a plain numpy array out. If we only</span>
+<span class="sd">        # know the units of one of the arrays, we assume the output</span>
+<span class="sd">        # is in those units.</span>
+
+<span class="sd">        if a_units is not None and b_units is not None :</span>
+<span class="sd">            if a_units==b_units :</span>
+<span class="sd">                return a_units</span>
+<span class="sd">            else :</span>
+<span class="sd">                raise units.UnitsException(&quot;Incompatible units&quot;)</span>
+
+<span class="sd">        elif a_units is not None :</span>
+<span class="sd">            return a_units</span>
+<span class="sd">        else :</span>
+<span class="sd">            return b_units</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">weakref</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">units</span>
+<span class="n">_units</span> <span class="o">=</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">.backcompat</span> <span class="kn">import</span> <span class="nb">property</span>
+<span class="kn">from</span> <span class="nn">.backcompat</span> <span class="kn">import</span> <span class="n">fractions</span>
+<span class="kn">import</span> <span class="nn">atexit</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+
+
+<div class="viewcode-block" id="SimArray"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray">[docs]</a><span class="k">class</span> <span class="nc">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Defines a shallow wrapper around numpy.ndarray for extra</span>
+<span class="sd">    functionality like unit-tracking.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ufunc_registry</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="SimArray.ancestor"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.ancestor">[docs]</a>    <span class="k">def</span> <span class="nf">ancestor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provides the basemost SimArray that an IndexedSimArray is based on.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span>
+</div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">derived</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;family&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="nd">@derived.setter</span>
+    <span class="k">def</span> <span class="nf">derived</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Can only unlink an array. Delete an array to force a rederivation if this is the intended effect.&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">derived</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">unlink_array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span> <span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span> <span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">4</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">T</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">subtype</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sim</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">subtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">units</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">sim</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">units</span>
+            <span class="n">sim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sim</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;family&#39;</span><span class="p">):</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">family</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">_units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">units</span>
+
+        <span class="c"># Always associate a SimArray with the top-level snapshot.</span>
+        <span class="c"># Otherwise we run into problems with how the reference should</span>
+        <span class="c"># behave: we don&#39;t want to lose the link to the simulation by</span>
+        <span class="c"># storing a weakref to a SubSnap that might be deconstructed,</span>
+        <span class="c"># but we also wouldn&#39;t want to store a strong ref to a SubSnap</span>
+        <span class="c"># since that would keep the entire simulation alive even if</span>
+        <span class="c"># deleted.</span>
+        <span class="c">#</span>
+        <span class="c"># So, set the sim attribute to the top-level snapshot and use</span>
+        <span class="c"># the normal weak-reference system.</span>
+
+        <span class="k">if</span> <span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
+            <span class="c"># will generate a weakref automatically</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="k">return</span> <span class="n">new</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">elif</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">units</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_sim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_name</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s">&#39;family&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">family</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__array_wrap__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">n_array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">n_array</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ufunc</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">output_units</span> <span class="o">=</span> <span class="n">SimArray</span><span class="o">.</span><span class="n">_ufunc_registry</span><span class="p">[</span><span class="n">ufunc</span><span class="p">](</span><span class="o">*</span><span class="n">context</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">n_array</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+            <span class="n">n_array</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">output_units</span>
+            <span class="n">n_array</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+            <span class="n">n_array</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+            <span class="k">return</span> <span class="n">n_array</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">array</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ufunc_rule</span><span class="p">(</span><span class="n">for_ufunc</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+            <span class="n">SimArray</span><span class="o">.</span><span class="n">_ufunc_registry</span><span class="p">[</span><span class="n">for_ufunc</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+            <span class="k">return</span> <span class="n">fn</span>
+
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_units</span><span class="o">.</span><span class="n">no_unit</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span>
+
+    <span class="nd">@units.setter</span>
+    <span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">u</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">family</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span><span class="p">()</span>
+
+    <span class="nd">@sim.setter</span>
+    <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">s</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">family</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="nd">@family.setter</span>
+    <span class="k">def</span> <span class="nf">family</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_family</span> <span class="o">=</span> <span class="n">fam</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">rhs</span>
+            <span class="k">return</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="n">rhs</span>
+            <span class="k">return</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__imul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">*=</span> <span class="n">rhs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__imul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">*=</span> <span class="n">rhs</span><span class="o">.</span><span class="n">units</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__idiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">/=</span> <span class="n">rhs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__idiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">/=</span> <span class="n">rhs</span><span class="o">.</span><span class="n">units</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__itruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">/=</span> <span class="n">rhs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__itruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">/=</span> <span class="n">rhs</span><span class="o">.</span><span class="n">units</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">conversion_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">_generic_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">add_op</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">):</span>
+            <span class="c"># Check unit compatibility</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">context</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="n">context</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="c"># Our own contextual information overrides x&#39;s</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cr</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
+                                   <span class="o">**</span><span class="n">context</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Incompatible physical dimensions </span><span class="si">%r</span><span class="s"> and </span><span class="si">%r</span><span class="s">, context </span><span class="si">%r</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())))</span>
+
+            <span class="k">if</span> <span class="n">cr</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">add_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">):</span>
+                    <span class="n">b</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">None</span>
+
+                <span class="n">r</span> <span class="o">=</span> <span class="n">add_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">r</span>
+
+        <span class="k">elif</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">add_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">r</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">add_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">r</span>
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generic_add</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generic_add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generic_add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__iadd__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generic_add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__isub__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">numerical_x</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">fractions</span><span class="o">.</span><span class="n">Fraction</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">numerical_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fractions</span><span class="o">.</span><span class="n">Fraction</span><span class="p">):</span>
+            <span class="n">numerical_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c"># The following magic circumvents our normal unit-assignment</span>
+        <span class="c"># code which couldn&#39;t cope with the numerical version of x</span>
+        <span class="c"># in the case of fractions. All this is necessary to make the</span>
+        <span class="c"># magic tuple-&gt;fraction conversions work seamlessly.</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span> <span class="n">numerical_x</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+
+        <span class="c"># Recent numpy versions can take 1-element arrays and return</span>
+        <span class="c"># scalars, in which case we now have a floating point number :(</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">SimArray</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fractions</span><span class="o">.</span><span class="n">Fraction</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+
+        <span class="k">return</span> <span class="n">r</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;, &#39;&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;&#39;)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">to</span><span class="p">,</span> <span class="s">&quot;in_units&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">to</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="s">&quot;_no_unit&quot;</span><span class="p">):</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setslice__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__setitem__</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">to</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">abs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">prod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">axis</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">mean_by_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">mean_by_mass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">ptp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">ptp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;sim&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+<div class="viewcode-block" id="SimArray.set_units_like"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.set_units_like">[docs]</a>    <span class="k">def</span> <span class="nf">set_units_like</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_unit</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the units for this array by performing dimensional analysis</span>
+<span class="sd">        on the supplied unit and referring to the units of the original</span>
+<span class="sd">        file&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="n">new_unit</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;No link to SimSnap&quot;</span>
+</div>
+<div class="viewcode-block" id="SimArray.set_default_units"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.set_default_units">[docs]</a>    <span class="k">def</span> <span class="nf">set_default_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the units for this array by performing dimensional analysis</span>
+<span class="sd">        on the default dimensions for the array.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">_default_units_for</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+                    <span class="k">raise</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;No link to SimSnap&quot;</span>
+</div>
+<div class="viewcode-block" id="SimArray.in_original_units"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.in_original_units">[docs]</a>    <span class="k">def</span> <span class="nf">in_original_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retun a copy of this array expressed in the units</span>
+<span class="sd">        specified in the parameter file.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="SimArray.in_units"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.in_units">[docs]</a>    <span class="k">def</span> <span class="nf">in_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_unit</span><span class="p">,</span> <span class="o">**</span><span class="n">context_overrides</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a copy of this array expressed relative to an alternative</span>
+<span class="sd">        unit.&quot;&quot;&quot;</span>
+
+        <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">context_overrides</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">new_unit</span><span class="p">,</span>
+                                        <span class="o">**</span><span class="n">context</span><span class="p">)</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">new_unit</span>
+            <span class="k">return</span> <span class="n">r</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Units of array unknown&quot;</span>
+</div>
+<div class="viewcode-block" id="SimArray.convert_units"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.convert_units">[docs]</a>    <span class="k">def</span> <span class="nf">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_unit</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert units of this array in-place. Note that if</span>
+<span class="sd">        this is a sub-view, the entire base array will be converted.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;units&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">new_unit</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">new_unit</span><span class="p">,</span>
+                                     <span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">new_unit</span>
+</div>
+<div class="viewcode-block" id="SimArray.write"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.SimArray.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write this array to disk according to the standard method</span>
+<span class="sd">        associated with its base file. This is equivalent to calling</span>
+
+<span class="sd">        &gt;&gt;&gt; sim.gas.write_array(&#39;array&#39;)</span>
+
+<span class="sd">        in the case of writing out the array &#39;array&#39; for the gas</span>
+<span class="sd">        particle family.  See the description of</span>
+<span class="sd">        :func:`pynbody.snapshot.SimSnap.write_array` for options.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">write_array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;No link to SimSnap&quot;</span>
+</div>
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clean up disk if this was made from a named</span>
+<span class="sd">        shared array&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_shared_del&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">):</span>
+            <span class="n">_shared_array_unlink</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<span class="c"># Set up the correct comparison functions</span>
+
+</div>
+<span class="k">def</span> <span class="nf">_unit_aware_comparison</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_op</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="c"># guaranteed to be called with ar a SimArray instance</span>
+    <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">has_units</span><span class="p">(</span><span class="n">ar</span><span class="p">):</span>
+            <span class="c"># either other is a unit, or an array with a unit If</span>
+            <span class="c"># it&#39;s an array with a unit that matches our own, we</span>
+            <span class="c"># want to fall straight through to the comparison</span>
+            <span class="c"># operation. If it&#39;s an array with a unit that doesn&#39;t</span>
+            <span class="c"># match ours, OR it&#39;s a plain unit, we want to</span>
+            <span class="c"># convert first.</span>
+            <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">units</span> <span class="o">!=</span> <span class="n">ar</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">,</span> <span class="s">&quot;One side of a comparison has units and the other side does not&quot;</span>
+
+    <span class="k">return</span> <span class="n">comparison_op</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__lt__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__le__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__eq__</span><span class="p">,</span> \
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__ne__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__gt__</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__ge__</span><span class="p">:</span>
+
+    <span class="c"># N.B. cannot use functools.partial because it doesn&#39;t implement the descriptor</span>
+    <span class="c"># protocol</span>
+    <span class="nd">@functools.wraps</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">assigned</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;__name__&quot;</span><span class="p">,</span> <span class="s">&quot;__doc__&quot;</span><span class="p">))</span>
+<div class="viewcode-block" id="wrapper_function"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.wrapper_function">[docs]</a>    <span class="k">def</span> <span class="nf">wrapper_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_op</span><span class="o">=</span><span class="n">f</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_unit_aware_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_op</span><span class="o">=</span><span class="n">comparison_op</span><span class="p">)</span>
+</div>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">SimArray</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="n">wrapper_function</span><span class="p">)</span>
+
+
+<span class="c"># Now add dirty bit setters to all the operations which are known</span>
+<span class="c"># to modify the numpy array</span>
+
+<span class="k">def</span> <span class="nf">_dirty_fn</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">_dirty</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">kw</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="n">q</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">__name__</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="n">_dirty_fns</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;__setitem__&#39;</span><span class="p">,</span> <span class="s">&#39;__setslice__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__irshift__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__imod__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__iand__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__ifloordiv__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__ilshift__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__imul__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__ior__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__ixor__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__isub__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__invert__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__iadd__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__itruediv__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__idiv__&#39;</span><span class="p">,</span>
+              <span class="s">&#39;__ipow__&#39;</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_dirty_fns</span><span class="p">:</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">SimArray</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">_dirty_fn</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">SimArray</span><span class="p">,</span> <span class="n">x</span><span class="p">)))</span>
+
+<span class="n">_u</span> <span class="o">=</span> <span class="n">SimArray</span><span class="o">.</span><span class="n">ufunc_rule</span>
+
+
+<span class="k">def</span> <span class="nf">_get_units_or_none</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&quot;units&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&quot;units&quot;</span><span class="p">):</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">r</span>
+
+<span class="c">#</span>
+<span class="c"># Now we have the rules for unit outputs after numpy built-in ufuncs</span>
+<span class="c">#</span>
+<span class="c"># Note if these raise UnitsException, a standard numpy array is returned</span>
+<span class="c"># from the ufunc to indicate the units can&#39;t be calculated. That means</span>
+<span class="c"># ufuncs can do &#39;non-physical&#39; things, but then return ndarrays instead</span>
+<span class="c"># of SimArrays.</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_sqrt_units</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_mul_units</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="n">a_units</span><span class="p">,</span> <span class="n">b_units</span> <span class="o">=</span> <span class="n">_get_units_or_none</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">b_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a_units</span> <span class="o">*</span> <span class="n">b_units</span>
+    <span class="k">elif</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a_units</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">b_units</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">true_divide</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_div_units</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="n">a_units</span><span class="p">,</span> <span class="n">b_units</span> <span class="o">=</span> <span class="n">_get_units_or_none</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">b_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a_units</span> <span class="o">/</span> <span class="n">b_units</span>
+    <span class="k">elif</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a_units</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b_units</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_consistent_units</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="n">a_units</span><span class="p">,</span> <span class="n">b_units</span> <span class="o">=</span> <span class="n">_get_units_or_none</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">b_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a_units</span> <span class="o">==</span> <span class="n">b_units</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">a_units</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">(</span><span class="s">&quot;Incompatible units&quot;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a_units</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">b_units</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_pow_units</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="n">a_units</span> <span class="o">=</span> <span class="n">_get_units_or_none</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">Fraction</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">(</span><span class="s">&quot;Can&#39;t track units&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a_units</span> <span class="o">**</span> <span class="n">b</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arcsinh</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccosh</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_trig_units</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">1</span>
+
+
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">equal</span><span class="p">)</span>
+<span class="nd">@_u</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">not_equal</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_comparison_units</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="k">class</span> <span class="nc">IndexedSimArray</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">derived</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">derived</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ancestor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">ancestor</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">ptr</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span> <span class="o">=</span> <span class="n">ptr</span>
+
+    <span class="k">def</span> <span class="nf">__array__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_reexpress_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&#39;__len__&#39;</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_reexpress_index</span><span class="p">(</span><span class="n">item</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_reexpress_index</span><span class="p">(</span><span class="n">item</span><span class="p">)]</span> <span class="o">=</span> <span class="n">to</span>
+
+    <span class="k">def</span> <span class="nf">__getslice__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getitem__</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__setslice__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__setitem__</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">to</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__array__</span><span class="p">()</span><span class="o">.</span><span class="n">__repr__</span><span class="p">()</span>  <span class="c"># Could be optimized</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__array__</span><span class="p">()</span><span class="o">.</span><span class="n">__str__</span><span class="p">()</span>  <span class="c"># Could be optimized</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SimArray</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">)]</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">units</span>
+
+    <span class="nd">@units.setter</span>
+    <span class="k">def</span> <span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">u</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">]</span>
+
+    <span class="nd">@sim.setter</span>
+    <span class="k">def</span> <span class="nf">sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">s</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">dtype</span>
+
+    <span class="k">def</span> <span class="nf">conversion_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">set_units_like</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_unit</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">set_units_like</span><span class="p">(</span><span class="n">new_unit</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">in_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_unit</span><span class="p">,</span> <span class="o">**</span><span class="n">context_overrides</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">IndexedSimArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">new_unit</span><span class="p">,</span> <span class="o">**</span><span class="n">context_overrides</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ptr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_unit</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">new_unit</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prod</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">prod</span><span class="p">()</span>
+
+
+<span class="c"># The IndexedSimArray class is now supplemented by wrapping all the</span>
+<span class="c"># standard numpy methods with a generated function which extracts an</span>
+<span class="c"># array realization of the subview before calling the underlying</span>
+<span class="c"># method.</span>
+
+<span class="k">def</span> <span class="nf">_wrap_fn</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span>  <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="c"># AP: I Don&#39;t understand why the following condition should be necessary,</span>
+        <span class="c"># but it seems required on McMaster setup (Py 2.6.5, NP 1.4.1)</span>
+        <span class="k">if</span> <span class="n">kw</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">SimArray</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">SimArray</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="n">q</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">__name__</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="c"># functions we definitely want to wrap, even though there&#39;s an existing</span>
+<span class="c"># implementation</span>
+<span class="n">_override</span> <span class="o">=</span> <span class="s">&quot;__eq__&quot;</span><span class="p">,</span> <span class="s">&quot;__ne__&quot;</span><span class="p">,</span> <span class="s">&quot;__gt__&quot;</span><span class="p">,</span> <span class="s">&quot;__ge__&quot;</span><span class="p">,</span> <span class="s">&quot;__lt__&quot;</span><span class="p">,</span> <span class="s">&quot;__le__&quot;</span>
+
+<span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">SimArray</span><span class="o">.</span><span class="n">__dict__</span><span class="p">):</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">SimArray</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;array&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="p">((</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">IndexedSimArray</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span> <span class="ow">or</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_override</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="s">&#39;__call__&#39;</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">IndexedSimArray</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">_wrap_fn</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+
+
+<span class="c">############################################################</span>
+<span class="c"># SUPPORT FOR SHARING ARRAYS BETWEEN PROCESSES</span>
+<span class="c">############################################################</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">ctypes</span>
+    <span class="kn">import</span> <span class="nn">multiprocessing</span>
+    <span class="kn">import</span> <span class="nn">multiprocessing.sharedctypes</span>
+    <span class="kn">import</span> <span class="nn">tempfile</span>
+    <span class="kn">import</span> <span class="nn">functools</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">import</span> <span class="nn">random</span>
+    <span class="kn">import</span> <span class="nn">mmap</span>
+    <span class="kn">import</span> <span class="nn">posix_ipc</span>
+    <span class="n">_all_shared_arrays</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">posix_ipc</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="k">def</span> <span class="nf">_array_factory</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">shared</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create an array of dimensions *dims* with the given numpy *dtype*.</span>
+<span class="sd">    If *zeros* is True, the returned array is guaranteed zeroed. If *shared*</span>
+<span class="sd">    is True, the returned array uses shared memory so can be efficiently</span>
+<span class="sd">    shared across processes.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_all_shared_arrays</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="s">&#39;__len__&#39;</span><span class="p">):</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">(</span><span class="n">dims</span><span class="p">,)</span>
+
+    <span class="k">if</span> <span class="n">shared</span> <span class="ow">and</span> <span class="n">posix_ipc</span><span class="p">:</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span> <span class="o">*</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s">&quot;pynbody-&quot;</span> <span class="o">+</span> \
+            <span class="p">(</span><span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s">&#39;abcdefghijklmnopqrstuvwxyz&#39;</span><span class="p">)</span>
+                      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">10</span><span class="p">)]))</span>
+        <span class="n">_all_shared_arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="c"># memmaps of zero length seem not to be permitted, so have to</span>
+        <span class="c"># make zero length arrays a special case</span>
+        <span class="n">zero_size</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">zero_size</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="s">&#39;__len__&#39;</span><span class="p">):</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">dims</span>
+
+        <span class="n">mem</span> <span class="o">=</span> <span class="n">posix_ipc</span><span class="o">.</span><span class="n">SharedMemory</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">posix_ipc</span><span class="o">.</span><span class="n">O_CREX</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span><span class="o">*</span><span class="n">size</span><span class="p">))</span>
+        <span class="c"># write zeros into the file pointer before memmaping, to get a graceful exception if the</span>
+        <span class="c"># promised memory isn&#39;t available (otherwise will trigger a bus error)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">zeros</span><span class="o">=</span><span class="p">(</span><span class="n">b</span><span class="s">&quot;</span><span class="se">\0</span><span class="s">&quot;</span><span class="p">)</span><span class="o">*</span><span class="mi">1024</span><span class="o">*</span><span class="mi">1024</span>
+            <span class="n">remaining</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span><span class="o">*</span><span class="n">size</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">remaining</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mem</span><span class="o">.</span><span class="n">fd</span><span class="p">,</span> <span class="n">zeros</span><span class="p">[:</span><span class="n">remaining</span><span class="p">])</span>
+                <span class="n">remaining</span><span class="o">-=</span><span class="nb">len</span><span class="p">(</span><span class="n">zeros</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">,</span> <span class="n">exc</span> <span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="mi">45</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">uname</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;Darwin&quot;</span><span class="p">):</span>
+                <span class="n">_shared_array_unlink</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">MemoryError</span><span class="p">,</span> <span class="s">&quot;Unable to create shared memory region&quot;</span>
+
+        <span class="c"># fd, fname = tempfile.mkstemp()</span>
+        <span class="c"># ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)</span>
+        <span class="n">mapfile</span> <span class="o">=</span> <span class="n">mmap</span><span class="o">.</span><span class="n">mmap</span><span class="p">(</span><span class="n">mem</span><span class="o">.</span><span class="n">fd</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">ret_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">mapfile</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">size</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+        <span class="n">ret_ar</span><span class="o">.</span><span class="n">_shared_fname</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="n">ret_ar</span><span class="o">.</span><span class="n">_shared_del</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">if</span> <span class="n">zero_size</span><span class="p">:</span>
+            <span class="n">ret_ar</span> <span class="o">=</span> <span class="n">ret_ar</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">mem</span><span class="o">.</span><span class="n">close_fd</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">zeros</span><span class="p">:</span>
+            <span class="n">ret_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret_ar</span>
+
+
+<span class="k">if</span> <span class="n">posix_ipc</span><span class="p">:</span>
+
+    <span class="k">class</span> <span class="nc">_deconstructed_shared_array</span><span class="p">(</span><span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">class</span> <span class="nc">RemoteKeyboardInterrupt</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_shared_array_deconstruct</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">transfer_ownership</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Deconstruct an array backed onto shared memory into something that can be</span>
+<span class="sd">        passed between processes efficiently. If *transfer_ownership* is True,</span>
+<span class="sd">        also transfers responsibility for deleting the underlying memory (if this</span>
+<span class="sd">        process has it) to the reconstructing process.&quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">SimArray</span><span class="p">)</span>
+        <span class="n">ar_base</span> <span class="o">=</span> <span class="n">ar</span>
+        <span class="k">while</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ar_base</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="n">SimArray</span><span class="p">):</span>
+            <span class="n">ar_base</span> <span class="o">=</span> <span class="n">ar_base</span><span class="o">.</span><span class="n">base</span>
+
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ar_base</span><span class="p">,</span><span class="s">&#39;_shared_fname&#39;</span><span class="p">),</span> <span class="s">&quot;Cannot prepare an array for shared use unless it was created in shared memory&quot;</span>
+
+        <span class="n">ownership_out</span> <span class="o">=</span> <span class="n">transfer_ownership</span> <span class="ow">and</span> <span class="n">ar_base</span><span class="o">.</span><span class="n">_shared_del</span>
+        <span class="k">if</span> <span class="n">transfer_ownership</span><span class="p">:</span>
+            <span class="n">ar_base</span><span class="o">.</span><span class="n">_shared_del</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">ar</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> \
+                  <span class="n">ar_base</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">_deconstructed_shared_array</span><span class="p">((</span><span class="n">ar</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">ar</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">ar_base</span><span class="o">.</span><span class="n">_shared_fname</span><span class="p">,</span> <span class="n">ownership_out</span><span class="p">,</span>
+                                            <span class="n">offset</span><span class="p">,</span> <span class="n">ar</span><span class="o">.</span><span class="n">strides</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_shared_array_reconstruct</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+        <span class="n">dtype</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">ownership</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">strides</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="n">mem</span> <span class="o">=</span> <span class="n">posix_ipc</span><span class="o">.</span><span class="n">SharedMemory</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="n">mapfile</span> <span class="o">=</span> <span class="n">mmap</span><span class="o">.</span><span class="n">mmap</span><span class="p">(</span><span class="n">mem</span><span class="o">.</span><span class="n">fd</span><span class="p">,</span> <span class="n">mem</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+        <span class="c"># new_ar =  np.memmap(mem.fd, dtype=dtype, shape=dims, mode=&#39;r+&#39;).view(SimArray)</span>
+        <span class="n">new_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span>
+            <span class="n">mapfile</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SimArray</span><span class="p">)</span>
+        <span class="n">new_ar</span><span class="o">.</span><span class="n">strides</span> <span class="o">=</span> <span class="n">strides</span>
+        <span class="n">mem</span><span class="o">.</span><span class="n">close_fd</span><span class="p">()</span>
+        <span class="n">new_ar</span><span class="o">.</span><span class="n">_shared_fname</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="n">new_ar</span><span class="o">.</span><span class="n">_shared_del</span> <span class="o">=</span> <span class="n">ownership</span>
+        <span class="k">return</span> <span class="n">new_ar</span>
+
+    <span class="k">def</span> <span class="nf">_shared_array_unlink</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">_shared_fname</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">posix_ipc</span><span class="o">.</span><span class="n">unlink_shared_memory</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">posix_ipc</span><span class="o">.</span><span class="n">ExistentialError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_recursive_shared_array_deconstruct</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">transfer_ownership</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Works through items in input, deconstructing any shared memory arrays</span>
+<span class="sd">        into transferrable references&quot;&quot;&quot;</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">SimArray</span><span class="p">):</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">_shared_array_deconstruct</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">transfer_ownership</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">_recursive_shared_array_deconstruct</span><span class="p">(</span>
+                    <span class="n">item</span><span class="p">,</span> <span class="n">transfer_ownership</span><span class="p">)</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="k">def</span> <span class="nf">_recursive_shared_array_reconstruct</span><span class="p">(</span><span class="nb">input</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Works through items in input, reconstructing any shared memory arrays</span>
+<span class="sd">        from transferrable references&quot;&quot;&quot;</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">_deconstructed_shared_array</span><span class="p">):</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">_shared_array_reconstruct</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">_recursive_shared_array_reconstruct</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+<div class="viewcode-block" id="shared_array_remote"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.shared_array_remote">[docs]</a>    <span class="k">def</span> <span class="nf">shared_array_remote</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A decorator for functions returning a new function that is</span>
+<span class="sd">        suitable for use remotely. Inputs to and outputs from the function</span>
+<span class="sd">        can be transferred efficiently if they are backed onto shared</span>
+<span class="sd">        memory. Ownership of any shared memory returned by the function</span>
+<span class="sd">        is transferred.&quot;&quot;&quot;</span>
+
+        <span class="nd">@functools.wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">new_fn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">signal</span>
+                <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span>
+                    <span class="n">args</span><span class="p">,</span> <span class="s">&#39;__len__&#39;</span><span class="p">),</span> <span class="s">&quot;Function must be called from remote_map to use shared arrays&quot;</span>
+                <span class="k">assert</span> <span class="n">args</span><span class="p">[</span>
+                    <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;__pynbody_remote_array__&#39;</span><span class="p">,</span> <span class="s">&quot;Function must be called from remote_map to use shared arrays&quot;</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="n">_recursive_shared_array_reconstruct</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+                <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">_recursive_shared_array_deconstruct</span><span class="p">([</span><span class="n">output</span><span class="p">],</span> <span class="bp">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">RemoteKeyboardInterrupt</span><span class="p">()</span>
+        <span class="n">new_fn</span><span class="o">.</span><span class="n">__pynbody_remote_array__</span> <span class="o">=</span> <span class="bp">True</span>
+
+        <span class="k">return</span> <span class="n">new_fn</span>
+</div>
+<div class="viewcode-block" id="remote_map"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.remote_map">[docs]</a>    <span class="k">def</span> <span class="nf">remote_map</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">iterables</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A replacement for python&#39;s in-built map function, sending out tasks</span>
+<span class="sd">        to the pool and performing the magic required to transport shared memory arrays</span>
+<span class="sd">        correctly. The function *fn* must be wrapped with the *shared_array_remote*</span>
+<span class="sd">        decorator to interface correctly with this magic.&quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s">&#39;__pynbody_remote_array__&#39;</span><span class="p">,</span>
+                       <span class="bp">False</span><span class="p">),</span> <span class="s">&quot;Function must be wrapped with shared_array_remote to use shared arrays&quot;</span>
+        <span class="n">iterables_deconstructed</span> <span class="o">=</span> <span class="n">_recursive_shared_array_deconstruct</span><span class="p">(</span>
+            <span class="n">iterables</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="p">[</span><span class="s">&#39;__pynbody_remote_array__&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">iterables_deconstructed</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="o">*</span><span class="n">iterables_deconstructed</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">RemoteKeyboardInterrupt</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyboardInterrupt</span>
+        <span class="k">return</span> <span class="n">_recursive_shared_array_reconstruct</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</div>
+    <span class="nd">@atexit.register</span>
+<div class="viewcode-block" id="exit_cleanup"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.array.exit_cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">exit_cleanup</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Clean up any shared memory that has not yet been freed. In</span>
+<span class="sd">        theory this should not be required, but it is here as a safety</span>
+<span class="sd">        net.&quot;&quot;&quot;</span>
+
+        <span class="k">global</span> <span class="n">_all_shared_arrays</span>
+
+        <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">_all_shared_arrays</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">posix_ipc</span><span class="o">.</span><span class="n">unlink_shared_memory</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">posix_ipc</span><span class="o">.</span><span class="n">ExistentialError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="k">pass</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

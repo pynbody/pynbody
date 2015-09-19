@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.analysis.gravity &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <h1>Source code for pynbody.analysis.gravity</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">gravity</span>
+<span class="sd">=======</span>
+
+<span class="sd">Functions for calculating the gravitational potential and accelerations. </span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="potential"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.gravity.potential">[docs]</a><span class="k">def</span> <span class="nf">potential</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pos_vec</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Calculates the gravitational potential at the specified position</span>
+<span class="sd">    using all particles in the specified snapshot.</span>
+
+<span class="sd">    The gravitational softening length is determined by (in order of</span>
+<span class="sd">    preference):</span>
+
+<span class="sd">    1. The parameter eps (scalar, unit or array)</span>
+
+<span class="sd">    2. The array f[&#39;eps&#39;]</span>
+
+<span class="sd">    3. f.properties[&#39;eps&#39;] (scalar or unit) </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+
+    <span class="n">d_pos</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">pos_vec</span>
+
+    <span class="n">GM_by_r</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">/</span> \
+        <span class="p">((</span><span class="n">d_pos</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">GM_by_r</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">GM_by_r</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+
+</div>
+<div class="viewcode-block" id="accel"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.gravity.accel">[docs]</a><span class="k">def</span> <span class="nf">accel</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pos_vec</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Calculates the gravitational acceleration vector at the specified</span>
+<span class="sd">    position using all particles in the specified snapshot.</span>
+
+<span class="sd">    The gravitational softening length is determined by (in order of</span>
+<span class="sd">    preference):</span>
+
+<span class="sd">    1. The parameter eps (scalar, unit or array)</span>
+
+<span class="sd">    2. The array f[&#39;eps&#39;]</span>
+
+<span class="sd">    3. f.properties[&#39;eps&#39;] (scalar or unit) </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">f</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+
+    <span class="n">d_pos</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">pos_vec</span>
+
+    <span class="n">GM_by_r3</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">/</span> \
+        <span class="p">((</span><span class="n">d_pos</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">d_pos</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">GM_by_r3</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="midplane_rot_curve"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.gravity.midplane_rot_curve">[docs]</a><span class="k">def</span> <span class="nf">midplane_rot_curve</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">rxy_points</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Calculates the midplane rotation curve at a specified set of</span>
+<span class="sd">    points. Used primarily by :func:`pynbody.analysis.profile.v_circ`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">u_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">vels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rxy_points</span><span class="p">:</span>
+        <span class="c"># Do four samples like Tipsy does</span>
+        <span class="n">r_acc_r</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]:</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="n">accel</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+            <span class="n">r_acc_r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span> <span class="n">pos</span><span class="p">))</span>
+
+        <span class="n">vel2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">r_acc_r</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vel2</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">vel</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">vel2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vel</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">vels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vel</span><span class="p">)</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">vels</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">u_out</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+</div>
+<div class="viewcode-block" id="midplane_potential"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.gravity.midplane_potential">[docs]</a><span class="k">def</span> <span class="nf">midplane_potential</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">rxy_points</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Calculates the midplane potential at a specified set of</span>
+<span class="sd">    points. Used primarily by :func:`pynbody.analysis.profile.pot`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">u_out</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+
+    <span class="n">pots</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rxy_points</span><span class="p">:</span>
+        <span class="c"># Do four samples like Tipsy does</span>
+        <span class="n">pot</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]:</span>
+            <span class="n">pot</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">potential</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">eps</span><span class="p">))</span>
+
+        <span class="n">pots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pot</span><span class="p">))</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">pots</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">u_out</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">return</span> <span class="n">x</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

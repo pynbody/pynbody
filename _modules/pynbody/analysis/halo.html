@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pynbody.analysis.halo &mdash; pynbody 0.30 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.30',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          pynbody</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Sections <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <h1>Source code for pynbody.analysis.halo</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">halo</span>
+<span class="sd">====</span>
+
+<span class="sd">Functions for dealing with and manipulating halos in simulations.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">transformation</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">_com</span><span class="p">,</span> <span class="n">profile</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.analysis.halo&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="center_of_mass"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center_of_mass">[docs]</a><span class="k">def</span> <span class="nf">center_of_mass</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Return the centre of mass of the SimSnap</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mtot</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">mtot</span>
+
+    <span class="c"># otherwise behaviour is numpy version dependent</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+
+    <span class="c"># only return position to be consistent with other functions in halo.py</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+</div>
+<div class="viewcode-block" id="center_of_mass_velocity"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center_of_mass_velocity">[docs]</a><span class="k">def</span> <span class="nf">center_of_mass_velocity</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Return the center of mass velocity of the SimSnap</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mtot</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;vel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">mtot</span>
+    <span class="c"># otherwise behaviour is numpy version dependent</span>
+    <span class="n">v</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;vel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+
+    <span class="k">return</span> <span class="n">v</span>
+
+</div>
+<div class="viewcode-block" id="shrink_sphere_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.shrink_sphere_center">[docs]</a><span class="k">def</span> <span class="nf">shrink_sphere_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">min_particles</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">num_threads</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">],</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Return the center according to the shrinking-sphere method of</span>
+<span class="sd">    Power et al (2003)</span>
+
+
+<span class="sd">    **Input**:</span>
+
+<span class="sd">    *sim* : a simulation snapshot - this can be any subclass of SimSnap</span>
+
+<span class="sd">    **Optional Keywords**:</span>
+
+<span class="sd">    *r* (default=None): initial search radius. This can be a string</span>
+<span class="sd">     indicating the unit, i.e. &quot;200 kpc&quot;, or an instance of</span>
+<span class="sd">     :func:`~pynbody.units.Unit`.</span>
+
+<span class="sd">    *shrink_factor* (default=0.7): the amount to shrink the search</span>
+<span class="sd">     radius by on each iteration</span>
+
+<span class="sd">    *min_particles* (default=100): minimum number of particles within</span>
+<span class="sd">     the search radius. When this number is reached, the search is</span>
+<span class="sd">     complete.</span>
+
+<span class="sd">    *verbose* (default=False): if True, prints out the diagnostics at</span>
+<span class="sd">     each iteration. Useful to determine whether the centering is</span>
+<span class="sd">     zeroing in on the wrong part of the simulation.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+
+        <span class="c"># use rough estimate for a maximum radius</span>
+        <span class="c"># results will be insensitive to the exact value chosen</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">__class__</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+
+    <span class="n">mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;double&#39;</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;double&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">shrink_factor</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">*</span><span class="mf">0.1</span>
+        <span class="n">com</span> <span class="o">=</span> <span class="n">_com</span><span class="o">.</span><span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">min_particles</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">num_threads</span><span class="p">)</span>
+        <span class="n">com</span> <span class="o">=</span> <span class="n">_com</span><span class="o">.</span><span class="n">move_sphere_center</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">min_particles</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tol</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">com</span> <span class="o">=</span> <span class="n">_com</span><span class="o">.</span><span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">min_particles</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">num_threads</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Final SSC=</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">com</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">com</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="virial_radius"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.virial_radius">[docs]</a><span class="k">def</span> <span class="nf">virial_radius</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">overden</span><span class="o">=</span><span class="mi">178</span><span class="p">,</span> <span class="n">r_max</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the virial radius of the halo centered on the given</span>
+<span class="sd">    coordinates.</span>
+
+<span class="sd">    This is here defined by the sphere centered on cen which contains a</span>
+<span class="sd">    mean density of overden * rho_M_0 * (1+z)^3.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">r_max</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">r_max</span> <span class="o">=</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r_max</span><span class="p">,</span> <span class="n">cen</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r_max</span><span class="p">)]</span>
+
+    <span class="n">r_min</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">null</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
+
+    <span class="n">target_rho</span> <span class="o">=</span> <span class="n">overden</span> <span class="o">*</span> \
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span>
+            <span class="s">&quot;omegaM0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;target_rho=</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">target_rho</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tx</span><span class="p">:</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r_max</span><span class="p">)]</span>
+        <span class="k">with</span> <span class="n">sim</span><span class="o">.</span><span class="n">immediate_mode</span><span class="p">:</span>
+            <span class="n">mass_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
+            <span class="n">r_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        #pure numpy implementation</span>
+<span class="sd">        rho = lambda r: np.dot(</span>
+<span class="sd">            mass_ar, r_ar &lt; r) / (4. * math.pi * (r ** 3) / 3)</span>
+
+<span class="sd">        #numexpr alternative - not much faster because sum is not threaded</span>
+<span class="sd">        def rho(r) :</span>
+<span class="sd">            r_ar; mass_ar; # just to get these into the local namespace</span>
+<span class="sd">            return ne.evaluate(&quot;sum((r_ar&lt;r)*mass_ar)&quot;)/(4.*math.pi*(r**3)/3)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">util</span><span class="o">.</span><span class="n">sum_if_lt</span><span class="p">(</span><span class="n">mass_ar</span><span class="p">,</span><span class="n">r_ar</span><span class="p">,</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">4.</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">target_rho</span> <span class="o">-</span>
+                             <span class="n">rho</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.e-3</span> <span class="o">*</span> <span class="n">target_rho</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+</div>
+<span class="k">def</span> <span class="nf">potential_minimum</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;phi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="hybrid_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.hybrid_center">[docs]</a><span class="k">def</span> <span class="nf">hybrid_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="s">&#39;3 kpc&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Determine the center of the halo by finding the shrink-sphere</span>
+<span class="sd">    -center inside the specified distance of the potential minimum</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cen_a</span> <span class="o">=</span> <span class="n">potential_minimum</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">cen_a</span> <span class="o">=</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">cen_a</span><span class="p">)],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="index_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.index_center">[docs]</a><span class="k">def</span> <span class="nf">index_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Determine the center of mass based on specific particles.</span>
+
+<span class="sd">    Supply a list of indices using the ``ind`` keyword.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;ind&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">ind</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Need to supply indices for centering&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="vel_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.vel_center">[docs]</a><span class="k">def</span> <span class="nf">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Use stars from a sphere to calculate center of velocity. The size</span>
+<span class="sd">    of the sphere is given by the ``cen_size`` keyword and defaults to</span>
+<span class="sd">    1 kpc.</span>
+
+<span class="sd">    **Keyword arguments:**</span>
+
+<span class="sd">    *mode*: reserved for future use; currently ignored</span>
+
+<span class="sd">    *move_all*: if True (default), move the entire snapshot. Otherwise only move</span>
+<span class="sd">    the particles in the halo passed in.</span>
+
+<span class="sd">    *retcen*: if True only return the velocity center without moving the</span>
+<span class="sd">     snapshot (default = False)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Finding halo velocity center...&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">move_all</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span>
+
+    <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="c"># fall-back to DM</span>
+        <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="c"># fall-back to gas</span>
+        <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="c"># very weird snapshot, or mis-centering!</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Insufficient particles around center to get velocity&quot;</span>
+
+    <span class="n">vcen</span> <span class="o">=</span> <span class="p">(</span><span class="n">cen</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span> <span class="o">*</span> <span class="n">cen</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> \
+        <span class="n">cen</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">vcen</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">cen</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;vcen=</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">vcen</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">vcen</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">transformation</span><span class="o">.</span><span class="n">v_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">-</span><span class="n">vcen</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Determine the center of mass of the given particles using the</span>
+<span class="sd">    specified mode, then recenter the particles (of the entire</span>
+<span class="sd">    ancestor snapshot) accordingly</span>
+
+<span class="sd">    Accepted values for *mode* are</span>
+
+<span class="sd">      *pot*: potential minimum</span>
+
+<span class="sd">      *com*: center of mass</span>
+
+<span class="sd">      *ssc*: shrink sphere center</span>
+
+<span class="sd">      *ind*: center on specific particles; supply the list of particles using the ``ind`` keyword.</span>
+
+<span class="sd">      *hyb*: for sane halos, returns the same as ssc, but works faster by</span>
+<span class="sd">             starting iteration near potential minimum</span>
+
+<span class="sd">    or a function returning the COM.</span>
+
+<span class="sd">    **Other keywords:**</span>
+
+<span class="sd">    *retcen*: if True only return the center without centering the</span>
+<span class="sd">     snapshot (default = False)</span>
+
+<span class="sd">    *ind*: only used when *mode=ind* -- specifies the indices of</span>
+<span class="sd">     particles to be used for centering</span>
+
+<span class="sd">    *vel*: if True, translate velocities so that the velocity of the</span>
+<span class="sd">    central 1kpc (default) is zeroed. Other values can be passed with cen_size.</span>
+
+<span class="sd">    *move_all*: if True (default), move the entire snapshot. Otherwise only move</span>
+<span class="sd">    the particles in the halo passed in.</span>
+
+<span class="sd">    *wrap*: if True, pre-centre and wrap the simulation so that halos on the edge</span>
+<span class="sd">    of the box are handled correctly. Default False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">global</span> <span class="n">config</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;centering-scheme&#39;</span><span class="p">]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;pot&#39;</span><span class="p">:</span> <span class="n">potential_minimum</span><span class="p">,</span>
+              <span class="s">&#39;com&#39;</span><span class="p">:</span> <span class="n">center_of_mass</span><span class="p">,</span>
+              <span class="s">&#39;ssc&#39;</span><span class="p">:</span> <span class="n">shrink_sphere_center</span><span class="p">,</span>
+              <span class="s">&#39;hyb&#39;</span><span class="p">:</span> <span class="n">hybrid_center</span><span class="p">,</span>
+              <span class="s">&#39;ind&#39;</span><span class="p">:</span> <span class="n">index_center</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">mode</span>
+
+    <span class="k">if</span> <span class="n">move_all</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span>
+
+    <span class="k">if</span> <span class="n">wrap</span><span class="p">:</span>
+        <span class="c"># centre on something within the halo and wrap</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">wrap</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cen</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">vel</span><span class="p">:</span>
+        <span class="n">velc</span> <span class="o">=</span> <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_v_translate</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">velc</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tx</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2011-15, pynbody team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
