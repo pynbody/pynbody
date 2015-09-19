@@ -1,0 +1,35 @@
+diff --git a/nose/gadgethdf_test.py b/nose/gadgethdf_test.py
+index 7b0885e..0a5ed6d 100644
+--- a/nose/gadgethdf_test.py
++++ b/nose/gadgethdf_test.py
+@@ -12,6 +12,14 @@ def teardown() :
+     del snap
+     del subfind
+ 
++def test_issue_256() :
++    assert 'pos' in snap.loadable_keys()
++    assert 'pos' in snap.dm.loadable_keys()
++    assert 'pos' in snap.gas.loadable_keys()
++    assert 'He' not in snap.loadable_keys()
++    assert 'He' not in snap.dm.loadable_keys()
++    assert 'He' in snap.gas.loadable_keys()
++
+ def test_standard_arrays() :
+     """Check that the data loading works"""
+ 
+diff --git a/pynbody/snapshot/gadgethdf.py b/pynbody/snapshot/gadgethdf.py
+index 22cf7fd..002c2ab 100644
+--- a/pynbody/snapshot/gadgethdf.py
++++ b/pynbody/snapshot/gadgethdf.py
+@@ -211,7 +211,10 @@ class GadgetHDFSnap(SimSnap):
+         return list(set(l))
+ 
+     def loadable_keys(self, fam=None):
+-        return self._loadable_keys
++        if fam is not None:
++            return [x for x in self._loadable_keys if self._family_has_loadable_array(fam, x)]
++        else:
++            return [x for x in self._loadable_keys if self._family_has_loadable_array(None, x)]
+ 
+     @staticmethod
+     def _write(self, filename=None):
