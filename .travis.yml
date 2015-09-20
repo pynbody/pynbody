@@ -3,7 +3,7 @@
 language: c
 # use language: c to be able to use a matrix of python and numpy versions -- see https://github.com/rmcgibbo/mdtraj/blob/master/.travis.yml
 
-sudo: false
+sudo: true # temporary while gfortran package is required for conda problems
 
 addons:
   apt:
