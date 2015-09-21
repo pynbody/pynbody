@@ -123,7 +123,7 @@ class Bridge(object):
 
         transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family)
 
-        output = [[]*min_index]
+        output = [[]]*min_index
         for row in transfer_matrix:
             this_row_matches = []
             if row.sum()>0:
