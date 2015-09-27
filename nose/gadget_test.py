@@ -82,7 +82,7 @@ def test_array_contents():
     # 10/11/13 - AP - suspect the following tests are incorrect
     # because ordering of file did not agree with pynbody ordering
 
-    assert(abs(np.mean(snap["pos"]) - 1434.664) < 0.002)
+    assert(abs(np.mean(snap["pos"]) - 1434.664) < 0.004)
     assert(abs(snap["pos"][52][1] - 456.69678) < 0.001)
     assert(abs(snap.gas["u"][100] - 438.39496) < 0.001)
     assert(abs(snap.dm["mass"][5] - 0.04061608) < 0.001)
@@ -103,7 +103,7 @@ def test_g1_load():
 
 
 def test_write():
-    """Check that we can write a new snapshot and read it again, 
+    """Check that we can write a new snapshot and read it again,
     and the written and the read are the same."""
     snap.write(filename='testdata/test_gadget_write')
     snap3 = pynbody.load('testdata/test_gadget_write')

@@ -59,10 +59,15 @@ class Bridge(object):
             raise RuntimeError, "Stale reference to start or endpoint"
         return start, end
 
-    def match_catalog(self, min_index=1, max_index=30, threshold=0.5):
+    def match_catalog(self, min_index=1, max_index=30, threshold=0.5,
+                      groups_1 = None, groups_2 = None,
+                      use_family = None):
         """Given a Halos object groups_1, a Halos object groups_2 and a
         Bridge object connecting the two parent simulations, this identifies
         the most likely ID's in groups_2 of the objects specified in groups_1.
+
+        If groups_1 and groups_2 are not specified, they are automatically obtained
+        using the SimSnap.halos method.
 
         Parameters min_index and max_index are the minimum and maximum halo
         numbers to be matched (in both ends of the bridge). If max_index is
@@ -83,29 +88,88 @@ class Bridge(object):
         they have too few particles in common give the result -1. This is determined
         by the given threshold fraction of particles in common (by default, 50%).
 
+        If use_family is specified, only particles from that family are cross-matched.
+        This can be useful e.g. if matching between two different simulations where
+        the relationship between DM particles is known, but perhaps the relationship
+        between star particles is random.
+
         """
+        fuzzy_matches = self.fuzzy_match_catalog(min_index, max_index, threshold, groups_1, groups_2, use_family)
+
+        identification = np.zeros(max_index+1,dtype=int)
+
+        for i,row in enumerate(fuzzy_matches):
+            if len(row)>0:
+                identification[i] = row[0][0]
+            elif i<min_index:
+                identification[i] = -2
+            else:
+                identification[i] = -1
+
+        return identification
+
+    def fuzzy_match_catalog(self, min_index=1, max_index=30, threshold=0.01,
+                            groups_1 = None, groups_2 = None, use_family=None):
+        """fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
+        identifications in groups_2, along with the fraction of particles in common
+        between the two.
+
+        Normally, match_catalog is simpler to use, but this routine offers greater
+        flexibility for advanced users. The first entry for each halo corresponds
+        to the output from match_catalog.
+
+        If no identification is found, the entry is the empty list [].
+        """
+
+        transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family)
+
+        output = [[]]*min_index
+        for row in transfer_matrix:
+            this_row_matches = []
+            if row.sum()>0:
+                frac_particles_transferred = np.array(row,dtype=float)/row.sum()
+                above_threshold = np.where(frac_particles_transferred>threshold)[0]
+                above_threshold = above_threshold[np.argsort(frac_particles_transferred[above_threshold])[::-1]]
+                for column in above_threshold:
+                    this_row_matches.append((column+min_index, frac_particles_transferred[column]))
+
+            output.append(this_row_matches)
+
+        return output
+
+    def catalog_transfer_matrix(self, min_index=1, max_index=30, groups_1=None, groups_2=None,use_family=None):
+        """Return a max_index x max_index matrix with the number of particles transferred from
+        the row group in groups_1 to the column group in groups_2.
+
+        Normally, match_catalog (or fuzzy_match_catalog) are easier to use, but this routine
+        provides the maximal information."""
+
         start, end = self._get_ends()
-        groups_1 = start.halos()
-        groups_2 = end.halos()
+        if groups_1 is None:
+            groups_1 = start.halos()
+        else:
+            assert groups_1.base is start
+
+        if groups_2 is None:
+            groups_2 = end.halos()
+        else:
+            assert groups_2.base is end
+
+        if use_family:
+            end = end[use_family]
+            start = start[use_family]
 
         restriction_end = self(self(end)).get_index_list(end.ancestor)
         restriction_start = self(self(start)).get_index_list(start.ancestor)
 
         assert len(restriction_end) == len(
-            restriction_start), "Internal consistency failure in match_catalog2"
+            restriction_start), "Internal consistency failure in catalog_transfer_matrix: particles supposedly common to both simulations have two different lengths"
         g1 = groups_1.get_group_array()[restriction_start]
         g2 = groups_2.get_group_array()[restriction_end]
 
-        mass = _bridge.match(g1, g2, min_index, max_index)
+        transfer_matrix = _bridge.match(g1, g2, min_index, max_index)
 
-        identification = np.argmax(mass, axis=1) + min_index
-        frac_shared = np.array(mass[np.arange(
-            len(identification)), identification - min_index], dtype=float) / mass.sum(axis=1)
-
-        identification[
-            (frac_shared != frac_shared) | (frac_shared < threshold)] = -1
-
-        return np.concatenate(([-2] * min_index, identification))
+        return transfer_matrix
 
 
 class OrderBridge(Bridge):
