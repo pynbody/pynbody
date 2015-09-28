@@ -116,8 +116,10 @@ class NchiladaSnap(SimSnap):
             raise IOError, "No such array on disk"
         f = open(fname, 'rb')
         _, nbod, ndim, dtype = self._load_header(f)
-
-        self._create_family_array(array_name, fam, ndim=ndim,dtype=dtype)
+	if dtype == 'float32':
+                self._create_family_array(array_name, fam, ndim=ndim,dtype=None)
+        else:
+                self._create_family_array(array_name, fam, ndim=ndim,dtype=dtype)
         r = self[fam][array_name]
         if units.has_units(r):
             r.convert_units(self._default_units_for(array_name))
