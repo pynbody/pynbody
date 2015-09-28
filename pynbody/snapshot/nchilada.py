@@ -117,7 +117,7 @@ class NchiladaSnap(SimSnap):
         f = open(fname, 'rb')
         _, nbod, ndim, dtype = self._load_header(f)
 
-        self._create_family_array(array_name, fam, ndim=ndim)
+        self._create_family_array(array_name, fam, ndim=ndim,dtype=dtype)
         r = self[fam][array_name]
         if units.has_units(r):
             r.convert_units(self._default_units_for(array_name))
