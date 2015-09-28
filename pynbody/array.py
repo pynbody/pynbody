@@ -447,7 +447,7 @@ class SimArray(np.ndarray):
         # code which couldn't cope with the numerical version of x
         # in the case of fractions. All this is necessary to make the
         # magic tuple->fraction conversions work seamlessly.
-        r = np.power(self.view(np.ndarray), numerical_x).view(SimArray)
+        r = np.asarray(np.power(self.view(np.ndarray), numerical_x)).view(SimArray)
 
         # Recent numpy versions can take 1-element arrays and return
         # scalars, in which case we now have a floating point number :(

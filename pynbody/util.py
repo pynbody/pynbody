@@ -7,24 +7,22 @@ Various utility routines used internally by pynbody.
 
 """
 
-
-import numpy as np
-from .backcompat import fractions
-import copy
 import gzip
 import struct
 import os
-import scipy
 import threading
 import sys
 import time
-from . import config_parser, config
-import ConfigParser
-import multiprocessing
 import functools
 import logging
-import random
 import math
+
+import numpy as np
+import scipy
+
+from .backcompat import fractions
+from . import config
+
 logger = logging.getLogger('pynbody.util')
 from ._util import *
 
@@ -377,8 +375,6 @@ def gauss_jordan(out):
 
     Based on public domain code by Jarno Elonen."""
 
-    import numpy.linalg
-
     h, w = out.shape
 
     assert w > h
@@ -596,41 +592,6 @@ def threadsafe_inline(*args, **kwargs):
     # triggered, so go ahead and call
     return scipy.weave.inline(*args, **kwargs)
 
-
-#
-# name mapping used by gadget and nchilada snapshots
-#
-
-def setup_name_maps(config_name, gadget_blocks=False):
-    _name_map = {}
-    _rev_name_map = {}
-    try:
-        for a, b in config_parser.items(config_name):
-            if sys.version_info[0] == 2:
-                if gadget_blocks:
-                    a = a.upper().ljust(4)
-            else:
-                if gadget_blocks:
-                    a = a.upper().ljust(4).encode("utf-8")
-            _rev_name_map[a] = b
-            _name_map[b] = a
-    except ConfigParser.NoOptionError:
-        pass
-
-    return _name_map, _rev_name_map
-
-
-def name_map_function(_name_map, _rev_name_map):
-    def _translate_array_name(name, reverse=False):
-        try:
-            if reverse:
-                return _rev_name_map[name]
-            else:
-                return _name_map[name]
-        except KeyError:
-            return name
-
-    return _translate_array_name
 
 
 #############################################

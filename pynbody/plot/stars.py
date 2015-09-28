@@ -231,7 +231,8 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
     sfhist, thebins, patches = plt.hist(tforms, weights=weight, bins=bins,
                                         histtype='step', **kwargs)
     if not subplot:
-        plt.ylim(0.0, 1.2 * np.max(sfhist))
+        # don't set the limits
+        #plt.ylim(0.0, 1.2 * np.max(sfhist))
         plt.xlabel('Time [Gyr]', fontsize='large')
         plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]', fontsize='large')
     else:
@@ -242,15 +243,22 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
         x0, x1 = plt.get_xlim()
     else:
         x0, x1 = plt.gca().get_xlim()
+
+
+    # add a z axis on top if it has not been already done by an earlier plot:
     from pynbody.analysis import pkdgrav_cosmo as cosmo
     c = cosmo.Cosmology(sim=sim)
-    pz = plt.twiny()
-    labelzs = np.arange(5, int(sim.properties['z']) - 1, -1)
-    times = [13.7 * c.Exp2Time(1.0 / (1 + z)) / c.Exp2Time(1) for z in labelzs]
-    pz.set_xticks(times)
-    pz.set_xticklabels([str(x) for x in labelzs])
-    pz.set_xlim(x0, x1)
-    pz.set_xlabel('$z$')
+    old_axis = plt.gca()
+
+    if len(plt.gcf().axes)<2:
+        pz = plt.twiny()
+        labelzs = np.arange(5, int(sim.properties['z']) - 1, -1)
+        times = [13.7 * c.Exp2Time(1.0 / (1 + z)) / c.Exp2Time(1) for z in labelzs]
+        pz.set_xticks(times)
+        pz.set_xticklabels([str(x) for x in labelzs])
+        pz.set_xlim(x0, x1)
+        pz.set_xlabel('$z$')
+        plt.sca(old_axis)
 
     if legend:
         plt.legend(loc=1)
@@ -746,6 +754,169 @@ def moster(xmasses, z):
                     * B11e + dmdg10 * dmdg10 * G10e * G10e + dmdg11 * dmdg11 * G11e * G11e)
     return 10 ** smp, 10 ** sigma
 
+def behroozi(xmasses, z):
+    '''Based on Behroozi+ (2013) return what stellar mass corresponds to the
+    halo mass passed in.
+
+    **Usage**
+
+       >>> from pynbody.plot.stars import moster
+       >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+       >>> ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
+       >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+                         y2=np.array(ystarmasses)*np.array(errors),
+                         facecolor='#BBBBBB',color='#BBBBBB')
+    '''
+    loghm = np.log10(xmasses)
+    # from Behroozi et al (2013)
+    EPS = -1.777
+    EPSpe = 0.133
+    EPSme = 0.146
+
+    EPSanu = -0.006
+    EPSanupe = 0.113
+    EPSanume = 0.361
+
+    EPSznu = 0
+    EPSznupe = 0.003
+    EPSznume = 0.104
+
+    EPSa = 0.119
+    EPSape = 0.061
+    EPSame = -0.012
+
+    M1 = 11.514
+    M1pe = 0.053
+    M1me = 0.009
+
+    M1a = -1.793
+    M1ape = 0.315
+    M1ame = 0.330
+
+    M1z = -0.251
+    M1zpe = 0.012
+    M1zme = 0.125
+
+    AL = -1.412
+    ALpe = 0.02
+    ALme = 0.105
+
+    ALa = 0.731
+    ALape = 0.344
+    ALame = 0.296
+
+    DEL = 3.508
+    DELpe = 0.087
+    DELme = 0.369
+
+    DELa = 2.608
+    DELape = 2.446
+    DELame = 1.261
+
+    DELz = -0.043
+    DELzpe = 0.958
+    DELzme = 0.071
+
+    G = 0.316
+    Gpe = 0.076
+    Gme = 0.012
+
+    Ga = 1.319
+    Gape = 0.584
+    Game = 0.505
+
+    Gz = 0.279
+    Gzpe = 0.256
+    Gzme = 0.081
+
+    a = 1.0 / (z + 1.0)
+    nu = np.exp(-4 * a ** 2)
+    logm1 = M1 + nu * (M1a * (a - 1.0) + M1z * z)
+    logeps = EPS + nu * (EPSanu * (a - 1.0) + EPSznu * z) - EPSa * (a - 1.0)
+    alpha = AL + nu * ALa * (a - 1.0)
+    delta = DEL + nu * DELa * (a - 1.0)
+    g = G + nu * (Ga * (a - 1.0) + z * Gz)
+
+    x = loghm - logm1
+    f0 = -np.log10(2.0) + delta * np.log10(2.0) ** g / (1.0 + np.exp(1))
+    smp = logm1 + logeps + f(x, alpha, delta, g) - f0
+
+    if isinstance(smp, np.ndarray):
+        scatter = np.zeros(len(smp))
+    scatter = 0.218 - 0.023 * (a - 1.0)
+
+    return 10 ** smp, 10 ** scatter
+
+def subfindguo(halo_catalog, clear=False, compare=True, baryfrac=False,
+        filename=False, **kwargs):
+    '''Stellar Mass vs. Halo Mass
+
+    Takes a halo catalogue and plots the member stellar masses as a
+    function of halo mass.
+
+    Usage:
+
+    >>> import pynbody.plot as pp
+    >>> h = s.halos()
+    >>> pp.guo(h,marker='+',markerfacecolor='k')
+
+    **Options:**
+
+    *compare* (True): Should comparison line be plotted?
+         If compare = 'guo', Guo+ (2010) plotted instead of Behroozi+ (2013)
+
+    *baryfrac* (False):  Should line be drawn for cosmic baryon fraction?
+
+    *filename* (None): name of file to which to save output
+    '''
+
+    # if 'marker' not in kwargs :
+    #    kwargs['marker']='o'
+
+    starmasshalos = []
+    totmasshalos = []
+    f_b = halo_catalog[0].properties['omegaB0']/halo_catalog[0].properties['omegaM0'] 
+    for halo in halo_catalog:
+        for subhalo in halo.sub:
+            subhalo.properties['MassType'].convert_units('Msol')
+            halostarmass = subhalo.properties['MassType'][4]
+            if halostarmass:
+                starmasshalos.append(halostarmass)
+                totmasshalos.append(np.sum(subhalo.properties['MassType']))
+
+    if clear:
+        plt.clf()
+
+    plt.loglog(totmasshalos, starmasshalos, 'o', **kwargs)
+    plt.xlabel('Total Halo Mass')
+    plt.ylabel('Halo Stellar Mass')
+
+    if compare:
+        xmasses = np.logspace(
+            np.log10(min(totmasshalos)), 1 + np.log10(max(totmasshalos)), 20)
+        if compare == 'guo':
+            # from Sawala et al (2011) + Guo et al (2009)
+            ystarmasses = xmasses*0.129*((xmasses/2.5e11)**-0.926 + (xmasses/2.5e11)**0.261)**-2.44
+        else :
+            ystarmasses, errors = behroozi(xmasses,halo_catalog._halos[1].properties['z'])
+        plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+                         y2=np.array(ystarmasses)*np.array(errors),
+                         facecolor='#BBBBBB',color='#BBBBBB')
+        plt.loglog(xmasses,ystarmasses,label='Behroozi et al (2013)')
+
+    if baryfrac :
+        xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+        ystarmasses = xmasses*f_b
+        plt.loglog(xmasses,ystarmasses,linestyle='dotted',label='f_b = '+'%.2f' % f_b)
+        ystarmasses = xmasses*0.1*f_b
+        plt.loglog(xmasses,ystarmasses,linestyle='dashed',label='0.1 f_b = '+'%.2f' % (0.1*f_b))
+
+    plt.axis([0.8*min(totmasshalos),1.2*max(totmasshalos),
+              0.8*min(starmasshalos),1.2*max(starmasshalos)])
+
+    if (filename):
+        logger.info("Saving %s", filename)
+        plt.savefig(filename)
 
 def guo(halo_catalog, clear=False, compare=True, baryfrac=False,
         filename=False, **kwargs):
