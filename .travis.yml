@@ -3,14 +3,14 @@
 language: c
 # use language: c to be able to use a matrix of python and numpy versions -- see https://github.com/rmcgibbo/mdtraj/blob/master/.travis.yml
 
-sudo: false
+sudo: false # temporary while gfortran package is required for conda problems
 
 # specify different versions of python and numpy
 env:
-  - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20" IPYTHON="ipython"
+#  - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20" IPYTHON="ipython"
   - PYTHON=2.7  NUMPY_VERSION=1.7.1 CYTHON="cython>=0.20" IPYTHON="ipython=3"
-  - PYTHON=2.7  NUMPY_VERSION=1.8.1 CYTHON="cython>=0.20" IPYTHON="ipython=3"
-  - PYTHON=3.4  NUMPY_VERSION=1.8.1 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=2.7  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.4  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
 
 
 # use anaconda from continuum to avoid building numpy/scipy

@@ -434,17 +434,21 @@ def get_tform(sim, part2birth_path=part2birth_path):
 
     for i in range(ncpu):
         try:
-            f = open('%s/birth/birth_%s.out%05d' %
-                     (parent_dir, top._timestep_id, i + 1))
+            f = open('%s/output_%s/birth_%s.out%05d' %
+                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
         except IOError:
             import os
 
-            os.system("cd %s; mkdir birth;" % (parent_dir))
+            # birth_xxx doesn't exist, create it with ramses part2birth util
+            #os.system("cd %s; mkdir birth;" % (parent_dir))
             with open(os.devnull, 'w') as fnull:
                 exit_code = subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
                                             stdout=fnull, stderr=fnull)
-            f = open('%s/birth/birth_%s.out%05d' %
-                     (parent_dir, top._timestep_id, i + 1))
+                # part2birth put the files in output_<top._timestep_id>
+                #os.system("cd %s; mv output_%s/birth_%s.out%05d %sbirth/;" %
+                #          (parent_dir, top._timestep_id, top._timestep_id, i+1, parent_dir))
+            f = open('%s/output_%s/birth_%s.out%05d' %
+                     (parent_dir, top._timestep_id,top._timestep_id, i + 1))
 
         n = fromfile(f, 'i', 1)
         if n > 0:

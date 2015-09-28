@@ -261,8 +261,8 @@ re-calculated) on demand. For example,
 .. ipython::
 
   In [3]: @pynbody.derived_array
-     ...:def thricethemass(sim) :
-     ...:    return sim['mass']*3
+     ...: def thricethemass(sim) :
+     ...:     return sim['mass']*3
      ...:
 
 
@@ -273,10 +273,6 @@ the array, the values are calculated and stored
 
   In [4]: f['thricethemass']
 
-  Out[4]:
-  SimArray([ 1.28755365,  1.28755365,  1.28755365, ...,  1.28755365,
-          1.28755365,  1.28755365], '1.00e+10 Msol')
-
 This has the advantage that your new `thricethemass` array is
 automatically updated when you change the `mass` array:
 
@@ -285,10 +281,6 @@ automatically updated when you change the `mass` array:
   In [4]: f['mass'][0] = 1
 
   In [6]: f['thricethemass']
-  SimSnap: deriving array thricethemass
-  Out[6]:
-  SimArray([ 3.        ,  1.28755365,  1.28755365, ...,  1.28755365,
-          1.28755365,  1.28755365], '1.00e+10 Msol')
 
 Note, however, that the array is not re-calculated every time you
 access it, only if the `mass` array has changed. Therefore you don't
