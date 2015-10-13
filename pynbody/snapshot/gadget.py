@@ -17,6 +17,7 @@ from .. import config_parser
 from .. import util
 from .. import backcompat
 from . import SimSnap
+from . import namemapper
 
 import ConfigParser
 import numpy as np
@@ -30,6 +31,8 @@ import itertools
 
 # This is set here and not in a config file because too many things break
 # if it is not 6
+
+
 N_TYPE = 6
 
 _type_map = backcompat.OrderedDict({})
@@ -44,9 +47,9 @@ for name, gtypes in config_parser.items('gadget-type-mapping'):
     except ConfigParser.NoOptionError:
         pass
 
-_name_map, _rev_name_map = util.setup_name_maps(
+_name_map, _rev_name_map = namemapper.setup_name_maps(
     'gadget-name-mapping', gadget_blocks=True)
-_translate_array_name = util.name_map_function(_name_map, _rev_name_map)
+_translate_array_name = namemapper.name_map_function(_name_map, _rev_name_map)
 
 
 def _to_raw(s):
@@ -1157,7 +1160,7 @@ class GadgetSnap(SimSnap):
 @GadgetSnap.decorator
 def do_units(sim):
     # cosmo =
-    # (sim._hdf['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
+    # (sim._hdf_files['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
 
     vel_unit = config_parser.get('gadget-units', 'vel')
     dist_unit = config_parser.get('gadget-units', 'pos')
