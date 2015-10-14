@@ -1182,9 +1182,9 @@ def do_units(sim):
 @GadgetSnap.decorator
 def do_properties(sim):
     h = sim.header
-    if h.HubbleParam == 0.:
-        sim.properties['time'] = sim.infer_original_units("s") * h.time
-    else:
+
+    sim.properties['time'] = sim.infer_original_units("s") * h.time
+    if h.HubbleParam != 0.:
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
         sim.properties['omegaL0'] = h.OmegaLambda

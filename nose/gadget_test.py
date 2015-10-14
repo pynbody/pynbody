@@ -22,6 +22,9 @@ def test_construct():
         assert(f.format2 == True)
         assert(f.endian == "=")
 
+def test_properties():
+    assert "time" in snap.properties
+
 
 def test_loadable():
     """Check we have found all the blocks that should be in the snapshot"""
