@@ -23,7 +23,7 @@ def test_construct():
         assert(f.endian == "=")
 
 def test_properties():
-    assert snap.properties.has_key("time")
+    assert "time" in snap.properties
 
 
 def test_loadable():
