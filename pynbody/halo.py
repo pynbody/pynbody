@@ -175,9 +175,9 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
         self._halos = {}
 
         self._index_filename = sim.filename+".rockstar.halos"
-        self._particles_filename = sim.filename+".rockstar.halo_particles"
+        self._particles_filename = sim.filename+".rockstar.halo_particles_fpos"
 
-        self._init_iord_to_fpos()
+        #self._init_iord_to_fpos()
 
         self._init_index()
         if sort:
@@ -187,12 +187,12 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
         return self._nhalos
 
     def _get_particles_for_halo(self, num):
-        self._init_iord_to_fpos()
+        #self._init_iord_to_fpos()
         halo_info = self._halo_info[num]
         with util.open_(self._particles_filename) as f:
             f.seek(halo_info['indstart']*self._part_type.itemsize)
             halo_ptcls=np.fromfile(f,dtype=self._part_type,count=halo_info['num_p'])
-            halo_ptcls = self._iord_to_fpos[halo_ptcls]
+            #halo_ptcls = self._iord_to_fpos[halo_ptcls]
             halo_ptcls.sort()
 
         return halo_ptcls
@@ -221,7 +221,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim,*args,**kwargs):
-        return os.path.exists(sim.filename+".rockstar.halos") and os.path.exists(sim.filename+".rockstar.halo_particles")
+        return os.path.exists(sim.filename+".rockstar.halos") and os.path.exists(sim.filename+".rockstar.halo_particles_fpos")
 
 
     def _init_index(self):
@@ -600,8 +600,6 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         if isinstance(self._halos[num], DummyHalo) and not self._dummy:
             self._load_rs_particles_for_halo(num)
 
-
-
     def _load_ahf_substructure(self, filename):
         f = util.open_(filename)
 
@@ -929,7 +927,7 @@ class AHFCatalogue(HaloCatalogue):
 
     def _load_ahf_particles(self, filename):
         if self._use_iord:
-            iord = self._base()['iord']
+            iord = self._base()['iord'].astype(np.int64)
             assert len(iord) == iord.max(
             ), "Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so"
             self._iord_to_fpos = iord.argsort()
