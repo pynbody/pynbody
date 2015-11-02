@@ -101,9 +101,10 @@ def halo_mag(sim, band='v'):
 def halo_lum(sim, band='v'):
     """Calculating halo luminosiy
 
-    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed
+    Calls pynbody.analysis.luminosity.calc_mags for every star in passed
     in simulation, converts those magnitudes back to luminosities, adds
-    those luminosities, which are returned.
+    those luminosities, which are returned.  Uses solar magnitudes from
+    http://www.ucolick.org/~cnaw/sun.html.
 
     **Usage:**
 
@@ -117,7 +118,7 @@ def halo_lum(sim, band='v'):
     """
     sun_abs_mag = {'u':5.56,'b':5.45,'v':4.8,'r':4.46,'i':4.1,'j':3.66,
                    'h':3.32,'k':3.28}[band]
-    return np.sum(10.0 ** ((5.8 - sim.star[band + '_mag']) / 2.5))
+    return np.sum(10.0 ** ((sun_abs_mag - sim.star[band + '_mag']) / 2.5))
 
 
 def half_light_r(sim, band='v'):
