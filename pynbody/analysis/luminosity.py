@@ -115,6 +115,8 @@ def halo_lum(sim, band='v'):
        *band* (default='v'): Which observed bandpass magnitude in which 
             magnitude should be calculated
     """
+    sun_abs_mag = {'u':5.56,'b':5.45,'v':4.8,'r':4.46,'i':4.1,'j':3.66,
+                   'h':3.32,'k':3.28}[band]
     return np.sum(10.0 ** ((5.8 - sim.star[band + '_mag']) / 2.5))
 
 
