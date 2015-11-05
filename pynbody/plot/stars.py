@@ -204,16 +204,22 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
     if ((len(sim.g)>0) | (len(sim.d)>0)): simstars = sim.star
     else: simstars = sim
 
+    formkey = 'tform'
+
+    try:
+        simstars['tform']
+    except KeyError:
+        formkey = 'timeform'
     if trange:
         assert len(trange) == 2
     else:
-        trange = [simstars['tform'].in_units(
-            "Gyr").min(), simstars['tform'].in_units("Gyr").max()]
+        trange = [simstars[formkey].in_units(
+            "Gyr").min(), simstars[formkey].in_units("Gyr").max()]
     binnorm = 1e-9 * bins / (trange[1] - trange[0])
 
-    trangefilt = filt.And(filt.HighPass('tform', str(trange[0]) + ' Gyr'),
-                          filt.LowPass('tform', str(trange[1]) + ' Gyr'))
-    tforms = simstars[trangefilt]['tform'].in_units('Gyr')
+    trangefilt = filt.And(filt.HighPass(formkey, str(trange[0]) + ' Gyr'),
+                          filt.LowPass(formkey, str(trange[1]) + ' Gyr'))
+    tforms = simstars[trangefilt][formkey].in_units('Gyr')
 
     if massform:
         try:
@@ -322,7 +328,14 @@ def schmidtlaw(sim, center=True, filename=None, pretime='50 Myr',
     diskgas = sim.gas[filt.Disc(rmax, diskheight)]
     diskstars = sim.star[filt.Disc(rmax, diskheight)]
 
-    youngstars = np.where(diskstars['tform'].in_units("Myr") >
+    formkey = 'tform'
+
+    try:
+        diskstars['tform']
+    except KeyError:
+        formkey = 'timeform'
+
+    youngstars = np.where(diskstars[formkey].in_units("Myr") >
                           sim.properties['time'].in_units(
                               "Myr", **sim.conversion_context())
                           - pretime.in_units('Myr'))[0]
