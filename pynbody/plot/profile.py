@@ -125,12 +125,7 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
         pretime = units.Unit(pretime)
 
     diskstars = sim.star[filt.Disc(max_r, disk_height)]
-    formkey = 'tform'
-    try:
-        diskstars['tform']
-    except KeyError:
-        formkey = timeform
-    youngstars = np.where(diskstars[formkey].in_units("Myr") >
+    youngstars = np.where(diskstars['tform'].in_units("Myr") >
                           sim.properties['time'].in_units(
                               "Myr", **sim.conversion_context())
                           - pretime.in_units('Myr'))[0]

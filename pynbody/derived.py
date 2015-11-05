@@ -175,10 +175,7 @@ def v_disp(self):
 @SimSnap.derived_quantity
 def age(self):
     """Stellar age determined from formation time and current snapshot time"""
-    try:
-        return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
-    except:
-        return self.properties['time'].in_units(self['timeform'].units, **self.conversion_context()) - self['timeform']
+    return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
 
 bands_available = ['u', 'b', 'v', 'r', 'i', 'j', 'h', 'k', 'U', 'B', 'V', 'R', 'I',
                    'J', 'H', 'K']
@@ -294,11 +291,6 @@ def aform(self):
     """The expansion factor at the time specified by the tform array."""
 
     from . import analysis
-    formkey = 'tform'
-    try:
-        self['tform']
-    except KeyError:
-        formkey = 'timeform'
-    z = analysis.cosmology.redshift(self, self[formkey])
+    z = analysis.cosmology.redshift(self, self['tform'])
     a = 1. / (1. + z)
     return a
