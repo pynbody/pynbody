@@ -28,6 +28,7 @@ before_install:
   - cd testdata
   - ../../git-lfs/bin/git-lfs init
   - ../../git-lfs/bin/git-lfs fetch
+  - git checkout -f
   - ls -lht ./
   - cd ../../
 
