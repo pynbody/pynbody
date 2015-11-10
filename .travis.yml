@@ -25,10 +25,11 @@ before_install:
   - conda update --yes conda
   - cd nose
   - git clone https://github.com/pynbody/testdata.git
+  - cd testdata
   - ../git-lfs/bin/git-lfs init
   - ../git-lfs/bin/git-lfs fetch
-  - ls -lht testdata/
-  - cd ..
+  - ls -lht ./
+  - cd ../../
 
 install:
   - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip sphinx pygments pandas $IPYTHON $CYTHON
