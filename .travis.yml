@@ -27,8 +27,7 @@ before_install:
   - git clone https://github.com/pynbody/testdata.git
   - cd testdata
   - ../../git-lfs/bin/git-lfs init
-  - ../../git-lfs/bin/git-lfs fetch
-  - git checkout -f
+  - ../../git-lfs/bin/git-lfs get
   - ls -lht ./
   - cd ../../
 
