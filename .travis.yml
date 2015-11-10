@@ -18,7 +18,6 @@ before_install:
   - git checkout b0318b25350b9abfe56af0afb0
   - script/bootstrap
   - cd ..
-  - sudo apt-get install
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda/
