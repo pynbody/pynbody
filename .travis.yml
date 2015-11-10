@@ -14,6 +14,7 @@ env:
 
 before_install:
   - git clone https://github.com/github/git-lfs.git
+  - export PATH=$HOME/git-lfs/bin/:$PATH
   - cd git-lfs
   - git checkout b0318b25350b9abfe56af0afb0
   - script/bootstrap
@@ -27,7 +28,8 @@ before_install:
   - git clone https://github.com/pynbody/testdata.git
   - cd testdata
   - ../../git-lfs/bin/git-lfs init
-  - ../../git-lfs/bin/git-lfs pull
+  - ../../git-lfs/bin/git-lfs fetch
+  - git checkout -f
   - ls -lht ./
   - cd ../../
 
