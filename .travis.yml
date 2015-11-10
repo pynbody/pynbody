@@ -14,7 +14,7 @@ env:
 
 before_install:
   - git clone https://github.com/github/git-lfs.git
-  - export PATH=$HOME/git-lfs/bin/:$PATH
+  - export PATH=`pwd`/git-lfs/bin/:$PATH
   - cd git-lfs
   - git checkout b0318b25350b9abfe56af0afb0
   - script/bootstrap
