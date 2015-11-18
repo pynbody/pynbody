@@ -26,7 +26,7 @@ before_install:
   - conda update --yes conda
   - cd nose
 #  - git clone https://github.com/pynbody/testdata.git
-  - wget http://www.homepages.ucl.ac.uk/~ucapapo/testdata.tar.gz
+  - wget http://star.ucl.ac.uk/~app/testdata.tar.gz
   - tar -xzvf testdata.tar.gz
 #  - cd testdata
 #  - ../../git-lfs/bin/git-lfs init
