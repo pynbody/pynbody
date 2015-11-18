@@ -33,7 +33,8 @@ before_install:
 #  - ../../git-lfs/bin/git-lfs fetch
 #  - rm -rf *
 #  - git checkout -f
-#  - ls -lht ./
+  - ls -lht testdata/
+  - ls -lht testdata/Test_NOSN_NOZCOOL_L010N0128/data/* 
 #  - cd ../../
   - cd ..
 
