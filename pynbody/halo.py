@@ -771,10 +771,8 @@ class AHFCatalogue(HaloCatalogue):
 
     def _load_ahf_particles(self, filename):
         if self._use_iord:
-            iord = self._base()['iord']
-            assert len(iord) == iord.max(
-            ), "Missing iord values - in principle this can be corrected for, but at the moment no code is implemented to do so"
-            self._iord_to_fpos = iord.argsort()
+            self._iord_to_fpos = np.zeros(self.base['iord'].max()+1,dtype=int)
+            self._iord_to_fpos[self.base['iord']] = np.arange(len(self._base()))
 
         f = util.open_(filename)
         if filename.split("z")[-2][-1] is ".":
