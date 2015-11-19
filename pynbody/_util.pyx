@@ -22,7 +22,6 @@ ctypedef fused fused_int:
     np.int32_t
     np.int64_t
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
