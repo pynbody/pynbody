@@ -7,20 +7,36 @@ sudo: false # temporary while gfortran package is required for conda problems
 
 # specify different versions of python and numpy
 env:
-#  - PYTHON=2.6  NUMPY_VERSION=1.6.2 CYTHON="cython>=0.20" IPYTHON="ipython"
   - PYTHON=2.7  NUMPY_VERSION=1.7.1 CYTHON="cython>=0.20" IPYTHON="ipython=3"
   - PYTHON=2.7  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
   - PYTHON=3.4  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
 
 
-# use anaconda from continuum to avoid building numpy/scipy
 before_install:
+#  - git clone https://github.com/github/git-lfs.git
+#  - export PATH=`pwd`/git-lfs/bin/:$PATH
+#  - cd git-lfs
+#  - git checkout b0318b25350b9abfe56af0afb0
+#  - script/bootstrap
+#  - cd ..
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b
+  - ./miniconda.sh -b -p $HOME/miniconda/
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
-  - "cd nose; wget https://pynbody.googlecode.com/files/testdata_april_2013.tar.gz; tar -zxvf testdata_april_2013.tar.gz; cd testdata; wget https://www.dropbox.com/s/96d90tivlda46e2/Test_NOSN_NOZCOOL_L010N0128.tar.gz; tar -zxvf Test_NOSN_NOZCOOL_L010N0128.tar.gz; cd ../.."
+  - cd nose
+#  - git clone https://github.com/pynbody/testdata.git
+  - wget http://star.ucl.ac.uk/~app/testdata.tar.gz
+  - tar --exclude="._*" -xzvf testdata.tar.gz
+#  - cd testdata
+#  - ../../git-lfs/bin/git-lfs init
+#  - ../../git-lfs/bin/git-lfs fetch
+#  - rm -rf *
+#  - git checkout -f
+  - ls -lht testdata/
+  - ls -lht testdata/Test_NOSN_NOZCOOL_L010N0128/data/*
+#  - cd ../../
+  - cd ..
 
 install:
   - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip sphinx pygments pandas $IPYTHON $CYTHON

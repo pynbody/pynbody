@@ -1525,6 +1525,45 @@ def settime(sim):
         # Assume a non-cosmological run
         sim.properties['time'] = sim._header_t
 
+@nchilada.NchiladaSnap.decorator
+def settimeN(sim):
+    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove']) != 0:
+        #t = sim._header_t
+        #sim.properties['a'] = t
+        try:
+            sim.properties['z'] = 1.0 / sim.properties['a'] - 1.0
+        except ZeroDivisionError:
+            # no sensible redshift
+            pass
+
+        if (sim.properties['z'] is not None and
+                sim._paramfile.has_key('dMsolUnit') and
+                sim._paramfile.has_key('dKpcUnit')):
+            from ..analysis import cosmology
+            sim.properties['time'] = cosmology.age(
+                sim, unit=sim.infer_original_units('yr'))
+        else:
+            # something has gone wrong with the cosmological side of
+            # things
+            warnings.warn(
+                "Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
+            sim.properties['time'] = sim.properties['a']
+
+        #sim.properties['a'] = t
+
+    else:
+        # Assume a non-cosmological run
+        sim.properties['time'] = sim.properties['a']
+
+    time_unit = None
+    try:
+        time_unit = sim.infer_original_units('yr')
+    except units.UnitsException:
+        pass
+
+    if time_unit is not None:
+        sim.properties['time'] *= time_unit
+
 
 @StarLog.decorator
 def slparam2units(sim):
