@@ -20,15 +20,14 @@ a :class:`~pynbody.halo.HaloCatalogue` that consists of
 :class:`~pynbody.halo.Halo` objects.
 The `Halo` object holds information about the particle IDs and other properties
 about a given halo.  A :class:`~pynbody.halo.HaloCatalogue` is an
-object is a compilation of all the `Halo`s in a given snapshot.
+object is a compilation of all the halos in a given snapshot.
 
-`Pynbody` fully supports the
-`Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_
-(:class:`~pynbody.halo.AHFCatalogue`) and
-`Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.RockstarCatalogue`).
-`Pynbody` can read data files from SKID
-(:class:`~pynbody.halo.GrpCatalogue` class) and SubFind
-(:class:`~pynbody.halo.SubfindCatalogue`).
+Some possible halo finders that pynbody recognises include:
+
+ - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.AHFCatalogue`);
+ -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.RockstarCatalogue`);
+ - SKID (:class:`~pynbody.halo.GrpCatalogue` class);
+ - SubFind (:class:`~pynbody.halo.SubfindCatalogue`).
 
 The :func:`~pynbody.snapshot.SimSnap.halos` function in
 :class:`~pynbody.snapshot.SimSnap`
@@ -92,7 +91,8 @@ Working with Halos and Catalogues
 ---------------------------------
 
 We will use the AHF catalogue here since that is the one that is
-available for the sample output in the `testdata` bundle.
+available for the sample output in the `testdata` bundle. The SubFind specific
+halo / subhalo structure is handled later.
 
 .. ipython::
 
@@ -203,7 +203,7 @@ halo catalogue. In fact, with some formats (including AHF, which is what's
 in our sample test data here), you can specify `dummy=True` to load only the
 properties dictionary:
 
-.. ipython::
+.. ipython:: :okexcept:
 
  In [3]: h = f.halos(dummy=True)
 
@@ -256,3 +256,118 @@ The 3 written file types are:
 
 This halo file set emulates the halo finder SKID. Tipsy and skid can be found at
 `<http://www-hpcc.astro.washington.edu/tools/>`_.
+
+
+Working with SubFind Halos and Subhalos
+---------------------------------------
+
+If using the Gadget3 SubFind HDF5 output (for example, OWLS / Eagle or Smaug sims)
+most of the examples from AHF above can be used, except for the subhalos structure.
+One major change is that the halo catalogue is a separate file to the snapshot.
+
+.. ipython::
+
+ In [1]: import pynbody, matplotlib.pylab as plt
+
+ In [2]: s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+
+ In [3]: s.physical_units()
+
+We've got the snapshot loaded and can access the particle data in any manner we
+like as usual but unlike AHF we can't load halos. Instead to get `pynbody`
+to load the halo catalogue we have to access the subfind output directly:
+
+.. ipython::
+
+ In [3]: s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+
+ In [2]: s.physical_units()
+
+ In [4]: h = s.halos()
+
+`h` is  the Friends-of-Friends (FOF) halo catalogue, upon which SubFind is based.
+
+As with the AHF example we can easily retrieve some basic
+information, like the total number of halos in this catalogue:
+
+.. ipython::
+
+ In [5]: len(h), h.ngroups, h.nsubhalos
+
+Where the last value is the number of subhalos, see next section on these.
+To actually access a halo, use square bracket syntax as before.
+For example, the following returns the number of particles in halos 1 and 2
+
+.. ipython::
+
+ In [6]: len(h[1]), len(h[2])
+
+The catalogue has FOF halos ordered by number of particles, so the first
+halo for this small box simulation will be the largest object.
+Halo IDs begin with 0 for SubFind / FOF unlike AHF.
+
+The "halos" are treated using the
+:class:`~pynbody.gadgethdf.SubFindHDFSnap` class. The syntax for dealing
+with an individual halo is the same as AHF and the snapshot simulation.
+For example, we can get the total mass in the second FOF halo
+and see the position of its first few particles as follows:
+
+.. ipython::
+
+ In [7]: h[1]['mass'].sum().in_units('1e12 Msol')
+
+ In [8]: h[1]['pos'][:5]
+
+A really common use-case is that one wants to center the simulation on
+a given halo and analyze some of its properties:
+
+.. ipython::
+
+ In [9]: pynbody.analysis.halo.center(h[1], vel=False)
+
+ @savefig halo1_image_subfind.png width=5in
+ In [10]: im = pynbody.plot.image(h[1].d, width = '40 kpc', cmap=plt.cm.Greys, units = 'Msol kpc^-2')
+
+
+Subhalo catalogue information
+-----------------------------
+
+After the FOF group has been found, SubFind runs on this reduced particle list
+to determine gravitational bound substructures (or subhalos) within the larger FOF halo.
+To access the list of subhalos simply call:
+
+.. ipython::
+
+ In [11]: h[1].sub[:]
+
+to return a list of sub-halos of this halo. Then one can select subhalo particles as
+before (e.g. dark matter velocities):
+
+.. ipython::
+
+ In [12]: h[1].sub[0].d['vel']
+
+for the main (i.e. first) subhalo of the second FOF halo. As with AHF additional halo
+catalogue values such as the centre of mass, or the velocity dispersion, can be accessed
+by the properties list for each halo / subhalo. Note that the subhalo properties list
+is far more extensive than the FOF halo:
+
+.. ipython::
+
+ In [13]: h[2].properties
+
+ In [14]: h[2].properties['CenterOfMass']
+
+ In [15]: h[2].sub[4].properties
+
+ In [16]: h[2].sub[4].properties['CenterOfMass']
+
+To access the entire dataset of a given property (say all of the Stellar
+Velocity Dispersions) requires an embedded for loop over the HDF5 catalogue and
+appending to an array:
+
+.. ipython::
+
+ In [17]: SubStellarVelDisp = [[subhalo.properties['SubStellarVelDisp'] for subhalo in halo.sub] for halo in h]
+
+ In [19]: SubStellarVelDisp[5]

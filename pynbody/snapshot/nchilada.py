@@ -18,6 +18,7 @@ from .. import units
 from .. import config, config_parser
 from .. import chunk
 from . import SimSnap
+from . import namemapper
 
 import struct
 import os
@@ -31,8 +32,8 @@ import math
 import xml.dom.minidom
 import xdrlib
 
-_name_map, _rev_name_map = util.setup_name_maps('nchilada-name-mapping')
-_translate_array_name = util.name_map_function(_name_map, _rev_name_map)
+_name_map, _rev_name_map = namemapper.setup_name_maps('nchilada-name-mapping')
+_translate_array_name = namemapper.name_map_function(_name_map, _rev_name_map)
 
 _type_codes = map(np.dtype, [None, 'int8', 'uint8', 'int16', 'uint16',
                              'int32', 'uint32', 'int64', 'uint64',
@@ -115,8 +116,10 @@ class NchiladaSnap(SimSnap):
             raise IOError, "No such array on disk"
         f = open(fname, 'rb')
         _, nbod, ndim, dtype = self._load_header(f)
-
-        self._create_family_array(array_name, fam, ndim=ndim)
+        if dtype == 'float32':
+            self._create_family_array(array_name, fam, ndim=ndim,dtype=None)
+        else:
+            self._create_family_array(array_name, fam, ndim=ndim,dtype=dtype)
         r = self[fam][array_name]
         if units.has_units(r):
             r.convert_units(self._default_units_for(array_name))

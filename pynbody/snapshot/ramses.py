@@ -2,7 +2,7 @@
 
 ramses
 ======
-Rick
+
 Implements classes and functions for handling RAMSES files. AMR cells
 are loaded as particles. You rarely need to access this module
 directly as it will be invoked automatically via pynbody.load.
@@ -86,9 +86,7 @@ def _cpu_id(i):
 
 
 @remote_exec
-def _cpui_count_particles(filename):
-    distinguisher_field = int(particle_distinguisher[0])
-    distinguisher_type = np.dtype(particle_distinguisher[1])
+def _cpui_count_particles(filename, distinguisher_field, distinguisher_type):
 
     f = open(filename, "rb")
     header = read_fortran_series(f, ramses_particle_header)
@@ -460,9 +458,29 @@ class RamsesSnap(SimSnap):
         if not os.path.exists(self._particle_filename(1)):
             return 0, 0
 
+        if not self._new_format:
+            distinguisher_field = int(particle_distinguisher[0])
+            distinguisher_type = np.dtype(particle_distinguisher[1])
+        else:
+            # be more cunning about finding the distinguisher field (likely 'age') -
+            # as it may have moved around in some patches of ramses
+
+            distinguisher_name = particle_blocks[int(particle_distinguisher[0])]
+            try:
+                distinguisher_field = self._particle_blocks.index(distinguisher_name)
+            except ValueError:
+                # couldn't find the named distinguisher field. Fall back to using index.
+                distinguisher_field = int(particle_distinguisher[0])
+                warnings.warn("Using field %r>0 as criterion to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher."%self._particle_blocks[distinguisher_field])
+
+
+            distinguisher_type = np.dtype(particle_distinguisher[1])
+
         results = remote_map(self.reader_pool,
                              _cpui_count_particles,
-                             [self._particle_filename(i) for i in self._cpus])
+                             [self._particle_filename(i) for i in self._cpus],
+                             [distinguisher_field]*len(self._cpus),
+                             [distinguisher_type]*len(self._cpus))
 
         for npart_this, nstar_this, my_mask in results:
             self._dm_i0.append(dm_i0)
