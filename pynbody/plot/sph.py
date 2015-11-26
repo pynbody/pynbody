@@ -69,7 +69,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
 
-    *legend_bg_color* (none): The color for the legend (scale) background
+    *quiverkey_bg_color* (none): The color for the legend (scale) background
 
     *scale* (None): The length of a vector that would result in a displayed length of the
     figure width/height.
