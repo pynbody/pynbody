@@ -12,9 +12,6 @@ import matplotlib
 import numpy as np
 from .. import sph, config
 from .. import units as _units
-from matplotlib.ticker import LogFormatterExponent # RS - Not working as advertised. Adds 'e' to exp value
-from matplotlib.ticker import LogFormatterMathtext
-from matplotlib.ticker import LogFormatter
 from matplotlib.ticker import ScalarFormatter # RS 
 from matplotlib.ticker import FuncFormatter # RS
 
