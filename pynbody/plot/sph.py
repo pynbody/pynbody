@@ -12,7 +12,17 @@ import matplotlib
 import numpy as np
 from .. import sph, config
 from .. import units as _units
+from matplotlib.ticker import ScalarFormatter # RS 
+from matplotlib.ticker import FuncFormatter # RS
 
+def fmt(x,pos):
+    """
+    Custom formatter to handle log of values for color bar
+    Not sure why, but the LogFormatterExponenet sometimes
+    adds and "e" to the value... ?? This simply returns
+    log10 of the value.
+    """
+    return format(np.log10(x), '.0f')
 
 def sideon_image(sim, *args, **kwargs):
     """
@@ -48,7 +58,7 @@ def faceon_image(sim, *args, **kwargs):
         return image(sim, *args, **kwargs)
 
 
-def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
+def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black', quiverkey_bg_color=None,
                    vector_resolution=40, scale=None, mode='quiver', key_x=0.3, key_y=0.9,
                    key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
     """
@@ -67,6 +77,8 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
      can result in poor readability in pdfs
 
     *vector_resolution* (40): How many vectors in each dimension (default is 40x40)
+
+    *quiverkey_bg_color* (none): The color for the legend (scale) background
 
     *scale* (None): The length of a vector that would result in a displayed length of the
     figure width/height.
@@ -115,8 +127,12 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
         else:
             Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
                 sim['vel'].units), color=vector_color, edgecolor=edgecolor)
-        p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
-                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 16})
+        # R. Sarmento - capturing return of quickerkey in 'qk' so I can set background color...
+        qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
+                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color,
+                    fontproperties={'size': 16})
+        if  quiverkey_bg_color is not None:
+            qk.text.set_backgroundcolor(quiverkey_bg_color)
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
 
@@ -454,10 +470,17 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
                 units = "$"+units.latex()+"$"
 
         if show_cbar:
-            if qtytitle is not None:
-                plt.colorbar(ims).set_label(qtytitle)
+            if log:
+                custom_formatter = FuncFormatter(fmt)
+                ## l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
+                l_f = custom_formatter
             else:
-                plt.colorbar(ims).set_label(units)
+                l_f = ScalarFormatter()
+
+            if qtytitle is not None:
+                plt.colorbar(ims,format=l_f).set_label(qtytitle)
+            else:
+                plt.colorbar(ims,format=l_f).set_label(units)
         # colorbar doesn't work wtih subplot:  mappable is NoneType
         # elif show_cbar:
         #    import matplotlib.pyplot as mpl

@@ -452,7 +452,8 @@ def get_tform(sim, part2birth_path=part2birth_path):
 
         n = fromfile(f, 'i', 1)
         if n > 0:
-            n /= 8
+            #n /= 8 # This is causing an err with python 3... recommended fix below
+            np.divide(n, 8, out=n)
             ages = fromfile(f, 'd', n)
             new = np.where(ages > 0)[0]
             top.s['tform'][done:done + len(new)] = ages[new]
