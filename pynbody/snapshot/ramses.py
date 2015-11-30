@@ -430,7 +430,7 @@ class RamsesSnap(SimSnap):
 
         for group in xrange(self._info['nGroups']):
             for block in rt_blocks:
-                self._rt_blocks.append(block%group)
+                self._rt_blocks.append(block.format(group))
 
     def _load_info_from_specified_file(self, f):
         for l in f:
