@@ -239,6 +239,7 @@ def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator
 
 _gv_load_hydro = 0
 _gv_load_gravity = 1
+_gv_load_rt = 2
 
 
 @remote_exec
@@ -252,17 +253,25 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
 
     f = open(filename, "rb")
 
-    check_nvar_file = False
+    exact_nvar = False
 
     if mode is _gv_load_hydro:
         header = read_fortran_series(f, ramses_hydro_header)
 
         nvar_file = header['nvarh']
-    else:
+    elif mode is _gv_load_gravity:
         header = read_fortran_series(f, ramses_grav_header)
         nvar_file = 4
+    elif mode is _gv_load_rt:
+        header = read_fortran_series(f, ramses_rt_header)
+        nvar_file = header['nrtvar']
+        exact_nvar = True
+    else:
+        raise ValueError, "Unknown RAMSES load mode"
 
-    if nvar_file < nvar:
+    if nvar_file != nvar and exact_nvar:
+        raise ValueError, "Wrong number of variables in RAMSES dump"
+    elif nvar_file < nvar:
         warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
             nvar, nvar_file), RuntimeWarning)
         nvar = nvar_file
@@ -323,6 +332,9 @@ ramses_hydro_header = np.dtype([('ncpu', 'i4'), ('nvarh', 'i4'), ('ndim', 'i4'),
 ramses_grav_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('nlevelmax', 'i4'),
                                ('nboundary', 'i4')])
 
+ramses_rt_header = np.dtype([('ncpu','i4'), ('nrtvar', 'i4'), ('ndim', 'i4'),
+                             ('nlevelmax', 'i4'), ('nboundary', 'i4'), ('gamma', 'f8')])
+
 particle_blocks = map(
     str.strip, config_parser.get('ramses', "particle-blocks").split(","))
 particle_format = map(
@@ -332,6 +344,10 @@ hydro_blocks = map(
     str.strip, config_parser.get('ramses', "hydro-blocks").split(","))
 grav_blocks = map(
     str.strip, config_parser.get('ramses', "gravity-blocks").split(","))
+
+rt_blocks = map(
+    str.strip, config_parser.get('ramses', 'rt-blocks').split(",")
+)
 
 particle_distinguisher = map(
     str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
@@ -400,12 +416,23 @@ class RamsesSnap(SimSnap):
         self._family_slice[family.star] = slice(ndm, ndm + nstar)
         self._family_slice[family.gas] = slice(ndm + nstar, ndm + nstar + ngas)
 
+        self._load_rt_infofile()
         self._decorate()
 
-    def _load_infofile(self):
-        self._info = {}
-        f = open(
-            self._filename + "/info_" + _timestep_id(self._filename) + ".txt", "r")
+    def _load_rt_infofile(self):
+        self._rt_blocks = []
+        try:
+            f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt", "r")
+        except IOError:
+            return
+
+        self._load_info_from_specified_file(f)
+
+        for group in xrange(self._info['nGroups']):
+            for block in rt_blocks:
+                self._rt_blocks.append(block%group)
+
+    def _load_info_from_specified_file(self, f):
         for l in f:
             if '=' in l:
                 name, val = map(str.strip, l.split('='))
@@ -416,6 +443,13 @@ class RamsesSnap(SimSnap):
                         self._info[name] = int(val)
                 except ValueError:
                     self._info[name] = val
+
+    def _load_infofile(self):
+        self._info = {}
+        f = open(
+            self._filename + "/info_" + _timestep_id(self._filename) + ".txt", "r")
+
+        self._load_info_from_specified_file(f)
         try:
             f = open(
                 self._filename + "/header_" + _timestep_id(self._filename) + ".txt", "r")
@@ -439,6 +473,9 @@ class RamsesSnap(SimSnap):
 
     def _grav_filename(self, cpu_id):
         return self._filename + "/grav_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
+
+    def _rt_filename(self, cpu_id):
+        return self._filename + "/rt_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
 
     def _count_particles(self):
         """Returns ndm, nstar where ndm is the number of dark matter particles
@@ -537,7 +574,7 @@ class RamsesSnap(SimSnap):
 
         dims = []
 
-        for i in [hydro_blocks, grav_blocks][mode]:
+        for i in [hydro_blocks, grav_blocks, self._rt_blocks][mode]:
             if i not in self.gas:
                 self.gas._create_array(i)
             if self._ndim < 3 and i[-1] == 'z':
@@ -551,9 +588,9 @@ class RamsesSnap(SimSnap):
 
         grid_info_iter = self._level_iterator()
 
-        logger.info("Loading %s files", ['hydro', 'grav'][mode])
+        logger.info("Loading %s files", ['hydro', 'grav', 'rt'][mode])
 
-        filenamer = [self._hydro_filename, self._grav_filename][mode]
+        filenamer = [self._hydro_filename, self._grav_filename, self._rt_filename][mode]
 
         remote_map(self.reader_pool,
                    _cpui_load_gas_vars,

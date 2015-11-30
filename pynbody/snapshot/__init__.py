@@ -116,7 +116,7 @@ class SimSnap(object):
             if name in v:
                 return k
 
-        generic_match = re.findall("([A-z]+)_[xyz]$", name)
+        generic_match = re.findall("^(.+)_[xyz]$", name)
         if len(generic_match) is 1 and generic_match[0] not in self._split_arrays:
             return generic_match[0]
 
