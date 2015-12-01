@@ -685,7 +685,7 @@ class RamsesSnap(SimSnap):
             if fam is family.dm or fam is family.star:
                 return self._particle_blocks
             elif fam is family.gas:
-                return ['x', 'y', 'z', 'smooth'] + hydro_blocks
+                return ['x', 'y', 'z', 'smooth'] + hydro_blocks + self._rt_blocks
 
     def _load_array(self, array_name, fam=None):
         if array_name == 'cpu':
