@@ -430,7 +430,7 @@ class RamsesSnap(SimSnap):
 
         for group in xrange(self._info['nGroups']):
             for block in rt_blocks:
-                self._rt_blocks.append(block.format(group))
+                self._rt_blocks.append(block%group)
 
     def _load_info_from_specified_file(self, f):
         for l in f:
@@ -716,6 +716,8 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars()
             elif array_name in grav_blocks:
                 self._load_gas_vars(1)
+            elif array_name in self._rt_blocks:
+                self._load_gas_vars(_gv_load_rt)
             else:
                 raise IOError, "No such array on disk"
         elif fam is None and array_name in ['pos', 'vel']:
