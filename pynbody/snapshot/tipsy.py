@@ -228,20 +228,19 @@ class TipsySnap(SimSnap):
             except ValueError:
                 # could be a binary file
                 f = util.open_(x, 'rb')
+                
+                header = f.read(4)
+                if len(header)!=4:
+                    return False
 
-                if hasattr(f, 'fileobj'):
-                    # Cludge to get un-zipped length
-                    fx = f.fileobj
-                    fx.seek(-4, 2)
-                    buflen = struct.unpack("<l", fx.read(4))[0]
-                    ourlen_1 = ((len(self) * 4) + 4) & 0xffffffffL
-                    ourlen_3 = ((len(self) * 3 * 4) + 4) & 0xffffffffL
-
+                if self._byteswap:
+                    buflen = struct.unpack(">i", header)[0]
                 else:
-                    buflen = os.path.getsize(x)
-                    ourlen_1 = ((len(self) * 4) + 4)
-                    ourlen_3 = ((len(self) * 4) + 4)
+                    buflen = struct.unpack("i", header)[0]
 
+                ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffffL
+                ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffffL
+                
                 if buflen == ourlen_1:  # it's a vector
                     return True
                 elif buflen == ourlen_3:  # it's an array
