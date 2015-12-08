@@ -432,6 +432,12 @@ class RamsesSnap(SimSnap):
             for block in rt_blocks:
                 self._rt_blocks.append(block%group)
 
+        self._rt_unit = self._info['unit_pf']*units.Unit("cm^-2 s^-1")
+
+        self._rt_blocks_3d = set()
+        for block in self._rt_blocks:
+            self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
+
     def _load_info_from_specified_file(self, f):
         for l in f:
             if '=' in l:
@@ -676,26 +682,33 @@ class RamsesSnap(SimSnap):
                 gas_cpu_ar[i0:i1] = cpu
 
     def loadable_keys(self, fam=None):
+
         if fam is None:
-            x = set()
+            keys = set()
             for f0 in self.families():
-                x = x.union(self.loadable_keys(f0))
-            return list(x)
+                keys = keys.union(self.loadable_keys(f0))
         else:
             if fam is family.dm or fam is family.star:
-                return self._particle_blocks
+                keys = self._particle_blocks
             elif fam is family.gas:
-                return ['x', 'y', 'z', 'smooth'] + hydro_blocks + self._rt_blocks
+                keys = ['x', 'y', 'z', 'smooth'] + hydro_blocks + self._rt_blocks
+
+        keys_ND = set()
+        for key in keys:
+            keys_ND.add(self._array_name_1D_to_ND(key) or key)
+        return list(keys_ND)
 
     def _load_array(self, array_name, fam=None):
+        # Framework always calls with 3D name. Ramses particle blocks are
+        # stored as 1D slices.
+
         if array_name == 'cpu':
             self['cpu'] = np.zeros(len(self), dtype=int)
             self._load_particle_cpuid()
             self._load_gas_cpuid()
 
         elif fam is family.dm or fam is family.star:
-            # Framework always calls with 3D name. Ramses particle blocks are
-            # stored as 1D slices.
+
             if array_name in self._split_arrays:
                 for array_1D in self._array_name_ND_to_1D(array_name):
                     self._load_array(array_1D, fam)
@@ -716,8 +729,10 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars()
             elif array_name in grav_blocks:
                 self._load_gas_vars(1)
-            elif array_name in self._rt_blocks:
+            elif array_name in self._rt_blocks_3d:
                 self._load_gas_vars(_gv_load_rt)
+                for u_block in self._rt_blocks_3d:
+                    self[fam][u_block].units = self._rt_unit
             else:
                 raise IOError, "No such array on disk"
         elif fam is None and array_name in ['pos', 'vel']:
@@ -746,11 +761,7 @@ class RamsesSnap(SimSnap):
         else:
             raise IOError, "No such array on disk"
 
-        self_fam = self[fam] if fam else self
 
-        # The following is now done by SnapShot (and done better):
-        # if array_name in self_fam and hasattr(self_fam[array_name].units, "_no_unit") :
-        #    self_fam[array_name].units = self._default_units_for(array_name)
 
     @staticmethod
     def _can_load(f):
