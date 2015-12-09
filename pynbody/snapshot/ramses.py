@@ -421,6 +421,7 @@ class RamsesSnap(SimSnap):
 
     def _load_rt_infofile(self):
         self._rt_blocks = []
+        self._rt_blocks_3d = set()
         try:
             f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt", "r")
         except IOError:
@@ -434,7 +435,6 @@ class RamsesSnap(SimSnap):
 
         self._rt_unit = self._info['unit_pf']*units.Unit("cm^-2 s^-1")
 
-        self._rt_blocks_3d = set()
         for block in self._rt_blocks:
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
 
