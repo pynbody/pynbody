@@ -238,3 +238,28 @@ def test_subsnap_by_boolean_mask():
 
 def test_issue_206() :
     assert len(f.s[[1,4,29]].s)==3
+
+
+def test_nd_array_slicing():
+    assert np.all(f['x']==f['pos'][:,0])
+    assert f._array_name_1D_to_ND('x')=='pos'
+    assert f._array_name_1D_to_ND('anything_y')=='anything'
+
+    pos_components = set(f._array_name_ND_to_1D('pos'))
+    assert pos_components=={'x','y','z'}
+
+    anything_components = set(f._array_name_ND_to_1D('anything'))
+    assert anything_components=={'anything_x','anything_y','anything_z'}
+
+    assert f._array_name_implies_ND_slice('x')
+
+    # following is only true if the array 'anything' actually exists in loadable_keys, which it doesn't
+    assert not f._array_name_implies_ND_slice('anything_x')
+
+    # the judgement is on name only, so even though mass_x could not be created it is judged as
+    # a 1D slice of the 'mass' array:
+    assert f._array_name_implies_ND_slice('mass_x')
+    assert f.gas._array_name_implies_ND_slice('rho_x')
+
+    # rho doesn't exist in f.loadable_keys(), only f.gas.loadable_keys():
+    assert not f._array_name_implies_ND_slice('rho_x')

@@ -116,7 +116,7 @@ class SimSnap(object):
             if name in v:
                 return k
 
-        generic_match = re.findall("([A-z]+)_[xyz]$", name)
+        generic_match = re.findall("^(.+)_[xyz]$", name)
         if len(generic_match) is 1 and generic_match[0] not in self._split_arrays:
             return generic_match[0]
 
@@ -138,6 +138,27 @@ class SimSnap(object):
             array_name_1D = [array_name + "_" + i for i in 'x', 'y', 'z']
 
         return array_name_1D
+
+    def _array_name_implies_ND_slice(self, array_name):
+        """Returns True if, at best guess, the array name corresponds to a 1D slice
+        of a ND array, on the basis of names alone.
+
+        This routine first looks at special cases (pos -> x,y,z for example),
+        then looks for generic names such as acc_x - however this would only be
+        considered a "match" for a ND subslice if 'acc' is in loadable_keys().
+        """
+        for v in self._split_arrays.itervalues():
+            if array_name in v:
+              return True
+
+        generic_match = re.findall("^(.+)_[xyz]$", array_name)
+        loadable_keys = self.loadable_keys()
+        keys = self.keys()
+        if len(generic_match) is 1 and generic_match[0] not in self._split_arrays:
+            return generic_match[0] in loadable_keys or generic_match[0] in keys
+        return False
+
+
 
     def __init__(self):
         """Initialize an empty, zero-length SimSnap.
