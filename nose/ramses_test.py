@@ -13,10 +13,6 @@ def test_lengths():
     assert len(f.dm) == 51887
 
 
-def close_enough(x, y):
-    return abs(x - y) < 1.e-5
-
-
 def test_array_unit_sanity():
     """Picks up on problems with converting arrays as they
     get promoted from family to simulation level"""
@@ -34,6 +30,14 @@ def test_array_unit_sanity():
 
     np.testing.assert_allclose(f2['pos'], f['pos'], atol=1e-5)
 
+def test_key_error():
+    """Tests that the appropriate KeyError is raised when a
+    hydro array is not found. This is a regression test for
+    a problem where AttributeError could be raised instead because
+    _rt_blocks_3d was missing for non-RT runs"""
+
+    with np.testing.assert_raises(KeyError):
+        f.gas['nonexistentarray']
 
 def test_mass_unit_sanity():
     """Picks up on problems with converting array units as
