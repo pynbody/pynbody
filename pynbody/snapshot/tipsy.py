@@ -228,20 +228,19 @@ class TipsySnap(SimSnap):
             except ValueError:
                 # could be a binary file
                 f = util.open_(x, 'rb')
+                
+                header = f.read(4)
+                if len(header)!=4:
+                    return False
 
-                if hasattr(f, 'fileobj'):
-                    # Cludge to get un-zipped length
-                    fx = f.fileobj
-                    fx.seek(-4, 2)
-                    buflen = struct.unpack("<l", fx.read(4))[0]
-                    ourlen_1 = ((len(self) * 4) + 4) & 0xffffffffL
-                    ourlen_3 = ((len(self) * 3 * 4) + 4) & 0xffffffffL
-
+                if self._byteswap:
+                    buflen = struct.unpack(">i", header)[0]
                 else:
-                    buflen = os.path.getsize(x)
-                    ourlen_1 = ((len(self) * 4) + 4)
-                    ourlen_3 = ((len(self) * 4) + 4)
+                    buflen = struct.unpack("i", header)[0]
 
+                ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffffL
+                ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffffL
+                
                 if buflen == ourlen_1:  # it's a vector
                     return True
                 elif buflen == ourlen_3:  # it's an array
@@ -767,7 +766,7 @@ class TipsySnap(SimSnap):
 
         if filename is None and array_name in ['massform', 'rhoform', 'tempform', 'phiform', 'nsmooth',
                                                'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform',
-                                               'posform', 'velform']:
+                                               'posform', 'velform','h2form']:
 
             try:
                 self.read_starlog()
@@ -904,12 +903,21 @@ class TipsySnap(SimSnap):
 
         logger.info("Bridging starlog into SimSnap")
         b = pynbody.bridge.OrderBridge(self, sl)
-        b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
-        b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
-        b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
-        b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
-        b(sl)['posform'] = sl['pos'][:len(self.star), :]
-        b(sl)['velform'] = sl['vel'][:len(self.star), :]
+        b(b(b(sl))).star['iorderGas'] = b(b(sl)).star['iorderGas']
+        b(b(b(sl))).star['massform'] = b(b(sl)).star['massform']
+        b(b(b(sl))).star['rhoform'] = b(b(sl)).star['rhoform']
+        b(b(b(sl))).star['tempform'] = b(b(sl)).star['tempform']
+        b(b(b(sl)))['posform'] = b(b(sl))['pos']
+        b(b(b(sl)))['velform'] = b(b(sl))['vel']
+        #b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
+        #b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
+        #b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
+        #b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
+        #b(sl)['posform'] = sl['pos'][:len(self.star), :]
+        #b(sl)['velform'] = sl['vel'][:len(self.star), :]
+        if 'h2form' in sl.star.keys():
+            b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
+        else: print "No H2 data found in StarLog file"
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
         for i, x in enumerate(['vx', 'vy', 'vz']):
@@ -1126,6 +1134,7 @@ class StarLog(SimSnap):
         f = util.open_(filename, "rb")
         self.properties = {}
         bigstarlog = False
+        molecH = False
 
         file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                              "x", "y", "z",
@@ -1145,6 +1154,16 @@ class StarLog(SimSnap):
 
         if (iSize > file_structure.itemsize):
             file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                             "x", "y", "z",
+                                             "vx", "vy", "vz",
+                                             "massform", "rhoform", "tempform","h2form"),
+                                   'formats': ('i4', 'i4', 'f8',
+                                               'f8', 'f8', 'f8',
+                                               'f8', 'f8', 'f8',
+                                               'f8', 'f8', 'f8','f8')})
+            molecH = True
+        if (iSize != file_structure.itemsize):
+            file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                  "x", "y", "z",
                                                  "vx", "vy", "vz",
                                                  "massform", "rhoform", "tempform",
@@ -1154,6 +1173,7 @@ class StarLog(SimSnap):
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'i4')})
+            molecH = False
 
             if (iSize != file_structure.itemsize and iSize != 104):
                 raise IOError, "Unknown starlog structure iSize:" + \
@@ -1161,7 +1181,7 @@ class StarLog(SimSnap):
                     str(file_structure.itemsize)
             else:
                 bigstarlog = True
-
+        if molecH == True: print "h2 information found in StarLog!"
         datasize = os.path.getsize(filename) - f.tell()
 
         # check whether datasize is a multiple of iSize. If it is not,
@@ -1200,6 +1220,8 @@ class StarLog(SimSnap):
         self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
+        if molecH==True:
+            self._create_arrays(["h2form"])
         if bigstarlog:
             self._create_arrays(["phiform", "nsmooth"])
 
@@ -1502,6 +1524,45 @@ def settime(sim):
         # Assume a non-cosmological run
         sim.properties['time'] = sim._header_t
 
+@nchilada.NchiladaSnap.decorator
+def settimeN(sim):
+    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove']) != 0:
+        #t = sim._header_t
+        #sim.properties['a'] = t
+        try:
+            sim.properties['z'] = 1.0 / sim.properties['a'] - 1.0
+        except ZeroDivisionError:
+            # no sensible redshift
+            pass
+
+        if (sim.properties['z'] is not None and
+                sim._paramfile.has_key('dMsolUnit') and
+                sim._paramfile.has_key('dKpcUnit')):
+            from ..analysis import cosmology
+            sim.properties['time'] = cosmology.age(
+                sim, unit=sim.infer_original_units('yr'))
+        else:
+            # something has gone wrong with the cosmological side of
+            # things
+            warnings.warn(
+                "Paramfile suggests time is cosmological, but header values are not sensible in this context.", RuntimeWarning)
+            sim.properties['time'] = sim.properties['a']
+
+        #sim.properties['a'] = t
+
+    else:
+        # Assume a non-cosmological run
+        sim.properties['time'] = sim.properties['a']
+
+    time_unit = None
+    try:
+        time_unit = sim.infer_original_units('yr')
+    except units.UnitsException:
+        pass
+
+    if time_unit is not None:
+        sim.properties['time'] *= time_unit
+
 
 @StarLog.decorator
 def slparam2units(sim):
@@ -1527,6 +1588,15 @@ def slparam2units(sim):
 
         denunit = munit / dunit ** 3
         denunit_st = str(denunit) + " Msol kpc^-3"
+        velunit = 8.0285 * math.sqrt(6.6743e-8 * denunit) * dunit
+        velunit_st = ("%.5g" % velunit) + " km s^-1"
+
+        # You have: kpc s / km
+        # You want: Gyr
+        #* 0.97781311
+        timeunit = dunit / velunit * 0.97781311
+        timeunit_st = ("%.5g" % timeunit) + " Gyr"
+
 
         if hub != None:
             # append dependence on 'a' for cosmological runs
@@ -1538,3 +1608,4 @@ def slparam2units(sim):
 
         sim.star["rhoform"].units = denunit_st
         sim.star["massform"].units = munit_st
+

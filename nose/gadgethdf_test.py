@@ -92,7 +92,7 @@ def test_halo_values() :
     # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
     from pyread_gadget_hdf5 import pyread_gadget_hdf5
 
-    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=True)
+    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=None)
     FoF_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='fof', nopanda=True, silent=True)
     Sub_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='subfind', nopanda=True, silent=True)
     Sub_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='subfind', nopanda=True, silent=True)
@@ -166,5 +166,3 @@ def test_fof_vs_sub_assignment():
     assert(np.allclose( h[0].properties['Halo_M_Crit200'], 29.796955896599684))
     assert(np.allclose(h[1].properties['Mass'], 8.880245794949587))
     assert(np.allclose(h[1].properties['Halo_M_Crit200'],8.116568749712314))
-
-    

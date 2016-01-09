@@ -31,7 +31,7 @@ pynbody will calculate it:
 
 Note that you cannot directly alter a derived array:
 
-.. ipython::
+.. ipython:: :okexcept:
 
    In [5]: s['ke'][0] = 0
 
