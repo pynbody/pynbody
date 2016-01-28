@@ -514,7 +514,11 @@ class RamsesSnap(SimSnap):
             except ValueError:
                 # couldn't find the named distinguisher field. Fall back to using index.
                 distinguisher_field = int(particle_distinguisher[0])
-                warnings.warn("Using field %r>0 as criterion to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher."%self._particle_blocks[distinguisher_field])
+                if len(self._particle_blocks)>distinguisher_field:
+                    pb_name = "%r"%self._particle_blocks[distinguisher_field]
+                else:
+                    pb_name = "at offset %d"%distinguisher_field
+                warnings.warn("Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher."%pb_name)
 
 
             distinguisher_type = np.dtype(particle_distinguisher[1])
