@@ -839,10 +839,14 @@ class AHFCatalogue(HaloCatalogue):
         """
         self.base[name] = self.get_group_array()
 
-    def get_group_array(self):
+    def get_group_array(self, top_level=False):
         ar = np.zeros(len(self.base), dtype=int)
-        for halo in self._halos.values():
-            ar[halo.get_index_list(self.base)] = halo._halo_id
+        if top_level is False:
+            for halo in self._halos.values():
+                ar[halo.get_index_list(self.base)] = halo._halo_id
+        else:
+            for halo in self._halos.values()[::-1]:
+                ar[halo.get_index_list(self.base)] = halo._halo_id
         return ar
 
     def _setup_children(self):
