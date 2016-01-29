@@ -109,7 +109,7 @@ class Bridge(object):
         return identification
 
     def fuzzy_match_catalog(self, min_index=1, max_index=30, threshold=0.01,
-                            groups_1 = None, groups_2 = None, use_family=None, dmonly=False):
+                            groups_1 = None, groups_2 = None, use_family=None, only_family=None):
         """fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
         identifications in groups_2, along with the fraction of particles in common
         between the two.
@@ -121,7 +121,7 @@ class Bridge(object):
         If no identification is found, the entry is the empty list [].
         """
 
-        transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family,dmonly)
+        transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family,only_family)
 
         output = [[]]*min_index
         for row in transfer_matrix:
@@ -137,7 +137,7 @@ class Bridge(object):
 
         return output
 
-    def catalog_transfer_matrix(self, min_index=1, max_index=30, groups_1=None, groups_2=None,use_family=None,dmonly=False):
+    def catalog_transfer_matrix(self, min_index=1, max_index=30, groups_1=None, groups_2=None,use_family=None,only_family=None):
         """Return a max_index x max_index matrix with the number of particles transferred from
         the row group in groups_1 to the column group in groups_2.
 
@@ -159,7 +159,7 @@ class Bridge(object):
             end = end[use_family]
             start = start[use_family]
 
-        if dmonly is False:
+        if only_family is None:
 
             restriction_end = self(self(end)).get_index_list(end.ancestor)
             restriction_start = self(self(start)).get_index_list(start.ancestor)
@@ -171,8 +171,8 @@ class Bridge(object):
 
         else:
 
-            g1 = groups_1.get_fam_group_array(family='dark')
-            g2 = groups_2.get_fam_group_array(family='dark')
+            g1 = groups_1.get_fam_group_array(family=only_family)
+            g2 = groups_2.get_fam_group_array(family=only_family)
 
         transfer_matrix = _bridge.match(g1, g2, min_index, max_index)
 
