@@ -109,7 +109,7 @@ class Bridge(object):
         return identification
 
     def fuzzy_match_catalog(self, min_index=1, max_index=30, threshold=0.01,
-                            groups_1 = None, groups_2 = None, use_family=None):
+                            groups_1 = None, groups_2 = None, use_family=None, dmonly=False):
         """fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
         identifications in groups_2, along with the fraction of particles in common
         between the two.
@@ -121,7 +121,7 @@ class Bridge(object):
         If no identification is found, the entry is the empty list [].
         """
 
-        transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family)
+        transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family,dmonly)
 
         output = [[]]*min_index
         for row in transfer_matrix:
@@ -137,7 +137,7 @@ class Bridge(object):
 
         return output
 
-    def catalog_transfer_matrix(self, min_index=1, max_index=30, groups_1=None, groups_2=None,use_family=None):
+    def catalog_transfer_matrix(self, min_index=1, max_index=30, groups_1=None, groups_2=None,use_family=None,dmonly=False):
         """Return a max_index x max_index matrix with the number of particles transferred from
         the row group in groups_1 to the column group in groups_2.
 
@@ -159,13 +159,20 @@ class Bridge(object):
             end = end[use_family]
             start = start[use_family]
 
-        restriction_end = self(self(end)).get_index_list(end.ancestor)
-        restriction_start = self(self(start)).get_index_list(start.ancestor)
+        if dmonly is False:
 
-        assert len(restriction_end) == len(
-            restriction_start), "Internal consistency failure in catalog_transfer_matrix: particles supposedly common to both simulations have two different lengths"
-        g1 = groups_1.get_group_array()[restriction_start]
-        g2 = groups_2.get_group_array()[restriction_end]
+            restriction_end = self(self(end)).get_index_list(end.ancestor)
+            restriction_start = self(self(start)).get_index_list(start.ancestor)
+
+            assert len(restriction_end) == len(
+                restriction_start), "Internal consistency failure in catalog_transfer_matrix: particles supposedly common to both simulations have two different lengths"
+            g1 = groups_1.get_group_array()[restriction_start]
+            g2 = groups_2.get_group_array()[restriction_end]
+
+        else:
+
+            g1 = groups_1.get_fam_group_array(family='dark')
+            g2 = groups_2.get_fam_group_array(family='dark')
 
         transfer_matrix = _bridge.match(g1, g2, min_index, max_index)
 
@@ -239,7 +246,7 @@ def bridge_factory(a, b):
     if type(a_top) is not type(b_top):
         raise RuntimeError, "Don't know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately."
 
-    if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NChiladaSnap)):
+    if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NchiladaSnap)):
         if "iord" in a_top.loadable_keys():
             return OrderBridge(a_top, b_top, monotonic=True)
         else:
