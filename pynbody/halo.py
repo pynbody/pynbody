@@ -168,7 +168,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     _halo_type = np.dtype([('id',np.int64),('num_p',np.int64),('indstart',np.int64)])
     _part_type = np.dtype('int64')
 
-    def __init__(self, sim, sort=False, correct=False):
+    def __init__(self, sim, sort=True, correct=False):
         assert isinstance(sim,snapshot.SimSnap)
         self._correct=correct
         HaloCatalogue.__init__(self, sim)
