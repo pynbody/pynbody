@@ -13,7 +13,10 @@ def _get_config_parser_with_defaults():
     # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
     # the backcompat module. This keeps things in the order they were parsed (important
     # for units module, for instance).
-    config_parser = ConfigParser.RawConfigParser(dict_type=backcompat.OrderedDict)
+    if (sys.version_info.major > 2):
+        config_parser = ConfigParser.RawConfigParser(dict_type=backcompat.OrderedDict)
+    else:
+        config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
     config_parser.optionxform = str
     config_parser.read(
         os.path.join(os.path.dirname(__file__), "default_config.ini"))
