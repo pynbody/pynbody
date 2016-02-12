@@ -273,7 +273,7 @@ class SimArray(np.ndarray):
 
     @units.setter
     def units(self, u):
-        if isinstance(u, str):
+        if not isinstance(u, units.UnitBase) and u is not None:
             u = units.Unit(u)
 
         if hasattr(self.base, 'units'):

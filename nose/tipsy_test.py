@@ -348,3 +348,9 @@ def test_3d_interpolation():
 
     arr = pynbody.analysis.luminosity.calc_mags(f.s)
     assert(np.allclose(arr[0:100], ref2d))
+
+
+def test_issue_313():
+    f = pynbody.load("testdata/g15784.lr.01024")
+    f.physical_units()
+    f['vtheta']
