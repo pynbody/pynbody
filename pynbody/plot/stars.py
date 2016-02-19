@@ -36,30 +36,44 @@ def nw_arcsinh_fit(r, g, b, nonlinearity=3):
     return r * val, g * val, b * val
 
 
-def combine(r, g, b, dynamic_range):
-    maxi = []
+def combine(r, g, b, magnitude_range, brightest_mag=None):
+    # flip sign so that brightest pixels have biggest value
+    r = -r
+    g = -g
+    b = -b
 
-    # find something close to the maximum that is not quite the maximum
-    for x in r, g, b:
-        ordered = np.sort(x.flatten())
-        maxi.append(ordered[-len(ordered) / 5000])
+    if brightest_mag is None:
+        brightest_mag = []
 
-    maxi = np.log10(max(maxi))
+        # find something close to the maximum that is not quite the maximum
+        for x in r, g, b:
+            ordered = np.sort(x.flatten())
+            brightest_mag.append(ordered[-len(ordered) / 5000])
+
+        brightest_mag = max(brightest_mag)
+    else:
+        brightest_mag = -brightest_mag
 
     rgbim = np.zeros((r.shape[0], r.shape[1], 3))
-    rgbim[:, :, 0] = bytscl(np.log10(r), maxi - dynamic_range, maxi)
-    rgbim[:, :, 1] = bytscl(np.log10(g), maxi - dynamic_range, maxi)
-    rgbim[:, :, 2] = bytscl(np.log10(b), maxi - dynamic_range, maxi)
-    return rgbim
+    rgbim[:, :, 0] = bytscl(r, brightest_mag - magnitude_range, brightest_mag)
+    rgbim[:, :, 1] = bytscl(g, brightest_mag - magnitude_range, brightest_mag)
+    rgbim[:, :, 2] = bytscl(b, brightest_mag - magnitude_range, brightest_mag)
+    return rgbim, -brightest_mag
 
+def convert_to_mag_arcsec2(image):
+    assert image.units=="pc^-2"
+    pc2_to_sqarcsec = 2.3504430539466191e-09
+    return -2.5*np.log10(image*pc2_to_sqarcsec)
 
 def render(sim, filename=None,
            r_band='i', g_band='v', b_band='u',
            r_scale=0.5, g_scale=1.0, b_scale=1.0,
            dynamic_range=2.0,
+           mag_range=None,
            width=50,
            starsize=None,
-           plot=True, axes=None, ret_im=False, clear=True):
+           plot=True, axes=None, ret_im=False, clear=True,
+           ret_range=False):
     '''
     Make a 3-color image of stars.
 
@@ -101,6 +115,9 @@ def render(sim, filename=None,
        *ret_im*: bool (default: False)
          if True, the NxNx3 image array is returned
 
+       *ret_range*: bool (default: False)
+         if True, the range of the image in mag arcsec^-2 is returned.
+
        *plot*: bool (default: True)
          if True, the image is plotted
 
@@ -109,6 +126,10 @@ def render(sim, filename=None,
 
        *dynamic_range*: float (default: 2.0)
          The number of dex in luminosity over which the image brightness ranges
+
+       *mag_range*: float, float (default: None)
+         If provided, the brightest and faintest surface brightnesses in the range,
+         in mag arcsec^-2. Takes precedence over dynamic_range.
     '''
 
     if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
@@ -121,16 +142,29 @@ def render(sim, filename=None,
         sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
 
     r = image(sim.s, qty=r_band + '_lum_den', width=width, log=False,
-              av_z=True, clear=False, noplot=True) * r_scale
+              units="pc^-2", clear=False, noplot=True) * r_scale
     g = image(sim.s, qty=g_band + '_lum_den', width=width, log=False,
-              av_z=True, clear=False, noplot=True) * g_scale
+              units="pc^-2", clear=False, noplot=True) * g_scale
     b = image(sim.s, qty=b_band + '_lum_den', width=width, log=False,
-              av_z=True, clear=False, noplot=True) * b_scale
+              units="pc^-2", clear=False, noplot=True) * b_scale
+
+    # convert all channels to mag arcsec^-2
+
+
+    r=convert_to_mag_arcsec2(r)
+    g=convert_to_mag_arcsec2(g)
+    b=convert_to_mag_arcsec2(b)
+
 
     #r,g,b = nw_scale_rgb(r,g,b)
     #r,g,b = nw_arcsinh_fit(r,g,b)
 
-    rgbim = combine(r, g, b, dynamic_range)
+    if mag_range is None:
+        rgbim, mag_max = combine(r, g, b, dynamic_range*2.5)
+        mag_min = mag_max + 2.5*dynamic_range
+    else:
+        mag_max, mag_min = mag_range
+        rgbim, mag_max = combine(r, g, b, mag_min - mag_max, mag_max)
 
     if plot:
         if clear:
@@ -150,6 +184,12 @@ def render(sim, filename=None,
 
     if ret_im:
         return rgbim
+
+
+
+
+    if ret_range:
+        return mag_max, mag_min
 
 
 def sfh(sim, filename=None, massform=True, clear=False, legend=False,

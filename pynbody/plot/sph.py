@@ -100,15 +100,16 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     """
 
     subplot = kwargs.get('subplot', False)
+    av_z = kwargs.get('av_z',None)
     if subplot:
         p = subplot
     else:
         import matplotlib.pylab as p
 
     vx = image(sim, qty='vx', width=width, log=False,
-               resolution=vector_resolution, noplot=True)
+               resolution=vector_resolution, noplot=True,av_z=av_z)
     vy = image(sim, qty='vy', width=width, log=False,
-               resolution=vector_resolution, noplot=True)
+               resolution=vector_resolution, noplot=True,av_z=av_z)
     key_unit = _units.Unit(key_length)
 
     if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
@@ -130,12 +131,10 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
             Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
                 sim['vel'].units), color=vector_color, edgecolor=edgecolor)
         if quiverkey:
-            # R. Sarmento - capturing return of quickerkey in 'qk' so I can set background color...
-            qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
-                        r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color,
-                        fontproperties={'size': 30})
-            if  quiverkey_bg_color is not None:
-                qk.text.set_backgroundcolor(quiverkey_bg_color)
+        	qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
+                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 24})
+        if  quiverkey_bg_color is not None:
+            qk.text.set_backgroundcolor(quiverkey_bg_color)
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
 
@@ -475,6 +474,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if show_cbar:
             if log:
                 custom_formatter = FuncFormatter(fmt)
+                ## l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
                 l_f = custom_formatter
             else:
                 l_f = ScalarFormatter()

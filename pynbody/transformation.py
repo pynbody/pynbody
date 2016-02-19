@@ -30,6 +30,24 @@ class Transformation(object):
         else:
             self._sim = weakref.ref(sim)
 
+    def apply_to(self, f):
+        if self.next_transformation is not None:
+            # this is a chained transformation, get the SimSnap to operate on
+            # from the level below
+            f = self.next_transformation.apply_to(f)
+
+        self._apply(f)
+
+        return f
+
+    def apply_inverse_to(self, f):
+        self._revert(f)
+
+        if self.next_transformation is not None:
+            self.next_transformation.apply_inverse_to(f)
+
+
+
     def apply(self, force=True):
 
         if self.next_transformation is not None:

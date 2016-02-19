@@ -650,6 +650,8 @@ def Unit(s):
 
     if isinstance(s, UnitBase):
         return s
+    elif isinstance(s, int):
+        s = str(s)
 
     x = s.split()
     try:
