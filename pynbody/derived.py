@@ -18,6 +18,7 @@ import numpy as np
 import sys
 import logging
 import time
+import functools
 
 logger = logging.getLogger('pynbody.derived')
 
@@ -180,18 +181,24 @@ def age(self):
 bands_available = ['u', 'b', 'v', 'r', 'i', 'j', 'h', 'k', 'U', 'B', 'V', 'R', 'I',
                    'J', 'H', 'K']
 
+def lum_den_template(band, s):
+        val = (10 ** (-0.4 * s[band + "_mag"])) * s['rho'] / s['mass']
+        val.units = s['rho'].units/s['mass'].units
+        return val
+
 for band in bands_available:
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s, band=b)
     X.__name__ = band + "_mag"
     X.__doc__ = band + " magnitude from analysis.luminosity.calc_mags"""
     SimSnap.derived_quantity(X)
 
-    X = lambda s, b=str(band): (
-        10 ** (-0.4 * s[b + "_mag"])) * s['rho'] / s['mass']
-    X.__name__ = band + "_lum_den"
-    X.__doc__ = band + \
-        " luminosity density from analysis.luminosity.calc_mags"""
-    SimSnap.derived_quantity(X)
+    lum_den = functools.partial(lum_den_template,band)
+
+    lum_den.__name__ = band + "_lum_den"
+    lum_den.__doc__ = "Luminosity density in astronomy-friendly units: 10^(-0.4 %s_mag) per unit volume. " \
+                      "" \
+                      "The magnitude is taken from analysis.luminosity.calc_mags."%band
+    SimSnap.derived_quantity(lum_den)
 
 
 @SimSnap.derived_quantity
