@@ -98,15 +98,16 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     """
 
     subplot = kwargs.get('subplot', False)
+    av_z = kwargs.get('av_z',None)
     if subplot:
         p = subplot
     else:
         import matplotlib.pylab as p
 
     vx = image(sim, qty='vx', width=width, log=False,
-               resolution=vector_resolution, noplot=True)
+               resolution=vector_resolution, noplot=True,av_z=av_z)
     vy = image(sim, qty='vy', width=width, log=False,
-               resolution=vector_resolution, noplot=True)
+               resolution=vector_resolution, noplot=True,av_z=av_z)
     key_unit = _units.Unit(key_length)
 
     if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
