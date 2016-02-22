@@ -336,6 +336,14 @@ class SimArray(np.ndarray):
         else:
             return np.ndarray.__div__(self, rhs)
 
+    def __truediv__(self, rhs):
+        if isinstance(rhs, _units.UnitBase):
+            x = self.copy()
+            x.units = x.units / rhs
+            return x
+        else:
+            return np.ndarray.__truediv__(self, rhs)
+
     def __imul__(self, rhs):
         if isinstance(rhs, _units.UnitBase):
             self.units *= rhs
