@@ -147,6 +147,9 @@ class UnitBase(object):
     def __truediv__(self, m):
         return self.__div__(m)
 
+    def __rtruediv__(self, m):
+        return self.__rdiv__(m)
+
     def __div__(self, m):
         if hasattr(m, "_no_unit"):
             return NoUnit()
