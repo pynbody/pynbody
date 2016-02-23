@@ -60,7 +60,7 @@ def faceon_image(sim, *args, **kwargs):
 
 def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black', quiverkey_bg_color=None,
                    vector_resolution=40, scale=None, mode='quiver', key_x=0.3, key_y=0.9,
-                   key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
+                   key_color='white', key_length="100 km s**-1", quiverkey=True, density=1.0, **kwargs):
     """
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
@@ -95,6 +95,8 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     *density* (1.0): Density of stream lines (stream mode only)
 
+    *quiverkey* (True): Whether or not to inset the key
+
     """
 
     subplot = kwargs.get('subplot', False)
@@ -128,10 +130,9 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
         else:
             Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
                 sim['vel'].units), color=vector_color, edgecolor=edgecolor)
-        # R. Sarmento - capturing return of quickerkey in 'qk' so I can set background color...
-        qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
-                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color,
-                    fontproperties={'size': 16})
+        if quiverkey:
+        	qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
+                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 24})
         if  quiverkey_bg_color is not None:
             qk.text.set_backgroundcolor(quiverkey_bg_color)
     elif mode == 'stream' :
