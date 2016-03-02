@@ -53,6 +53,15 @@ currently loaded snapshot). The next time you call :func:`get_tform`,
 the data will be loaded from the disk and `part2birth` won't need to
 be run again.
 
+Feb 2016 - RS
+Note that in this version of ramses_util I have moved the 'birth' files
+into the output directory to which they pertain. The old code wasn't
+placing them in a subdir of 'birth' in the top output and since I had
+to fix it I thought it better not to have a single directory with
+potentially 1000's of files for all RAMSES outputs. The get_tform
+routine now creates the files under the approrpiate "output_" dir
+and reads them back from there.
+
 
 """
 
@@ -452,8 +461,7 @@ def get_tform(sim, part2birth_path=part2birth_path):
 
         n = fromfile(f, 'i', 1)
         if n > 0:
-            #n /= 8 # This is causing an err with python 3... recommended fix below
-            np.divide(n, 8, out=n)
+            n //= 8 # We want integer divide. This will work in py27 and py30+
             ages = fromfile(f, 'd', n)
             new = np.where(ages > 0)[0]
             top.s['tform'][done:done + len(new)] = ages[new]
