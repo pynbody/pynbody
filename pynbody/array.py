@@ -410,6 +410,10 @@ class SimArray(np.ndarray):
                 if hasattr(b, 'units'):
                     b.units = None
 
+                if not np.can_cast(b.dtype,self.dtype):
+                    b = np.asarray(b, dtype=x.dtype)
+
+
                 r = add_op(self, b)
 
             return r
