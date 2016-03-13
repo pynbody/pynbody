@@ -589,14 +589,19 @@ def density(self):
 
 
 @Profile.profile_property
-def fourier(self):
+def fourier(self, delta_t = "0.1 Myr", phi_bins=100):
     """
     Generate a profile of fourier coefficients, amplitudes and phases
     """
 
+    delta_t = pynbody.units.Unit(delta_t)
+
+
     f = {'c': np.zeros((7, self.nbins), dtype=complex),
+         'c_delta': np.zeros((7, self.nbins), dtype=complex),
          'amp': np.zeros((7, self.nbins)),
-         'phi': np.zeros((7, self.nbins))}
+         'phi': np.zeros((7, self.nbins)),
+         'dphi_dt': np.zeros((7, self.nbins))}
 
     for i in range(self.nbins):
         if self._profiles['n'][i] > 100:
@@ -604,17 +609,33 @@ def fourier(self):
                 self.sim['y'][self.binind[i]], self.sim['x'][self.binind[i]])
             mass = self.sim['mass'][self.binind[i]]
 
-            hist, binphi = np.histogram(phi, weights=mass, bins=100)
-            binphi = .5 * (binphi[1:] + binphi[:-1])
+            x1 = self.sim['x'][self.binind[i]] + self.sim['vx'][self.binind[i]] * delta_t
+            y1 = self.sim['y'][self.binind[i]] + self.sim['vy'][self.binind[i]] * delta_t
+            phi1 = np.arctan2(y1,x1)
+
+            hist, _ = np.histogram(phi, weights=mass, bins=phi_bins, range=(0, 2.*math.pi))
+            hist1, _ = np.histogram(phi1, weights=mass, bins=phi_bins, range=(0, 2.*math.pi))
+            binphi = np.linspace(0, 2*math.pi, phi_bins)
             for m in range(7):
                 f['c'][m, i] = np.sum(hist * np.exp(-1j * m * binphi))
+                f['c_delta'][m, i] = np.sum(hist1 * np.exp(-1j * m * binphi))
 
     f['c'][:, self['mass'] > 0] /= self['mass'][self['mass'] > 0]
     f['amp'] = np.sqrt(np.imag(f['c']) ** 2 + np.real(f['c']) ** 2)
     f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
 
+    dphi = np.arctan2(np.imag(f['c_delta']), np.real(f['c_delta'])) - f['phi']
+    dphi[dphi>np.pi] = dphi[dphi>np.pi]-2*np.pi
+    dphi[dphi<-np.pi] = dphi[dphi<-np.pi]+2*np.pi
+    dphi = array.SimArray(dphi,"1")
+    f['dphi_dt'] = (dphi / delta_t).in_units(self.sim['vx'].units/self.sim['x'].units)
+
     return f
 
+@Profile.profile_property
+def pattern_frequency(pro):
+    """Estimate the pattern speed from the m=2 Fourier mode"""
+    return pro['fourier']['dphi_dt'][2,:]/2
 
 @Profile.profile_property
 def mass_enc(self):
