@@ -60,7 +60,8 @@ def faceon_image(sim, *args, **kwargs):
 
 def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black', quiverkey_bg_color=None,
                    vector_resolution=40, scale=None, mode='quiver', key_x=0.3, key_y=0.9,
-                   key_color='white', key_length="100 km s**-1", quiverkey=True, density=1.0, **kwargs):
+                   key_color='white', key_length="100 km s**-1", quiverkey=True, density=1.0,
+                   vector_qty='vel', **kwargs):
     """
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
@@ -97,6 +98,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     *quiverkey* (True): Whether or not to inset the key
 
+    *vector_qty* ('vel'): The name of the vector field to plot
     """
 
     subplot = kwargs.get('subplot', False)
@@ -106,9 +108,11 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     else:
         import matplotlib.pylab as p
 
-    vx = image(sim, qty='vx', width=width, log=False,
+    vx_name, vy_name, _ = sim._array_name_ND_to_1D(vector_qty)
+
+    vx = image(sim, qty=vx_name, width=width, log=False,
                resolution=vector_resolution, noplot=True,av_z=av_z)
-    vy = image(sim, qty='vy', width=width, log=False,
+    vy = image(sim, qty=vy_name, width=width, log=False,
                resolution=vector_resolution, noplot=True,av_z=av_z)
     key_unit = _units.Unit(key_length)
 
@@ -137,6 +141,9 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
             qk.text.set_backgroundcolor(quiverkey_bg_color)
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
+
+    p.xlim(-width/2, width/2)
+    p.ylim(-width/2, width/2)
 
     return im
 
