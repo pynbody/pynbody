@@ -733,9 +733,8 @@ def omega(p):
 @Profile.profile_property
 def kappa(p):
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
-    dOmegadR = np.gradient(p['omega'] ** 2, p['dr'][0])
-    dOmegadR.set_units_like('km**2 s**-2 kpc**-3')
-    return np.sqrt(p['rbins'] * dOmegadR + 4 * p['omega'] ** 2)
+    dOmega2dR = np.gradient(p['omega'] ** 2)/np.gradient(p['rbins'])
+    return np.sqrt(p['rbins'] * dOmega2dR + 4 * p['omega'] ** 2)
 
 
 @Profile.profile_property
