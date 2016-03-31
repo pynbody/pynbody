@@ -299,7 +299,7 @@ class GadgetFile(object):
                 	((self.header.npart != 0) * (self.header.mass == 0)).sum()==0):
                     # The "Spec" says that if all the existing particle masses
                     # are in the header, we shouldn't have a MASS block
-                    self.block_names.remove('MASS')
+                    self.block_names.remove(b"MASS")
                 continue
             # Set the partlen, using our amazing heuristics
             success = False
