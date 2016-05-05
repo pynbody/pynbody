@@ -432,7 +432,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
             # check if there are negative values -- if so, use the symmetric
             # log normalization
-            if (im < 0).any():
+            if (vmin is None and (im < 0).any() ) or vmin<0:
 
                 # need to set the linear regime around zero -- set to by
                 # default start at 1/1000 of the log range
