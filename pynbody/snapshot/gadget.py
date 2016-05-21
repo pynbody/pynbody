@@ -372,9 +372,10 @@ class GadgetFile(object):
             block = GadgetBlock()
             block.length = 0
             block.start = 0
-            # In the header, mass is a double
-            block.partlen = 8
-            block.data_type = np.float64
+
+            # Mass should be the same type as POS (see issue #321)
+            block.data_type = self.blocks[b'POS '].data_type
+            block.partlen = np.dtype(block.data_type).itemsize
             self.blocks[b'MASS'] = block
 
     def get_block_types(self, block, npart):
