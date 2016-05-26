@@ -79,23 +79,6 @@ def _get_basic_config_from_parser(config_parser):
 
     return config
 
-def _issue_quiet_warning_if_necessary():
-    warning = """
-Welcome to pynbody v0.30. Note this new version by default is much quieter than old versions.
-To get back the verbose output, edit your config.ini or .pynbodyrc file and insert the following
-section
-
-[general]
-verbose: True
-
-The information is now parsed through python's standard logging module; using logging.getLogger('pynbody')
-you can customize the behaviour. See here https://docs.python.org/2/howto/logging-cookbook.html#logging-cookbook."""
-
-    if not os.path.exists(os.path.expanduser("~/.pynbody_v03_touched")):
-        print warning
-        with open(os.path.expanduser("~/.pynbody_v03_touched"), "w") as f:
-            print>>f, "This file tells pynbody not to reprint the welcome-to-v-0.3 warning"
-
 def _setup_logger(config):
     logger = logging.getLogger('pynbody')
     logger.setLevel(logging.DEBUG)
@@ -112,7 +95,6 @@ def _setup_logger(config):
         logger.info("Verbose mode is on")
     else:
         logger.setLevel(logging.WARNING)
-        _issue_quiet_warning_if_necessary()
 
 
 def configure_snapshot_and_halo_loading_priority():
