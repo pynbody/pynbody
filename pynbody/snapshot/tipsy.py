@@ -563,7 +563,7 @@ class TipsySnap(SimSnap):
         try:
             f = open(self.filename + "." + array_name + ".pynbody-meta", 'r')
         except IOError:
-            return self._default_units_for(array_name), None
+            return self._default_units_for(array_name), None, None
 
         res = {}
         for l in f:
@@ -583,10 +583,15 @@ class TipsySnap(SimSnap):
         except:
             fams = None
 
-        return u, fams
+        try:
+            dtype = np.dtype(res['dtype'])
+        except:
+            dtype = None
+
+        return u, fams, dtype
 
     @staticmethod
-    def _write_array_metafile(self, filename, units, families):
+    def _write_array_metafile(self, filename, units, families, dtype):
 
         f = open(filename + ".pynbody-meta", "w")
         print>>f, "# This file automatically created by pynbody"
@@ -595,6 +600,7 @@ class TipsySnap(SimSnap):
         print>>f, "families:",
         for x in families:
             print>>f, x.name,
+        print >>f, "dtype:",dtype
         print >>f
         f.close()
 
@@ -625,7 +631,7 @@ class TipsySnap(SimSnap):
 
         # If we have disk units for this array, check we can convert into them
 
-        aux_u, aux_f = self._get_loadable_array_metadata(array_name)
+        aux_u, aux_f, aux_type = self._get_loadable_array_metadata(array_name)
         if aux_f is None:
             aux_f = self.families()
 
@@ -676,6 +682,7 @@ class TipsySnap(SimSnap):
                 raise RuntimeError, "Cannot call static _write_array to write into main tipsy file."
 
         units_out = None
+        dtype = None
 
         if binary is None:
             binary = getattr(self.ancestor, "_tipsy_arrays_binary", False)
@@ -707,6 +714,7 @@ class TipsySnap(SimSnap):
                 if array_name in self.family_keys():
                     for f in [family.gas, family.dm, family.star]:
                         try:
+                            dtype = self[f][array_name].dtype
                             ar = self[f][array_name]
                             units_out = ar.units
 
@@ -717,6 +725,7 @@ class TipsySnap(SimSnap):
 
                 else:
                     ar = self[array_name]
+                    dtype = self[array_name].dtype
                     units_out = ar.units
                     TipsySnap.__write_block(fhand, ar, binary, byteswap)
 
@@ -729,7 +738,7 @@ class TipsySnap(SimSnap):
         if fam is None:
             fam = [family.gas, family.dm, family.star]
 
-        TipsySnap._write_array_metafile(self, filename, units_out, fam)
+        TipsySnap._write_array_metafile(self, filename, units_out, fam, dtype)
 
     def _load_array(self, array_name, fam=None, filename=None,
                     packed_vector=None):
@@ -799,13 +808,16 @@ class TipsySnap(SimSnap):
         logger.info("Attempting to load auxiliary array %s", filename)
         # if we get here, we've got the file - try loading it
 
+        units, _, dtype = self._get_loadable_array_metadata(array_name)
+        if dtype is None:
+            dtype = self._get_preferred_dtype(array_name)
+
         try:
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
                 raise IOError, "Incorrect file format"
 
-            dtype = self._get_preferred_dtype(array_name)
             if not dtype:
                 # Inspect the first line to see whether it's float or int
                 l = "0\n"
@@ -837,13 +849,14 @@ class TipsySnap(SimSnap):
             if l != self._load_control.disk_num_particles:
                 raise IOError, "Incorrect file format"
 
-            # Set data format to be read (float or int) based on config
-            int_arrays = map(
-                str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
-            if array_name in int_arrays:
-                dtype = 'i'
-            else:
-                dtype = 'f'
+            if dtype is None:
+                # Set data format to be read (float or int) based on config
+                int_arrays = map(
+                    str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
+                if array_name in int_arrays:
+                    dtype = 'i'
+                else:
+                    dtype = 'f'
 
             # Read longest data array possible.
             # Assume byteswap since most will be.
@@ -872,9 +885,9 @@ class TipsySnap(SimSnap):
             if mem_index is not None:
                 r[mem_index] = buf[buf_index]
 
-        u, f = self._get_loadable_array_metadata(array_name)
-        if u is not None:
-            r.units = u
+
+        if units is not None:
+            r.units = units
 
         return r
 
