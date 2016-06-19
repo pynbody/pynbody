@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Essential Framework Modules &mdash; pynbody 0.30 documentation</title>
+    <title>Essential Framework Modules &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../index.html" />
     <link rel="up" title="Pynbody reference documentation" href="index.html" />
     <link rel="next" title="Generic Convenience Modules" href="convenience.html" />
     <link rel="prev" title="Pynbody reference documentation" href="index.html" />
@@ -65,12 +65,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -129,11 +128,11 @@
               
                 
   <li>
-    <a href="index.html" title="Previous Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pynbody referenc...</span>
+    <a href="index.html" title="Previous Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Pynbody referenc...</span>
     </a>
   </li>
   <li>
-    <a href="convenience.html" title="Next Chapter: Generic Convenience Modules"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Generic Convenie... &raquo;</span>
+    <a href="convenience.html" title="Next Chapter: Generic Convenience Modules"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Generic Convenie... &raquo;</span>
     </a>
   </li>
               
@@ -391,33 +390,6 @@ self.ndim &lt; 2.</p>
 <dd><p>x.__ge__(y) &lt;==&gt; x&gt;=y</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="pynbody.array.shared_array_remote">
-<tt class="descclassname">pynbody.array.</tt><tt class="descname">shared_array_remote</tt><big>(</big><em>fn</em><big>)</big><a class="reference internal" href="../_modules/pynbody/array.html#shared_array_remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.shared_array_remote" title="Permalink to this definition">¶</a></dt>
-<dd><p>A decorator for functions returning a new function that is
-suitable for use remotely. Inputs to and outputs from the function
-can be transferred efficiently if they are backed onto shared
-memory. Ownership of any shared memory returned by the function
-is transferred.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pynbody.array.remote_map">
-<tt class="descclassname">pynbody.array.</tt><tt class="descname">remote_map</tt><big>(</big><em>pool</em>, <em>fn</em>, <em>*iterables</em><big>)</big><a class="reference internal" href="../_modules/pynbody/array.html#remote_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.remote_map" title="Permalink to this definition">¶</a></dt>
-<dd><p>A replacement for python&#8217;s in-built map function, sending out tasks
-to the pool and performing the magic required to transport shared memory arrays
-correctly. The function <em>fn</em> must be wrapped with the <em>shared_array_remote</em>
-decorator to interface correctly with this magic.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pynbody.array.exit_cleanup">
-<tt class="descclassname">pynbody.array.</tt><tt class="descname">exit_cleanup</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/array.html#exit_cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.array.exit_cleanup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Clean up any shared memory that has not yet been freed. In
-theory this should not be required, but it is here as a safety
-net.</p>
-</dd></dl>
-
 </div>
 </div>
 <span class="target" id="module-pynbody.simdict"></span><div class="section" id="simdict">
@@ -623,7 +595,7 @@ to the ancestor <em>relative_to</em>, such that relative_to[get_index_list(relat
 
 <dl class="method">
 <dt id="pynbody.snapshot.SimSnap.intersect">
-<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x1055e3e60&gt;</em><big>)</big><a class="reference internal" href="../_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x105032500&gt;</em><big>)</big><a class="reference internal" href="../_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the set intersection of this simulation view with another view
 of the same simulation</p>
 </dd></dl>
@@ -1183,7 +1155,7 @@ be thread-safe.</p>
 
 <dl class="function">
 <dt id="pynbody.util.parallel">
-<tt class="descclassname">pynbody.util.</tt><tt class="descname">parallel</tt><big>(</big><em>p_args=[0], threads=8, reduce='interleave'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/util.html#parallel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.parallel" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.util.</tt><tt class="descname">parallel</tt><big>(</big><em>p_args=[0], threads=4, reduce='interleave'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/util.html#parallel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.util.parallel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a function decorator which makes a function execute in parallel.</p>
 <p><em>p_args</em>: a list of integers specifying which arguments will be
 array-like. These will be sliced up and processed over the number
@@ -1221,7 +1193,7 @@ three values:</p>
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

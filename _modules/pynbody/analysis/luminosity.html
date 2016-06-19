@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.analysis.luminosity &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.analysis.luminosity &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,12 +63,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -231,9 +230,10 @@
 <div class="viewcode-block" id="halo_lum"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.luminosity.halo_lum">[docs]</a><span class="k">def</span> <span class="nf">halo_lum</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculating halo luminosiy</span>
 
-<span class="sd">    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed</span>
+<span class="sd">    Calls pynbody.analysis.luminosity.calc_mags for every star in passed</span>
 <span class="sd">    in simulation, converts those magnitudes back to luminosities, adds</span>
-<span class="sd">    those luminosities, which are returned.</span>
+<span class="sd">    those luminosities, which are returned.  Uses solar magnitudes from</span>
+<span class="sd">    http://www.ucolick.org/~cnaw/sun.html.</span>
 
 <span class="sd">    **Usage:**</span>
 
@@ -245,7 +245,9 @@
 <span class="sd">       *band* (default=&#39;v&#39;): Which observed bandpass magnitude in which </span>
 <span class="sd">            magnitude should be calculated</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mf">10.0</span> <span class="o">**</span> <span class="p">((</span><span class="mf">5.8</span> <span class="o">-</span> <span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">band</span> <span class="o">+</span> <span class="s">&#39;_mag&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.5</span><span class="p">))</span>
+    <span class="n">sun_abs_mag</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;u&#39;</span><span class="p">:</span><span class="mf">5.56</span><span class="p">,</span><span class="s">&#39;b&#39;</span><span class="p">:</span><span class="mf">5.45</span><span class="p">,</span><span class="s">&#39;v&#39;</span><span class="p">:</span><span class="mf">4.8</span><span class="p">,</span><span class="s">&#39;r&#39;</span><span class="p">:</span><span class="mf">4.46</span><span class="p">,</span><span class="s">&#39;i&#39;</span><span class="p">:</span><span class="mf">4.1</span><span class="p">,</span><span class="s">&#39;j&#39;</span><span class="p">:</span><span class="mf">3.66</span><span class="p">,</span>
+                   <span class="s">&#39;h&#39;</span><span class="p">:</span><span class="mf">3.32</span><span class="p">,</span><span class="s">&#39;k&#39;</span><span class="p">:</span><span class="mf">3.28</span><span class="p">}[</span><span class="n">band</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mf">10.0</span> <span class="o">**</span> <span class="p">((</span><span class="n">sun_abs_mag</span> <span class="o">-</span> <span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">band</span> <span class="o">+</span> <span class="s">&#39;_mag&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.5</span><span class="p">))</span>
 
 </div>
 <div class="viewcode-block" id="half_light_r"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.luminosity.half_light_r">[docs]</a><span class="k">def</span> <span class="nf">half_light_r</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">):</span>
@@ -300,7 +302,7 @@
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

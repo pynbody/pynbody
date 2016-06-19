@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Plotting &mdash; pynbody 0.30 documentation</title>
+    <title>Plotting &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../index.html" />
     <link rel="up" title="Pynbody reference documentation" href="index.html" />
     <link rel="prev" title="Analysis" href="analysis.html" />
 
@@ -64,12 +64,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -116,7 +115,7 @@
               
                 
   <li>
-    <a href="analysis.html" title="Previous Chapter: Analysis"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Analysis</span>
+    <a href="analysis.html" title="Previous Chapter: Analysis"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Analysis</span>
     </a>
   </li>
               
@@ -399,7 +398,7 @@ but it not yet supported in many versions of numpy.</p>
 
 <dl class="function">
 <dt id="pynbody.plot.metals.ofefeh">
-<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x10a278050&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.metals.</tt><tt class="descname">ofefeh</tt><big>(</big><em>sim</em>, <em>fxn=&lt;function gauss_kde at 0x108ea5b18&gt;</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/metals.html#ofefeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.metals.ofefeh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <a class="reference internal" href="#pynbody.plot.generic.hist2d" title="pynbody.plot.generic.hist2d"><tt class="xref py py-func docutils literal"><span class="pre">hist2d()</span></tt></a> to make a [O/Fe] vs. [Fe/H] plot</p>
 <p><strong>Input:</strong></p>
 <p><em>sim</em>: snapshot to pull data from</p>
@@ -455,6 +454,15 @@ function of radius.</p>
 <h2>sph<a class="headerlink" href="#sph" title="Permalink to this headline">¶</a></h2>
 <p>routines for plotting smoothed quantities</p>
 <dl class="function">
+<dt id="pynbody.plot.sph.fmt">
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">fmt</tt><big>(</big><em>x</em>, <em>pos</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#fmt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.fmt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Custom formatter to handle log of values for color bar
+Not sure why, but the LogFormatterExponenet sometimes
+adds and &#8220;e&#8221; to the value... ?? This simply returns
+log10 of the value.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="pynbody.plot.sph.sideon_image">
 <tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">sideon_image</tt><big>(</big><em>sim</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#sideon_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.sideon_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rotate the simulation so that the disc of the passed halo is
@@ -474,7 +482,7 @@ the function image</p>
 
 <dl class="function">
 <dt id="pynbody.plot.sph.velocity_image">
-<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">velocity_image</tt><big>(</big><em>sim</em>, <em>width='10 kpc'</em>, <em>vector_color='black'</em>, <em>edgecolor='black'</em>, <em>vector_resolution=40</em>, <em>scale=None</em>, <em>mode='quiver'</em>, <em>key_x=0.3</em>, <em>key_y=0.9</em>, <em>key_color='white'</em>, <em>key_length='100 km s**-1'</em>, <em>density=1.0</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#velocity_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.velocity_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.sph.</tt><tt class="descname">velocity_image</tt><big>(</big><em>sim</em>, <em>width='10 kpc'</em>, <em>vector_color='black'</em>, <em>edgecolor='black'</em>, <em>quiverkey_bg_color=None</em>, <em>vector_resolution=40</em>, <em>scale=None</em>, <em>mode='quiver'</em>, <em>key_x=0.3</em>, <em>key_y=0.9</em>, <em>key_color='white'</em>, <em>key_length='100 km s**-1'</em>, <em>quiverkey=True</em>, <em>density=1.0</em>, <em>vector_qty='vel'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/sph.html#velocity_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.sph.velocity_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make an SPH image of the given simulation with velocity vectors overlaid on top.</p>
 <p>For a description of additional keyword arguments see <a class="reference internal" href="#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a>,
 or see the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/pictures.html#velocity-vectors">tutorial</a>.</p>
@@ -486,6 +494,7 @@ or see the <a class="reference external" href="http://pynbody.github.io/pynbody/
 can result in poor readability in pdfs</dd>
 </dl>
 <p><em>vector_resolution</em> (40): How many vectors in each dimension (default is 40x40)</p>
+<p><em>quiverkey_bg_color</em> (none): The color for the legend (scale) background</p>
 <p><em>scale</em> (None): The length of a vector that would result in a displayed length of the
 figure width/height.</p>
 <p><em>mode</em> (&#8216;quiver&#8217;): make a &#8216;quiver&#8217; or &#8216;stream&#8217; plot</p>
@@ -494,6 +503,8 @@ figure width/height.</p>
 <p><em>key_color</em> (white): Color for the vector key (quiver mode only)</p>
 <p><em>key_length</em> (100 km/s): Velocity to use for the vector key (quiver mode only)</p>
 <p><em>density</em> (1.0): Density of stream lines (stream mode only)</p>
+<p><em>quiverkey</em> (True): Whether or not to inset the key</p>
+<p><em>vector_qty</em> (&#8216;vel&#8217;): The name of the vector field to plot</p>
 </dd></dl>
 
 <dl class="function">
@@ -578,7 +589,7 @@ the multi-threaded routines; otherwise the pynbody.config default is used</p>
 <h2>stars<a class="headerlink" href="#stars" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="pynbody.plot.stars.render">
-<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">render</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>r_band='i'</em>, <em>g_band='v'</em>, <em>b_band='u'</em>, <em>r_scale=0.5</em>, <em>g_scale=1.0</em>, <em>b_scale=1.0</em>, <em>dynamic_range=2.0</em>, <em>width=50</em>, <em>starsize=None</em>, <em>plot=True</em>, <em>axes=None</em>, <em>ret_im=False</em>, <em>clear=True</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/stars.html#render"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.render" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.plot.stars.</tt><tt class="descname">render</tt><big>(</big><em>sim</em>, <em>filename=None</em>, <em>r_band='i'</em>, <em>g_band='v'</em>, <em>b_band='u'</em>, <em>r_scale=0.5</em>, <em>g_scale=1.0</em>, <em>b_scale=1.0</em>, <em>dynamic_range=2.0</em>, <em>mag_range=None</em>, <em>width=50</em>, <em>starsize=None</em>, <em>plot=True</em>, <em>axes=None</em>, <em>ret_im=False</em>, <em>clear=True</em>, <em>ret_range=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/plot/stars.html#render"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.plot.stars.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a 3-color image of stars.</p>
 <p>The colors are based on magnitudes found using stellar Marigo
 stellar population code.  However there is no radiative transfer
@@ -607,12 +618,17 @@ to account for dust.</p>
 <dd>If not None, sets the maximum size of stars in the image</dd>
 <dt><em>ret_im</em>: bool (default: False)</dt>
 <dd>if True, the NxNx3 image array is returned</dd>
+<dt><em>ret_range</em>: bool (default: False)</dt>
+<dd>if True, the range of the image in mag arcsec^-2 is returned.</dd>
 <dt><em>plot</em>: bool (default: True)</dt>
 <dd>if True, the image is plotted</dd>
 <dt><em>axes</em>: matplotlib axes object (deault: None)</dt>
 <dd>if not None, the axes object to plot to</dd>
 <dt><em>dynamic_range</em>: float (default: 2.0)</dt>
 <dd>The number of dex in luminosity over which the image brightness ranges</dd>
+<dt><em>mag_range</em>: float, float (default: None)</dt>
+<dd>If provided, the brightest and faintest surface brightnesses in the range,
+in mag arcsec^-2. Takes precedence over dynamic_range.</dd>
 </dl>
 </div></blockquote>
 </dd></dl>
@@ -920,7 +936,7 @@ map.</p>
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

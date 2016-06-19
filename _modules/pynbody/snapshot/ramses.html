@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.snapshot.ramses &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.snapshot.ramses &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../../../index.html" />
     <link rel="up" title="pynbody.snapshot" href="../snapshot.html" />
 
 <meta charset='utf-8'>
@@ -63,12 +63,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -311,7 +310,7 @@
                 <span class="n">refine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
                     <span class="p">[</span><span class="n">read_fortran</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">_int_type</span><span class="p">,</span> <span class="n">n_per_level</span><span class="p">[</span><span class="n">level</span><span class="p">,</span> <span class="n">cpu</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">ndim</span><span class="p">)])</span>
 
-                <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="n">maxlevel</span><span class="p">:</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">level</span><span class="o">+</span><span class="mi">1</span> <span class="o">==</span> <span class="n">maxlevel</span> <span class="ow">or</span> <span class="n">level</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">]):</span>
                     <span class="n">refine</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
 
                 <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -369,6 +368,7 @@
 
 <span class="n">_gv_load_hydro</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">_gv_load_gravity</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">_gv_load_rt</span> <span class="o">=</span> <span class="mi">2</span>
 
 
 <span class="nd">@remote_exec</span>
@@ -382,17 +382,25 @@
 
     <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
 
-    <span class="n">check_nvar_file</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">exact_nvar</span> <span class="o">=</span> <span class="bp">False</span>
 
     <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="n">_gv_load_hydro</span><span class="p">:</span>
         <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_hydro_header</span><span class="p">)</span>
 
         <span class="n">nvar_file</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nvarh&#39;</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="ow">is</span> <span class="n">_gv_load_gravity</span><span class="p">:</span>
         <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_grav_header</span><span class="p">)</span>
         <span class="n">nvar_file</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="ow">is</span> <span class="n">_gv_load_rt</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">read_fortran_series</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ramses_rt_header</span><span class="p">)</span>
+        <span class="n">nvar_file</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s">&#39;nrtvar&#39;</span><span class="p">]</span>
+        <span class="n">exact_nvar</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Unknown RAMSES load mode&quot;</span>
 
-    <span class="k">if</span> <span class="n">nvar_file</span> <span class="o">&lt;</span> <span class="n">nvar</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">nvar_file</span> <span class="o">!=</span> <span class="n">nvar</span> <span class="ow">and</span> <span class="n">exact_nvar</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Wrong number of variables in RAMSES dump&quot;</span>
+    <span class="k">elif</span> <span class="n">nvar_file</span> <span class="o">&lt;</span> <span class="n">nvar</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected </span><span class="si">%d</span><span class="s">, got </span><span class="si">%d</span><span class="s"> in file)&quot;</span> <span class="o">%</span> <span class="p">(</span>
             <span class="n">nvar</span><span class="p">,</span> <span class="n">nvar_file</span><span class="p">),</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
         <span class="n">nvar</span> <span class="o">=</span> <span class="n">nvar_file</span>
@@ -453,6 +461,9 @@
 <span class="n">ramses_grav_header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;ncpu&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ndim&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span>
                                <span class="p">(</span><span class="s">&#39;nboundary&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)])</span>
 
+<span class="n">ramses_rt_header</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s">&#39;ncpu&#39;</span><span class="p">,</span><span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nrtvar&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;ndim&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;nlevelmax&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;nboundary&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;gamma&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">)])</span>
+
 <span class="n">particle_blocks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
     <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;particle-blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
 <span class="n">particle_format</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
@@ -462,6 +473,10 @@
     <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;hydro-blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
 <span class="n">grav_blocks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
     <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&quot;gravity-blocks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+
+<span class="n">rt_blocks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&#39;rt-blocks&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+<span class="p">)</span>
 
 <span class="n">particle_distinguisher</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
     <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&#39;particle-distinguisher&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
@@ -530,12 +545,29 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">ndm</span><span class="p">,</span> <span class="n">ndm</span> <span class="o">+</span> <span class="n">nstar</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">ndm</span> <span class="o">+</span> <span class="n">nstar</span><span class="p">,</span> <span class="n">ndm</span> <span class="o">+</span> <span class="n">nstar</span> <span class="o">+</span> <span class="n">ngas</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_rt_infofile</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_load_infofile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/info_&quot;</span> <span class="o">+</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_load_rt_infofile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks_3d</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="o">+</span><span class="s">&quot;/info_rt_&quot;</span> <span class="o">+</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_info_from_specified_file</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;nGroups&#39;</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">rt_blocks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="o">%</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rt_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;unit_pf&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;cm^-2 s^-1&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks_3d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_name_1D_to_ND</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="ow">or</span> <span class="n">block</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_load_info_from_specified_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">if</span> <span class="s">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
                 <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;=&#39;</span><span class="p">))</span>
@@ -546,6 +578,13 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="nf">_load_infofile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/info_&quot;</span> <span class="o">+</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_info_from_specified_file</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/header_&quot;</span> <span class="o">+</span> <span class="n">_timestep_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.txt&quot;</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
@@ -569,6 +608,9 @@
 
     <span class="k">def</span> <span class="nf">_grav_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/grav_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">+</span> <span class="s">&quot;.out&quot;</span> <span class="o">+</span> <span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_rt_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s">&quot;/rt_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timestep_id</span> <span class="o">+</span> <span class="s">&quot;.out&quot;</span> <span class="o">+</span> <span class="n">_cpu_id</span><span class="p">(</span><span class="n">cpu_id</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_count_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns ndm, nstar where ndm is the number of dark matter particles</span>
@@ -597,9 +639,15 @@
 
             <span class="n">distinguisher_name</span> <span class="o">=</span> <span class="n">particle_blocks</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;distinguisher_name&#39;</span><span class="p">)</span>
+                <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">distinguisher_name</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="mi">10000</span> <span class="c"># anything out of range will do!</span>
+                <span class="c"># couldn&#39;t find the named distinguisher field. Fall back to using index.</span>
+                <span class="n">distinguisher_field</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="p">)</span><span class="o">&gt;</span><span class="n">distinguisher_field</span><span class="p">:</span>
+                    <span class="n">pb_name</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%r</span><span class="s">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span><span class="p">[</span><span class="n">distinguisher_field</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pb_name</span> <span class="o">=</span> <span class="s">&quot;at offset </span><span class="si">%d</span><span class="s">&quot;</span><span class="o">%</span><span class="n">distinguisher_field</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Using field </span><span class="si">%s</span><span class="s"> to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher.&quot;</span><span class="o">%</span><span class="n">pb_name</span><span class="p">)</span>
 
 
             <span class="n">distinguisher_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">particle_distinguisher</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -665,7 +713,7 @@
 
         <span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="n">hydro_blocks</span><span class="p">,</span> <span class="n">grav_blocks</span><span class="p">][</span><span class="n">mode</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="n">hydro_blocks</span><span class="p">,</span> <span class="n">grav_blocks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks</span><span class="p">][</span><span class="n">mode</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ndim</span> <span class="o">&lt;</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;z&#39;</span><span class="p">:</span>
@@ -679,9 +727,9 @@
 
         <span class="n">grid_info_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_level_iterator</span><span class="p">()</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading </span><span class="si">%s</span><span class="s"> files&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;hydro&#39;</span><span class="p">,</span> <span class="s">&#39;grav&#39;</span><span class="p">][</span><span class="n">mode</span><span class="p">])</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading </span><span class="si">%s</span><span class="s"> files&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;hydro&#39;</span><span class="p">,</span> <span class="s">&#39;grav&#39;</span><span class="p">,</span> <span class="s">&#39;rt&#39;</span><span class="p">][</span><span class="n">mode</span><span class="p">])</span>
 
-        <span class="n">filenamer</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_hydro_filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grav_filename</span><span class="p">][</span><span class="n">mode</span><span class="p">]</span>
+        <span class="n">filenamer</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_hydro_filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grav_filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_filename</span><span class="p">][</span><span class="n">mode</span><span class="p">]</span>
 
         <span class="n">remote_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_pool</span><span class="p">,</span>
                    <span class="n">_cpui_load_gas_vars</span><span class="p">,</span>
@@ -767,26 +815,33 @@
                 <span class="n">gas_cpu_ar</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpu</span>
 
     <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">f0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">():</span>
-                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">(</span><span class="n">f0</span><span class="p">))</span>
-            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">keys</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">(</span><span class="n">f0</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span> <span class="ow">or</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span>
+                <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_particle_blocks</span>
             <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">:</span>
-                <span class="k">return</span> <span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">,</span> <span class="s">&#39;smooth&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">hydro_blocks</span>
+                <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">,</span> <span class="s">&#39;smooth&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">hydro_blocks</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks</span>
+
+        <span class="n">keys_ND</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">keys_ND</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_name_1D_to_ND</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">or</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">keys_ND</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_load_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c"># Framework always calls with 3D name. Ramses particle blocks are</span>
+        <span class="c"># stored as 1D slices.</span>
+
         <span class="k">if</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s">&#39;cpu&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="p">[</span><span class="s">&#39;cpu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_load_particle_cpuid</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_cpuid</span><span class="p">()</span>
 
         <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span> <span class="ow">or</span> <span class="n">fam</span> <span class="ow">is</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">:</span>
-            <span class="c"># Framework always calls with 3D name. Ramses particle blocks are</span>
-            <span class="c"># stored as 1D slices.</span>
+
             <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">array_1D</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_name_ND_to_1D</span><span class="p">(</span><span class="n">array_name</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_load_array</span><span class="p">(</span><span class="n">array_1D</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
@@ -807,6 +862,10 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_vars</span><span class="p">()</span>
             <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">grav_blocks</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_vars</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks_3d</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_load_gas_vars</span><span class="p">(</span><span class="n">_gv_load_rt</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">u_block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_blocks_3d</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">][</span><span class="n">u_block</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rt_unit</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;No such array on disk&quot;</span>
         <span class="k">elif</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="s">&#39;vel&#39;</span><span class="p">]:</span>
@@ -835,11 +894,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;No such array on disk&quot;</span>
 
-        <span class="n">self_fam</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span> <span class="k">if</span> <span class="n">fam</span> <span class="k">else</span> <span class="bp">self</span>
 
-        <span class="c"># The following is now done by SnapShot (and done better):</span>
-        <span class="c"># if array_name in self_fam and hasattr(self_fam[array_name].units, &quot;_no_unit&quot;) :</span>
-        <span class="c">#    self_fam[array_name].units = self._default_units_for(array_name)</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_can_load</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
@@ -907,7 +962,7 @@
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

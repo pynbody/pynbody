@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.derived &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.derived &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
 
 <meta charset='utf-8'>
@@ -63,12 +63,11 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -148,6 +147,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.derived&#39;</span><span class="p">)</span>
 
@@ -310,18 +310,24 @@
 <span class="n">bands_available</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;u&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="s">&#39;v&#39;</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">,</span> <span class="s">&#39;i&#39;</span><span class="p">,</span> <span class="s">&#39;j&#39;</span><span class="p">,</span> <span class="s">&#39;h&#39;</span><span class="p">,</span> <span class="s">&#39;k&#39;</span><span class="p">,</span> <span class="s">&#39;U&#39;</span><span class="p">,</span> <span class="s">&#39;B&#39;</span><span class="p">,</span> <span class="s">&#39;V&#39;</span><span class="p">,</span> <span class="s">&#39;R&#39;</span><span class="p">,</span> <span class="s">&#39;I&#39;</span><span class="p">,</span>
                    <span class="s">&#39;J&#39;</span><span class="p">,</span> <span class="s">&#39;H&#39;</span><span class="p">,</span> <span class="s">&#39;K&#39;</span><span class="p">]</span>
 
+<span class="k">def</span> <span class="nf">lum_den_template</span><span class="p">(</span><span class="n">band</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4</span> <span class="o">*</span> <span class="n">s</span><span class="p">[</span><span class="n">band</span> <span class="o">+</span> <span class="s">&quot;_mag&quot;</span><span class="p">]))</span> <span class="o">*</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>
+        <span class="n">val</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">/</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+        <span class="k">return</span> <span class="n">val</span>
+
 <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="n">bands_available</span><span class="p">:</span>
     <span class="n">X</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">band</span><span class="p">):</span> <span class="n">analysis</span><span class="o">.</span><span class="n">luminosity</span><span class="o">.</span><span class="n">calc_mags</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
     <span class="n">X</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot;_mag&quot;</span>
     <span class="n">X</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot; magnitude from analysis.luminosity.calc_mags&quot;&quot;&quot;</span>
     <span class="n">SimSnap</span><span class="o">.</span><span class="n">derived_quantity</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 
-    <span class="n">X</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">band</span><span class="p">):</span> <span class="p">(</span>
-        <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4</span> <span class="o">*</span> <span class="n">s</span><span class="p">[</span><span class="n">b</span> <span class="o">+</span> <span class="s">&quot;_mag&quot;</span><span class="p">]))</span> <span class="o">*</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>
-    <span class="n">X</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot;_lum_den&quot;</span>
-    <span class="n">X</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> \
-        <span class="s">&quot; luminosity density from analysis.luminosity.calc_mags&quot;&quot;&quot;</span>
-    <span class="n">SimSnap</span><span class="o">.</span><span class="n">derived_quantity</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">lum_den</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">lum_den_template</span><span class="p">,</span><span class="n">band</span><span class="p">)</span>
+
+    <span class="n">lum_den</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">band</span> <span class="o">+</span> <span class="s">&quot;_lum_den&quot;</span>
+    <span class="n">lum_den</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Luminosity density in astronomy-friendly units: 10^(-0.4 </span><span class="si">%s</span><span class="s">_mag) per unit volume. &quot;</span> \
+                      <span class="s">&quot;&quot;</span> \
+                      <span class="s">&quot;The magnitude is taken from analysis.luminosity.calc_mags.&quot;</span><span class="o">%</span><span class="n">band</span>
+    <span class="n">SimSnap</span><span class="o">.</span><span class="n">derived_quantity</span><span class="p">(</span><span class="n">lum_den</span><span class="p">)</span>
 
 
 <span class="nd">@SimSnap.derived_quantity</span>
@@ -441,7 +447,7 @@
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

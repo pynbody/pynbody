@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.plot.stars &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.plot.stars &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,12 +63,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -166,30 +165,44 @@
     <span class="k">return</span> <span class="n">r</span> <span class="o">*</span> <span class="n">val</span><span class="p">,</span> <span class="n">g</span> <span class="o">*</span> <span class="n">val</span><span class="p">,</span> <span class="n">b</span> <span class="o">*</span> <span class="n">val</span>
 
 
-<span class="k">def</span> <span class="nf">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">dynamic_range</span><span class="p">):</span>
-    <span class="n">maxi</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">def</span> <span class="nf">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">magnitude_range</span><span class="p">,</span> <span class="n">brightest_mag</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="c"># flip sign so that brightest pixels have biggest value</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="o">-</span><span class="n">r</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="o">-</span><span class="n">g</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="o">-</span><span class="n">b</span>
 
-    <span class="c"># find something close to the maximum that is not quite the maximum</span>
-    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span>
-        <span class="n">ordered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
-        <span class="n">maxi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ordered</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">ordered</span><span class="p">)</span> <span class="o">/</span> <span class="mi">5000</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">brightest_mag</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">brightest_mag</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="n">maxi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">maxi</span><span class="p">))</span>
+        <span class="c"># find something close to the maximum that is not quite the maximum</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span>
+            <span class="n">ordered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+            <span class="n">brightest_mag</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ordered</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">ordered</span><span class="p">)</span> <span class="o">/</span> <span class="mi">5000</span><span class="p">])</span>
+
+        <span class="n">brightest_mag</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">brightest_mag</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">brightest_mag</span> <span class="o">=</span> <span class="o">-</span><span class="n">brightest_mag</span>
 
     <span class="n">rgbim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">3</span><span class="p">))</span>
-    <span class="n">rgbim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">bytscl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">maxi</span> <span class="o">-</span> <span class="n">dynamic_range</span><span class="p">,</span> <span class="n">maxi</span><span class="p">)</span>
-    <span class="n">rgbim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bytscl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="n">maxi</span> <span class="o">-</span> <span class="n">dynamic_range</span><span class="p">,</span> <span class="n">maxi</span><span class="p">)</span>
-    <span class="n">rgbim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">bytscl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="n">maxi</span> <span class="o">-</span> <span class="n">dynamic_range</span><span class="p">,</span> <span class="n">maxi</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">rgbim</span>
+    <span class="n">rgbim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">bytscl</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">brightest_mag</span> <span class="o">-</span> <span class="n">magnitude_range</span><span class="p">,</span> <span class="n">brightest_mag</span><span class="p">)</span>
+    <span class="n">rgbim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bytscl</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">brightest_mag</span> <span class="o">-</span> <span class="n">magnitude_range</span><span class="p">,</span> <span class="n">brightest_mag</span><span class="p">)</span>
+    <span class="n">rgbim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">bytscl</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">brightest_mag</span> <span class="o">-</span> <span class="n">magnitude_range</span><span class="p">,</span> <span class="n">brightest_mag</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rgbim</span><span class="p">,</span> <span class="o">-</span><span class="n">brightest_mag</span>
 
+<span class="k">def</span> <span class="nf">convert_to_mag_arcsec2</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">units</span><span class="o">==</span><span class="s">&quot;pc^-2&quot;</span>
+    <span class="n">pc2_to_sqarcsec</span> <span class="o">=</span> <span class="mf">2.3504430539466191e-09</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mf">2.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">image</span><span class="o">*</span><span class="n">pc2_to_sqarcsec</span><span class="p">)</span>
 
 <div class="viewcode-block" id="render"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.render">[docs]</a><span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
            <span class="n">r_band</span><span class="o">=</span><span class="s">&#39;i&#39;</span><span class="p">,</span> <span class="n">g_band</span><span class="o">=</span><span class="s">&#39;v&#39;</span><span class="p">,</span> <span class="n">b_band</span><span class="o">=</span><span class="s">&#39;u&#39;</span><span class="p">,</span>
            <span class="n">r_scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">g_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">b_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
            <span class="n">dynamic_range</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+           <span class="n">mag_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
            <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
            <span class="n">starsize</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-           <span class="n">plot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ret_im</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+           <span class="n">plot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ret_im</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">ret_range</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Make a 3-color image of stars.</span>
 
@@ -231,6 +244,9 @@
 <span class="sd">       *ret_im*: bool (default: False)</span>
 <span class="sd">         if True, the NxNx3 image array is returned</span>
 
+<span class="sd">       *ret_range*: bool (default: False)</span>
+<span class="sd">         if True, the range of the image in mag arcsec^-2 is returned.</span>
+
 <span class="sd">       *plot*: bool (default: True)</span>
 <span class="sd">         if True, the image is plotted</span>
 
@@ -239,6 +255,10 @@
 
 <span class="sd">       *dynamic_range*: float (default: 2.0)</span>
 <span class="sd">         The number of dex in luminosity over which the image brightness ranges</span>
+
+<span class="sd">       *mag_range*: float, float (default: None)</span>
+<span class="sd">         If provided, the brightest and faintest surface brightnesses in the range,</span>
+<span class="sd">         in mag arcsec^-2. Takes precedence over dynamic_range.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">width</span><span class="o">.</span><span class="n">__class__</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
@@ -251,16 +271,29 @@
         <span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="n">smf</span><span class="p">][</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">starsize</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">,</span> <span class="n">sim</span><span class="o">=</span><span class="n">sim</span><span class="p">)</span>
 
     <span class="n">r</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">r_band</span> <span class="o">+</span> <span class="s">&#39;_lum_den&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-              <span class="n">av_z</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">r_scale</span>
+              <span class="n">units</span><span class="o">=</span><span class="s">&quot;pc^-2&quot;</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">r_scale</span>
     <span class="n">g</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">g_band</span> <span class="o">+</span> <span class="s">&#39;_lum_den&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-              <span class="n">av_z</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">g_scale</span>
+              <span class="n">units</span><span class="o">=</span><span class="s">&quot;pc^-2&quot;</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">g_scale</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">b_band</span> <span class="o">+</span> <span class="s">&#39;_lum_den&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-              <span class="n">av_z</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">b_scale</span>
+              <span class="n">units</span><span class="o">=</span><span class="s">&quot;pc^-2&quot;</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">b_scale</span>
+
+    <span class="c"># convert all channels to mag arcsec^-2</span>
+
+
+    <span class="n">r</span><span class="o">=</span><span class="n">convert_to_mag_arcsec2</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    <span class="n">g</span><span class="o">=</span><span class="n">convert_to_mag_arcsec2</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+    <span class="n">b</span><span class="o">=</span><span class="n">convert_to_mag_arcsec2</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
 
     <span class="c">#r,g,b = nw_scale_rgb(r,g,b)</span>
     <span class="c">#r,g,b = nw_arcsinh_fit(r,g,b)</span>
 
-    <span class="n">rgbim</span> <span class="o">=</span> <span class="n">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">dynamic_range</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mag_range</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">rgbim</span><span class="p">,</span> <span class="n">mag_max</span> <span class="o">=</span> <span class="n">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">dynamic_range</span><span class="o">*</span><span class="mf">2.5</span><span class="p">)</span>
+        <span class="n">mag_min</span> <span class="o">=</span> <span class="n">mag_max</span> <span class="o">+</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">dynamic_range</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mag_max</span><span class="p">,</span> <span class="n">mag_min</span> <span class="o">=</span> <span class="n">mag_range</span>
+        <span class="n">rgbim</span><span class="p">,</span> <span class="n">mag_max</span> <span class="o">=</span> <span class="n">combine</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mag_min</span> <span class="o">-</span> <span class="n">mag_max</span><span class="p">,</span> <span class="n">mag_max</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">clear</span><span class="p">:</span>
@@ -280,6 +313,12 @@
 
     <span class="k">if</span> <span class="n">ret_im</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">rgbim</span>
+
+
+
+
+    <span class="k">if</span> <span class="n">ret_range</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mag_max</span><span class="p">,</span> <span class="n">mag_min</span>
 
 </div>
 <div class="viewcode-block" id="sfh"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.sfh">[docs]</a><span class="k">def</span> <span class="nf">sfh</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">massform</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
@@ -1134,7 +1173,7 @@
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Analysis &mdash; pynbody 0.30 documentation</title>
+    <title>Analysis &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../index.html" />
     <link rel="up" title="Pynbody reference documentation" href="index.html" />
     <link rel="next" title="Plotting" href="plot.html" />
     <link rel="prev" title="Automatically Derived Arrays" href="derived.html" />
@@ -65,12 +65,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -127,11 +126,11 @@
               
                 
   <li>
-    <a href="derived.html" title="Previous Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Automatically De...</span>
+    <a href="derived.html" title="Previous Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Automatically De...</span>
     </a>
   </li>
   <li>
-    <a href="plot.html" title="Next Chapter: Plotting"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Plotting &raquo;</span>
+    <a href="plot.html" title="Next Chapter: Plotting"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Plotting &raquo;</span>
     </a>
   </li>
               
@@ -194,7 +193,7 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10939f668&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x1082a37d0&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
 h&#8217;s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
@@ -428,7 +427,7 @@ points. Used primarily by <a class="reference internal" href="#pynbody.analysis.
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.shrink_sphere_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em>, <em>num_threads=8</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em>, <em>num_threads=4</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the center according to the shrinking-sphere method of
 Power et al (2003)</p>
 <p><strong>Input</strong>:</p>
@@ -729,9 +728,10 @@ which are returned.</p>
 <dt id="pynbody.analysis.luminosity.halo_lum">
 <tt class="descclassname">pynbody.analysis.luminosity.</tt><tt class="descname">halo_lum</tt><big>(</big><em>sim</em>, <em>band='v'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#halo_lum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.halo_lum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculating halo luminosiy</p>
-<p>Calls pynbody.analysis.luminosity.calc_mags for ever star in passed
+<p>Calls pynbody.analysis.luminosity.calc_mags for every star in passed
 in simulation, converts those magnitudes back to luminosities, adds
-those luminosities, which are returned.</p>
+those luminosities, which are returned.  Uses solar magnitudes from
+<a class="reference external" href="http://www.ucolick.org/~cnaw/sun.html">http://www.ucolick.org/~cnaw/sun.html</a>.</p>
 <p><strong>Usage:</strong></p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">luminosity</span><span class="o">.</span><span class="n">halo_mag</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
@@ -774,7 +774,7 @@ the half luminosity is reached.</p>
 properties.</p>
 <dl class="class">
 <dt id="pynbody.analysis.profile.Profile">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">Profile</tt><big>(</big><em>sim</em>, <em>load_from_file=False</em>, <em>ndim=2</em>, <em>type='lin'</em>, <em>calc_x=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">Profile</tt><big>(</big><em>sim</em>, <em>load_from_file=False</em>, <em>ndim=2</em>, <em>type='lin'</em>, <em>calc_x=None</em>, <em>weight_by='mass'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile" title="Permalink to this definition">¶</a></dt>
 <dd><p>A basic profile class for arbitrary profiles. Stores information
 about bins etc.</p>
 <p>Made to work with the pynbody SimSnap instances. The constructor
@@ -804,6 +804,8 @@ origin (in either 2 or 3 dimensions), ut you can specify this
 function to return any value you want for making profiles along
 arbitrary axes. Depening on your function, the units of certain
 profiles (such as density) might not make sense.</dd>
+<dt><em>weight_by</em> (default = &#8216;mass&#8217;): name of the array to use for weighting</dt>
+<dd>averages across particles in each bin</dd>
 </dl>
 <p><strong>Output</strong>:</p>
 <p>a Profile object. To find out which profiles are available, use keys().</p>
@@ -956,8 +958,8 @@ method if you want to reuse a saved profile.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pynbody.analysis.profile.mass">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">mass</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.mass" title="Permalink to this definition">¶</a></dt>
+<dt id="pynbody.analysis.profile.weight_fn">
+<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">weight_fn</tt><big>(</big><em>self</em>, <em>weight_by=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#weight_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.weight_fn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate mass in each bin</p>
 </dd></dl>
 
@@ -969,8 +971,14 @@ method if you want to reuse a saved profile.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.fourier">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">fourier</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#fourier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.fourier" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">fourier</tt><big>(</big><em>self</em>, <em>delta_t='0.1 Myr'</em>, <em>phi_bins=100</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#fourier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.fourier" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a profile of fourier coefficients, amplitudes and phases</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pynbody.analysis.profile.pattern_frequency">
+<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">pattern_frequency</tt><big>(</big><em>pro</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#pattern_frequency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.pattern_frequency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate the pattern speed from the m=2 Fourier mode</p>
 </dd></dl>
 
 <dl class="function">
@@ -1190,6 +1198,14 @@ deletes the previous <cite>tform</cite> array (not from disk, just from the
 currently loaded snapshot). The next time you call <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a>,
 the data will be loaded from the disk and <cite>part2birth</cite> won&#8217;t need to
 be run again.</p>
+<p>Feb 2016 - RS
+Note that in this version of ramses_util I have moved the &#8216;birth&#8217; files
+into the output directory to which they pertain. The old code wasn&#8217;t
+placing them in a subdir of &#8216;birth&#8217; in the top output and since I had
+to fix it I thought it better not to have a single directory with
+potentially 1000&#8217;s of files for all RAMSES outputs. The get_tform
+routine now creates the files under the approrpiate &#8220;<a href="#id1"><span class="problematic" id="id2">output_</span></a>&#8221; dir
+and reads them back from there.</p>
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.load_hop">
 <tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">load_hop</tt><big>(</big><em>s</em>, <em>hop='$HOME/ramses/trunk/ramses/utils/scripts/script_hop.sh'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#load_hop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_hop" title="Permalink to this definition">¶</a></dt>
@@ -1345,7 +1361,7 @@ Yields results identical to scipy.interpolate.interpn.</p>
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>

@@ -5,17 +5,17 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Halos in Pynbody &mdash; pynbody 0.30 documentation</title>
+    <title>Halos in Pynbody &mdash; pynbody 0.41 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootswatch-3.3.4/spacelab/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.41',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,9 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.41 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
     <link rel="prev" title="Pictures in Pynbody" href="pictures.html" />
@@ -65,12 +65,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.41</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -122,11 +121,11 @@
               
                 
   <li>
-    <a href="pictures.html" title="Previous Chapter: Pictures in Pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pictures in Pynb...</span>
+    <a href="pictures.html" title="Previous Chapter: Pictures in Pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Pictures in Pynb...</span>
     </a>
   </li>
   <li>
-    <a href="processing.html" title="Next Chapter: Batch-processing Snapshots with Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Batch-processing... &raquo;</span>
+    <a href="processing.html" title="Next Chapter: Batch-processing Snapshots with Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Batch-processing... &raquo;</span>
     </a>
   </li>
               
@@ -290,7 +289,7 @@ in halo 1 and see the position of its first few particles as follows:</p>
 a given halo and analyze some of its properties. Since halos are just
 <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-class docutils literal"><span class="pre">SubSnap</span></tt></a> objects, this is easy to do:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [9]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="gh">Out[9]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x115374790&gt;</span>
+<span class="gh">Out[9]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x11459ad90&gt;</span>
 
 <span class="gp">In [10]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;500 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
 </pre></div>
@@ -311,16 +310,16 @@ we&#8217;ve been returned an empty list. To see everything that is
 known about the halo one can use the standard python dictionary method <cite>keys</cite>:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [12]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">keys</span><span class="p">()[:</span><span class="mi">10</span><span class="p">]</span> <span class="c"># show only the first ten</span>
 <span class="gh">Out[12]: </span><span class="go"></span>
-<span class="go">[u&#39;Ecy_gas&#39;,</span>
+<span class="go">[&#39;Ecy_gas&#39;,</span>
 <span class="go"> &#39;children&#39;,</span>
 <span class="go"> &#39;omegaM0&#39;,</span>
-<span class="go"> u&#39;Rmax&#39;,</span>
-<span class="go"> u&#39;Redge&#39;,</span>
-<span class="go"> u&#39;Eax&#39;,</span>
-<span class="go"> u&#39;Eaz&#39;,</span>
-<span class="go"> u&#39;lambdaE_gas&#39;,</span>
-<span class="go"> u&#39;lambda_gas&#39;,</span>
-<span class="go"> u&#39;n_gas&#39;]</span>
+<span class="go"> &#39;Rmax&#39;,</span>
+<span class="go"> &#39;Redge&#39;,</span>
+<span class="go"> &#39;Eax&#39;,</span>
+<span class="go"> &#39;Eaz&#39;,</span>
+<span class="go"> &#39;lambdaE_gas&#39;,</span>
+<span class="go"> &#39;lambda_gas&#39;,</span>
+<span class="go"> &#39;n_gas&#39;]</span>
 </pre></div>
 </div>
 </div>
@@ -461,7 +460,7 @@ and see the position of its first few particles as follows:</p>
 <p>A really common use-case is that one wants to center the simulation on
 a given halo and analyze some of its properties:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [33]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vel</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="gh">Out[33]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x10a781250&gt;</span>
+<span class="gh">Out[33]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x1196464d0&gt;</span>
 
 <span class="gp">In [34]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s">&#39;40 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
 </pre></div>
@@ -634,7 +633,7 @@ appending to an array:</p>
     </p>
     <p>
         &copy; Copyright 2011-15, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.<br/>
     </p>
   </div>
 </footer>
