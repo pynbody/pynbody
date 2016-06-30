@@ -228,7 +228,7 @@ class TipsySnap(SimSnap):
             except ValueError:
                 # could be a binary file
                 f = util.open_(x, 'rb')
-                
+
                 header = f.read(4)
                 if len(header)!=4:
                     return False
@@ -240,7 +240,7 @@ class TipsySnap(SimSnap):
 
                 ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffffL
                 ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffffL
-                
+
                 if buflen == ourlen_1:  # it's a vector
                     return True
                 elif buflen == ourlen_3:  # it's an array
@@ -600,6 +600,7 @@ class TipsySnap(SimSnap):
         print>>f, "families:",
         for x in families:
             print>>f, x.name,
+        print >>f
         print >>f, "dtype:",dtype
         print >>f
         f.close()
@@ -1621,4 +1622,3 @@ def slparam2units(sim):
 
         sim.star["rhoform"].units = denunit_st
         sim.star["massform"].units = munit_st
-
