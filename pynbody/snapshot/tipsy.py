@@ -531,13 +531,18 @@ class TipsySnap(SimSnap):
                     TipsySnap._write_array(
                         self, x, filename=filename + "." + x, binary=binary_aux_arrays)
 
+
+    @staticmethod
+    def __get_write_dtype(stored_dtype):
+        if issubclass(stored_dtype.type, np.integer):
+            return np.int32
+        else:
+            return np.float32
+
     @staticmethod
     def __write_block(f, ar, binary, byteswap):
-        if issubclass(ar.dtype.type, np.integer):
-            ar = np.asarray(ar, dtype=np.int32)
-        else:
-            ar = np.asarray(ar, dtype=np.float32)
 
+        ar = np.asarray(ar, dtype=TipsySnap.__get_write_dtype(ar.dtype))
         if binary:
             if byteswap:
                 ar.byteswap().tofile(f)
@@ -601,8 +606,9 @@ class TipsySnap(SimSnap):
         for x in families:
             print>>f, x.name,
         print >>f
-        print >>f, "dtype:",dtype
-        print >>f
+        if dtype is not None:
+            print >>f, "dtype:", TipsySnap.__get_write_dtype(dtype)
+
         f.close()
 
         if isinstance(self, TipsySnap):
