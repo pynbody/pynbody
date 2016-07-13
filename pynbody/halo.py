@@ -962,9 +962,10 @@ class AHFCatalogue(HaloCatalogue):
             if self._use_iord:
                 data = self._iord_to_fpos[data]
             else:
-                hi_mask = data >= nds
-                data[np.where(hi_mask)] -= nds
-                data[np.where(~hi_mask)] += ng
+                if type(self.base) is not snapshot.nchilada.NchiladaSnap:
+                    hi_mask = data >= nds
+                    data[np.where(hi_mask)] -= nds
+                    data[np.where(~hi_mask)] += ng
         else:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
