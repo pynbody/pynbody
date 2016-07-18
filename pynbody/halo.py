@@ -841,6 +841,8 @@ class AHFCatalogue(HaloCatalogue):
         self._use_iord = use_iord
 
         self._dummy = dummy
+        self._dosort = dosort
+        self._only_stat = only_stat
 
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
@@ -866,6 +868,14 @@ class AHFCatalogue(HaloCatalogue):
         logger.info("AHFCatalogue loading halos")
 
         self._load_ahf_halos(self._ahfBasename + 'halos')
+
+        if self._only_stat is None:
+            self._get_file_positions(self._ahfBasename + 'particles')
+
+        if self._dosort is not None:
+            nparr = np.array([self._halos[i+1].properties['npart'] for i in range(self._nhalos)])
+            osort = np.argsort(nparr)[::-1]
+            self._sorted_indices = osort + 1
 
         if os.path.isfile(self._ahfBasename + 'substructure'):
             logger.info("AHFCatalogue loading substructure")
@@ -949,6 +959,18 @@ class AHFCatalogue(HaloCatalogue):
         f.close()
 
         return load(self.base.filename, take=ids)
+
+    def _get_file_positions(self,filename):
+        """Get the starting positions of each halo's particle information within the
+        AHF_particles file for faster access later"""
+        f = util.open_(filename)
+        for h in xrange(self._nhalos):
+            if len((f.readline().split())) == 1:
+                f.readline()
+            self._halos[h+1].properties['fstart'] = f.tell()
+            for i in xrange(self._halos[h+1].properties['npart']):
+                f.readline()
+        f.close()
 
     def _load_ahf_particle_block(self, f):
         """Load the particles for the next halo described in particle file f"""
