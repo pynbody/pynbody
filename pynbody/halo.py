@@ -896,6 +896,9 @@ class AHFCatalogue(HaloCatalogue):
         logger.info("AHFCatalogue loaded")
 
     def __getitem__(self,item):
+        """
+        get the appropriate halo if dosort is on
+        """
         if self._dosort is not None:
             i = self._sorted_indices[item-1]
         else:
