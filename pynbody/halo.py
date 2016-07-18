@@ -956,15 +956,14 @@ class AHFCatalogue(HaloCatalogue):
 
         from . import load
 
+        if self._dosort is not None:
+            i = self._sorted_indices[i-1]
+
         f = util.open_(self._ahfBasename + 'particles')
 
-        if self.isnew:
-            nhalos = int(f.readline())
-        else:
-            nhalos = self._nhalos
-
-        for h in xrange(i):
-            ids = self._load_ahf_particle_block(f)
+        fpos = self._halos[i].properties['fstart']
+        f.seek(fpos,0)
+        ids = self._load_ahf_particle_block(f, nparts=self._halos[i].properties['npart'])
 
         f.close()
 
