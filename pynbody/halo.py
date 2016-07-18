@@ -972,11 +972,18 @@ class AHFCatalogue(HaloCatalogue):
                 f.readline()
         f.close()
 
-    def _load_ahf_particle_block(self, f):
+    def _load_ahf_particle_block(self, f, nparts=None):
         """Load the particles for the next halo described in particle file f"""
-        ng = len(self.base.gas)
-        nds = len(self.base.dark) + len(self.base.star)
-        nparts = int(f.readline().split()[0])
+        nng = len(self.base.gas)
+        nd = len(self.base.dark)
+        ns = len(self.base.star)
+        nds = nd+ns
+
+        if nparts is None:
+            startline = f.readline()
+            if len((startline.split()))==1:
+                startline = f.readline()
+            nparts = int(startline.split()[0])
 
         if self.isnew:
             if not isinstance(f, gzip.GzipFile):
@@ -996,6 +1003,11 @@ class AHFCatalogue(HaloCatalogue):
                     hi_mask = data >= nds
                     data[np.where(hi_mask)] -= nds
                     data[np.where(~hi_mask)] += ng
+                else:
+                    st_mask = (data >= nd) & (data < nds)
+                    g_mask = data >= nds
+                    data[np.where(st_mask)] += ng
+                    data[np.where(g_mask)] -= ns
         else:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
@@ -1017,11 +1029,6 @@ class AHFCatalogue(HaloCatalogue):
             self.isnew = True
         else:
             self.isnew = False
-
-        if self.isnew:
-            nhalos = int(f.readline())
-        else:
-            nhalos = self._nhalos
 
         if not self._dummy:
             for h in xrange(nhalos):
