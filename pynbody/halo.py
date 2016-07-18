@@ -1059,7 +1059,7 @@ class AHFCatalogue(HaloCatalogue):
 
     def _load_ahf_particle_block(self, f, nparts=None):
         """Load the particles for the next halo described in particle file f"""
-        nng = len(self.base.gas)
+        ng = len(self.base.gas)
         nd = len(self.base.dark)
         ns = len(self.base.star)
         nds = nd+ns
@@ -1116,12 +1116,12 @@ class AHFCatalogue(HaloCatalogue):
             self.isnew = False
 
         if not self._dummy:
-            for h in xrange(nhalos):
+            for h in xrange(self._nhalos):
                 self._halos[h + 1] = Halo(
                     h + 1, self, self.base, self._load_ahf_particle_block(f))
                 self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
         else:
-            for h in xrange(nhalos):
+            for h in xrange(self._nhalos):
                 self._halos[h + 1] = DummyHalo()
 
         f.close()
