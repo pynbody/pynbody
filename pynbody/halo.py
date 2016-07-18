@@ -895,6 +895,13 @@ class AHFCatalogue(HaloCatalogue):
 
         logger.info("AHFCatalogue loaded")
 
+    def __getitem__(self,item):
+        if self._dosort is not None:
+            i = self._sorted_indices[item-1]
+        else:
+            i = item
+        return super(AHFCatalogue,self).__getitem__(i)
+
     def make_grp(self, name='grp'):
         """
         Creates a 'grp' array which labels each particle according to
