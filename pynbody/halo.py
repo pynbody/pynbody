@@ -912,14 +912,90 @@ class AHFCatalogue(HaloCatalogue):
         """
         self.base[name] = self.get_group_array()
 
-    def get_group_array(self, top_level=False):
-        ar = np.zeros(len(self.base), dtype=int)
-        if top_level is False:
-            for halo in self._halos.values():
-                ar[halo.get_index_list(self.base)] = halo._halo_id
+    def get_group_array(self, top_level=False, family=None):
+        """
+        output an array of group IDs for each particle.
+        :top_level: If False, each particle associated with the lowest level halo they are in.
+                    If True, each particle associated with their top-most level halo
+        :family: specify the family of particles to output an array for (default is all particles)
+        """
+        nd = len(self.base.dark)
+        ns = len(self.base.star)
+        ng = len(self.base.gas)
+        if family is None:
+            target = self.base
         else:
-            for halo in self._halos.values()[::-1]:
-                ar[halo.get_index_list(self.base)] = halo._halo_id
+
+            if family == "dark" or family == "Dark" or family == "dm":
+                target = self.base.dark
+            if family == "star" or family == "Star" or family == "s":
+                target = self.base.star
+                print "getting stars!", len(target)
+            if family == "gas" or family == "Gas" or family == "g":
+                target = self.base.gas
+            if family == "black holes" or family == "Black Holes" or family == "BH" or family == "bh":
+                temptarget = self.base.star
+                target = temptarget[(temptarget['tform']<0)]
+
+        if self._dosort is None:
+            #if we want to differentiate between top and bottom levels,
+            #the halos do need to be in order regardless if dosort is on.
+            nparr = np.array([self._halos[i+1].properties['npart'] for i in range(self._nhalos)])
+            osort = np.argsort(nparr)[::-1]
+            self._sorted_indices = osort + 1
+            hcnt = self._sorted_indices
+
+        else:
+            print "setting hcnt"
+            hcnt = np.arange(len(self._sorted_indices)) + 1
+
+        if top_level is False:
+            hord = self._sorted_indices
+        else:
+            hord = self._sorted_indices[::-1]
+            hcnt = hcnt[::-1]
+
+        if self._dummy is not None:
+            f = util.open_(self._ahfBasename+'particles')
+
+        cnt = 0
+        ar = np.ones(len(target))*-1
+        print "just set the array", len(ar)
+        print hord
+        for i in hord:
+            halo = self._halos[i]
+            if cnt%100 == 0: print float(cnt)/float(len(hcnt)), '% done'
+            if self._dummy is None:
+                ids = halo.get_index_list(self.base)
+            else:
+                f.seek(halo.properties['fstart'],0)
+                ids = self._load_ahf_particle_block(f,halo.properties['npart'])
+            if family is None:
+                ar[ids] = hcnt[cnt]
+            else:
+                if family in ["star", "Star", "s"]:
+                    t_mask = ids > nd + ng
+                    id_t = ids[np.where(t_mask)] - (nd+ng)
+                if family in ["gas", "Gas", "g"]:
+                    if type(self.base) is not snapshot.nchilada.NchiladaSnap:
+                        t_mask = ids < ng
+                        id_t = ids[np.where(t_mask)]
+                    else:
+                        t_mask = (ids >= nd) & (ids < nd+ng)
+                        id_t = ids[np.where(t_mask)] - nd
+                if family in ["Dark", "dark", "dm"]:
+                    if type(self.base) is not snapshot.nchilada.NchiladaSnap:
+                        t_mask = (ids >= ng) & (ids < ng+nd)
+                        id_t = ids[np.where(t_mask)] - ng
+                    else:
+                        t_mask = (ids < nd)
+                        id_t = ids[np.where(t_mask)]
+                if family in ["black holes","Black Holes","BH", "bh"]:
+                    fpos_ar = target.get_index_list(self.base)
+                    id_t, = np.where(np.in1d(fpos_ar, ids))
+
+                ar[id_t] = hcnt[cnt]
+            cnt += 1
         return ar
 
     def _setup_children(self):
