@@ -840,7 +840,7 @@ class AHFCatalogue(HaloCatalogue):
 
         self._use_iord = use_iord
 
-        self._dummy = get_all_parts
+        self._all_parts = get_all_parts
         self._dosort = dosort
         self._only_stat = only_stat
 
@@ -955,7 +955,7 @@ class AHFCatalogue(HaloCatalogue):
             hord = self._sorted_indices[::-1]
             hcnt = hcnt[::-1]
 
-        if self._dummy is not None:
+        if self._all_parts is None:
             f = util.open_(self._ahfBasename+'particles')
 
         cnt = 0
@@ -965,7 +965,7 @@ class AHFCatalogue(HaloCatalogue):
         for i in hord:
             halo = self._halos[i]
             if cnt%100 == 0: print float(cnt)/float(len(hcnt)), '% done'
-            if self._dummy is None:
+            if self._all_parts is not None:
                 ids = halo.get_index_list(self.base)
             else:
                 f.seek(halo.properties['fstart'],0)
@@ -1022,7 +1022,7 @@ class AHFCatalogue(HaloCatalogue):
             raise RuntimeError("Parent SimSnap has been deleted")
         if self._dosort is not None:
                 i = self._sorted_indices[i-1]
-        if self._dummy is None:
+        if self.all_parts is not None:
             return self._halos[i]
         else:
             f = util.open_(self._ahfBasename+'particles')
@@ -1124,7 +1124,7 @@ class AHFCatalogue(HaloCatalogue):
         else:
             self.isnew = False
 
-        if not self._dummy:
+        if self._all_parts is not NOne:
             for h in xrange(self._nhalos):
                 self._halos[h + 1] = Halo(
                     h + 1, self, self.base, self._load_ahf_particle_block(f))
