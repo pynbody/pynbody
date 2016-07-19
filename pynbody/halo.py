@@ -1124,7 +1124,7 @@ class AHFCatalogue(HaloCatalogue):
         else:
             self.isnew = False
 
-        if self._all_parts is not NOne:
+        if self._all_parts is not None:
             for h in xrange(self._nhalos):
                 self._halos[h + 1] = Halo(
                     h + 1, self, self.base, self._load_ahf_particle_block(f))
