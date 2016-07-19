@@ -792,7 +792,7 @@ class AHFCatalogue(HaloCatalogue):
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None, ahf_basename=None, dosort=True, only_stat=None, **kwargs):
+    def __init__(self, sim, make_grp=None, get_all_parts=False, use_iord=None, ahf_basename=None, dosort=True, only_stat=None, **kwargs):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -840,7 +840,7 @@ class AHFCatalogue(HaloCatalogue):
 
         self._use_iord = use_iord
 
-        self._dummy = dummy
+        self._dummy = get_all_parts
         self._dosort = dosort
         self._only_stat = only_stat
 
@@ -1020,8 +1020,17 @@ class AHFCatalogue(HaloCatalogue):
     def _get_halo(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
+        if self._dosort is not None:
+                i = self._sorted_indices[i-1]
+        if self._dummy is None:
+            return self._halos[i]
+        else:
+            f = util.open_(self._ahfBasename+'particles')
+            fpos = self._halos[i].properties['fstart']
+            f.seek(fpos,0)
+            return Halo(i, self, self.base, self._load_ahf_particle_block(f, self._halos[i].properties['npart']))
 
-        return self._halos[i]
+
 
     @property
     def base(self):
