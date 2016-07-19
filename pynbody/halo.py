@@ -168,7 +168,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     _halo_type = np.dtype([('id',np.int64),('num_p',np.int64),('indstart',np.int64)])
     _part_type = np.dtype('int64')
 
-    def __init__(self, sim, sort=True, correct=False):
+    def __init__(self, sim, sort=True, correct=False, **kwargs):
         assert isinstance(sim,snapshot.SimSnap)
         self._correct=correct
         HaloCatalogue.__init__(self, sim)
@@ -285,7 +285,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
 
 
 class RockstarCatalogue(HaloCatalogue):
-    def __init__(self, sim, dummy=False, filename=None, sort=False):
+    def __init__(self, sim, dummy=False, filename=None, sort=False, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -471,7 +471,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
                           ('odum',np.str_,4)])
 
 
-    def __init__(self, sim, dummy=False, filename=None):
+    def __init__(self, sim, dummy=False, filename=None, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -792,7 +792,7 @@ class AHFCatalogue(HaloCatalogue):
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, dummy=True, use_iord=None, ahf_basename=None, dosort=True, only_stat=None):
+    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None, ahf_basename=None, dosort=True, only_stat=None, **kwargs):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -1451,7 +1451,7 @@ class GrpCatalogue(HaloCatalogue):
     A generic catalogue using a .grp file to specify which particles
     belong to which group.
     """
-    def __init__(self, sim, array='grp'):
+    def __init__(self, sim, array='grp',**kwargs):
         sim[array]
     # trigger lazy-loading and/or kick up a fuss if unavailable
         self._halos = {}
@@ -1522,7 +1522,7 @@ class GrpCatalogue(HaloCatalogue):
 
 
 class AmigaGrpCatalogue(GrpCatalogue):
-    def __init__(self, sim, arr_name='amiga.grp'):
+    def __init__(self, sim, arr_name='amiga.grp',**kwargs):
         GrpCatalogue.__init__(self, sim, arr_name)
 
     @staticmethod
@@ -1547,7 +1547,7 @@ class SubfindCatalogue(HaloCatalogue):
     """
 
 
-    def __init__(self, sim, subs=False, order=True, make_grp=None, v=False):
+    def __init__(self, sim, subs=False, order=True, make_grp=None, v=False, **kwargs):
         self._base = weakref.ref(sim)
         self._order=order
         self._subs=subs
