@@ -75,7 +75,13 @@ class HaloCatalogue(object):
 
     def calc_item(self, i):
         if i in self._halos:  # and self._halos[i]() is not None :
-            return self._halos[i]  # ()
+            if isinstance(self._halos[i],DummyHalo):
+                try:
+                    return self._get_halo(i)
+                except:
+                    return self._halos[i]
+            else:
+                return self._halos[i]
         else:
             h = self._get_halo(i)
             self._halos[i] = h  # weakref.ref(h)
@@ -1022,7 +1028,7 @@ class AHFCatalogue(HaloCatalogue):
             raise RuntimeError("Parent SimSnap has been deleted")
         if self._dosort is not None:
                 i = self._sorted_indices[i-1]
-        if self.all_parts is not None:
+        if self._all_parts is not None:
             return self._halos[i]
         else:
             f = util.open_(self._ahfBasename+'particles')
