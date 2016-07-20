@@ -798,7 +798,8 @@ class AHFCatalogue(HaloCatalogue):
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None, dosort=True, only_stat=None, **kwargs):
+    def __init__(self, sim, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
+                 dosort=True, only_stat=None, write_fpos=None, **kwargs):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -898,6 +899,9 @@ class AHFCatalogue(HaloCatalogue):
         if config_parser.getboolean('AHFCatalogue', 'AutoPid'):
             sim['pid'] = np.arange(0, len(sim))
 
+        if write_fpos is not None:
+            self._write_fpos()
+
         logger.info("AHFCatalogue loaded")
 
     def __getitem__(self,item):
@@ -916,6 +920,13 @@ class AHFCatalogue(HaloCatalogue):
         its parent halo.
         """
         self.base[name] = self.get_group_array()
+
+    def _write_fpos(self):
+        f = open(self._ahfBasename + 'fpos','w')
+        for i in range(self._nhalos):
+            f.write(str(self._nhalos[i+1].properties['fstart']+'\n'))
+        f.close()
+
 
     def get_group_array(self, top_level=False, family=None):
         """
@@ -1060,14 +1071,20 @@ class AHFCatalogue(HaloCatalogue):
     def _get_file_positions(self,filename):
         """Get the starting positions of each halo's particle information within the
         AHF_particles file for faster access later"""
-        f = util.open_(filename)
-        for h in xrange(self._nhalos):
-            if len((f.readline().split())) == 1:
-                f.readline()
-            self._halos[h+1].properties['fstart'] = f.tell()
-            for i in xrange(self._halos[h+1].properties['npart']):
-                f.readline()
-        f.close()
+        if os.path.exists(self._ahfBasename + 'fpos'):
+            f = util.open_(self._ahfBasename + 'fpos')
+            for i in range(self._nhalos):
+                self._halos[i+1].properties['fstart'] = int(f.readline())
+            f.close()
+        else:
+            f = util.open_(filename)
+            for h in xrange(self._nhalos):
+                if len((f.readline().split())) == 1:
+                    f.readline()
+                self._halos[h+1].properties['fstart'] = f.tell()
+                for i in xrange(self._halos[h+1].properties['npart']):
+                    f.readline()
+            f.close()
 
     def _load_ahf_particle_block(self, f, nparts=None):
         """Load the particles for the next halo described in particle file f"""
