@@ -930,7 +930,10 @@ class AHFCatalogue(HaloCatalogue):
         print "here"
         f = open(self._ahfBasename + 'fpos','w')
         for i in range(self._nhalos):
-            f.write(str(self._nhalos[i+1].properties['fstart'])+'\n')
+            if i < self._nhalos - 1:
+                f.write(str(self._halos[i+1].properties['fstart'])+'\n')
+            else:
+                f.write(str(self._halos[i+1].properties['fstart']))
         f.close()
 
 
