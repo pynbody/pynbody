@@ -1026,8 +1026,6 @@ class AHFCatalogue(HaloCatalogue):
     def _get_halo(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
-        if self._dosort is not None:
-                i = self._sorted_indices[i-1]
         if self._all_parts is not None:
             return self._halos[i]
         else:
