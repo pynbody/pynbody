@@ -924,7 +924,7 @@ class AHFCatalogue(HaloCatalogue):
     def _write_fpos(self):
         f = open(self._ahfBasename + 'fpos','w')
         for i in range(self._nhalos):
-            f.write(str(self._nhalos[i+1].properties['fstart']+'\n'))
+            f.write(str(self._nhalos[i+1].properties['fstart'])+'\n')
         f.close()
 
 
