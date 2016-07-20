@@ -866,32 +866,26 @@ class AHFCatalogue(HaloCatalogue):
             pass
         self._nhalos = i
         f.close()
-        print "here 1"
         logger.info("AHFCatalogue loading particles")
 
         self._load_ahf_particles(self._ahfBasename + 'particles')
 
         logger.info("AHFCatalogue loading halos")
-        print "here 2"
         self._load_ahf_halos(self._ahfBasename + 'halos')
 
         if self._only_stat is None:
-            print "here 3"
             self._get_file_positions(self._ahfBasename + 'particles')
 
         if self._dosort is not None:
-            print "here 4"
             nparr = np.array([self._halos[i+1].properties['npart'] for i in range(self._nhalos)])
             osort = np.argsort(nparr)[::-1]
             self._sorted_indices = osort + 1
 
         if os.path.isfile(self._ahfBasename + 'substructure'):
             logger.info("AHFCatalogue loading substructure")
-            print "here 5"
 
             self._load_ahf_substructure(self._ahfBasename + 'substructure')
         else:
-            print "here 6"
             self._setup_children()
 
         if make_grp is None:
@@ -904,7 +898,6 @@ class AHFCatalogue(HaloCatalogue):
             sim['pid'] = np.arange(0, len(sim))
 
         if write_fpos is not None:
-            print "here 7"
             self._write_fpos()
 
         logger.info("AHFCatalogue loaded")
@@ -927,7 +920,6 @@ class AHFCatalogue(HaloCatalogue):
         self.base[name] = self.get_group_array()
 
     def _write_fpos(self):
-        print "here"
         f = open(self._ahfBasename + 'fpos','w')
         for i in range(self._nhalos):
             if i < self._nhalos - 1:
