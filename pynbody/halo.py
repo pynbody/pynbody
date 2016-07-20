@@ -809,10 +809,9 @@ class AHFCatalogue(HaloCatalogue):
                     array is created; if None, the behaviour is
                     determined by the configuration system.
 
-        *dummy*: if True, the particle file is not loaded, and all
-                 halos returned are just dummies (with the correct
-                 properties dictionary loaded). Use load_copy to get
-                 the actual data in this case.
+        *get_all_parts*: if True, the particle file is loaded for all halos.
+                    Suggested to keep this None, as this is memory intensive.
+                    The default function is to load in this data as needed.
 
         *use_iord*: if True, the particle IDs in the Amiga catalogue
                     are taken to refer to the iord array. If False,
