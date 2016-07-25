@@ -8,7 +8,7 @@ def setup():
 
 
 def test_lengths():
-    assert len(f.gas) == 152574
+    assert len(f.gas) == 152667
     assert len(f.star) == 2655
     assert len(f.dm) == 51887
 

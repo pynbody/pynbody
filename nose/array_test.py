@@ -93,7 +93,7 @@ def test_iop_units():
 
 
 def test_iop_sanity():
-    x = SA([1, 2, 3, 4])
+    x = SA([1.0, 2.0, 3.0, 4.0])
     x_id = id(x)
     x += 1
     assert id(x) == x_id

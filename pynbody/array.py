@@ -273,7 +273,7 @@ class SimArray(np.ndarray):
 
     @units.setter
     def units(self, u):
-        if isinstance(u, str):
+        if not isinstance(u, units.UnitBase) and u is not None:
             u = units.Unit(u)
 
         if hasattr(self.base, 'units'):
@@ -335,6 +335,14 @@ class SimArray(np.ndarray):
             return x
         else:
             return np.ndarray.__div__(self, rhs)
+
+    def __truediv__(self, rhs):
+        if isinstance(rhs, _units.UnitBase):
+            x = self.copy()
+            x.units = x.units / rhs
+            return x
+        else:
+            return np.ndarray.__truediv__(self, rhs)
 
     def __imul__(self, rhs):
         if isinstance(rhs, _units.UnitBase):
@@ -401,6 +409,10 @@ class SimArray(np.ndarray):
                 b = np.multiply(x, cr)
                 if hasattr(b, 'units'):
                     b.units = None
+
+                if not np.can_cast(b.dtype,self.dtype):
+                    b = np.asarray(b, dtype=x.dtype)
+
 
                 r = add_op(self, b)
 

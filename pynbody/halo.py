@@ -1004,10 +1004,10 @@ class AHFCatalogue(HaloCatalogue):
         f.close()
 
     def _load_ahf_halos(self, filename):
-        f = util.open_(filename)
+        f = util.open_(filename,"rt")
         # get all the property names from the first, commented line
         # remove (#)
-        keys = [re.sub('\([0-9]*\)', '', field.decode('utf-8'))
+        keys = [re.sub('\([0-9]*\)', '', field)
                 for field in f.readline().split()]
         # provide translations
         for i, key in enumerate(keys):
@@ -1034,7 +1034,7 @@ class AHFCatalogue(HaloCatalogue):
 
         for h, line in enumerate(f):
             values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(
-                x) for x in line.decode('utf-8').split()]
+                x) for x in line.split()]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
             for i, key in enumerate(keys):

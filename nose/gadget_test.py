@@ -182,3 +182,11 @@ def test_per_particle_loading():
     f_part.gas['pos']
 
     assert (f_all['pos'] == f_part['pos']).all()
+
+def test_issue321():
+    """L-PICOLA outputs single-precision with no mass block, which causes problems
+    with testing kd-trees"""
+
+    f = pynbody.load("testdata/lpicola/lpicola_z0p000.0")
+    assert f['pos'].dtype==np.dtype('float32')
+    assert f['mass'].dtype==np.dtype('float32')

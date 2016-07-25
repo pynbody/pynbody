@@ -120,7 +120,7 @@ And perhaps check quickly how many particles of each type are identified there:
 
 .. ipython::
 
- In [1]: print 'ngas = %e, ndark = %e, nstar = %e\n'%(len(h1.gas),len(h1.dark),len(h1.star))
+ In [1]: print('ngas = %e, ndark = %e, nstar = %e\n'%(len(h1.gas),len(h1.dark),len(h1.star)))
 
 
 The halos of ``s`` are now loaded in ``h`` and ``h[1]`` yields the
@@ -156,15 +156,15 @@ notice halo 1 doesn't move at all.
 
 .. ipython ::
 
- In [4]: print h[1]['pos'][0]
+ In [4]: print(h[1]['pos'][0])
 
- In [4]: print h[5]['pos'][0]
+ In [4]: print(h[5]['pos'][0])
 
  In [4]: my_h5_transform = pynbody.analysis.halo.center(h[5], mode='hyb', move_all=False)
 
- In [4]: print h[1]['pos'][0] # should be unchanged
+ In [4]: print(h[1]['pos'][0]) # should be unchanged
 
- In [4]: print h[5]['pos'][0] # should be changed
+ In [4]: print(h[5]['pos'][0]) # should be changed
 
 Note however that the data inside ``h[5]`` (or any halo) just *points*
 to a subset of the data in the full simulation. So you now have an
@@ -177,9 +177,9 @@ allows you to undo the operation:
 
  In [5]: my_h5_transform.revert()
 
- In [5]: print h[5]['pos'][0] # back to where it started
+ In [5]: print(h[5]['pos'][0]) # back to where it started
 
- In [5]: print h[1]['pos'][0] # still hasn't changed, of course
+ In [5]: print(h[1]['pos'][0]) # still hasn't changed, of course
 
 
 In fact, there's a more pythonic and compact way to do this. Suppose
@@ -188,9 +188,9 @@ centering is unaffected after you are done. This is the thing to do:
 
 .. ipython ::
 
- In [6]: with pynbody.analysis.halo.center(h[5], mode='hyb'): print h[5]['pos'][0]
+ In [6]: with pynbody.analysis.halo.center(h[5], mode='hyb'): print(h[5]['pos'][0])
 
- In [7]: print h[5]['pos'][0]
+ In [7]: print(h[5]['pos'][0])
 
 
 Inside the ``with`` code block, ``h[5]`` is centered. The moment the block
@@ -217,9 +217,9 @@ to illustrate this:
 
  In [5]: cen_pot = pynbody.analysis.halo.center(h1,mode='pot',retcen=True)
 
- In [6]: print cen_hyb
+ In [6]: print(cen_hyb)
 
- In [7]: print cen_pot
+ In [7]: print(cen_pot)
 
  In [7]: s['pos'] -= cen_hyb
 

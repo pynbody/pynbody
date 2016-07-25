@@ -51,3 +51,6 @@ def test_units_pickle():
     assert pick(units.km) is units.km  # named
     assert pick(units.m) is units.m  # irreducible
     assert pick(units.Unit("km s^-1 Msol^-5")) == units.Unit("km s^-1 Msol^-5")
+
+def test_units_rdiv():
+    assert 4.0/pynbody.units.m_p == pynbody.units.Unit("4.0 m_p^-1")

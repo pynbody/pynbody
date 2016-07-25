@@ -147,6 +147,9 @@ class UnitBase(object):
     def __truediv__(self, m):
         return self.__div__(m)
 
+    def __rtruediv__(self, m):
+        return self.__rdiv__(m)
+
     def __div__(self, m):
         if hasattr(m, "_no_unit"):
             return NoUnit()
@@ -650,6 +653,8 @@ def Unit(s):
 
     if isinstance(s, UnitBase):
         return s
+    elif isinstance(s, int):
+        s = str(s)
 
     x = s.split()
     try:

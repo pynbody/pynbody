@@ -60,7 +60,8 @@ def faceon_image(sim, *args, **kwargs):
 
 def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black', quiverkey_bg_color=None,
                    vector_resolution=40, scale=None, mode='quiver', key_x=0.3, key_y=0.9,
-                   key_color='white', key_length="100 km s**-1", density=1.0, **kwargs):
+                   key_color='white', key_length="100 km s**-1", quiverkey=True, density=1.0,
+                   vector_qty='vel', **kwargs):
     """
 
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
@@ -97,18 +98,24 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     *density* (1.0): Density of stream lines (stream mode only)
 
+    *quiverkey* (True): Whether or not to inset the key
+
+    *vector_qty* ('vel'): The name of the vector field to plot
     """
 
     subplot = kwargs.get('subplot', False)
+    av_z = kwargs.get('av_z',None)
     if subplot:
         p = subplot
     else:
         import matplotlib.pylab as p
 
-    vx = image(sim, qty='vx', width=width, log=False,
-               resolution=vector_resolution, noplot=True)
-    vy = image(sim, qty='vy', width=width, log=False,
-               resolution=vector_resolution, noplot=True)
+    vx_name, vy_name, _ = sim._array_name_ND_to_1D(vector_qty)
+
+    vx = image(sim, qty=vx_name, width=width, log=False,
+               resolution=vector_resolution, noplot=True,av_z=av_z)
+    vy = image(sim, qty=vy_name, width=width, log=False,
+               resolution=vector_resolution, noplot=True,av_z=av_z)
     key_unit = _units.Unit(key_length)
 
     if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
@@ -129,14 +136,16 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
         else:
             Q = p.quiver(X, Y, vx, vy, scale=_units.Unit(scale).in_units(
                 sim['vel'].units), color=vector_color, edgecolor=edgecolor)
-        # R. Sarmento - capturing return of quickerkey in 'qk' so I can set background color...
-        qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
-                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color,
-                    fontproperties={'size': 16})
+        if quiverkey:
+        	qk = p.quiverkey(Q, key_x, key_y, key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
+                    r"$\mathbf{" + key_unit.latex() + "}$", labelcolor=key_color, color=key_color, fontproperties={'size': 24})
         if  quiverkey_bg_color is not None:
             qk.text.set_backgroundcolor(quiverkey_bg_color)
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
+
+    p.xlim(-width/2, width/2)
+    p.ylim(-width/2, width/2)
 
     return im
 
@@ -425,7 +434,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
             # check if there are negative values -- if so, use the symmetric
             # log normalization
-            if (im < 0).any():
+            if (vmin is None and (im < 0).any() ) or ((vmin is not None) and vmin<0):
 
                 # need to set the linear regime around zero -- set to by
                 # default start at 1/1000 of the log range
