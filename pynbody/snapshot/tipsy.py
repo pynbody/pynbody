@@ -1205,7 +1205,7 @@ class StarLog(SimSnap):
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8')})
                     f.seek(4)
-                    print "Using 64 bit iOrders"
+                    logger.info("Using 64 bit iOrders")
                     molecH = False
                     bigIOrds = True
         if (iSize != file_structure.itemsize):
