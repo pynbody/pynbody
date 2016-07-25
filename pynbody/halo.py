@@ -799,7 +799,7 @@ class AHFCatalogue(HaloCatalogue):
     """
 
     def __init__(self, sim, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
-                 dosort=True, only_stat=None, write_fpos=None, **kwargs):
+                 dosort=True, only_stat=None, write_fpos=True, **kwargs):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -898,7 +898,8 @@ class AHFCatalogue(HaloCatalogue):
             sim['pid'] = np.arange(0, len(sim))
 
         if write_fpos is not None:
-            self._write_fpos()
+            if not os.path.exists(self._ahfBasename + 'fpos'):
+                self._write_fpos()
 
         logger.info("AHFCatalogue loaded")
 
