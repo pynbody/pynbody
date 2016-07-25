@@ -346,7 +346,7 @@ grav_blocks = map(
     str.strip, config_parser.get('ramses', "gravity-blocks").split(","))
 
 rt_blocks = map(
-    str.strip, config_parser.get('ramses', 'rt-blocks').split(",")
+    str.strip, config_parser.get('ramses', 'rt-blocks', raw=True).split(",")
 )
 
 particle_distinguisher = map(
