@@ -2,10 +2,12 @@ pynbody
 =======
 [![Build Status](https://travis-ci.org/pynbody/pynbody.svg?branch=master)](https://travis-ci.org/pynbody/pynbody)
 
-[Pynbody](https://github.com/earnric/pynbody) is a light-weight,
+[Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
 portable, format-transparent analysis framework for N-body and
 hydrodynamic astrophysical simulations supporting PKDGRAV/Gasoline,
-Gadget, N-Chilada, and RAMSES AMR outputs. This version contains updates that help the software to work with my
+Gadget, N-Chilada, and RAMSES AMR outputs. 
+
+This version contains updates that help the software to work with my
 customized version of ramses.
 
 Written in python, the core tools are accompanied by a library of
@@ -17,7 +19,7 @@ the features, have a look at this [IPython notebook](http://nbviewer.ipython.org
 If your python with distutils is installed and properly configured, you can simply do:
 
 ```
-$ git clone https://github.com/pynbody/pynbody
+$ git clone https://github.com/earnric/pynbody
 $ cd pynbody
 $ python setup.py install
 $ cd ..
