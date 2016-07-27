@@ -249,7 +249,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     def _sort_index(self):
         self._halo_info[::-1].sort(order='num_p')
 
-    def get_fam_group_array(self, family='star'):
+    def get_group_array(self, family='star'):
         if family == 'star':
             target = self.base.star
         if family == 'gas':

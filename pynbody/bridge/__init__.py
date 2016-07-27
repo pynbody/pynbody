@@ -171,8 +171,8 @@ class Bridge(object):
 
         else:
 
-            g1 = groups_1.get_fam_group_array(family=only_family)
-            g2 = groups_2.get_fam_group_array(family=only_family)
+            g1 = groups_1.get_group_array(family=only_family)
+            g2 = groups_2.get_group_array(family=only_family)
 
         transfer_matrix = _bridge.match(g1, g2, min_index, max_index)
 
