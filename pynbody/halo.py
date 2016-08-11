@@ -989,7 +989,7 @@ class AHFCatalogue(HaloCatalogue):
                 ar[ids] = hcnt[cnt]
             else:
                 if family in ["star", "Star", "s"]:
-                    t_mask = ids => nd + ng
+                    t_mask = ids >= nd + ng
                     id_t = ids[np.where(t_mask)] - (nd+ng)
                 if family in ["gas", "Gas", "g"]:
                     if type(self.base) is not snapshot.nchilada.NchiladaSnap:
