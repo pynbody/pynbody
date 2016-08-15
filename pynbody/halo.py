@@ -977,7 +977,6 @@ class AHFCatalogue(HaloCatalogue):
 
         cnt = 0
         ar = np.ones(len(target))*-1
-        print hord
         for i in hord:
             halo = self._halos[i]
             if self._all_parts is not None:
