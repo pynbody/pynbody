@@ -937,23 +937,23 @@ class AHFCatalogue(HaloCatalogue):
                     If True, each particle associated with their top-most level halo
         :family: specify the family of particles to output an array for (default is all particles)
         """
-        nd = len(self.base.dark)
-        ns = len(self.base.star)
-        ng = len(self.base.gas)
+
+        target = None
+        famslice = None
+
         if family is None:
             target = self.base
         else:
+            if family in ['gas','stars','dm']:
+                famslice = self.base._get_family_slice(family)
+                target = self.base[famslice]
+            else:
+                if family == 'bh':
+                    temptarget = self.base.star
+                    target = temptarget[(temptarget['tform']<0)]
 
-            if family == "dark" or family == "Dark" or family == "dm":
-                target = self.base.dark
-            if family == "star" or family == "Star" or family == "s":
-                target = self.base.star
-                print "getting stars!", len(target)
-            if family == "gas" or family == "Gas" or family == "g":
-                target = self.base.gas
-            if family == "black holes" or family == "Black Holes" or family == "BH" or family == "bh":
-                temptarget = self.base.star
-                target = temptarget[(temptarget['tform']<0)]
+        if target is None:
+            raise ValueError("Family value given is not valid. Use 'gas', 'stars', 'dm', or 'bh'")
 
         if self._dosort is None:
             #if we want to differentiate between top and bottom levels,
@@ -987,24 +987,10 @@ class AHFCatalogue(HaloCatalogue):
             if family is None:
                 ar[ids] = hcnt[cnt]
             else:
-                if family in ["star", "Star", "s"]:
-                    t_mask = ids >= nd + ng
-                    id_t = ids[np.where(t_mask)] - (nd+ng)
-                if family in ["gas", "Gas", "g"]:
-                    if type(self.base) is not snapshot.nchilada.NchiladaSnap:
-                        t_mask = ids < ng
-                        id_t = ids[np.where(t_mask)]
-                    else:
-                        t_mask = (ids >= nd) & (ids < nd+ng)
-                        id_t = ids[np.where(t_mask)] - nd
-                if family in ["Dark", "dark", "dm"]:
-                    if type(self.base) is not snapshot.nchilada.NchiladaSnap:
-                        t_mask = (ids >= ng) & (ids < ng+nd)
-                        id_t = ids[np.where(t_mask)] - ng
-                    else:
-                        t_mask = (ids < nd)
-                        id_t = ids[np.where(t_mask)]
-                if family in ["black holes","Black Holes","BH", "bh"]:
+                if famslice:
+                    t_mask = (ids >= famslice.start) & (ids < famslice.stop)
+                    id_t = ids[np.where(t_mask)] - famslice.start
+                else:
                     fpos_ar = target.get_index_list(self.base)
                     id_t, = np.where(np.in1d(fpos_ar, ids))
 
