@@ -953,7 +953,7 @@ class AHFCatalogue(HaloCatalogue):
                     target = temptarget[(temptarget['tform']<0)]
 
         if target is None:
-            raise ValueError("Family value given is not valid. Use 'gas', 'stars', 'dm', or 'bh'")
+            raise ValueError("Family value given is not valid. Use 'gas', 'star', 'dm', or 'bh'")
 
         if self._dosort is None:
             #if we want to differentiate between top and bottom levels,
