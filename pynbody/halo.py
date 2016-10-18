@@ -944,7 +944,7 @@ class AHFCatalogue(HaloCatalogue):
         if family is None:
             target = self.base
         else:
-            if family in ['gas','stars','dm']:
+            if family in ['gas','star','dm']:
                 famslice = self.base._get_family_slice(family)
                 target = self.base[famslice]
             else:
