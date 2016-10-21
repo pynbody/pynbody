@@ -1155,6 +1155,7 @@ class StarLog(SimSnap):
         self.properties = {}
         bigstarlog = False
         molecH = False
+        bigIOrds = False
 
         file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                              "x", "y", "z",
@@ -1182,6 +1183,31 @@ class StarLog(SimSnap):
                                                'f8', 'f8', 'f8',
                                                'f8', 'f8', 'f8','f8')})
             molecH = True
+            # Unfortunately molecularH with small iOrders has the same as
+            # no moleculuarH with big iOrders.  Attempt to distinguish here
+            if(iSize == file_structure.itemsize):
+                if(self._byteswap):
+                    testread = np.fromstring(
+                        f.read(iSize), dtype=file_structure).byteswap()
+                else:
+                    testread = np.fromstring(f.read(iSize), dtype=file_structure)
+                # All star iorders are greater than any gas iorder
+                # so this indicates a bad format. (N.B. there is the
+                # possibility of a false negative)
+                if(testread['iord'][0] < testread['iorderGas'][0]): 
+                    file_structure = np.dtype({'names': ("iord", "iorderGas",
+                                             "tform",
+                                             "x", "y", "z",
+                                             "vx", "vy", "vz",
+                                             "massform", "rhoform", "tempform"),
+                                       'formats': ('i8', 'i8', 'f8',
+                                                   'f8', 'f8', 'f8',
+                                                   'f8', 'f8', 'f8',
+                                                   'f8', 'f8', 'f8')})
+                    f.seek(4)
+                    logger.info("Using 64 bit iOrders")
+                    molecH = False
+                    bigIOrds = True
         if (iSize != file_structure.itemsize):
             file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                  "x", "y", "z",
@@ -1237,6 +1263,10 @@ class StarLog(SimSnap):
 
         self._family_slice[family.star] = slice(0, self._num_particles)
         self._create_arrays(["pos", "vel"], 3)
+        if(bigIOrds):
+            self._create_arrays(["iord"], dtype='int64')
+        else:
+            self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
