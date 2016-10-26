@@ -280,7 +280,7 @@ class GadgetFile(object):
         while True:
             block = GadgetBlock()
             (name, block.length) = self.read_block_head(fd)
-            if block.length == 0:
+            if name == "    ":
                 break
             # Do special things for the HEAD block
             if name[0:4] == b"HEAD":
