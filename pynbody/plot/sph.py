@@ -12,6 +12,19 @@ import matplotlib
 import numpy as np
 from .. import sph, config
 from .. import units as _units
+from matplotlib.ticker import ScalarFormatter # RS 
+from matplotlib.ticker import FuncFormatter # RS
+
+# RS - added a fomatting routine to convert log
+# values to just the exponent... cleaner
+def fmt(x,pos):
+    """
+    Custom formatter to handle log of values for color bar
+    Not sure why, but the LogFormatterExponenet sometimes
+    adds and "e" to the value... ?? This simply returns
+    log10 of the value.
+    """
+    return format(np.log10(x), '.0f')
 
 
 def sideon_image(sim, *args, **kwargs):
@@ -333,8 +346,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         else:
             p = plt
 
-    if qtytitle is None:
-        qtytitle = qty
+    ## if qtytitle is None:
+    ##     qtytitle = qty
 
     if isinstance(units, str):
         units = _units.Unit(units)
@@ -454,23 +467,40 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
         u_st = sim['pos'].units.latex()
         if not subplot:
-            plt.xlabel("$x/%s$" % u_st)
-            plt.ylabel("$y/%s$" % u_st)
+            plt.xlabel("$x\, [%s]$" % u_st) # RS - changed format from x/%s to x [%s] 
+            plt.ylabel("$y\, [%s]$" % u_st)
         else:
-            p.set_xlabel("$x/%s$" % u_st)
-            p.set_ylabel("$y/%s$" % u_st)
+            p.set_xlabel("$x\, [%s]$" % u_st)
+            p.set_ylabel("$y\, [%s]$" % u_st)
 
         if units is None:
             units = im.units
 
 
-        if units.latex() is "":
-            units=""
-        else:
-            units = "$"+units.latex()+"$"
-
+        # RS - Fix formatting.
         if show_cbar:
-             plt.colorbar(ims).set_label(qtytitle+"/"+units)
+            if log:
+                custom_formatter = FuncFormatter(fmt)
+                ## l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
+                l_f = custom_formatter
+            else:
+                l_f = ScalarFormatter()
+
+            if qtytitle is not None:
+                plt.colorbar(ims,format=l_f).set_label(qtytitle)
+            else:
+                if log:
+                    plt.colorbar(ims,format=l_f).set_label("$log\; %s$" % units)
+                else:
+                    plt.colorbar(ims,format=l_f).set_label(units)
+        
+        # if units.latex() is "":
+        #     units=""
+        # else:
+        #     units = "$"+units.latex()+"$"
+
+        # if show_cbar:
+        #      plt.colorbar(ims).set_label(qtytitle+"/"+units)
 
         # colorbar doesn't work wtih subplot:  mappable is NoneType
         # elif show_cbar:
