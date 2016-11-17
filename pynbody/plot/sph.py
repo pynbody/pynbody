@@ -12,17 +12,7 @@ import matplotlib
 import numpy as np
 from .. import sph, config
 from .. import units as _units
-from matplotlib.ticker import ScalarFormatter # RS 
-from matplotlib.ticker import FuncFormatter # RS
 
-def fmt(x,pos):
-    """
-    Custom formatter to handle log of values for color bar
-    Not sure why, but the LogFormatterExponenet sometimes
-    adds and "e" to the value... ?? This simply returns
-    log10 of the value.
-    """
-    return format(np.log10(x), '.0f')
 
 def sideon_image(sim, *args, **kwargs):
     """
@@ -343,6 +333,9 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         else:
             p = plt
 
+    if qtytitle is None:
+        qtytitle = qty
+
     if isinstance(units, str):
         units = _units.Unit(units)
 
@@ -432,7 +425,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
             # check if there are negative values -- if so, use the symmetric
             # log normalization
-            if (im < 0).any():
+            if (vmin is None and (im < 0).any() ) or ((vmin is not None) and vmin<0):
 
                 # need to set the linear regime around zero -- set to by
                 # default start at 1/1000 of the log range
@@ -470,26 +463,15 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         if units is None:
             units = im.units
 
-        if log :
-            units = r"$\log_{10}\,"+units.latex()+"$"
-        else :
-            if units.latex() is "":
-                units=""
-            else:
-                units = "$"+units.latex()+"$"
+
+        if units.latex() is "":
+            units=""
+        else:
+            units = "$"+units.latex()+"$"
 
         if show_cbar:
-            if log:
-                custom_formatter = FuncFormatter(fmt)
-                ## l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
-                l_f = custom_formatter
-            else:
-                l_f = ScalarFormatter()
+             plt.colorbar(ims).set_label(qtytitle+"/"+units)
 
-            if qtytitle is not None:
-                plt.colorbar(ims,format=l_f).set_label(qtytitle)
-            else:
-                plt.colorbar(ims,format=l_f).set_label(units)
         # colorbar doesn't work wtih subplot:  mappable is NoneType
         # elif show_cbar:
         #    import matplotlib.pyplot as mpl

@@ -228,7 +228,7 @@ class TipsySnap(SimSnap):
             except ValueError:
                 # could be a binary file
                 f = util.open_(x, 'rb')
-                
+
                 header = f.read(4)
                 if len(header)!=4:
                     return False
@@ -240,7 +240,7 @@ class TipsySnap(SimSnap):
 
                 ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffffL
                 ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffffL
-                
+
                 if buflen == ourlen_1:  # it's a vector
                     return True
                 elif buflen == ourlen_3:  # it's an array
@@ -531,13 +531,18 @@ class TipsySnap(SimSnap):
                     TipsySnap._write_array(
                         self, x, filename=filename + "." + x, binary=binary_aux_arrays)
 
+
+    @staticmethod
+    def __get_write_dtype(stored_dtype):
+        if issubclass(stored_dtype.type, np.integer):
+            return np.int32
+        else:
+            return np.float32
+
     @staticmethod
     def __write_block(f, ar, binary, byteswap):
-        if issubclass(ar.dtype.type, np.integer):
-            ar = np.asarray(ar, dtype=np.int32)
-        else:
-            ar = np.asarray(ar, dtype=np.float32)
 
+        ar = np.asarray(ar, dtype=TipsySnap.__get_write_dtype(ar.dtype))
         if binary:
             if byteswap:
                 ar.byteswap().tofile(f)
@@ -563,7 +568,7 @@ class TipsySnap(SimSnap):
         try:
             f = open(self.filename + "." + array_name + ".pynbody-meta", 'r')
         except IOError:
-            return self._default_units_for(array_name), None
+            return self._default_units_for(array_name), None, None
 
         res = {}
         for l in f:
@@ -583,10 +588,15 @@ class TipsySnap(SimSnap):
         except:
             fams = None
 
-        return u, fams
+        try:
+            dtype = np.dtype(res['dtype'])
+        except:
+            dtype = None
+
+        return u, fams, dtype
 
     @staticmethod
-    def _write_array_metafile(self, filename, units, families):
+    def _write_array_metafile(self, filename, units, families, dtype):
 
         f = open(filename + ".pynbody-meta", "w")
         print>>f, "# This file automatically created by pynbody"
@@ -596,6 +606,9 @@ class TipsySnap(SimSnap):
         for x in families:
             print>>f, x.name,
         print >>f
+        if dtype is not None:
+            print >>f, "dtype:", TipsySnap.__get_write_dtype(dtype)
+
         f.close()
 
         if isinstance(self, TipsySnap):
@@ -625,7 +638,7 @@ class TipsySnap(SimSnap):
 
         # If we have disk units for this array, check we can convert into them
 
-        aux_u, aux_f = self._get_loadable_array_metadata(array_name)
+        aux_u, aux_f, aux_type = self._get_loadable_array_metadata(array_name)
         if aux_f is None:
             aux_f = self.families()
 
@@ -676,6 +689,7 @@ class TipsySnap(SimSnap):
                 raise RuntimeError, "Cannot call static _write_array to write into main tipsy file."
 
         units_out = None
+        dtype = None
 
         if binary is None:
             binary = getattr(self.ancestor, "_tipsy_arrays_binary", False)
@@ -707,6 +721,7 @@ class TipsySnap(SimSnap):
                 if array_name in self.family_keys():
                     for f in [family.gas, family.dm, family.star]:
                         try:
+                            dtype = self[f][array_name].dtype
                             ar = self[f][array_name]
                             units_out = ar.units
 
@@ -717,6 +732,7 @@ class TipsySnap(SimSnap):
 
                 else:
                     ar = self[array_name]
+                    dtype = self[array_name].dtype
                     units_out = ar.units
                     TipsySnap.__write_block(fhand, ar, binary, byteswap)
 
@@ -729,7 +745,7 @@ class TipsySnap(SimSnap):
         if fam is None:
             fam = [family.gas, family.dm, family.star]
 
-        TipsySnap._write_array_metafile(self, filename, units_out, fam)
+        TipsySnap._write_array_metafile(self, filename, units_out, fam, dtype)
 
     def _load_array(self, array_name, fam=None, filename=None,
                     packed_vector=None):
@@ -799,13 +815,16 @@ class TipsySnap(SimSnap):
         logger.info("Attempting to load auxiliary array %s", filename)
         # if we get here, we've got the file - try loading it
 
+        units, _, dtype = self._get_loadable_array_metadata(array_name)
+        if dtype is None:
+            dtype = self._get_preferred_dtype(array_name)
+
         try:
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
                 raise IOError, "Incorrect file format"
 
-            dtype = self._get_preferred_dtype(array_name)
             if not dtype:
                 # Inspect the first line to see whether it's float or int
                 l = "0\n"
@@ -837,13 +856,14 @@ class TipsySnap(SimSnap):
             if l != self._load_control.disk_num_particles:
                 raise IOError, "Incorrect file format"
 
-            # Set data format to be read (float or int) based on config
-            int_arrays = map(
-                str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
-            if array_name in int_arrays:
-                dtype = 'i'
-            else:
-                dtype = 'f'
+            if dtype is None:
+                # Set data format to be read (float or int) based on config
+                int_arrays = map(
+                    str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
+                if array_name in int_arrays:
+                    dtype = 'i'
+                else:
+                    dtype = 'f'
 
             # Read longest data array possible.
             # Assume byteswap since most will be.
@@ -872,9 +892,9 @@ class TipsySnap(SimSnap):
             if mem_index is not None:
                 r[mem_index] = buf[buf_index]
 
-        u, f = self._get_loadable_array_metadata(array_name)
-        if u is not None:
-            r.units = u
+
+        if units is not None:
+            r.units = units
 
         return r
 
@@ -1135,6 +1155,7 @@ class StarLog(SimSnap):
         self.properties = {}
         bigstarlog = False
         molecH = False
+        bigIOrds = False
 
         file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                              "x", "y", "z",
@@ -1162,6 +1183,31 @@ class StarLog(SimSnap):
                                                'f8', 'f8', 'f8',
                                                'f8', 'f8', 'f8','f8')})
             molecH = True
+            # Unfortunately molecularH with small iOrders has the same as
+            # no moleculuarH with big iOrders.  Attempt to distinguish here
+            if(iSize == file_structure.itemsize):
+                if(self._byteswap):
+                    testread = np.fromstring(
+                        f.read(iSize), dtype=file_structure).byteswap()
+                else:
+                    testread = np.fromstring(f.read(iSize), dtype=file_structure)
+                # All star iorders are greater than any gas iorder
+                # so this indicates a bad format. (N.B. there is the
+                # possibility of a false negative)
+                if(testread['iord'][0] < testread['iorderGas'][0]): 
+                    file_structure = np.dtype({'names': ("iord", "iorderGas",
+                                             "tform",
+                                             "x", "y", "z",
+                                             "vx", "vy", "vz",
+                                             "massform", "rhoform", "tempform"),
+                                       'formats': ('i8', 'i8', 'f8',
+                                                   'f8', 'f8', 'f8',
+                                                   'f8', 'f8', 'f8',
+                                                   'f8', 'f8', 'f8')})
+                    f.seek(4)
+                    logger.info("Using 64 bit iOrders")
+                    molecH = False
+                    bigIOrds = True
         if (iSize != file_structure.itemsize):
             file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                  "x", "y", "z",
@@ -1217,6 +1263,10 @@ class StarLog(SimSnap):
 
         self._family_slice[family.star] = slice(0, self._num_particles)
         self._create_arrays(["pos", "vel"], 3)
+        if(bigIOrds):
+            self._create_arrays(["iord"], dtype='int64')
+        else:
+            self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
@@ -1608,4 +1658,3 @@ def slparam2units(sim):
 
         sim.star["rhoform"].units = denunit_st
         sim.star["massform"].units = munit_st
-

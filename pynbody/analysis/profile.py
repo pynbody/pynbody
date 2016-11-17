@@ -59,6 +59,9 @@ class Profile:
      arbitrary axes. Depening on your function, the units of certain
      profiles (such as density) might not make sense.
 
+    *weight_by* (default = 'mass'): name of the array to use for weighting
+     averages across particles in each bin
+
     **Output**:
 
     a Profile object. To find out which profiles are available, use keys().
@@ -198,7 +201,7 @@ class Profile:
     def _calculate_x(self, sim):
         return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
 
-    def __init__(self, sim, load_from_file=False, ndim=2, type='lin', calc_x=None, **kwargs):
+    def __init__(self, sim, load_from_file=False, ndim=2, type='lin', calc_x=None, weight_by='mass', **kwargs):
 
         generate_new = True
         if calc_x is None:
@@ -206,6 +209,7 @@ class Profile:
         self.sim = sim
         self.type = type
         self.ndim = ndim
+        self._weight_by = weight_by
         self._x = calc_x(sim)
         x = self._x
 
@@ -392,13 +396,13 @@ class Profile:
         for i in range(self.nbins):
             subs = self.sim[self.binind[i]]
             name_array = subs[name].view(np.ndarray)
-            mass_array = subs['mass'].view(np.ndarray)
+            mass_array = subs[self._weight_by].view(np.ndarray)
 
             if dispersion:
                 sq_mean = (name_array ** 2 * mass_array).sum() / \
-                    self['mass'][i]
+                    self['weight_fn'][i]
                 mean_sq = (
-                    (name_array * mass_array).sum() / self['mass'][i]) ** 2
+                    (name_array * mass_array).sum() / self['weight_fn'][i]) ** 2
                 try:
                     result[i] = math.sqrt(sq_mean - mean_sq)
                 except ValueError:
@@ -407,7 +411,7 @@ class Profile:
 
             elif rms:
                 result[i] = np.sqrt(
-                    (name_array ** 2 * mass_array).sum() / self['mass'][i])
+                    (name_array ** 2 * mass_array).sum() / self['weight_fn'][i])
             elif median:
                 if len(subs) == 0:
                     result[i] = np.nan
@@ -415,7 +419,7 @@ class Profile:
                     sorted_name = sorted(name_array)
                     result[i] = sorted_name[int(np.floor(0.5 * len(subs)))]
             else:
-                result[i] = (name_array * mass_array).sum() / self['mass'][i]
+                result[i] = (name_array * mass_array).sum() / self['weight_fn'][i]
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units
@@ -563,21 +567,29 @@ class Profile:
 
 
 @Profile.profile_property
-def mass(self):
+def weight_fn(self, weight_by=None):
     """
     Calculate mass in each bin
     """
-    mass = array.SimArray(np.zeros(self.nbins), self.sim['mass'].units)
+    if weight_by is None:
+        weight_by = self._weight_by
+    mass = array.SimArray(np.zeros(self.nbins), self.sim[weight_by].units)
 
     with self.sim.immediate_mode:
-        pmass = self.sim['mass'].view(np.ndarray)
+        pmass = self.sim[weight_by].view(np.ndarray)
 
     for i in range(self.nbins):
         mass[i] = (pmass[self.binind[i]]).sum()
 
     mass.sim = self.sim
+    mass.units = self.sim[weight_by].units
 
     return mass
+
+@Profile.profile_property
+def mass(self):
+    return weight_fn(self, 'mass')
+
 
 
 @Profile.profile_property

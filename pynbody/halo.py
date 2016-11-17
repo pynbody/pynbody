@@ -75,7 +75,13 @@ class HaloCatalogue(object):
 
     def calc_item(self, i):
         if i in self._halos:  # and self._halos[i]() is not None :
-            return self._halos[i]  # ()
+            if isinstance(self._halos[i],DummyHalo):
+                try:
+                    return self._get_halo(i)
+                except:
+                    return self._halos[i]
+            else:
+                return self._halos[i]
         else:
             h = self._get_halo(i)
             self._halos[i] = h  # weakref.ref(h)
@@ -168,7 +174,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     _halo_type = np.dtype([('id',np.int64),('num_p',np.int64),('indstart',np.int64)])
     _part_type = np.dtype('int64')
 
-    def __init__(self, sim, sort=True, correct=False):
+    def __init__(self, sim, sort=True, correct=False, **kwargs):
         assert isinstance(sim,snapshot.SimSnap)
         self._correct=correct
         HaloCatalogue.__init__(self, sim)
@@ -243,7 +249,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     def _sort_index(self):
         self._halo_info[::-1].sort(order='num_p')
 
-    def get_fam_group_array(self, family='star'):
+    def get_group_array(self, family='star'):
         if family == 'star':
             target = self.base.star
         if family == 'gas':
@@ -285,7 +291,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
 
 
 class RockstarCatalogue(HaloCatalogue):
-    def __init__(self, sim, dummy=False, filename=None, sort=False):
+    def __init__(self, sim, dummy=False, filename=None, sort=False, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -471,7 +477,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
                           ('odum',np.str_,4)])
 
 
-    def __init__(self, sim, dummy=False, filename=None):
+    def __init__(self, sim, dummy=False, filename=None, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -792,7 +798,8 @@ class AHFCatalogue(HaloCatalogue):
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, dummy=False, use_iord=None, ahf_basename=None):
+    def __init__(self, sim, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
+                 dosort=None, only_stat=None, write_fpos=True, **kwargs):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
@@ -803,10 +810,9 @@ class AHFCatalogue(HaloCatalogue):
                     array is created; if None, the behaviour is
                     determined by the configuration system.
 
-        *dummy*: if True, the particle file is not loaded, and all
-                 halos returned are just dummies (with the correct
-                 properties dictionary loaded). Use load_copy to get
-                 the actual data in this case.
+        *get_all_parts*: if True, the particle file is loaded for all halos.
+                    Suggested to keep this None, as this is memory intensive.
+                    The default function is to load in this data as needed.
 
         *use_iord*: if True, the particle IDs in the Amiga catalogue
                     are taken to refer to the iord array. If False,
@@ -818,6 +824,14 @@ class AHFCatalogue(HaloCatalogue):
                         files - the code will append 'halos',
                         'particles', and 'substructure' to this
                         basename to load the catalog data.
+
+        *dosort*: specify if halo catalog should be sorted so that
+                  halo 1 is the most massive halo, halo 2 the
+                  second most massive and so on.
+
+        *only_stat*: specify that you only wish to collect the halo
+                    properties stored in the AHF_halos file and not
+                    worry about particle information
 
         """
 
@@ -832,7 +846,9 @@ class AHFCatalogue(HaloCatalogue):
 
         self._use_iord = use_iord
 
-        self._dummy = dummy
+        self._all_parts = get_all_parts
+        self._dosort = dosort
+        self._only_stat = only_stat
 
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
@@ -850,14 +866,20 @@ class AHFCatalogue(HaloCatalogue):
             pass
         self._nhalos = i
         f.close()
-
         logger.info("AHFCatalogue loading particles")
 
         self._load_ahf_particles(self._ahfBasename + 'particles')
 
         logger.info("AHFCatalogue loading halos")
-
         self._load_ahf_halos(self._ahfBasename + 'halos')
+
+        if self._only_stat is None:
+            self._get_file_positions(self._ahfBasename + 'particles')
+
+        if self._dosort is not None:
+            nparr = np.array([self._halos[i+1].properties['npart'] for i in range(self._nhalos)])
+            osort = np.argsort(nparr)[::-1]
+            self._sorted_indices = osort + 1
 
         if os.path.isfile(self._ahfBasename + 'substructure'):
             logger.info("AHFCatalogue loading substructure")
@@ -875,7 +897,21 @@ class AHFCatalogue(HaloCatalogue):
         if config_parser.getboolean('AHFCatalogue', 'AutoPid'):
             sim['pid'] = np.arange(0, len(sim))
 
+        if write_fpos is not None:
+            if not os.path.exists(self._ahfBasename + 'fpos'):
+                self._write_fpos()
+
         logger.info("AHFCatalogue loaded")
+
+    def __getitem__(self,item):
+        """
+        get the appropriate halo if dosort is on
+        """
+        if self._dosort is not None:
+            i = self._sorted_indices[item-1]
+        else:
+            i = item
+        return super(AHFCatalogue,self).__getitem__(i)
 
     def make_grp(self, name='grp'):
         """
@@ -884,15 +920,83 @@ class AHFCatalogue(HaloCatalogue):
         """
         self.base[name] = self.get_group_array()
 
-    def get_group_array(self, top_level=False):
-        ar = np.zeros(len(self.base), dtype=int)
-        if top_level is False:
-            for halo in self._halos.values():
-                ar[halo.get_index_list(self.base)] = halo._halo_id
+    def _write_fpos(self):
+        f = open(self._ahfBasename + 'fpos','w')
+        for i in range(self._nhalos):
+            if i < self._nhalos - 1:
+                f.write(str(self._halos[i+1].properties['fstart'])+'\n')
+            else:
+                f.write(str(self._halos[i+1].properties['fstart']))
+        f.close()
+
+
+    def get_group_array(self, top_level=False, family=None):
+        """
+        output an array of group IDs for each particle.
+        :top_level: If False, each particle associated with the lowest level halo they are in.
+                    If True, each particle associated with their top-most level halo
+        :family: specify the family of particles to output an array for (default is all particles)
+        """
+
+        target = None
+        famslice = None
+
+        if family is None:
+            target = self.base
         else:
-            for halo in self._halos.values()[::-1]:
-                ar[halo.get_index_list(self.base)] = halo._halo_id
-        return ar
+            if family in ['gas','star','dm']:
+                famslice = self.base._get_family_slice(family)
+                target = self.base[famslice]
+            else:
+                if family == 'bh':
+                    temptarget = self.base.star
+                    target = temptarget[(temptarget['tform']<0)]
+
+        if target is None:
+            raise ValueError("Family value given is not valid. Use 'gas', 'star', 'dm', or 'bh'")
+
+        if self._dosort is None:
+            #if we want to differentiate between top and bottom levels,
+            #the halos do need to be in order regardless if dosort is on.
+            nparr = np.array([self._halos[i+1].properties['npart'] for i in range(self._nhalos)])
+            osort = np.argsort(nparr)[::-1]
+            self._sorted_indices = osort + 1
+            hcnt = self._sorted_indices
+
+        else:
+            hcnt = np.arange(len(self._sorted_indices)) + 1
+
+        if top_level is False:
+            hord = self._sorted_indices
+        else:
+            hord = self._sorted_indices[::-1]
+            hcnt = hcnt[::-1]
+
+        if self._all_parts is None:
+            f = util.open_(self._ahfBasename+'particles')
+
+        cnt = 0
+        ar = np.ones(len(target))*-1
+        for i in hord:
+            halo = self._halos[i]
+            if self._all_parts is not None:
+                ids = halo.get_index_list(self.base)
+            else:
+                f.seek(halo.properties['fstart'],0)
+                ids = self._load_ahf_particle_block(f,halo.properties['npart'])
+            if family is None:
+                ar[ids] = hcnt[cnt]
+            else:
+                if famslice:
+                    t_mask = (ids >= famslice.start) & (ids < famslice.stop)
+                    id_t = ids[np.where(t_mask)] - famslice.start
+                else:
+                    fpos_ar = target.get_index_list(self.base)
+                    id_t, = np.where(np.in1d(fpos_ar, ids))
+
+                ar[id_t] = hcnt[cnt]
+            cnt += 1
+        return ar.astype(np.int)
 
     def _setup_children(self):
         """
@@ -916,8 +1020,15 @@ class AHFCatalogue(HaloCatalogue):
     def _get_halo(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
+        if self._all_parts is not None:
+            return self._halos[i]
+        else:
+            f = util.open_(self._ahfBasename+'particles')
+            fpos = self._halos[i].properties['fstart']
+            f.seek(fpos,0)
+            return Halo(i, self, self.base, self._load_ahf_particle_block(f, self._halos[i].properties['npart']))
 
-        return self._halos[i]
+
 
     @property
     def base(self):
@@ -928,25 +1039,49 @@ class AHFCatalogue(HaloCatalogue):
 
         from . import load
 
+        if self._dosort is not None:
+            i = self._sorted_indices[i-1]
+
         f = util.open_(self._ahfBasename + 'particles')
 
-        if self.isnew:
-            nhalos = int(f.readline())
-        else:
-            nhalos = self._nhalos
-
-        for h in xrange(i):
-            ids = self._load_ahf_particle_block(f)
+        fpos = self._halos[i].properties['fstart']
+        f.seek(fpos,0)
+        ids = self._load_ahf_particle_block(f, nparts=self._halos[i].properties['npart'])
 
         f.close()
 
         return load(self.base.filename, take=ids)
 
-    def _load_ahf_particle_block(self, f):
+    def _get_file_positions(self,filename):
+        """Get the starting positions of each halo's particle information within the
+        AHF_particles file for faster access later"""
+        if os.path.exists(self._ahfBasename + 'fpos'):
+            f = util.open_(self._ahfBasename + 'fpos')
+            for i in range(self._nhalos):
+                self._halos[i+1].properties['fstart'] = int(f.readline())
+            f.close()
+        else:
+            f = util.open_(filename)
+            for h in xrange(self._nhalos):
+                if len((f.readline().split())) == 1:
+                    f.readline()
+                self._halos[h+1].properties['fstart'] = f.tell()
+                for i in xrange(self._halos[h+1].properties['npart']):
+                    f.readline()
+            f.close()
+
+    def _load_ahf_particle_block(self, f, nparts=None):
         """Load the particles for the next halo described in particle file f"""
         ng = len(self.base.gas)
-        nds = len(self.base.dark) + len(self.base.star)
-        nparts = int(f.readline().split()[0])
+        nd = len(self.base.dark)
+        ns = len(self.base.star)
+        nds = nd+ns
+
+        if nparts is None:
+            startline = f.readline()
+            if len((startline.split()))==1:
+                startline = f.readline()
+            nparts = int(startline.split()[0])
 
         if self.isnew:
             if not isinstance(f, gzip.GzipFile):
@@ -962,9 +1097,15 @@ class AHFCatalogue(HaloCatalogue):
             if self._use_iord:
                 data = self._iord_to_fpos[data]
             else:
-                hi_mask = data >= nds
-                data[np.where(hi_mask)] -= nds
-                data[np.where(~hi_mask)] += ng
+                if type(self.base) is not snapshot.nchilada.NchiladaSnap:
+                    hi_mask = data >= nds
+                    data[np.where(hi_mask)] -= nds
+                    data[np.where(~hi_mask)] += ng
+                else:
+                    st_mask = (data >= nd) & (data < nds)
+                    g_mask = data >= nds
+                    data[np.where(st_mask)] += ng
+                    data[np.where(g_mask)] -= ns
         else:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
@@ -987,18 +1128,13 @@ class AHFCatalogue(HaloCatalogue):
         else:
             self.isnew = False
 
-        if self.isnew:
-            nhalos = int(f.readline())
-        else:
-            nhalos = self._nhalos
-
-        if not self._dummy:
-            for h in xrange(nhalos):
+        if self._all_parts is not None:
+            for h in xrange(self._nhalos):
                 self._halos[h + 1] = Halo(
                     h + 1, self, self.base, self._load_ahf_particle_block(f))
                 self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
         else:
-            for h in xrange(nhalos):
+            for h in xrange(self._nhalos):
                 self._halos[h + 1] = DummyHalo()
 
         f.close()
@@ -1328,7 +1464,7 @@ class GrpCatalogue(HaloCatalogue):
     A generic catalogue using a .grp file to specify which particles
     belong to which group.
     """
-    def __init__(self, sim, array='grp'):
+    def __init__(self, sim, array='grp',**kwargs):
         sim[array]
     # trigger lazy-loading and/or kick up a fuss if unavailable
         self._halos = {}
@@ -1399,7 +1535,7 @@ class GrpCatalogue(HaloCatalogue):
 
 
 class AmigaGrpCatalogue(GrpCatalogue):
-    def __init__(self, sim, arr_name='amiga.grp'):
+    def __init__(self, sim, arr_name='amiga.grp',**kwargs):
         GrpCatalogue.__init__(self, sim, arr_name)
 
     @staticmethod
@@ -1424,7 +1560,7 @@ class SubfindCatalogue(HaloCatalogue):
     """
 
 
-    def __init__(self, sim, subs=False, order=True, make_grp=None, v=False):
+    def __init__(self, sim, subs=False, order=True, make_grp=None, v=False, **kwargs):
         self._base = weakref.ref(sim)
         self._order=order
         self._subs=subs

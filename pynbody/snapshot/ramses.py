@@ -181,7 +181,7 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
                 refine = np.array(
                     [read_fortran(f, _int_type, n_per_level[level, cpu - 1]) for i in xrange(2 ** ndim)])
 
-                if level == maxlevel:
+                if(level+1 == maxlevel or level+1==header['nlevelmax']):
                     refine[:] = 0
 
                 coords[0] -= offset[0]
@@ -346,7 +346,7 @@ grav_blocks = map(
     str.strip, config_parser.get('ramses', "gravity-blocks").split(","))
 
 rt_blocks = map(
-    str.strip, config_parser.get('ramses', 'rt-blocks').split(",")
+    str.strip, config_parser.get('ramses', 'rt-blocks', raw=True).split(",")
 )
 
 particle_distinguisher = map(

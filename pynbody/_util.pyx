@@ -25,11 +25,11 @@ ctypedef fused fused_int:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def find_boundaries(np.ndarray[np.long_t, ndim=1] ordered) :
+def find_boundaries(np.ndarray[fused_int, ndim=1] ordered) :
     """Given an ascending-ordered integer array starting at zero, return an array that gives the first
     element for each number. For example, calling with [0,0,0,1,2,2,3] should return [0,3,4,6]."""
 
-    cdef np.ndarray[np.long_t, ndim=1] boundaries = np.zeros(ordered[len(ordered)-1]+1,dtype=int) - 1
+    cdef np.ndarray[fused_int, ndim=1] boundaries = np.zeros(ordered[len(ordered)-1]+1,dtype=ordered.dtype) - 1
     cdef int n, size = len(ordered), current=ordered[0]-1
 
     ordered[0] = 0
