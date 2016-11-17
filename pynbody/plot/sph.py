@@ -145,8 +145,13 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
 
-    p.xlim(-width/2, width/2)
-    p.ylim(-width/2, width/2)
+
+    if subplot:
+        p.set_xlim(-width/2, width/2)
+        p.set_ylim(-width/2, width/2)
+    else:
+        p.xlim(-width/2, width/2)
+        p.ylim(-width/2, width/2)
 
     return im
 
