@@ -132,8 +132,7 @@ CC environment variable to the real gcc and OpenMP support should
 get enabled automatically. Something like this -
 
 sudo tar -xzf /path/to/download.tar.gz /
-##export CC='/usr/local/bin/gcc'
-export CC='/usr/local/bin/gcc-6'
+export CC='/usr/local/bin/gcc'
 python setup.py clean
 python setup.py build
 
