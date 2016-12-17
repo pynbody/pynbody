@@ -48,6 +48,10 @@ class Halo(snapshot.IndexedSubSnap):
         self._descriptor = "halo_" + str(halo_id)
         self.properties = copy.copy(self.properties)
         self.properties['halo_id'] = halo_id
+        if halo_id in halo_catalogue._halos:
+            for key in halo_catalogue._halos[halo_id].properties.keys():
+                self.properties[key] = halo_catalogue._halos[halo_id].properties[key]
+
 
     def is_subhalo(self, otherhalo):
         """
