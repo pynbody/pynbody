@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger('pynbody.plot.gas')
 
 
-def rho_T(sim, rho_units=None, rho_range=None, t_range=None, **kwargs):
+def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', **kwargs):
     """
     Plot Temperature vs. Density for the gas particles in the snapshot.
 
@@ -29,6 +29,8 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, **kwargs):
 
        *rho_range:* tuple
           ``size(rho_range)`` must be 2. Specifies the density range.
+
+       *two_phase*: if two-phase particles are detected, either plot each phase separately ('split'), or merge them ('merge')
 
     See :func:`~pynbody.plot.generic.hist2d` for other plotting keyword options
 
@@ -60,6 +62,21 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, **kwargs):
         del kwargs['ylabel']
     else:
         ylabel = r'log$_{10}$(T/$' + sim.gas['temp'].units.latex() + '$)'
+
+    if 'Tinc' in sim.loadable_keys() and two_phase == 'merge':
+        return hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['Tinc'],
+                      xlogrange=True,ylogrange=True,xlabel=xlabel,
+                      ylabel=ylabel, **kwargs)
+
+    if 'uHot' in sim.loadable_keys() and 'MassHot' in sim.loadable_keys() and two_phase == 'split':
+        E = sim.g['uHot']*sim.g['MassHot']+sim.g['u']*(sim.g['mass']-sim.g['MassHot'])
+        rho = np.concatenate((sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['u']), 
+            sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['uHot'])))
+        temp = np.concatenate((sim.g['temp'], sim.g['temp']/sim.g['u']*sim.g['uHot']))
+        temp = temp[np.where(np.isfinite(rho))]
+        rho = rho[np.where(np.isfinite(rho))]
+        return hist2d(rho, temp, xlogrange=True,ylogrange=True,xlabel=xlabel,
+                ylabel=ylabel, **kwargs)
 
     return hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],
                   xlogrange=True,ylogrange=True,xlabel=xlabel,
