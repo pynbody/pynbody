@@ -1,4 +1,3 @@
-import ConfigParser
 import os
 import numpy
 import warnings
@@ -14,8 +13,11 @@ def _get_config_parser_with_defaults():
     # the backcompat module. This keeps things in the order they were parsed (important
     # for units module, for instance).
     if (sys.version_info.major > 2):
-        import configparser as ConfigParser
-    config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
+        import configparser 
+        config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
+    else:
+        import ConfigParser
+        config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
     config_parser.optionxform = str
     config_parser.read(
         os.path.join(os.path.dirname(__file__), "default_config.ini"))
