@@ -82,8 +82,6 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     *key_color* (white): Color for the vector key (quiver mode only)
 
-    *key_pos* (N): Position of the label relative to the vector key in cardinal directions (quiver mode only)
-
     *key_length* (100 km/s): Velocity to use for the vector key (quiver mode only)
 
     *density* (1.0): Density of stream lines (stream mode only)
