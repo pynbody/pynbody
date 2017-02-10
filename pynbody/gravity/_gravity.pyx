@@ -5,10 +5,14 @@ from pynbody import units, array, config, openmp
 import numpy as np
 cimport numpy as np
 DTYPE = np.double
-ctypedef np.double_t DTYPE_t
+
+ctypedef fused DTYPE_t:
+    np.float32_t
+    np.float64_t
 
 cdef extern from "math.h" nogil :
-      DTYPE_t sqrt(DTYPE_t)
+      double sqrt(double)
+      float sqrt(float)
 
 
 @cython.cdivision(True)
@@ -33,8 +37,8 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
 
 
     cdef unsigned int nips = len(ipos)
-    cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = np.float64)
-    cdef np.ndarray[DTYPE_t, ndim=1] m_by_r = np.zeros(nips, dtype = np.float64)
+    cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = ipos.dtype)
+    cdef np.ndarray[DTYPE_t, ndim=1] m_by_r = np.zeros(nips, dtype = ipos.dtype)
     cdef np.ndarray[DTYPE_t, ndim=2] pos = f['pos'].view(np.ndarray)
     cdef np.ndarray[DTYPE_t, ndim=1] mass = f['mass'].view(np.ndarray)
     cdef unsigned int n = len(mass)
