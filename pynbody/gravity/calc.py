@@ -105,7 +105,7 @@ def midplane_rot_curve(f, rxy_points, eps=None, mode=config['gravity_calculation
     except KeyError:
         fn = mode
 
-    pot, accel = fn(f, np.array(rs), eps=np.min(eps))
+    pot, accel = fn(f, np.array(rs, dtype=f['pos'].dtype), eps=np.min(eps))
 
     u_out = (accel.units * f['pos'].units) ** (1, 2)
 
