@@ -229,10 +229,12 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
 
     '''
 
+    import matplotlib.pyplot as pyplot
+
     if subplot:
         plt = subplot
     else:
-        import matplotlib.pyplot as plt
+        plt = pyplot
 
     if "nbins" in kwargs:
         bins = kwargs['nbins']
@@ -288,17 +290,18 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
     # add a z axis on top if it has not been already done by an earlier plot:
     from pynbody.analysis import pkdgrav_cosmo as cosmo
     c = cosmo.Cosmology(sim=sim)
-    old_axis = plt.gca()
 
-    if len(plt.gcf().axes)<2:
-        pz = plt.twiny()
-        labelzs = np.arange(5, int(sim.properties['z']) - 1, -1)
-        times = [13.7 * c.Exp2Time(1.0 / (1 + z)) / c.Exp2Time(1) for z in labelzs]
-        pz.set_xticks(times)
-        pz.set_xticklabels([str(x) for x in labelzs])
-        pz.set_xlim(x0, x1)
-        pz.set_xlabel('$z$')
-        plt.sca(old_axis)
+    old_axis = pyplot.gca()
+
+    pz = plt.twiny()
+    labelzs = np.arange(5, int(sim.properties['z']) - 1, -1)
+    times = [13.7 * c.Exp2Time(1.0 / (1 + z)) / c.Exp2Time(1) for z in labelzs]
+    pz.set_xticks(times)
+    pz.set_xticklabels([str(x) for x in labelzs])
+    pz.set_xlim(x0, x1)
+    pz.set_xlabel('$z$')
+
+    pyplot.sca(old_axis)
 
     if legend:
         plt.legend(loc=1)
