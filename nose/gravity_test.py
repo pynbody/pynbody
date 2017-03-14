@@ -27,3 +27,14 @@ def test_gravity():
     v_circ = pro['v_circ'].in_units('km s^-1')
 
     npt.assert_allclose(v_circ, v_circ_correct,atol=1e-5)
+
+def test_gravity_float():
+    f = pynbody.new(100)
+    np.random.seed(0)
+    coords = np.random.normal(size=(100,3))
+    del f['pos']
+    del f['mass']
+    f['pos'] = np.array(coords,dtype=np.float32)
+    f['eps'] = np.ones(100,dtype=np.float32)
+    f['mass'] = np.ones(100,dtype=np.float32)
+    pynbody.gravity.calc.all_direct(f)
