@@ -528,6 +528,9 @@ class GadgetFile(object):
         except KeyError:
             raise KeyError("Block " + name + " not in file " + self._filename)
 
+        if not cur_block.p_types[p_type]:
+            return
+
         parts = self.get_block_parts(name, p_type)
         p_start = self.get_start_part(name, p_type)
         MinType = np.ravel(np.where(cur_block.p_types * self.header.npart))[0]
@@ -570,7 +573,7 @@ class GadgetFile(object):
 
         fd.close()
 
-    def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=-1):
+    def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=None):
         """Add a block to the block table at the end of the file. Do not actually write anything"""
         name = _to_raw(name)
 
@@ -578,10 +581,8 @@ class GadgetFile(object):
             raise KeyError(
                 "Block " + name + " already present in file. Not adding")
 
-        def st(val):
-            return val.start
         # Get last block
-        lb = max(self.blocks.values(), key=st)
+        lb = max(self.blocks.values(), key=lambda val: val.start)
 
         if np.issubdtype(dtype, float):
             dtype = np.float32  # coerce to single precision
@@ -590,7 +591,7 @@ class GadgetFile(object):
         block = GadgetBlock(length=blocksize, partlen=partlen, dtype=dtype)
         block.start = lb.start + lb.length + 6 * \
             4  # For the block header, and footer of the previous block
-        if p_types == -1:
+        if p_types is None:
             block.p_types = np.ones(N_TYPE, bool)
         else:
             block.p_types = p_types
@@ -1115,6 +1116,7 @@ class GadgetSnap(SimSnap):
             if p_types.sum():
                 per_file = npart // nfiles
                 for f in self._files[:-2]:
+                    print f,array_name
                     f.add_file_block(array_name, per_file, ashape[
                                      1], dtype=self[array_name].dtype, p_types=p_types)
                 self._files[-1].add_file_block(
