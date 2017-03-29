@@ -1116,7 +1116,6 @@ class GadgetSnap(SimSnap):
             if p_types.sum():
                 per_file = npart // nfiles
                 for f in self._files[:-2]:
-                    print f,array_name
                     f.add_file_block(array_name, per_file, ashape[
                                      1], dtype=self[array_name].dtype, p_types=p_types)
                 self._files[-1].add_file_block(
