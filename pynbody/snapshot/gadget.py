@@ -1132,6 +1132,8 @@ class GadgetSnap(SimSnap):
                     f_parts = [f.get_block_parts(
                         g_name, gfam) for f in self._files]
                     for i in np.arange(0, nfiles):
+                        if f_parts[i]==0:
+                            continue
                         # Set up filename
                         if filename != None:
                             ffile = filename + "." + str(i)
