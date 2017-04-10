@@ -1,0 +1,18 @@
+Metadata-Version: 1.1
+Name: pynbody
+Version: 0.30
+Summary: Light-weight astronomical N-body/SPH analysis for python
+Home-page: https://github.com/pynbody/pynbody/releases
+Author: The pynbody team
+Author-email: pynbody@googlegroups.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Astronomy
+Classifier: Topic :: Scientific/Engineering :: Visualization

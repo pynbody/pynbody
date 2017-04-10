@@ -1,0 +1,538 @@
+diff --git a/nose/gadgethdf_test.py b/nose/gadgethdf_test.py
+index 7b0885e..0a5ed6d 100644
+--- a/nose/gadgethdf_test.py
++++ b/nose/gadgethdf_test.py
+@@ -1,21 +1,29 @@
+-import pynbody 
++import pynbody
+ import numpy as np
+-from itertools import chain 
++from itertools import chain
+ 
+-def setup() : 
++def setup() :
+     global snap,subfind
+     snap = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+     subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+-    
+-def teardown() : 
++
++def teardown() :
+     global snap,subfind
+     del snap
+     del subfind
+ 
+-def test_standard_arrays() : 
++def test_issue_256() :
++    assert 'pos' in snap.loadable_keys()
++    assert 'pos' in snap.dm.loadable_keys()
++    assert 'pos' in snap.gas.loadable_keys()
++    assert 'He' not in snap.loadable_keys()
++    assert 'He' not in snap.dm.loadable_keys()
++    assert 'He' in snap.gas.loadable_keys()
++
++def test_standard_arrays() :
+     """Check that the data loading works"""
+ 
+-    for s in [snap, subfind] : 
++    for s in [snap, subfind] :
+         s.dm['pos']
+         s.gas['pos']
+         s.star['pos']
+@@ -28,8 +36,8 @@ def test_standard_arrays() :
+         s.gas['rho']
+        # s.gas['u']
+         s.star['mass']
+-        
+-def test_halo_loading() : 
++
++def test_halo_loading() :
+     """ Check that halo loading works """
+     h = subfind.halos()
+     # check that data loading for individual fof groups works
+@@ -38,48 +46,48 @@ def test_halo_loading() :
+ 
+     # check that loading the subhalos works
+     h[0].sub[0]['pos']
+-    for i,halo in enumerate(h[0:10]) : 
++    for i,halo in enumerate(h[0:10]) :
+         halo['mass'].sum()
+-        for fam in [halo.g, halo.d, halo.s] : 
++        for fam in [halo.g, halo.d, halo.s] :
+             assert(len(fam['iord']) == subfind._hdf[0]['FOF'][subfind._my_type_map[fam.families()[0]][0]]['Length'][i])
+-        for s in halo.sub : 
++        for s in halo.sub :
+             s['mass'].sum()
+-            
+-            
+-    
++
++
++
+     # test halo catalogue slicing
+     for halo in h[0:10] : pass
+     for halo in h[30:40] : pass
+     for sub in h[0].sub[1:5] : pass
+ 
+-    
+-    
++
++
+ def test_halo_values() :
+     """ Check that halo values (and sizes) agree with pyread_gadget_hdf5 """
+-    
++
+     filesub = 'testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103'
+ 
+     # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
+-    from pyread_gadget_hdf5 import pyread_gadget_hdf5    
++    from pyread_gadget_hdf5 import pyread_gadget_hdf5
+ 
+-    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=True) 
++    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=True)
+     FoF_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='fof', nopanda=True, silent=True)
+-    Sub_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='subfind', nopanda=True, silent=True) 
+-    Sub_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='subfind', nopanda=True, silent=True) 
++    Sub_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='subfind', nopanda=True, silent=True)
++    Sub_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='subfind', nopanda=True, silent=True)
+     NsubPerHalo = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'NsubPerHalo', sub_dir='subfind', nopanda=True, silent=True)
+     OffsetHalo = np.roll(NsubPerHalo.cumsum(), 1)
+     OffsetHalo[0]=0 ## To start counter
+ 
+-    h = subfind.halos() 
++    h = subfind.halos()
+ 
+     FoF_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='fof', nopanda=True, silent=True)
+     Sub_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='subfind', nopanda=True, silent=True)
+ 
+     # Check the Halo Array values
+-    for i,halo in enumerate(h[0:10]) : 
++    for i,halo in enumerate(h[0:10]) :
+         assert(np.allclose(halo.properties['CenterOfMass'], FoF_CoM[i], rtol=1e-3))
+-	    	
+-        for j, s in enumerate(halo.sub) : 
++
++        for j, s in enumerate(halo.sub) :
+ 	        assert(np.allclose(s.properties['CenterOfMass'], Sub_CoM[OffsetHalo[i]+j], rtol=1e-3))
+ 
+     ###
+@@ -87,24 +95,24 @@ def test_halo_values() :
+     ###
+ 
+     # Mass of each component for FOF halos
+-    for i,halo in enumerate(h[0:10]) : 
++    for i,halo in enumerate(h[0:10]) :
+         assert(np.allclose(halo.g['mass'].sum(), FoF_MassType[i,0], rtol=1e-3))
+         assert(np.allclose(halo.dm['mass'].sum(), FoF_MassType[i,1], rtol=1e-3))
+         assert(np.allclose(halo.s['mass'].sum(), FoF_MassType[i,4], rtol=1e-3))
+         assert(np.allclose(halo['mass'].sum(), FoF_Mass[i], rtol=1e-3))
+ 
+     # Mass of each component for Subhalos
+-    for i,halo in enumerate(h[0:10]) : 
+-        for j, s in enumerate(halo.sub) : 
++    for i,halo in enumerate(h[0:10]) :
++        for j, s in enumerate(halo.sub) :
+             assert(np.allclose(s.g['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,0], rtol=1e-3))
+             assert(np.allclose(s.dm['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,1], rtol=1e-3))
+             assert(np.allclose(s.s['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,4], rtol=1e-3))
+             assert(np.allclose(s['mass'].sum(), Sub_Mass[OffsetHalo[i]+j], rtol=1e-3))
+-                
++
+     FoF_Temp = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Temperature', sub_dir='fof', nopanda=True, silent=True, physunits=True)
+     FoF_Length = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Length', sub_dir='fof', nopanda=True, silent=True, physunits=True)
+     FoF_Offset = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Offset', sub_dir='fof', nopanda=True, silent=True, physunits=True)
+ 
+     # Test the Particle Temperature and implicitly the particle ordering
+-    for i,halo in enumerate(h[0:10]) : 
++    for i,halo in enumerate(h[0:10]) :
+         assert(np.allclose(list(halo.g['temp']), list(chain.from_iterable(FoF_Temp[np.arange(FoF_Offset[i],FoF_Offset[i]+FoF_Length[i],dtype=np.int64)])), rtol=1e-3))
+diff --git a/pynbody/snapshot/gadgethdf.py b/pynbody/snapshot/gadgethdf.py
+index 22cf7fd..002c2ab 100644
+--- a/pynbody/snapshot/gadgethdf.py
++++ b/pynbody/snapshot/gadgethdf.py
+@@ -85,23 +85,23 @@ class HdfFileGenerator(object) :
+         self.numfiles = numfiles
+         self._open_files = {}
+ 
+-    def __iter__(self) : 
++    def __iter__(self) :
+         i = 0
+-        while i < self.numfiles : 
+-            try : 
++        while i < self.numfiles :
++            try :
+                 yield self._open_files[i]
+-            except KeyError: 
++            except KeyError:
+                 yield h5py.File(self.filename+"."+str(i)+".hdf5", "r")
+             i+=1
+ 
+-    def __getitem__(self, i) : 
+-        try : 
++    def __getitem__(self, i) :
++        try :
+             return self._open_files[i]
+-        except KeyError : 
++        except KeyError :
+             self._open_files[i] = next(itertools.islice(self,i,i+1))
+             return self._open_files[i]
+ 
+-    
++
+ class GadgetHDFSnap(SimSnap):
+     """
+     Class that reads HDF Gadget data
+@@ -176,9 +176,9 @@ class GadgetHDFSnap(SimSnap):
+         if name == "mass":
+             return True
+ 
+-        if subgroup is None : 
++        if subgroup is None :
+             hdf = self._hdf[0]
+-        else : 
++        else :
+             hdf = self._hdf[0][subgroup]
+ 
+ 
+@@ -198,20 +198,23 @@ class GadgetHDFSnap(SimSnap):
+                         else: raise e
+             return True
+ 
+-    def _get_all_particle_arrays(self, gtype, subgroup=None): 
++    def _get_all_particle_arrays(self, gtype, subgroup=None):
+         """Return all array names for a given gadget particle type"""
+ 
+         # this is a hack to flatten a list of lists
+-        if subgroup is not None : 
++        if subgroup is not None :
+             l = [item for sublist in [self._get_hdf_allarray_keys(x[subgroup][gtype]) for x in self._hdf] for item in sublist]
+-        else : 
++        else :
+             l = [item for sublist in [self._get_hdf_allarray_keys(x[gtype]) for x in self._hdf] for item in sublist]
+ 
+         # now just return the unique items by converting to a set
+         return list(set(l))
+ 
+     def loadable_keys(self, fam=None):
+-        return self._loadable_keys
++        if fam is not None:
++            return [x for x in self._loadable_keys if self._family_has_loadable_array(fam, x)]
++        else:
++            return [x for x in self._loadable_keys if self._family_has_loadable_array(None, x)]
+ 
+     @staticmethod
+     def _write(self, filename=None):
+@@ -248,7 +251,7 @@ class GadgetHDFSnap(SimSnap):
+                 pgid = int(particle_group.name[-1])
+                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
+                 if mtab > 0:
+-                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0], 
++                    return DummyHDFData(mtab, particle_group['Coordinates'].shape[0],
+                                         particle_group['Coordinates'].dtype)
+             except (IndexError, KeyError):
+                 pass
+@@ -262,11 +265,11 @@ class GadgetHDFSnap(SimSnap):
+     def _get_cosmo_factors(hdf, arr_name) :
+         """Return the cosmological factors for a given array"""
+         match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
+-        if len(match) > 0 : 
++        if len(match) > 0 :
+             aexp = hdf[match[0]].attrs['aexp-scale-exponent']
+             hexp = hdf[match[0]].attrs['h-scale-exponent']
+             return units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator(), units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
+-        else : 
++        else :
+             return units.Unit('1.0'), units.Unit('1.0')
+ 
+ 
+@@ -286,7 +289,7 @@ class GadgetHDFSnap(SimSnap):
+         # First test using the gadget Unit list, U_M, U_L, U_V
+         for unitname in unitvar.keys() :
+             power = 1.
+-            if unitname in VarDescription : 
++            if unitname in VarDescription :
+                 sstart = VarDescription.find(unitname)
+                 if sstart > 0 :
+                     if VarDescription[sstart-1] == "/" :
+@@ -314,9 +317,9 @@ class GadgetHDFSnap(SimSnap):
+         ## Now the cosmological units
+         if not np.allclose(aexp, 0.0):
+             arr_units *= (units.a)**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
+-        if not np.allclose(hexp, 0.0):    
++        if not np.allclose(hexp, 0.0):
+             arr_units *= (units.h)**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
+-  
++
+         return arr_units
+ 
+ 
+@@ -334,11 +337,11 @@ class GadgetHDFSnap(SimSnap):
+             # Set the global units for these arrays
+ 
+             # Read in the attribute units from SubFind
+-            try : 
++            try :
+                 atr = self._hdf[0]['Units'].attrs
+-            except KeyError : 
++            except KeyError :
+                 warnings.warn("No unit information found!",RuntimeWarning)
+-                return                        
++                return
+ 
+             # Define the SubFind units, we will parse the attribute VarDescriptions for these
+             vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
+@@ -347,13 +350,13 @@ class GadgetHDFSnap(SimSnap):
+             time_unit = atr['UnitTime_in_s']*units.s
+ 
+             # Create a dictionary for the units, this will come in handy later
+-            unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit, 
+-                       'U_T' : time_unit, '[K]' : units.K, 
++            unitvar = {'U_V' : vel_unit, 'U_L' : dist_unit, 'U_M' : mass_unit,
++                       'U_T' : time_unit, '[K]' : units.K,
+                        'SEC_PER_YEAR' : units.yr, 'SOLAR_MASS' : units.Msol}
+-            # Last two units are to catch occasional arrays like StarFormationRate which don't 
++            # Last two units are to catch occasional arrays like StarFormationRate which don't
+             # follow the patter of U_ units unfortunately
+-             
+-            cgsvar = {'U_M' : 'g', 'SOLAR_MASS' : 'g', 'U_T': 's', 
++
++            cgsvar = {'U_M' : 'g', 'SOLAR_MASS' : 'g', 'U_T': 's',
+                       'SEC_PER_YEAR': 's', 'U_V' : 'cm s**-1', 'U_L' : 'cm', '[K]' : 'K'}
+ 
+             # this next chunk of code is just to determine the
+@@ -361,10 +364,10 @@ class GadgetHDFSnap(SimSnap):
+ 
+             # not all arrays are present in all hdfs so need to loop
+             # until we find one
+-            for hdf0 in self._hdf : 
+-                if subgroup is not None : 
+-                    hdf0 = hdf0[subgroup]     
+-                try : 
++            for hdf0 in self._hdf :
++                if subgroup is not None :
++                    hdf0 = hdf0[subgroup]
++                try :
+                     dset0 = self._get_hdf_dataset(hdf0[
+                         self._my_type_map[famx][0]], translated_name)
+                     if hasattr(dset0, "attrs"):
+@@ -373,7 +376,7 @@ class GadgetHDFSnap(SimSnap):
+                         units0 = units.NoUnit()
+                     break
+ 
+-                except KeyError: 
++                except KeyError:
+                     continue
+ 
+             assert len(dset0.shape) <= 2
+@@ -386,7 +389,7 @@ class GadgetHDFSnap(SimSnap):
+             # is 3D and cross your fingers
+             npart = len(hdf0[self._my_type_map[famx][0]]['ParticleIDs'])
+             if len(dset0) != npart :
+-                dy = len(dset0)/npart                     
++                dy = len(dset0)/npart
+ 
+             dtype = dset0.dtype
+ 
+@@ -395,11 +398,11 @@ class GadgetHDFSnap(SimSnap):
+             if fam is None:
+                 self._create_array(array_name, dy, dtype=dtype)
+                 self[array_name].set_default_units()
+-                self[array_name].units = units0 
++                self[array_name].units = units0
+             else:
+                 self[fam]._create_array(array_name, dy, dtype=dtype)
+                 self[fam][array_name].set_default_units()
+-                self[fam][array_name].units = units0 
++                self[fam][array_name].units = units0
+ 
+             if fam is not None:
+                 fams = [fam]
+@@ -410,31 +413,31 @@ class GadgetHDFSnap(SimSnap):
+                 i0 = 0
+                 for t in self._my_type_map[f]:
+                     for hdf in self._hdf:
+-                        if subgroup is not None : 
++                        if subgroup is not None :
+                             hdf = hdf[subgroup]
+-                        try : 
++                        try :
+                             npart = len(hdf[t]['ParticleIDs'])
+-                        except KeyError: 
++                        except KeyError:
+                             npart = 0
+-                        
+-                        if npart > 0 : 
++
++                        if npart > 0 :
+                             dataset = self._get_hdf_dataset(hdf[t], translated_name)
+ 
+                             # check if the dimensions make sense -- if
+                             # not, assume we're looking at an array that
+                             # is 3D and cross your fingers
+-                            if len(dataset) != npart : 
++                            if len(dataset) != npart :
+                                 temp = dataset[:].reshape((len(dataset)/3,3))
+                                 i1 = i0+len(temp)
+                                 self[f][array_name][i0:i1] = temp
+-                            
+-                            else : 
++
++                            else :
+                                 i1 = i0+len(dataset)
+                                 dataset.read_direct(self[f][array_name][i0:i1])
+ 
+                             i0 = i1
+ 
+-### This was put in in a recent pull request -- it's not immediately obvious to me 
++### This was put in in a recent pull request -- it's not immediately obvious to me
+ ### that the dimensinality checks would work out so I'm keeping the checks above and
+ ### commenting out this block below -- it would replace lines 348 - 371
+  #                       try:
+@@ -533,13 +536,13 @@ def do_units(sim):
+ # SubFindHDF class
+ ###################
+ 
+-class SubFindHDFSnap(GadgetHDFSnap) : 
++class SubFindHDFSnap(GadgetHDFSnap) :
+     """
+     Class to read Gadget's SubFind HDF data
+     """
+ 
+-    def __init__(self, filename) : 
+-        
++    def __init__(self, filename) :
++
+         global config
+         super(SubFindHDFSnap,self).__init__(filename)
+ 
+@@ -552,20 +555,20 @@ class SubFindHDFSnap(GadgetHDFSnap) :
+         self._decorate()
+ 
+         numfiles = self.properties['NTask']
+-                    
++
+         self._hdf = HdfFileGenerator(filename, numfiles)
+ 
+         # set up the particle type mapping
+         my_type_map = {}
+ 
+-        # defines the link between PartType0, 1, 4 in my_types 
++        # defines the link between PartType0, 1, 4 in my_types
+         # and the pynbody nomenclature, gas, dm and stars in fam
+-        for fam, g_types in _type_map.iteritems() : 
++        for fam, g_types in _type_map.iteritems() :
+             my_types = []
+             for x in g_types :
+-                if x in self._hdf[0]['FOF'].keys() : 
++                if x in self._hdf[0]['FOF'].keys() :
+                     my_types.append(x)
+-            if len(my_types) : 
++            if len(my_types) :
+                 my_type_map[fam] = my_types
+ 
+         # set up family slices
+@@ -583,16 +586,16 @@ class SubFindHDFSnap(GadgetHDFSnap) :
+             sl_start += l
+         self._loadable_keys = [_translate_array_name(
+             x, reverse=True) for x in self._loadable_keys]
+-        
++
+         self._num_particles = sl_start
+ 
+         self._my_type_map = my_type_map
+ 
+ 
+-    def _load_array(self, array_name, fam=None, subgroup = 'FOF') : 
++    def _load_array(self, array_name, fam=None, subgroup = 'FOF') :
+         return GadgetHDFSnap._load_array(self, array_name, fam, subgroup)
+ 
+-    def halos(self) : 
++    def halos(self) :
+         return halo.SubFindHDFHaloCatalogue(self)
+ 
+     @staticmethod
+@@ -608,13 +611,13 @@ class SubFindHDFSnap(GadgetHDFSnap) :
+                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
+             return False
+ 
+-            
++
+ @SubFindHDFSnap.decorator
+-def do_properties(sim): 
++def do_properties(sim):
+ 
+     atr = sim._hdf[0]['FOF'].attrs
+ 
+-    for s in atr : 
++    for s in atr :
+         sim.properties[s] = atr[s]
+ 
+ ## Gadget has internal energy variable
+@@ -622,8 +625,8 @@ def do_properties(sim):
+ @SubFindHDFSnap.derived_quantity
+ def u(self) :
+     """Gas internal energy derived from snapshot variable or temperature"""
+-    try:    
+-        u = self['InternalEnergy']        
++    try:
++        u = self['InternalEnergy']
+     except KeyError:
+         gamma = 5./3
+         u = self['temp']*units.k/(self['mu']*units.m_p*(gamma-1))
+@@ -681,7 +684,7 @@ def rho_ne(sim) :
+ def dm(sim) :
+     """Dispersion measure per SPH particle currently ignoring n_e contribution from He """
+ 
+-    return sim.g["rho_ne"] 
++    return sim.g["rho_ne"]
+ 
+ @GadgetHDFSnap.derived_quantity
+ @SubFindHDFSnap.derived_quantity
+@@ -701,7 +704,7 @@ def redshift(sim) :
+ def doppler_redshift(sim) :
+     """Doppler Redshift from LoS Velocity 'losvel' using SR """
+ 
+-    return np.sqrt( (1. + sim['losvel'].in_units('c')) / (1. - sim['losvel'].in_units('c'))  ) - 1. 
++    return np.sqrt( (1. + sim['losvel'].in_units('c')) / (1. - sim['losvel'].in_units('c'))  ) - 1.
+ 
+ @GadgetHDFSnap.derived_quantity
+ @SubFindHDFSnap.derived_quantity
+@@ -715,16 +718,16 @@ def em(sim) :
+ def halpha(sim) :
+     """H alpha intensity (based on Emission Measure n_e^2) per particle to be integrated along LoS"""
+ 
+-    ## Rate at which recombining electrons and protons produce Halpha photons. 
+-    ## Case B recombination assumed from Draine (2011)    
++    ## Rate at which recombining electrons and protons produce Halpha photons.
++    ## Case B recombination assumed from Draine (2011)
+     #alpha = 2.54e-13 * (sim.g['temp'].in_units('K') / 1e4)**(-0.8163-0.0208*np.log(sim.g['temp'].in_units('K') / 1e4))
+     #alpha.units = units.cm**(3) * units.s**(-1)
+ 
+-    ## H alpha intensity = coeff * EM 
++    ## H alpha intensity = coeff * EM
+     ## where coeff is h (c / Lambda_Halpha) / 4Pi) and EM is int rho_e * rho_p * alpha
+     ## alpha = 7.864e-14 T_1e4K from http://astro.berkeley.edu/~ay216/08/NOTES/Lecture08-08.pdf
+     coeff = (6.6260755e-27) * (299792458. / 656.281e-9) / (4.*np.pi) ## units are erg sr^-1
+-    alpha = coeff * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K')) 
++    alpha = coeff * 7.864e-14 * (1e4 / sim.g['temp'].in_units('K'))
+ 
+     alpha.units = units.erg * units.cm**(3) * units.s**(-1) * units.sr**(-1) ## It's intensity in erg cm^3 s^-1 sr^-1
+ 
+@@ -779,7 +782,7 @@ def HIeos(sim) :
+ ## Need to use the ionisation fraction calculation here which gives ionisation fraction
+ ## based on the gas temperature, density and redshift for a CLOUDY table, then applying
+ ## selfshielding for the dense, star forming gas on the equation of state AND a further
+-## pressure based limit for 
++## pressure based limit for
+ @GadgetHDFSnap.derived_quantity
+ @SubFindHDFSnap.derived_quantity
+ def HID12(sim) :
+@@ -911,7 +914,7 @@ def mgxh(self) :
+     self['Mg'][np.where(self['Mg'] == 0)]=minmg
+     return np.log10(self['Mg']/self['Mg']) - np.log10(XSOLMg/XSOLH)
+ 
+-@GadgetHDFSnap.derived_quantity    
++@GadgetHDFSnap.derived_quantity
+ @SubFindHDFSnap.derived_quantity
+ def oxh(self) :
+     minox = np.amin(self['O'][np.where(self['O'] > 0)])
