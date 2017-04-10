@@ -1,5 +1,7 @@
 pynbody
 =======
+
+[![Join the chat at https://gitter.im/pynbody/pynbody](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pynbody/pynbody?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/pynbody/pynbody.svg?branch=master)](https://travis-ci.org/pynbody/pynbody)
 
 [Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
