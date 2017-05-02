@@ -837,11 +837,7 @@ class TipsySnap(SimSnap):
 
                 # Restart at head of file
                 f.seek(0)
-                f.readline()
-
-            loadblock = lambda count: np.fromfile(
-                f, dtype=dtype, sep="\n", count=count)
-            # data = np.fromfile(f, dtype=tp, sep="\n")
+                
         except ValueError:
             # this is probably a binary file
             binary = True
@@ -886,12 +882,22 @@ class TipsySnap(SimSnap):
             r = np.empty(len(self), dtype=dtype).view(array.SimArray)
         else:
             r = np.empty(len(self[fam]), dtype=dtype).view(array.SimArray)
-
-        for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
-            buf = loadblock(readlen)
-            if mem_index is not None:
-                r[mem_index] = buf[buf_index]
-
+        if binary:
+            for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
+                buf = loadblock(readlen)
+                if mem_index is not None:
+                    r[mem_index] = buf[buf_index]
+        else:
+            # Load the entire tipsy array
+            r0 = read_tipsy_ascii(f, dtype=dtype)
+            # Now map the disk array elements to the memory array
+            buf_start = 0
+            for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
+                if mem_index is not None:
+                    buf_index = slice(buf_index.start + buf_start, \
+                        buf_index.stop + buf_start, buf_index.step)
+                    r[mem_index] = r0[buf_index]
+                buf_start += readlen
 
         if units is not None:
             r.units = units
@@ -967,6 +973,23 @@ class TipsySnap(SimSnap):
 #  if fHe specified, combining the 2 eq above will solve for
 #  fH and fMetal
 
+def read_tipsy_ascii(f, dtype=None, BUF_SIZE=int(1e6)):
+    """
+    Reads an entire ASCII tipsy auxiliary array.
+    """
+    f.seek(0)
+    # First line in tipsy format is a header
+    nlines = int(f.readline().strip())
+    # Pre-allocate for speed
+    output = np.zeros(nlines, dtype=dtype)
+    # Buffered read
+    i0 = 0
+    tmp_lines = f.readlines(BUF_SIZE)
+    while tmp_lines:
+        output[i0:i0 + len(tmp_lines)] = tmp_lines
+        i0 += len(tmp_lines)
+        tmp_lines = f.readlines(BUF_SIZE)
+    return output
 
 def _abundance_estimator(metal):
 
