@@ -26,9 +26,10 @@ class KDTree(object):
     PROPID_QTYDISP_1D = 5
     PROPID_QTYDISP_ND = 6
 
-    def __init__(self, pos, mass, leafsize=32):
+    def __init__(self, pos, mass, leafsize=32, boxsize=None):
         self.kdtree = kdmain.init(pos, mass, int(leafsize))
         self.derived = True
+        self.boxsize=boxsize
         self.s_len = len(pos)
         self.flags = {'WRITEABLE': False}
 
@@ -36,7 +37,7 @@ class KDTree(object):
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), 1)
+        smx = kdmain.nn_start(self.kdtree, int(nn), 1, self.boxsize)
 
         while True:
             nbr_list = kdmain.nn_next(self.kdtree, smx)
@@ -110,7 +111,7 @@ class KDTree(object):
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn))
+        smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
 
         propid = self.smooth_operation_to_id(mode)
 

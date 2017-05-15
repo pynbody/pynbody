@@ -133,7 +133,8 @@ def render_image(int nx, int ny,
                  np.ndarray[fused_input_type_4,ndim=1] mass,
                  np.ndarray[fused_input_type_5,ndim=1] rho,
                  fixed_input_type smooth_lo, fixed_input_type smooth_hi,
-                 kernel) :
+                 kernel,
+                 wrap_offsets_x=[0], wrap_offsets_y=[0]) :
 
     cdef fixed_input_type pixel_dx = (x2-x1)/nx
     cdef fixed_input_type pixel_dy = (y2-y1)/ny
@@ -152,6 +153,8 @@ def render_image(int nx, int ny,
     cdef float mid_x = (x2+x1)/2
     cdef float mid_y = (y2+y1)/2
     cdef float dz_i
+
+    cdef float wrap_offset_x, wrap_offset_y
 
 
     cdef int kernel_dim = kernel.h_power
@@ -175,90 +178,93 @@ def render_image(int nx, int ny,
     assert kernel_dim==2 or kernel_dim==3, "Only kernels of dimension 2 or 3 currently supported"
     assert len(x) == len(y) == len(z) == len(sm) == len(qty) == len(mass) == len(rho), "Inconsistent array lengths passed to render_image_core"
 
-    with nogil:
-        for i in range(n_part) :
-            # load particle details
-            x_i = x[i]; y_i=y[i]; z_i=z[i]; sm_i = sm[i]; qty_i = qty[i]*mass[i]/rho[i]
+    for wrap_offset_x in wrap_offsets_x :
+        for wrap_offset_y in wrap_offsets_y :
+            with nogil:
+                for i in range(n_part) :
+                    # load particle details
+                    x_i = x[i]+wrap_offset_x; y_i=y[i]+wrap_offset_y;
+                    z_i=z[i]; sm_i = sm[i]; qty_i = qty[i]*mass[i]/rho[i]
 
-            if z_camera!=0.0 :
-                # perspective image -
-                # update image bounds for the current z
-                if (z_i>z_camera and z_camera>0) or (z_i<z_camera and z_camera<0) :
-                    # behind camera
-                    continue
-                dz_i = z_camera-z_i
-                x1 = mid_x - per_z_dx*dz_i
-                x2 = mid_x + per_z_dx*dz_i
-                y1 = mid_y - per_z_dy*dz_i
-                y2 = mid_y + per_z_dy*dz_i
-                pixel_dx = (x2-x1)/nx
-                pixel_dy = (y2-y1)/ny
-                x_start = x1+pixel_dx/2
-                y_start = y1+pixel_dy/2
+                    if z_camera!=0.0 :
+                        # perspective image -
+                        # update image bounds for the current z
+                        if (z_i>z_camera and z_camera>0) or (z_i<z_camera and z_camera<0) :
+                            # behind camera
+                            continue
+                        dz_i = z_camera-z_i
+                        x1 = mid_x - per_z_dx*dz_i
+                        x2 = mid_x + per_z_dx*dz_i
+                        y1 = mid_y - per_z_dy*dz_i
+                        y2 = mid_y + per_z_dy*dz_i
+                        pixel_dx = (x2-x1)/nx
+                        pixel_dy = (y2-y1)/ny
+                        x_start = x1+pixel_dx/2
+                        y_start = y1+pixel_dy/2
 
 
-            # check particle smoothing is within specified range
-            if sm_i<pixel_dx*smooth_lo or sm_i>pixel_dx*smooth_hi : continue
+                    # check particle smoothing is within specified range
+                    if sm_i<pixel_dx*smooth_lo or sm_i>pixel_dx*smooth_hi : continue
 
-            total_ptcls+=1
+                    total_ptcls+=1
 
-            # check particle is within bounds
-            if not ((use_z*cmath.fabs(z_i-z0)<max_d_over_h*sm_i)
-                    and x_i>x1-2*sm_i and x_i<x2+2*sm_i and y_i>y1-2*sm_i and y_i<y2+2*sm_i) :
-                continue
+                    # check particle is within bounds
+                    if not ((use_z*cmath.fabs(z_i-z0)<max_d_over_h*sm_i)
+                            and x_i>x1-2*sm_i and x_i<x2+2*sm_i and y_i>y1-2*sm_i and y_i<y2+2*sm_i) :
+                        continue
 
-            # pre-cache sm^kdim and (sm*max_d_over_h)**2; tests showed massive speedups when doing this
-            if kernel_dim==2 :
-                sm_to_kdim = sm_i*sm_i
-            else :
-                sm_to_kdim = sm_i*sm_i*sm_i
-                # only 2, 3 supported
+                    # pre-cache sm^kdim and (sm*max_d_over_h)**2; tests showed massive speedups when doing this
+                    if kernel_dim==2 :
+                        sm_to_kdim = sm_i*sm_i
+                    else :
+                        sm_to_kdim = sm_i*sm_i*sm_i
+                        # only 2, 3 supported
 
-            kernel_max_2 = (sm_i*sm_i)*(max_d_over_h*max_d_over_h)
+                    kernel_max_2 = (sm_i*sm_i)*(max_d_over_h*max_d_over_h)
 
-            # decide whether this is a single pixel or a multi-pixel particle
-            if (max_d_over_h*sm_i/pixel_dx<1 and max_d_over_h*sm_i/pixel_dy<1) :
-                # single pixel, get pixel location
-                x_pos = int((x_i-x1)/pixel_dx)
-                y_pos = int((y_i-y1)/pixel_dy)
+                    # decide whether this is a single pixel or a multi-pixel particle
+                    if (max_d_over_h*sm_i/pixel_dx<1 and max_d_over_h*sm_i/pixel_dy<1) :
+                        # single pixel, get pixel location
+                        x_pos = int((x_i-x1)/pixel_dx)
+                        y_pos = int((y_i-y1)/pixel_dy)
 
-                # work out pixel centre
-                x_pixel = (pixel_dx*<fixed_input_type>(x_pos)+x_start)
-                y_pixel = (pixel_dy*<fixed_input_type>(y_pos)+y_start)
+                        # work out pixel centre
+                        x_pixel = (pixel_dx*<fixed_input_type>(x_pos)+x_start)
+                        y_pixel = (pixel_dy*<fixed_input_type>(y_pos)+y_start)
 
-                # final bounds check
-                if x_pos>=0 and x_pos<nx and y_pos>=0 and y_pos<ny :
-                    result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
-            else :
-                # multi-pixel
-                x_pix_start = int((x_i-max_d_over_h*sm_i-x1)/pixel_dx)
-                x_pix_stop =  int((x_i+max_d_over_h*sm_i-x1)/pixel_dx)
-                y_pix_start = int((y_i-max_d_over_h*sm_i-y1)/pixel_dy)
-                y_pix_stop =  int((y_i+max_d_over_h*sm_i-y1)/pixel_dy)
-                if x_pix_start<0 : x_pix_start = 0
-                if x_pix_stop>nx : x_pix_stop = nx
-                if y_pix_start<0 : y_pix_start = 0
-                if y_pix_stop>ny : y_pix_stop = ny
-                for x_pos in range(x_pix_start, x_pix_stop) :
-                    x_pixel = pixel_dx*<fixed_input_type>(x_pos)+x_start
-                    for y_pos in range(y_pix_start, y_pix_stop) :
-                        y_pixel = pixel_dy*<fixed_input_type>(y_pos)+y_start
+                        # final bounds check
+                        if x_pos>=0 and x_pos<nx and y_pos>=0 and y_pos<ny :
+                            result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                    else :
+                        # multi-pixel
+                        x_pix_start = int((x_i-max_d_over_h*sm_i-x1)/pixel_dx)
+                        x_pix_stop =  int((x_i+max_d_over_h*sm_i-x1)/pixel_dx)
+                        y_pix_start = int((y_i-max_d_over_h*sm_i-y1)/pixel_dy)
+                        y_pix_stop =  int((y_i+max_d_over_h*sm_i-y1)/pixel_dy)
+                        if x_pix_start<0 : x_pix_start = 0
+                        if x_pix_stop>nx : x_pix_stop = nx
+                        if y_pix_start<0 : y_pix_start = 0
+                        if y_pix_stop>ny : y_pix_stop = ny
+                        for x_pos in range(x_pix_start, x_pix_stop) :
+                            x_pixel = pixel_dx*<fixed_input_type>(x_pos)+x_start
+                            for y_pos in range(y_pix_start, y_pix_stop) :
+                                y_pixel = pixel_dy*<fixed_input_type>(y_pos)+y_start
 
-                        # could accessing the buffer manually be
-                        # faster? It seems to be FAR faster (x10!) but
-                        # only when using stack-allocated memory for
-                        # c_result, and when writing to memory, not
-                        # also reading (i.e. = instead of +=).  The
-                        # instruction that, according to Instruments,
-                        # holds everything up and disappears is
-                        # cvtss2sd, but it's not clear to me why this
-                        # disappears from the compiled version in the
-                        # instance described above.  Anyway for now, there
-                        # is no advantage to the manual approach -
+                                # could accessing the buffer manually be
+                                # faster? It seems to be FAR faster (x10!) but
+                                # only when using stack-allocated memory for
+                                # c_result, and when writing to memory, not
+                                # also reading (i.e. = instead of +=).  The
+                                # instruction that, according to Instruments,
+                                # holds everything up and disappears is
+                                # cvtss2sd, but it's not clear to me why this
+                                # disappears from the compiled version in the
+                                # instance described above.  Anyway for now, there
+                                # is no advantage to the manual approach -
 
-                        #c_result[x_pos+nx*y_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                                #c_result[x_pos+nx*y_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
 
-                        result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                                result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
 
     return result
 
