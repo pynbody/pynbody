@@ -625,12 +625,9 @@ def fourier(self, delta_t = "0.1 Myr", phi_bins=100):
             y1 = self.sim['y'][self.binind[i]] + self.sim['vy'][self.binind[i]] * delta_t
             phi1 = np.arctan2(y1,x1)
 
-            hist, _ = np.histogram(phi, weights=mass, bins=phi_bins, range=(0, 2.*math.pi))
-            hist1, _ = np.histogram(phi1, weights=mass, bins=phi_bins, range=(0, 2.*math.pi))
-            binphi = np.linspace(0, 2*math.pi, phi_bins)
             for m in range(7):
-                f['c'][m, i] = np.sum(hist * np.exp(-1j * m * binphi))
-                f['c_delta'][m, i] = np.sum(hist1 * np.exp(-1j * m * binphi))
+                f['c'][m, i] = (np.exp(-1j*m*phi)*mass).sum()
+                f['c_delta'][m, i] = (np.exp(-1j*m*phi1)*mass).sum()
 
     f['c'][:, self['mass'] > 0] /= self['mass'][self['mass'] > 0]
     f['amp'] = np.sqrt(np.imag(f['c']) ** 2 + np.real(f['c']) ** 2)
