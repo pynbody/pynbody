@@ -83,8 +83,14 @@ def build_tree(sim):
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
         # has been triggered by getting an array in the calling thread.
+        boxsize = sim.properties.get('boxsize',None)
+        if boxsize:
+            boxsize = float(boxsize.in_units(sim['pos'].units))
+        else:
+            boxsize = -1.0 # represents infinite box
         sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
-                        leafsize=config['sph']['tree-leafsize'])
+                        leafsize=config['sph']['tree-leafsize'],
+                        boxsize=boxsize)
 
 
 def _tree_decomposition(obj):
@@ -536,6 +542,11 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         if snap_slice is not None:
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
 
+    if 'boxsize' in snap.properties:
+        boxsize = snap.properties['boxsize'].in_units(snap_proxy['x'].units)
+    else:
+        boxsize = None
+
     in_time = time.time()
 
     if y2 is None:
@@ -608,8 +619,15 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     if z_camera is None:
         z_camera = 0.0
 
+    if boxsize:
+        # work out the tile offsets required to make the image wrap
+        num_repeats = int(round(x2/boxsize))
+        repeat_array = np.linspace(-num_repeats*boxsize,num_repeats*boxsize,num_repeats*2+1)
+    else:
+        repeat_array = [0.0]
+
     result = _render.render_image(nx, ny, x, y, z, sm, x1, x2, y1, y2, z_camera, 0.0, qty, mass, rho,
-                                  smooth_lo, smooth_hi, kernel)
+                                  smooth_lo, smooth_hi, kernel, repeat_array, repeat_array)
 
     result = result.view(array.SimArray)
 

@@ -8,6 +8,10 @@ def setup():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
 
+    # for compatibility with original results, pretend the box
+    # is not periodic
+    del f.properties['boxsize']
+
 def teardown():
     global f
     del f
@@ -58,6 +62,7 @@ def test_kd_issue_88() :
 
 def test_float_kd():
     f = pynbody.load("testdata/test_g2_snap")
+    del f.properties['boxsize']
 
     assert f.dm['mass'].dtype==f.dm['pos'].dtype==np.float32
     assert f.dm['smooth'].dtype==np.float32
@@ -90,6 +95,17 @@ def test_float_kd():
     npt.assert_allclose(double_double,double_float,rtol=1e-4)
     npt.assert_allclose(double_double,float_double,rtol=1e-4)
     npt.assert_allclose(double_double,float_float,rtol=1e-4)
+
+def test_periodic_smoothing():
+    f = pynbody.load("testdata/g15784.lr.01024")
+
+
+    npt.assert_allclose(f.dm['smooth'][::100],
+                         np.load('test_smooth_periodic.npy'),rtol=1e-5)
+
+    npt.assert_allclose(f.dm['rho'][::100],
+                         np.load('test_rho_periodic.npy'),rtol=1e-5)
+
 
 if __name__=="__main__":
     test_float_kd()

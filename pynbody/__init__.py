@@ -25,6 +25,7 @@ from . import analysis, halo, derived, bridge, gravity, sph, transformation
 try:
     from . import plot
 except:
+    import warnings
     warnings.warn(
         "Unable to import plotting package (missing matplotlib or running from a text-only terminal? Plotting is disabled.", RuntimeWarning)
 

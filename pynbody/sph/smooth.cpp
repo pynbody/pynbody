@@ -8,6 +8,23 @@
 
 #include <iostream>
 
+bool smCheckFits(KD kd, float *fPeriod) {
+	KDN *root;
+	int j;
+
+	root = &kd->kdNodes[ROOT];
+	assert(root != NULL);
+	/*
+	 ** Check to make sure that the bounds of the simulation agree
+	 ** with the period specified, if not cause an error.
+	 */
+	for (j=0;j<3;++j) {
+        if (root->bnd.fMax[j] - root->bnd.fMin[j] > fPeriod[j]) {
+            return false;
+        }
+    }
+    return true;
+}
 
 int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 {
@@ -24,12 +41,11 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	 */
 	for (j=0;j<3;++j) {
 		if (root->bnd.fMax[j] - root->bnd.fMin[j] > fPeriod[j]) {
-			fprintf(stderr,"ERROR(smInit):Bounds of the simulation volume exceed ");
-			fprintf(stderr,"the period specified in the %c-dimension. (%f > %f)\n",'x'+j, root->bnd.fMax[j] - root->bnd.fMin[j], fPeriod[j]);
+		    PyErr_SetString(PyExc_ValueError, "The particles span a region larger than the specified boxsize");
 			bError = 1;
 			}
 		}
-	if (bError) exit(1);
+
 	assert(nSmooth <= kd->nActive);
 	smx = (SMX)malloc(sizeof(struct smContext)); assert(smx != NULL);
 	smx->kd = kd;
