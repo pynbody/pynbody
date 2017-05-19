@@ -97,7 +97,7 @@ def load_hop(s, hop=hop_script_path):
     """
 
     if s.filename[-1] == '/':
-        name = s.filename[-6:-1]
+        name = s.filename[-6:-1]  # This is the number of the output file
         filename = s.filename[:-13] + 'hop/grp%s.pos' % name
     else:
         name = s.filename[-5:]
@@ -398,7 +398,7 @@ def write_ahf_input(sim, tipsyfile):
     f.close()
 
 
-def get_tform(sim, part2birth_path=part2birth_path):
+def get_tform(sim, part2birth_path=part2birth_path, cpuRange=None):
     """Use `part2birth` to calculate the formation time of stars in
     Gyr and **replaces** the original `tform` array.
 
@@ -413,6 +413,9 @@ def get_tform(sim, part2birth_path=part2birth_path):
      `default_config.ini` in your pynbody install directory. You can
      override this like so -- make a file called ".pynbodyrc" in your
      home directory, and include
+
+     *cpuRange*: a list of cpus to process tform for. If specified, birth time
+      will only be processed for cpus in the list. - RS
 
     [ramses]
 
@@ -441,7 +444,15 @@ def get_tform(sim, part2birth_path=part2birth_path):
     else:
         parent_dir = './'
 
+    # RS - If we only load a subset of cpus, 
+    # we need to ensure we dont' try to load 
+    # them all... 
+    if not cpuRange: # means user hasn't specified a range: use all
+        cpuRange = range(ncpu)
+
     for i in range(ncpu):
+        if i not in cpuRange:
+            continue;
         try:
             f = open('%s/output_%s/birth_%s.out%05d' %
                      (parent_dir, top._timestep_id, top._timestep_id, i + 1))
