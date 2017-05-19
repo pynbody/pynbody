@@ -70,6 +70,7 @@ def check_for_pthread():
 
 def check_for_openmp():
     """Check  whether the default compiler supports OpenMP.
+
     This routine is adapted from yt, thanks to Nathan
     Goldbaum. See https://github.com/pynbody/pynbody/issues/124"""
     # Create a temporary directory
@@ -115,8 +116,10 @@ def check_for_openmp():
         cpus = multiprocessing.cpu_count()
         if cpus>1:
             print ("""WARNING
+
 OpenMP support is not available in your default C compiler, even though
 your machine has more than one core available.
+
 Some routines in pynbody are parallelized using OpenMP and these will
 only run on one core with your current configuration.
 """)
@@ -127,10 +130,12 @@ way to get around this is to download the latest version of gcc from
 here: http://hpc.sourceforge.net. After downloading, just point the
 CC environment variable to the real gcc and OpenMP support should
 get enabled automatically. Something like this -
+
 sudo tar -xzf /path/to/download.tar.gz /
 export CC='/usr/local/bin/gcc'
 python setup.py clean
 python setup.py build
+
 """)
             print ("""Continuing your build without OpenMP...\n""")
 
@@ -253,13 +258,21 @@ if not build_cython :
 You are attempting to install pynbody without a recent version of cython.
 Unfortunately this pynbody package does not include the generated .c files that
 are required to do so.
+
 You have two options. Either:
+
  1. Get a 'release' version of pynbody from
     https://github.com/pynbody/pynbody/releases
+
 or
+
  2. Install Cython version 0.21 or higher.
+
     This can normally be accomplished by typing
+
     pip install --upgrade cython.
+
+
 If you already did one of the above, you've encountered a bug. Please
 open an issue on github to let us know. The missing file is {0}
 and the detected cython version is {1}.

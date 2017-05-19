@@ -97,7 +97,7 @@ def load_hop(s, hop=hop_script_path):
     """
 
     if s.filename[-1] == '/':
-        name = s.filename[-6:-1]  # This is the number of the output file
+        name = s.filename[-6:-1]
         filename = s.filename[:-13] + 'hop/grp%s.pos' % name
     else:
         name = s.filename[-5:]

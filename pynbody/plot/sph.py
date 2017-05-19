@@ -13,18 +13,7 @@ import numpy as np
 from .. import sph, config
 from .. import units as _units
 from matplotlib.ticker import ScalarFormatter # RS 
-from matplotlib.ticker import FuncFormatter # RS
-
-# RS - added a fomatting routine to convert log
-# values to just the exponent... cleaner
-def fmt(x,pos):
-    """
-    Custom formatter to handle log of values for color bar
-    Not sure why, but the LogFormatterExponenet sometimes
-    adds and "e" to the value... ?? This simply returns
-    log10 of the value.
-    """
-    return format(np.log10(x), '.0f')
+from matplotlib.ticker import LogFormatterExponent # RS
 
 
 def sideon_image(sim, *args, **kwargs):
@@ -145,7 +134,7 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
     elif mode == 'stream' :
         Q = p.streamplot(X, Y, vx, vy, color=vector_color, density=density)
 
-
+	# RS - if a axis object is passed in, use the right limit call
     if subplot:
         p.set_xlim(-width/2, width/2)
         p.set_ylim(-width/2, width/2)
@@ -232,7 +221,7 @@ def volume(sim, qty='rho', width=None, resolution=200,
         ctf.add_rgb_point(vmin+(vmax-vmin)*0.8,200./255,178./255,164./255)
         ctf.add_rgb_point(vmin+(vmax-vmin)*0.9,1.0,210./255,149./255)
         ctf.add_rgb_point(vmax,1.0,222./255,141./255)
-        print vmin,vmax
+        print (vmin,vmax)
         V._volume_property.set_color(ctf)
         V._ctf = ctf
         V.update_ctf = True
@@ -472,11 +461,11 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
         u_st = sim['pos'].units.latex()
         if not subplot:
-            plt.xlabel("$x\, [%s]$" % u_st) # RS - changed format from x/%s to x [%s] 
-            plt.ylabel("$y\, [%s]$" % u_st)
+            plt.xlabel("$x/%s$" % u_st)
+            plt.ylabel("$y/%s$" % u_st)
         else:
-            p.set_xlabel("$x\, [%s]$" % u_st)
-            p.set_ylabel("$y\, [%s]$" % u_st)
+            p.set_xlabel("$x/%s$" % u_st)
+            p.set_ylabel("$y/%s$" % u_st)
 
         if units is None:
             units = im.units
@@ -485,9 +474,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         # RS - Fix formatting.
         if show_cbar:
             if log:
-                custom_formatter = FuncFormatter(fmt)
-                ## l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
-                l_f = custom_formatter
+                l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
             else:
                 l_f = ScalarFormatter()
 
@@ -496,6 +483,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             else:
                 if log:
                     plt.colorbar(ims,format=l_f).set_label("$log\; %s$" % units)
+#                    plt.colorbar(ims,
                 else:
                     plt.colorbar(ims,format=l_f).set_label(units)
         
