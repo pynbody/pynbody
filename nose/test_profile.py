@@ -1,6 +1,8 @@
 import pynbody
 import numpy as np
 
+np.random.seed(1)
+
 def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=0, fraction=0.2):
     
     x = np.random.sample(int(npart*fraction))*(max-min) + min
@@ -31,4 +33,4 @@ def test_fourier_profile():
     p = pynbody.analysis.profile.Profile(bar, nbins=50)
 
     assert(np.all(p['fourier']['amp'][2,4:20] > 0.1))
-    assert(np.allclose(p['fourier']['phi'][2,4:20], -1.5, rtol=0.05))
+    assert(np.allclose(np.abs(p['fourier']['phi'][2,4:20]/2), np.pi/4.0, rtol=0.05))
