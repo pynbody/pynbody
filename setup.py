@@ -1,6 +1,5 @@
 import os
-from distutils.core import setup, Extension
-from distutils.sysconfig import get_python_lib
+from setuptools import setup, Extension
 
 import numpy
 import numpy.distutils.misc_util
