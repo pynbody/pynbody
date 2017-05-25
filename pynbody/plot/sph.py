@@ -12,8 +12,6 @@ import matplotlib
 import numpy as np
 from .. import sph, config
 from .. import units as _units
-from matplotlib.ticker import ScalarFormatter # RS 
-from matplotlib.ticker import LogFormatterExponent # RS
 
 
 def sideon_image(sim, *args, **kwargs):
@@ -221,7 +219,7 @@ def volume(sim, qty='rho', width=None, resolution=200,
         ctf.add_rgb_point(vmin+(vmax-vmin)*0.8,200./255,178./255,164./255)
         ctf.add_rgb_point(vmin+(vmax-vmin)*0.9,1.0,210./255,149./255)
         ctf.add_rgb_point(vmax,1.0,222./255,141./255)
-        print (vmin,vmax)
+
         V._volume_property.set_color(ctf)
         V._ctf = ctf
         V.update_ctf = True
@@ -340,8 +338,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
         else:
             p = plt
 
-    ## if qtytitle is None:
-    ##     qtytitle = qty
+    if qtytitle is None:
+        qtytitle = qty
 
     if isinstance(units, str):
         units = _units.Unit(units)
@@ -471,29 +469,14 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             units = im.units
 
 
-        # RS - Fix formatting.
-        if show_cbar:
-            if log:
-                l_f = LogFormatterExponent() # sometimes tacks 'e' on value...???
-            else:
-                l_f = ScalarFormatter()
-
-            if qtytitle is not None:
-                plt.colorbar(ims,format=l_f).set_label(qtytitle)
-            else:
-                if log:
-                    plt.colorbar(ims,format=l_f).set_label("$log\; %s$" % units)
-#                    plt.colorbar(ims,
-                else:
-                    plt.colorbar(ims,format=l_f).set_label(units)
         
-        # if units.latex() is "":
-        #     units=""
-        # else:
-        #     units = "$"+units.latex()+"$"
+        if units.latex() is "":
+            units=""
+        else:
+            units = "$"+units.latex()+"$"
 
-        # if show_cbar:
-        #      plt.colorbar(ims).set_label(qtytitle+"/"+units)
+        if show_cbar:
+             plt.colorbar(ims).set_label(qtytitle+"/"+units)
 
         # colorbar doesn't work wtih subplot:  mappable is NoneType
         # elif show_cbar:
