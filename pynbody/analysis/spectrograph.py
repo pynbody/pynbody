@@ -18,7 +18,7 @@ def calc_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
     =================
 
     This function calculates spectrograph data for a sequence of simulation outputs (equally
-    spaced in time). It is called by pynbody.plot.spectrographs().
+    spaced in time). It is called by pynbody.plot.spectrographs module.
 
     **Input**:
 
