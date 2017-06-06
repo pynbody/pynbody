@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import warnings
 
-from ..analysis import calc_spectrograph from spectrograph #profile, angmom, halo
+from ..analysis import calc_spectrograph.spectrograph #profile, angmom, halo
 #from .. import filt, units, config, array
 #from .sph import image
 #from .. import units as _units
