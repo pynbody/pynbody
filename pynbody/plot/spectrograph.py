@@ -80,6 +80,8 @@ def plot_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
     extent = list(radial_range) + list(np.array(frequency_range)/mode)
     aspect = np.diff(exent[:2])/np.diff(extent[2:])
     ax.imshow(np.abs(spec), origin='lower', extent=extent, aspect=aspect)
-    ax.set_xlabel(
+    ax.set_xlabel(r'$R$ [kpc]')
+    ax.set_ylabel(r'pattern speed [1/Gyr]')
+    ax.text(.95, .95, r'$m={0:d}$'.format(mode), ha='right', va='top', transform=ax.transAxes)
 
     return fig, ax
