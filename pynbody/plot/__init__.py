@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from . import generic, stars, gas, profile, metals, util
+from . import generic, stars, gas, profile, metals, util, spectrograph
 import imp
 
 imp.reload(profile)
