@@ -10,8 +10,8 @@ in galaxy disks.
 import numpy as np
 from . import profile, angmom
 
-def calc_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
-    radial_range=[0, 20], radial_bins=10, aligned=False, family='stars'):
+def calc_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=20,
+    radial_bins=10, aligned=False, family='stars'):
     """
     
     calc_spectrograph
@@ -27,12 +27,12 @@ def calc_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
 
     *mode* : the azimuthal multiplicity of which the spectrograph is to be calculated
 
-    *frequency_range* ([0, 400]) : Range of frequencies to be considered in 1/Gyr. This is
+    *frequency_range* : Range of frequencies to be considered in 1/Gyr. This is
         the frequency at which the pattern recurs, i.e. the mode-fold of the pattern speed.
 
-    *frequency_bins* (20) : Number of bins to split the frequency range into
+    *radial_range* : Range of radii to be considered in kpc
 
-    *radial_range* ([0, 400]) : Range of radii to be considered in kpc
+    *frequency_bins* (20) : Number of bins to split the frequency range into
 
     *radial_bins* (20) : Number of bins to split the radial range into
 

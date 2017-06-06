@@ -8,7 +8,7 @@ in galaxy disks.
 """
 
 import numpy as np
-#import matplotlib
+import matplotlib
 from matplotlib import pyplot as plt
 import warnings
 
@@ -20,9 +20,9 @@ from ..analysis.spectrograph import calc_spectrograph #profile, angmom, halo
 #import logging
 #logger = logging.getLogger('pynbody.plot.stars')
 
-def plot_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
-    radial_range=[0, 20], radial_bins=10, aligned=False, family='stars', ax=None,
-    fig_kw=None, ax_kw=None):
+def plot_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=20,
+    radial_bins=20, pattern_speed=True, aligned=False, family='stars', ax=None, fig_kw=None,
+    ax_kw=None, cmap='viridis'):
     """
     
     plot_spectrograph
@@ -39,14 +39,17 @@ def plot_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
 
     *mode* : the azimuthal multiplicity of which the spectrograph is to be calculated
 
-    *frequency_range* ([0, 400]) : Range of frequencies to be considered in 1/Gyr. This is
+    *frequency_range* : Range of frequencies to be considered in 1/Gyr. This is
         the frequency at which the pattern recurs, i.e. the mode-fold of the pattern speed.
 
     *frequency_bins* (20) : Number of bins to split the frequency range into
 
-    *radial_range* ([0, 400]) : Range of radii to be considered in kpc
+    *radial_range* : Range of radii to be considered in kpc
 
     *radial_bins* (20) : Number of bins to split the radial range into
+
+    *pattern_speed* (True) : If true, the actual pattern speed is plotted on the y-axis instead of
+        frequency at which the pattern itself repeats (the mode-fold of the pattern speed).
 
     *aligned* (False) : If False, the snapshot will be centered on the central galaxy and
         its disk will be aligned to be in the xy-plane. The snapshots are only modified for this
@@ -61,6 +64,8 @@ def plot_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
 
     *ax_kw* (None) : Keywords for axis instance
 
+    *cmap* ('viridis') : Color map to use
+
     **Returns**:
 
     *fig* : The figure instance used for plotting.
@@ -74,12 +79,13 @@ def plot_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
     else:
         fig = ax.get_figure()
 
-    spectrum = calc_spectrograph(sims, mode, frequency_range=[0, 400], frequency_bins=20,
-        radial_range=[0, 20], radial_bins=10, aligned=False, family='stars')
+    spectrum = calc_spectrograph(sims, mode, frequency_range=frequency_range, frequency_bins=frequency_bins,
+        radial_range=radial_range, radial_bins=radial_bins, aligned=False, family='stars')
 
     extent = list(radial_range) + list(np.array(frequency_range)/mode)
-    aspect = np.diff(exent[:2])/np.diff(extent[2:])
-    ax.imshow(np.abs(spec), origin='lower', extent=extent, aspect=aspect)
+    aspect = np.diff(extent[:2])/np.diff(extent[2:])
+    ax.imshow(np.abs(spectrum), origin='lower', extent=extent, aspect=aspect,
+        norm=matplotlib.color.LogNorm(), cmap=cmap)
     ax.set_xlabel(r'$R$ [kpc]')
     ax.set_ylabel(r'pattern speed [1/Gyr]')
     ax.text(.95, .95, r'$m={0:d}$'.format(mode), ha='right', va='top', transform=ax.transAxes)
