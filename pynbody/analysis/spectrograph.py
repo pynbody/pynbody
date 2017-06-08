@@ -58,7 +58,7 @@ def calc_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins
 
     nhalos = len(halos)
 
-    unit_factor = units.kpc.in_units(halo['x'], **halo.conversion_context())
+    unit_factor = units.kpc.in_units(halos[0]['x'], **halo.conversion_context())
 
     W = np.zeros((radial_bins, nhalos))*(1. + 1j)
     r_bin_edges = np.linspace(*radial_range, num=radial_bins+1)*unit_factor
