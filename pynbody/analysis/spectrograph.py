@@ -94,7 +94,7 @@ def calc_fourier_modes(sim, mode, r_bin_edges):
     prof = profile.Profile(sim, bins=r_bin_edges)
     return prof['fourier']['c'][mode]
 
-def test_dts(dts, tol=1e-10):
+def test_dts(dts, tol=1e-6):
 
     """
 
@@ -107,7 +107,7 @@ def test_dts(dts, tol=1e-10):
 
     *dts* : Array of time differences
 
-    *tol* (1e-10) : relative tolerance (std/mean)
+    *tol* (1e-6) : relative tolerance (std/mean)
 
     """
 
