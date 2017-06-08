@@ -20,7 +20,7 @@ from ..analysis.spectrograph import calc_spectrograph #profile, angmom, halo
 #import logging
 #logger = logging.getLogger('pynbody.plot.stars')
 
-def plot_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=20,
+def plot_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins=20,
     radial_bins=20, pattern_speed=True, aligned=False, family='stars', ax=None, fig_kw=None,
     ax_kw=None, cmap='viridis'):
     """
@@ -34,8 +34,9 @@ def plot_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=
 
     **Input**:
 
-    *sims* : an ordered list of simulation snapshots that have to be equally spaced in time.
-        The number of outputs in the list is ideally not even.
+    *halos* : an ordered list of subviews of simulation snapshots that contain the halo in
+        question. They have to be equally spaced in time. The number of outputs in the list
+        is ideally not even.
 
     *mode* : the azimuthal multiplicity of which the spectrograph is to be calculated
 
@@ -79,7 +80,7 @@ def plot_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=
     else:
         fig = ax.get_figure()
 
-    spectrum = calc_spectrograph(sims, mode, frequency_range=frequency_range, frequency_bins=frequency_bins,
+    spectrum = calc_spectrograph(halos, mode, frequency_range=frequency_range, frequency_bins=frequency_bins,
         radial_range=radial_range, radial_bins=radial_bins, aligned=False, family='stars')
 
     extent = list(radial_range) + list(np.array(frequency_range)/mode)

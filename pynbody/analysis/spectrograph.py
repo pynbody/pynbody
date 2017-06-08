@@ -11,7 +11,7 @@ import numpy as np
 from . import profile, angmom
 from .. import units
 
-def calc_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=20,
+def calc_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins=20,
     radial_bins=10, aligned=False, family='stars'):
     """
     
@@ -23,8 +23,9 @@ def calc_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=
 
     **Input**:
 
-    *sims* : an ordered list of simulation snapshots that have to be equally spaced in time.
-        The number of outputs in the list is ideally not even.
+    *halos* : an ordered list of subviews of simulation snapshots that contain the halo in
+        question. They have to be equally spaced in time. The number of outputs in the list
+        is ideally not even.
 
     *mode* : the azimuthal multiplicity of which the spectrograph is to be calculated
 
@@ -51,31 +52,31 @@ def calc_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=
 
     """
 
-    times = [sim.properties['time'].in_units('Gyr') for sim in sims]
+    times = [halo.properties['time'].in_units('Gyr') for halo in halos]
     dts = np.diff(times)
     test_dts(dts)
 
-    nsims = len(sims)
+    nhalos = len(halos)
 
-    unit_factor = pynbody.units.kpc.in_units(sim['x'], **sim.conversion_context())
+    unit_factor = pynbody.units.kpc.in_units(halo['x'], **halo.conversion_context())
 
-    W = np.zeros((radial_bins, nsims))*(1. + 1j)
+    W = np.zeros((radial_bins, nhalos))*(1. + 1j)
     r_bin_edges = np.linspace(*radial_range, num=radial_bins+1)*unit_factor
     omega_bin_edges = np.linspace(*frequency_range, num=frequency_bins+1)
     omega = np.array([omega_bin_edges[:-1] + .5*np.diff(omega_bin_edges)])
     omega = np.array([omega.repeat(W.shape[0], axis=0)]).repeat(W.shape[1], axis=0).T
-    for i, sim in enumerate(sims):
-        s = {'stars': sim.s, 'gas': sim.g, 'dark': sim.d}[family]
+    for i, halo in enumerate(halos):
+        s = {'stars': halo.s, 'gas': halo.g, 'dark': halo.d}[family]
         if not aligned:
             with angmom.faceon(s, vcen=0):
                 W[:,i] = calc_fourier_modes(s, mode, r_bin_edges)
         else:
             W[:,i] = calc_fourier_modes(s, mode, r_bin_edges)
-    W *= np.hanning(nsims)
+    W *= np.hanning(nhalos)
     Wf = np.exp(1j*omega*times)*W
     return (.5*(Wf[:,:,:-1]+Wf[:,:,1:])*dts).sum(axis=2)
 
-def calc_fourier_modes(sim, mode, r_bin_edges):
+def calc_fourier_modes(halo, mode, r_bin_edges):
     """
 
     Calculate Fourier coefficients of azimuthal mass distribution of multiplicity mode for bins
@@ -83,7 +84,7 @@ def calc_fourier_modes(sim, mode, r_bin_edges):
 
     **Input**:
 
-    *sim* : Simulation snapshot
+    *halo* : Simulation snapshot
 
     *mode* : Multiplicity of the perturbation
 
@@ -91,7 +92,7 @@ def calc_fourier_modes(sim, mode, r_bin_edges):
 
     """
 
-    prof = profile.Profile(sim, bins=r_bin_edges)
+    prof = profile.Profile(halo, bins=r_bin_edges)
     return prof['fourier']['c'][mode]
 
 def test_dts(dts, tol=1e-6):
