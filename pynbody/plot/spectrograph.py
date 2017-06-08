@@ -86,7 +86,7 @@ def plot_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins
     extent = list(radial_range) + list(np.array(frequency_range)/mode)
     aspect = np.diff(extent[:2])/np.diff(extent[2:])
     ax.imshow(np.abs(spectrum), origin='lower', extent=extent, aspect=aspect,
-        norm=matplotlib.color.LogNorm(), cmap=cmap)
+        norm=matplotlib.colors.LogNorm(), cmap=cmap)
     ax.set_xlabel(r'$R$ [kpc]')
     ax.set_ylabel(r'pattern speed [1/Gyr]')
     ax.text(.95, .95, r'$m={0:d}$'.format(mode), ha='right', va='top', transform=ax.transAxes)
