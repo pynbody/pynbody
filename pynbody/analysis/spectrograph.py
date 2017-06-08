@@ -9,6 +9,7 @@ in galaxy disks.
 
 import numpy as np
 from . import profile, angmom
+from .. import units
 
 def calc_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=20,
     radial_bins=10, aligned=False, family='stars'):
@@ -56,8 +57,10 @@ def calc_spectrograph(sims, mode, frequency_range, radial_range, frequency_bins=
 
     nsims = len(sims)
 
+    unit_factor = pynbody.units.kpc.in_units(sim['x'], **sim.conversion_context())
+
     W = np.zeros((radial_bins, nsims))*(1. + 1j)
-    r_bin_edges = np.linspace(*radial_range, num=radial_bins+1)
+    r_bin_edges = np.linspace(*radial_range, num=radial_bins+1)*unit_factor
     omega_bin_edges = np.linspace(*frequency_range, num=frequency_bins+1)
     omega = np.array([omega_bin_edges[:-1] + .5*np.diff(omega_bin_edges)])
     omega = np.array([omega.repeat(W.shape[0], axis=0)]).repeat(W.shape[1], axis=0).T
