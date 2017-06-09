@@ -21,8 +21,8 @@ from ..analysis.spectrograph import calc_spectrograph #profile, angmom, halo
 #logger = logging.getLogger('pynbody.plot.stars')
 
 def plot_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins=20,
-    radial_bins=20, pattern_speed=True, aligned=False, family='stars', ax=None, fig_kw=None,
-    ax_kw=None, cmap='viridis'):
+    radial_bins=20, pattern_speed=True, aligned=False, family='stars', ax=None, fig_kw={},
+    ax_kw={}, cmap='viridis', dynamic_range=1):
     """
     
     plot_spectrograph
@@ -61,11 +61,13 @@ def plot_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins
 
     *ax* (None) : The axis instance to be used for plotting.
 
-    *fig_kw* (None) : Keywords for figure instance
+    *fig_kw* ({}) : Keywords for figure instance
 
-    *ax_kw* (None) : Keywords for axis instance
+    *ax_kw* ({}) : Keywords for axis instance
 
     *cmap* ('viridis') : Color map to use
+
+    *dynamic_range (1) : Dynamic range to be plotted in log-scale (orders of magnitude)
 
     **Returns**:
 
@@ -85,8 +87,9 @@ def plot_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins
 
     extent = list(radial_range) + list(np.array(frequency_range)/mode)
     aspect = np.diff(extent[:2])/np.diff(extent[2:])
-    ax.imshow(np.abs(spectrum), origin='lower', extent=extent, aspect=aspect,
-        norm=matplotlib.colors.LogNorm(), cmap=cmap)
+    plot_spec = np.abs(spectrum)
+    ax.imshow(plot_spec, origin='lower', extent=extent, aspect=aspect,
+        norm=matplotlib.colors.LogNorm(), cmap=cmap, vmin=plot_spec.max()*10**(-dynamic_range))
     ax.set_xlabel(r'$R$ [kpc]')
     ax.set_ylabel(r'pattern speed [1/Gyr]')
     ax.text(.95, .95, r'$m={0:d}$'.format(mode), ha='right', va='top', transform=ax.transAxes)
