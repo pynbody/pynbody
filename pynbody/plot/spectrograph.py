@@ -86,7 +86,7 @@ def plot_spectrograph(halos, mode, frequency_range, radial_range, frequency_bins
         radial_range=radial_range, radial_bins=radial_bins, aligned=aligned, family=family)
 
     extent = list(radial_range) + list(np.array(frequency_range)/mode)
-    aspect = np.diff(extent[:2]).astype(np.float)/np.diff(extent[2:])
+    aspect = (.0+extent[1]-extent[0])/(extent[3]-extent[2])
     plot_spec = np.abs(spectrum)
     ax.imshow(plot_spec, origin='lower', extent=extent, aspect=aspect,
         norm=matplotlib.colors.LogNorm(), cmap=cmap, vmin=plot_spec.max()*10**(-dynamic_range))
