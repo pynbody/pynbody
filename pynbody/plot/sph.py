@@ -113,8 +113,9 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
 
     width = float(width)
 
-    X, Y = np.meshgrid(np.arange(-width / 2, width / 2, width / vector_resolution),
-                       np.arange(-width / 2, width / 2, width / vector_resolution))
+    pixel_size = width / vector_resolution
+    X, Y = np.meshgrid(np.arange(-width / 2 + pixel_size/2, width / 2 + pixel_size/2, pixel_size ),
+                       np.arange(-width / 2 + pixel_size/2, width / 2 + pixel_size/2, pixel_size))
 
     im = image(sim, width=width, **kwargs)
 
