@@ -589,6 +589,9 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         smooth_lo = 0.0
         smooth_hi = 100000.0
 
+    nx = int(nx + .5)
+    ny = int(ny + .5)
+
     result = np.zeros((ny, nx), dtype=np.float32)
 
     n_part = len(snap)
