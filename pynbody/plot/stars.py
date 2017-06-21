@@ -48,7 +48,7 @@ def combine(r, g, b, magnitude_range, brightest_mag=None):
         # find something close to the maximum that is not quite the maximum
         for x in r, g, b:
             ordered = np.sort(x.flatten())
-            brightest_mag.append(ordered[-len(ordered) / 5000])
+            brightest_mag.append(ordered[-int(len(ordered) / 5000)])
 
         brightest_mag = max(brightest_mag)
     else:
