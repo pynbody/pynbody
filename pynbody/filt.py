@@ -14,8 +14,7 @@ sample usage.
 
 
 import numpy as np
-from . import units, util, _util
-
+from . import units, util, _util, family
 
 class Filter(object):
 
@@ -41,6 +40,21 @@ class Filter(object):
     def __repr__(self):
         return "Filter()"
 
+
+class FamilyFilter(Filter):
+    def __init__(self, family_):
+        assert isinstance(family_, family.Family)
+        self._descriptor = family_.name
+        self.family = family_
+
+    def __repr__(self):
+        return "FamilyFilter("+self.family.name+")"
+
+    def __call__(self, sim):
+        slice_ = sim._get_family_slice(self.family)
+        flags = np.zeros(len(sim), dtype=bool)
+        flags[slice_] = True
+        return flags
 
 class And(Filter):
 

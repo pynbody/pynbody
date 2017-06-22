@@ -74,3 +74,12 @@ def test_logic():
     assert len(comp)+len(not_test)==len(f)
     assert len(comp)!=0
     assert len(not_test)!=0
+
+def test_family_filter():
+    f = pynbody.new(dm=100,gas=100)
+    f_dm = f.dm
+    f_dm_filter = f[pynbody.filt.FamilyFilter(pynbody.family.dm)]
+    f_gas = f.gas
+    f_gas_filter = f[pynbody.filt.FamilyFilter(pynbody.family.gas)]
+    assert (f_dm.get_index_list(f) == f_dm_filter.get_index_list(f)).all()
+    assert (f_gas.get_index_list(f) == f_gas_filter.get_index_list(f)).all()
