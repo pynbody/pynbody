@@ -395,7 +395,7 @@ class SimSnap(object):
 
     def __remove_family_array_if_derived(self, name):
         if self.is_derived_array(name):
-            del self[name]
+            del self.ancestor[name]
 
 
     def __load_remaining_families_if_loadable(self, name):
