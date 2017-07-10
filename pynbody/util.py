@@ -64,7 +64,7 @@ def gcf(a, b):
 
 
 def lcm(a, b):
-    return a * b / gcf(a, b)
+    return (a * b) // gcf(a, b)
 
 
 def intersect_slices(s1, s2, array_length=None):

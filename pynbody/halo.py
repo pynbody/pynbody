@@ -1837,14 +1837,14 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             # Test if there are no remainders, i.e. array is multiple of halo length
             # then solve for the case where this is 1, 2 or 3 dimension
             if len(sub_properties[key]) % self.nsubhalos == 0:
-                ndim = len(sub_properties[key]) / self.nsubhalos
+                ndim = len(sub_properties[key]) // self.nsubhalos
                 if ndim > 1:
                     sub_properties[key] = sub_properties[key].reshape(self.nsubhalos, ndim)
 
             try:
                 # The case fof FOF
                 if len(fof_properties[key]) % self.ngroups == 0:
-                    ndim = len(fof_properties[key]) / self.ngroups
+                    ndim = len(fof_properties[key]) // self.ngroups
                     if ndim > 1:
                         fof_properties[key] = fof_properties[key].reshape(self.ngroups, ndim)
             except KeyError:

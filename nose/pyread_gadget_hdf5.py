@@ -432,7 +432,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
             ncols = 6
 
     if ncols > 1:
-        nadded = len(dataset.index) / ncols
+        nadded = len(dataset.index) // ncols
         dataset = pd.DataFrame(dataset.values.reshape((nadded,ncols)))
 
     if floatunits != None:
