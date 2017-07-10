@@ -117,8 +117,8 @@ def test_IC_grid_gen():
 
 def test_openmp_summations():
     np.random.seed(0)
-    a = np.random.normal(size=5e7)
-    b = np.random.normal(size=5e7)
+    a = np.random.normal(size=int(5e7))
+    b = np.random.normal(size=int(5e7))
 
     start = time.time()
     sum_a = np.dot(a,(b>1.0))

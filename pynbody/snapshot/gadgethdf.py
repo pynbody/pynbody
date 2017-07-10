@@ -437,7 +437,7 @@ class GadgetHDFSnap(SimSnap):
         # is 3D and cross your fingers
         npart = len(hdf0[self._family_to_group_map[fam][0]]['ParticleIDs'])
         if len(dset0) != npart:
-            dy = len(dset0) / npart
+            dy = len(dset0) // npart
         dtype = dset0.dtype
         return dtype, dy, units0
 
