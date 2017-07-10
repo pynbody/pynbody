@@ -1091,6 +1091,7 @@ class AHFCatalogue(HaloCatalogue):
             if not isinstance(f, gzip.GzipFile):
                 data = (np.fromfile(
                     f, dtype=int, sep=" ", count=nparts * 2).reshape(nparts, 2))[:, 0]
+                data = np.ascontiguousarray(data)
             else:
                 # unfortunately with gzipped files there does not
                 # seem to be an efficient way to load nparts lines
