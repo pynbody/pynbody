@@ -568,8 +568,8 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         dy = float(y2 - y1) / ny
 
         # degrade resolution
-        nx /= res_downgrade
-        ny /= res_downgrade
+        nx //= res_downgrade
+        ny //= res_downgrade
 
         # shift boundaries (since x1, x2 etc refer to centres of pixels,
         # not edges, but we want the *edges* to remain invariant)
@@ -772,9 +772,9 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
         dy = float(y2 - y1) / ny
         dz = float(z2 - z1) / nz
 
-        nx /= res_downgrade
-        ny /= res_downgrade
-        nz /= res_downgrade
+        nx //= res_downgrade
+        ny //= res_downgrade
+        nz //= res_downgrade
 
         # shift boundaries (see _render_image above for explanation)
         sx, sy, sz = [
