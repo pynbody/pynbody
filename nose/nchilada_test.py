@@ -194,7 +194,7 @@ def test_array_completion_unit_sanity():
     f.gas['pos'].convert_units("Mpc")
     f.star['pos'].convert_units("pc")
 
-    assert (np.abs(f['pos'][2998::3000] - x_pos_3000).mean() < 1.e-6)
+    assert (np.abs(f['pos'][2998::3000] - x_pos_3000).mean() < 1.e-2)
 
 
 def test_partial_loading():
