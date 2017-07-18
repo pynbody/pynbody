@@ -40,3 +40,17 @@ def test_sim_propagation():
     del f
     gc.collect()
     assert X.sim is None
+
+
+def test_ndim_issue_399():
+    f = pynbody.new(10)
+    f_sub = f[[1,2,3,6]]
+    f['blob'] = np.arange(10)
+    assert f['blob'].ndim==1
+    assert f_sub['blob'].ndim==1
+
+    f['blob_3d'] = np.zeros((10,3))
+    assert f['blob_3d'].ndim==2
+    assert f['blob_3d'].shape==(10,3)
+    assert f_sub['blob_3d'].ndim==2
+    assert f_sub['blob_3d'].shape==(4,3)

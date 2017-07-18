@@ -891,6 +891,10 @@ class IndexedSimArray(object):
         return tuple(x)
 
     @property
+    def ndim(self):
+        return self.base.ndim
+
+    @property
     def units(self):
         return self.base.units
 
