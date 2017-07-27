@@ -18,9 +18,6 @@ from .. import units as _units
 from ..sph import render_spherical_image
 from ..sph import Kernel2D
 
-from healpy import projaxes as PA
-from healpy import pixelfunc
-
 import logging
 logger = logging.getLogger('pynbody.plot.stars')
 
@@ -176,6 +173,15 @@ def render(sim, filename=None,
 
 	if with_dust is True:
 		# render image with a simple dust absorption correction based on Calzetti's law using the gas content.
+		try:
+			import extinction                  
+		except ImportError:
+			warnings.warn(
+				"Could not load extinction package. If you want to use this feature, "
+				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/" 
+				"or <via pip install extinction> or <conda install -c conda-forge extinction>", RuntimeWarning)
+			return
+
 		warm = filt.HighPass('temp',3e4)
 		cool = filt.LowPass('temp',3e4)
 		positive = filt.BandPass('z',-z_range,z_range) #LowPass('z',0)
@@ -206,7 +212,6 @@ def render(sim, filename=None,
 		ext_g = np.empty_like(g)
 		ext_b = np.empty_like(b)
 	
-		import extinction
 		for i in range(len(a_v)):
 			for j in range(len(a_v[0])):
 				ext = extinction.calzetti00(wave.astype(np.float), a_v[i][j].astype(np.float), 3.1, unit='aa', out=None)
@@ -262,8 +267,9 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 			 norm=None,hold=False,margins=None,sub=None,
 			 return_projected_map=False):
 	"""Plot an healpix map (given as an array) in Mollweide projection.
+	   Requires the healpy package.
 
-	   This function is taken from the Healpy and slightly modified.
+	   This function is taken from the Healpy package and slightly modified.
 	
 	Parameters
 	----------
@@ -336,9 +342,18 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 	--------
 	gnomview, cartview, orthview, azeqview
 	"""
+	try:
+		from healpy import projaxes as PA
+		from healpy import pixelfunc                 
+	except ImportError:
+		warnings.warn(
+			"Could not load healpy package. If you want to use this feature, "
+			"plaese install the healpy package from here: http://healpy.readthedocs.io/en/latest/" 
+			"or via pip or conda.", RuntimeWarning)
+		return
+
 	# Create the figure
 	
-
 	if not (hold or sub):
 		if fig == None:
 			f=plt.figure(figsize=(8.5,5.4))
