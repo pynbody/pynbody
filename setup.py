@@ -280,7 +280,7 @@ and the detected cython version is {1}.
                 sys.exit(1)
 
 dist = setup(name = 'pynbody',
-             install_requires=['numpy>=1.5','extinction', 'healpy'],
+             install_requires='numpy>=1.5',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
              version = '0.41',
