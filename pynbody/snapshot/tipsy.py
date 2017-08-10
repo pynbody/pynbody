@@ -793,7 +793,6 @@ class TipsySnap(SimSnap):
             except IOError:
                 pass
 
-        import sys
         import os
 
         # N.B. this code is a bit inefficient for loading
@@ -834,14 +833,14 @@ class TipsySnap(SimSnap):
                     dtype = float
                 else:
                     dtype = int
-
-                # Restart at head of file
+                # Infer the number of dimensions
+                ndim = infer_tipsy_ascii_dim(f)
+                # Restart after header
                 f.seek(0)
                 f.readline()
 
             loadblock = lambda count: np.fromfile(
                 f, dtype=dtype, sep="\n", count=count)
-            # data = np.fromfile(f, dtype=tp, sep="\n")
         except ValueError:
             # this is probably a binary file
             binary = True
@@ -864,35 +863,57 @@ class TipsySnap(SimSnap):
                     dtype = 'i'
                 else:
                     dtype = 'f'
+            # Try to infer dimensions
+            f_size_bytes = os.fstat(f.fileno()).st_size
+            num_size_bytes = np.dtype(dtype).itemsize
+            n_nums = (f_size_bytes - 4)/num_size_bytes
+            n_particles = self._load_control.disk_num_particles
+            ndim = float(n_nums)/n_particles
+            if (ndim % 1) != 0:
+                raise RuntimeError, "Cannot read array with dimesion {}".format(ndim)
+            ndim = int(ndim)
 
             # Read longest data array possible.
             # Assume byteswap since most will be.
             if self._byteswap:
-                loadblock = lambda count: np.fromstring(
-                    f.read(count * 4), dtype=dtype, count=count).byteswap()
-                # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
+                loadblock = lambda count: np.fromstring(f.read(count*4*ndim), \
+                            dtype=dtype, count=count*ndim).byteswap()
             else:
-                loadblock = lambda count: np.fromstring(
-                    f.read(count * 4), dtype=dtype, count=count)
-                # data = np.fromstring(f.read(3*len(self)*4),dtype)
-
-        ndim = 1
+                loadblock = lambda count: np.fromstring(f.read(count*4*ndim), \
+                            dtype=dtype, count=count*ndim)
 
         self.ancestor._tipsy_arrays_binary = binary
-
+        
+        # Initialize array
         all_fam = [family.dm, family.gas, family.star]
         if fam is None:
             fam = all_fam
-            r = np.empty(len(self), dtype=dtype).view(array.SimArray)
+            n_read = len(self)
         else:
-            r = np.empty(len(self[fam]), dtype=dtype).view(array.SimArray)
-
-        for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
-            buf = loadblock(readlen)
-            if mem_index is not None:
-                r[mem_index] = buf[buf_index]
-
-
+            n_read = len(self[fam])
+        array_shape = [n_read, ndim]
+        r = np.empty(array_shape, dtype=dtype).view(array.SimArray)
+        
+        if binary:
+            # Binary files are stored in 'C' order, with the last dimension
+            # changing first
+            for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
+                buf = loadblock(readlen)
+                if mem_index is not None:
+                    array_shape[0] = readlen
+                    buf = buf.reshape(array_shape)
+                    r[mem_index] = buf[buf_index]
+        else:
+            # ASCII files are stored in fortran order, with the first dimension
+            # changing first
+            for icol in range(ndim):
+                iterator = self._load_control.iterate(all_fam, fam)
+                for readlen, buf_index, mem_index in iterator:
+                    buf = loadblock(readlen)
+                    if mem_index is not None:
+                        r[mem_index, icol] = buf[buf_index]
+        if ndim == 1:
+            r.shape = len(r)
         if units is not None:
             r.units = units
 
@@ -952,6 +973,53 @@ class TipsySnap(SimSnap):
             return False
 
         return True
+
+def read_next_line_size(f, seek=None):
+    """
+    Starting from an arbitrary point in the file f (defined by seek, in bytes),
+    scan until the next newline character, then read a line
+    
+    Returns the size of the line in bytes
+    """
+    if seek is not None:
+        f.seek(seek)
+    f.readline()
+    start = f.tell()
+    f.readline()
+    end = f.tell()
+    return end-start
+
+def infer_tipsy_ascii_dim(f, read_lines=1000):
+    """
+    Infers the dimension of a tipsy auxilliary ascii array, e.g. 1 for 
+    most arrays, 3 for positional or velocity arrays.
+    
+    f should be a an open file
+    """
+    i0 = f.tell()
+    try:
+        f.seek(0)
+        n_particles = int(f.readline())
+        chunk_start = f.tell()
+        file_size = os.fstat(f.fileno()).st_size
+        # Check the size (in bytes) of N lines, evenly spaced throughout the file
+        ind = np.linspace(chunk_start, file_size, read_lines + 1)[0:-1]
+        ind = np.round(ind).astype(int)
+        line_sizes = np.array([read_next_line_size(f, i) for i in ind])
+        n_lines_approx = (file_size-chunk_start)/line_sizes.mean()
+        ndim_approx = n_lines_approx/n_particles
+    except:
+        f.seek(i0)
+        raise
+    
+    ndim = int(np.round(ndim_approx))
+    
+    if abs(ndim - ndim_approx) > 0.1:
+        warnings.warn("Trouble inferring ndim for tipsy ascii array")
+    if ndim < 1:
+        raise RuntimeError, "Inferred array dim < 1"
+    
+    return ndim
 
 # caculate the number fraction YH, YHe as a function of metalicity. Cosmic
 # production rate of helium relative to metals (in mass)
