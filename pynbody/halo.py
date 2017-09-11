@@ -164,6 +164,62 @@ class HaloCatalogue(object):
         the smallest subhalo."""
         raise NotImplementedError
 
+    def tree(self, halo_id, *args, **kwargs):
+        """
+        Tries to instantiate a merger tree object on the given halo.
+        """
+        from . import tree
+
+        if (halo_id not in self._halos):
+            raise ValueError("Halo ID not in list of halos!")
+        
+        else:
+            if self._base().properties['a'] < 1.: #check if we are at redshift 0, later we can move the chek and just create partial trees
+
+                for c in config['merger-tree-priority']:
+                    #try:
+                    if c._can_load(self, *args, **kwargs):
+                        return c(halo_id, self, *args, **kwargs)
+                    #except TypeError:
+                    #    pass
+
+                for c in config['merger-tree-priority']:
+                    #try:
+                    if c._can_run(self, *args, **kwargs):
+                        return c(halo_id, self, *args, **kwargs)
+                    #except TypeError:
+                    #    pass
+            else:
+                raise ValueError("Can only load merger tree from redshift zero.")
+
+        raise RuntimeError("No merger tree files found for %s" % str(self._ahfBasename[:-19]))
+
+
+    def tree_history(self, halo_id, *args, **kwargs):
+        """
+        Tries to instantiate a merger tree history object for the given halo.
+        """
+        from .. import tree
+
+        if self._base().properties['a'] < 1.: #check if we are at redshift 0, later we can move the chek and just create partial trees
+
+            for c in config['merger-tree-history-priority']:
+                try:
+                    if c._can_load(self, halo_id, *args, **kwargs):
+                        return c(self, halo_id, sim, *args, **kwargs)
+                except TypeError:
+                    pass
+
+            for c in config['merger-tree-history-priority']:
+                try:
+                    if c._can_run(self, *args, **kwargs):
+                        return c(self, halo_id, sim, *args, **kwargs)
+                except TypeError:
+                    pass
+        else:
+            raise ValueError("Can only load merger tree from redshift zero.")
+        return 
+
     @staticmethod
     def _can_load(self):
         return False
@@ -792,7 +848,6 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         shalos = self.writetipsy(gtpoutfile, hubble=hubble)
         return shalos
 
-
 #--------------------------#
 # AHF Halo Catalogue class #
 #--------------------------#
@@ -1033,8 +1088,6 @@ class AHFCatalogue(HaloCatalogue):
             fpos = self._halos[i].properties['fstart']
             f.seek(fpos,0)
             return Halo(i, self, self.base, self._load_ahf_particle_block(f, self._halos[i].properties['npart']))
-
-
 
     @property
     def base(self):
