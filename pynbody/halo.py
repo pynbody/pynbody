@@ -1631,12 +1631,12 @@ class SubfindCatalogue(HaloCatalogue):
             
         if self._subs is False:
             for key in self._keys:
-                x.properties[key]=self._halodat[key][i]
+                x.properties[key]=units.get_item_with_unit(self._halodat[key], i)
             if self.header[6]>0:
                 x.properties['children']=np.where( self._subhalodat['sub_groupNr']==i )[0] #this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the subs=True output (below)
         else:
             for key in self._keys:
-                x.properties[key]=self._subhalodat[key][i]
+                x.properties[key]=units.get_item_with_unit(self._subhalodat[key], i)
             x.properties['children']=np.where(self._subhalodat['sub_parent']==i)[0] #this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed, but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
         return x
 
@@ -1742,6 +1742,17 @@ class SubfindCatalogue(HaloCatalogue):
             subhalodat['sub_vel']=np.reshape(subhalodat['sub_vel'], (header[6],3))
             subhalodat['sub_CM']=np.reshape(subhalodat['sub_CM'], (header[6],3))
             subhalodat['sub_spin']=np.reshape(subhalodat['sub_spin'], (header[6],3))
+
+        ar_names = 'mass', 'pos', 'mmean_200', 'rmean_200', 'mcrit_200', 'rcrit_200', 'mtop_200', 'rtop_200', \
+                   'sub_mass', 'sub_pos', 'sub_vel', 'sub_CM', 'sub_veldisp', 'sub_VMax', 'sub_VMaxRad', 'sub_HalfMassRad'
+        ar_dimensions = 'kg', 'm', 'kg', 'm', 'kg', 'm', 'kg', 'm', \
+                    'kg', 'm', 'm s^-1', 'm', 'm s^-1', 'm s^-1', 'm', 'm'
+
+        for name, dimension in zip(ar_names, ar_dimensions):
+            if name in halodat:
+                halodat[name] = SimArray(halodat[name], self.base.infer_original_units(dimension))
+            if name in subhalodat:
+                subhalodat[name] = SimArray(subhalodat[name], self.base.infer_original_units(dimension))
 
         return halodat, subhalodat
 
