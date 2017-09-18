@@ -789,6 +789,12 @@ def has_unit(obj):
 
 has_units = has_unit
 
+def get_item_with_unit(array, item):
+    if has_unit(array):
+        return array[item]*array.units
+    else:
+        return array[item]
+
 
 def is_unit(obj):
     """Returns True if the specified object represents a unit"""
