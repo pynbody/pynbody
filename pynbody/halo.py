@@ -1756,6 +1756,11 @@ class SubfindCatalogue(HaloCatalogue):
 
         return halodat, subhalodat
 
+    def __len__(self):
+        if self._subs:
+            return len(self._subhalodat['sub_pos'])
+        else:
+            return len(self._halodat['pos'])
 
     @staticmethod
     def _name_of_catalogue(sim):
