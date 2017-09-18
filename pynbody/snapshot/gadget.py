@@ -1192,9 +1192,12 @@ def do_properties(sim):
 
     sim.properties['time'] = sim.infer_original_units("s") * h.time
     if h.HubbleParam != 0.:
+        from .. import analysis
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
         sim.properties['omegaL0'] = h.OmegaLambda
         sim.properties['boxsize'] = sim.infer_original_units("kpc")*h.BoxSize
         sim.properties['z'] = h.redshift
         sim.properties['h'] = h.HubbleParam
+        time_units = sim.infer_original_units("s")
+        sim.properties['time'] = analysis.cosmology.age(sim,unit=time_units)*time_units
