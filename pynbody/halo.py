@@ -1573,8 +1573,7 @@ class SubfindCatalogue(HaloCatalogue):
         self._subs=subs
         if self._order is False:
             if (self.base['iord'][0] != 0 or self.base['iord'][1] != 1):
-                print 'ID[0] and ID[1]:', self.base['iord'][0:2]
-                raise Exception("IDs are not ordered, this won't work! Use f.halos(order=False).")
+                raise ValueError("IDs are not ordered. Use argument order=False to load halos for this simulation.")
         
         self._halos = {}
         HaloCatalogue.__init__(self,sim)
@@ -1584,9 +1583,9 @@ class SubfindCatalogue(HaloCatalogue):
         self.header = self._readheader()
         if subs is True:
             if self.header[6]==0:
-                raise Exception("This files does not contain subhalos.")
+                raise ValueError("This file does not contain subhalos")
             if make_grp is True:
-                raise Exception("subs=True and make_grp=True are not compatible.")
+                raise ValueError("subs=True and make_grp=True are not compatible.")
         self._tasks = self.header[4]
         self.ids = self._read_ids()
         self._keys={}
