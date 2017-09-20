@@ -38,7 +38,7 @@ def rxy(self):
 @SimSnap.derived_quantity
 def vr(self):
     """Radial velocity"""
-    return (self['pos'] * self['vel']).sum(axis=1) / self['r']
+    return np.sqrt(((self['pos'] * self['vel'])**2).sum(axis=1)) / self['r']
 
 
 @SimSnap.derived_quantity
