@@ -1494,7 +1494,7 @@ class GrpCatalogue(HaloCatalogue):
     def get_group_array(self):
         return self.base[self._array]
 
-    def _get_halo(self, i):
+    def _get_halo_indices(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
@@ -1502,11 +1502,8 @@ class GrpCatalogue(HaloCatalogue):
 
         if self._sorted is None:
             # one-off selection
-            x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
-            if len(x) == 0:
-                raise no_exist
-            x._descriptor = "halo_" + str(i)
-            return x
+            index = np.where(self.base[self._array] == i)
+            return index
         else:
             # pre-calculated
             if i >= len(self._boundaries) or i < 0:
@@ -1524,10 +1521,21 @@ class GrpCatalogue(HaloCatalogue):
                 end = self._boundaries[j]
                 j += 1
 
-            x = Halo(i, self, self.base, self._sorted[start:end])
-            x._descriptor = "halo_" + str(i)
+            return self._sorted[start:end]
 
-            return x
+
+    def _get_halo(self, i):
+        x = Halo(i, self, self.base, self._get_halo_indices(i))
+        if len(x) == 0:
+            raise ValueError("Halo %s does not exist" % (str(i)))
+        x._descriptor = "halo_" + str(i)
+        return x
+
+
+    def load_copy(self, i):
+        """Load the a fresh SimSnap with only the particle in halo i"""
+        from . import load
+        return load(self.base.filename, take=self._get_halo_indices(i))
 
     @property
     def base(self):
