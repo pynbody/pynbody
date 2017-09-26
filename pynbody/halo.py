@@ -1619,6 +1619,25 @@ class SubfindCatalogue(HaloCatalogue):
             ar[halo.get_index_list(self.base)] = halo._halo_id
         return ar
 
+    def get_halo_properties(self, i, with_unit=True):
+        if with_unit:
+            extract = units.get_item_with_unit
+        else:
+            extract = lambda array, element: array[element]
+        properties = {}
+        if self._subs is False:
+            for key in self._keys:
+                properties[key] = extract(self._halodat[key], i)
+            if self.header[6] > 0:
+                properties['children'] = np.where(self._subhalodat['sub_groupNr'] == i)[
+                    0]  # this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the subs=True output (below)
+        else:
+            for key in self._keys:
+                properties[key] = extract(self._subhalodat[key], i)
+            properties['children'] = np.where(self._subhalodat['sub_parent'] == i)[
+                0]  # this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed, but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+        return properties
+
     def _get_halo(self,i):
         """This also works if the IDs are not sorted, but it will break the ordering by binding energy which is not desirable. We do however save the group's mostboundID"""
         if self._order is False:
@@ -1635,16 +1654,7 @@ class SubfindCatalogue(HaloCatalogue):
                 x=Halo(i, self, self.base, self.ids[self._subhalodat['sub_off'][i]:self._subhalodat['sub_off'][i]+self._subhalodat['sub_len'][i]] )
             
         x._descriptor = "halo_"+str(i)
-            
-        if self._subs is False:
-            for key in self._keys:
-                x.properties[key]=units.get_item_with_unit(self._halodat[key], i)
-            if self.header[6]>0:
-                x.properties['children']=np.where( self._subhalodat['sub_groupNr']==i )[0] #this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the subs=True output (below)
-        else:
-            for key in self._keys:
-                x.properties[key]=units.get_item_with_unit(self._subhalodat[key], i)
-            x.properties['children']=np.where(self._subhalodat['sub_parent']==i)[0] #this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed, but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+        x.properties = self.get_halo_properties(i)
         return x
 
     def _readheader(self):
