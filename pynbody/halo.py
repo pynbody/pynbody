@@ -2081,20 +2081,30 @@ class HOPCatalogue(GrpCatalogue):
     """A HOP Catalogue as used by Ramses"""
     def __init__(self, sim, fname=None):
         self._halos = {}
-        if fname is None:
-            match = re.match("output_([0-9]*)",sim.filename)
-            if match is None:
-                raise RuntimeError("Cannot guess the HOP catalogue filename for %s"%sim.filename)
-            fname = "grp%s.tag"%match.group(1)
+
+        if fname == None:
+            fname = HOPCatalogue._extract_hop_name_from_sim(sim)
 
         sim._create_array('hop_grp', dtype=np.int32)
         sim['hop_grp']=-1
         with open(fname, "rb") as f:
-            garbage, num_part, num_grps, _, _, _ = struct.unpack('iiiiii', f.read(24))
+            # TODO It looks like unpacking 4 bytes too much. Must make sure this works
+            garbage, num_part, num_grps, garbage2, garbage3 = struct.unpack('iiiii', f.read(20))
             if num_part!=len(sim.dm):
                 raise RuntimeError("Mismatching number of particles between snapshot %s and HOP file %s"%(sim.filename, fname))
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
         GrpCatalogue.__init__(self,sim,array="hop_grp")
+
+    @staticmethod
+    def _can_load(sim, arr_name='grp'):
+        return os.path.exists(HOPCatalogue._extract_hop_name_from_sim(sim))
+
+    @staticmethod
+    def _extract_hop_name_from_sim(sim):
+        match = re.search("output_([0-9]*)", sim.filename)
+        if match is None:
+            raise RuntimeError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
+        return sim.filename + "/grp%s.tag" % match.group(1)
 
 
 def _get_halo_classes():
@@ -2102,6 +2112,6 @@ def _get_halo_classes():
     # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
                      RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-                     RockstarIntermediateCatalogue]
+                     RockstarIntermediateCatalogue, HOPCatalogue]
 
     return _halo_classes
