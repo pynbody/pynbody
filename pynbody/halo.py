@@ -2117,11 +2117,11 @@ class HOPCatalogue(GrpCatalogue):
         self._halos = {}
 
         if fname is None:
-            if os.path.exists(sim.filename + HOPCatalogue._extract_hop_name_from_sim(sim)):
-                fname = sim.filename + HOPCatalogue._extract_hop_name_from_sim(sim)
-            elif os.path.exists(sim.filename + "/hop" + HOPCatalogue._extract_hop_name_from_sim(sim)):
-                fname = sim.filename + "/hop" + HOPCatalogue._extract_hop_name_from_sim(sim)
-            else:
+            for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
+                if os.path.exists(fname):
+                    break
+
+            if not os.path.exists(fname):
                 raise RuntimeError("Unable to find HOP .tag file in simulation directory")
 
 
@@ -2137,18 +2137,25 @@ class HOPCatalogue(GrpCatalogue):
     @staticmethod
     def _can_load(sim, arr_name='grp'):
         # Hop output must be in output directory or in output_*/hop directory
-        if (os.path.exists(sim.filename + HOPCatalogue._extract_hop_name_from_sim(sim)) or
-                 os.path.exists(sim.filename + "/hop" + HOPCatalogue._extract_hop_name_from_sim(sim))):
-            return True
-        else:
-            return False
+        exists = any([os.path.exists(fname) for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
+        return exists
 
     @staticmethod
     def _extract_hop_name_from_sim(sim):
         match = re.search("output_([0-9]*)", sim.filename)
         if match is None:
             raise RuntimeError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
-        return "/grp%s.tag" % match.group(1)
+        return "grp%s.tag" % match.group(1)
+
+    @staticmethod
+    def _enumerate_hop_tag_locations_from_sim(sim):
+        name = HOPCatalogue._extract_hop_name_from_sim(sim)
+
+        s_filename = os.path.abspath(sim.filename)
+
+        return [os.path.join(os.path.dirname(s_filename),name),
+                os.path.join(s_filename,name),
+                os.path.join(s_filename,'hop',name)]
 
     def _can_run(self):
         return False
