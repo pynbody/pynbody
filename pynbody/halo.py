@@ -2082,7 +2082,7 @@ class HOPCatalogue(GrpCatalogue):
     def __init__(self, sim, fname=None):
         self._halos = {}
 
-        if fname == None:
+        if fname is None:
             fname = HOPCatalogue._extract_hop_name_from_sim(sim)
 
         sim._create_array('hop_grp', dtype=np.int32)
@@ -2105,6 +2105,10 @@ class HOPCatalogue(GrpCatalogue):
         if match is None:
             raise RuntimeError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
         return sim.filename + "/grp%s.tag" % match.group(1)
+
+    def _can_run(self):
+        #Running hop is not implemented. It could be done using hop_script in ramses as used in pynbody.ramses_utils
+        return False
 
 
 def _get_halo_classes():
