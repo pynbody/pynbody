@@ -2095,7 +2095,6 @@ class HOPCatalogue(GrpCatalogue):
         sim._create_array('hop_grp', dtype=np.int32)
         sim['hop_grp']=-1
         with open(fname, "rb") as f:
-            # TODO It looks like unpacking 4 bytes too much. Must make sure this works
             garbage, num_part, num_grps, garbage2, garbage3 = struct.unpack('iiiii', f.read(20))
             if num_part!=len(sim.dm):
                 raise RuntimeError("Mismatching number of particles between snapshot %s and HOP file %s"%(sim.filename, fname))
