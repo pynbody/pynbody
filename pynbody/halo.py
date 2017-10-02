@@ -2078,12 +2078,19 @@ class SubFindHDFSubHalo(Halo) :
 
 
 class HOPCatalogue(GrpCatalogue):
-    """A HOP Catalogue as used by Ramses"""
+    """A HOP Catalogue as used by Ramses. HOP output files must be in simulation directory, in simulation/hop/ directory
+    or specified by fname"""
     def __init__(self, sim, fname=None):
         self._halos = {}
 
         if fname is None:
-            fname = HOPCatalogue._extract_hop_name_from_sim(sim)
+            if os.path.exists(sim.filename + HOPCatalogue._extract_hop_name_from_sim(sim)):
+                fname = sim.filename + HOPCatalogue._extract_hop_name_from_sim(sim)
+            elif os.path.exists(sim.filename + "/hop" + HOPCatalogue._extract_hop_name_from_sim(sim)):
+                fname = sim.filename + "/hop" + HOPCatalogue._extract_hop_name_from_sim(sim)
+            else:
+                raise RuntimeError("Unable to find HOP .tag file in simulation directory")
+
 
         sim._create_array('hop_grp', dtype=np.int32)
         sim['hop_grp']=-1
@@ -2097,17 +2104,21 @@ class HOPCatalogue(GrpCatalogue):
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
-        return os.path.exists(HOPCatalogue._extract_hop_name_from_sim(sim))
+        # Hop output must be in output directory or in output_*/hop directory
+        if (os.path.exists(sim.filename + HOPCatalogue._extract_hop_name_from_sim(sim)) or
+                 os.path.exists(sim.filename + "/hop" + HOPCatalogue._extract_hop_name_from_sim(sim))):
+            return True
+        else:
+            return False
 
     @staticmethod
     def _extract_hop_name_from_sim(sim):
         match = re.search("output_([0-9]*)", sim.filename)
         if match is None:
             raise RuntimeError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
-        return sim.filename + "/grp%s.tag" % match.group(1)
+        return "/grp%s.tag" % match.group(1)
 
     def _can_run(self):
-        #Running hop is not implemented. It could be done using hop_script in ramses as used in pynbody.ramses_utils
         return False
 
 
