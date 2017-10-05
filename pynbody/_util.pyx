@@ -51,10 +51,11 @@ def _grid_gen_from_slice(sl, int nx, int ny, int nz, np.ndarray[fused_float, ndi
 
     start = sl.start
     stop = sl.stop
-    step = sl.step
 
-    if step is None:
+    if sl.step is None:
         step = 1
+    else:
+        step = sl.step
 
     with nogil:
         n = start
