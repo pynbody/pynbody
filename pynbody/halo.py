@@ -2128,7 +2128,14 @@ class HOPCatalogue(GrpCatalogue):
         sim._create_array('hop_grp', dtype=np.int32)
         sim['hop_grp']=-1
         with open(fname, "rb") as f:
-            _, num_part, num_grps, _, _ = struct.unpack('iiiii', f.read(20))
+            num_part, = struct.unpack('i', f.read(4))
+            if num_part==8:
+                # fortran-formatted output
+                num_part, num_grps, _, _ = struct.unpack('iiii', f.read(16))
+            else:
+                # plain binary output
+                num_grps, = struct.unpack('i', f.read(4))
+
             if num_part!=len(sim.dm):
                 raise RuntimeError("Mismatching number of particles between snapshot %s and HOP file %s"%(sim.filename, fname))
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
