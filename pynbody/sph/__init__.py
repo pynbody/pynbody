@@ -624,7 +624,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     if boxsize:
         # work out the tile offsets required to make the image wrap
-        num_repeats = int(round(x2/boxsize))
+        num_repeats = int(round(x2/boxsize))+1
         repeat_array = np.linspace(-num_repeats*boxsize,num_repeats*boxsize,num_repeats*2+1)
     else:
         repeat_array = [0.0]

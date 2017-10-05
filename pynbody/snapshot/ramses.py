@@ -361,6 +361,8 @@ class RamsesSnap(SimSnap):
 
          *cpus* : a list of the CPU IDs to load. If not set, load all CPU's data.
          *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
+         *with_gas* : if False, never load any gas cells (particles only) - default is True
+         *force_gas* : if True, load the AMR cells as "gas particles" even if they don't actually contain gas in the run
          """
 
         global config
@@ -408,6 +410,9 @@ class RamsesSnap(SimSnap):
 
         has_gas = os.path.exists(
             self._hydro_filename(1)) or kwargs.get('force_gas', False)
+
+        if not kwargs.get('with_gas',True):
+            has_gas = False
 
         ngas = self._count_gas_cells() if has_gas else 0
 
