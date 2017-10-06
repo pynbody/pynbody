@@ -956,7 +956,7 @@ class TreeHalo(halo.DummyHalo):
 		self.redshift = float(filename.split("z")[-1][0:5])
 
 		f = util.open_(filename)
-		if filename.split("z")[-2][-1] is ".":
+		if filename.split("z")[-2][-1] == ".":
 			self.isnew = True
 		else:
 			self.isnew = False
