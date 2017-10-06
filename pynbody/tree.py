@@ -1217,7 +1217,7 @@ class AHFMergerTree(Tree):
 		halo = root_id
 		for i, f in enumerate(mtree_idx_files):
 			data = np.genfromtxt(f,comments="#",dtype="int")
-			if len(data) > 2:
+			if len(data) > 1:
 				for j in range(len(data)):
 					try:
 						if data[j][0] == halo:
@@ -1230,7 +1230,7 @@ class AHFMergerTree(Tree):
 					except:
 						print("Sorry, something went wrong. Maybe the file format for this file %s is wrong."%f)
 			else:
-				if len(data) == 2:
+				if len(data) == 1:
 					if data[0] == halo:
 						progenitor = data[1]
 						node_id = "c_"+str(i+1)+"_"+str(halo)+"_"+str(progenitor)
