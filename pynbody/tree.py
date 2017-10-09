@@ -1446,7 +1446,7 @@ class AHFMergerTree(Tree):
 				if isinstance(fancy_property, str):
 					try:
 						fancy_prop = [x.properties[fancy_property] for x in _main_branch]
-						y_pos = np.linspace(0,self.depth(),self.depth())
+						y_pos = np.linspace(0,len(fancy_prop),len(fancy_prop))
 						if 'cmap' in kwargs: del kwargs['cmap']
 						axr.plot(np.log10(fancy_prop),-y_pos,'.r-',**kwargs)
 						axr.set_xlabel(fancy_label)
