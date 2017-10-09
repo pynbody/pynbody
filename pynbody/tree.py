@@ -1350,6 +1350,8 @@ class AHFMergerTree(Tree):
 			axr = plt.subplot(gs[0,1])
 			axr.spines['top'].set_visible(False)
 			axr.spines['right'].set_visible(False)
+			axr.xaxis.set_ticks_position('bottom')
+			axr.yaxis.set_ticks_position('left')
 
 		elif color_property != None:
 			gs = gridspec.GridSpec(2, 1, height_ratios=[40,1],hspace=0.05,wspace=0.05)
@@ -1361,6 +1363,8 @@ class AHFMergerTree(Tree):
 		ax.spines['top'].set_visible(False)
 		ax.spines['right'].set_visible(False)
 		ax.spines['bottom'].set_visible(False)
+		ax.xaxis.set_ticks_position('bottom')
+		ax.yaxis.set_ticks_position('left')
 		ax.set_ylabel(r'Redshift')
 
 		#ax.set_ylim([-1,len(redshift)+1])
@@ -1440,11 +1444,12 @@ class AHFMergerTree(Tree):
 				if isinstance(fancy_property, str):
 					try:
 						fancy_prop = [x.properties[fancy_property] for x in _main_branch]
-						y_pos = np.linspace(0,self.depth(),self.depth()+1)
+						y_pos = np.linspace(0,self.depth(),self.depth())
 						if 'cmap' in kwargs: del kwargs['cmap']
 						axr.plot(np.log10(fancy_prop),-y_pos,'.r-',**kwargs)
 						axr.set_xlabel(fancy_label)
 						axr.set_yticklabels([])
+						axr.set_xticks(axr.get_xticks()[::2])
 					except: 
 						raise ValueError("Property %s unknown!"%fancy_property)
 				else:
