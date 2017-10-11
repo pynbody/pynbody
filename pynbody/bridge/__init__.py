@@ -159,20 +159,26 @@ class Bridge(object):
             end = end[use_family]
             start = start[use_family]
 
+        restricted_start_particles = self(self(start)) # map back and forth to get only particles that are held in common
+        restricted_end_particles = self(restricted_start_particles) # map back to start in case a reordering is required
+
+        restriction_end_indices = restricted_end_particles.get_index_list(end.ancestor)
+        restriction_start_indices = restricted_start_particles.get_index_list(start.ancestor)
+
+        assert len(restriction_end_indices) == len(
+            restriction_start_indices), "Internal consistency failure in catalog_transfer_matrix: particles supposedly common to both simulations have two different lengths"
+
+
         if only_family is None:
 
-            restriction_end = self(self(end)).get_index_list(end.ancestor)
-            restriction_start = self(self(start)).get_index_list(start.ancestor)
 
-            assert len(restriction_end) == len(
-                restriction_start), "Internal consistency failure in catalog_transfer_matrix: particles supposedly common to both simulations have two different lengths"
-            g1 = groups_1.get_group_array()[restriction_start]
-            g2 = groups_2.get_group_array()[restriction_end]
+            g1 = groups_1.get_group_array()[restriction_start_indices]
+            g2 = groups_2.get_group_array()[restriction_end_indices]
 
         else:
 
-            g1 = groups_1.get_group_array(family=only_family)
-            g2 = groups_2.get_group_array(family=only_family)
+            g1 = groups_1.get_group_array(family=only_family)[restriction_start_indices]
+            g2 = groups_2.get_group_array(family=only_family)[restriction_end_indices]
 
         if max_index is None:
             max_index = max(g1.max(),g2.max())
