@@ -1480,7 +1480,10 @@ class GrpCatalogue(HaloCatalogue):
         HaloCatalogue.__init__(self,sim)
 
     def __len__(self):
-        return self.base[self._array].max()
+        N = self.base[self._array].max()
+        if N<0:
+            N=0
+        return N
 
     def precalculate(self):
         """Speed up future operations by precalculating the indices
