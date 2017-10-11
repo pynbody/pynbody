@@ -222,7 +222,7 @@ def az(self):
 @SimSnap.derived_quantity
 def cs(self):
     """Sound speed"""
-    return np.sqrt(5.0 * units.k * self['temp'] / self['mu'] / units.m_p)
+    return np.sqrt(5.0 / 3.0 * units.k * self['temp'] / self['mu'] / units.m_p)
 
 
 @SimSnap.derived_quantity

@@ -155,4 +155,4 @@ def half_light_r(sim, band='v'):
         else:
             min_low_r = test_r
 
-    return test_r * sim.star['r'].units
+    return test_r

@@ -1547,7 +1547,7 @@ class GrpCatalogue(HaloCatalogue):
     def get_group_array(self):
         return self.base[self._array]
 
-    def _get_halo(self, i):
+    def _get_halo_indices(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
@@ -1555,11 +1555,8 @@ class GrpCatalogue(HaloCatalogue):
 
         if self._sorted is None:
             # one-off selection
-            x = Halo(i, self, self.base, np.where(self.base[self._array] == i))
-            if len(x) == 0:
-                raise no_exist
-            x._descriptor = "halo_" + str(i)
-            return x
+            index = np.where(self.base[self._array] == i)
+            return index
         else:
             # pre-calculated
             if i >= len(self._boundaries) or i < 0:
@@ -1577,10 +1574,21 @@ class GrpCatalogue(HaloCatalogue):
                 end = self._boundaries[j]
                 j += 1
 
-            x = Halo(i, self, self.base, self._sorted[start:end])
-            x._descriptor = "halo_" + str(i)
+            return self._sorted[start:end]
 
-            return x
+
+    def _get_halo(self, i):
+        x = Halo(i, self, self.base, self._get_halo_indices(i))
+        if len(x) == 0:
+            raise ValueError("Halo %s does not exist" % (str(i)))
+        x._descriptor = "halo_" + str(i)
+        return x
+
+
+    def load_copy(self, i):
+        """Load the a fresh SimSnap with only the particle in halo i"""
+        from . import load
+        return load(self.base.filename, take=self._get_halo_indices(i))
 
     @property
     def base(self):
@@ -1626,8 +1634,7 @@ class SubfindCatalogue(HaloCatalogue):
         self._subs=subs
         if self._order is False:
             if (self.base['iord'][0] != 0 or self.base['iord'][1] != 1):
-                print 'ID[0] and ID[1]:', self.base['iord'][0:2]
-                raise Exception("IDs are not ordered, this won't work! Use f.halos(order=False).")
+                raise ValueError("IDs are not ordered. Use argument order=False to load halos for this simulation.")
         
         self._halos = {}
         HaloCatalogue.__init__(self,sim)
@@ -1637,9 +1644,9 @@ class SubfindCatalogue(HaloCatalogue):
         self.header = self._readheader()
         if subs is True:
             if self.header[6]==0:
-                raise Exception("This files does not contain subhalos.")
+                raise ValueError("This file does not contain subhalos")
             if make_grp is True:
-                raise Exception("subs=True and make_grp=True are not compatible.")
+                raise ValueError("subs=True and make_grp=True are not compatible.")
         self._tasks = self.header[4]
         self.ids = self._read_ids()
         self._keys={}
@@ -1665,6 +1672,25 @@ class SubfindCatalogue(HaloCatalogue):
             ar[halo.get_index_list(self.base)] = halo._halo_id
         return ar
 
+    def get_halo_properties(self, i, with_unit=True):
+        if with_unit:
+            extract = units.get_item_with_unit
+        else:
+            extract = lambda array, element: array[element]
+        properties = {}
+        if self._subs is False:
+            for key in self._keys:
+                properties[key] = extract(self._halodat[key], i)
+            if self.header[6] > 0:
+                properties['children'] = np.where(self._subhalodat['sub_groupNr'] == i)[
+                    0]  # this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the subs=True output (below)
+        else:
+            for key in self._keys:
+                properties[key] = extract(self._subhalodat[key], i)
+            properties['children'] = np.where(self._subhalodat['sub_parent'] == i)[
+                0]  # this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed, but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+        return properties
+
     def _get_halo(self,i):
         """This also works if the IDs are not sorted, but it will break the ordering by binding energy which is not desirable. We do however save the group's mostboundID"""
         if self._order is False:
@@ -1681,16 +1707,7 @@ class SubfindCatalogue(HaloCatalogue):
                 x=Halo(i, self, self.base, self.ids[self._subhalodat['sub_off'][i]:self._subhalodat['sub_off'][i]+self._subhalodat['sub_len'][i]] )
             
         x._descriptor = "halo_"+str(i)
-            
-        if self._subs is False:
-            for key in self._keys:
-                x.properties[key]=self._halodat[key][i]
-            if self.header[6]>0:
-                x.properties['children']=np.where( self._subhalodat['sub_groupNr']==i )[0] #this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the subs=True output (below)
-        else:
-            for key in self._keys:
-                x.properties[key]=self._subhalodat[key][i]
-            x.properties['children']=np.where(self._subhalodat['sub_parent']==i)[0] #this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed, but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+        x.properties = self.get_halo_properties(i)
         return x
 
     def _readheader(self):
@@ -1796,8 +1813,24 @@ class SubfindCatalogue(HaloCatalogue):
             subhalodat['sub_CM']=np.reshape(subhalodat['sub_CM'], (header[6],3))
             subhalodat['sub_spin']=np.reshape(subhalodat['sub_spin'], (header[6],3))
 
+        ar_names = 'mass', 'pos', 'mmean_200', 'rmean_200', 'mcrit_200', 'rcrit_200', 'mtop_200', 'rtop_200', \
+                   'sub_mass', 'sub_pos', 'sub_vel', 'sub_CM', 'sub_veldisp', 'sub_VMax', 'sub_VMaxRad', 'sub_HalfMassRad'
+        ar_dimensions = 'kg', 'm', 'kg', 'm', 'kg', 'm', 'kg', 'm', \
+                    'kg', 'm', 'm s^-1', 'm', 'm s^-1', 'm s^-1', 'm', 'm'
+
+        for name, dimension in zip(ar_names, ar_dimensions):
+            if name in halodat:
+                halodat[name] = SimArray(halodat[name], self.base.infer_original_units(dimension))
+            if name in subhalodat:
+                subhalodat[name] = SimArray(subhalodat[name], self.base.infer_original_units(dimension))
+
         return halodat, subhalodat
 
+    def __len__(self):
+        if self._subs:
+            return len(self._subhalodat['sub_pos'])
+        else:
+            return len(self._halodat['pos'])
 
     @staticmethod
     def _name_of_catalogue(sim):
@@ -2131,23 +2164,61 @@ class SubFindHDFSubHalo(Halo) :
 
 
 class HOPCatalogue(GrpCatalogue):
-    """A HOP Catalogue as used by Ramses"""
+    """A HOP Catalogue as used by Ramses. HOP output files must be in simulation directory, in simulation/hop/ directory
+    or specified by fname"""
     def __init__(self, sim, fname=None):
         self._halos = {}
+
         if fname is None:
-            match = re.match("output_([0-9]*)",sim.filename)
-            if match is None:
-                raise RuntimeError("Cannot guess the HOP catalogue filename for %s"%sim.filename)
-            fname = "grp%s.tag"%match.group(1)
+            for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
+                if os.path.exists(fname):
+                    break
+
+            if not os.path.exists(fname):
+                raise RuntimeError("Unable to find HOP .tag file in simulation directory")
+
 
         sim._create_array('hop_grp', dtype=np.int32)
         sim['hop_grp']=-1
         with open(fname, "rb") as f:
-            garbage, num_part, num_grps, _, _, _ = struct.unpack('iiiiii', f.read(24))
+            num_part, = struct.unpack('i', f.read(4))
+            if num_part==8:
+                # fortran-formatted output
+                num_part, num_grps, _, _ = struct.unpack('iiii', f.read(16))
+            else:
+                # plain binary output
+                num_grps, = struct.unpack('i', f.read(4))
+
             if num_part!=len(sim.dm):
                 raise RuntimeError("Mismatching number of particles between snapshot %s and HOP file %s"%(sim.filename, fname))
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
         GrpCatalogue.__init__(self,sim,array="hop_grp")
+
+    @staticmethod
+    def _can_load(sim, arr_name='grp'):
+        # Hop output must be in output directory or in output_*/hop directory
+        exists = any([os.path.exists(fname) for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
+        return exists
+
+    @staticmethod
+    def _extract_hop_name_from_sim(sim):
+        match = re.search("output_([0-9]*)", sim.filename)
+        if match is None:
+            raise RuntimeError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
+        return "grp%s.tag" % match.group(1)
+
+    @staticmethod
+    def _enumerate_hop_tag_locations_from_sim(sim):
+        name = HOPCatalogue._extract_hop_name_from_sim(sim)
+
+        s_filename = os.path.abspath(sim.filename)
+
+        return [os.path.join(os.path.dirname(s_filename),name),
+                os.path.join(s_filename,name),
+                os.path.join(s_filename,'hop',name)]
+
+    def _can_run(self):
+        return False
 
 
 def _get_halo_classes():
@@ -2155,6 +2226,6 @@ def _get_halo_classes():
     # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
                      RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-                     RockstarIntermediateCatalogue]
+                     RockstarIntermediateCatalogue, HOPCatalogue]
 
     return _halo_classes

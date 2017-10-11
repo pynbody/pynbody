@@ -23,7 +23,8 @@ import warnings
 import scipy
 import copy
 
-_data_type = np.dtype('f4')
+_float_data_type = np.dtype('f4')
+_int_data_type = np.dtype('i8')
 
 genic_header = np.dtype([('nx', 'i4'), ('ny', 'i4'), ('nz', 'i4'),
                          ('dx', 'f4'), ('lx', 'f4'), ('ly', 'f4'),
@@ -58,7 +59,7 @@ class GrafICSnap(SimSnap):
     def __init__(self, f, take=None):
         super(GrafICSnap, self).__init__()
         f_cx = file(os.path.join(f, "ic_velcx"))
-        self._header = read_fortran(f_cx, genic_header)
+        self._header = read_fortran(f_cx, genic_header)[0]
         h = self._header
         self._dlen = int(h['nx'] * h['ny'])
         self.properties['a'] = float(h['astart'])
@@ -110,11 +111,12 @@ class GrafICSnap(SimSnap):
         a = self.properties['a']
 
         self['pos'] += self['zeldovich_offset']
+        self['pos'] += (self._header['lx'], self._header['ly'], self._header['lz'])
 
     def _derive_vel(self):
         self._create_array('vel', 3)
-        vel = self['vel']
-        vel.units = 'km s^-1'
+        target_buffer = self['vel']
+        target_buffer.units = 'km s^-1'
         h = self._header
         if self.properties['a'] != float(h['astart']):
             z0 = 1. / h['astart'] - 1
@@ -128,30 +130,53 @@ class GrafICSnap(SimSnap):
             ratio = 1.0
 
         for vd in 'x', 'y', 'z':
-            vel = self['v' + vd]
-            f = file(os.path.join(self._filename, 'ic_velc' + vd))
+            target_buffer = self['v' + vd]
+            filename = os.path.join(self._filename, 'ic_velc' + vd)
+
+            self._read_grafic_file(filename, target_buffer, _float_data_type)
+
+            target_buffer*=ratio
+
+    def _read_iord(self):
+        # this is a proprietary extension to the grafic format used by genetIC
+        filename = os.path.join(self._filename, 'ic_particle_ids')
+        if not os.path.exists(filename):
+            raise IOError, "No particle ID array"
+
+        self._create_array('iord',dtype=_int_data_type)
+        self._read_grafic_file(filename, self['iord'], _int_data_type)
+
+    def _read_deltab(self):
+        # this is a proprietary extension to the grafic format used by genetIC
+        filename = os.path.join(self._filename, 'ic_deltab')
+        if not os.path.exists(filename):
+            raise IOError, "No deltab array"
+
+        self._create_array('deltab',dtype=_float_data_type)
+        self._read_grafic_file(filename, self['deltab'], _float_data_type)
+
+    def _read_grafic_file(self, filename, target_buffer, data_type):
+        with open(filename, 'rb') as f:
             h = read_fortran(f, genic_header)
-
-            length = self._dlen * _data_type.itemsize
-
+            length = self._dlen * data_type.itemsize
             alen = np.fromfile(f, util._head_type, 1)
             if alen != length:
                 raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
                     alen, length)
-
             readpos = 0
-
             for readlen, buf_index, mem_index in (self._load_control.iterate_with_interrupts(family.dm, family.dm,
                                                                                              np.arange(
-                                                                                                 1, h['nz']) * (h['nx'] * h['ny']),
-                                                                                             functools.partial(_midway_fortran_skip, f, length))):
+                                                                                                 1, h['nz']) * (
+                                                                                                 h['nx'] * h['ny']),
+                                                                                             functools.partial(
+                                                                                                 _midway_fortran_skip, f,
+                                                                                                 length))):
 
                 if buf_index is not None:
-                    re = np.fromfile(f, _data_type, readlen)
-                    vel[mem_index] = re[buf_index] * ratio
+                    re = np.fromfile(f, data_type, readlen)
+                    target_buffer[mem_index] = re[buf_index]
                 else:
-                    f.seek(_data_type.itemsize * readlen, 1)
-
+                    f.seek(data_type.itemsize * readlen, 1)
             alen = np.fromfile(f, util._head_type, 1)
             if alen != length:
                 raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
@@ -164,12 +189,13 @@ class GrafICSnap(SimSnap):
 
         if name == "mass":
             self._derive_mass()
-
         elif name == "pos":
             self._derive_pos()
-
         elif name == "vel":
             self._derive_vel()
-
+        elif name=="iord":
+            self._read_iord()
+        elif name=="deltab":
+            self._read_deltab()
         else:
             raise IOError, "No such array"

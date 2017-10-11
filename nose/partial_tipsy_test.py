@@ -31,3 +31,10 @@ def test_load_copy():
 
     with np.testing.assert_raises(NotImplementedError):
         f_subview[:5].load_copy()
+
+def test_grp_load_copy():
+    f1 = pynbody.load("testdata/g15784.lr.01024")
+    h = f1.halos()
+    h1_copy = h[1].load_copy()
+    assert (h1_copy['x']==h[1]['x']).all()
+    assert h1_copy.ancestor is h1_copy
