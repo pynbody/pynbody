@@ -22,12 +22,35 @@ from . import util, filt, array, family, snapshot
 from .snapshot import tipsy, gadget, gadgethdf, ramses, grafic, nchilada, ascii
 from . import analysis, halo, derived, bridge, gravity, sph, transformation
 
-try:
-    from . import plot
-except:
-    import warnings
-    warnings.warn(
-        "Unable to import plotting package (missing matplotlib or running from a text-only terminal? Plotting is disabled.", RuntimeWarning)
+
+# The PlotModuleProxy serves to delay import of pynbody.plot until it's accessed.
+# Importing pynbody.plot imports pylab which in turn is quite slow and cause problem
+# for terminal-only applications. However, since pynbody always auto-imported
+# pynbody.plot, it would seem to be too destructive to stop this behaviour.
+# So this hack is the compromise and should be completely transparent to most
+# users.
+class PlotModuleProxy(object):
+    def _do_import(self):
+        global plot
+        del plot
+        from . import plot
+
+    def __hasattr__(self, key):
+        self._do_import()
+        return hasattr(plot, key)
+
+    def __getattr__(self, key):
+        self._do_import()
+        return getattr(plot, key)
+
+    def __setattr__(self, key, value):
+        self._do_import()
+        return setattr(plot, key, value)
+
+    def __repr__(self):
+        return "<Unloaded plot module>"
+
+plot = PlotModuleProxy()
 
 from .snapshot import new, load
 
