@@ -1657,7 +1657,7 @@ class SubfindCatalogue(HaloCatalogue):
                 x=Halo(i, self, self.base, self.ids[self._subhalodat['sub_off'][i]:self._subhalodat['sub_off'][i]+self._subhalodat['sub_len'][i]] )
             
         x._descriptor = "halo_"+str(i)
-        x.properties = self.get_halo_properties(i)
+        x.properties.update(self.get_halo_properties(i))
         return x
 
     def _readheader(self):
