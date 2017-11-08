@@ -86,8 +86,8 @@ def render(sim, filename=None,
 	Make a 3-color image of stars.
 
 	The colors are based on magnitudes found using stellar Marigo
-	stellar population code.  However there is no radiative transfer
-	to account for dust.
+	stellar population code.  If with_dust is True, a simple dust
+	screening is applied.
 
 	Returns: If ret_im=True, an NxNx3 array representing an RGB image
 
@@ -140,12 +140,13 @@ def render(sim, filename=None,
 		 in mag arcsec^-2. Takes precedence over dynamic_range.
 
 	   *with_dust*: bool, (default: False) 
-		 If True, the image is rendered with a simple dust absorption estimation
-		 based on Calzetti's law. You have to set the parameter z_range.
+		 If True, the image is rendered with a simple dust screening model
+		 based on Calzetti's law.
 
 	   *z_range*: float, (default: 50.0)
-		 If with_dust is True this parameter needs to be set. It specifies the z_range
-		 over which the column density will be calculated. The default value is 50 kpc.
+		 If with_dust is True this parameter specifies the z range
+		 over which the column density will be calculated.
+		 The default value is 50 kpc.
 
 	'''
 
