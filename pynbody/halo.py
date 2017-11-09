@@ -1925,30 +1925,31 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self.nsubhalos = hdf0['FOF'].attrs['Total_Number_of_subgroups']
         self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
         self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
-        for ptype in self.base._family_to_group_map.values():
-            ptype = ptype[0]
-            self._fof_group_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
-            self._fof_group_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
-            self._subfind_halo_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
-            self._subfind_halo_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
+        for fam in self.base._families_ordered():
+            ptypes = self.base._family_to_group_map[fam]
+            for ptype in ptypes:
+                self._fof_group_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
+                self._fof_group_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
+                self._subfind_halo_offsets[ptype] = np.empty(self.ngroups, dtype='int64')
+                self._subfind_halo_lengths[ptype] = np.empty(self.ngroups, dtype='int64')
 
-            curr_groups = 0
-            curr_subhalos = 0
+                curr_groups = 0
+                curr_subhalos = 0
 
-            for h in self.base._hdf_files:
-                # fof groups
-                offset = h[ptype]['Offset']
-                length = h[ptype]['Length']
-                self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
-                self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
-                curr_groups += len(offset)
+                for h in self.base._hdf_files:
+                    # fof groups
+                    offset = h[ptype]['Offset']
+                    length = h[ptype]['Length']
+                    self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
+                    self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
+                    curr_groups += len(offset)
 
-                # subfind subhalos
-                offset = h[ptype]['SUB_Offset']
-                length = h[ptype]['SUB_Length']
-                self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
-                self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
-                curr_subhalos += len(offset)
+                    # subfind subhalos
+                    offset = h[ptype]['SUB_Offset']
+                    length = h[ptype]['SUB_Length']
+                    self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
+                    self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
+                    curr_subhalos += len(offset)
 
 
     def _get_halo(self, i) :
@@ -1962,26 +1963,24 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
         # create the particle lists
         tot_len = 0
-        for g_ptype in type_map.values() :
-            g_ptype = g_ptype[0]
-            tot_len += self._fof_group_lengths[g_ptype][i]
+        for g_ptypes in type_map.values() :
+            for g_ptype in g_ptypes:
+                tot_len += self._fof_group_lengths[g_ptype][i]
 
         plist = np.zeros(tot_len,dtype='int64')
 
         npart = 0
-        for ptype in type_map.keys() :
+        for ptype in self.base._families_ordered():
             # family slice in the SubFindHDFSnap
             sl = self.base._family_slice[ptype]
 
-            # gadget ptype
-            g_ptype = type_map[ptype][0]
-
-            # add the particle indices to the particle list
-            offset = self._fof_group_offsets[g_ptype][i]
-            length = self._fof_group_lengths[g_ptype][i]
-            ind = np.arange(sl.start + offset, sl.start + offset + length)
-            plist[npart:npart+length] = ind
-            npart += length
+            for g_ptype in type_map[ptype]:
+                # add the particle indices to the particle list
+                offset = self._fof_group_offsets[g_ptype][i]
+                length = self._fof_group_lengths[g_ptype][i]
+                ind = np.arange(sl.start + offset, sl.start + offset + length)
+                plist[npart:npart+length] = ind
+                npart += length
 
         return SubFindFOFGroup(i, self, self.base, plist)
 
@@ -2063,26 +2062,24 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
 
         # create the particle lists
         tot_len = 0
-        for g_ptype in type_map.values() :
-            g_ptype = g_ptype[0]
-            tot_len += halo_lengths[g_ptype][absolute_id]
+        for g_ptypes in type_map.values() :
+            for g_ptype in g_ptypes:
+                tot_len += halo_lengths[g_ptype][absolute_id]
 
         plist = np.zeros(tot_len,dtype='int64')
 
         npart = 0
-        for ptype in type_map.keys() :
+        for ptype in self.base._families_ordered():
             # family slice in the SubFindHDFSnap
             sl = self.base._family_slice[ptype]
 
-            # gadget ptype
-            g_ptype = type_map[ptype][0]
-
-            # add the particle indices to the particle list
-            offset = halo_offsets[g_ptype][absolute_id]
-            length = halo_lengths[g_ptype][absolute_id]
-            ind = np.arange(sl.start + offset, sl.start + offset + length)
-            plist[npart:npart+length] = ind
-            npart += length
+            for g_ptype in type_map[ptype]:
+                # add the particle indices to the particle list
+                offset = halo_offsets[g_ptype][absolute_id]
+                length = halo_lengths[g_ptype][absolute_id]
+                ind = np.arange(sl.start + offset, sl.start + offset + length)
+                plist[npart:npart+length] = ind
+                npart += length
 
         return SubFindHDFSubHalo(i, self._group_id, self, self.base, plist)
 

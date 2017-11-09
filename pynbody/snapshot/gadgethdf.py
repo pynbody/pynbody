@@ -148,7 +148,7 @@ class GadgetHDFSnap(SimSnap):
     _readable_hdf5_test_key = "PartType0"
     _size_from_hdf5_key = "ParticleIDs"
 
-    def __init__(self, filename):
+    def __init__(self, filename, ):
         super(GadgetHDFSnap, self).__init__()
 
         self._filename = filename
@@ -197,7 +197,10 @@ class GadgetHDFSnap(SimSnap):
 
     def __init_file_map(self):
         family_slice_start = 0
-        for fam in self._family_to_group_map:
+
+        all_families_sorted = self._families_ordered()
+
+        for fam in all_families_sorted:
             family_length = 0
             for hdf_group in self._all_hdf_groups_in_family(fam):
                 family_length += hdf_group[self._size_from_hdf5_key].size
@@ -207,6 +210,12 @@ class GadgetHDFSnap(SimSnap):
 
 
         self._num_particles = family_slice_start
+
+    def _families_ordered(self):
+        # order by the PartTypeN
+        all_families = self._family_to_group_map.keys()
+        all_families_sorted = sorted(all_families, key=lambda v: self._family_to_group_map[v][0])
+        return all_families_sorted
 
     def __init_family_map(self):
         type_map = {}
