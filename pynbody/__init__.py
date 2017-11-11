@@ -33,7 +33,8 @@ class PlotModuleProxy(object):
     def _do_import(self):
         global plot
         del plot
-        from . import plot
+        from . import plot as plot_module
+        plot = plot_module
 
     def __hasattr__(self, key):
         self._do_import()
@@ -41,11 +42,18 @@ class PlotModuleProxy(object):
 
     def __getattr__(self, key):
         self._do_import()
+        global plot
         return getattr(plot, key)
 
     def __setattr__(self, key, value):
         self._do_import()
+        global plot
         return setattr(plot, key, value)
+
+    def __dir__(self):
+        self._do_import()
+        global plot
+        return dir(plot)
 
     def __repr__(self):
         return "<Unloaded plot module>"
