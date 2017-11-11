@@ -44,8 +44,40 @@ def test_nonmonotonic_transfer_matrix():
     h2 = pynbody.halo.GrpCatalogue(f2)
 
     xfer = b.catalog_transfer_matrix(0,1,h1,h2)
-    print(xfer)
 
     assert (xfer==[[4,1],[0,5]]).all()
 
 
+def test_nonmonotonic_incomplete_bridge():
+    # Test the non-monotonic bridge where not all the particles are shared
+    f1 = pynbody.new(dm=10)
+    f2 = pynbody.new(dm=9)
+    f1['iord'] = np.arange(0,10)
+    f2['iord'] = np.array([0,2,4,6,8,1,5,7,9])
+    b = pynbody.bridge.OrderBridge(f1,f2,monotonic=False)
+
+    assert (b(f1[:5])['iord']==np.array([0,1,2,4])).all()
+
+
+def test_monotonic_incomplete_bridge():
+    # Test the monotonic bridge where not all the particles are shared
+    f1 = pynbody.new(dm=10)
+    f2 = pynbody.new(dm=9)
+    f1['iord'] = np.arange(0, 10)
+    f2['iord'] = np.array([0, 1, 2, 4, 5 ,6, 7, 8, 9])
+    b = pynbody.bridge.OrderBridge(f1, f2, monotonic=False)
+
+    assert (b(f1[:5])['iord'] == np.array([0, 1, 2, 4])).all()
+
+
+def test_family_morphing():
+    f1 = pynbody.new(dm=5, gas=5)
+    f2 = pynbody.new(dm=10)
+
+    f1['iord'] = np.arange(0,10)
+    f2['iord'] = np.array([0,2,4,6,8,1,3,5,7,9])
+
+    b = pynbody.bridge.OrderBridge(f1,f2,monotonic=False,allow_family_change=True)
+
+    assert (b(f2).dm['iord']==np.array([0,2,4,1,3])).all()
+    assert (b(f2).gas['iord'] == np.array([6, 8, 5, 7, 9])).all()
