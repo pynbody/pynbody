@@ -617,7 +617,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         # Calculate the ratio now so we don't waste time calculating
         # the image only to throw a UnitsException later
         conv_ratio = (qty.units * mass.units / (rho.units * sm.units ** kernel.h_power)).ratio(out_units,
-                                                                                               **x.conversion_context())
+                                                                                               **snap.conversion_context())
 
     if z_camera is None:
         z_camera = 0.0

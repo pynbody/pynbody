@@ -2013,7 +2013,8 @@ def _get_snap_classes():
     from . import grafic
     from . import ascii
 
-    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap,
+    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
+                     nchilada.NchiladaSnap, gadget.GadgetSnap,
                      tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
                      ascii.AsciiSnap]
 

@@ -495,36 +495,7 @@ class GadgetHDFSnap(SimSnap):
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
 
-@GadgetHDFSnap.decorator
-def do_properties(sim):
-    atr = sim._get_hdf_header_attrs()
 
-    # expansion factor could be saved as redshift
-    try:
-        sim.properties['a'] = atr['ExpansionFactor']
-    except KeyError:
-        sim.properties['a'] = 1. / (1 + atr['Redshift'])
-
-    # time unit might not be set in the attributes
-    try:
-        sim.properties['time'] = units.Gyr * atr['Time_GYR']
-    except KeyError:
-        pass
-
-    # not all omegas need to be specified in the attributes
-    try:
-        sim.properties['omegaB0'] = atr['OmegaBaryon']
-    except KeyError:
-        pass
-
-    sim.properties['omegaM0'] = atr['Omega0']
-    sim.properties['omegaL0'] = atr['OmegaLambda']
-    sim.properties['boxsize'] = atr['BoxSize']
-    sim.properties['z'] = (1. / sim.properties['a']) - 1
-    sim.properties['h'] = atr['HubbleParam']
-    for s,value in sim._get_hdf_header_attrs().iteritems():
-        if s not in ['ExpansionFactor', 'Time_GYR', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
-            sim.properties[s] = value
 
 @GadgetHDFSnap.decorator
 def do_units(sim):
@@ -557,6 +528,40 @@ def do_units(sim):
                               vel_unit, dist_unit, mass_unit, "K"]]
 
 
+@GadgetHDFSnap.decorator
+def do_properties(sim):
+    atr = sim._get_hdf_header_attrs()
+
+    # expansion factor could be saved as redshift
+    try:
+        sim.properties['a'] = atr['ExpansionFactor']
+    except KeyError:
+        sim.properties['a'] = 1. / (1 + atr['Redshift'])
+
+
+    # not all omegas need to be specified in the attributes
+    try:
+        sim.properties['omegaB0'] = atr['OmegaBaryon']
+    except KeyError:
+        pass
+
+    sim.properties['omegaM0'] = atr['Omega0']
+    sim.properties['omegaL0'] = atr['OmegaLambda']
+    sim.properties['boxsize'] = atr['BoxSize'] * sim.infer_original_units('cm')
+    sim.properties['z'] = (1. / sim.properties['a']) - 1
+    sim.properties['h'] = atr['HubbleParam']
+
+    # time unit might not be set in the attributes
+    if "Time_GYR" in atr:
+        sim.properties['time'] = units.Gyr * atr['Time_GYR']
+    else:
+        from .. import analysis
+        sim.properties['time'] = analysis.cosmology.age(sim) * units.Gyr
+
+    for s,value in sim._get_hdf_header_attrs().iteritems():
+        if s not in ['ExpansionFactor', 'Time_GYR', 'Time', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
+            sim.properties[s] = value
+
 ###################
 # SubFindHDF class
 ###################
@@ -575,7 +580,15 @@ class SubFindHDFSnap(GadgetHDFSnap) :
         return halo.SubFindHDFHaloCatalogue(self)
 
 
-            
+class EagleLikeHDFSnap(GadgetHDFSnap):
+    """Reads Eagle-like HDF snapshots (download at http://data.cosma.dur.ac.uk:8080/eagle-snapshots/)"""
+    _readable_hdf5_test_key = "PartType0/SubGroupNumber"
+
+    def halos(self, subs=False):
+        if subs:
+            return halo.GrpCatalogue(self, array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
+        else:
+            return halo.GrpCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
 
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_quantity
