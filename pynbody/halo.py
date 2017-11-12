@@ -1471,16 +1471,21 @@ class GrpCatalogue(HaloCatalogue):
     A generic catalogue using a .grp file to specify which particles
     belong to which group.
     """
-    def __init__(self, sim, array='grp',**kwargs):
-        sim[array]
-    # trigger lazy-loading and/or kick up a fuss if unavailable
+    def __init__(self, sim, array='grp', ignore=None, **kwargs):
+        sim[array] # trigger lazy-loading and/or kick up a fuss if unavailable
         self._halos = {}
         self._array = array
         self._sorted = None
+        self._ignore = ignore
         HaloCatalogue.__init__(self,sim)
 
     def __len__(self):
-        N = self.base[self._array].max()
+        if self._ignore is None:
+            N = self.base[self._array].max()
+        else:
+            N = self.base[self._array]
+            N = N[N!=self._ignore]
+            N = N.max()
         if N<0:
             N=0
         return N
