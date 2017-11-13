@@ -21,9 +21,6 @@ import os
 import functools
 import warnings
 import glob
-import re
-import scipy
-import copy
 
 _float_data_type = np.dtype('f4')
 _int_data_type = np.dtype('i8')
@@ -158,7 +155,7 @@ class GrafICSnap(SimSnap):
         self._read_grafic_file(filename, self['deltab'], _float_data_type)
 
     def _read_refmap(self):
-        # Extension to read mask files for Ramses
+        # refinement map as produced by MUSIC and genetIC
         filename = os.path.join(self._filename, 'ic_refmap')
         if not os.path.exists(filename):
             raise IOError("No refmap array")
@@ -167,17 +164,13 @@ class GrafICSnap(SimSnap):
         self._read_grafic_file(filename, self['refmap'], _float_data_type)
 
     def _read_pvar(self):
-        # Extension to passive variable files for Ramses.
-        # Support only one pvar for now.
+        # passive variable map as produced by MUSIC and genetIC
         filename = os.path.join(glob.glob(self._filename + "/ic_pvar*[0-9]")[0])
         if not os.path.exists(filename):
             raise IOError("No pvar array")
 
-        match = re.compile(r'\d+')
-        pvar_number = match.findall(filename)[-1]
-        array_name = 'pvar' + pvar_number
-        self._create_array(array_name,dtype=_float_data_type)
-        self._read_grafic_file(filename, self[array_name], _float_data_type)
+        self._create_array('pvar',dtype=_float_data_type)
+        self._read_grafic_file(filename, self['pvar'], _float_data_type)
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
         with open(filename, 'rb') as f:
