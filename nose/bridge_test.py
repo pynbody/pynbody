@@ -74,7 +74,9 @@ def test_family_morphing():
     f1 = pynbody.new(dm=5, gas=5)
     f2 = pynbody.new(dm=10)
 
-    f1['iord'] = np.arange(0,10)
+    # set dm and gas iords separately as it's possible the new command initialises them out of order
+    f1.dm['iord'] = np.arange(0,5)
+    f1.gas['iord'] = np.arange(5,10)
     f2['iord'] = np.array([0,2,4,6,8,1,3,5,7,9])
 
     b = pynbody.bridge.OrderBridge(f1,f2,monotonic=False,allow_family_change=True)
