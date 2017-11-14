@@ -5,7 +5,7 @@ grafic
 
 Support for loading grafIC files
 """
-
+from __future__ import print_function
 from .. import util
 from .. import array
 from .. import chunk
@@ -20,8 +20,7 @@ import numpy as np
 import os
 import functools
 import warnings
-import scipy
-import copy
+import glob
 
 _float_data_type = np.dtype('f4')
 _int_data_type = np.dtype('i8')
@@ -37,7 +36,7 @@ Tcmb = 2.72548
 def _monitor(i):
     """Debug tool to monitor what's coming out of an iterable"""
     for q in i:
-        print "_monitor:", q
+        print("_monitor:", q)
         yield q
 
 
@@ -58,7 +57,7 @@ class GrafICSnap(SimSnap):
 
     def __init__(self, f, take=None):
         super(GrafICSnap, self).__init__()
-        f_cx = file(os.path.join(f, "ic_velcx"))
+        f_cx = open(os.path.join(f, "ic_velcx"))
         self._header = read_fortran(f_cx, genic_header)[0]
         h = self._header
         self._dlen = int(h['nx'] * h['ny'])
@@ -141,7 +140,7 @@ class GrafICSnap(SimSnap):
         # this is a proprietary extension to the grafic format used by genetIC
         filename = os.path.join(self._filename, 'ic_particle_ids')
         if not os.path.exists(filename):
-            raise IOError, "No particle ID array"
+            raise IOError("No particle ID array")
 
         self._create_array('iord',dtype=_int_data_type)
         self._read_grafic_file(filename, self['iord'], _int_data_type)
@@ -150,10 +149,28 @@ class GrafICSnap(SimSnap):
         # this is a proprietary extension to the grafic format used by genetIC
         filename = os.path.join(self._filename, 'ic_deltab')
         if not os.path.exists(filename):
-            raise IOError, "No deltab array"
+            raise IOError("No deltab array")
 
         self._create_array('deltab',dtype=_float_data_type)
         self._read_grafic_file(filename, self['deltab'], _float_data_type)
+
+    def _read_refmap(self):
+        # refinement map as produced by MUSIC and genetIC
+        filename = os.path.join(self._filename, 'ic_refmap')
+        if not os.path.exists(filename):
+            raise IOError("No refmap array")
+
+        self._create_array('refmap',dtype=_float_data_type)
+        self._read_grafic_file(filename, self['refmap'], _float_data_type)
+
+    def _read_pvar(self):
+        # passive variable map as produced by MUSIC and genetIC
+        filename = os.path.join(glob.glob(self._filename + "/ic_pvar*[0-9]")[0])
+        if not os.path.exists(filename):
+            raise IOError("No pvar array")
+
+        self._create_array('pvar',dtype=_float_data_type)
+        self._read_grafic_file(filename, self['pvar'], _float_data_type)
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
         with open(filename, 'rb') as f:
@@ -161,9 +178,7 @@ class GrafICSnap(SimSnap):
             length = self._dlen * data_type.itemsize
             alen = np.fromfile(f, util._head_type, 1)
             if alen != length:
-                raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
-                    alen, length)
-            readpos = 0
+                raise IOError("Unexpected FORTRAN block length %d!=%d" % (alen, length))
             for readlen, buf_index, mem_index in (self._load_control.iterate_with_interrupts(family.dm, family.dm,
                                                                                              np.arange(
                                                                                                  1, h['nz']) * (
@@ -179,13 +194,12 @@ class GrafICSnap(SimSnap):
                     f.seek(data_type.itemsize * readlen, 1)
             alen = np.fromfile(f, util._head_type, 1)
             if alen != length:
-                raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
-                    alen, length)
+                raise IOError("Unexpected FORTRAN block length (tail) %d!=%d" % (alen, length))
 
     def _load_array(self, name, fam=None):
 
         if fam is not family.dm and fam is not None:
-            raise IOError, "Only DM particles supported"
+            raise IOError("Only DM particles supported")
 
         if name == "mass":
             self._derive_mass()
@@ -197,5 +211,9 @@ class GrafICSnap(SimSnap):
             self._read_iord()
         elif name=="deltab":
             self._read_deltab()
+        elif name == "refmap":
+            self._read_refmap()
+        elif name == "pvar":
+            self._read_pvar()
         else:
-            raise IOError, "No such array"
+            raise IOError("No such array")
