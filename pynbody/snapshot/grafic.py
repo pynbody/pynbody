@@ -5,7 +5,7 @@ grafic
 
 Support for loading grafIC files
 """
-
+from __future__ import print_function
 from .. import util
 from .. import array
 from .. import chunk
