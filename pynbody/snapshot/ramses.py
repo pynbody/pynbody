@@ -599,6 +599,14 @@ class RamsesSnap(SimSnap):
             dims.append(self.gas[i])
             self.gas[i].set_default_units()
 
+
+        if not os.path.exists(self._hydro_filename(1)) and self.gas['rho'].all() == 0:
+            #Case where force_gas = True, make sure rho is non-zero and such that mass=1
+            logger.info("No hydro file found, gas likely from force_gas=True => hard setting rho gas")
+            self.gas['rho'] += 1.0
+            self.gas['rho'] /= (np.array(self.gas['smooth']) ** 3)
+
+
         nvar = len(dims)
 
         grid_info_iter = self._level_iterator()
