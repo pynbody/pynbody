@@ -1436,6 +1436,14 @@ class SimSnap(object):
 
         return fn
 
+    def _find_deriving_function(self, name):
+        for cl in type(self).__mro__:
+            if cl in self._derived_quantity_registry \
+                    and name in self._derived_quantity_registry[cl]:
+                return self._derived_quantity_registry[cl][name]
+        else:
+            return None
+
     def _derive_array(self, name, fam=None):
         """Calculate and store, for this SnapShot, the derivable array 'name'.
         If *fam* is not None, derive only for the specified family.
@@ -1446,47 +1454,44 @@ class SimSnap(object):
         global config
 
         calculated = False
+        fn = self._find_deriving_function(name)
+        if fn:
+            logger.info("Deriving array %s" % name)
+            with self.auto_propagate_off:
+                if fam is None:
+                    result = fn(self)
+                    ndim = result.shape[-1] if len(
+                        result.shape) > 1 else 1
+                    self._create_array(
+                        name, ndim, dtype=result.dtype, derived=not fn.__stable__)
+                    write_array = self._get_array(
+                        name, always_writable=True)
+                else:
+                    result = fn(self[fam])
+                    ndim = result.shape[-1] if len(
+                        result.shape) > 1 else 1
 
-        for cl in type(self).__mro__:
-            if cl in self._derived_quantity_registry \
-                    and name in self._derived_quantity_registry[cl]:
-                logger.info("Deriving array %s" % name)
-                with self.auto_propagate_off:
-                    fn = self._derived_quantity_registry[cl][name]
-                    if fam is None:
-                        result = fn(self)
-                        ndim = result.shape[-1] if len(
-                            result.shape) > 1 else 1
-                        self._create_array(
-                            name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                        write_array = self._get_array(
-                            name, always_writable=True)
-                    else:
-                        result = fn(self[fam])
-                        ndim = result.shape[-1] if len(
-                            result.shape) > 1 else 1
+                    # check if a family array already exists with a different dtype
+                    # if so, cast the result to the existing dtype
+                    # numpy version < 1.7 does not support doing this in-place
 
-                        # check if a family array already exists with a different dtype
-                        # if so, cast the result to the existing dtype
-                        # numpy version < 1.7 does not support doing this in-place
+                    if self._get_preferred_dtype(name) != result.dtype \
+                       and self._get_preferred_dtype(name) is not None:
+                        if int(np.version.version.split('.')[1]) > 6 :
+                            result = result.astype(self._get_preferred_dtype(name),copy=False)
+                        else :
+                            result = result.astype(self._get_preferred_dtype(name))
 
-                        if self._get_preferred_dtype(name) != result.dtype \
-                           and self._get_preferred_dtype(name) is not None:
-                            if int(np.version.version.split('.')[1]) > 6 :
-                                result = result.astype(self._get_preferred_dtype(name),copy=False)
-                            else :
-                                result = result.astype(self._get_preferred_dtype(name))
+                    self[fam]._create_array(
+                        name, ndim, dtype=result.dtype, derived=not fn.__stable__)
+                    write_array = self[fam]._get_array(
+                        name, always_writable=True)
 
-                        self[fam]._create_array(
-                            name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                        write_array = self[fam]._get_array(
-                            name, always_writable=True)
+                self.ancestor._autoconvert_array_unit(result)
 
-                    self.ancestor._autoconvert_array_unit(result)
-
-                    write_array[:] = result
-                    if units.has_units(result):
-                        write_array.units = result.units
+                write_array[:] = result
+                if units.has_units(result):
+                    write_array.units = result.units
 
 
 
@@ -1849,7 +1854,7 @@ class IndexedSubSnap(SubSnap):
         return SimSnap._get_family_slice(self, fam)
 
     def _get_family_array(self, name, fam, index=None, always_writable=False):
-        sl = self._family_indices[fam]
+        sl = self._family_indices.get(fam,None)
         sl = util.concatenate_indexing(sl, index)
 
         return self.base._get_family_array(name, fam, sl, always_writable)
