@@ -484,15 +484,12 @@ class RamsesSnap(SimSnap):
         with open(self._filename+"/part_file_descriptor.txt") as f:
             self._particle_blocks = []
             self._particle_types = []
-            # these dtypes are determined in the ramses source at io/dump_utils.f90
-            dtype_mappings = {'d': np.float64, 'i': np.int32, 'b': np.int8,
-                              'h': np.int16, 'q': np.int64, 'f': np.float32}
             self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
             for l in f:
                 if not l.startswith("#"):
                     ivar, name, dtype = map(str.strip,l.split(","))
                     self._particle_blocks.append(self._translate_array_name(name, reverse=True))
-                    self._particle_types.append(dtype_mappings[dtype])
+                    self._particle_types.append(np.dtype(dtype))
             self._particle_blocks_are_explictly_known = True
 
 
