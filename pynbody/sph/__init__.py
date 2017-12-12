@@ -66,14 +66,20 @@ def _thread_map(func, *args):
         t,obj,trace= exceptions[0]
         raise t,obj,trace
 
-def _auto_denoise(sim):
+def _kernel_suitable_for_denoise(kernel):
+    if type(kernel) is not Kernel:
+        # e.g. does not work properly with Kernel2D
+        return False
+    else:
+        return True
+
+def _auto_denoise(sim, kernel):
     """Returns True if pynbody thinks denoise flag should be on for best
-    results with this simulation.
+    results with this simulation."""
 
-    At the moment it inspects to see if it's a RamsesSnap, and if so, returns
-    True."""
-
-    if isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
+    if not _kernel_suitable_for_denoise(kernel):
+        return False
+    elif isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
         return True
     else:
         return False
@@ -252,7 +258,10 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
     """
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
 
     renderer = _render_spherical_image
 
@@ -274,7 +283,10 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
     import healpy as hp
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
 
     if out_units is not None:
         conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * snap['smooth'].units ** kernel.h_power)).ratio(out_units,
@@ -484,7 +496,11 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     """
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
+
 
     if approximate_fast:
         base_renderer = _interpolated_renderer(
@@ -693,7 +709,10 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     global config
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
 
     in_time = time.time()
 

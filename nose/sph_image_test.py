@@ -66,3 +66,13 @@ def test_approximate_images():
 
     assert abs(np.log10(im2d/compare2d)).mean()<0.03
     assert abs(np.log10(im3d/compare3d)).mean()<0.03
+
+
+def test_denoise_projected_image_throws():
+    global f
+    # this should be fine:
+    pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, denoise=True)
+
+    with npt.assert_raises(ValueError):
+        # this should not:
+        pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
