@@ -262,6 +262,18 @@ def contour(*args, **kwargs):
     p.contour(x,y,im,nlevels=nlevels,levels=levels)
 
 
+def _units_imply_projection(sim, qty, units):
+    try:
+        sim[qty].units.ratio(units, **sim[qty].conversion_context())
+        # if this fails, perhaps we're requesting a projected image?
+        return False
+    except _units.UnitsException:
+        # if the following fails, there's no interpretation this routine
+        # can cope with. The error will be allowed to propagate.
+        sim[qty].units.ratio(
+            units / (sim['x'].units), **sim[qty].conversion_context())
+        return True
+
 
 def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           vmin=None, vmax=None, av_z=False, filename=None,
@@ -358,19 +370,12 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     if perspective and not av_z:
         kernel = sph.Kernel2D()
 
+    is_projected = False
     if units is not None:
-        try:
-            sim[qty].units.ratio(units, **sim[qty].conversion_context())
-            # if this fails, perhaps we're requesting a projected image?
+        is_projected = _units_imply_projection(sim, qty, units)
 
-        except _units.UnitsException:
-            # if the following fails, there's no interpretation this routine
-            # can cope with
-            sim[qty].units.ratio(
-                units / (sim['x'].units), **sim[qty].conversion_context())
-
-            # if we get to this point, we want a projected image
-            kernel = sph.Kernel2D()
+    if is_projected:
+        kernel = sph.Kernel2D()
 
     if av_z:
         if isinstance(kernel, sph.Kernel2D):
