@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Configuring pynbody &mdash; pynbody 0.30 documentation</title>
+    <title>Configuring pynbody &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Use of multiple processors by pynbody" href="threads.html" />
     <link rel="prev" title="Performance optimisation in pynbody" href="performance.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -108,11 +108,11 @@
               
                 
   <li>
-    <a href="performance.html" title="Previous Chapter: Performance optimisation in pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Performance opti...</span>
+    <a href="performance.html" title="Previous Chapter: Performance optimisation in pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Performance o...</span>
     </a>
   </li>
   <li>
-    <a href="threads.html" title="Next Chapter: Use of multiple processors by pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Use of multiple ... &raquo;</span>
+    <a href="threads.html" title="Next Chapter: Use of multiple processors by pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Use of multip... &raquo;</span>
     </a>
   </li>
               
@@ -154,7 +154,7 @@ mutlithreading, default base units etc.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">__path__</span>
-<span class="gh">Out[2]: </span><span class="go">[&#39;/Users/app/anaconda/lib/python2.7/site-packages/pynbody&#39;]</span>
+<span class="gh">Out[2]: </span><span class="go">[&#39;/Users/app/Science/pynbody/pynbody&#39;]</span>
 </pre></div>
 </div>
 <p>to find the <cite>pynbody</cite> installation directory. The
@@ -186,14 +186,17 @@ with</p>
 <span class="go"> &#39;gravity_calculation_mode&#39;: &#39;direct_omp&#39;,</span>
 <span class="go"> &#39;halo-class-priority&#39;: [pynbody.halo.GrpCatalogue,</span>
 <span class="go">  pynbody.halo.AmigaGrpCatalogue,</span>
+<span class="go">  pynbody.halo.RockstarIntermediateCatalogue,</span>
 <span class="go">  pynbody.halo.RockstarCatalogue,</span>
 <span class="go">  pynbody.halo.AHFCatalogue,</span>
-<span class="go">  pynbody.halo.SubfindCatalogue],</span>
+<span class="go">  pynbody.halo.SubfindCatalogue,</span>
+<span class="go">  pynbody.halo.HOPCatalogue],</span>
 <span class="go"> &#39;number_of_threads&#39;: 8,</span>
 <span class="go"> &#39;snap-class-priority&#39;: [pynbody.snapshot.ramses.RamsesSnap,</span>
 <span class="go">  pynbody.snapshot.grafic.GrafICSnap,</span>
 <span class="go">  pynbody.snapshot.nchilada.NchiladaSnap,</span>
 <span class="go">  pynbody.snapshot.gadget.GadgetSnap,</span>
+<span class="go">  pynbody.snapshot.gadgethdf.EagleLikeHDFSnap,</span>
 <span class="go">  pynbody.snapshot.gadgethdf.GadgetHDFSnap,</span>
 <span class="go">  pynbody.snapshot.gadgethdf.SubFindHDFSnap,</span>
 <span class="go">  pynbody.snapshot.tipsy.TipsySnap,</span>
@@ -229,7 +232,7 @@ used to estimate sph kernel quantities, you could do</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.analysis.profile &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.analysis.profile &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -188,6 +188,9 @@
 <span class="sd">     function to return any value you want for making profiles along</span>
 <span class="sd">     arbitrary axes. Depening on your function, the units of certain</span>
 <span class="sd">     profiles (such as density) might not make sense.</span>
+
+<span class="sd">    *weight_by* (default = &#39;mass&#39;): name of the array to use for weighting</span>
+<span class="sd">     averages across particles in each bin</span>
 
 <span class="sd">    **Output**:</span>
 
@@ -328,7 +331,7 @@
     <span class="k">def</span> <span class="nf">_calculate_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">((</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;lin&#39;</span><span class="p">,</span> <span class="n">calc_x</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;lin&#39;</span><span class="p">,</span> <span class="n">calc_x</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">weight_by</span><span class="o">=</span><span class="s">&#39;mass&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="n">generate_new</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="k">if</span> <span class="n">calc_x</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -336,6 +339,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="nb">type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="n">ndim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_by</span> <span class="o">=</span> <span class="n">weight_by</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="o">=</span> <span class="n">calc_x</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span>
 
@@ -522,13 +526,13 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
             <span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
             <span class="n">name_array</span> <span class="o">=</span> <span class="n">subs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-            <span class="n">mass_array</span> <span class="o">=</span> <span class="n">subs</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+            <span class="n">mass_array</span> <span class="o">=</span> <span class="n">subs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_by</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">dispersion</span><span class="p">:</span>
                 <span class="n">sq_mean</span> <span class="o">=</span> <span class="p">(</span><span class="n">name_array</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> \
-                    <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="s">&#39;weight_fn&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
                 <span class="n">mean_sq</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">(</span><span class="n">name_array</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+                    <span class="p">(</span><span class="n">name_array</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;weight_fn&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sq_mean</span> <span class="o">-</span> <span class="n">mean_sq</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -537,7 +541,7 @@
 
             <span class="k">elif</span> <span class="n">rms</span><span class="p">:</span>
                 <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
-                    <span class="p">(</span><span class="n">name_array</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="p">(</span><span class="n">name_array</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;weight_fn&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
             <span class="k">elif</span> <span class="n">median</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
@@ -545,7 +549,7 @@
                     <span class="n">sorted_name</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">name_array</span><span class="p">)</span>
                     <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sorted_name</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">subs</span><span class="p">)))]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">name_array</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">name_array</span> <span class="o">*</span> <span class="n">mass_array</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;weight_fn&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
         <span class="n">result</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
@@ -693,23 +697,31 @@
 
 </div>
 <span class="nd">@Profile.profile_property</span>
-<div class="viewcode-block" id="mass"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.mass">[docs]</a><span class="k">def</span> <span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="weight_fn"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.weight_fn">[docs]</a><span class="k">def</span> <span class="nf">weight_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight_by</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate mass in each bin</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mass</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">weight_by</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">weight_by</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_by</span>
+    <span class="n">mass</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">weight_by</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">immediate_mode</span><span class="p">:</span>
-        <span class="n">pmass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="n">pmass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">weight_by</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
         <span class="n">mass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">pmass</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="n">mass</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
+    <span class="n">mass</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">weight_by</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
 
     <span class="k">return</span> <span class="n">mass</span>
-
 </div>
+<span class="nd">@Profile.profile_property</span>
+<span class="k">def</span> <span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">weight_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;mass&#39;</span><span class="p">)</span>
+
+
+
 <span class="nd">@Profile.profile_property</span>
 <div class="viewcode-block" id="density"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.density">[docs]</a><span class="k">def</span> <span class="nf">density</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -719,14 +731,19 @@
 
 </div>
 <span class="nd">@Profile.profile_property</span>
-<div class="viewcode-block" id="fourier"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.fourier">[docs]</a><span class="k">def</span> <span class="nf">fourier</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="fourier"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.fourier">[docs]</a><span class="k">def</span> <span class="nf">fourier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta_t</span> <span class="o">=</span> <span class="s">&quot;0.1 Myr&quot;</span><span class="p">,</span> <span class="n">phi_bins</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate a profile of fourier coefficients, amplitudes and phases</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">delta_t</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">delta_t</span><span class="p">)</span>
+
+
     <span class="n">f</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;c&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+         <span class="s">&#39;c_delta&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
          <span class="s">&#39;amp&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)),</span>
-         <span class="s">&#39;phi&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">))}</span>
+         <span class="s">&#39;phi&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)),</span>
+         <span class="s">&#39;dphi_dt&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">))}</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
@@ -734,17 +751,34 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
             <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
 
-            <span class="n">hist</span><span class="p">,</span> <span class="n">binphi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-            <span class="n">binphi</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">binphi</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="n">binphi</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;vx&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">*</span> <span class="n">delta_t</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;vy&#39;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">*</span> <span class="n">delta_t</span>
+            <span class="n">phi1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span><span class="n">x1</span><span class="p">)</span>
+
+            <span class="n">hist_range</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="n">hist</span><span class="p">,</span> <span class="n">binphi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">phi_bins</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="n">hist_range</span><span class="p">))</span>
+            <span class="n">hist1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">phi1</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">phi_bins</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="n">hist_range</span><span class="p">))</span>
+            <span class="n">binphi</span> <span class="o">=</span> <span class="n">binphi</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">binphi</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
                 <span class="n">f</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">][</span><span class="n">m</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">hist</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1j</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">binphi</span><span class="p">))</span>
+                <span class="n">f</span><span class="p">[</span><span class="s">&#39;c_delta&#39;</span><span class="p">][</span><span class="n">m</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">hist1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1j</span> <span class="o">*</span> <span class="n">m</span> <span class="o">*</span> <span class="n">binphi</span><span class="p">))</span>
 
     <span class="n">f</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">][:,</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">][</span><span class="bp">self</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">f</span><span class="p">[</span><span class="s">&#39;amp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
     <span class="n">f</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;c&#39;</span><span class="p">]))</span>
 
-    <span class="k">return</span> <span class="n">f</span>
+    <span class="n">dphi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;c_delta&#39;</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;c_delta&#39;</span><span class="p">]))</span> <span class="o">-</span> <span class="n">f</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
+    <span class="n">dphi</span><span class="p">[</span><span class="n">dphi</span><span class="o">&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span> <span class="o">=</span> <span class="n">dphi</span><span class="p">[</span><span class="n">dphi</span><span class="o">&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">dphi</span><span class="p">[</span><span class="n">dphi</span><span class="o">&lt;-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span> <span class="o">=</span> <span class="n">dphi</span><span class="p">[</span><span class="n">dphi</span><span class="o">&lt;-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">dphi</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">dphi</span><span class="p">,</span><span class="s">&quot;1&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="p">[</span><span class="s">&#39;dphi_dt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dphi</span> <span class="o">/</span> <span class="n">delta_t</span><span class="p">)</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;vx&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
 
+    <span class="k">return</span> <span class="n">f</span>
+</div>
+<span class="nd">@Profile.profile_property</span>
+<div class="viewcode-block" id="pattern_frequency"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.pattern_frequency">[docs]</a><span class="k">def</span> <span class="nf">pattern_frequency</span><span class="p">(</span><span class="n">pro</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Estimate the pattern speed from the m=2 Fourier mode&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pro</span><span class="p">[</span><span class="s">&#39;fourier&#39;</span><span class="p">][</span><span class="s">&#39;dphi_dt&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">,:]</span><span class="o">/</span><span class="mi">2</span>
 </div>
 <span class="nd">@Profile.profile_property</span>
 <div class="viewcode-block" id="mass_enc"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.mass_enc">[docs]</a><span class="k">def</span> <span class="nf">mass_enc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -863,9 +897,8 @@
 <span class="nd">@Profile.profile_property</span>
 <div class="viewcode-block" id="kappa"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.kappa">[docs]</a><span class="k">def</span> <span class="nf">kappa</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney &amp; Tremaine Sect. 3.2)&quot;&quot;&quot;</span>
-    <span class="n">dOmegadR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;omega&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;dr&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">dOmegadR</span><span class="o">.</span><span class="n">set_units_like</span><span class="p">(</span><span class="s">&#39;km**2 s**-2 kpc**-3&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">dOmegadR</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;omega&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">dOmega2dR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;omega&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">dOmega2dR</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s">&#39;omega&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
 </div>
 <span class="nd">@Profile.profile_property</span>
@@ -1183,7 +1216,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

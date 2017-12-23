@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Pictures in Pynbody &mdash; pynbody 0.30 documentation</title>
+    <title>Pictures in Pynbody &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Halos in Pynbody" href="halos.html" />
     <link rel="prev" title="Plotting Rotation Cuves" href="rotation_curve.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -117,7 +117,7 @@
               
                 
   <li>
-    <a href="rotation_curve.html" title="Previous Chapter: Plotting Rotation Cuves"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Plotting Rotatio...</span>
+    <a href="rotation_curve.html" title="Previous Chapter: Plotting Rotation Cuves"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Plotting Rota...</span>
     </a>
   </li>
   <li>
@@ -249,11 +249,13 @@ vectors or flow lines overlaid:</p>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 <span class="c"># create the subplots</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
 <span class="n">f</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
 
 <span class="c">#create a simple slice showing the gas temperature, with velocity vectors overlaid</span>
 <span class="n">sph</span><span class="o">.</span><span class="n">velocity_image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&quot;cyan&quot;</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;YlOrRd&quot;</span><span class="p">,</span>
-                   <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">subplot</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">show_cbar</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+                   <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">subplot</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">show_cbar</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span>
+                   <span class="n">quiverkey</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 
 <span class="c">#you can also make a stream visualization instead of a quiver plot</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -263,9 +265,14 @@ vectors or flow lines overlaid:</p>
                    <span class="n">show_cbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>(<a class="reference external" href="../tutorials/example_code/velocity_vectors.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.pdf">pdf</a>)</p>
+<p>(<a class="reference external" href="../tutorials/example_code/velocity_vectors.py">Source code</a>)</p>
 <div class="figure">
-<img alt="../_images/velocity_vectors.png" src="../_images/velocity_vectors.png" />
+<img alt="../_images/velocity_vectors_00.png" src="../_images/velocity_vectors_00.png" />
+<p class="caption">(<a class="reference external" href="../tutorials/example_code/velocity_vectors_00.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_00.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_00.pdf">pdf</a>)</p>
+</div>
+<div class="figure">
+<img alt="../_images/velocity_vectors_01.png" src="../_images/velocity_vectors_01.png" />
+<p class="caption">(<a class="reference external" href="../tutorials/example_code/velocity_vectors_01.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_01.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_01.pdf">pdf</a>)</p>
 </div>
 </div>
 <div class="section" id="multi-band-images-of-stars">
@@ -357,7 +364,7 @@ star particles.</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

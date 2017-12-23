@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.analysis.ramses_util &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.analysis.ramses_util &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -182,6 +182,15 @@
 <span class="sd">currently loaded snapshot). The next time you call :func:`get_tform`,</span>
 <span class="sd">the data will be loaded from the disk and `part2birth` won&#39;t need to</span>
 <span class="sd">be run again.</span>
+
+<span class="sd">Feb 2016 - RS</span>
+<span class="sd">Note that in this version of ramses_util I have moved the &#39;birth&#39; files</span>
+<span class="sd">into the output directory to which they pertain. The old code wasn&#39;t</span>
+<span class="sd">placing them in a subdir of &#39;birth&#39; in the top output and since I had</span>
+<span class="sd">to fix it I thought it better not to have a single directory with</span>
+<span class="sd">potentially 1000&#39;s of files for all RAMSES outputs. The get_tform</span>
+<span class="sd">routine now creates the files under the approrpiate &quot;output_&quot; dir</span>
+<span class="sd">and reads them back from there.</span>
 
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -519,7 +528,7 @@
     <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 </div>
-<div class="viewcode-block" id="get_tform"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tform">[docs]</a><span class="k">def</span> <span class="nf">get_tform</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="o">=</span><span class="n">part2birth_path</span><span class="p">):</span>
+<div class="viewcode-block" id="get_tform"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tform">[docs]</a><span class="k">def</span> <span class="nf">get_tform</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="o">=</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="n">cpu_range</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Use `part2birth` to calculate the formation time of stars in</span>
 <span class="sd">    Gyr and **replaces** the original `tform` array.</span>
 
@@ -534,6 +543,9 @@
 <span class="sd">     `default_config.ini` in your pynbody install directory. You can</span>
 <span class="sd">     override this like so -- make a file called &quot;.pynbodyrc&quot; in your</span>
 <span class="sd">     home directory, and include</span>
+
+<span class="sd">     *cpu_range*: a list of cpus to process tform for. If specified, birth time</span>
+<span class="sd">      will only be processed for cpus in the list. - RS</span>
 
 <span class="sd">    [ramses]</span>
 
@@ -562,7 +574,15 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parent_dir</span> <span class="o">=</span> <span class="s">&#39;./&#39;</span>
 
+    <span class="c"># RS - If we only load a subset of cpus, </span>
+    <span class="c"># we need to ensure we dont&#39; try to load </span>
+    <span class="c"># them all... </span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_range</span><span class="p">:</span> <span class="c"># means user hasn&#39;t specified a range: use all</span>
+        <span class="n">cpu_range</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">)</span>
+
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cpu_range</span><span class="p">:</span>
+            <span class="k">continue</span><span class="p">;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">/output_</span><span class="si">%s</span><span class="s">/birth_</span><span class="si">%s</span><span class="s">.out</span><span class="si">%05d</span><span class="s">&#39;</span> <span class="o">%</span>
                      <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
@@ -582,7 +602,7 @@
 
         <span class="n">n</span> <span class="o">=</span> <span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;i&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">n</span> <span class="o">/=</span> <span class="mi">8</span>
+            <span class="n">n</span> <span class="o">//=</span> <span class="mi">8</span> <span class="c"># We want integer divide. This will work in py27 and py30+</span>
             <span class="n">ages</span> <span class="o">=</span> <span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;d&#39;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
             <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">][</span><span class="n">done</span><span class="p">:</span><span class="n">done</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">new</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ages</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
@@ -608,7 +628,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

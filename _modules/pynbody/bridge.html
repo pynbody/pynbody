@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.bridge &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.bridge &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -189,10 +189,15 @@
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;Stale reference to start or endpoint&quot;</span>
         <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
 
-<div class="viewcode-block" id="Bridge.match_catalog"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.bridge.Bridge.match_catalog">[docs]</a>    <span class="k">def</span> <span class="nf">match_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_index</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+<div class="viewcode-block" id="Bridge.match_catalog"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.bridge.Bridge.match_catalog">[docs]</a>    <span class="k">def</span> <span class="nf">match_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_index</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                      <span class="n">groups_1</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">groups_2</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+                      <span class="n">use_family</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Given a Halos object groups_1, a Halos object groups_2 and a</span>
 <span class="sd">        Bridge object connecting the two parent simulations, this identifies</span>
 <span class="sd">        the most likely ID&#39;s in groups_2 of the objects specified in groups_1.</span>
+
+<span class="sd">        If groups_1 and groups_2 are not specified, they are automatically obtained</span>
+<span class="sd">        using the SimSnap.halos method.</span>
 
 <span class="sd">        Parameters min_index and max_index are the minimum and maximum halo</span>
 <span class="sd">        numbers to be matched (in both ends of the bridge). If max_index is</span>
@@ -213,29 +218,106 @@
 <span class="sd">        they have too few particles in common give the result -1. This is determined</span>
 <span class="sd">        by the given threshold fraction of particles in common (by default, 50%).</span>
 
+<span class="sd">        If use_family is specified, only particles from that family are cross-matched.</span>
+<span class="sd">        This can be useful e.g. if matching between two different simulations where</span>
+<span class="sd">        the relationship between DM particles is known, but perhaps the relationship</span>
+<span class="sd">        between star particles is random.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fuzzy_matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_match_catalog</span><span class="p">(</span><span class="n">min_index</span><span class="p">,</span> <span class="n">max_index</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">groups_1</span><span class="p">,</span> <span class="n">groups_2</span><span class="p">,</span> <span class="n">use_family</span><span class="p">)</span>
+
+        <span class="n">identification</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_index</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fuzzy_matches</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                <span class="n">identification</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">min_index</span><span class="p">:</span>
+                <span class="n">identification</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">identification</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">identification</span>
+</div>
+<div class="viewcode-block" id="Bridge.fuzzy_match_catalog"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.bridge.Bridge.fuzzy_match_catalog">[docs]</a>    <span class="k">def</span> <span class="nf">fuzzy_match_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_index</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                            <span class="n">groups_1</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">groups_2</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">use_family</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">only_family</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;fuzzy_match_catalog returns, for each halo in groups_1, a list of possible</span>
+<span class="sd">        identifications in groups_2, along with the fraction of particles in common</span>
+<span class="sd">        between the two.</span>
+
+<span class="sd">        Normally, match_catalog is simpler to use, but this routine offers greater</span>
+<span class="sd">        flexibility for advanced users. The first entry for each halo corresponds</span>
+<span class="sd">        to the output from match_catalog.</span>
+
+<span class="sd">        If no identification is found, the entry is the empty list [].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">transfer_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog_transfer_matrix</span><span class="p">(</span><span class="n">min_index</span><span class="p">,</span><span class="n">max_index</span><span class="p">,</span><span class="n">groups_1</span><span class="p">,</span><span class="n">groups_2</span><span class="p">,</span><span class="n">use_family</span><span class="p">,</span><span class="n">only_family</span><span class="p">)</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[[]]</span><span class="o">*</span><span class="n">min_index</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">transfer_matrix</span><span class="p">:</span>
+            <span class="n">this_row_matches</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                <span class="n">frac_particles_transferred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">/</span><span class="n">row</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="n">above_threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">frac_particles_transferred</span><span class="o">&gt;</span><span class="n">threshold</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">above_threshold</span> <span class="o">=</span> <span class="n">above_threshold</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">frac_particles_transferred</span><span class="p">[</span><span class="n">above_threshold</span><span class="p">])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+                <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">above_threshold</span><span class="p">:</span>
+                    <span class="n">this_row_matches</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">column</span><span class="o">+</span><span class="n">min_index</span><span class="p">,</span> <span class="n">frac_particles_transferred</span><span class="p">[</span><span class="n">column</span><span class="p">]))</span>
+
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_row_matches</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output</span>
+</div>
+<div class="viewcode-block" id="Bridge.catalog_transfer_matrix"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.bridge.Bridge.catalog_transfer_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">catalog_transfer_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_index</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">groups_1</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">groups_2</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">use_family</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">only_family</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a max_index x max_index matrix with the number of particles transferred from</span>
+<span class="sd">        the row group in groups_1 to the column group in groups_2.</span>
+
+<span class="sd">        Normally, match_catalog (or fuzzy_match_catalog) are easier to use, but this routine</span>
+<span class="sd">        provides the maximal information.&quot;&quot;&quot;</span>
+
         <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ends</span><span class="p">()</span>
-        <span class="n">groups_1</span> <span class="o">=</span> <span class="n">start</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
-        <span class="n">groups_2</span> <span class="o">=</span> <span class="n">end</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">groups_1</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">groups_1</span> <span class="o">=</span> <span class="n">start</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">groups_1</span><span class="o">.</span><span class="n">base</span> <span class="ow">is</span> <span class="n">start</span>
 
-        <span class="n">restriction_end</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="bp">self</span><span class="p">(</span><span class="n">end</span><span class="p">))</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">ancestor</span><span class="p">)</span>
-        <span class="n">restriction_start</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="bp">self</span><span class="p">(</span><span class="n">start</span><span class="p">))</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">ancestor</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">groups_2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">groups_2</span> <span class="o">=</span> <span class="n">end</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">groups_2</span><span class="o">.</span><span class="n">base</span> <span class="ow">is</span> <span class="n">end</span>
 
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">restriction_end</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
-            <span class="n">restriction_start</span><span class="p">),</span> <span class="s">&quot;Internal consistency failure in match_catalog2&quot;</span>
-        <span class="n">g1</span> <span class="o">=</span> <span class="n">groups_1</span><span class="o">.</span><span class="n">get_group_array</span><span class="p">()[</span><span class="n">restriction_start</span><span class="p">]</span>
-        <span class="n">g2</span> <span class="o">=</span> <span class="n">groups_2</span><span class="o">.</span><span class="n">get_group_array</span><span class="p">()[</span><span class="n">restriction_end</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">use_family</span><span class="p">:</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">end</span><span class="p">[</span><span class="n">use_family</span><span class="p">]</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">start</span><span class="p">[</span><span class="n">use_family</span><span class="p">]</span>
 
-        <span class="n">mass</span> <span class="o">=</span> <span class="n">_bridge</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">min_index</span><span class="p">,</span> <span class="n">max_index</span><span class="p">)</span>
+        <span class="n">restricted_start_particles</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="bp">self</span><span class="p">(</span><span class="n">start</span><span class="p">))</span> <span class="c"># map back and forth to get only particles that are held in common</span>
+        <span class="n">restricted_end_particles</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">restricted_start_particles</span><span class="p">)</span> <span class="c"># map back to start in case a reordering is required</span>
 
-        <span class="n">identification</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">min_index</span>
-        <span class="n">frac_shared</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mass</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">identification</span><span class="p">)),</span> <span class="n">identification</span> <span class="o">-</span> <span class="n">min_index</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="n">mass</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">restriction_end_indices</span> <span class="o">=</span> <span class="n">restricted_end_particles</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">ancestor</span><span class="p">)</span>
+        <span class="n">restriction_start_indices</span> <span class="o">=</span> <span class="n">restricted_start_particles</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">ancestor</span><span class="p">)</span>
 
-        <span class="n">identification</span><span class="p">[</span>
-            <span class="p">(</span><span class="n">frac_shared</span> <span class="o">!=</span> <span class="n">frac_shared</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">frac_shared</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">)]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">restriction_end_indices</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="n">restriction_start_indices</span><span class="p">),</span> <span class="s">&quot;Internal consistency failure in catalog_transfer_matrix: particles supposedly common to both simulations have two different lengths&quot;</span>
 
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">min_index</span><span class="p">,</span> <span class="n">identification</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">only_family</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+
+
+            <span class="n">g1</span> <span class="o">=</span> <span class="n">groups_1</span><span class="o">.</span><span class="n">get_group_array</span><span class="p">()[</span><span class="n">restriction_start_indices</span><span class="p">]</span>
+            <span class="n">g2</span> <span class="o">=</span> <span class="n">groups_2</span><span class="o">.</span><span class="n">get_group_array</span><span class="p">()[</span><span class="n">restriction_end_indices</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="n">g1</span> <span class="o">=</span> <span class="n">groups_1</span><span class="o">.</span><span class="n">get_group_array</span><span class="p">(</span><span class="n">family</span><span class="o">=</span><span class="n">only_family</span><span class="p">)[</span><span class="n">restriction_start_indices</span><span class="p">]</span>
+            <span class="n">g2</span> <span class="o">=</span> <span class="n">groups_2</span><span class="o">.</span><span class="n">get_group_array</span><span class="p">(</span><span class="n">family</span><span class="o">=</span><span class="n">only_family</span><span class="p">)[</span><span class="n">restriction_end_indices</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">max_index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">max_index</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">groups_1</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups_2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">min_index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">min_index</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">g1</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span><span class="n">g2</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+
+        <span class="n">transfer_matrix</span> <span class="o">=</span> <span class="n">_bridge</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">min_index</span><span class="p">,</span> <span class="n">max_index</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">transfer_matrix</span>
 
 </div></div>
 <div class="viewcode-block" id="OrderBridge"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.bridge.OrderBridge">[docs]</a><span class="k">class</span> <span class="nc">OrderBridge</span><span class="p">(</span><span class="n">Bridge</span><span class="p">):</span>
@@ -251,11 +333,12 @@
 <span class="sd">    failsafe option.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">order_array</span><span class="o">=</span><span class="s">&quot;iord&quot;</span><span class="p">,</span> <span class="n">monotonic</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">order_array</span><span class="o">=</span><span class="s">&quot;iord&quot;</span><span class="p">,</span> <span class="n">monotonic</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">allow_family_change</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_order_array</span> <span class="o">=</span> <span class="n">order_array</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">monotonic</span> <span class="o">=</span> <span class="n">monotonic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allow_family_change</span> <span class="o">=</span> <span class="n">allow_family_change</span>
 
     <span class="k">def</span> <span class="nf">is_same</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">):</span>
 
@@ -286,10 +369,18 @@
             <span class="n">iord_to</span> <span class="o">=</span> <span class="n">iord_to</span><span class="p">[</span><span class="n">iord_map_to</span><span class="p">]</span>
             <span class="n">iord_from</span> <span class="o">=</span> <span class="n">iord_from</span><span class="p">[</span><span class="n">iord_map_from</span><span class="p">]</span>
 
-        <span class="n">output_index</span> <span class="o">=</span> <span class="n">_bridge</span><span class="o">.</span><span class="n">bridge</span><span class="p">(</span><span class="n">iord_to</span><span class="p">,</span> <span class="n">iord_from</span><span class="p">)</span>
+        <span class="n">output_index</span><span class="p">,</span> <span class="n">found_match</span> <span class="o">=</span> <span class="n">_bridge</span><span class="o">.</span><span class="n">bridge</span><span class="p">(</span><span class="n">iord_to</span><span class="p">,</span> <span class="n">iord_from</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">monotonic</span><span class="p">:</span>
-            <span class="n">output_index</span> <span class="o">=</span> <span class="n">iord_map_to</span><span class="p">[</span><span class="n">output_index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">iord_map_from</span><span class="p">)]]</span>
+            <span class="n">output_index</span> <span class="o">=</span> <span class="n">iord_map_to</span><span class="p">[</span><span class="n">output_index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">iord_map_from</span><span class="p">)][</span><span class="n">found_match</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output_index</span> <span class="o">=</span> <span class="n">output_index</span><span class="p">[</span><span class="n">found_match</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_family_change</span><span class="p">:</span>
+            <span class="n">new_family_index</span> <span class="o">=</span> <span class="n">to_</span><span class="o">.</span><span class="n">_family_index</span><span class="p">()[</span><span class="n">output_index</span><span class="p">]</span>
+
+            <span class="c"># stable sort by family:</span>
+            <span class="n">output_index</span> <span class="o">=</span> <span class="n">output_index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">((</span><span class="n">new_family_index</span><span class="p">,))]</span>
 
         <span class="k">return</span> <span class="n">to_</span><span class="p">[</span><span class="n">output_index</span><span class="p">]</span>
 
@@ -305,13 +396,13 @@
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">a_top</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">b_top</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;Don&#39;t know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately.&quot;</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">nchilada</span><span class="o">.</span><span class="n">NChiladaSnap</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">nchilada</span><span class="o">.</span><span class="n">NchiladaSnap</span><span class="p">)):</span>
         <span class="k">if</span> <span class="s">&quot;iord&quot;</span> <span class="ow">in</span> <span class="n">a_top</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">OrderBridge</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">b_top</span><span class="p">,</span> <span class="n">monotonic</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Bridge</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">b_top</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">gadgethdf</span><span class="o">.</span><span class="n">GadgetHDFSnap</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">OrderBridge</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">b_top</span><span class="p">,</span> <span class="n">monotonic</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">OrderBridge</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">b_top</span><span class="p">,</span> <span class="n">monotonic</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">allow_family_change</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_top</span><span class="p">,</span> <span class="n">ramses</span><span class="o">.</span><span class="n">RamsesSnap</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;Cannot bridge AMR gas cells&quot;</span>
@@ -334,7 +425,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

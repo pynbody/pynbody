@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.plot.gas &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.plot.gas &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -146,7 +146,7 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.plot.gas&#39;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="rho_T"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.gas.rho_T">[docs]</a><span class="k">def</span> <span class="nf">rho_T</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">rho_units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rho_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">t_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="rho_T"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.gas.rho_T">[docs]</a><span class="k">def</span> <span class="nf">rho_T</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">rho_units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rho_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">t_range</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">two_phase</span><span class="o">=</span><span class="s">&#39;split&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot Temperature vs. Density for the gas particles in the snapshot.</span>
 
@@ -159,6 +159,8 @@
 
 <span class="sd">       *rho_range:* tuple</span>
 <span class="sd">          ``size(rho_range)`` must be 2. Specifies the density range.</span>
+
+<span class="sd">       *two_phase*: if two-phase particles are detected, either plot each phase separately (&#39;split&#39;), or merge them (&#39;merge&#39;)</span>
 
 <span class="sd">    See :func:`~pynbody.plot.generic.hist2d` for other plotting keyword options</span>
 
@@ -190,6 +192,21 @@
         <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;ylabel&#39;</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">ylabel</span> <span class="o">=</span> <span class="s">r&#39;log$_{10}$(T/$&#39;</span> <span class="o">+</span> <span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;$)&#39;</span>
+
+    <span class="k">if</span> <span class="s">&#39;Tinc&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">two_phase</span> <span class="o">==</span> <span class="s">&#39;merge&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">hist2d</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">rho_units</span><span class="p">),</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;Tinc&#39;</span><span class="p">],</span>
+                      <span class="n">xlogrange</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">ylogrange</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">xlabel</span><span class="o">=</span><span class="n">xlabel</span><span class="p">,</span>
+                      <span class="n">ylabel</span><span class="o">=</span><span class="n">ylabel</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s">&#39;uHot&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span> <span class="ow">and</span> <span class="s">&#39;MassHot&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">two_phase</span> <span class="o">==</span> <span class="s">&#39;split&#39;</span><span class="p">:</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;uHot&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;MassHot&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;u&#39;</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;MassHot&#39;</span><span class="p">])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">rho_units</span><span class="p">)</span><span class="o">*</span><span class="n">E</span><span class="o">/</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;u&#39;</span><span class="p">]),</span> 
+            <span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">rho_units</span><span class="p">)</span><span class="o">*</span><span class="n">E</span><span class="o">/</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;uHot&#39;</span><span class="p">])))</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;u&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;uHot&#39;</span><span class="p">]))</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rho</span><span class="p">))]</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rho</span><span class="p">))]</span>
+        <span class="k">return</span> <span class="n">hist2d</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">xlogrange</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">ylogrange</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">xlabel</span><span class="o">=</span><span class="n">xlabel</span><span class="p">,</span>
+                <span class="n">ylabel</span><span class="o">=</span><span class="n">ylabel</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">hist2d</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">rho_units</span><span class="p">),</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">],</span>
                   <span class="n">xlogrange</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">ylogrange</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">xlabel</span><span class="o">=</span><span class="n">xlabel</span><span class="p">,</span>
@@ -250,7 +267,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

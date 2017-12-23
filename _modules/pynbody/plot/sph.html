@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.plot.sph &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.plot.sph &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
     <link rel="up" title="Module code" href="../../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -178,9 +178,10 @@
         <span class="k">return</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="velocity_image"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.sph.velocity_image">[docs]</a><span class="k">def</span> <span class="nf">velocity_image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s">&quot;10 kpc&quot;</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="velocity_image"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.sph.velocity_image">[docs]</a><span class="k">def</span> <span class="nf">velocity_image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s">&quot;10 kpc&quot;</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="n">quiverkey_bg_color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                    <span class="n">vector_resolution</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;quiver&#39;</span><span class="p">,</span> <span class="n">key_x</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">key_y</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
-                   <span class="n">key_color</span><span class="o">=</span><span class="s">&#39;white&#39;</span><span class="p">,</span> <span class="n">key_length</span><span class="o">=</span><span class="s">&quot;100 km s**-1&quot;</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                   <span class="n">key_color</span><span class="o">=</span><span class="s">&#39;white&#39;</span><span class="p">,</span> <span class="n">key_length</span><span class="o">=</span><span class="s">&quot;100 km s**-1&quot;</span><span class="p">,</span> <span class="n">quiverkey</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                   <span class="n">vector_qty</span><span class="o">=</span><span class="s">&#39;vel&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Make an SPH image of the given simulation with velocity vectors overlaid on top.</span>
@@ -198,6 +199,8 @@
 
 <span class="sd">    *vector_resolution* (40): How many vectors in each dimension (default is 40x40)</span>
 
+<span class="sd">    *quiverkey_bg_color* (none): The color for the legend (scale) background</span>
+
 <span class="sd">    *scale* (None): The length of a vector that would result in a displayed length of the</span>
 <span class="sd">    figure width/height.</span>
 
@@ -213,18 +216,24 @@
 
 <span class="sd">    *density* (1.0): Density of stream lines (stream mode only)</span>
 
+<span class="sd">    *quiverkey* (True): Whether or not to inset the key</span>
+
+<span class="sd">    *vector_qty* (&#39;vel&#39;): The name of the vector field to plot</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">subplot</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;subplot&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+    <span class="n">av_z</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;av_z&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">subplot</span><span class="p">:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">subplot</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">p</span>
 
-    <span class="n">vx</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;vx&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-               <span class="n">resolution</span><span class="o">=</span><span class="n">vector_resolution</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-    <span class="n">vy</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;vy&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-               <span class="n">resolution</span><span class="o">=</span><span class="n">vector_resolution</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">vx_name</span><span class="p">,</span> <span class="n">vy_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_array_name_ND_to_1D</span><span class="p">(</span><span class="n">vector_qty</span><span class="p">)</span>
+
+    <span class="n">vx</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">vx_name</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+               <span class="n">resolution</span><span class="o">=</span><span class="n">vector_resolution</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">av_z</span><span class="o">=</span><span class="n">av_z</span><span class="p">)</span>
+    <span class="n">vy</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">vy_name</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+               <span class="n">resolution</span><span class="o">=</span><span class="n">vector_resolution</span><span class="p">,</span> <span class="n">noplot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">av_z</span><span class="o">=</span><span class="n">av_z</span><span class="p">)</span>
     <span class="n">key_unit</span> <span class="o">=</span> <span class="n">_units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">key_length</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">width</span><span class="o">.</span><span class="n">__class__</span><span class="p">,</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
@@ -234,8 +243,9 @@
 
     <span class="n">width</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
 
-    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width</span> <span class="o">/</span> <span class="n">vector_resolution</span><span class="p">),</span>
-                       <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width</span> <span class="o">/</span> <span class="n">vector_resolution</span><span class="p">))</span>
+    <span class="n">pixel_size</span> <span class="o">=</span> <span class="n">width</span> <span class="o">/</span> <span class="n">vector_resolution</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">pixel_size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">pixel_size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">pixel_size</span> <span class="p">),</span>
+                       <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">pixel_size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">pixel_size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">pixel_size</span><span class="p">))</span>
 
     <span class="n">im</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
@@ -245,10 +255,21 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">Q</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">quiver</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">_units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span>
                 <span class="n">sim</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">vector_color</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">edgecolor</span><span class="p">)</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">quiverkey</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">key_x</span><span class="p">,</span> <span class="n">key_y</span><span class="p">,</span> <span class="n">key_unit</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()),</span>
-                    <span class="s">r&quot;$\mathbf{&quot;</span> <span class="o">+</span> <span class="n">key_unit</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;}$&quot;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="n">key_color</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">key_color</span><span class="p">,</span> <span class="n">fontproperties</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;size&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">})</span>
+        <span class="k">if</span> <span class="n">quiverkey</span><span class="p">:</span>
+        	<span class="n">qk</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">quiverkey</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">key_x</span><span class="p">,</span> <span class="n">key_y</span><span class="p">,</span> <span class="n">key_unit</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()),</span>
+                    <span class="s">r&quot;$\mathbf{&quot;</span> <span class="o">+</span> <span class="n">key_unit</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;}$&quot;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="n">key_color</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">key_color</span><span class="p">,</span> <span class="n">fontproperties</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;size&#39;</span><span class="p">:</span> <span class="mi">24</span><span class="p">})</span>
+        <span class="k">if</span>  <span class="n">quiverkey_bg_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">qk</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">set_backgroundcolor</span><span class="p">(</span><span class="n">quiverkey_bg_color</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s">&#39;stream&#39;</span> <span class="p">:</span>
         <span class="n">Q</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">streamplot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">vector_color</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="n">density</span><span class="p">)</span>
+
+	<span class="c"># RS - if a axis object is passed in, use the right limit call</span>
+    <span class="k">if</span> <span class="n">subplot</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">im</span>
 
@@ -329,7 +350,7 @@
         <span class="n">ctf</span><span class="o">.</span><span class="n">add_rgb_point</span><span class="p">(</span><span class="n">vmin</span><span class="o">+</span><span class="p">(</span><span class="n">vmax</span><span class="o">-</span><span class="n">vmin</span><span class="p">)</span><span class="o">*</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">200.</span><span class="o">/</span><span class="mi">255</span><span class="p">,</span><span class="mf">178.</span><span class="o">/</span><span class="mi">255</span><span class="p">,</span><span class="mf">164.</span><span class="o">/</span><span class="mi">255</span><span class="p">)</span>
         <span class="n">ctf</span><span class="o">.</span><span class="n">add_rgb_point</span><span class="p">(</span><span class="n">vmin</span><span class="o">+</span><span class="p">(</span><span class="n">vmax</span><span class="o">-</span><span class="n">vmin</span><span class="p">)</span><span class="o">*</span><span class="mf">0.9</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">210.</span><span class="o">/</span><span class="mi">255</span><span class="p">,</span><span class="mf">149.</span><span class="o">/</span><span class="mi">255</span><span class="p">)</span>
         <span class="n">ctf</span><span class="o">.</span><span class="n">add_rgb_point</span><span class="p">(</span><span class="n">vmax</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">222.</span><span class="o">/</span><span class="mi">255</span><span class="p">,</span><span class="mf">141.</span><span class="o">/</span><span class="mi">255</span><span class="p">)</span>
-        <span class="k">print</span> <span class="n">vmin</span><span class="p">,</span><span class="n">vmax</span>
+
         <span class="n">V</span><span class="o">.</span><span class="n">_volume_property</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">ctf</span><span class="p">)</span>
         <span class="n">V</span><span class="o">.</span><span class="n">_ctf</span> <span class="o">=</span> <span class="n">ctf</span>
         <span class="n">V</span><span class="o">.</span><span class="n">update_ctf</span> <span class="o">=</span> <span class="bp">True</span>
@@ -370,8 +391,20 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">im</span><span class="p">,</span><span class="n">nlevels</span><span class="o">=</span><span class="n">nlevels</span><span class="p">,</span><span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">)</span>
 
-
 </div>
+<span class="k">def</span> <span class="nf">_units_imply_projection</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">units</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+        <span class="c"># if this fails, perhaps we&#39;re requesting a projected image?</span>
+        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">except</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">:</span>
+        <span class="c"># if the following fails, there&#39;s no interpretation this routine</span>
+        <span class="c"># can cope with. The error will be allowed to propagate.</span>
+        <span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span>
+            <span class="n">units</span> <span class="o">/</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+
 <div class="viewcode-block" id="image"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.sph.image">[docs]</a><span class="k">def</span> <span class="nf">image</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s">&quot;10 kpc&quot;</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
           <span class="n">vmin</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">av_z</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
           <span class="n">z_camera</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
@@ -448,6 +481,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">plt</span>
 
+    <span class="k">if</span> <span class="n">qtytitle</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">qtytitle</span> <span class="o">=</span> <span class="n">qty</span>
+
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">units</span> <span class="o">=</span> <span class="n">_units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
 
@@ -464,19 +500,12 @@
     <span class="k">if</span> <span class="n">perspective</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">av_z</span><span class="p">:</span>
         <span class="n">kernel</span> <span class="o">=</span> <span class="n">sph</span><span class="o">.</span><span class="n">Kernel2D</span><span class="p">()</span>
 
+    <span class="n">is_projected</span> <span class="o">=</span> <span class="bp">False</span>
     <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
-            <span class="c"># if this fails, perhaps we&#39;re requesting a projected image?</span>
+        <span class="n">is_projected</span> <span class="o">=</span> <span class="n">_units_imply_projection</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span>
 
-        <span class="k">except</span> <span class="n">_units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">:</span>
-            <span class="c"># if the following fails, there&#39;s no interpretation this routine</span>
-            <span class="c"># can cope with</span>
-            <span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span>
-                <span class="n">units</span> <span class="o">/</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
-
-            <span class="c"># if we get to this point, we want a projected image</span>
-            <span class="n">kernel</span> <span class="o">=</span> <span class="n">sph</span><span class="o">.</span><span class="n">Kernel2D</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">is_projected</span><span class="p">:</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="n">sph</span><span class="o">.</span><span class="n">Kernel2D</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">av_z</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">sph</span><span class="o">.</span><span class="n">Kernel2D</span><span class="p">):</span>
@@ -537,7 +566,7 @@
 
             <span class="c"># check if there are negative values -- if so, use the symmetric</span>
             <span class="c"># log normalization</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">im</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">vmin</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">im</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="p">)</span> <span class="ow">or</span> <span class="p">((</span><span class="n">vmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="n">vmin</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">):</span>
 
                 <span class="c"># need to set the linear regime around zero -- set to by</span>
                 <span class="c"># default start at 1/1000 of the log range</span>
@@ -575,19 +604,16 @@
         <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">units</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">units</span>
 
-        <span class="k">if</span> <span class="n">log</span> <span class="p">:</span>
-            <span class="n">units</span> <span class="o">=</span> <span class="s">r&quot;$\log_{10}\,&quot;</span><span class="o">+</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&quot;$&quot;</span>
-        <span class="k">else</span> <span class="p">:</span>
-            <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="ow">is</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
-                <span class="n">units</span><span class="o">=</span><span class="s">&quot;&quot;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">units</span> <span class="o">=</span> <span class="s">&quot;$&quot;</span><span class="o">+</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&quot;$&quot;</span>
+
+        
+        <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span> <span class="ow">is</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">units</span><span class="o">=</span><span class="s">&quot;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s">&quot;$&quot;</span><span class="o">+</span><span class="n">units</span><span class="o">.</span><span class="n">latex</span><span class="p">()</span><span class="o">+</span><span class="s">&quot;$&quot;</span>
 
         <span class="k">if</span> <span class="n">show_cbar</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">qtytitle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ims</span><span class="p">)</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="n">qtytitle</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ims</span><span class="p">)</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
+             <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ims</span><span class="p">)</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="n">qtytitle</span><span class="o">+</span><span class="s">&quot;/&quot;</span><span class="o">+</span><span class="n">units</span><span class="p">)</span>
+
         <span class="c"># colorbar doesn&#39;t work wtih subplot:  mappable is NoneType</span>
         <span class="c"># elif show_cbar:</span>
         <span class="c">#    import matplotlib.pyplot as mpl</span>
@@ -650,7 +676,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

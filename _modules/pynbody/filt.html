@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.filt &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.filt &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -144,8 +144,8 @@
 
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">_util</span>
-
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">_util</span><span class="p">,</span> <span class="n">family</span>
 
 <span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
@@ -171,6 +171,40 @@
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s">&quot;Filter()&quot;</span>
 
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">equal</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">v</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">equal</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">equal</span> <span class="o">=</span> <span class="n">equal</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">equal</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">return</span> <span class="bp">True</span>
+
+
+<span class="k">class</span> <span class="nc">FamilyFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">family_</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">family_</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">Family</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="n">family_</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">family_</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;FamilyFilter(&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="o">.</span><span class="n">name</span><span class="o">+</span><span class="s">&quot;)&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
+        <span class="n">slice_</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="p">)</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">flags</span><span class="p">[</span><span class="n">slice_</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="n">flags</span>
 
 <span class="k">class</span> <span class="nc">And</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
@@ -496,7 +530,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

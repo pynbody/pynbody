@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Index &mdash; pynbody 0.30 documentation</title>
+    <title>Index &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -29,7 +29,7 @@
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="index.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -286,6 +286,10 @@
   </dt>
 
       
+  <dt><a href="reference/convenience.html#pynbody.bridge.Bridge.catalog_transfer_matrix">catalog_transfer_matrix() (pynbody.bridge.Bridge method)</a>
+  </dt>
+
+      
   <dt><a href="reference/analysis.html#pynbody.analysis.halo.center">center() (in module pynbody.analysis.halo)</a>
   </dt>
 
@@ -465,12 +469,12 @@
   </dt>
 
       </dl></dd>
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="reference/essentials.html#pynbody.snapshot.SimSnap.family_keys">family_keys() (pynbody.snapshot.SimSnap method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="reference/essentials.html#pynbody.family.family_names">family_names() (in module pynbody.family)</a>
   </dt>
@@ -497,6 +501,10 @@
 
       
   <dt><a href="reference/plot.html#pynbody.plot.profile.fourier_profile">fourier_profile() (in module pynbody.plot.profile)</a>
+  </dt>
+
+      
+  <dt><a href="reference/convenience.html#pynbody.bridge.Bridge.fuzzy_match_catalog">fuzzy_match_catalog() (pynbody.bridge.Bridge method)</a>
   </dt>
 
   </dl></td>
@@ -532,9 +540,15 @@
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="reference/convenience.html#pynbody.halo.HaloCatalogue.get_group_array">get_group_array() (pynbody.halo.HaloCatalogue method)</a>
+  <dt><a href="reference/convenience.html#pynbody.halo.AHFCatalogue.get_group_array">get_group_array() (pynbody.halo.AHFCatalogue method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="reference/convenience.html#pynbody.halo.HaloCatalogue.get_group_array">(pynbody.halo.HaloCatalogue method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="reference/essentials.html#pynbody.snapshot.SimSnap.get_index_list">get_index_list() (pynbody.snapshot.SimSnap method)</a>
   </dt>
@@ -605,12 +619,12 @@
   <dt><a href="reference/essentials.html#pynbody.snapshot.SimSnap.has_key">has_key() (pynbody.snapshot.SimSnap method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="reference/essentials.html#pynbody.units.has_unit">has_unit() (in module pynbody.units)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="reference/essentials.html#pynbody.units.has_units">has_units() (in module pynbody.units)</a>
   </dt>
@@ -637,6 +651,10 @@
 
       
   <dt><a href="reference/analysis.html#pynbody.analysis.ramses_util.hop_center">hop_center() (in module pynbody.analysis.ramses_util)</a>
+  </dt>
+
+      
+  <dt><a href="reference/convenience.html#pynbody.halo.HOPCatalogue">HOPCatalogue (class in pynbody.halo)</a>
   </dt>
 
       
@@ -869,11 +887,19 @@
 
       <dd><dl>
         
+  <dt><a href="reference/convenience.html#pynbody.halo.GrpCatalogue.load_copy">(pynbody.halo.GrpCatalogue method)</a>
+  </dt>
+
+        
   <dt><a href="reference/convenience.html#pynbody.halo.RockstarCatalogueOneCpu.load_copy">(pynbody.halo.RockstarCatalogueOneCpu method)</a>
   </dt>
 
         
   <dt><a href="reference/convenience.html#pynbody.halo.RockstarIntermediateCatalogue.load_copy">(pynbody.halo.RockstarIntermediateCatalogue method)</a>
+  </dt>
+
+        
+  <dt><a href="reference/essentials.html#pynbody.snapshot.SimSnap.load_copy">(pynbody.snapshot.SimSnap method)</a>
   </dt>
 
       </dl></dd>
@@ -912,17 +938,15 @@
   <dt><a href="reference/convenience.html#pynbody.halo.RockstarCatalogueOneCpu.make_grp">(pynbody.halo.RockstarCatalogueOneCpu method)</a>
   </dt>
 
+        
+  <dt><a href="reference/convenience.html#pynbody.halo.SubfindCatalogue.make_grp">(pynbody.halo.SubfindCatalogue method)</a>
+  </dt>
+
       </dl></dd>
       
-  <dt><a href="reference/analysis.html#pynbody.analysis.profile.mass">mass() (in module pynbody.analysis.profile)</a>
+  <dt><a href="reference/derived.html#pynbody.snapshot.ramses.mass">mass() (in module pynbody.snapshot.ramses)</a>
   </dt>
 
-      <dd><dl>
-        
-  <dt><a href="reference/derived.html#pynbody.snapshot.ramses.mass">(in module pynbody.snapshot.ramses)</a>
-  </dt>
-
-      </dl></dd>
       
   <dt><a href="reference/analysis.html#pynbody.analysis.profile.mass_enc">mass_enc() (in module pynbody.analysis.profile)</a>
   </dt>
@@ -959,6 +983,10 @@
 
       
   <dt><a href="reference/derived.html#pynbody.snapshot.tipsy.mjeans_turb">mjeans_turb() (in module pynbody.snapshot.tipsy)</a>
+  </dt>
+
+      
+  <dt><a href="reference/plot.html#pynbody.plot.stars.mollview">mollview() (in module pynbody.plot.stars)</a>
   </dt>
 
       
@@ -1045,6 +1073,10 @@
 
       
   <dt><a href="reference/essentials.html#pynbody.util.parallel">parallel() (in module pynbody.util)</a>
+  </dt>
+
+      
+  <dt><a href="reference/analysis.html#pynbody.analysis.profile.pattern_frequency">pattern_frequency() (in module pynbody.analysis.profile)</a>
   </dt>
 
       
@@ -1277,6 +1309,10 @@
 
       
   <dt><a href="reference/convenience.html#pynbody.sph.render_image">render_image() (in module pynbody.sph)</a>
+  </dt>
+
+      
+  <dt><a href="reference/plot.html#pynbody.plot.stars.render_mollweide">render_mollweide() (in module pynbody.plot.stars)</a>
   </dt>
 
       
@@ -1596,6 +1632,10 @@
   </dt>
 
       
+  <dt><a href="reference/analysis.html#pynbody.analysis.profile.weight_fn">weight_fn() (in module pynbody.analysis.profile)</a>
+  </dt>
+
+      
   <dt><a href="reference/essentials.html#pynbody.snapshot.SimSnap.wrap">wrap() (pynbody.snapshot.SimSnap method)</a>
   </dt>
 
@@ -1617,12 +1657,12 @@
   <dt><a href="reference/analysis.html#pynbody.analysis.ramses_util.write_ahf_input">write_ahf_input() (in module pynbody.analysis.ramses_util)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="reference/essentials.html#pynbody.snapshot.SimSnap.write_array">write_array() (pynbody.snapshot.SimSnap method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="reference/analysis.html#pynbody.analysis.ramses_util.write_tipsy_param">write_tipsy_param() (in module pynbody.analysis.ramses_util)</a>
   </dt>
@@ -1639,10 +1679,22 @@
   <dt><a href="reference/convenience.html#pynbody.halo.AHFCatalogue.writestat">writestat() (pynbody.halo.AHFCatalogue method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="reference/convenience.html#pynbody.halo.RockstarCatalogueOneCpu.writestat">(pynbody.halo.RockstarCatalogueOneCpu method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="reference/convenience.html#pynbody.halo.AHFCatalogue.writetipsy">writetipsy() (pynbody.halo.AHFCatalogue method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="reference/convenience.html#pynbody.halo.RockstarCatalogueOneCpu.writetipsy">(pynbody.halo.RockstarCatalogueOneCpu method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -1688,7 +1740,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

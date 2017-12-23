@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Performance optimisation in pynbody &mdash; pynbody 0.30 documentation</title>
+    <title>Performance optimisation in pynbody &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Configuring pynbody" href="configuration.html" />
     <link rel="prev" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -119,11 +119,11 @@
               
                 
   <li>
-    <a href="processing.html" title="Previous Chapter: Batch-processing Snapshots with Pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Batch-processing...</span>
+    <a href="processing.html" title="Previous Chapter: Batch-processing Snapshots with Pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Batch-process...</span>
     </a>
   </li>
   <li>
-    <a href="configuration.html" title="Next Chapter: Configuring pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Configuring pynb... &raquo;</span>
+    <a href="configuration.html" title="Next Chapter: Configuring pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Configuring p... &raquo;</span>
     </a>
   </li>
               
@@ -265,12 +265,12 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="o">%</span><span class="k">time</span> for i in xrange(10000) : d+=1
-<span class="go">CPU times: user 181 ms, sys: 27.6 ms, total: 208 ms</span>
-<span class="go">Wall time: 189 ms</span>
+<span class="go">CPU times: user 211 ms, sys: 186 us, total: 211 ms</span>
+<span class="go">Wall time: 211 ms</span>
 
 <span class="gp">In [14]: </span><span class="o">%</span><span class="k">time</span> for i in xrange(10000) : a+=1
-<span class="go">CPU times: user 9.8 ms, sys: 1.49 ms, total: 11.3 ms</span>
-<span class="go">Wall time: 10.1 ms</span>
+<span class="go">CPU times: user 16.7 ms, sys: 3 us, total: 16.7 ms</span>
+<span class="go">Wall time: 16.7 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
@@ -383,7 +383,7 @@ any unit handling code being called.</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

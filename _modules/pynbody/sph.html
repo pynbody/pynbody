@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.sph &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.sph &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -196,14 +196,20 @@
         <span class="n">t</span><span class="p">,</span><span class="n">obj</span><span class="p">,</span><span class="n">trace</span><span class="o">=</span> <span class="n">exceptions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">raise</span> <span class="n">t</span><span class="p">,</span><span class="n">obj</span><span class="p">,</span><span class="n">trace</span>
 
-<span class="k">def</span> <span class="nf">_auto_denoise</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_kernel_suitable_for_denoise</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">Kernel</span><span class="p">:</span>
+        <span class="c"># e.g. does not work properly with Kernel2D</span>
+        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+<span class="k">def</span> <span class="nf">_auto_denoise</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">kernel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns True if pynbody thinks denoise flag should be on for best</span>
-<span class="sd">    results with this simulation.</span>
+<span class="sd">    results with this simulation.&quot;&quot;&quot;</span>
 
-<span class="sd">    At the moment it inspects to see if it&#39;s a RamsesSnap, and if so, returns</span>
-<span class="sd">    True.&quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span><span class="n">snapshot</span><span class="o">.</span><span class="n">ramses</span><span class="o">.</span><span class="n">RamsesSnap</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_kernel_suitable_for_denoise</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span><span class="n">snapshot</span><span class="o">.</span><span class="n">ramses</span><span class="o">.</span><span class="n">RamsesSnap</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">True</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">False</span>
@@ -213,8 +219,14 @@
         <span class="c"># n.b. getting the following arrays through the full framework is</span>
         <span class="c"># not possible because it can cause a deadlock if the build_tree</span>
         <span class="c"># has been triggered by getting an array in the calling thread.</span>
+        <span class="n">boxsize</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;boxsize&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">boxsize</span><span class="p">:</span>
+            <span class="n">boxsize</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">boxsize</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">boxsize</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="c"># represents infinite box</span>
         <span class="n">sim</span><span class="o">.</span><span class="n">kdtree</span> <span class="o">=</span> <span class="n">kdtree</span><span class="o">.</span><span class="n">KDTree</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">],</span>
-                        <span class="n">leafsize</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">])</span>
+                        <span class="n">leafsize</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;sph&#39;</span><span class="p">][</span><span class="s">&#39;tree-leafsize&#39;</span><span class="p">],</span>
+                        <span class="n">boxsize</span><span class="o">=</span><span class="n">boxsize</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_tree_decomposition</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
@@ -376,7 +388,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">denoise</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span>
+        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">denoise</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_kernel_suitable_for_denoise</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Denoising not supported with this kernel type. Re-run with denoise=False&quot;</span>
 
     <span class="n">renderer</span> <span class="o">=</span> <span class="n">_render_spherical_image</span>
 
@@ -398,7 +413,10 @@
     <span class="kn">import</span> <span class="nn">healpy</span> <span class="kn">as</span> <span class="nn">hp</span>
 
     <span class="k">if</span> <span class="n">denoise</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span>
+        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">denoise</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_kernel_suitable_for_denoise</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Denoising not supported with this kernel type. Re-run with denoise=False&quot;</span>
 
     <span class="k">if</span> <span class="n">out_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">conv_ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="n">qty</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="p">))</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">out_units</span><span class="p">,</span>
@@ -608,7 +626,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">denoise</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span>
+        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">denoise</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_kernel_suitable_for_denoise</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Denoising not supported with this kernel type. Re-run with denoise=False&quot;</span>
+
 
     <span class="k">if</span> <span class="n">approximate_fast</span><span class="p">:</span>
         <span class="n">base_renderer</span> <span class="o">=</span> <span class="n">_interpolated_renderer</span><span class="p">(</span>
@@ -666,6 +688,11 @@
         <span class="k">if</span> <span class="n">snap_slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">snap_proxy</span><span class="p">[</span><span class="n">arname</span><span class="p">]</span> <span class="o">=</span> <span class="n">snap_proxy</span><span class="p">[</span><span class="n">arname</span><span class="p">][</span><span class="n">snap_slice</span><span class="p">]</span>
 
+    <span class="k">if</span> <span class="s">&#39;boxsize&#39;</span> <span class="ow">in</span> <span class="n">snap</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
+        <span class="n">boxsize</span> <span class="o">=</span> <span class="n">snap</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">snap_proxy</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">boxsize</span> <span class="o">=</span> <span class="bp">None</span>
+
     <span class="n">in_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">y2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -687,8 +714,8 @@
         <span class="n">dy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny</span>
 
         <span class="c"># degrade resolution</span>
-        <span class="n">nx</span> <span class="o">/=</span> <span class="n">res_downgrade</span>
-        <span class="n">ny</span> <span class="o">/=</span> <span class="n">res_downgrade</span>
+        <span class="n">nx</span> <span class="o">//=</span> <span class="n">res_downgrade</span>
+        <span class="n">ny</span> <span class="o">//=</span> <span class="n">res_downgrade</span>
 
         <span class="c"># shift boundaries (since x1, x2 etc refer to centres of pixels,</span>
         <span class="c"># not edges, but we want the *edges* to remain invariant)</span>
@@ -707,6 +734,9 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">smooth_lo</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">smooth_hi</span> <span class="o">=</span> <span class="mf">100000.0</span>
+
+    <span class="n">nx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nx</span> <span class="o">+</span> <span class="o">.</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">ny</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ny</span> <span class="o">+</span> <span class="o">.</span><span class="mi">5</span><span class="p">)</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ny</span><span class="p">,</span> <span class="n">nx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
@@ -733,13 +763,20 @@
         <span class="c"># Calculate the ratio now so we don&#39;t waste time calculating</span>
         <span class="c"># the image only to throw a UnitsException later</span>
         <span class="n">conv_ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">qty</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">mass</span><span class="o">.</span><span class="n">units</span> <span class="o">/</span> <span class="p">(</span><span class="n">rho</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">sm</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="n">kernel</span><span class="o">.</span><span class="n">h_power</span><span class="p">))</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">out_units</span><span class="p">,</span>
-                                                                                               <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+                                                                                               <span class="o">**</span><span class="n">snap</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
 
     <span class="k">if</span> <span class="n">z_camera</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">z_camera</span> <span class="o">=</span> <span class="mf">0.0</span>
 
+    <span class="k">if</span> <span class="n">boxsize</span><span class="p">:</span>
+        <span class="c"># work out the tile offsets required to make the image wrap</span>
+        <span class="n">num_repeats</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">x2</span><span class="o">/</span><span class="n">boxsize</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span>
+        <span class="n">repeat_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">num_repeats</span><span class="o">*</span><span class="n">boxsize</span><span class="p">,</span><span class="n">num_repeats</span><span class="o">*</span><span class="n">boxsize</span><span class="p">,</span><span class="n">num_repeats</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">repeat_array</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+
     <span class="n">result</span> <span class="o">=</span> <span class="n">_render</span><span class="o">.</span><span class="n">render_image</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">sm</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z_camera</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span>
-                                  <span class="n">smooth_lo</span><span class="p">,</span> <span class="n">smooth_hi</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+                                  <span class="n">smooth_lo</span><span class="p">,</span> <span class="n">smooth_hi</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">repeat_array</span><span class="p">,</span> <span class="n">repeat_array</span><span class="p">)</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
 
@@ -802,7 +839,10 @@
     <span class="k">global</span> <span class="n">config</span>
 
     <span class="k">if</span> <span class="n">denoise</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span>
+        <span class="n">denoise</span> <span class="o">=</span> <span class="n">_auto_denoise</span><span class="p">(</span><span class="n">snap</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">denoise</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_kernel_suitable_for_denoise</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Denoising not supported with this kernel type. Re-run with denoise=False&quot;</span>
 
     <span class="n">in_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
@@ -881,9 +921,9 @@
         <span class="n">dy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="n">ny</span>
         <span class="n">dz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z2</span> <span class="o">-</span> <span class="n">z1</span><span class="p">)</span> <span class="o">/</span> <span class="n">nz</span>
 
-        <span class="n">nx</span> <span class="o">/=</span> <span class="n">res_downgrade</span>
-        <span class="n">ny</span> <span class="o">/=</span> <span class="n">res_downgrade</span>
-        <span class="n">nz</span> <span class="o">/=</span> <span class="n">res_downgrade</span>
+        <span class="n">nx</span> <span class="o">//=</span> <span class="n">res_downgrade</span>
+        <span class="n">ny</span> <span class="o">//=</span> <span class="n">res_downgrade</span>
+        <span class="n">nz</span> <span class="o">//=</span> <span class="n">res_downgrade</span>
 
         <span class="c"># shift boundaries (see _render_image above for explanation)</span>
         <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="p">[</span>
@@ -1088,7 +1128,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

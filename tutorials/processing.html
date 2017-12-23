@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Batch-processing Snapshots with Pynbody &mdash; pynbody 0.30 documentation</title>
+    <title>Batch-processing Snapshots with Pynbody &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Performance optimisation in pynbody" href="performance.html" />
     <link rel="prev" title="Halos in Pynbody" href="halos.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -122,7 +122,7 @@
     </a>
   </li>
   <li>
-    <a href="performance.html" title="Next Chapter: Performance optimisation in pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Performance opti... &raquo;</span>
+    <a href="performance.html" title="Next Chapter: Performance optimisation in pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Performance o... &raquo;</span>
     </a>
   </li>
               
@@ -200,11 +200,11 @@ that <a class="reference internal" href="#images"><em>make standard images</em><
     <span class="c"># and analysis will follow the halo that contains those particles</span>
     <span class="n">photiords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="s">&#39;i8&#39;</span><span class="p">)</span>
     <span class="n">frac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="n">photiords</span><span class="p">,</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;iord&#39;</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">photiords</span><span class="p">)</span>
-    <span class="k">print</span> <span class="s">&#39;i: </span><span class="si">%d</span><span class="s"> frac: </span><span class="si">%.2f</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">frac</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;i: </span><span class="si">%d</span><span class="s"> frac: </span><span class="si">%.2f</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">frac</span><span class="p">))</span>
     <span class="k">while</span><span class="p">(((</span><span class="n">frac</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">i</span><span class="o">&lt;</span><span class="mi">100</span><span class="p">)):</span> 
         <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
         <span class="n">frac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="n">photiords</span><span class="p">,</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;iord&#39;</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">photiords</span><span class="p">)</span>
-        <span class="k">print</span> <span class="s">&#39;i: </span><span class="si">%d</span><span class="s"> frac: </span><span class="si">%.2f</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">frac</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;i: </span><span class="si">%d</span><span class="s"> frac: </span><span class="si">%.2f</span><span class="s">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">frac</span><span class="p">))</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="c"># otherwise follow largest halo with at least 2 stars</span>
     <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">star</span><span class="p">)</span> <span class="o">&lt;</span><span class="mi">2</span><span class="p">:</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
@@ -411,7 +411,7 @@ code</li>
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

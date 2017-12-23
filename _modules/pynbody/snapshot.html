@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.snapshot &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.snapshot &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -245,7 +245,7 @@
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">k</span>
 
-        <span class="n">generic_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;([A-z]+)_[xyz]$&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">generic_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;^(.+)_[xyz]$&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">generic_match</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -267,6 +267,27 @@
             <span class="n">array_name_1D</span> <span class="o">=</span> <span class="p">[</span><span class="n">array_name</span> <span class="o">+</span> <span class="s">&quot;_&quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">array_name_1D</span>
+
+    <span class="k">def</span> <span class="nf">_array_name_implies_ND_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns True if, at best guess, the array name corresponds to a 1D slice</span>
+<span class="sd">        of a ND array, on the basis of names alone.</span>
+
+<span class="sd">        This routine first looks at special cases (pos -&gt; x,y,z for example),</span>
+<span class="sd">        then looks for generic names such as acc_x - however this would only be</span>
+<span class="sd">        considered a &quot;match&quot; for a ND subslice if &#39;acc&#39; is in loadable_keys().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+              <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="n">generic_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;^(.+)_[xyz]$&quot;</span><span class="p">,</span> <span class="n">array_name</span><span class="p">)</span>
+        <span class="n">loadable_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">generic_match</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">loadable_keys</span> <span class="ow">or</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">keys</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize an empty, zero-length SimSnap.</span>
@@ -503,7 +524,7 @@
 
     <span class="k">def</span> <span class="nf">__remove_family_array_if_derived</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
 
     <span class="k">def</span> <span class="nf">__load_remaining_families_if_loadable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -909,9 +930,6 @@
             <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">u</span>
 
-    <span class="c">############################################</span>
-    <span class="c"># HALO CATALOGUES</span>
-    <span class="c">############################################</span>
     <span class="k">def</span> <span class="nf">halos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <div class="viewcode-block" id="SimSnap.halos"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.halos">[docs]</a>        <span class="sd">&quot;&quot;&quot;Tries to instantiate a halo catalogue object for the given</span>
 <span class="sd">        snapshot, using the first available method (as defined in the</span>
@@ -935,10 +953,6 @@
 
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;No halo catalogue found for </span><span class="si">%r</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
-    <span class="c">############################################</span>
-    <span class="c"># BRIDGES</span>
-    <span class="c">############################################</span>
-
     <span class="k">def</span> <span class="nf">bridge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span></div>
 <div class="viewcode-block" id="SimSnap.bridge"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.bridge">[docs]</a>        <span class="sd">&quot;&quot;&quot;Tries to construct a bridge function between this SimSnap</span>
 <span class="sd">        and another one.</span>
@@ -950,6 +964,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">bridge</span>
         <span class="k">return</span> <span class="n">bridge</span><span class="o">.</span><span class="n">bridge_factory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+<div class="viewcode-block" id="SimSnap.load_copy"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.load_copy">[docs]</a>        <span class="sd">&quot;&quot;&quot;Tries to load a copy of this snapshot, using partial loading to select</span>
+<span class="sd">        only a subset of particles corresponding to a given SubSnap&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span><span class="s">&#39;partial_load&#39;</span><span class="p">,</span><span class="bp">False</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">,</span> <span class="s">&quot;Cannot load a copy of data that was itself partial-loaded&quot;</span>
+        <span class="k">return</span> <span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">take</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">))</span>
 
     <span class="c">############################################</span>
     <span class="c"># HELPER FUNCTIONS FOR LAZY LOADING</span>
@@ -1544,6 +1565,14 @@
 
         <span class="k">return</span> <span class="n">fn</span>
 
+    <span class="k">def</span> <span class="nf">_find_deriving_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">cl</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__mro__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span> \
+                    <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
     <span class="k">def</span> <span class="nf">_derive_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate and store, for this SnapShot, the derivable array &#39;name&#39;.</span>
 <span class="sd">        If *fam* is not None, derive only for the specified family.</span>
@@ -1554,47 +1583,44 @@
         <span class="k">global</span> <span class="n">config</span>
 
         <span class="n">calculated</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_deriving_function</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fn</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Deriving array </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_propagate_off</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                    <span class="n">ndim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span>
+                        <span class="n">name</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">__stable__</span><span class="p">)</span>
+                    <span class="n">write_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
+                        <span class="n">name</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span>
+                    <span class="n">ndim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span>
 
-        <span class="k">for</span> <span class="n">cl</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__mro__</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">cl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span> \
-                    <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">]:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Deriving array </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
-                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_propagate_off</span><span class="p">:</span>
-                    <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                        <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-                        <span class="n">ndim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
-                            <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span>
-                            <span class="n">name</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">__stable__</span><span class="p">)</span>
-                        <span class="n">write_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
-                            <span class="n">name</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span>
-                        <span class="n">ndim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
-                            <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span>
+                    <span class="c"># check if a family array already exists with a different dtype</span>
+                    <span class="c"># if so, cast the result to the existing dtype</span>
+                    <span class="c"># numpy version &lt; 1.7 does not support doing this in-place</span>
 
-                        <span class="c"># check if a family array already exists with a different dtype</span>
-                        <span class="c"># if so, cast the result to the existing dtype</span>
-                        <span class="c"># numpy version &lt; 1.7 does not support doing this in-place</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> \
+                       <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="p">:</span>
+                            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="p">:</span>
+                            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
-                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> \
-                           <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="p">:</span>
-                                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-                            <span class="k">else</span> <span class="p">:</span>
-                                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span>
+                        <span class="n">name</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">__stable__</span><span class="p">)</span>
+                    <span class="n">write_array</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
+                        <span class="n">name</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-                        <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span>
-                            <span class="n">name</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">__stable__</span><span class="p">)</span>
-                        <span class="n">write_array</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span>
-                            <span class="n">name</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">_autoconvert_array_unit</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
-                    <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">_autoconvert_array_unit</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-
-                    <span class="n">write_array</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">result</span>
-                    <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">has_units</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-                        <span class="n">write_array</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">units</span>
+                <span class="n">write_array</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">result</span>
+                <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">has_units</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+                    <span class="n">write_array</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">units</span>
 
 
 
@@ -1957,7 +1983,7 @@
         <span class="k">return</span> <span class="n">SimSnap</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_family_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">always_writable</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="n">sl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_indices</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span>
+        <span class="n">sl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_indices</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fam</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
         <span class="n">sl</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">concatenate_indexing</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_family_array</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">sl</span><span class="p">,</span> <span class="n">always_writable</span><span class="p">)</span>
@@ -2121,7 +2147,8 @@
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">grafic</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ascii</span>
 
-    <span class="n">_snap_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">gadgethdf</span><span class="o">.</span><span class="n">GadgetHDFSnap</span><span class="p">,</span> <span class="n">gadgethdf</span><span class="o">.</span><span class="n">SubFindHDFSnap</span><span class="p">,</span> <span class="n">nchilada</span><span class="o">.</span><span class="n">NchiladaSnap</span><span class="p">,</span> <span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">,</span>
+    <span class="n">_snap_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">gadgethdf</span><span class="o">.</span><span class="n">GadgetHDFSnap</span><span class="p">,</span> <span class="n">gadgethdf</span><span class="o">.</span><span class="n">SubFindHDFSnap</span><span class="p">,</span> <span class="n">gadgethdf</span><span class="o">.</span><span class="n">EagleLikeHDFSnap</span><span class="p">,</span>
+                     <span class="n">nchilada</span><span class="o">.</span><span class="n">NchiladaSnap</span><span class="p">,</span> <span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">,</span>
                      <span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="n">ramses</span><span class="o">.</span><span class="n">RamsesSnap</span><span class="p">,</span> <span class="n">grafic</span><span class="o">.</span><span class="n">GrafICSnap</span><span class="p">,</span>
                      <span class="n">ascii</span><span class="o">.</span><span class="n">AsciiSnap</span><span class="p">]</span>
 
@@ -2142,7 +2169,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

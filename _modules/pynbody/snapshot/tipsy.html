@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pynbody.snapshot.tipsy &mdash; pynbody 0.30 documentation</title>
+    <title>pynbody.snapshot.tipsy &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../../../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
     <link rel="up" title="pynbody.snapshot" href="../snapshot.html" />
 
 <meta charset='utf-8'>
@@ -63,7 +63,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -359,18 +359,17 @@
                 <span class="c"># could be a binary file</span>
                 <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;fileobj&#39;</span><span class="p">):</span>
-                    <span class="c"># Cludge to get un-zipped length</span>
-                    <span class="n">fx</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">fileobj</span>
-                    <span class="n">fx</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-                    <span class="n">buflen</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&quot;&lt;l&quot;</span><span class="p">,</span> <span class="n">fx</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">ourlen_1</span> <span class="o">=</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="n">L</span>
-                    <span class="n">ourlen_3</span> <span class="o">=</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="n">L</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span><span class="o">!=</span><span class="mi">4</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">False</span>
 
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_byteswap</span><span class="p">:</span>
+                    <span class="n">buflen</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&quot;&gt;i&quot;</span><span class="p">,</span> <span class="n">header</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">buflen</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-                    <span class="n">ourlen_1</span> <span class="o">=</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
-                    <span class="n">ourlen_3</span> <span class="o">=</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="n">buflen</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&quot;i&quot;</span><span class="p">,</span> <span class="n">header</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="n">ourlen_1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">)</span><span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="n">L</span>
+                <span class="n">ourlen_3</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span><span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="n">L</span>
 
                 <span class="k">if</span> <span class="n">buflen</span> <span class="o">==</span> <span class="n">ourlen_1</span><span class="p">:</span>  <span class="c"># it&#39;s a vector</span>
                     <span class="k">return</span> <span class="bp">True</span>
@@ -662,13 +661,18 @@
                     <span class="n">TipsySnap</span><span class="o">.</span><span class="n">_write_array</span><span class="p">(</span>
                         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="n">binary_aux_arrays</span><span class="p">)</span>
 
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">__get_write_dtype</span><span class="p">(</span><span class="n">stored_dtype</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">stored_dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">__write_block</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ar</span><span class="p">,</span> <span class="n">binary</span><span class="p">,</span> <span class="n">byteswap</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
-            <span class="n">ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
+        <span class="n">ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">TipsySnap</span><span class="o">.</span><span class="n">__get_write_dtype</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">binary</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">byteswap</span><span class="p">:</span>
                 <span class="n">ar</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -694,7 +698,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">array_name</span> <span class="o">+</span> <span class="s">&quot;.pynbody-meta&quot;</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_units_for</span><span class="p">(</span><span class="n">array_name</span><span class="p">),</span> <span class="bp">None</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_units_for</span><span class="p">(</span><span class="n">array_name</span><span class="p">),</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
         <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
@@ -714,10 +718,15 @@
         <span class="k">except</span><span class="p">:</span>
             <span class="n">fams</span> <span class="o">=</span> <span class="bp">None</span>
 
-        <span class="k">return</span> <span class="n">u</span><span class="p">,</span> <span class="n">fams</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s">&#39;dtype&#39;</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="k">return</span> <span class="n">u</span><span class="p">,</span> <span class="n">fams</span><span class="p">,</span> <span class="n">dtype</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_write_array_metafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">families</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_write_array_metafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">families</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
 
         <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s">&quot;.pynbody-meta&quot;</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
         <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="s">&quot;# This file automatically created by pynbody&quot;</span>
@@ -727,6 +736,9 @@
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">families</span><span class="p">:</span>
             <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="k">print</span> <span class="o">&gt;&gt;</span><span class="n">f</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">print</span> <span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="s">&quot;dtype:&quot;</span><span class="p">,</span> <span class="n">TipsySnap</span><span class="o">.</span><span class="n">__get_write_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
         <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">TipsySnap</span><span class="p">):</span>
@@ -756,7 +768,7 @@
 
         <span class="c"># If we have disk units for this array, check we can convert into them</span>
 
-        <span class="n">aux_u</span><span class="p">,</span> <span class="n">aux_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loadable_array_metadata</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
+        <span class="n">aux_u</span><span class="p">,</span> <span class="n">aux_f</span><span class="p">,</span> <span class="n">aux_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loadable_array_metadata</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">aux_f</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">aux_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
 
@@ -807,6 +819,7 @@
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s">&quot;Cannot call static _write_array to write into main tipsy file.&quot;</span>
 
         <span class="n">units_out</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="k">if</span> <span class="n">binary</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">binary</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span> <span class="s">&quot;_tipsy_arrays_binary&quot;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
@@ -838,6 +851,7 @@
                 <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">():</span>
                     <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]:</span>
                         <span class="k">try</span><span class="p">:</span>
+                            <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
                             <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">array_name</span><span class="p">]</span>
                             <span class="n">units_out</span> <span class="o">=</span> <span class="n">ar</span><span class="o">.</span><span class="n">units</span>
 
@@ -848,6 +862,7 @@
 
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
                     <span class="n">units_out</span> <span class="o">=</span> <span class="n">ar</span><span class="o">.</span><span class="n">units</span>
                     <span class="n">TipsySnap</span><span class="o">.</span><span class="n">__write_block</span><span class="p">(</span><span class="n">fhand</span><span class="p">,</span> <span class="n">ar</span><span class="p">,</span> <span class="n">binary</span><span class="p">,</span> <span class="n">byteswap</span><span class="p">)</span>
 
@@ -860,7 +875,7 @@
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">fam</span> <span class="o">=</span> <span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]</span>
 
-        <span class="n">TipsySnap</span><span class="o">.</span><span class="n">_write_array_metafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">units_out</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
+        <span class="n">TipsySnap</span><span class="o">.</span><span class="n">_write_array_metafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">units_out</span><span class="p">,</span> <span class="n">fam</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_load_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                     <span class="n">packed_vector</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -897,7 +912,7 @@
 
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">,</span> <span class="s">&#39;rhoform&#39;</span><span class="p">,</span> <span class="s">&#39;tempform&#39;</span><span class="p">,</span> <span class="s">&#39;phiform&#39;</span><span class="p">,</span> <span class="s">&#39;nsmooth&#39;</span><span class="p">,</span>
                                                <span class="s">&#39;xform&#39;</span><span class="p">,</span> <span class="s">&#39;yform&#39;</span><span class="p">,</span> <span class="s">&#39;zform&#39;</span><span class="p">,</span> <span class="s">&#39;vxform&#39;</span><span class="p">,</span> <span class="s">&#39;vyform&#39;</span><span class="p">,</span> <span class="s">&#39;vzform&#39;</span><span class="p">,</span>
-                                               <span class="s">&#39;posform&#39;</span><span class="p">,</span> <span class="s">&#39;velform&#39;</span><span class="p">]:</span>
+                                               <span class="s">&#39;posform&#39;</span><span class="p">,</span> <span class="s">&#39;velform&#39;</span><span class="p">,</span><span class="s">&#39;h2form&#39;</span><span class="p">]:</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">read_starlog</span><span class="p">()</span>
@@ -930,13 +945,16 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Attempting to load auxiliary array </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="c"># if we get here, we&#39;ve got the file - try loading it</span>
 
+        <span class="n">units</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loadable_array_metadata</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
+
         <span class="k">try</span><span class="p">:</span>
             <span class="n">l</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
             <span class="n">binary</span> <span class="o">=</span> <span class="bp">False</span>
             <span class="k">if</span> <span class="n">l</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Incorrect file format&quot;</span>
 
-            <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">dtype</span><span class="p">:</span>
                 <span class="c"># Inspect the first line to see whether it&#39;s float or int</span>
                 <span class="n">l</span> <span class="o">=</span> <span class="s">&quot;0</span><span class="se">\n</span><span class="s">&quot;</span>
@@ -968,13 +986,14 @@
             <span class="k">if</span> <span class="n">l</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Incorrect file format&quot;</span>
 
-            <span class="c"># Set data format to be read (float or int) based on config</span>
-            <span class="n">int_arrays</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
-                <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;tipsy&#39;</span><span class="p">,</span> <span class="s">&#39;binary-int-arrays&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">int_arrays</span><span class="p">:</span>
-                <span class="n">dtype</span> <span class="o">=</span> <span class="s">&#39;i&#39;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">dtype</span> <span class="o">=</span> <span class="s">&#39;f&#39;</span>
+            <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="c"># Set data format to be read (float or int) based on config</span>
+                <span class="n">int_arrays</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;tipsy&#39;</span><span class="p">,</span> <span class="s">&#39;binary-int-arrays&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">int_arrays</span><span class="p">:</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="s">&#39;i&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="s">&#39;f&#39;</span>
 
             <span class="c"># Read longest data array possible.</span>
             <span class="c"># Assume byteswap since most will be.</span>
@@ -1003,9 +1022,9 @@
             <span class="k">if</span> <span class="n">mem_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
                 <span class="n">r</span><span class="p">[</span><span class="n">mem_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">buf</span><span class="p">[</span><span class="n">buf_index</span><span class="p">]</span>
 
-        <span class="n">u</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loadable_array_metadata</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">r</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">u</span>
+
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">units</span>
 
         <span class="k">return</span> <span class="n">r</span>
 
@@ -1034,12 +1053,21 @@
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Bridging starlog into SimSnap&quot;</span><span class="p">)</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">OrderBridge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sl</span><span class="p">)</span>
-        <span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;iorderGas&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;iorderGas&#39;</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">)]</span>
-        <span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">)]</span>
-        <span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;rhoform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;rhoform&#39;</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">)]</span>
-        <span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;tempform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;tempform&#39;</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">)]</span>
-        <span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)[</span><span class="s">&#39;posform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">),</span> <span class="p">:]</span>
-        <span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)[</span><span class="s">&#39;velform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">),</span> <span class="p">:]</span>
+        <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;iorderGas&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;iorderGas&#39;</span><span class="p">]</span>
+        <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;massform&#39;</span><span class="p">]</span>
+        <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;rhoform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;rhoform&#39;</span><span class="p">]</span>
+        <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;tempform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;tempform&#39;</span><span class="p">]</span>
+        <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))[</span><span class="s">&#39;posform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
+        <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))[</span><span class="s">&#39;velform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span>
+        <span class="c">#b(sl).star[&#39;iorderGas&#39;] = sl.star[&#39;iorderGas&#39;][:len(self.star)]</span>
+        <span class="c">#b(sl).star[&#39;massform&#39;] = sl.star[&#39;massform&#39;][:len(self.star)]</span>
+        <span class="c">#b(sl).star[&#39;rhoform&#39;] = sl.star[&#39;rhoform&#39;][:len(self.star)]</span>
+        <span class="c">#b(sl).star[&#39;tempform&#39;] = sl.star[&#39;tempform&#39;][:len(self.star)]</span>
+        <span class="c">#b(sl)[&#39;posform&#39;] = sl[&#39;pos&#39;][:len(self.star), :]</span>
+        <span class="c">#b(sl)[&#39;velform&#39;] = sl[&#39;vel&#39;][:len(self.star), :]</span>
+        <span class="k">if</span> <span class="s">&#39;h2form&#39;</span> <span class="ow">in</span> <span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;h2form&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s">&#39;h2form&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">print</span> <span class="s">&quot;No H2 data found in StarLog file&quot;</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="s">&#39;y&#39;</span><span class="p">,</span> <span class="s">&#39;z&#39;</span><span class="p">]):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="s">&#39;form&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;posform&#39;</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s">&#39;vx&#39;</span><span class="p">,</span> <span class="s">&#39;vy&#39;</span><span class="p">,</span> <span class="s">&#39;vz&#39;</span><span class="p">]):</span>
@@ -1256,6 +1284,8 @@
         <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">bigstarlog</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">molecH</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">bigIOrds</span> <span class="o">=</span> <span class="bp">False</span>
 
         <span class="n">file_structure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;iord&quot;</span><span class="p">,</span> <span class="s">&quot;iorderGas&quot;</span><span class="p">,</span> <span class="s">&quot;tform&quot;</span><span class="p">,</span>
                                              <span class="s">&quot;x&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">,</span> <span class="s">&quot;z&quot;</span><span class="p">,</span>
@@ -1275,6 +1305,41 @@
 
         <span class="k">if</span> <span class="p">(</span><span class="n">iSize</span> <span class="o">&gt;</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span><span class="p">):</span>
             <span class="n">file_structure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;iord&quot;</span><span class="p">,</span> <span class="s">&quot;iorderGas&quot;</span><span class="p">,</span> <span class="s">&quot;tform&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;x&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">,</span> <span class="s">&quot;z&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;vx&quot;</span><span class="p">,</span> <span class="s">&quot;vy&quot;</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;massform&quot;</span><span class="p">,</span> <span class="s">&quot;rhoform&quot;</span><span class="p">,</span> <span class="s">&quot;tempform&quot;</span><span class="p">,</span><span class="s">&quot;h2form&quot;</span><span class="p">),</span>
+                                   <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;i4&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
+                                               <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
+                                               <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
+                                               <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span><span class="s">&#39;f8&#39;</span><span class="p">)})</span>
+            <span class="n">molecH</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="c"># Unfortunately molecularH with small iOrders has the same as</span>
+            <span class="c"># no moleculuarH with big iOrders.  Attempt to distinguish here</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">iSize</span> <span class="o">==</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span><span class="p">):</span>
+                <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_byteswap</span><span class="p">):</span>
+                    <span class="n">testread</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">iSize</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">file_structure</span><span class="p">)</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">testread</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">iSize</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">file_structure</span><span class="p">)</span>
+                <span class="c"># All star iorders are greater than any gas iorder</span>
+                <span class="c"># so this indicates a bad format. (N.B. there is the</span>
+                <span class="c"># possibility of a false negative)</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">testread</span><span class="p">[</span><span class="s">&#39;iord&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">testread</span><span class="p">[</span><span class="s">&#39;iorderGas&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]):</span> 
+                    <span class="n">file_structure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;iord&quot;</span><span class="p">,</span> <span class="s">&quot;iorderGas&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;tform&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;x&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">,</span> <span class="s">&quot;z&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;vx&quot;</span><span class="p">,</span> <span class="s">&quot;vy&quot;</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">,</span>
+                                             <span class="s">&quot;massform&quot;</span><span class="p">,</span> <span class="s">&quot;rhoform&quot;</span><span class="p">,</span> <span class="s">&quot;tempform&quot;</span><span class="p">),</span>
+                                       <span class="s">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&#39;i8&#39;</span><span class="p">,</span> <span class="s">&#39;i8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
+                                                   <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
+                                                   <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
+                                                   <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">)})</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Using 64 bit iOrders&quot;</span><span class="p">)</span>
+                    <span class="n">molecH</span> <span class="o">=</span> <span class="bp">False</span>
+                    <span class="n">bigIOrds</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">iSize</span> <span class="o">!=</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span><span class="p">):</span>
+            <span class="n">file_structure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s">&quot;iord&quot;</span><span class="p">,</span> <span class="s">&quot;iorderGas&quot;</span><span class="p">,</span> <span class="s">&quot;tform&quot;</span><span class="p">,</span>
                                                  <span class="s">&quot;x&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">,</span> <span class="s">&quot;z&quot;</span><span class="p">,</span>
                                                  <span class="s">&quot;vx&quot;</span><span class="p">,</span> <span class="s">&quot;vy&quot;</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">,</span>
                                                  <span class="s">&quot;massform&quot;</span><span class="p">,</span> <span class="s">&quot;rhoform&quot;</span><span class="p">,</span> <span class="s">&quot;tempform&quot;</span><span class="p">,</span>
@@ -1284,6 +1349,7 @@
                                                    <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
                                                    <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;f8&#39;</span><span class="p">,</span>
                                                    <span class="s">&#39;f8&#39;</span><span class="p">,</span> <span class="s">&#39;i4&#39;</span><span class="p">)})</span>
+            <span class="n">molecH</span> <span class="o">=</span> <span class="bp">False</span>
 
             <span class="k">if</span> <span class="p">(</span><span class="n">iSize</span> <span class="o">!=</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span> <span class="ow">and</span> <span class="n">iSize</span> <span class="o">!=</span> <span class="mi">104</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;Unknown starlog structure iSize:&quot;</span> <span class="o">+</span> \
@@ -1291,7 +1357,7 @@
                     <span class="nb">str</span><span class="p">(</span><span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">bigstarlog</span> <span class="o">=</span> <span class="bp">True</span>
-
+        <span class="k">if</span> <span class="n">molecH</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span> <span class="k">print</span> <span class="s">&quot;h2 information found in StarLog!&quot;</span>
         <span class="n">datasize</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
 
         <span class="c"># check whether datasize is a multiple of iSize. If it is not,</span>
@@ -1327,9 +1393,15 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;pos&quot;</span><span class="p">,</span> <span class="s">&quot;vel&quot;</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">bigIOrds</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;iord&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int64&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;iord&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int32&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;iord&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int32&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">(</span>
             <span class="p">[</span><span class="s">&quot;iorderGas&quot;</span><span class="p">,</span> <span class="s">&quot;massform&quot;</span><span class="p">,</span> <span class="s">&quot;rhoform&quot;</span><span class="p">,</span> <span class="s">&quot;tempform&quot;</span><span class="p">,</span> <span class="s">&quot;metals&quot;</span><span class="p">,</span> <span class="s">&quot;tform&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">molecH</span><span class="o">==</span><span class="bp">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;h2form&quot;</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">bigstarlog</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_create_arrays</span><span class="p">([</span><span class="s">&quot;phiform&quot;</span><span class="p">,</span> <span class="s">&quot;nsmooth&quot;</span><span class="p">])</span>
 
@@ -1632,6 +1704,45 @@
         <span class="c"># Assume a non-cosmological run</span>
         <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_header_t</span>
 
+<span class="nd">@nchilada.NchiladaSnap.decorator</span>
+<span class="k">def</span> <span class="nf">settimeN</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;bComove&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c">#t = sim._header_t</span>
+        <span class="c">#sim.properties[&#39;a&#39;] = t</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+            <span class="c"># no sensible redshift</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span>
+                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;dMsolUnit&#39;</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;dKpcUnit&#39;</span><span class="p">)):</span>
+            <span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">cosmology</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">age</span><span class="p">(</span>
+                <span class="n">sim</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">sim</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="s">&#39;yr&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># something has gone wrong with the cosmological side of</span>
+            <span class="c"># things</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s">&quot;Paramfile suggests time is cosmological, but header values are not sensible in this context.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
+
+        <span class="c">#sim.properties[&#39;a&#39;] = t</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c"># Assume a non-cosmological run</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span>
+
+    <span class="n">time_unit</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">time_unit</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="s">&#39;yr&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitsException</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">time_unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">*=</span> <span class="n">time_unit</span>
+
 
 <span class="nd">@StarLog.decorator</span>
 <span class="k">def</span> <span class="nf">slparam2units</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
@@ -1657,6 +1768,15 @@
 
         <span class="n">denunit</span> <span class="o">=</span> <span class="n">munit</span> <span class="o">/</span> <span class="n">dunit</span> <span class="o">**</span> <span class="mi">3</span>
         <span class="n">denunit_st</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">denunit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; Msol kpc^-3&quot;</span>
+        <span class="n">velunit</span> <span class="o">=</span> <span class="mf">8.0285</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.6743e-8</span> <span class="o">*</span> <span class="n">denunit</span><span class="p">)</span> <span class="o">*</span> <span class="n">dunit</span>
+        <span class="n">velunit_st</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%.5g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">velunit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; km s^-1&quot;</span>
+
+        <span class="c"># You have: kpc s / km</span>
+        <span class="c"># You want: Gyr</span>
+        <span class="c">#* 0.97781311</span>
+        <span class="n">timeunit</span> <span class="o">=</span> <span class="n">dunit</span> <span class="o">/</span> <span class="n">velunit</span> <span class="o">*</span> <span class="mf">0.97781311</span>
+        <span class="n">timeunit_st</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%.5g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; Gyr&quot;</span>
+
 
         <span class="k">if</span> <span class="n">hub</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
             <span class="c"># append dependence on &#39;a&#39; for cosmological runs</span>
@@ -1684,7 +1804,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

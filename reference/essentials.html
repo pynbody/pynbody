@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Essential Framework Modules &mdash; pynbody 0.30 documentation</title>
+    <title>Essential Framework Modules &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
     <link rel="up" title="Pynbody reference documentation" href="index.html" />
     <link rel="next" title="Generic Convenience Modules" href="convenience.html" />
     <link rel="prev" title="Pynbody reference documentation" href="index.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -129,11 +129,11 @@
               
                 
   <li>
-    <a href="index.html" title="Previous Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pynbody referenc...</span>
+    <a href="index.html" title="Previous Chapter: Pynbody reference documentation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pynbody refer...</span>
     </a>
   </li>
   <li>
-    <a href="convenience.html" title="Next Chapter: Generic Convenience Modules"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Generic Convenie... &raquo;</span>
+    <a href="convenience.html" title="Next Chapter: Generic Convenience Modules"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Generic Conve... &raquo;</span>
     </a>
   </li>
               
@@ -623,7 +623,7 @@ to the ancestor <em>relative_to</em>, such that relative_to[get_index_list(relat
 
 <dl class="method">
 <dt id="pynbody.snapshot.SimSnap.intersect">
-<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x1055e3e60&gt;</em><big>)</big><a class="reference internal" href="../_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">intersect</tt><big>(</big><em>other</em>, <em>op=&lt;function intersect1d at 0x109903230&gt;</em><big>)</big><a class="reference internal" href="../_modules/pynbody/snapshot.html#SimSnap.intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.intersect" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the set intersection of this simulation view with another view
 of the same simulation</p>
 </dd></dl>
@@ -706,6 +706,13 @@ and another one.</p>
 <p>This function calls <a class="reference internal" href="convenience.html#pynbody.bridge.bridge_factory" title="pynbody.bridge.bridge_factory"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.bridge.bridge_factory()</span></tt></a>. For
 more information see <em class="xref std std-ref">bridge-tutorial</em>, or the reference
 documentation for <a class="reference internal" href="convenience.html#module-pynbody.bridge" title="pynbody.bridge"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.bridge</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pynbody.snapshot.SimSnap.load_copy">
+<tt class="descname">load_copy</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/snapshot.html#SimSnap.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.SimSnap.load_copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to load a copy of this snapshot, using partial loading to select
+only a subset of particles corresponding to a given SubSnap</p>
 </dd></dl>
 
 <dl class="method">
@@ -1220,7 +1227,7 @@ three values:</p>
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>

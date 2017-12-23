@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>A walk through pynbody’s low-level facilities &mdash; pynbody 0.30 documentation</title>
+    <title>A walk through pynbody’s low-level facilities &mdash; pynbody 0.42 documentation</title>
     
     <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.30',
+        VERSION:     '0.42',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.30 documentation" href="../index.html" />
+    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
     <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
     <link rel="next" title="Subviews and Filters" href="filters.html" />
     <link rel="prev" title="Basic snapshot manipulation" href="snapshot_manipulation.html" />
@@ -65,7 +65,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.30</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -118,11 +118,11 @@
               
                 
   <li>
-    <a href="snapshot_manipulation.html" title="Previous Chapter: Basic snapshot manipulation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Basic snapshot m...</span>
+    <a href="snapshot_manipulation.html" title="Previous Chapter: Basic snapshot manipulation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Basic snapsho...</span>
     </a>
   </li>
   <li>
-    <a href="filters.html" title="Next Chapter: Subviews and Filters"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Subviews and Fil... &raquo;</span>
+    <a href="filters.html" title="Next Chapter: Subviews and Filters"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Subviews and ... &raquo;</span>
     </a>
   </li>
               
@@ -251,10 +251,11 @@ called <cite>properties</cite>:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [9]: </span><span class="n">f</span><span class="o">.</span><span class="n">properties</span>
 <span class="gh">Out[9]: </span><span class="go"></span>
 <span class="go">{&#39;a&#39;: 0.2777777798158637,</span>
-<span class="go"> &#39;boxsize&#39;: Unit(&quot;3.00e+03 kpc h**-1&quot;),</span>
+<span class="go"> &#39;boxsize&#39;: Unit(&quot;3.00e+03 Mpc a h**-1&quot;),</span>
 <span class="go"> &#39;h&#39;: 0.71,</span>
 <span class="go"> &#39;omegaL0&#39;: 0.7331,</span>
-<span class="go"> &#39;omegaM0&#39;: 0.2669}</span>
+<span class="go"> &#39;omegaM0&#39;: 0.2669,</span>
+<span class="go"> &#39;time&#39;: Unit(&quot;3.55e-03 s Mpc a**1/2 h**-1 km**-1&quot;)}</span>
 </pre></div>
 </div>
 <p>Like any python dictionary, specific properties can be accessed by
@@ -298,12 +299,12 @@ particles.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [13]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
 <span class="gh">Out[13]: </span><span class="go"></span>
 <span class="go">SimArray([[   53.31897354,   177.84364319,   128.22311401],</span>
-<span class="go">       [  306.75045776,   140.44454956,   215.37149048],</span>
-<span class="go">       [  310.99908447,    64.1344986 ,   210.53594971],</span>
-<span class="go">       ..., </span>
-<span class="go">       [ 2870.90161133,  2940.17114258,  1978.79492188],</span>
-<span class="go">       [ 2872.41137695,  2939.21972656,  1983.91601562],</span>
-<span class="go">       [ 2863.65112305,  2938.05444336,  1980.06152344]], dtype=float32, &#39;kpc h**-1&#39;)</span>
+<span class="go">          [  306.75045776,   140.44454956,   215.37149048],</span>
+<span class="go">          [  310.99908447,    64.1344986 ,   210.53594971],</span>
+<span class="go">          ..., </span>
+<span class="go">          [ 2870.90161133,  2940.17114258,  1978.79492188],</span>
+<span class="go">          [ 2872.41137695,  2939.21972656,  1983.91601562],</span>
+<span class="go">          [ 2863.65112305,  2938.05444336,  1980.06152344]], dtype=float32, &#39;Mpc a h**-1&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -343,7 +344,7 @@ family, use
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [15]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span>
 <span class="gh">Out[15]: </span><span class="go"></span>
 <span class="go">SimArray([  1.38886092e-09,   3.36176842e-09,   4.52736737e-09, ...,</span>
-<span class="go">         8.53409521e-09,   7.41017736e-09,   1.40517520e-09], dtype=float32, &#39;1.00e+10 h**2 Msol kpc**-3&#39;)</span>
+<span class="go">            8.53409521e-09,   7.41017736e-09,   1.40517520e-09], dtype=float32, &#39;1.00e+10 h**2 Msol Mpc**-3 a**-3&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -383,7 +384,7 @@ the array, the values are calculated and stored</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [19]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;thricethemass&#39;</span><span class="p">]</span>
 <span class="gh">Out[19]: </span><span class="go"></span>
 <span class="go">SimArray([ 0.02464408,  0.02464408,  0.02464408, ...,  0.02464408,</span>
-<span class="go">        0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
+<span class="go">           0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
 </pre></div>
 </div>
 <p>This has the advantage that your new <cite>thricethemass</cite> array is
@@ -393,7 +394,7 @@ automatically updated when you change the <cite>mass</cite> array:</p>
 <span class="gp">In [21]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;thricethemass&#39;</span><span class="p">]</span>
 <span class="gh">Out[21]: </span><span class="go"></span>
 <span class="go">SimArray([ 3.        ,  0.02464408,  0.02464408, ...,  0.02464408,</span>
-<span class="go">        0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
+<span class="go">           0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
 </pre></div>
 </div>
 <p>Note, however, that the array is not re-calculated every time you
@@ -428,13 +429,13 @@ be converted using the <a class="reference internal" href="../reference/essentia
 function; just pass in a string representing the units you want.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [23]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;Mpc&#39;</span><span class="p">)</span>
 <span class="gh">Out[23]: </span><span class="go"></span>
-<span class="go">SimArray([[ 0.07509714,  0.25048399,  0.18059593],</span>
-<span class="go">       [ 0.4320429 ,  0.19780922,  0.30334011],</span>
-<span class="go">       [ 0.43802688,  0.09033027,  0.2965295 ],</span>
-<span class="go">       ..., </span>
-<span class="go">       [ 4.04352331,  4.1410861 ,  2.78703499],</span>
-<span class="go">       [ 4.04564953,  4.13974571,  2.79424787],</span>
-<span class="go">       [ 4.03331137,  4.13810492,  2.78881884]], dtype=float32, &#39;Mpc&#39;)</span>
+<span class="go">SimArray([[   20.86031914,    69.57888794,    50.16553879],</span>
+<span class="go">          [  120.01191711,    54.94700623,    84.26114655],</span>
+<span class="go">          [  121.6741333 ,    25.09174347,    82.36930847],</span>
+<span class="go">          ..., </span>
+<span class="go">          [ 1123.20092773,  1150.30163574,   774.1763916 ],</span>
+<span class="go">          [ 1123.79162598,  1149.92944336,   776.17999268],</span>
+<span class="go">          [ 1120.36425781,  1149.47351074,   774.67193604]], dtype=float32, &#39;Mpc&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -453,8 +454,8 @@ into something sensible, using
 <p>Take a look at what&#8217;s happened to the density:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [25]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span>
 <span class="gh">Out[25]: </span><span class="go"></span>
-<span class="go">SimArray([  7.00124788,  16.94667435,  22.82245827, ...,  43.0203743 ,</span>
-<span class="go">        37.354702  ,   7.08348799], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
+<span class="go">SimArray([  3.26650195e-07,   7.90663989e-07,   1.06480456e-06, ...,</span>
+<span class="go">            2.00715840e-06,   1.74282104e-06,   3.30487211e-07], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
 </pre></div>
 </div>
 <p>Note that the conversion will also be made when loading any arrays in
@@ -462,12 +463,12 @@ future; for example:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [26]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span>
 <span class="gh">Out[26]: </span><span class="go"></span>
 <span class="go">SimArray([[ 27.93829346,   4.98370504, -10.00886631],</span>
-<span class="go">       [ 15.36156368,   5.7859726 ,   4.36315632],</span>
-<span class="go">       [ -8.35731888,  -2.88852572,  22.8099041 ],</span>
-<span class="go">       ..., </span>
-<span class="go">       [ 27.74917603,  85.60175323,  15.53243732],</span>
-<span class="go">       [ 40.75585556,  59.44286728,  44.24484634],</span>
-<span class="go">       [ 38.38396454,  68.63973236,  46.01428986]], dtype=float32, &#39;km s**-1&#39;)</span>
+<span class="go">          [ 15.36156368,   5.7859726 ,   4.36315632],</span>
+<span class="go">          [ -8.35731888,  -2.88852572,  22.8099041 ],</span>
+<span class="go">          ..., </span>
+<span class="go">          [ 27.74917603,  85.60175323,  15.53243732],</span>
+<span class="go">          [ 40.75585556,  59.44286728,  44.24484634],</span>
+<span class="go">          [ 38.38396454,  68.63973236,  46.01428986]], dtype=float32, &#39;km s**-1&#39;)</span>
 </pre></div>
 </div>
 <p>A new array generated from a unary or binary operation will inherit
@@ -475,12 +476,12 @@ the correct units. For example</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [27]: </span><span class="mi">5</span><span class="o">*</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span>
 <span class="gh">Out[27]: </span><span class="go"></span>
 <span class="go">SimArray([[ 139.69146729,   24.9185257 ,  -50.0443306 ],</span>
-<span class="go">       [  76.80781555,   28.92986298,   21.81578064],</span>
-<span class="go">       [ -41.78659439,  -14.44262886,  114.0495224 ],</span>
-<span class="go">       ..., </span>
-<span class="go">       [ 138.74588013,  428.00875854,   77.66218567],</span>
-<span class="go">       [ 203.77928162,  297.21432495,  221.22422791],</span>
-<span class="go">       [ 191.91983032,  343.19866943,  230.07144165]], dtype=float32, &#39;km s**-1&#39;)</span>
+<span class="go">          [  76.80781555,   28.92986298,   21.81578064],</span>
+<span class="go">          [ -41.78659439,  -14.44262886,  114.0495224 ],</span>
+<span class="go">          ..., </span>
+<span class="go">          [ 138.74588013,  428.00875854,   77.66218567],</span>
+<span class="go">          [ 203.77928162,  297.21432495,  221.22422791],</span>
+<span class="go">          [ 191.91983032,  343.19866943,  230.07144165]], dtype=float32, &#39;km s**-1&#39;)</span>
 
 <span class="gp">In [28]: </span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">units</span>
 <span class="gh">Out[28]: </span><span class="go">Unit(&quot;km**2 s**-2&quot;)</span>
@@ -503,14 +504,14 @@ instance:</p>
 
 <span class="gp">In [33]: </span><span class="n">array</span>
 <span class="gh">Out[33]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.47322406,  0.28023043,  0.326923  ,  0.61193175,  0.00353445,</span>
-<span class="go">        0.57604169,  0.26304109,  0.92511872,  0.6197256 ,  0.53321416], &#39;Mpc a&#39;)</span>
+<span class="go">SimArray([ 0.38365792,  0.73448969,  0.77062586,  0.4116149 ,  0.62578486,</span>
+<span class="go">           0.02579013,  0.50656424,  0.72733243,  0.29506312,  0.04953119], &#39;Mpc a&#39;)</span>
 
 <span class="gp">In [34]: </span><span class="n">array</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 <span class="gh">Out[34]: </span><span class="go"></span>
-<span class="go">SimArray([ 131.45112982,   77.841786  ,   90.81194393,  169.98104207,</span>
-<span class="go">          0.98179228,  160.01158255,   73.06697135,  256.97742328,</span>
-<span class="go">        172.14600004,  148.11504655], &#39;kpc&#39;)</span>
+<span class="go">SimArray([ 106.57164535,  204.02491574,  214.06274083,  114.33747218,</span>
+<span class="go">           173.82912835,    7.16392447,  140.71228856,  202.03678816,</span>
+<span class="go">            81.96197905,   13.75866509], &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>Note that the units were correctly converted into physical units in
@@ -540,7 +541,7 @@ data, it merely creates another pointer into the existing data. As an
 example, let&#8217;s modify the position of one of our particles in the
 new view:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [37]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-<span class="gh">Out[37]: </span><span class="go">SimArray([ 505.03970337,  439.98474121,  272.89904785], dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[37]: </span><span class="go">SimArray([ 140288.796875 ,  122217.9765625,   75805.2890625], dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [38]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
 
@@ -570,16 +571,16 @@ operators. For example:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [41]: </span><span class="n">f_slab</span> <span class="o">=</span> <span class="n">f</span><span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1000</span><span class="p">)</span><span class="o">&amp;</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">2000</span><span class="p">)]</span>
 
 <span class="gp">In [42]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-<span class="gh">Out[42]: </span><span class="go">SimArray(1000.4244995117188, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[42]: </span><span class="go">SimArray(1000.12841796875, dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [43]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-<span class="gh">Out[43]: </span><span class="go">SimArray(1999.713134765625, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[43]: </span><span class="go">SimArray(1867.8240966796875, dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [44]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-<span class="gh">Out[44]: </span><span class="go">SimArray(0.16215670108795166, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[44]: </span><span class="go">SimArray(1.0, dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [45]: </span><span class="n">f</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-<span class="gh">Out[45]: </span><span class="go">SimArray(4225.29345703125, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[45]: </span><span class="go">SimArray(1173692.5, dtype=float32, &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>Here <cite>f_slab</cite> is pointing at only those particles which have
@@ -587,16 +588,32 @@ x-coordinates between 1000 and 2000.</p>
 <p>Note that subsnaps really do behave exactly like snapshots. So, for
 instance, you can pick out sub-subsnaps or sub-sub-subsnaps.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [46]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
-<span class="gh">Out[46]: </span><span class="go">886</span>
+<span class="gh">Out[46]: </span><span class="go">2</span>
 
 <span class="gp">In [47]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">[::</span><span class="mi">10</span><span class="p">])</span>
-<span class="gh">Out[47]: </span><span class="go">89</span>
+<span class="gh">Out[47]: </span><span class="go">1</span>
 
 <span class="gp">In [48]: </span><span class="n">f_slab</span><span class="p">[[</span><span class="mi">100</span><span class="p">,</span><span class="mi">105</span><span class="p">,</span><span class="mi">252</span><span class="p">]]</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
-<span class="gh">Out[48]: </span><span class="go"></span>
-<span class="go">SimArray([[ 1699.36401367,   354.50869751,  1975.56066895],</span>
-<span class="go">       [ 1639.37890625,    75.42573547,  2074.89428711],</span>
-<span class="go">       [ 1209.55371094,  1212.67248535,   579.39923096]], dtype=float32, &#39;kpc&#39;)</span>
+<span class="gt">---------------------------------------------------------------------------</span>
+<span class="ne">IndexError</span><span class="g-Whitespace">                                </span>Traceback (most recent call last)
+<span class="nn">&lt;ipython-input-48-f9cbab94f5ed&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
+<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">f_slab</span><span class="p">[[</span><span class="mi">100</span><span class="p">,</span><span class="mi">105</span><span class="p">,</span><span class="mi">252</span><span class="p">]]</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
+
+<span class="nn">/Users/app/Science/pynbody/pynbody/snapshot/__init__.pyc</span> in <span class="ni">__getitem__</span><span class="nt">(self, i)</span>
+<span class="g-Whitespace">    </span><span class="mi">269</span>             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_subsnap_from_mask_array</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<span class="g-Whitespace">    </span><span class="mi">270</span>         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">filt</span><span class="o">.</span><span class="n">Filter</span><span class="p">)):</span>
+<span class="ne">--&gt; </span><span class="mi">271</span>             <span class="k">return</span> <span class="n">IndexedSubSnap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+<span class="g-Whitespace">    </span><span class="mi">272</span>         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span>
+<span class="g-Whitespace">    </span><span class="mi">273</span>             <span class="k">return</span> <span class="n">IndexedSubSnap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,))</span>
+
+<span class="nn">/Users/app/Science/pynbody/pynbody/snapshot/__init__.pyc</span> in <span class="ni">__init__</span><span class="nt">(self, base, index_array)</span>
+<span class="g-Whitespace">   </span><span class="mi">1827</span>             <span class="n">index_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">index_array</span><span class="p">)</span>
+<span class="g-Whitespace">   </span><span class="mi">1828</span> 
+<span class="ne">-&gt; </span><span class="mi">1829</span>         <span class="n">findex</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">_family_index</span><span class="p">()[</span><span class="n">index_array</span><span class="p">]</span>
+<span class="g-Whitespace">   </span><span class="mi">1830</span>         <span class="c"># Check the family index array is monotonically increasing</span>
+<span class="g-Whitespace">   </span><span class="mi">1831</span>         <span class="c"># If not, the family slices cannot be implemented</span>
+
+<span class="ne">IndexError</span>: index 100 is out of bounds for axis 1 with size 5
 </pre></div>
 </div>
 <div class="admonition note">
@@ -648,7 +665,7 @@ happy to provide further assistance via our
       
     </p>
     <p>
-        &copy; Copyright 2011-15, pynbody team.<br/>
+        &copy; Copyright 2011-18, pynbody team.<br/>
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
     </p>
   </div>
