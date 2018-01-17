@@ -1499,8 +1499,11 @@ class GrpCatalogue(HaloCatalogue):
         self._boundaries = util.find_boundaries(
             self.base[self._array][self._sorted])
 
-    def get_group_array(self):
-        return self.base[self._array]
+    def get_group_array(self, family=None):
+        if family is not None:
+            return self.base[family][self._array]
+        else:
+            return self.base[self._array]
 
     def _get_halo_indices(self, i):
         if self.base is None:
