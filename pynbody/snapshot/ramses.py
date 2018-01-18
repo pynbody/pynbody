@@ -799,7 +799,7 @@ def translate_info(sim):
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
 
-    if sim._info['omega_k'] == sim._info['omega_l'] == sim._info['omega_b'] == 0.0:
+    if sim._info['omega_k'] == sim._info['omega_l'] == 0.0:
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
         sim.properties['time'] = analysis.cosmology.age(
