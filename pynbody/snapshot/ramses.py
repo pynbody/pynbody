@@ -32,6 +32,7 @@ import warnings
 import re
 import time
 import logging
+import csv
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
 from collections import OrderedDict
@@ -376,6 +377,7 @@ class RamsesSnap(SimSnap):
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
+        self._load_sink_data_to_temporary_store()
         self._load_infofile()
         self._setup_particle_descriptor()
 
@@ -413,6 +415,7 @@ class RamsesSnap(SimSnap):
         self._num_particles = count
         self._load_rt_infofile()
         self._decorate()
+        self._transfer_sink_data_to_family_array()
 
     def __setup_parallel_reading(self):
         if multiprocess:
@@ -526,6 +529,9 @@ class RamsesSnap(SimSnap):
     def _rt_filename(self, cpu_id):
         return self._filename + "/rt_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
 
+    def _sink_filename(self):
+        return self._filename + "/sink_" + self._timestep_id + ".csv"
+
     def _count_particles(self):
         if self._has_explicit_particle_families:
             return self._count_particles_using_explicit_families()
@@ -596,9 +602,76 @@ class RamsesSnap(SimSnap):
                     self._particle_file_start_indices[i].append(startpoint)
                     startpoint+=(fid==internal_family_id).sum()
                 assert startpoint==count
+
+        n_sinks = self._count_sink_particles()
+
+        if n_sinks>0:
+            return_d[self._sink_family] = n_sinks
+
         return return_d
 
 
+    def _load_sink_data_to_temporary_store(self):
+        if not os.path.exists(self._sink_filename()):
+            self._sink_column_names = self._sink_dimensions = self._sink_data = []
+            self._sink_family = None
+            return
+
+        self._sink_family = family.get_family(config_parser.get('ramses', 'type-sink'))
+
+        with open(self._sink_filename(),"r") as sink_file:
+            reader = csv.reader(sink_file, skipinitialspace=True)
+            data = list(reader)
+
+        if len(data)<2:
+            raise IOError("Unexpected format in file %s"%self._sink_filename())
+        column_names = data[0]
+        dimensions = data[1]
+        data = np.array(data[2:], dtype=object)
+
+        if column_names[0][0]!='#' or dimensions[0][0]!='#':
+            raise IOError("Unexpected format in file %s"%self._sink_filename())
+
+        self._fix_fortran_missing_exponent(data)
+
+        column_names[0] = column_names[0][1:].strip()
+        dimensions[0] = dimensions[0][1:].strip()
+
+        self._sink_column_names = column_names
+        self._sink_dimensions = dimensions
+        self._sink_data = data
+
+    @staticmethod
+    def _fix_fortran_missing_exponent(data_array):
+        flattened_data = data_array.flat
+        for i in xrange(len(flattened_data)):
+            d = flattened_data[i]
+            if "-" in d and "E" not in d:
+                flattened_data[i] = "E-".join(d.split("-"))
+
+
+    def _transfer_sink_data_to_family_array(self):
+        if len(self._sink_data)==0:
+            return
+
+        target = self[self._sink_family]
+        for column, dimension, data in zip(self._sink_column_names,
+                                           self._sink_dimensions,
+                                           self._sink_data.T):
+            dtype = np.float64
+            if column=="id":
+                dtype = np.int64
+            target[column] = data.astype(dtype)
+            unit = dimension.replace("m","g").replace("l","cm").replace("t","yr")
+            if unit=="1":
+                target[column].units="1"
+            else:
+                target[column].set_units_like(unit)
+
+
+
+    def _count_sink_particles(self):
+        return len(self._sink_data)
 
 
 
@@ -734,7 +807,7 @@ class RamsesSnap(SimSnap):
 
     def _iter_particle_families(self):
         for f in self.families():
-            if f is not family.gas:
+            if f is not family.gas and f is not self._sink_family:
                 yield f
 
     def _create_array_for_particles(self, name, type_):
@@ -751,7 +824,7 @@ class RamsesSnap(SimSnap):
 
         arrays = []
         for f in self._iter_particle_families():
-            arrays.append(self[f][blockname].view(np.ndarray))
+            arrays.append(self[f][blockname])
 
 
         remote_map(self.reader_pool,
@@ -800,14 +873,21 @@ class RamsesSnap(SimSnap):
     def loadable_keys(self, fam=None):
 
         if fam is None:
-            keys = set()
+            keys = None
             for f0 in self.families():
-                keys = keys.union(self.loadable_keys(f0))
+                if keys:
+                    keys.intersection_update(self.loadable_keys(f0))
+                else:
+                    keys = set(self.loadable_keys(f0))
         else:
             if fam is family.gas:
                 keys = ['x', 'y', 'z', 'smooth'] + hydro_blocks + self._rt_blocks
-            else:
+            elif fam in self._iter_particle_families():
                 keys = self._particle_blocks
+            elif fam is self._sink_family:
+                keys = set(self._sink_column_names)
+            else:
+                keys = set()
 
         keys_ND = set()
         for key in keys:

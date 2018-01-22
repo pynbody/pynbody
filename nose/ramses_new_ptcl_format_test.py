@@ -10,6 +10,13 @@ def test_family_lengths():
     assert len(f.dm)==136006
     assert len(f.star)==12236
     assert len(f.gas)==196232
+    assert len(f.bh)==2
+
+def test_sink_variables():
+    np.testing.assert_allclose(f.bh['pos'], [[2.5e-2,2.5e-2,2.5e-2],
+                                             [3.5e-2,4.5e-2,5.5e-2]])
+    assert str(f.bh['pos'].units)=="3.09e+21 cm"
+    assert (f.bh['id']==np.array([1,2])).all()
 
 def test_load_pos():
     loaded_vals = f.dm['pos'][::5001]

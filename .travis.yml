@@ -39,5 +39,11 @@ install:
 
 
 script:
-  - "cd nose; nosetests"
+  # first test ramses without shared memory loading
+  - cd nose
+  - nosetests ramses_new_ptcl_format_test.py ramses_test.py
+  # install posix_ipc and proceed with all tests
+  - pip install posix_ipc
+  - nosetests
+  # check documentation build
   - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx_bootstrap_theme; cd ../docs; make html; fi
