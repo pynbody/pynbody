@@ -36,6 +36,9 @@ install:
   - source activate ${PYTHON}_${NUMPY_VERSION}
   - python --version
   - python setup.py install
+  # Limit the number of ramses readers to 2; otherwise Travis builds have been known to run out of memory
+  - echo "[ramses]" >> ~/.pynbodyrc
+  - echo "parallel-read=2" >> ~/.pynbodyrc
 
 
 script:
