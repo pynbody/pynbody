@@ -12,6 +12,11 @@ def test_lengths():
     assert len(f.star) == 2655
     assert len(f.dm) == 51887
 
+def test_properties():
+    np.testing.assert_almost_equal(f.properties['a'], 1.0)
+    np.testing.assert_almost_equal(f.properties['h'], 0.01)
+    np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
+
 def test_particle_arrays():
     f['pos']
     f._load_particle_block('x')

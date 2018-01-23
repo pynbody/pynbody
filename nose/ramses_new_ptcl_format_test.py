@@ -12,6 +12,11 @@ def test_family_lengths():
     assert len(f.gas)==196232
     assert len(f.bh)==2
 
+def test_properties():
+    np.testing.assert_almost_equal(f.properties['a'], 1.0)
+    np.testing.assert_almost_equal(f.properties['h'], 0.01)
+    np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
+
 def test_sink_variables():
     np.testing.assert_allclose(f.bh['pos'], [[2.5e-2,2.5e-2,2.5e-2],
                                              [3.5e-2,4.5e-2,5.5e-2]])

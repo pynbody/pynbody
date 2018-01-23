@@ -978,7 +978,7 @@ def translate_info(sim):
 
     cosmo = 'aexp' in sim._info
 
-    if sim._info['H0']>10:
+    if sim._info['H0']>1e-3:
         sim.properties['a'] = sim._info['aexp']
         sim.properties['omegaM0'] = sim._info['omega_m']
         sim.properties['omegaL0'] = sim._info['omega_l']
