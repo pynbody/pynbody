@@ -894,6 +894,10 @@ class RamsesSnap(SimSnap):
             keys_ND.add(self._array_name_1D_to_ND(key) or key)
         return list(keys_ND)
 
+    def _looks_cosmological(self):
+        # could potentially be improved with reference to stored namelist.txt, if present
+        return self._info['omega_k'] == self._info['omega_l'] == 0
+
     def _load_array(self, array_name, fam=None):
         # Framework always calls with 3D name. Ramses particle blocks are
         # stored as 1D slices.
@@ -976,8 +980,6 @@ class RamsesSnap(SimSnap):
 @RamsesSnap.decorator
 def translate_info(sim):
 
-    cosmo = 'aexp' in sim._info
-
     if sim._info['H0']>1e-3:
         sim.properties['a'] = sim._info['aexp']
         sim.properties['omegaM0'] = sim._info['omega_m']
@@ -992,7 +994,7 @@ def translate_info(sim):
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
 
-    if sim._info['omega_k'] == sim._info['omega_l'] == sim._info['omega_b'] == 0.0:
+    if sim._looks_cosmological() == 0.0:
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
         sim.properties['time'] = analysis.cosmology.age(
