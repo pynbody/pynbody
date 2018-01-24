@@ -894,7 +894,7 @@ class RamsesSnap(SimSnap):
             keys_ND.add(self._array_name_1D_to_ND(key) or key)
         return list(keys_ND)
 
-    def _looks_cosmological(self):
+    def _not_cosmological(self):
         # could potentially be improved with reference to stored namelist.txt, if present
         return self._info['omega_k'] == self._info['omega_l'] == 0
 
@@ -994,7 +994,7 @@ def translate_info(sim):
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
 
-    if sim._looks_cosmological() == 0.0:
+    if sim._not_cosmological():
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
         sim.properties['time'] = analysis.cosmology.age(
