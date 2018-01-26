@@ -28,14 +28,19 @@ def test_sink_variables():
     assert str(f.bh['pos'].units)=="3.09e+21 cm"
     assert (f.bh['id']==np.array([1,2])).all()
 
+def _unexpected_format_warning_was_issued(warnings):
+    return any(["unexpected format" in str(w_i).lower() for w_i in warnings])
+
+def _no_bh_family_present(f):
+    return (len(f.bh)==0) and (pynbody.family.bh not in f.families())
+
 def test_no_sink_file():
     try:
         os.rename(sink_filename, sink_filename_moved)
         with warnings.catch_warnings(record=True) as w:
             f_no_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
-        assert len(w)==0
-        assert len(f_no_sink.bh)==0
-        assert pynbody.family.bh not in f_no_sink.families()
+        assert not _unexpected_format_warning_was_issued(w)
+        assert _no_bh_family_present(f_no_sink)
     finally:
         os.rename(sink_filename_moved, sink_filename)
 
@@ -47,8 +52,8 @@ def test_garbled_sink_file():
 
         with warnings.catch_warnings(record=True) as w:
             f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
-        assert len(w)==1
-        assert "unexpected format" in str(w[0]).lower()
+        assert _unexpected_format_warning_was_issued(w)
+        assert _no_bh_family_present(f_garbled_sink)
 
         with open(sink_filename,"w") as tfile:
             for i in range(4):
@@ -58,8 +63,7 @@ def test_garbled_sink_file():
         # Would be nice to test the warning is also raised here, but need to figure out how to get python to
         # re-raise it despite the fact it was already triggered above.
 
-        assert len(f_garbled_sink.bh) == 0
-        assert pynbody.family.bh not in f_garbled_sink.families()
+        assert _no_bh_family_present(f_garbled_sink)
     finally:
         os.rename(sink_filename_moved, sink_filename)
 
