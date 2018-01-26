@@ -613,8 +613,7 @@ class RamsesSnap(SimSnap):
 
     def _load_sink_data_to_temporary_store(self):
         if not os.path.exists(self._sink_filename()):
-            self._sink_column_names = self._sink_dimensions = self._sink_data = []
-            self._sink_family = None
+            self._after_load_sink_data_failure(warn=False)
             return
 
         self._sink_family = family.get_family(config_parser.get('ramses', 'type-sink'))
@@ -624,13 +623,16 @@ class RamsesSnap(SimSnap):
             data = list(reader)
 
         if len(data)<2:
-            raise IOError("Unexpected format in file %s"%self._sink_filename())
+            self._after_load_sink_data_failure()
+            return
+
         column_names = data[0]
         dimensions = data[1]
         data = np.array(data[2:], dtype=object)
 
         if column_names[0][0]!='#' or dimensions[0][0]!='#':
-            raise IOError("Unexpected format in file %s"%self._sink_filename())
+            self._after_load_sink_data_failure()
+            return
 
         self._fix_fortran_missing_exponent(data)
 
@@ -640,6 +642,14 @@ class RamsesSnap(SimSnap):
         self._sink_column_names = column_names
         self._sink_dimensions = dimensions
         self._sink_data = data
+
+    def _after_load_sink_data_failure(self, warn=True):
+        if warn:
+            warnings.warn("Unexpected format in file %s -- sink data has not been loaded" % self._sink_filename())
+
+        self._sink_column_names = self._sink_dimensions = self._sink_data = []
+        self._sink_family = None
+
 
     @staticmethod
     def _fix_fortran_missing_exponent(data_array):

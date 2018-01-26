@@ -1,6 +1,10 @@
 import pynbody
 import numpy as np
+import os
+import warnings
 
+sink_filename = "testdata/ramses_new_format_partial_output_00001/sink_00001.csv"
+sink_filename_moved = sink_filename+".temporarily_moved"
 
 def setup():
     global f
@@ -11,6 +15,7 @@ def test_family_lengths():
     assert len(f.star)==12236
     assert len(f.gas)==196232
     assert len(f.bh)==2
+    assert pynbody.family.bh in f.families()
 
 def test_properties():
     np.testing.assert_almost_equal(f.properties['a'], 1.0)
@@ -22,6 +27,41 @@ def test_sink_variables():
                                              [3.5e-2,4.5e-2,5.5e-2]])
     assert str(f.bh['pos'].units)=="3.09e+21 cm"
     assert (f.bh['id']==np.array([1,2])).all()
+
+def test_no_sink_file():
+    try:
+        os.rename(sink_filename, sink_filename_moved)
+        with warnings.catch_warnings(record=True) as w:
+            f_no_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+        assert len(w)==0
+        assert len(f_no_sink.bh)==0
+        assert pynbody.family.bh not in f_no_sink.families()
+    finally:
+        os.rename(sink_filename_moved, sink_filename)
+
+def test_garbled_sink_file():
+    try:
+        os.rename(sink_filename, sink_filename_moved)
+        with open(sink_filename,"w") as tfile:
+            tfile.write("1,2,3\r\n")
+
+        with warnings.catch_warnings(record=True) as w:
+            f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+        assert len(w)==1
+        assert "unexpected format" in str(w[0]).lower()
+
+        with open(sink_filename,"w") as tfile:
+            for i in range(4):
+                tfile.write("1,2,3\r\n")
+
+        f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+        # Would be nice to test the warning is also raised here, but need to figure out how to get python to
+        # re-raise it despite the fact it was already triggered above.
+
+        assert len(f_garbled_sink.bh) == 0
+        assert pynbody.family.bh not in f_garbled_sink.families()
+    finally:
+        os.rename(sink_filename_moved, sink_filename)
 
 def test_load_pos():
     loaded_vals = f.dm['pos'][::5001]
