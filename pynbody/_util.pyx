@@ -32,10 +32,9 @@ def find_boundaries(np.ndarray[fused_int, ndim=1] ordered) :
     cdef np.ndarray[fused_int, ndim=1] boundaries = np.zeros(ordered[len(ordered)-1]+1,dtype=ordered.dtype) - 1
     cdef int n, size = len(ordered), current=ordered[0]-1
 
-    ordered[0] = 0
     with nogil :
         for n in range(size) :
-            if current<ordered[n] :
+            if ordered[n]>=0 and current<ordered[n] :
                 current = ordered[n]
                 boundaries[current] = n
 
