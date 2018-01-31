@@ -1203,7 +1203,8 @@ class AHFMergerTree(Tree):
 						print("Could not create node %s, duplicate node ID."%node_id)
 						print("Most probably a progenitor with very few shared particles is tried to be traced.") 
 						print("Try to rerun with particle_ratio bigger than %.2f"%particle_ratio)
-					self._fill_tree(mtree_files[1::], ahf_files[1::], h, level+1, node_id, particle_ratio)	
+					else:
+						self._fill_tree(mtree_files[1::], ahf_files[1::], h, level+1, node_id, particle_ratio)	
 		return
 
 
