@@ -89,9 +89,12 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
             skip_fortran(f, distinguisher_field)
             data = read_fortran(f, distinguisher_type, header['npart'])
         except TypeError:
-            data = np.zeros(npart_this)
+            data = []
 
-        my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
+        if len(data)>0:
+            my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
+        else:
+            my_mask = np.zeros(npart_this, dtype=np.int8)
         nstar_this = (data != 0).sum()
         return npart_this, nstar_this, my_mask
 
