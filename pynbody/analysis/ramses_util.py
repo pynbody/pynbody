@@ -444,39 +444,34 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
     else:
         parent_dir = './'
 
-    # RS - If we only load a subset of cpus, 
-    # we need to ensure we dont' try to load 
-    # them all... 
+    from fortranfile import FortranFile
+    # RS - If we only load a subset of cpus,
+    # we need to ensure we dont' try to load
+    # them all...
     if not cpu_range: # means user hasn't specified a range: use all
         cpu_range = range(ncpu)
 
     for i in range(ncpu):
         if i not in cpu_range:
-            continue;
+            continue
         try:
-            f = open('%s/output_%s/birth_%s.out%05d' %
-                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
+            f = FortranFile('%s/output_%s/birth_%s.out%05d' %
+                            (parent_dir, top._timestep_id, top._timestep_id, i + 1))
         except IOError:
             import os
 
             # birth_xxx doesn't exist, create it with ramses part2birth util
-            #os.system("cd %s; mkdir birth;" % (parent_dir))
             with open(os.devnull, 'w') as fnull:
                 exit_code = subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
                                             stdout=fnull, stderr=fnull)
                 # part2birth put the files in output_<top._timestep_id>
-                #os.system("cd %s; mv output_%s/birth_%s.out%05d %sbirth/;" %
-                #          (parent_dir, top._timestep_id, top._timestep_id, i+1, parent_dir))
-            f = open('%s/output_%s/birth_%s.out%05d' %
-                     (parent_dir, top._timestep_id,top._timestep_id, i + 1))
+            f = FortranFile('%s/output_%s/birth_%s.out%05d' %
+                            (parent_dir, top._timestep_id,top._timestep_id, i + 1))
 
-        n = fromfile(f, 'i', 1)
-        if n > 0:
-            n //= 8 # We want integer divide. This will work in py27 and py30+
-            ages = fromfile(f, 'd', n)
-            new = np.where(ages > 0)[0]
-            top.s['tform'][done:done + len(new)] = ages[new]
-            done += len(new)
+        ages = f.readReals('d')
+        new = np.where(ages > 0)[0]
+        top.s['tform'][done:done + len(new)] = ages[new]
+        done += len(new)
 
         f.close()
     top.s['tform'].units = 'Gyr'
