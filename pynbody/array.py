@@ -1105,8 +1105,7 @@ if posix_ipc:
             if isinstance(item, SimArray):
                 item = _shared_array_deconstruct(item, transfer_ownership)
             elif isinstance(item, list) or isinstance(item, tuple):
-                item = _recursive_shared_array_deconstruct(
-                    item, transfer_ownership)
+                item = _recursive_shared_array_deconstruct(item, transfer_ownership)
             output.append(item)
         return output
 
