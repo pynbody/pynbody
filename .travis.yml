@@ -22,13 +22,6 @@ before_install:
   - cd nose
   - wget http://star.ucl.ac.uk/~app/testdata.tar.gz
   - tar --exclude="._*" -xzvf testdata.tar.gz
-# The following is temporary until the final set of test data for new ramses format is incorporated
-# into testdata.tar.gz
-  - cd testdata
-  - wget http://star.ucl.ac.uk/~app/testdata_addition.tar.gz
-  - tar --exclude="._*" -xzvf testdata_addition.tar.gz
-  - cd ..
-# end temporary section
   - cd ..
 
 install:
