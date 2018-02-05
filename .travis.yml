@@ -23,6 +23,9 @@ before_install:
   - wget http://star.ucl.ac.uk/~app/testdata.tar.gz
   - tar --exclude="._*" -xzvf testdata.tar.gz
   - cd ..
+# ensure there are no unnecessary limits on shared memory available
+  - sudo sysctl -w kernel.shmmax=268435456
+  - sudo sysctl -w kernel.shmall=268435456
 
 install:
   - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip sphinx pygments pandas $IPYTHON $CYTHON
