@@ -409,7 +409,7 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
     **Optional Keywords:** 
 
     *part2birth_path:* by default, this is
-     $HOME/ramses/trunk/ramses/utils/f90/part2birth, as specified in
+     $HOME/ramses/utils/f90/part2birth, as specified in
      `default_config.ini` in your pynbody install directory. You can
      override this like so -- make a file called ".pynbodyrc" in your
      home directory, and include
@@ -423,14 +423,13 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
 
     """
 
-    from numpy import fromfile
+    from scipy.io import FortranFile
 
     top = sim
     while hasattr(top, 'base'):
         top = sim.base
 
     ncpu = top._info['ncpu']
-    nstar = len(top.s)
 
     top.s['tform'] = -1.0
     done = 0
@@ -444,7 +443,6 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
     else:
         parent_dir = './'
 
-    from fortranfile import FortranFile
     # RS - If we only load a subset of cpus,
     # we need to ensure we dont' try to load
     # them all...
@@ -455,25 +453,25 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
         if i not in cpu_range:
             continue
         try:
-            f = FortranFile('%s/output_%s/birth_%s.out%05d' %
-                            (parent_dir, top._timestep_id, top._timestep_id, i + 1))
+            birth_file = FortranFile('%s/output_%s/birth_%s.out%05d' %
+                                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
         except IOError:
             import os
 
             # birth_xxx doesn't exist, create it with ramses part2birth util
             with open(os.devnull, 'w') as fnull:
-                exit_code = subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
-                                            stdout=fnull, stderr=fnull)
-                # part2birth put the files in output_<top._timestep_id>
-            f = FortranFile('%s/output_%s/birth_%s.out%05d' %
-                            (parent_dir, top._timestep_id,top._timestep_id, i + 1))
+                subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
+                                stdout=fnull, stderr=fnull)
+            # part2birth put the files in output_<top._timestep_id>
+            birth_file = FortranFile('%s/output_%s/birth_%s.out%05d' %
+                                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
 
-        ages = f.readReals('d')
+        ages = birth_file.read_reals(np.float64)
         new = np.where(ages > 0)[0]
         top.s['tform'][done:done + len(new)] = ages[new]
         done += len(new)
 
-        f.close()
+        birth_file.close()
     top.s['tform'].units = 'Gyr'
 
     return sim.s['tform']
