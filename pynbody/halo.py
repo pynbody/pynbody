@@ -2159,12 +2159,15 @@ class HOPCatalogue(GrpCatalogue):
     def _extract_hop_name_from_sim(sim):
         match = re.search("output_([0-9]*)", sim.filename)
         if match is None:
-            return
+            raise IOError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
         return "grp%s.tag" % match.group(1)
 
     @staticmethod
     def _enumerate_hop_tag_locations_from_sim(sim):
-        name = HOPCatalogue._extract_hop_name_from_sim(sim)
+        try:
+            name = HOPCatalogue._extract_hop_name_from_sim(sim)
+        except IOError:
+            return []
 
         s_filename = os.path.abspath(sim.filename)
 

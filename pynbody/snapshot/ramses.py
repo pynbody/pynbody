@@ -21,27 +21,21 @@ from .. import array, util
 from .. import family
 from .. import units
 from .. import config, config_parser
-from .. import chunk
-from .. import util
 from .. import analysis
 from . import SimSnap
 from ..util import read_fortran, read_fortran_series, skip_fortran
+from . import namemapper
 
-import struct
 import os
 import numpy as np
-import gzip
-import sys
 import warnings
-import copy
-import types
-import math
 import re
-import functools
 import time
-
 import logging
+import csv
 logger = logging.getLogger('pynbody.snapshot.ramses')
+
+from collections import OrderedDict
 
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
@@ -86,45 +80,53 @@ def _cpu_id(i):
 
 
 @remote_exec
-def _cpui_count_particles(filename, distinguisher_field, distinguisher_type):
+def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
 
-    f = open(filename, "rb")
-    header = read_fortran_series(f, ramses_particle_header)
-    npart_this = header['npart']
-    try:
-        skip_fortran(f, distinguisher_field)
-        data = read_fortran(f, distinguisher_type, header['npart'])
-    except TypeError:
-        data = np.zeros(npart_this)
+    with open(filename, "rb") as f:
+        header = read_fortran_series(f, ramses_particle_header)
+        npart_this = header['npart']
+        try:
+            skip_fortran(f, distinguisher_field)
+            data = read_fortran(f, distinguisher_type, header['npart'])
+        except TypeError:
+            data = []
 
-    my_mask = (data != 0)
-    nstar_this = (data != 0).sum()
-    return npart_this, nstar_this, my_mask
-
+        if len(data)>0:
+            my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
+        else:
+            my_mask = np.zeros(npart_this, dtype=np.int8)
+        nstar_this = (data != 0).sum()
+        return npart_this, nstar_this, my_mask
 
 @remote_exec
-def _cpui_load_particle_block(filename, dm_ar, star_ar, offset, ind0_dm, ind0_star, _type, star_mask, nstar):
-    f = open(filename, "rb")
-    header = read_fortran_series(f, ramses_particle_header)
+def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
+    assert np.issubdtype(family_type, np.int8)
+    counts_array = np.zeros(256,dtype=np.int64)
+    with open(filename, "rb") as f:
+        header = read_fortran_series(f, ramses_particle_header)
+        npart_this = header['npart']
 
-    skip_fortran(f, offset)
+        skip_fortran(f, family_field)
+        my_mask = read_fortran(f, family_type, header['npart'])
 
-    ind1_dm = ind0_dm + header['npart'] - nstar
-    ind1_star = ind0_star + nstar
+        unique_mask_ids, counts = np.unique(my_mask, return_counts=True)
+        counts_array[unique_mask_ids]=counts
 
-    data = read_fortran(f, _type, header['npart'])
-    try:
-        if len(star_mask) > 0:
-            dm_ar[ind0_dm:ind1_dm] = data[~star_mask]
-            star_ar[ind0_star:ind1_star] = data[star_mask]
-        else:
-            dm_ar[ind0_dm:ind1_dm] = data
-    except ValueError:
-        # this translates into the data block loaded from disk not being
-        # long enough
-        raise IOError, "Could not load particle block"
+        assert sum(counts)==npart_this
 
-    f.close()
+        return counts_array, my_mask
+
+@remote_exec
+def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
+    with open(filename,"rb") as f:
+        header = read_fortran_series(f, ramses_particle_header)
+        skip_fortran(f, offset)
+        data = read_fortran(f, type_, header['npart'])
+        for fam_id, ar in enumerate(arrays):
+            data_this_family = data[family_mask == fam_id]
+            ind0 = first_index[fam_id]
+            ind1 = ind0 + len(data_this_family)
+            ar[ind0:ind1] = data_this_family
 
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
@@ -352,6 +354,12 @@ rt_blocks = map(
 particle_distinguisher = map(
     str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
 
+positive_typemap = map(lambda x: family.get_family(str.strip(x)),
+                     config_parser.get('ramses', 'type-mapping-positive').split(","))
+
+negative_typemap = map(lambda x: family.get_family(str.strip(x)),
+                     config_parser.get('ramses', 'type-mapping-negative').split(","))
+
 
 class RamsesSnap(SimSnap):
     reader_pool = None
@@ -368,27 +376,13 @@ class RamsesSnap(SimSnap):
         global config
         super(RamsesSnap, self).__init__()
 
-        if multiprocess:
-            self._shared_arrays = True
-            if (RamsesSnap.reader_pool is None):
-                RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
-        elif issue_multiprocess_warning:
-            warnings.warn("RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.", RuntimeWarning)
-
+        self.__setup_parallel_reading()
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
+        self._load_sink_data_to_temporary_store()
         self._load_infofile()
-
-        # determine whether we have explicit information about
-        # what particle blocks are present
-        self._new_format = False
-        self._particle_blocks = self._info.get(
-            'particle-blocks', particle_blocks)
-        if 'particle-blocks' in self._info:
-            self._new_format = True
-            self._particle_blocks = [
-                'x', 'y', 'z', 'vx', 'vy', 'vz'] + self._particle_blocks[2:]
+        self._setup_particle_descriptor()
 
         assert self._info['ndim'] <= 3
         if self._info['ndim'] < 3:
@@ -396,17 +390,14 @@ class RamsesSnap(SimSnap):
                 "Snapshots with less than three dimensions are supported only experimentally", RuntimeWarning)
 
         self._ndim = self._info['ndim']
-
         self.ncpu = self._info['ncpu']
-
         if 'cpus' in kwargs:
             self._cpus = kwargs['cpus']
         else:
             self._cpus = range(1, self.ncpu + 1)
-
         self._maxlevel = kwargs.get('maxlevel', None)
 
-        ndm, nstar = self._count_particles()
+        type_map = self._count_particles()
 
         has_gas = os.path.exists(
             self._hydro_filename(1)) or kwargs.get('force_gas', False)
@@ -416,13 +407,28 @@ class RamsesSnap(SimSnap):
 
         ngas = self._count_gas_cells() if has_gas else 0
 
-        self._num_particles = ndm + ngas + nstar
-        self._family_slice[family.dm] = slice(0, ndm)
-        self._family_slice[family.star] = slice(ndm, ndm + nstar)
-        self._family_slice[family.gas] = slice(ndm + nstar, ndm + nstar + ngas)
+        if ngas>0:
+            type_map[family.gas] = ngas
 
+        count = 0
+        for fam in type_map:
+            self._family_slice[fam] = slice(count, count+type_map[fam])
+            count+=type_map[fam]
+
+        self._num_particles = count
         self._load_rt_infofile()
         self._decorate()
+        self._transfer_sink_data_to_family_array()
+
+    def __setup_parallel_reading(self):
+        if multiprocess:
+            self._shared_arrays = True
+            if (RamsesSnap.reader_pool is None):
+                RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
+        elif issue_multiprocess_warning:
+            warnings.warn(
+                "RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.",
+                RuntimeWarning)
 
     def _load_rt_infofile(self):
         self._rt_blocks = []
@@ -464,14 +470,52 @@ class RamsesSnap(SimSnap):
         try:
             f = open(
                 self._filename + "/header_" + _timestep_id(self._filename) + ".txt", "r")
-            # most of this file is unhelpful, but in the latest ramses
-            # version, there is information on the particle fields present
+            # most of this file is unhelpful, but depending on the ramses
+            # version, there may be information on the particle fields present
             for l in f:
                 if "level" in l:
                     self._info['particle-blocks'] = l.split()
         except IOError:
             warnings.warn(
                 "No header file found -- no particle block information available")
+
+    def _setup_particle_descriptor(self):
+        try:
+            self._load_particle_descriptor()
+        except IOError:
+            self._guess_particle_descriptor()
+        self._has_explicit_particle_families = 'family' in self._particle_blocks
+
+    def _load_particle_descriptor(self):
+        with open(self._filename+"/part_file_descriptor.txt") as f:
+            self._particle_blocks = []
+            self._particle_types = []
+            self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
+            for l in f:
+                if not l.startswith("#"):
+                    ivar, name, dtype = map(str.strip,l.split(","))
+                    self._particle_blocks.append(self._translate_array_name(name, reverse=True))
+                    self._particle_types.append(np.dtype(dtype))
+            self._particle_blocks_are_explictly_known = True
+
+
+    def _guess_particle_descriptor(self):
+        # determine whether we have explicit information about
+        # what particle blocks are present
+        self._particle_blocks_are_explictly_known = False
+
+        self._particle_types = [np.dtype(pf) for pf in particle_format]
+        if 'particle-blocks' in self._info:
+            self._particle_blocks_are_explictly_known = True
+            self._particle_blocks = self._info['particle-blocks']
+            self._particle_blocks = ['x', 'y', 'z', 'vx', 'vy', 'vz'] + self._particle_blocks[2:]
+        else:
+            self._particle_blocks = particle_blocks
+
+        if len(self._particle_types) < len(self._particle_blocks):
+            warnings.warn("Some fields do not have format configured - assuming they are doubles", RuntimeWarning)
+            type_ = np.dtype('f8')
+            self._particle_types += [type_] * (len(self._particle_blocks) - len(self._particle_types))
 
     def _particle_filename(self, cpu_id):
         return self._filename + "/part_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
@@ -488,7 +532,163 @@ class RamsesSnap(SimSnap):
     def _rt_filename(self, cpu_id):
         return self._filename + "/rt_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
 
+    def _sink_filename(self):
+        return self._filename + "/sink_" + self._timestep_id + ".csv"
+
     def _count_particles(self):
+        if self._has_explicit_particle_families:
+            return self._count_particles_using_explicit_families()
+        else:
+            ndm, nstar = self._count_particles_using_implicit_families()
+            return OrderedDict([(family.dm, ndm), (family.star, nstar)])
+
+    def _count_particles_using_explicit_families(self):
+        """Returns an ordered dictionary of family types based on the new explicit RAMSES particle file format"""
+        family_block = self._particle_blocks.index('family')
+        family_dtype = self._particle_types[family_block]
+        self._particle_family_ids_on_disk = []
+        self._particle_file_start_indices = []
+        results = remote_map(self.reader_pool,
+                             _cpui_count_particles_with_explicit_families,
+                             [self._particle_filename(i) for i in self._cpus],
+                             [family_block] * len(self._cpus),
+                             [family_dtype] * len(self._cpus))
+
+        aggregate_counts = np.zeros(256,dtype=np.int64)
+        for counts, family_ids in results:
+            aggregate_counts+=counts
+            self._particle_family_ids_on_disk.append(family_ids)
+
+        # The above family IDs are defined according to ramses' own internal system. We now need
+        # to map them to pynbody family types
+
+        nonzero_families = np.nonzero(aggregate_counts)[0]
+
+        # map such that negative integers are correctly represented
+        ramses_id_to_internal_id = np.zeros(256, dtype=np.uint8)
+        internal_id_to_family = []
+        aggregate_counts_remapped = np.zeros(256, dtype=np.int64)
+
+        for ramses_family_id in nonzero_families:
+            if ramses_family_id>128:
+                neg_offset = 256 - ramses_family_id
+                if neg_offset>len(negative_typemap):
+                    pynbody_family = negative_typemap[-1]
+                else:
+                    pynbody_family = negative_typemap[neg_offset-1]
+            else:
+                if ramses_family_id>len(positive_typemap):
+                    pynbody_family = positive_typemap[-1]
+                else:
+                    pynbody_family = positive_typemap[ramses_family_id-1]
+            if pynbody_family in internal_id_to_family:
+                internal_id = internal_id_to_family.index(pynbody_family)
+            else:
+                internal_id = len(internal_id_to_family)
+                internal_id_to_family.append(pynbody_family)
+            ramses_id_to_internal_id[ramses_family_id] = internal_id
+            aggregate_counts_remapped[internal_id]+=aggregate_counts[ramses_family_id]
+
+        # perform the remapping for our stored particle identifiers
+        for fid in self._particle_family_ids_on_disk:
+            fid[:] = ramses_id_to_internal_id[fid]
+
+        return_d = OrderedDict()
+        self._particle_file_start_indices = [ [] for x in results]
+        for internal_family_id in xrange(256):
+            if aggregate_counts_remapped[internal_family_id]>0:
+                fam = internal_id_to_family[internal_family_id]
+                count = aggregate_counts_remapped[internal_family_id]
+                return_d[fam] = count
+                startpoint = 0
+                for i,fid in enumerate(self._particle_family_ids_on_disk):
+                    self._particle_file_start_indices[i].append(startpoint)
+                    startpoint+=(fid==internal_family_id).sum()
+                assert startpoint==count
+
+        n_sinks = self._count_sink_particles()
+
+        if n_sinks>0:
+            return_d[self._sink_family] = n_sinks
+
+        return return_d
+
+
+    def _load_sink_data_to_temporary_store(self):
+        if not os.path.exists(self._sink_filename()):
+            self._after_load_sink_data_failure(warn=False)
+            return
+
+        self._sink_family = family.get_family(config_parser.get('ramses', 'type-sink'))
+
+        with open(self._sink_filename(),"r") as sink_file:
+            reader = csv.reader(sink_file, skipinitialspace=True)
+            data = list(reader)
+
+        if len(data)<2:
+            self._after_load_sink_data_failure()
+            return
+
+        column_names = data[0]
+        dimensions = data[1]
+        data = np.array(data[2:], dtype=object)
+
+        if column_names[0][0]!='#' or dimensions[0][0]!='#':
+            self._after_load_sink_data_failure()
+            return
+
+        self._fix_fortran_missing_exponent(data)
+
+        column_names[0] = column_names[0][1:].strip()
+        dimensions[0] = dimensions[0][1:].strip()
+
+        self._sink_column_names = column_names
+        self._sink_dimensions = dimensions
+        self._sink_data = data
+
+    def _after_load_sink_data_failure(self, warn=True):
+        if warn:
+            warnings.warn("Unexpected format in file %s -- sink data has not been loaded" % self._sink_filename())
+
+        self._sink_column_names = self._sink_dimensions = self._sink_data = []
+        self._sink_family = None
+
+
+    @staticmethod
+    def _fix_fortran_missing_exponent(data_array):
+        flattened_data = data_array.flat
+        for i in xrange(len(flattened_data)):
+            d = flattened_data[i]
+            if "-" in d and "E" not in d:
+                flattened_data[i] = "E-".join(d.split("-"))
+
+
+    def _transfer_sink_data_to_family_array(self):
+        if len(self._sink_data)==0:
+            return
+
+        target = self[self._sink_family]
+        for column, dimension, data in zip(self._sink_column_names,
+                                           self._sink_dimensions,
+                                           self._sink_data.T):
+            dtype = np.float64
+            if column=="id":
+                dtype = np.int64
+            target[column] = data.astype(dtype)
+            unit = dimension.replace("m","g").replace("l","cm").replace("t","yr")
+            if unit=="1":
+                target[column].units="1"
+            else:
+                target[column].set_units_like(unit)
+
+
+
+    def _count_sink_particles(self):
+        return len(self._sink_data)
+
+
+
+    def _count_particles_using_implicit_families(self):
         """Returns ndm, nstar where ndm is the number of dark matter particles
         and nstar is the number of star particles."""
 
@@ -498,15 +698,13 @@ class RamsesSnap(SimSnap):
         dm_i0 = 0
         star_i0 = 0
 
-        self._star_mask = []
-        self._nstar = []
-        self._dm_i0 = []
-        self._star_i0 = []
+        self._particle_family_ids_on_disk = []
+        self._particle_file_start_indices = []
 
         if not os.path.exists(self._particle_filename(1)):
             return 0, 0
 
-        if not self._new_format:
+        if not self._particle_blocks_are_explictly_known:
             distinguisher_field = int(particle_distinguisher[0])
             distinguisher_type = np.dtype(particle_distinguisher[1])
         else:
@@ -524,26 +722,22 @@ class RamsesSnap(SimSnap):
                 else:
                     pb_name = "at offset %d"%distinguisher_field
                 warnings.warn("Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher."%pb_name)
-
-
-            distinguisher_type = np.dtype(particle_distinguisher[1])
+            distinguisher_type = self._particle_types[distinguisher_field]
 
         results = remote_map(self.reader_pool,
-                             _cpui_count_particles,
+                             _cpui_count_particles_with_implicit_families,
                              [self._particle_filename(i) for i in self._cpus],
-                             [distinguisher_field]*len(self._cpus),
-                             [distinguisher_type]*len(self._cpus))
+                             [distinguisher_field] * len(self._cpus),
+                             [distinguisher_type] * len(self._cpus))
 
-        for npart_this, nstar_this, my_mask in results:
-            self._dm_i0.append(dm_i0)
-            self._star_i0.append(star_i0)
+        for npart_this, nstar_this, family_ids in results:
+            self._particle_file_start_indices.append((dm_i0, star_i0))
             dm_i0 += (npart_this - nstar_this)
             star_i0 += nstar_this
             npart += npart_this
             nstar += nstar_this
 
-            self._nstar.append(nstar_this)
-            self._star_mask.append(my_mask)
+            self._particle_family_ids_on_disk.append(family_ids)
 
         return npart - nstar, nstar
 
@@ -632,39 +826,37 @@ class RamsesSnap(SimSnap):
 
         logger.info("Done")
 
+    def _iter_particle_families(self):
+        for f in self.families():
+            if f is not family.gas and f is not self._sink_family:
+                yield f
+
+    def _create_array_for_particles(self, name, type_):
+        for f in self._iter_particle_families():
+            if name not in self[f].keys():
+                for f in self._iter_particle_families():
+                    self[f]._create_array(name, dtype=type_)
+
     def _load_particle_block(self, blockname):
         offset = self._particle_blocks.index(blockname)
-        try:
-            _type = np.dtype(particle_format[offset])
-        except IndexError:
-            warnings.warn("Field does not have format configured - assuming double", RuntimeWarning)
-            _type = np.dtype('f8')
-        ind0_dm = 0
-        ind0_star = 0
+        _type = self._particle_types[offset]
 
-        if blockname not in self.dm:
-            self.dm._create_array(blockname, dtype=_type)
-        if blockname not in self.star:
-            self.star._create_array(blockname, dtype=_type)
+        self._create_array_for_particles(blockname, _type)
 
-        dm_ar = self.dm[blockname]
-        star_ar = self.star[blockname]
-        if len(star_ar) == 0:
-            star_ar = np.array(star_ar)
-        if len(dm_ar) == 0:
-            dm_ar = np.array(dm_ar)
+        arrays = []
+        for f in self._iter_particle_families():
+            arrays.append(self[f][blockname])
+
 
         remote_map(self.reader_pool,
                    _cpui_load_particle_block,
                    [self._particle_filename(i) for i in self._cpus],
-                   [dm_ar] * len(self._cpus),
-                   [star_ar] * len(self._cpus),
+                   [arrays] * len(self._cpus),
                    [offset] * len(self._cpus),
-                   self._dm_i0,
-                   self._star_i0,
+                   self._particle_file_start_indices,
                    [_type] * len(self._cpus),
-                   self._star_mask,
-                   self._nstar)
+                   self._particle_family_ids_on_disk
+                   )
 
         # The potential is awkwardly not in physical units, but in
         # physical units divided by the box size. This was different
@@ -672,14 +864,15 @@ class RamsesSnap(SimSnap):
         # with the AMR phi output. So, we need to make a correction here
         # IF we are dealing with the latest ramses format.
 
-        if self._new_format and blockname is 'phi':
-            self.dm['phi'] *= self._info['boxlen']
-            self.star['phi'] *= self._info['boxlen']
+        if self._particle_blocks_are_explictly_known and blockname is 'phi':
+            for f in self._iter_particle_families():
+                self[f]['phi'] *= self._info['boxlen']
 
     def _load_particle_cpuid(self):
+        raise NotImplementedError, "The particle CPU data cannot currently be loaded" # TODO: re-implement
         ind0_dm = 0
         ind0_star = 0
-        for i, star_mask, nstar in zip(self._cpus, self._star_mask, self._nstar):
+        for i, star_mask, nstar in zip(self._cpus, self._particle_family_ids_on_disk, self._nstar):
             f = open(self._particle_filename(i), "rb")
             header = read_fortran_series(f, ramses_particle_header)
             f.close()
@@ -701,19 +894,30 @@ class RamsesSnap(SimSnap):
     def loadable_keys(self, fam=None):
 
         if fam is None:
-            keys = set()
+            keys = None
             for f0 in self.families():
-                keys = keys.union(self.loadable_keys(f0))
+                if keys:
+                    keys.intersection_update(self.loadable_keys(f0))
+                else:
+                    keys = set(self.loadable_keys(f0))
         else:
-            if fam is family.dm or fam is family.star:
-                keys = self._particle_blocks
-            elif fam is family.gas:
+            if fam is family.gas:
                 keys = ['x', 'y', 'z', 'smooth'] + hydro_blocks + self._rt_blocks
+            elif fam in self._iter_particle_families():
+                keys = self._particle_blocks
+            elif fam is self._sink_family:
+                keys = set(self._sink_column_names)
+            else:
+                keys = set()
 
         keys_ND = set()
         for key in keys:
             keys_ND.add(self._array_name_1D_to_ND(key) or key)
         return list(keys_ND)
+
+    def _not_cosmological(self):
+        # could potentially be improved with reference to stored namelist.txt, if present
+        return self._info['omega_k'] == self._info['omega_l'] == 0
 
     def _load_array(self, array_name, fam=None):
         # Framework always calls with 3D name. Ramses particle blocks are
@@ -724,11 +928,11 @@ class RamsesSnap(SimSnap):
             self._load_particle_cpuid()
             self._load_gas_cpuid()
 
-        elif fam is family.dm or fam is family.star:
+        elif fam is not family.gas and fam is not None:
 
             if array_name in self._split_arrays:
                 for array_1D in self._array_name_ND_to_1D(array_name):
-                    self._load_array(array_1D, fam)
+                    self._load_particle_block(array_1D)
 
             elif array_name in self._particle_blocks:
                 self._load_particle_block(array_name)
@@ -765,8 +969,14 @@ class RamsesSnap(SimSnap):
                 self._load_gas_pos()
                 self._load_gas_vars()
 
-            self._load_array('vel', family.dm)
-            self._load_array('pos', family.dm)
+            # the below triggers loading ALL particles, not just DM
+            if array_name=='pos':
+                ptcl_vars = 'x','y','z'
+            elif array_name=='vel':
+                ptcl_vars = 'vx','vy','vz'
+            for name in ptcl_vars:
+                self._load_particle_block(name)
+
         elif fam is None and array_name is 'mass':
             self._create_array('mass')
             self._load_particle_block('mass')
@@ -791,9 +1001,7 @@ class RamsesSnap(SimSnap):
 @RamsesSnap.decorator
 def translate_info(sim):
 
-    cosmo = 'aexp' in sim._info
-
-    if sim._info['H0']>10:
+    if sim._info['H0']>1e-3:
         sim.properties['a'] = sim._info['aexp']
         sim.properties['omegaM0'] = sim._info['omega_m']
         sim.properties['omegaL0'] = sim._info['omega_l']
@@ -807,7 +1015,7 @@ def translate_info(sim):
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
 
-    if sim._info['omega_k'] == sim._info['omega_l'] == sim._info['omega_b'] == 0.0:
+    if sim._not_cosmological():
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
         sim.properties['time'] = analysis.cosmology.age(

@@ -12,6 +12,22 @@ def test_lengths():
     assert len(f.star) == 2655
     assert len(f.dm) == 51887
 
+def test_properties():
+    np.testing.assert_almost_equal(f.properties['a'], 1.0)
+    np.testing.assert_almost_equal(f.properties['h'], 0.01)
+    np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
+
+def test_particle_arrays():
+    f['pos']
+    f._load_particle_block('x')
+    f._load_particle_block('y')
+    f._load_particle_block('z')
+    np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
+    np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
+    np.testing.assert_equal(f.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
+       522489, 697169])
+    np.testing.assert_equal(f.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
+       144166,  26147])
 
 def test_array_unit_sanity():
     """Picks up on problems with converting arrays as they
@@ -72,3 +88,20 @@ def test_rt_arrays():
          1.59989054e-09,   7.61815782e-07,   7.09372161e-08,
          7.76265288e-09,   4.32642383e-09])
 
+def test_all_dm():
+    f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    assert len(f1.families())==1
+    assert len(f1.dm)==274004
+    np.testing.assert_allclose(f1.dm['x'][::5000],
+                               [0.35074016, 0.13963163 , 0.36627742 , 0.3627204  , 0.27095636 , 0.37752211,
+                                0.33660182, 0.32650455 , 0.35676858 , 0.34949844,  0.36312999,  0.36769716,
+                                0.40389644, 0.35737981 , 0.36942017 , 0.36452039 , 0.43302334 , 0.46196367,
+                                0.41216312, 0.4668878  , 0.325703   , 0.01979551 , 0.3423653  , 0.44717895,
+                                0.2903733 , 0.07345862 , 0.47979538 , 0.45532793 , 0.46041618 , 0.42501456,
+                                0.04263056, 0.47700105,  0.01077027,  0.48121992,  0.28120965,  0.47383826,
+                                0.08669572, 0.47441274 , 0.48264947 , 0.32018882 , 0.47762009 , 0.49716835,
+                                0.48241899, 0.47935638 , 0.47553442 , 0.47741151 , 0.47750557 , 0.47583932,
+                                0.48161516, 0.08597729 , 0.48198888 , 0.4815569  , 0.48042167 , 0.48096334,
+                                0.48146743],
+                               rtol=1e-5
+                               )
