@@ -753,7 +753,7 @@ def halo_bias(context, M, kern=cole_kaiser_bias, pspec=PowerSpectrumCAMB,
 
 def simulation_halo_mass_function(snapshot,
                                   log_M_min=8.0, log_M_max=15.0, delta_log_M=0.1,
-                                  masses=None, mass_def="halo_finder", err=None):
+                                  masses=None, mass_def="halo_finder", calculate_err=True):
     """
 
     Construct the halo mass function from a halo catalogue by binning haloes in mass and counting them.
@@ -770,27 +770,33 @@ def simulation_halo_mass_function(snapshot,
 
         *delta_log_M:* The bin spacing of halo masses (see warning below)
 
-        *masses: Provide array of halo masses. If none, this is calculated from the snapshot.
+        *masses: Provide array of halo masses in Msol h**-1. If none, this is calculated from the snapshot.
 
         *mass_def: Definition of the mass of a halo. Possible extensions could be M200_crit, M200_matter, Mvir etc...
 
-        *err: Provide array of error bars for each bins. If none, calculated according to Poisson process.
+        *err: If true, calculates error bars according to Poisson process.
 
     **Returns:**
 
-       The number density of haloes in this snapshot in comoving Mpc**-3 h**3
+       The binned number density of haloes in this snapshot in comoving Mpc**-3 h**3 per decade of mass
+
     """
 
-    nbins = int(1 + delta_log_M/(log_M_max - log_M_min))
+    nbins = int(1 + (log_M_max - log_M_min)/delta_log_M)
     bins = np.logspace(log_M_min, log_M_max, num=nbins, base=10)
     bin_centers = (bins[:-1] + bins[1:]) / 2
 
-
+    # TODO The for loop could be threaded.
     if masses is None:
         warnings.warn("Halo finder masses not provided. Calculating them (might take a while...)")
 
         if mass_def=="halo_finder":
             masses = np.array([h['mass'].sum().in_units('1 h**-1 Msol') for h in snapshot.halos()])
+        else:
+            raise KeyError("Only halo finder mass is supported in this calculation for now")
+
+    if np.amax(masses) > 10**log_M_max or np.amin(masses) < 10**log_M_min :
+        raise ValueError("Your bin range does not encompass the full range of halo masses")
 
     # Bin halos and convert
     bin_means = np.histogram(masses, bins)[0]
@@ -798,10 +804,27 @@ def simulation_halo_mass_function(snapshot,
     # Normalise by volume and bin length
     normalisation = ((snapshot.properties['boxsize'].in_units('Mpc') *
                     snapshot.properties['h'] * (1 + snapshot.properties['z'])) ** 3) * delta_log_M
-    bin_means = bin_means / normalisation
 
-    if err is None:
+    if calculate_err:
         # Calculate error bars assuming Poisson distribution in each bin
         err = np.sqrt(bin_means)/normalisation
 
-    return bin_centers, bin_means, err
+    bin_means = bin_means / normalisation
+
+
+    # Make sure units are consistent
+    bin_centers = bin_centers.view(pynbody.array.SimArray)
+    bin_centers.units = "Msol h**-1"
+    bin_centers.context = snapshot
+
+    bin_means = bin_means.view(pynbody.array.SimArray)
+    bin_means.units = "a**-3 Mpc**-3 h**3"
+    bin_means.context = snapshot
+
+    if calculate_err:
+        err = err.view(pynbody.array.SimArray)
+        err.units = "a**-3 Mpc**-3 h**3"
+        err.context = snapshot
+        return bin_centers, bin_means, err
+    else:
+        return bin_centers, bin_means
