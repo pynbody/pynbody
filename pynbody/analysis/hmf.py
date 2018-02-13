@@ -768,7 +768,7 @@ def simulation_halo_mass_function(snapshot,
 
         *log_M_max:* The maximum halo mass (Msol h^-1) to consider
 
-        *delta_log_M:* The bin spacing of halo masses (see warning below)
+        *delta_log_M:* The bin spacing of halo masses
 
         *masses: Provide array of halo masses in Msol h**-1. If none, this is calculated from the snapshot.
 
@@ -798,8 +798,8 @@ def simulation_halo_mass_function(snapshot,
     if np.amax(masses) > 10**log_M_max or np.amin(masses) < 10**log_M_min :
         raise ValueError("Your bin range does not encompass the full range of halo masses")
 
-    # Bin halos and convert
-    bin_means = np.histogram(masses, bins)[0]
+    # Calculate number of halos in each bin
+    num_halos = np.histogram(masses, bins)[0]
 
     # Normalise by volume and bin length
     normalisation = ((snapshot.properties['boxsize'].in_units('Mpc') *
@@ -807,9 +807,9 @@ def simulation_halo_mass_function(snapshot,
 
     if calculate_err:
         # Calculate error bars assuming Poisson distribution in each bin
-        err = np.sqrt(bin_means)/normalisation
+        err = np.sqrt(num_halos )/normalisation
 
-    bin_means = bin_means / normalisation
+    num_halos = num_halos  / normalisation
 
 
     # Make sure units are consistent
@@ -817,14 +817,14 @@ def simulation_halo_mass_function(snapshot,
     bin_centers.units = "Msol h**-1"
     bin_centers.context = snapshot
 
-    bin_means = bin_means.view(pynbody.array.SimArray)
-    bin_means.units = "a**-3 Mpc**-3 h**3"
-    bin_means.context = snapshot
+    num_halos = num_halos.view(pynbody.array.SimArray)
+    num_halos.units = "a**-3 Mpc**-3 h**3"
+    num_halos.context = snapshot
 
     if calculate_err:
         err = err.view(pynbody.array.SimArray)
         err.units = "a**-3 Mpc**-3 h**3"
         err.context = snapshot
-        return bin_centers, bin_means, err
+        return bin_centers, num_halos, err
     else:
-        return bin_centers, bin_means
+        return bin_centers, num_halos
