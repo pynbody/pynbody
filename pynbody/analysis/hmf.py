@@ -749,3 +749,59 @@ def halo_bias(context, M, kern=cole_kaiser_bias, pspec=PowerSpectrumCAMB,
     nu = delta_crit / np.sqrt(sig)
 
     return kern(nu, delta_crit)
+
+
+def simulation_halo_mass_function(snapshot,
+                                  log_M_min=8.0, log_M_max=15.0, delta_log_M=0.1,
+                                  masses=None, mass_def="halo_finder", err=None):
+    """
+
+    Construct the halo mass function from a halo catalogue by binning haloes in mass and counting them.
+
+    **Args:**
+
+       *snapshot (SimSnap):* The snapshot from which to calculate halo masses
+
+    **Kwargs:**
+
+        *log_M_min:* The minimum halo mass (Msol h^-1) to consider
+
+        *log_M_max:* The maximum halo mass (Msol h^-1) to consider
+
+        *delta_log_M:* The bin spacing of halo masses (see warning below)
+
+        *masses: Provide array of halo masses. If none, this is calculated from the snapshot.
+
+        *mass_def: Definition of the mass of a halo. Possible extensions could be M200_crit, M200_matter, Mvir etc...
+
+        *err: Provide array of error bars for each bins. If none, calculated according to Poisson process.
+
+    **Returns:**
+
+       The number density of haloes in this snapshot in comoving Mpc**-3 h**3
+    """
+
+    nbins = int(1 + delta_log_M/(log_M_max - log_M_min))
+    bins = np.logspace(log_M_min, log_M_max, num=nbins, base=10)
+    bin_centers = (bins[:-1] + bins[1:]) / 2
+
+
+    if masses is None:
+        warnings.warn("Halo finder masses not provided. Calculating them (might take a while...)")
+
+        if mass_def=="halo_finder":
+            masses = np.array([h['mass'].sum().in_units('1 h**-1 Msol') for h in snapshot.halos()])
+
+    # Bin halos and convert
+    bin_means = np.histogram(masses, bins)[0]
+
+    # Normalise by volume and bin length
+    normalisation = ((snapshot.properties['boxsize'].in_units('Mpc') *
+                    snapshot.properties['h'] * (1 + snapshot.properties['z'])) ** 3) * delta_log_M
+    bin_means = bin_means / normalisation
+
+    if err is None:
+        # Calculate error bars assuming Poisson distribution in each bin
+        err = np.sqrt(bin_means)/normalisation
+
+    return bin_centers, bin_means, err
