@@ -753,10 +753,12 @@ def halo_bias(context, M, kern=cole_kaiser_bias, pspec=PowerSpectrumCAMB,
 
 def simulation_halo_mass_function(snapshot,
                                   log_M_min=8.0, log_M_max=15.0, delta_log_M=0.1,
-                                  masses=None, mass_def="halo_finder", calculate_err=True):
+                                  masses=None, mass_def="halo_finder", calculate_err=True,
+                                  subsample_catalogue=None):
     """
 
     Construct the halo mass function from a halo catalogue by binning haloes in mass and counting them.
+    This allows direct plotting of the simulation HMF against the theory HMF.
 
     **Args:**
 
@@ -776,6 +778,10 @@ def simulation_halo_mass_function(snapshot,
 
         *err: If true, calculates error bars according to Poisson process.
 
+        *subsample_catalogue: Sample the halo catalogue every int value. Mostly for speed and debugging issues.
+        WARNING: If your catalogue is ordered, it will not pick random subsamples and
+        you might not recover the true HMF.
+
     **Returns:**
 
        The binned number density of haloes in this snapshot in comoving Mpc**-3 h**3 per decade of mass
@@ -786,12 +792,16 @@ def simulation_halo_mass_function(snapshot,
     bins = np.logspace(log_M_min, log_M_max, num=nbins, base=10)
     bin_centers = (bins[:-1] + bins[1:]) / 2
 
-    # TODO The for loop could be threaded.
+    if subsample_catalogue is None:
+        halo_catalogue = snapshot.halos()
+    else:
+        halo_catalogue = snapshot.halos()[::subsample_catalogue]
+
     if masses is None:
         warnings.warn("Halo finder masses not provided. Calculating them (might take a while...)")
 
         if mass_def=="halo_finder":
-            masses = np.array([h['mass'].sum().in_units('1 h**-1 Msol') for h in snapshot.halos()])
+            masses = np.array([h['mass'].sum().in_units('1 h**-1 Msol') for h in halo_catalogue])
         else:
             raise KeyError("Only halo finder mass is supported in this calculation for now")
 
@@ -802,8 +812,12 @@ def simulation_halo_mass_function(snapshot,
     num_halos = np.histogram(masses, bins)[0]
 
     # Normalise by volume and bin length
-    normalisation = ((snapshot.properties['boxsize'].in_units('Mpc') *
-                    snapshot.properties['h'] * (1 + snapshot.properties['z'])) ** 3) * delta_log_M
+    # This should capture all cases for boxsize weird conversion behaviour.
+    try:
+        normalisation = (snapshot.properties['boxsize'].in_units(' a h**-1 Mpc') ** 3) * delta_log_M
+    except units.UnitsException :
+        normalisation = ((snapshot.properties['boxsize'].in_units('Mpc') *
+                        snapshot.properties['h'] * (1 + snapshot.properties['z'])) ** 3) * delta_log_M
 
     if calculate_err:
         # Calculate error bars assuming Poisson distribution in each bin
