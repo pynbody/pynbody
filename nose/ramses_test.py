@@ -107,13 +107,13 @@ def test_all_dm():
                                )
 
 def test_forcegas_dmo():
-    f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
-    assert len(f1.families())==2
-    assert len(f1.dm)==274004
-    assert len(f1.g)==907818
+    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
+    assert len(f_dmo.families())==2
+    assert len(f_dmo.dm)==274004
+    assert len(f_dmo.g)==907818
 
-    np.testing.assert_allclose(f1.g['mass'][::5000], np.ones((182,), dtype=np.float64), rtol = 1e-5)
-    np.testing.assert_allclose(f1.g['rho'][::10000],[  2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
+    np.testing.assert_allclose(f_dmo.g['mass'][::5000], np.ones((182,), dtype=np.float64), rtol = 1e-5)
+    np.testing.assert_allclose(f_dmo.g['rho'][::10000],[  2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
             2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
             2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
             2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
