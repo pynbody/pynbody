@@ -45,4 +45,4 @@ script:
   - pip install posix_ipc
   - nosetests
   # check documentation build
-  - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx==1.6 sphinx_bootstrap_theme; cd ../docs; make html; fi
+  - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx==1.6.* sphinx_bootstrap_theme; cd ../docs; make html; fi
