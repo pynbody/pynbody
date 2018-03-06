@@ -419,32 +419,45 @@ class GadgetHDFSnap(SimSnap):
         if fam is None:
             fam = self.families()[0]
 
-        units0 = units.NoUnit()
-        dset0 = None
+        inferred_units = units.NoUnit()
+        representative_dset = None
+        representative_hdf = None
         # not all arrays are present in all hdfs so need to loop
         # until we find one
         for hdf0 in self._hdf_files:
             try:
-                dset0 = self._get_hdf_dataset(hdf0[
+                representative_dset = self._get_hdf_dataset(hdf0[
                                                   self._family_to_group_map[fam][0]], translated_name)
-                if hasattr(dset0, "attrs"):
-                    units0 = self._get_units_from_hdf_attr(dset0.attrs)
-                break
+                representative_hdf = hdf0
+                if hasattr(representative_dset, "attrs"):
+                    inferred_units = self._get_units_from_hdf_attr(representative_dset.attrs)
+
+                if len(representative_dset)!=0:
+                    # suitable for figuring out everything we need to know about this array
+                    break
             except KeyError:
                 continue
-        if dset0 is None:
+        if representative_dset is None:
             raise KeyError, "Array is not present in HDF file"
 
 
-        assert len(dset0.shape) <= 2
+        assert len(representative_dset.shape) <= 2
 
-        if len(dset0.shape) > 1:
-            dy = dset0.shape[1]
+        if len(representative_dset.shape) > 1:
+            dy = representative_dset.shape[1]
         else:
             dy = 1
 
-        dtype = dset0.dtype
-        return dtype, dy, units0
+        # Some versions of gadget fold the 3D arrays into 1D.
+        # So check if the dimensions make sense -- if not, assume we're looking at an array that
+        # is 3D and cross your fingers
+        npart = len(representative_hdf[self._family_to_group_map[fam][0]]['ParticleIDs'])
+
+        if len(representative_dset) != npart:
+            dy = len(representative_dset) // npart
+
+        dtype = representative_dset.dtype
+        return dtype, dy, inferred_units
 
     def __init_unit_information(self):
         try:
