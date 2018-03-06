@@ -296,7 +296,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
 
 
 class RockstarCatalogue(HaloCatalogue):
-    def __init__(self, sim, dummy=False, filename=None, sort=False, **kwargs):
+    def __init__(self, sim, dummy=False, pathname=None, filenames=None, sort=False, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -310,15 +310,28 @@ class RockstarCatalogue(HaloCatalogue):
         *sort*: if True, resort the halos into descending order of
                 particle number. Otherwise, leave in RockStar output order.
 
+        *filenames*: a list of filenames of each of the RockStar outputs.
+                     You probably want to use pathname instead, which specifies
+                     the path to the output folder.
+
+        *pathname*: the path of the output folder with the individual RockStar outputs
+
         """
         HaloCatalogue.__init__(self, sim)
 
         self._dummy = dummy
 
-        if filename is not None:
-            self._files = filename
+        if filenames is not None:
+            self._files = filenames
         else:
-            self._files = glob.glob(os.path.join(os.path.dirname(sim.filename),'halos*.bin'))
+            if pathname is None:
+                pathname = os.path.dirname(sim.filename)
+            self._files = glob.glob(os.path.join(pathname,'halos*.bin'))
+            if len(self._files)==0 :
+                self._files = glob.glob(os.path.join(pathname, 'halos*.boundbin'))
+
+        if len(self._files)==0:
+            raise IOError, "Could not find any Rockstar output. Try specifying pathname='/path/to/rockstar/outputfolder'"
 
         self._cpus = [RockstarCatalogueOneCpu(sim,dummy,file_i) for file_i in self._files]
         self._prune_files_from_wrong_scalefactor()
@@ -496,9 +509,6 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
         """
 
-        import os.path
-        if not self._can_load(sim):
-            self._run_rockstar(sim)
         HaloCatalogue.__init__(self,sim)
 
         self._dummy = dummy
@@ -618,7 +628,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         
         
         self._halo_min = int(np.fromfile(f, dtype=self.halo_type, count=1)['id'])
-        self._halo_max = self._halo_min+self._head['num_halos']
+        self._halo_max = int(self._halo_min+self._head['num_halos'])
 
         f.seek(self._haloprops_offset)
         
