@@ -99,9 +99,8 @@ class NFWprofile(AbstractBaseProfile):
         # Eq 7.139
         return 4 * np.pi * self.scale_radius ** 3 * NFWprofile._helper_function(self.concentration * radius_of_enclosure / self.scale_radius)
 
-    def get_dlogrho_dlogr(self):
-        # Theoretical slope
-        pass
+    def get_dlogrho_dlogr(self, radius):
+        return - (1 + 2 * radius / self.scale_radius) / (1 + radius / self.scale_radius)
 
     @staticmethod
     def _helper_function(x):
