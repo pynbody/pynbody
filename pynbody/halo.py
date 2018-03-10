@@ -686,8 +686,12 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             halo_data =np.fromfile(f, dtype=self.halo_type, count=1)
             assert halo_data['id']==this_id
             self._halo_offsets[this_id-self._halo_min] = int(offset)
-            self._halo_lens[this_id-self._halo_min] = int(halo_data['num_p'])
-            offset+=halo_data['num_p']*np.dtype('int64').itemsize
+            if 'num_bound' in self.halo_type.names:
+                num_ptcls = int(halo_data['num_bound'])
+            else:
+                num_ptcls = int(halo_data['num_p'])
+            self._halo_lens[this_id-self._halo_min] = num_ptcls
+            offset+=num_ptcls*np.dtype('int64').itemsize
             this_id+=1
             
 
