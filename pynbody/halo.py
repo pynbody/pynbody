@@ -296,7 +296,8 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
 
 
 class RockstarCatalogue(HaloCatalogue):
-    def __init__(self, sim, dummy=False, pathname=None, filenames=None, sort=False, **kwargs):
+    def __init__(self, sim, dummy=False, pathname=None, format_revision=None,
+                 filenames=None, sort=False, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -316,6 +317,10 @@ class RockstarCatalogue(HaloCatalogue):
 
         *pathname*: the path of the output folder with the individual RockStar outputs
 
+        *format_revision*: Override the header's format revision information. Specify
+                    1, 2, or 'caterpillar' for Rockstar prior to 2014, post 2014, and
+                    customized for the caterpillar project respectively
+
         """
         HaloCatalogue.__init__(self, sim)
 
@@ -329,11 +334,12 @@ class RockstarCatalogue(HaloCatalogue):
             self._files = glob.glob(os.path.join(pathname,'halos*.bin'))
             if len(self._files)==0 :
                 self._files = glob.glob(os.path.join(pathname, 'halos*.boundbin'))
+            self._files.sort()
 
         if len(self._files)==0:
             raise IOError, "Could not find any Rockstar output. Try specifying pathname='/path/to/rockstar/outputfolder'"
 
-        self._cpus = [RockstarCatalogueOneCpu(sim,dummy,file_i) for file_i in self._files]
+        self._cpus = [RockstarCatalogueOneCpu(sim,dummy,file_i, format_revision=format_revision) for file_i in self._files]
         self._prune_files_from_wrong_scalefactor()
         self._cpus[0]._init_iord_to_fpos()
         for cpu in self._cpus:
@@ -473,7 +479,25 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
                           ('format_revision',np.int32),
                           ('rockstar_version',np.str_,12)])
 
-    halo_type = np.dtype([('id',np.int64),('pos','f',3),('vel','f',3),
+    halo_types = {
+        1: np.dtype([('id', np.int64), ('pos', 'f', 3), ('vel', 'f', 3),
+                  ('corevel', 'f', 3), ('bulkvel', 'f', 3), ('m', 'f'),
+                  ('r', 'f'),
+                  ('child_r', 'f'), ('vmax_r', 'f'), ('mgrav', 'f'),
+                  ('vmax', 'f'), ('rvmax', 'f'), ('rs', 'f'),
+                  ('klypin_rs', 'f'), ('vrms', 'f'), ('J', 'f', 3),
+                  ('energy', 'f'), ('spin', 'f'), ('alt_m', 'f', 4),
+                  ('Xoff', 'f'), ('Voff', 'f'), ('b_to_a', 'f'),
+                  ('c_to_a', 'f'), ('A', 'f', 3), ('b_to_a2', 'f'),
+                  ('c_to_a2', 'f'), ('A2', 'f', 3), ('bullock_spin', 'f'),
+                  ('kin_to_pot', 'f'), ('m_pe_b', 'f'), ('m_pe_d', 'f'),
+                  ('num_p', np.int64), ('num_child_particles', np.int64),
+                  ('p_start', np.int64), ('desc', np.int64),
+                  ('flags', np.int64), ('n_core', np.int64),
+                  ('min_pos_err', 'f'), ('min_vel_err', 'f'),
+                  ('min_bulkvel_err', 'f')], align=True)  # Rockstar format v1
+        ,
+        2: np.dtype([('id',np.int64),('pos','f',3),('vel','f',3),
                           ('corevel','f',3),('bulkvel','f',3),('m','f'),
                           ('r','f'),
                           ('child_r','f'),('vmax_r','f'),('mgrav','f'),
@@ -484,18 +508,38 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
                           ('c_to_a','f'),('A','f',3),('b_to_a2','f'),
                           ('c_to_a2','f'),('A2','f',3),('bullock_spin','f'),
                           ('kin_to_pot','f'),('m_pe_b','f'),('m_pe_d','f'),
-                          ('dum',np.str_,4),
+                          ('halfmass_radius','f'),
                           ('num_p',np.int64),('num_child_particles',np.int64),
                           ('p_start',np.int64),('desc',np.int64),
                           ('flags',np.int64),('n_core',np.int64),
                           ('min_pos_err','f'),('min_vel_err','f'),
-                          ('min_bulkvel_err','f'),('type',np.int32),
-                          ('sm','f'),('gas','f'),('bh','f'),
-                          ('peak_density','f'),('av_density','f'),
-                          ('odum',np.str_,4)])
+                          ('min_bulkvel_err','f')], align=True), # Rockstar format v2, includes halfmass_radius
+
+        'caterpillar': np.dtype([('id',np.int64),
+                                 ('pos','f',3),('vel','f',3),
+                          ('corevel','f',3),('bulkvel','f',3),('m','f'),
+                          ('r','f'),
+                          ('child_r','f'),('vmax_r','f'),('mgrav','f'),
+                          ('vmax','f'),('rvmax','f'),('rs','f'),
+                          ('klypin_rs','f'),('vrms','f'),('J','f',3),
+                          ('energy','f'),('spin','f'),('alt_m','f',4),
+                          ('Xoff','f'),('Voff','f'),('b_to_a','f'),
+                          ('c_to_a','f'),('A','f',3),('b_to_a2','f'),
+                          ('c_to_a2','f'),('A2','f',3),('bullock_spin','f'),
+                          ('kin_to_pot','f'),('m_pe_b','f'),('m_pe_d','f'),
+                          ('halfmass_radius','f'),
+                          ('num_p',np.int64),('num_child_particles',np.int64),
+
+                          ('p_start',np.int64),('desc',np.int64),
+                          ('flags',np.int64),('n_core',np.int64),
+                          ('min_pos_err','f'),('min_vel_err','f'),
+                          ('min_bulkvel_err','f'),
+                          ('num_bound', 'i8'), ('num_iter', 'i8')]
+                                , align=True) # Hacked rockstar from caterpillar project
+    }
 
 
-    def __init__(self, sim, dummy=False, filename=None, **kwargs):
+    def __init__(self, sim, dummy=False, filename=None, format_revision=None, **kwargs):
         """Initialize a RockstarCatalogue.
 
         **kwargs** :
@@ -525,6 +569,10 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         with f:
             self._head = np.fromstring(f.read(self.head_type.itemsize),
                                        dtype=self.head_type)
+            if format_revision is None:
+                format_revision = self._head['format_revision'][0]
+
+            self.halo_type = self.halo_types[format_revision]
             unused = f.read(256 - self._head.itemsize)
 
             self._nhalos = self._head['num_halos'][0]
@@ -636,6 +684,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         
         for h in xrange(self._head['num_halos']):
             halo_data =np.fromfile(f, dtype=self.halo_type, count=1)
+            assert halo_data['id']==this_id
             self._halo_offsets[this_id-self._halo_min] = int(offset)
             self._halo_lens[this_id-self._halo_min] = int(halo_data['num_p'])
             offset+=halo_data['num_p']*np.dtype('int64').itemsize
