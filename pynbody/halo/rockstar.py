@@ -65,7 +65,7 @@ class RockstarCatalogue(HaloCatalogue):
     def _prune_files_from_wrong_scalefactor(self):
         new_cpus = []
         for cpu in self._cpus:
-            if abs(self.base.properties['a']-cpu._head['scale'])<1e-6:
+            if abs(self.base.properties['a']-cpu._head['scale'][0])<1e-6:
                 new_cpus.append(cpu)
         self._cpus = new_cpus
 
@@ -272,7 +272,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             self._rsFilename = util.cutgz(glob.glob('halos*.bin')[0])
 
         try :
-            f = util.open_(self._rsFilename)
+            f = util.open_(self._rsFilename, 'rb')
         except IOError:
             raise IOError("Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the filename keyword")
 
@@ -368,7 +368,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         if n<self._halo_min or n>=self._halo_max:
             raise KeyError, "No such halo"
 
-        with util.open_(self._rsFilename) as f:
+        with util.open_(self._rsFilename, 'rb') as f:
             f.seek(self._haloprops_offset+(n-self._halo_min)*self.halo_type.itemsize)
             halo_data = np.fromfile(f, dtype=self.halo_type, count=1)
 
@@ -380,19 +380,19 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
     def _load_rs_halos(self, f, sim):
         self._haloprops_offset = f.tell()
-        self._halo_offsets = np.empty(self._head['num_halos'],dtype=np.int64)
-        self._halo_lens = np.empty(self._head['num_halos'],dtype=np.int64)
-        offset = self._haloprops_offset+self.halo_type.itemsize*self._head['num_halos']
+        self._halo_offsets = np.empty(self._head['num_halos'][0],dtype=np.int64)
+        self._halo_lens = np.empty(self._head['num_halos'][0],dtype=np.int64)
+        offset = self._haloprops_offset+self.halo_type.itemsize*self._head['num_halos'][0]
 
 
         self._halo_min = int(np.fromfile(f, dtype=self.halo_type, count=1)['id'])
-        self._halo_max = int(self._halo_min+self._head['num_halos'])
+        self._halo_max = int(self._halo_min+self._head['num_halos'][0])
 
         f.seek(self._haloprops_offset)
 
         this_id = self._halo_min
 
-        for h in xrange(self._head['num_halos']):
+        for h in xrange(self._head['num_halos'][0]):
             halo_data =np.fromfile(f, dtype=self.halo_type, count=1)
             assert halo_data['id']==this_id
             self._halo_offsets[this_id-self._halo_min] = int(offset)
@@ -407,7 +407,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
     def _get_particles_for_halo(self, num):
         self._init_iord_to_fpos()
-        with util.open_(self._rsFilename) as f:
+        with util.open_(self._rsFilename, 'rb') as f:
             f.seek(self._halo_offsets[num-self._halo_min])
             halo_ptcls=np.fromfile(f,dtype=np.int64,count=self._halo_lens[num-self._halo_min])
             halo_ptcls = self._iord_to_fpos[halo_ptcls]
