@@ -64,10 +64,13 @@ class RockstarCatalogue(HaloCatalogue):
 
     def _prune_files_from_wrong_scalefactor(self):
         new_cpus = []
-        for cpu in self._cpus:
+        new_files = []
+        for file,cpu in zip(self._files,self._cpus):
             if abs(self.base.properties['a']-cpu._head['scale'][0])<1e-6:
                 new_cpus.append(cpu)
+                new_files.append(file)
         self._cpus = new_cpus
+        self._files = new_files
 
     def _pass_on(self, function, *args, **kwargs):
         if self._index_ar is not None:
@@ -85,58 +88,21 @@ class RockstarCatalogue(HaloCatalogue):
     def load_copy(self, k):
         return self._pass_on(RockstarCatalogueOneCpu.load_copy, k)
 
+    def get_group_array(self):
+        ar = np.zeros(len(self.base), dtype=int)-1
+        for cpu_i in self._cpus:
+            cpu_i._update_grp_array(ar)
+        return ar
+
+    def make_grp(self, name='grp'):
+        """
+        Creates a 'grp' array which labels each particle according to
+        its parent halo.
+        """
+        self.base[name]= self.get_group_array()
+
     def __len__(self):
         return sum([len(x) for x in self._cpus])
-
-    def _run_rockstar(self, sim):
-        import pynbody
-        fileformat = 'TIPSY'
-        if (sim is pynbody.gadget.GadgetSnap):
-            fileformat = 'GADGET'
-
-        # find AHFstep
-        groupfinder = config_parser.get('RockstarCatalogue', 'Path')
-
-        if groupfinder == 'None':
-            for directory in os.environ["PATH"].split(os.pathsep):
-                ahfs = glob.glob(os.path.join(directory, "rockstar-galaxies"))
-                for iahf, ahf in enumerate(ahfs):
-                    if ((len(ahfs) > 1) & (iahf != len(ahfs)-1) &
-                            (os.path.basename(ahf) == 'rockstar-galaxies')):
-                        continue
-                    else:
-                        groupfinder = ahf
-                        break
-
-        if not os.path.exists(groupfinder):
-            raise RuntimeError("Path to Rockstar (%s) is invalid" % groupfinder)
-
-        f = open('quickstart.cfg', 'w')
-        print >>f, config_parser.get('RockstarCatalogue', 'Config', vars={
-                'format': fileformat,
-                'partmass': sim.d['mass'].in_units('Msol h^-1',**sim.conversion_context()).min(),
-                'expfac': sim.properties['a'],
-                'hub': sim.properties['h'],
-                'omega0': sim.properties['omegaM0'],
-                'lambda0': sim.properties['omegaL0'],
-                'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
-                'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
-                'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
-                'softening': sim.s['eps'].in_units('Mpc a h^-1', **sim.conversion_context()).min()
-            })
-
-        f.close()
-
-        if (not os.path.exists(sim._filename)):
-            os.system("gunzip "+sim._filename+".gz")
-        # determine parallel possibilities
-
-        if os.path.exists(groupfinder):
-            # run it
-            if config['verbose']:
-                print "RockstarCatalogue: running %s"%groupfinder
-            os.system(groupfinder+" -c quickstart.cfg "+sim._filename)
-            return
 
     def _init_index_ar(self):
         index_ar = np.empty((len(self),2),dtype=np.int32)
@@ -164,20 +130,20 @@ class RockstarCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_run(sim):
-        if config_parser.getboolean('RockstarCatalogue', 'AutoRun'):
-            if config_parser.get('RockstarCatalogue', 'Path') == 'None':
-                for directory in os.environ["PATH"].split(os.pathsep):
-                    if (len(glob.glob(os.path.join(directory, "rockstar-galaxies"))) > 0):
-                        return True
-            else:
-                path = config_parser.get('RockstarCatalogue', 'Path')
-                return os.path.exists(path)
+        return False
+
+    @staticmethod
+    def _can_load(sim, **kwargs):
+        for file in glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin')):
+            if os.path.exists(file):
+                return True
         return False
 
 
 class RockstarCatalogueOneCpu(HaloCatalogue):
     """
-    Class to handle catalogues produced by Rockstar
+    Class to handle sub-catalogues produced by Rockstar. Users should normally not use this class,
+    rather using RockstarCatalogue which collates the multiple sub-files that Rockstar produces.
     """
 
     head_type = np.dtype([('magic',np.uint64),('snap',np.int64),
@@ -295,6 +261,11 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
     def __len__(self):
         return len(self._halo_lens)
 
+    def _load_all(self):
+        for i in xrange(self._halo_min, self._halo_max):
+            self._load_rs_halo_if_required(i)
+            self._load_rs_particles_for_halo_if_required(i)
+
     def calc_item(self, i):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
@@ -312,30 +283,11 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         from . import load
         return load(self.base.filename, take=self._get_particles_for_halo(i))
 
-    @staticmethod
-    def _can_load(sim,**kwargs):
-        for file in glob.glob('halos*.bin'):
-            if os.path.exists(file):
-                return True
-        return False
-
-
-
-    def make_grp(self):
-        """
-        Creates a 'grp' array which labels each particle according to
-        its parent halo.
-        """
-        try:
-            self.base['grp']
-        except:
-            self.base['grp'] = np.zeros(len(self.base),dtype='i')
-
+    def _update_grp_array(self, ar):
+        """Insert into an existing grp array halos from this CPU"""
+        self._load_all()
         for halo in self._halos.values():
-            halo[name][:] = halo._halo_id
-
-        if config['verbose']:  print "writing %s"%(self._base().filename+'.grp')
-        self._base().write_array('grp',overwrite=True,binary=False)
+            ar[halo.get_index_list(self.base)] = halo._halo_id
 
     def _setup_children(self):
         """
