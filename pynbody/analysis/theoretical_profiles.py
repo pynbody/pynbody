@@ -82,6 +82,10 @@ class NFWprofile(AbstractBaseProfile):
     def profile_functional_static(radius, central_density, scale_radius):
         return central_density / ((radius / scale_radius) * (1 + (radius / scale_radius)) ** 2)
 
+    @staticmethod
+    def log_profile_functional_static(radius, central_density, scale_radius):
+        return np.log(NFWprofile.profile_functional_static(radius, central_density, scale_radius))
+
     def profile_functional(self, radius):
         return NFWprofile.profile_functional_static(radius, self.central_density, self.scale_radius)
 
