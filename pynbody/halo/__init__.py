@@ -245,7 +245,7 @@ class GrpCatalogue(HaloCatalogue):
 
     def load_copy(self, i):
         """Load the a fresh SimSnap with only the particle in halo i"""
-        from . import load
+        from .. import load
         return load(self.base.filename, take=self._get_halo_indices(i))
 
     @property
