@@ -254,7 +254,7 @@ class AHFCatalogue(HaloCatalogue):
     def load_copy(self, i):
         """Load the a fresh SimSnap with only the particle in halo i"""
 
-        from . import load
+        from .. import load
 
         if self._dosort is not None:
             i = self._sorted_indices[i-1]
@@ -513,10 +513,9 @@ class AHFCatalogue(HaloCatalogue):
         km/s/Mpc)), ignoring the snaphot arg for hubble constant
         (which sometimes has a large roundoff error).
         """
-        from . import analysis
-        from . import tipsy
-        from .analysis import cosmology
-        from snapshot import _new as new
+        from ..snapshot import tipsy
+        from ..analysis import cosmology
+        from ..snapshot import new
         import math
         s = snapshot
         outfile = tipsyoutfile
