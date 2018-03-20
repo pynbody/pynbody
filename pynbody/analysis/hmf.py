@@ -779,7 +779,7 @@ def simulation_halo_mass_function(snapshot,
         *err: If true, calculates error bars according to Poisson process.
 
         *subsample_catalogue: Sample the halo catalogue every int value. Mostly for speed and debugging issues.
-        WARNING: If your catalogue is ordered, it will not pick random subsamples and
+        WARNING: If your halo catalogue is ordered, this method does not take responsability in randomising the catalogue so
         you might not recover the true HMF.
 
     **Returns:**
@@ -811,13 +811,8 @@ def simulation_halo_mass_function(snapshot,
     # Calculate number of halos in each bin
     num_halos = np.histogram(masses, bins)[0]
 
-    # Normalise by volume and bin length
-    # This should capture all cases for boxsize weird conversion behaviour.
-    try:
-        normalisation = (snapshot.properties['boxsize'].in_units(' a h**-1 Mpc') ** 3) * delta_log_M
-    except units.UnitsException :
-        normalisation = ((snapshot.properties['boxsize'].in_units('Mpc') *
-                        snapshot.properties['h'] * (1 + snapshot.properties['z'])) ** 3) * delta_log_M
+    normalisation = (snapshot.properties['boxsize'].in_units(' a h**-1 Mpc', **snapshot.conversion_context()) ** 3)\
+                    * delta_log_M
 
     if calculate_err:
         # Calculate error bars assuming Poisson distribution in each bin
