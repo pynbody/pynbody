@@ -100,6 +100,7 @@ class NFWprofile(AbstractBaseProfile):
 
     def get_enclosed_mass(self, radius_of_enclosure):
         # Eq 7.139 in M vdB W
+        #TODO Make sure this is actually correct with real example
         return 4 * np.pi * self._parameters['scale_radius'] ** 3 \
                * NFWprofile._helper_function(self._parameters['concentration'] *
                                              radius_of_enclosure / self._parameters['scale_radius'])
@@ -111,6 +112,7 @@ class NFWprofile(AbstractBaseProfile):
         return self._halo_radius / self._parameters['concentration']
 
     def _derive_central_overdensity(self):
+        # TODO Fix this or understand why test fails
         return self._halo_mass / (4 * np.pi * self._parameters['scale_radius'] ** 3 *
                                   NFWprofile._helper_function(self._parameters['concentration']))
 
