@@ -51,8 +51,7 @@ class NFWprofile(AbstractBaseProfile):
     def __init__(self, halo_radius, scale_radius=None, central_density=None, concentration=None,
                  halo_mass=None):
 
-        super(AbstractBaseProfile, self).__init__()
-        self._parameters = dict()
+        super().__init__()
 
         self._halo_radius = halo_radius
 
