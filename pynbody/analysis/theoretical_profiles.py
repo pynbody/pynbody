@@ -117,7 +117,7 @@ class NFWprofile(AbstractBaseProfile):
     def profile_functional_static(radius, central_density, scale_radius):
         # Variable number of argument abstract methods only works because python is lazy with checking.
         # Is this a problem ?
-        return central_density / ((radius / scale_radius) * (1 + (radius / scale_radius)) ** 2)
+        return central_density / ((radius / scale_radius) * (1.0 + (radius / scale_radius)) ** 2)
 
     @staticmethod
     def log_profile_functional_static(radius, central_density, scale_radius):
@@ -125,7 +125,7 @@ class NFWprofile(AbstractBaseProfile):
 
     @staticmethod
     def get_dlogrho_dlogr_static(radius, scale_radius):
-        return - (1 + 3 * radius / scale_radius) / (1 + radius / scale_radius)
+        return - (1.0 + 3.0 * radius / scale_radius) / (1.0 + radius / scale_radius)
 
     ''' Class methods'''
     def profile_functional(self, radius):
