@@ -27,7 +27,7 @@ class AbstractBaseProfile:
         pass
 
     @abc.abstractclassmethod
-    def fit(self, data, **kwargs):
+    def fit(self, radial_data, profile_data, **kwargs):
         pass
 
     def __getitem__(self, item):
@@ -95,8 +95,24 @@ class NFWprofile(AbstractBaseProfile):
     def profile_functional(self, radius):
         return NFWprofile.profile_functional_static(radius, self._parameters['central_density'], self._parameters['scale_radius'])
 
-    def fit(self, data, **kwargs):
-        pass
+    def fit(self, radial_data, profile_data, **kwargs):
+        import scipy.optimize as so
+
+        rhos_guess = 0.0
+        rs_guess = 0.0
+
+        rhos_lower_bound = 0.0
+        rhos_upper_bound = 1.0
+
+        rs_lower_bound = 0.0
+        rs_upper_bound = 1.0
+
+        try:
+            parameters, cov = so.curve_fit(NFWprofile.profile_functional_static, radial_data, profile_data,
+                                            p0=[rhos_guess, rs_guess],
+                                            bounds=([rhos_lower_bound, rs_lower_bound], [rhos_upper_bound, rs_upper_bound]))
+        except so.OptimizeWarning as w:
+            raise RuntimeError(str(w))
 
     def get_enclosed_mass(self, radius_of_enclosure):
         # Eq 7.139 in M vdB W
