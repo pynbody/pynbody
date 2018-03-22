@@ -94,4 +94,12 @@ def test_fit_nfw():
 
 
 def test_log_slope_nfw():
-    pass
+    r = SimArray(np.linspace(0.01, 1000, 1000), units="kpc")
+    slope_from_instance = NFW1.get_dlogrho_dlogr(r)
+    slope_from_static = NFW1.get_dlogrho_dlogr_static(r, rs)
+
+    npt.assert_allclose(slope_from_instance, slope_from_static, rtol=1e-5)
+
+    assert(np.isclose(slope_from_instance[0], -1.0, rtol=1e-2))
+    assert(np.isclose(slope_from_instance[-1], -3.0, rtol=1e-2))
+    assert(NFW1.get_dlogrho_dlogr_static(rs, rs) == -2.0)
