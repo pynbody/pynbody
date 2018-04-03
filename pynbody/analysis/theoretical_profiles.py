@@ -26,10 +26,21 @@ class AbstractBaseProfile:
     def profile_functional_static(radius, **kwargs):
         pass
 
+    @staticmethod
+    @abc.abstractclassmethod
+    def jacobian_profile_functional_static(radius, **kwargs):
+        """ Analytical expression of the jacobian of the profile for more robust fitting."""
+        pass
+
     @classmethod
-    def fit(cls, radial_data, profile_data, profile_err=None):
+    def fit(cls, radial_data, profile_data, profile_err=None, use_analytical_jac=None):
+        """ Fit profile data with a leastsquare method.
+
+        * profile_err * Error bars on the profile data as a function of radius. Very important to ensure a robust fit.
+        """
+
         import scipy.optimize as so
-        # Check data is not corrupted. This is likely check in curve-fit already
+        # Check data is not corrupted. Some are likely check in curve-fit already
         if np.isnan(radial_data).any() or np.isnan(profile_data).any():
             raise RuntimeError("Provided data contains NaN values")
 
@@ -39,8 +50,8 @@ class AbstractBaseProfile:
         if radial_data.size != profile_data.size != profile_err.size:
             raise RuntimeError("Provided data arrays do not match in shape")
 
-        radial_guess = np.mean(radial_data)
-        profile_guess = np.mean(profile_data)
+        if use_analytical_jac is not None:
+            use_analytical_jac = cls.jacobian_profile_functional_static
 
         profile_lower_bound = np.amin(profile_data)
         profile_upper_bound = np.amax(profile_data)
@@ -53,16 +64,16 @@ class AbstractBaseProfile:
                                            radial_data,
                                            profile_data,
                                            sigma=profile_err,
-                                           p0=[profile_guess, radial_guess],
                                            bounds=([profile_lower_bound, radial_lower_bound],
                                                    [profile_upper_bound, radial_upper_bound]),
                                            check_finite=True,
+                                           jac=use_analytical_jac,
                                            method='trf')
         except so.OptimizeWarning as w:
             raise RuntimeError(str(w))
 
-        if parameters[0] == profile_guess or parameters[1] == radial_guess:
-            raise RuntimeError("Fitted parameters are equal to their guess. This is likely a failed fit.")
+        if any(parameters == np.ones(parameters.shape)):
+            raise RuntimeError("Fitted parameters are equal to their initial guess. This is likely a failed fit.")
 
         return parameters, cov
 
@@ -120,6 +131,12 @@ class NFWprofile(AbstractBaseProfile):
         return central_density / ((radius / scale_radius) * (1.0 + (radius / scale_radius)) ** 2)
 
     @staticmethod
+    def jacobian_profile_functional_static(radius, central_density, scale_radius):
+        d_scale_radius = central_density * (3 * radius / scale_radius + 1) / (radius * (1 + radius / scale_radius) ** 3)
+        d_central_density = 1 / ((radius / scale_radius) * (1 + radius / scale_radius) ** 2)
+        return np.transpose([d_central_density, d_scale_radius])
+
+    @staticmethod
     def log_profile_functional_static(radius, central_density, scale_radius):
         return np.log(NFWprofile.profile_functional_static(radius, central_density, scale_radius))
 
@@ -129,7 +146,8 @@ class NFWprofile(AbstractBaseProfile):
 
     ''' Class methods'''
     def profile_functional(self, radius):
-        return NFWprofile.profile_functional_static(radius, self._parameters['central_density'], self._parameters['scale_radius'])
+        return NFWprofile.profile_functional_static(radius, self._parameters['central_density'],
+                                                    self._parameters['scale_radius'])
 
     def get_enclosed_mass(self, radius_of_enclosure):
         # Eq 7.139 in M vdB W
