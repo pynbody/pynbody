@@ -19,6 +19,7 @@ def setup():
 
 
 def test_assignement_nfw():
+    """ There are two ways to initialise an NFW profile. Make sure they are equivalent."""
 
     assert(NFW1['scale_radius'] == rs)
     assert(NFW1['central_density'] == rhos)
@@ -87,10 +88,10 @@ def test_fit_nfw():
     easy_fit = truth + noise
 
     param, cov = pynbody.analysis.theoretical_profiles.NFWprofile.fit(radial_data=r, profile_data=easy_fit,
-                                                                      profile_err=np.sqrt(truth))
+                                                                      profile_err=np.sqrt(truth),
+                                                                      use_analytical_jac=True)
 
     npt.assert_allclose(param, [rhos, rs], rtol=1e-3)
-    # npt.assert_allclose(cov, [0.0], rtol=1e-5)
 
 
 def test_log_slope_nfw():
