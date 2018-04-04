@@ -33,10 +33,11 @@ class AbstractBaseProfile:
         pass
 
     @classmethod
-    def fit(cls, radial_data, profile_data, profile_err=None, use_analytical_jac=None):
+    def fit(cls, radial_data, profile_data, profile_err=None, use_analytical_jac=None, guess=None):
         """ Fit profile data with a leastsquare method.
 
-        * profile_err * Error bars on the profile data as a function of radius. Very important to ensure a robust fit.
+        * profile_err * Error bars on the profile data as a function of radius. Can be a covariance matrix.
+        * guess * Provide a list of parameters initial guess for optimisation
         """
 
         import scipy.optimize as so
@@ -64,15 +65,26 @@ class AbstractBaseProfile:
                                            radial_data,
                                            profile_data,
                                            sigma=profile_err,
+                                           p0=guess,
                                            bounds=([profile_lower_bound, radial_lower_bound],
                                                    [profile_upper_bound, radial_upper_bound]),
                                            check_finite=True,
                                            jac=use_analytical_jac,
-                                           method='trf')
+                                           method='trf',
+                                           ftol=1e-10,
+                                           xtol=1e-10,
+                                           gtol=1e-10,
+                                           x_scale=1.0,
+                                           loss='linear',
+                                           f_scale=1.0,
+                                           max_nfev=None,
+                                           diff_step=None,
+                                           tr_solver=None,
+                                           verbose=2)
         except so.OptimizeWarning as w:
             raise RuntimeError(str(w))
 
-        if any(parameters == np.ones(parameters.shape)):
+        if (guess is None and any(parameters == np.ones(parameters.shape))) or any(parameters == guess):
             raise RuntimeError("Fitted parameters are equal to their initial guess. This is likely a failed fit.")
 
         return parameters, cov
