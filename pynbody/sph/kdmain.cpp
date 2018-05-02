@@ -242,7 +242,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     PyArg_ParseTuple(args, "Oi|f", &kdobj, &nSmooth, &period);
     kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
-    if(period<0)
+    if(period<=0)
         period = BIGFLOAT;
 
     float fPeriod[3] = {period, period, period};
