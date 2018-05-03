@@ -788,6 +788,11 @@ def simulation_halo_mass_function(snapshot,
 
     """
 
+    #Check that the mass resolution is uniform, this method does not handle otherwise
+    if len(set(snapshot.d['mass'])) > 1:
+        warnings.warn( "The mass resolution of the snapshot is not uniform (e.g. zooms). This method"
+                       "will not generate a correct HMF in this case.")
+
     nbins = int(1 + (log_M_max - log_M_min)/delta_log_M)
     bins = np.logspace(log_M_min, log_M_max, num=nbins, base=10)
     bin_centers = (bins[:-1] + bins[1:]) / 2
@@ -806,7 +811,7 @@ def simulation_halo_mass_function(snapshot,
             raise KeyError("Only halo finder mass is supported in this calculation for now")
 
     if np.amax(masses) > 10**log_M_max or np.amin(masses) < 10**log_M_min :
-        raise ValueError("Your bin range does not encompass the full range of halo masses")
+        warnings.warn("Your bin range does not encompass the full range of halo masses")
 
     # Calculate number of halos in each bin
     num_halos = np.histogram(masses, bins)[0]

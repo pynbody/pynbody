@@ -45,6 +45,7 @@ Cookbook/Recipes
    Making Pictures <pictures>
    Group finding <halos>
    Processing Snapshots <processing>
+   Halo mass Function <hmf>
 
 
 .. _advanced_topics:
