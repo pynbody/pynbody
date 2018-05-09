@@ -1,7 +1,7 @@
 """
 
 theoretical_profiles
-====
+====================
 
 Functional forms of common profiles (NFW as an example)
 
@@ -13,7 +13,18 @@ import abc
 
 
 class AbstractBaseProfile:
+    """
+    Base class to generate functional form of known profiles. The class is organised a dictionary: access the profile
+    parameters through profile.keys().
 
+    To define a new profile, create a new class inheriting from this base class and define your own profile_functional()
+    method. The static version can be handy to avoid having to create and object every time.
+    As a example, the NFW functional is implemented.
+
+    A generic fitting function is provided. Given profile data, e.g. quantity as a function of radius, it uses standard
+    least-squares to fit the given functional form to the data.
+
+    """
     def __init__(self):
         self._parameters = dict()
 
@@ -107,14 +118,33 @@ class AbstractBaseProfile:
 
 class NFWprofile(AbstractBaseProfile):
 
-    def __init__(self, halo_radius, scale_radius=None, central_density=None, concentration=None,
+    def __init__(self, halo_radius, scale_radius=None, density_scale_radius=None, concentration=None,
                  halo_mass=None):
+        """
+        To initialise an NFW profile, we always need:
+
+          *halo_radius*: outer boundary of the halo (r200m, r200c, rvir ... depending on definitions)
+
+        The profile can then be initialised either through scale_radius + central_density or halo_mass + concentration
+
+          *scale_radius*: radius at which the slope is equal to -2
+
+          *density_scale_radius*: 1/4 of density at r=rs (normalisation).
+
+          *halo_mass*: mass enclosed inside the outer halo radius
+
+          *concentration*: outer_radius / scale_radius
+
+        From one mode of initialisation, the derived parameters of the others are calculated, e.g. if you initialise
+        with halo_mass + concentration, the scale_radius and central density will be derived.
+
+        """
 
         super().__init__()
 
         self._halo_radius = halo_radius
 
-        if scale_radius is None or central_density is None:
+        if scale_radius is None or density_scale_radius is None:
             if concentration is None or halo_mass is None or halo_radius is None:
                 raise ValueError("You must provide concentration, virial mass"
                                  " if not providing the central density and scale_radius")
@@ -123,34 +153,34 @@ class NFWprofile(AbstractBaseProfile):
                 self._halo_mass = halo_mass
 
                 self._parameters['scale_radius'] = self._derive_scale_radius()
-                self._parameters['central_density'] = self._derive_central_overdensity()
+                self._parameters['density_scale_radius'] = self._derive_central_overdensity()
 
         else:
             if concentration is not None or halo_mass is not None:
                 raise ValueError("You can't provide both scale_radius+central_overdensity and concentration")
 
             self._parameters['scale_radius'] = scale_radius
-            self._parameters['central_density'] = central_density
+            self._parameters['density_scale_radius'] = density_scale_radius
 
             self._parameters['concentration'] = self._derive_concentration()
             self._halo_mass = self.get_enclosed_mass(halo_radius)
 
     ''' Define static versions for use without initialising the class'''
     @staticmethod
-    def profile_functional_static(radius, central_density, scale_radius):
+    def profile_functional_static(radius, density_scale_radius, scale_radius):
         # Variable number of argument abstract methods only works because python is lazy with checking.
         # Is this a problem ?
-        return central_density / ((radius / scale_radius) * (1.0 + (radius / scale_radius)) ** 2)
+        return density_scale_radius / ((radius / scale_radius) * (1.0 + (radius / scale_radius)) ** 2)
 
     @staticmethod
-    def jacobian_profile_functional_static(radius, central_density, scale_radius):
-        d_scale_radius = central_density * (3 * radius / scale_radius + 1) / (radius * (1 + radius / scale_radius) ** 3)
+    def jacobian_profile_functional_static(radius, density_scale_radius, scale_radius):
+        d_scale_radius = density_scale_radius * (3 * radius / scale_radius + 1) / (radius * (1 + radius / scale_radius) ** 3)
         d_central_density = 1 / ((radius / scale_radius) * (1 + radius / scale_radius) ** 2)
         return np.transpose([d_central_density, d_scale_radius])
 
     @staticmethod
-    def log_profile_functional_static(radius, central_density, scale_radius):
-        return np.log(NFWprofile.profile_functional_static(radius, central_density, scale_radius))
+    def log_profile_functional_static(radius, density_scale_radius, scale_radius):
+        return np.log10(NFWprofile.profile_functional_static(radius, density_scale_radius, scale_radius))
 
     @staticmethod
     def get_dlogrho_dlogr_static(radius, scale_radius):
@@ -158,12 +188,12 @@ class NFWprofile(AbstractBaseProfile):
 
     ''' Class methods'''
     def profile_functional(self, radius):
-        return NFWprofile.profile_functional_static(radius, self._parameters['central_density'],
+        return NFWprofile.profile_functional_static(radius, self._parameters['density_scale_radius'],
                                                     self._parameters['scale_radius'])
 
     def get_enclosed_mass(self, radius_of_enclosure):
         # Eq 7.139 in M vdB W
-        return self._parameters['central_density'] * self._parameters['scale_radius'] ** 3 \
+        return self._parameters['density_scale_radius'] * self._parameters['scale_radius'] ** 3 \
                * NFWprofile._helper_function(self._parameters['concentration'] *
                                              radius_of_enclosure / self._halo_radius)
 

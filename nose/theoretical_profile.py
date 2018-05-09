@@ -13,7 +13,7 @@ def setup():
     mass = SimArray(3271229711997.4863, units="Msol")
     c = halo_boundary/rs
 
-    NFW1 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_boundary, central_density=rhos, scale_radius=rs)
+    NFW1 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_boundary, density_scale_radius=rhos, scale_radius=rs)
 
     NFW2 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_boundary, halo_mass=mass, concentration=c)
 
@@ -22,12 +22,12 @@ def test_assignement_nfw():
     """ There are two ways to initialise an NFW profile. Make sure they are equivalent."""
 
     assert(NFW1['scale_radius'] == rs)
-    assert(NFW1['central_density'] == rhos)
+    assert(NFW1['density_scale_radius'] == rhos)
     assert(NFW1['concentration'] == c)
     assert(NFW1.get_enclosed_mass(halo_boundary) == mass)
 
     assert(NFW2['scale_radius'] == rs)
-    assert(NFW2['central_density'] == rhos)
+    assert(NFW2['density_scale_radius'] == rhos)
     assert(NFW2['concentration'] == c)
     assert(NFW2.get_enclosed_mass(halo_boundary) == mass)
 
