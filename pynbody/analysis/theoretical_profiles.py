@@ -7,12 +7,18 @@ Functional forms of common profiles (NFW as an example)
 
 """
 
-from . import cosmology
 import numpy as np
-import abc
+import abc, sys
+
+# # abc compatiblity with Python 2 *and* 3:
+# # https://stackoverflow.com/questions/35673474/using-abc-abcmeta-in-a-way-it-is-compatible-both-with-python-2-7-and-python-3-5
+if sys.version_info >= (3, 4):
+    ABC = abc.ABC
+else:
+    ABC = abc.ABCMeta(str('ABC'), (), {})
 
 
-class AbstractBaseProfile:
+class AbstractBaseProfile(ABC):
     """
     Base class to generate functional form of known profiles. The class is organised a dictionary: access the profile
     parameters through profile.keys().
@@ -28,17 +34,17 @@ class AbstractBaseProfile:
     def __init__(self):
         self._parameters = dict()
 
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def profile_functional(self, radius):
         pass
 
     @staticmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def profile_functional_static(radius, **kwargs):
         pass
 
     @staticmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def jacobian_profile_functional_static(radius, **kwargs):
         """ Analytical expression of the jacobian of the profile for more robust fitting."""
         pass
@@ -140,7 +146,7 @@ class NFWprofile(AbstractBaseProfile):
 
         """
 
-        super().__init__()
+        super(NFWprofile, self).__init__()
 
         self._halo_radius = halo_radius
 
