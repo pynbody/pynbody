@@ -973,11 +973,7 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars()
 
             # the below triggers loading ALL particles, not just DM
-            if array_name=='pos':
-                ptcl_vars = 'x','y','z'
-            elif array_name=='vel':
-                ptcl_vars = 'vx','vy','vz'
-            for name in ptcl_vars:
+            for name in 'x','y','z','vx','vy','vz':
                 self._load_particle_block(name)
 
         elif fam is None and array_name is 'mass':

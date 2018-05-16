@@ -19,15 +19,14 @@ def test_properties():
 
 def test_particle_arrays():
     f['pos']
-    f._load_particle_block('x')
-    f._load_particle_block('y')
-    f._load_particle_block('z')
+    f['vel']
     np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
     np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
     np.testing.assert_equal(f.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
        522489, 697169])
     np.testing.assert_equal(f.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
        144166,  26147])
+    np.testing.assert_allclose(f.dm['vel'][50], [ 0.32088361, -0.82660566, -0.32874243])
 
 def test_array_unit_sanity():
     """Picks up on problems with converting arrays as they
