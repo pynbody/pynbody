@@ -102,11 +102,11 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
     return array.SimArray(com, sim['pos'].units)
 
 
-def virial_radius(sim, cen=None, overden=178, r_max=None):
+def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     """Calculate the virial radius of the halo centered on the given
     coordinates.
 
-    This is here defined by the sphere centered on cen which contains a
+    The default is here defined by the sphere centered on cen which contains a
     mean density of overden * rho_M_0 * (1+z)^3.
 
     """
@@ -126,9 +126,14 @@ def virial_radius(sim, cen=None, overden=178, r_max=None):
     else:
         tx = transformation.null(sim)
 
-    target_rho = overden * \
-        sim.properties[
-            "omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
+    if rho_def is 'matter':
+       ref_density = sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
+    elif rho_def is 'critical':
+        ref_density = cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
+    else:
+        raise ValueError("Definition of the density reference not supported")
+
+    target_rho = overden * ref_density
     logger.info("target_rho=%s", target_rho)
 
     with tx:
