@@ -126,12 +126,12 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     else:
         tx = transformation.null(sim)
 
-    if rho_def is 'matter':
+    if rho_def == 'matter':
        ref_density = sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
-    elif rho_def is 'critical':
+    elif rho_def == 'critical':
         ref_density = cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
     else:
-        raise ValueError("Definition of the density reference not supported")
+        raise ValueError(rho_def + "is not a valid definition for the reference density")
 
     target_rho = overden * ref_density
     logger.info("target_rho=%s", target_rho)
