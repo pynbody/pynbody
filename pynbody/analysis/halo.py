@@ -343,6 +343,9 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
     #--------------------------------FUNCTIONS--------------------------------------
 
+    if (rout == 0): rout = sim.dm['r'].max() 
+    if (rin == 0):  rin  = rout/1E3
+
     posr = np.array(sim.dm['r'])[np.where(sim.dm['r']<rout)[0]]
     pos  = np.array(sim.dm['pos'])[np.where(sim.dm['r']<rout)[0]]
     mass = np.array(sim.dm['mass'])[np.where(sim.dm['r']<rout)[0]]
@@ -352,9 +355,6 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
     rotz = [[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]]
 
     # Define bins:
-    if (rout == 0): rout = np.max(posr)
-    if (rin == 0):  rin  = rout/1E3
-
     if (bins == 'equal'): # Each bin contains equal number of particles
         mid  = split(np.sort(posr[np.where((posr>=rin) & (posr<=rout))[0]]),N*2)
         rbin = mid[1:N*2+1:2] ; mid = mid[0:N*2+1:2]
