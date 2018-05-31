@@ -144,3 +144,14 @@ def move_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
             raise RuntimeError, "shrink_sphere_center failed to converge after %d iterations"%itermax
 
     return com_x
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def inertia_tensor(np.ndarray[np.float64_t, ndim=2] pos) :
+
+    i_t = np.zeros((3,3))
+    for p in pos:
+        i_t += p*np.array([p]).T
+
+    return i_t
