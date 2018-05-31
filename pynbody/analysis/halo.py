@@ -311,3 +311,126 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
         tx = transformation.inverse_v_translate(tx, velc)
 
     return tx
+
+def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
+
+    """
+
+    Return the axis ratios b/a and c/a, and the alignment angle, for homeoidal shells
+    over a range of N radii. Set 'bins' to 'equal' for an equal number of particles
+    per bin, and 'log' for logarithmic bins.
+    The central radii of each bin are also returned.
+    Output is in the order: bin radius, b/a, c/a, alignment angle, rotation matrix
+
+    Caution is advised when assigning large number of bins and radial ranges with many
+    particles, as the algorithm becomes very slow.
+
+    """
+
+    #--------------------------------FUNCTIONS--------------------------------------
+    # Define an ellipsoid shell with lengths a,b,c and orientation E:
+    def Ellipsoid(r, a,b,c, E):
+      x,y,z = np.dot(E,[r[:,0],r[:,1],r[:,2]])
+      return (x/a)**2 + (y/b)**2 + (z/c)**2
+
+    # Define moment of inertia tensor:
+    MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)] for i in range(3)])
+
+    # Splits data into number of steps N:
+    split = lambda r,N: np.append([r[i*len(r)/N:(1+i)*len(r)/N][0] for i in range(N)],r[-1])
+
+    # Retrieves alignment angle:
+    almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
+    #--------------------------------FUNCTIONS--------------------------------------
+
+    mid  = np.array(sim.dm['r'])[np.where(sim.dm['r']<rout)[0]]
+    pos  = np.array(sim.dm['pos'])[np.where(sim.dm['r']<rout)[0]]
+    mass = np.array(sim.dm['mass'])[np.where(sim.dm['r']<rout)[0]]
+
+    rotx = [[1.,0.,0.],[0.,0.,-1.],[0.,1.,0.]]
+    roty = [[0.,0.,1.],[0.,1.,0.],[-1.,0.,0.]]
+    rotz = [[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]]
+
+    # Define bins:
+    if (rout == 0): rout = np.max(mid)
+    if (rin == 0):  rin  = rout/1E3
+
+    if (bins == 'equal'): # Each bin contains equal number of particles
+        mid  = split(np.sort(mid[np.where((mid>=rin) & (mid<=rout))[0]]),N*2)
+        rbin = mid[1:N*2+1:2] ; mid = mid[0:N*2+1:2]
+
+    elif (bins == 'log'): # Bins are logarithmically spaced
+        mid  = profile.Profile(sim.dm, type='log', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
+        rbin = np.sqrt(mid[0:N]*mid[1:N+1])
+
+    # Define b/a and c/a ratios and angle arrays:
+    ba,ca,angle = np.zeros(N),np.zeros(N),np.zeros(N)
+    Es = [0]*N
+
+    # Begin loop through radii:
+    for i in range(0,N):
+
+        # Initialise convergence criterion:
+        tol   = 1E-3
+        count = 0
+
+        # Define initial spherical shell:
+        a=b=c = rbin[i]
+        E     = np.identity(3)
+        L1,L2 = rbin[i]-mid[i],mid[i+1]-rbin[i]
+
+        # Begin iterative procedure to fit data to shell:
+        while True:
+            count+= 1
+
+            # Collect all particle positions and masses within homoeoid ellipsoidal shell:
+            inner = Ellipsoid(pos, a-L1,b-L1*b/a,c-L1*c/a, E)
+            outer = Ellipsoid(pos, a+L2,b+L2*b/a,c+L2*c/a, E)
+            r     =  pos[np.where((inner>1.) & (outer<1.))]
+            m     = mass[np.where((inner>1.) & (outer<1.))]
+
+            # End iterations if there is no data in range: [Either due to extreme axis ratios or bad data]
+            if (len(r)==0):
+                ba[i],ca[i],angle[i],Es[i] = b/a,c/a,almnt(E),E
+                logger.info('No data in range after %i iterations. Ratios b/a, c/a = %.3f %.3f' %(count,b/a,c/a))
+                break
+
+            # Calculate shape tensor & diagonalise for eigenvalues and eigenvectors:
+            D = list(np.linalg.eig(MoI(r,m)/np.sum(m)))
+
+            # Purge complex numbers [This will produce unrealistic parameters for this iteration]:
+            if isinstance(D[1][0,0],complex):
+                D[0] = D[0].real ; D[1] = D[1].real
+                logger.info('Complex numbers in D removed...')
+
+            # Compute ratios a,b,c from moment of intertia principles [eigenvalues]:
+            anew,bnew,cnew = np.sqrt(abs(D[0])*3.0)
+
+            # a,b,c do not necessarily remain a>b>c. The rotation matrix must be reoriented:
+            if ((anew>bnew) & (bnew>=cnew)): E=D[1]
+            if ((bnew>anew) & (anew>=cnew)): E=np.dot(D[1],rotz)
+            if ((cnew>anew) & (anew>=bnew)): E=np.dot(np.dot(D[1],rotz),rotx)
+            if ((bnew>cnew) & (cnew>=anew)): E=np.dot(np.dot(D[1],rotz),roty)
+            if ((anew>cnew) & (cnew>=bnew)): E=np.dot(D[1],rotx)
+            if ((cnew>bnew) & (bnew>=anew)): E=np.dot(D[1],roty)
+            if (almnt(-E)<almnt(E)): E=-E
+            cnew,bnew,anew = np.sort(np.sqrt(abs(D[0])*3.0))
+
+            # Keep a as semi-major axis and distort b,c by b/a and c/a:
+            div   = rbin[i]/anew
+            anew *= div
+            bnew *= div
+            cnew *= div
+
+            # Convergence criterion: Fractional difference between old and new axis ratios:
+            if (np.abs(b/a - bnew/anew)<tol) & (np.abs(c/a - cnew/anew)<tol):
+                ba[i],ca[i],angle[i],Es[i] = bnew/anew,cnew/anew,almnt(E),E
+                break
+
+            # Increase tolerance if convergence has stagnated [multiply by 5 every 10 iterations]:
+            elif (count%10 == 0): tol *= 5.
+
+            # Reset a,b,c for the next iteration:
+            a,b,c = anew,bnew,cnew
+
+    return [array.SimArray(rbin, sim.d['pos'].units), ba, ca, angle, Es]
