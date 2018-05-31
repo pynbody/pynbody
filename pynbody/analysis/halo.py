@@ -343,7 +343,7 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
     #--------------------------------FUNCTIONS--------------------------------------
 
-    mid  = np.array(sim.dm['r'])[np.where(sim.dm['r']<rout)[0]]
+    posr = np.array(sim.dm['r'])[np.where(sim.dm['r']<rout)[0]]
     pos  = np.array(sim.dm['pos'])[np.where(sim.dm['r']<rout)[0]]
     mass = np.array(sim.dm['mass'])[np.where(sim.dm['r']<rout)[0]]
 
@@ -352,11 +352,11 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
     rotz = [[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]]
 
     # Define bins:
-    if (rout == 0): rout = np.max(mid)
+    if (rout == 0): rout = np.max(posr)
     if (rin == 0):  rin  = rout/1E3
 
     if (bins == 'equal'): # Each bin contains equal number of particles
-        mid  = split(np.sort(mid[np.where((mid>=rin) & (mid<=rout))[0]]),N*2)
+        mid  = split(np.sort(posr[np.where((posr>=rin) & (posr<=rout))[0]]),N*2)
         rbin = mid[1:N*2+1:2] ; mid = mid[0:N*2+1:2]
 
     elif (bins == 'log'): # Bins are logarithmically spaced
@@ -384,9 +384,10 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
             count+= 1
 
             # Collect all particle positions and masses within homoeoid ellipsoidal shell:
-            inner = Ellipsoid(pos, a-L1,b-L1*b/a,c-L1*c/a, E)
-            outer = Ellipsoid(pos, a+L2,b+L2*b/a,c+L2*c/a, E)
-            r     =  pos[np.where((inner>1.) & (outer<1.))]
+            r     = pos[np.where((posr<a+L2) & (posr>c-L1*c/a))[0]]
+            inner = Ellipsoid(r, a-L1,b-L1*b/a,c-L1*c/a, E)
+            outer = Ellipsoid(r, a+L2,b+L2*b/a,c+L2*c/a, E)
+            r     =    r[np.where((inner>1.) & (outer<1.))]
             m     = mass[np.where((inner>1.) & (outer<1.))]
 
             # End iterations if there is no data in range: [Either due to extreme axis ratios or bad data]
