@@ -314,7 +314,6 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
 
 def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     """
-
     Returns radii in units of ``sim['pos']``, axis ratios b/a and c/a,
     the alignment angle of axis a in radians, and the rotation matrix
     for homeoidal shells over a range of N halo radii.
@@ -342,7 +341,6 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     Halo must be in a centered frame.
     Caution is advised when assigning large number of bins and radial
     ranges with many particles, as the algorithm becomes very slow.
-
     """
 
     #-----------------------------FUNCTIONS-----------------------------
