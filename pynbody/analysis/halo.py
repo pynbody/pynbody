@@ -364,9 +364,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     if (rout == None): rout = sim.dm['r'].max()
     if (rin == None): rin = rout/1E3
 
-    posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)[0]]
-    pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)[0]]
-    mass = np.array(sim.dm['mass'])[np.where(sim.dm['r'] < rout)[0]]
+    posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)]
+    pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)]
+    mass = np.array(sim.dm['mass'])[np.where(sim.dm['r'] < rout)]
 
     rx = [[1.,0.,0.],[0.,0.,-1.],[0.,1.,0.]]
     ry = [[0.,0.,1.],[0.,1.,0.],[-1.,0.,0.]]
@@ -374,7 +374,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     # Define bins:
     if (bins == 'equal'): # Each bin contains equal number of particles
-        mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))[0]]),N*2)
+        mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))]),N*2)
         rbin = mid[1:N*2+1:2]
         mid = mid[0:N*2+1:2]
 
@@ -407,7 +407,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
             count += 1
 
             # Collect all particle positions and masses within shell:
-            r = pos[np.where((posr < a+L2) & (posr > c-L1*c/a))[0]]
+            r = pos[np.where((posr < a+L2) & (posr > c-L1*c/a))]
             inner = Ellipsoid(r, a-L1,b-L1*b/a,c-L1*c/a, E)
             outer = Ellipsoid(r, a+L2,b+L2*b/a,c+L2*c/a, E)
             r = r[np.where((inner > 1.) & (outer < 1.))]
