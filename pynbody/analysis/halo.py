@@ -312,17 +312,34 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
 
     return tx
 
-def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
-
+def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     """
 
-    Return the axis ratios b/a and c/a, and the alignment angle, for
-    homeoidal shells over a range of N radii.
-    Set 'bins' to 'equal' for an equal number of particles per bin, and
-    'log' for logarithmic bins.
-    The central radii of each bin are also returned.
-    Outputs are: bin radius, b/a, c/a, alignment angle, rotation matrix
+    Returns radii in units of ``sim['pos']``, axis ratios b/a and c/a,
+    the alignment angle of axis a in radians, and the rotation matrix
+    for homeoidal shells over a range of N halo radii.
 
+    **Keyword arguments:**
+
+    *N* (100): The number of homeoidal shells to consider. Shells with
+    few particles will take longer to fit.
+
+    *rin* (None): The minimum radial bin in units of ``sim['pos']``.
+    Note that this applies to axis a, so particles within this radius
+    may still be included within homeoidal shells. By default this is
+    taken as rout/1000.
+
+    *rout* (None): The maximum radial bin in units of ``sim['pos']``.
+    By default this is taken as the largest radial value in the halo
+    particle distribution.
+
+    *bins* (equal): The spacing scheme for the homeoidal shell bins.
+    ``equal`` initialises bins with equal numbers of particles. This
+    number is not necessarily maintained during fitting.
+    ``log`` and ``lin`` initialise bins with logarithmic and linear
+    radial spacing.
+
+    Halo must be in a centered frame.
     Caution is advised when assigning large number of bins and radial
     ranges with many particles, as the algorithm becomes very slow.
 
@@ -335,19 +352,19 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
       return (x/a)**2 + (y/b)**2 + (z/c)**2
 
     # Define moment of inertia tensor:
-    MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]
+    MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
                                for i in range(3)])
 
     # Splits data into number of steps N:
-    sn = lambda r,N: np.append([r[i*len(r)/N:(1+i)*len(r)/N][0]
+    sn = lambda r,N: np.append([r[i*len(r)/N:(1+i)*len(r)/N][0]\
                                for i in range(N)],r[-1])
 
     # Retrieves alignment angle:
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
     #-----------------------------FUNCTIONS-----------------------------
 
-    if (rout == 0): rout = sim.dm['r'].max()
-    if (rin == 0): rin = rout/1E3
+    if (rout == None): rout = sim.dm['r'].max()
+    if (rin == None): rin = rout/1E3
 
     posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)[0]]
     pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)[0]]
@@ -366,6 +383,10 @@ def halo_shape(sim, N=100, rin=0, rout=0, bins='equal'):
     elif (bins == 'log'): # Bins are logarithmically spaced
         mid = profile.Profile(sim.dm, type='log', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
         rbin = np.sqrt(mid[0:N]*mid[1:N+1])
+
+    elif (bins == 'lin'): # Bins are linearly spaced
+        mid = profile.Profile(sim.dm, type='lin', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
+        rbin = 0.5*(mid[0:N]+mid[1:N+1])
 
     # Define b/a and c/a ratios and angle arrays:
     ba,ca,angle = np.zeros(N),np.zeros(N),np.zeros(N)
