@@ -346,8 +346,8 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     #-----------------------------FUNCTIONS-----------------------------
     # Define an ellipsoid shell with lengths a,b,c and orientation E:
     def Ellipsoid(r, a,b,c, E):
-      x,y,z = np.dot(E,[r[:,0],r[:,1],r[:,2]])
-      return (x/a)**2 + (y/b)**2 + (z/c)**2
+        x,y,z = np.dot(E,[r[:,0],r[:,1],r[:,2]])
+        return (x/a)**2 + (y/b)**2 + (z/c)**2
 
     # Define moment of inertia tensor:
     MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
@@ -433,8 +433,8 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
             # The rotation matrix must be reoriented:
             if ((anew > bnew) & (bnew >= cnew)): E = D[1]
             if ((bnew > anew) & (anew >= cnew)): E = np.dot(D[1],rz)
-            if ((cnew > anew) & (anew >= bnew)): E = np.dot(np.dot(D[1],rz),rx)
-            if ((bnew > cnew) & (cnew >= anew)): E = np.dot(np.dot(D[1],rz),ry)
+            if ((cnew > anew) & (anew >= bnew)): E = np.dot(np.dot(D[1],ry),rx)
+            if ((bnew > cnew) & (cnew >= anew)): E = np.dot(np.dot(D[1],rz),rx)
             if ((anew > cnew) & (cnew >= bnew)): E = np.dot(D[1],rx)
             if ((cnew > bnew) & (bnew >= anew)): E = np.dot(D[1],ry)
             if (almnt(-E) < almnt(E)): E = -E
