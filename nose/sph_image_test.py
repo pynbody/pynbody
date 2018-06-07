@@ -76,3 +76,12 @@ def test_denoise_projected_image_throws():
     with npt.assert_raises(ValueError):
         # this should not:
         pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
+
+
+def test_render_stars():
+    global f
+    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True)
+
+    compare= np.load("test_stars_2d.npy")
+
+    npt.assert_allclose(compare,im[40:60],atol=0.01)
