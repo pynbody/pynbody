@@ -109,6 +109,22 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     The default is here defined by the sphere centered on cen which contains a
     mean density of overden * rho_M_0 * (1+z)^3.
 
+    **Input**:
+
+    *sim* : a simulation snapshot - this can be any subclass of SimSnap, especially a halo.
+
+    **Optional Keywords**:
+
+    *cen* (default=None): Provides the halo center. If None, assumes that the snapshot is already centered.
+
+    *rmax (default=None): Maximum radius to start the search. If None, inferred from the halo particle positions.
+
+    *overden (default=178): Overdensity corresponding to the required halo boundary definition.
+    178 is the virial criterion for spherical collapse in an EdS Universe. Common possible values are 200, 500 etc
+
+    *rho_def (default='matter'): Physical density used to define the overdensity. Default is the matter density at
+    the redshift of the simulation. An other choice is "critical" for the critical density at this redshift.
+
     """
 
     if r_max is None:
