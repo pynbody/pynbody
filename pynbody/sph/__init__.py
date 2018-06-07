@@ -389,6 +389,8 @@ def _threaded_render_image(fn, s, *args, **kwargs):
             t.join()
 
     # Each output is a 1-element list with a numpy array. Sum them.
+    if any([len(o)==0 for o in outputs]):
+        raise RuntimeError("There was a problem with the multi-threaded image render. Try running again with threaded=False to debug the underlying error.")
     return sum([o[0] for o in outputs])
 
 
