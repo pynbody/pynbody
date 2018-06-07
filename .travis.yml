@@ -28,7 +28,7 @@ before_install:
   - sudo sysctl -w kernel.shmall=268435456
 
 install:
-  - conda create --yes -n -q ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
+  - conda create --yes -q ${PYTHON}_${NUMPY_VERSION} -n python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
   - source activate ${PYTHON}_${NUMPY_VERSION}
   - python --version
   - python setup.py install
