@@ -80,7 +80,7 @@ def test_denoise_projected_image_throws():
 
 def test_render_stars():
     global f
-    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True)
+    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
 
     compare= np.load("test_stars_2d.npy")
 
