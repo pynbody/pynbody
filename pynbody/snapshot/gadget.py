@@ -1164,6 +1164,9 @@ class GadgetSnap(SimSnap):
                         s += f_parts[i]
 
 
+def _header_suggests_cosmological(gadget_header):
+    return (gadget_header.HubbleParam != 0.) and (gadget_header.Omega0 != 0.) and (gadget_header.BoxSize != 0.)
+
 @GadgetSnap.decorator
 def do_units(sim):
     # cosmo =
@@ -1176,7 +1179,7 @@ def do_units(sim):
     vel_unit, dist_unit, mass_unit = [
         units.Unit(x) for x in vel_unit, dist_unit, mass_unit]
 
-    if sim.header.HubbleParam == 0.:
+    if not _header_suggests_cosmological(sim):
         # remove a and h dependences
         vel_unit = units.Unit(
             "km s^-1") * vel_unit.in_units("km s^-1", a=1, h=1)
@@ -1190,8 +1193,7 @@ def do_units(sim):
 def do_properties(sim):
     h = sim.header
 
-    sim.properties['time'] = sim.infer_original_units("s") * h.time
-    if h.HubbleParam != 0.:
+    if _header_suggests_cosmological(h):
         from .. import analysis
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
@@ -1201,3 +1203,5 @@ def do_properties(sim):
         sim.properties['h'] = h.HubbleParam
         time_units = sim.infer_original_units("s")
         sim.properties['time'] = analysis.cosmology.age(sim,unit=time_units)*time_units
+    else:
+        sim.properties['time'] = sim.infer_original_units("s") * h.time
