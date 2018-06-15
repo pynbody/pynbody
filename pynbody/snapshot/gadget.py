@@ -1179,7 +1179,7 @@ def do_units(sim):
     vel_unit, dist_unit, mass_unit = [
         units.Unit(x) for x in vel_unit, dist_unit, mass_unit]
 
-    if not _header_suggests_cosmological(sim):
+    if not _header_suggests_cosmological(sim.header):
         # remove a and h dependences
         vel_unit = units.Unit(
             "km s^-1") * vel_unit.in_units("km s^-1", a=1, h=1)
