@@ -34,3 +34,27 @@ def test_fourier_profile():
 
     assert(np.all(p['fourier']['amp'][2,4:20] > 0.1))
     assert(np.allclose(np.abs(p['fourier']['phi'][2,4:20]/2), np.pi/4.0, rtol=0.05))
+
+
+def test_potential_profile_fp64():
+    f = pynbody.new(100)
+    coords = np.random.normal(size=(100,3))
+    del f['pos']
+    del f['mass']
+    f['pos'] = np.array(coords,dtype=np.float64)
+    f['eps'] = np.ones(100,dtype=np.float64)
+    f['mass'] = np.ones(100,dtype=np.float64)
+    p = pynbody.analysis.profile.Profile(f, nbins=50)
+    p['pot']
+
+
+def test_potential_profile_fp32():
+    f = pynbody.new(100)
+    coords = np.random.normal(size=(100,3))
+    del f['pos']
+    del f['mass']
+    f['pos'] = np.array(coords,dtype=np.float32)
+    f['eps'] = np.ones(100,dtype=np.float32)
+    f['mass'] = np.ones(100,dtype=np.float32)
+    p = pynbody.analysis.profile.Profile(f, nbins=50)
+    p['pot']
