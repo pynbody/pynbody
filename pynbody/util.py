@@ -22,6 +22,8 @@ import scipy
 
 from .backcompat import fractions
 from . import config
+from . import units
+from .array import SimArray
 
 logger = logging.getLogger('pynbody.util')
 from ._util import *
@@ -55,6 +57,32 @@ def open_with_size(filename, *args):
         buflen = f.tell()
         f.seek(4, os.SEEK_SET)
         return f, buflen
+
+
+def get_eps(f):
+    """The gravitational softening length is determined by (in order of
+    preference):
+    1. The array f['eps']
+    2. f.properties['eps'] (scalar or unit)
+
+    Return a SimArray with correct units and dtype (same dtype as 'mass' array)"""
+
+    try:
+        eps = f['eps']
+    except KeyError:
+        if 'eps' in f.properties:
+            eps = f.properties['eps']
+            if isinstance(eps, str):
+                eps = units.Unit(eps)
+            if not isinstance(eps, units.UnitBase):
+                eps = eps * f['pos'].units
+                logger.info("Considering eps = {}".format(eps))
+            eps_value = eps._scale
+            eps_unit = eps/eps_value
+            eps = SimArray(np.ones(len(f), dtype=f['mass'].dtype) * eps_value, eps_unit)
+        else:
+            raise RuntimeError("Cannot retrieve 'eps' from SimSnap")
+    return eps
 
 
 def gcf(a, b):

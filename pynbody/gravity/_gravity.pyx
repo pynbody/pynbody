@@ -2,6 +2,7 @@
 
 cimport cython
 from pynbody import units, array, config, openmp
+from pynbody.util import get_eps
 import numpy as np
 cimport numpy as np
 DTYPE = np.double
@@ -10,7 +11,7 @@ ctypedef fused DTYPE_t:
     np.float32_t
     np.float64_t
 
-cdef extern from "math.h" nogil :
+cdef extern from "math.h" nogil:
       double sqrt(double)
       float sqrt(float)
 
@@ -35,6 +36,8 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
 
     openmp.set_threads(num_threads)
 
+    if eps is None:
+        eps = get_eps(f)
 
     cdef unsigned int nips = len(ipos)
     cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = ipos.dtype)
@@ -42,12 +45,12 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
     cdef np.ndarray[DTYPE_t, ndim=2] pos = f['pos'].view(np.ndarray)
     cdef np.ndarray[DTYPE_t, ndim=1] mass = f['mass'].view(np.ndarray)
     cdef unsigned int n = len(mass)
-    cdef np.ndarray[DTYPE_t, ndim=1] epssq = f['eps']*f['eps']
+    cdef np.ndarray[DTYPE_t, ndim=1] epssq = eps * eps
 
     cdef unsigned int pi, i
     cdef double dx, dy, dz, mass_i, epssq_i, drsoft, drsoft3
 
-    for pi in prange(nips,nogil=True,schedule='static'):
+    for pi in prange(nips, nogil=True, schedule='static'):
         for i in range(n):
             mass_i = mass[i]
             epssq_i = epssq[i]
