@@ -1,7 +1,7 @@
 from .. import units
 from .. import array
 from .. import config
-from ..util import get_eps
+from ..util import get_eps, eps_as_simarray
 
 import math
 import tree
@@ -84,6 +84,8 @@ def midplane_rot_curve(f, rxy_points, eps=None, mode=config['gravity_calculation
 
     if eps is None:
         eps = get_eps(f)
+    elif isinstance(eps, (str, units.UnitBase)):
+        eps = eps_as_simarray(f, eps)
 
     # u_out = (units.G * f['mass'].units / f['pos'].units)**(1,2)
 
@@ -137,6 +139,8 @@ def midplane_potential(f, rxy_points, eps=None, mode=config['gravity_calculation
 
     if eps is None:
         eps = get_eps(f)
+    elif isinstance(eps, (str, units.UnitBase)):
+        eps = eps_as_simarray(f, eps)
 
     u_out = units.G * f['mass'].units / f['pos'].units
 
