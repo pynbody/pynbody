@@ -113,7 +113,6 @@ import keyword
 import numpy as np
 from . import backcompat
 from .backcompat import fractions
-from . import util
 import functools
 
 Fraction = fractions.Fraction
@@ -611,6 +610,8 @@ class CompositeUnit(UnitBase):
         # any
         # solution would not be unique.
         M_T_M = np.dot(matrix.transpose(), matrix)
+
+        from . import util
 
         try:
             M_T_M_inv = util.rational_matrix_inv(M_T_M)
