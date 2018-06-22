@@ -11,7 +11,8 @@ Calculating a theoretical halo mass function
 This recipe makes use of the module :mod:`~pynbody.analysis.halo` to generate the halo mass function of a given snapshot
 and compare it to a theoretical model.
 
-We will start by loading a snapshot data.
+We will start by loading a snapshot data. The data used is a uniform volume that can be found following the first step
+of https://pynbody.github.io/tangos/first_steps_gadget+subfind.html .
 
 
 .. ipython::
