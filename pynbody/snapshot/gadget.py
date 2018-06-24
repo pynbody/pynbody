@@ -1187,6 +1187,7 @@ def do_units(sim):
         dist_unit = units.Unit("kpc") * dist_unit.in_units("kpc", a=1, h=1)
 
     sim._file_units_system = [units.Unit("K"), vel_unit, dist_unit, mass_unit]
+    sim._override_units_system()
 
 
 @GadgetSnap.decorator

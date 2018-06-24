@@ -638,6 +638,37 @@ class SimSnap(object):
                 d[x] = self.properties[x]
         return d
 
+    def _override_units_system(self):
+        """Look for and process a text file with a custom units system for this snapshot.
+
+        The text file should be named <filename>.units and contain unit specifications, one-per-line, e.g.
+
+        pos: kpc a
+        vel: km s^-1
+        mass: Msol
+
+        This override functionality needs to be explicitly called by a subclass after it has initialised
+        its best guess at the units.
+        """
+        try:
+            f = open(self.filename+".units","r")
+        except IOError:
+            return
+
+        name_mapping = {'pos': 'distance', 'vel': 'velocity'}
+        units_dict = {}
+
+        for line in f:
+            if (not line.startswith("#")):
+                if ":" not in line:
+                    raise IOError, "Unknown format for units file %r"%(self.filename+".units")
+                else:
+                    t, u = map(str.strip,line.split(":"))
+                    t = name_mapping.get(t,t)
+                    units_dict[t] = u
+
+        self.set_units_system(**units_dict)
+
     def set_units_system(self, velocity=None, distance=None, mass=None, temperature=None):
         """Set the unit system for the snapshot by specifying any or
         all of `velocity`, `distance`, `mass` and `temperature`
