@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.plot.metals &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.plot.metals &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.plot.metals</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">metals</span>
 <span class="sd">======</span>
@@ -136,12 +130,12 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">profile</span>
-<span class="kn">from</span> <span class="nn">.generic</span> <span class="kn">import</span> <span class="n">hist2d</span><span class="p">,</span> <span class="n">gauss_kde</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..analysis</span> <span class="k">import</span> <span class="n">profile</span>
+<span class="kn">from</span> <span class="nn">.generic</span> <span class="k">import</span> <span class="n">hist2d</span><span class="p">,</span> <span class="n">gauss_kde</span>
 
 
-<div class="viewcode-block" id="mdf"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.metals.mdf">[docs]</a><span class="k">def</span> <span class="nf">mdf</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="mdf"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.metals.mdf">[docs]</a><span class="k">def</span> <span class="nf">mdf</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 
 <span class="sd">    Metallicity Distribution Function</span>
@@ -162,23 +156,23 @@
     <span class="k">if</span> <span class="n">axes</span><span class="p">:</span>
         <span class="n">plt</span> <span class="o">=</span> <span class="n">axes</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
         <span class="k">if</span> <span class="n">clear</span><span class="p">:</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;[Fe / H]&#39;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;PDF&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;[Fe / H]&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;PDF&#39;</span><span class="p">)</span>
 
-    <span class="n">metpdf</span><span class="p">,</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">],</span>
-                                <span class="n">bins</span><span class="o">=</span><span class="n">nbins</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c"># density=True,</span>
+    <span class="n">metpdf</span><span class="p">,</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;feh&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">],</span>
+                                <span class="n">bins</span><span class="o">=</span><span class="n">nbins</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># density=True,</span>
     <span class="n">midpoints</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">midpoints</span><span class="p">,</span> <span class="n">metpdf</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">filename</span><span class="p">):</span>
-        <span class="k">print</span> <span class="s">&quot;Saving &quot;</span> <span class="o">+</span> <span class="n">filename</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s2">&quot;Saving &quot;</span> <span class="o">+</span> <span class="n">filename</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
 
-</div>
-<div class="viewcode-block" id="ofefeh"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.metals.ofefeh">[docs]</a><span class="k">def</span> <span class="nf">ofefeh</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">fxn</span><span class="o">=</span><span class="n">gauss_kde</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ofefeh"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.metals.ofefeh">[docs]</a><span class="k">def</span> <span class="nf">ofefeh</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">fxn</span><span class="o">=</span><span class="n">gauss_kde</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 
 <span class="sd">    Use :func:`~pynbody.plot.generic.hist2d` to make a [O/Fe] vs. [Fe/H] plot</span>
@@ -201,11 +195,11 @@
 
 <span class="sd">    &#39;&#39;&#39;</span>
 
-    <span class="k">if</span> <span class="s">&#39;subplot&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-        <span class="n">fxn</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;ofe&#39;</span><span class="p">],</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;subplot&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">fxn</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;feh&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;ofe&#39;</span><span class="p">],</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">fxn</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;ofe&#39;</span><span class="p">],</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-            <span class="n">xlabel</span><span class="o">=</span><span class="s">&quot;[Fe/H]&quot;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s">&quot;[O/Fe]&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="n">fxn</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;feh&#39;</span><span class="p">],</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;ofe&#39;</span><span class="p">],</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+            <span class="n">xlabel</span><span class="o">=</span><span class="s2">&quot;[Fe/H]&quot;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">&quot;[O/Fe]&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </pre></div>
 
     </div>
@@ -223,7 +217,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

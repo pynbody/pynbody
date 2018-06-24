@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.analysis.halo &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.analysis.halo &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.analysis.halo</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">halo</span>
 <span class="sd">====</span>
@@ -138,12 +132,12 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">transformation</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">_com</span><span class="p">,</span> <span class="n">profile</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">transformation</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">_com</span><span class="p">,</span> <span class="n">profile</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.analysis.halo&#39;</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;pynbody.analysis.halo&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="center_of_mass"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center_of_mass">[docs]</a><span class="k">def</span> <span class="nf">center_of_mass</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
@@ -152,31 +146,31 @@
 <span class="sd">    Return the centre of mass of the SimSnap</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mtot</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">mtot</span>
+    <span class="n">mtot</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">mtot</span>
 
-    <span class="c"># otherwise behaviour is numpy version dependent</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="c1"># otherwise behaviour is numpy version dependent</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
 
-    <span class="c"># only return position to be consistent with other functions in halo.py</span>
-    <span class="k">return</span> <span class="n">p</span>
+    <span class="c1"># only return position to be consistent with other functions in halo.py</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
-</div>
+
 <div class="viewcode-block" id="center_of_mass_velocity"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center_of_mass_velocity">[docs]</a><span class="k">def</span> <span class="nf">center_of_mass_velocity</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Return the center of mass velocity of the SimSnap</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mtot</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;vel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">mtot</span>
-    <span class="c"># otherwise behaviour is numpy version dependent</span>
-    <span class="n">v</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;vel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="n">mtot</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;vel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">mtot</span>
+    <span class="c1"># otherwise behaviour is numpy version dependent</span>
+    <span class="n">v</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;vel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
 
-    <span class="k">return</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">v</span></div>
 
-</div>
-<div class="viewcode-block" id="shrink_sphere_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.shrink_sphere_center">[docs]</a><span class="k">def</span> <span class="nf">shrink_sphere_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">min_particles</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">num_threads</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">],</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="shrink_sphere_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.shrink_sphere_center">[docs]</a><span class="k">def</span> <span class="nf">shrink_sphere_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">min_particles</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_threads</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;number_of_threads&#39;</span><span class="p">],</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Return the center according to the shrinking-sphere method of</span>
@@ -206,66 +200,87 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 
-        <span class="c"># use rough estimate for a maximum radius</span>
-        <span class="c"># results will be insensitive to the exact value chosen</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="c1"># use rough estimate for a maximum radius</span>
+        <span class="c1"># results will be insensitive to the exact value chosen</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span>
 
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">__class__</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
 
-    <span class="n">mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;double&#39;</span><span class="p">)</span>
-    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;double&#39;</span><span class="p">)</span>
+    <span class="n">mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;double&#39;</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;double&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">shrink_factor</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
-        <span class="n">tol</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">*</span><span class="mf">0.1</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">*</span><span class="mf">0.1</span>
         <span class="n">com</span> <span class="o">=</span> <span class="n">_com</span><span class="o">.</span><span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">min_particles</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">num_threads</span><span class="p">)</span>
         <span class="n">com</span> <span class="o">=</span> <span class="n">_com</span><span class="o">.</span><span class="n">move_sphere_center</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">min_particles</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">tol</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">com</span> <span class="o">=</span> <span class="n">_com</span><span class="o">.</span><span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">min_particles</span><span class="p">,</span> <span class="n">shrink_factor</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">num_threads</span><span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Final SSC=</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">com</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Final SSC=</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">com</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">com</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">com</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span></div>
 
-</div>
-<div class="viewcode-block" id="virial_radius"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.virial_radius">[docs]</a><span class="k">def</span> <span class="nf">virial_radius</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">overden</span><span class="o">=</span><span class="mi">178</span><span class="p">,</span> <span class="n">r_max</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="virial_radius"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.virial_radius">[docs]</a><span class="k">def</span> <span class="nf">virial_radius</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overden</span><span class="o">=</span><span class="mi">178</span><span class="p">,</span> <span class="n">r_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rho_def</span><span class="o">=</span><span class="s1">&#39;matter&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculate the virial radius of the halo centered on the given</span>
 <span class="sd">    coordinates.</span>
 
-<span class="sd">    This is here defined by the sphere centered on cen which contains a</span>
+<span class="sd">    The default is here defined by the sphere centered on cen which contains a</span>
 <span class="sd">    mean density of overden * rho_M_0 * (1+z)^3.</span>
+
+<span class="sd">    **Input**:</span>
+
+<span class="sd">    *sim* : a simulation snapshot - this can be any subclass of SimSnap, especially a halo.</span>
+
+<span class="sd">    **Optional Keywords**:</span>
+
+<span class="sd">    *cen* (default=None): Provides the halo center. If None, assumes that the snapshot is already centered.</span>
+
+<span class="sd">    *rmax (default=None): Maximum radius to start the search. If None, inferred from the halo particle positions.</span>
+
+<span class="sd">    *overden (default=178): Overdensity corresponding to the required halo boundary definition.</span>
+<span class="sd">    178 is the virial criterion for spherical collapse in an EdS Universe. Common possible values are 200, 500 etc</span>
+
+<span class="sd">    *rho_def (default=&#39;matter&#39;): Physical density used to define the overdensity. Default is the matter density at</span>
+<span class="sd">    the redshift of the simulation. An other choice is &quot;critical&quot; for the critical density at this redshift.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">r_max</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">r_max</span> <span class="o">=</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">r_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">r_max</span> <span class="o">=</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r_max</span><span class="p">,</span> <span class="n">cen</span><span class="p">)]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r_max</span><span class="p">)]</span>
 
     <span class="n">r_min</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-    <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">null</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
 
-    <span class="n">target_rho</span> <span class="o">=</span> <span class="n">overden</span> <span class="o">*</span> \
-        <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span>
-            <span class="s">&quot;omegaM0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;target_rho=</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">target_rho</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rho_def</span> <span class="o">==</span> <span class="s1">&#39;matter&#39;</span><span class="p">:</span>
+       <span class="n">ref_density</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;omegaM0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">3</span>
+    <span class="k">elif</span> <span class="n">rho_def</span> <span class="o">==</span> <span class="s1">&#39;critical&#39;</span><span class="p">:</span>
+        <span class="n">ref_density</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">rho_def</span> <span class="o">+</span> <span class="s2">&quot;is not a valid definition for the reference density&quot;</span><span class="p">)</span>
+
+    <span class="n">target_rho</span> <span class="o">=</span> <span class="n">overden</span> <span class="o">*</span> <span class="n">ref_density</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;target_rho=</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">target_rho</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tx</span><span class="p">:</span>
         <span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r_max</span><span class="p">)]</span>
         <span class="k">with</span> <span class="n">sim</span><span class="o">.</span><span class="n">immediate_mode</span><span class="p">:</span>
-            <span class="n">mass_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span>
-            <span class="n">r_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">])</span>
+            <span class="n">mass_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">])</span>
+            <span class="n">r_ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">])</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        #pure numpy implementation</span>
@@ -279,17 +294,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">util</span><span class="o">.</span><span class="n">sum_if_lt</span><span class="p">(</span><span class="n">mass_ar</span><span class="p">,</span><span class="n">r_ar</span><span class="p">,</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">4.</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">bisect</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">target_rho</span> <span class="o">-</span>
-                             <span class="n">rho</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.e-3</span> <span class="o">*</span> <span class="n">target_rho</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+                             <span class="n">rho</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.e-3</span> <span class="o">*</span> <span class="n">target_rho</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">result</span></div>
 
-</div>
+
 <span class="k">def</span> <span class="nf">potential_minimum</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
-    <span class="n">i</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;phi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;phi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="hybrid_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.hybrid_center">[docs]</a><span class="k">def</span> <span class="nf">hybrid_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="s">&#39;3 kpc&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="hybrid_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.hybrid_center">[docs]</a><span class="k">def</span> <span class="nf">hybrid_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="s1">&#39;3 kpc&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Determine the center of the halo by finding the shrink-sphere</span>
@@ -301,9 +316,9 @@
         <span class="n">cen_a</span> <span class="o">=</span> <span class="n">potential_minimum</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
         <span class="n">cen_a</span> <span class="o">=</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">cen_a</span><span class="p">)],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">shrink_sphere_center</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">cen_a</span><span class="p">)],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="index_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.index_center">[docs]</a><span class="k">def</span> <span class="nf">index_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
@@ -314,13 +329,13 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">ind</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;ind&#39;</span><span class="p">]</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">center_of_mass</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">ind</span><span class="p">])</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Need to supply indices for centering&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Need to supply indices for centering&quot;</span><span class="p">)</span></div>
 
-</div>
-<div class="viewcode-block" id="vel_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.vel_center">[docs]</a><span class="k">def</span> <span class="nf">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="vel_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.vel_center">[docs]</a><span class="k">def</span> <span class="nf">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s2">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Use stars from a sphere to calculate center of velocity. The size</span>
 <span class="sd">    of the sphere is given by the ``cen_size`` keyword and defaults to</span>
 <span class="sd">    1 kpc.</span>
@@ -337,7 +352,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Finding halo velocity center...&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Finding halo velocity center...&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">move_all</span><span class="p">:</span>
         <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ancestor</span>
@@ -346,28 +361,28 @@
 
     <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
-        <span class="c"># fall-back to DM</span>
+        <span class="c1"># fall-back to DM</span>
         <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
-        <span class="c"># fall-back to gas</span>
+        <span class="c1"># fall-back to gas</span>
         <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
-        <span class="c"># very weird snapshot, or mis-centering!</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Insufficient particles around center to get velocity&quot;</span>
+        <span class="c1"># very weird snapshot, or mis-centering!</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Insufficient particles around center to get velocity&quot;</span>
 
-    <span class="n">vcen</span> <span class="o">=</span> <span class="p">(</span><span class="n">cen</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span> <span class="o">*</span> <span class="n">cen</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> \
-        <span class="n">cen</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">vcen</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">cen</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
-    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;verbose&#39;</span><span class="p">]:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;vcen=</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">vcen</span><span class="p">)</span>
+    <span class="n">vcen</span> <span class="o">=</span> <span class="p">(</span><span class="n">cen</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span> <span class="o">*</span> <span class="n">cen</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> \
+        <span class="n">cen</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">vcen</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">cen</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;verbose&#39;</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;vcen=</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">vcen</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">vcen</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">transformation</span><span class="o">.</span><span class="n">v_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">-</span><span class="n">vcen</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">transformation</span><span class="o">.</span><span class="n">v_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">-</span><span class="n">vcen</span><span class="p">)</span></div>
 
-</div>
-<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.center">[docs]</a><span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s2">&quot;1 kpc&quot;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Determine the center of mass of the given particles using the</span>
@@ -408,15 +423,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">global</span> <span class="n">config</span>
-    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">mode</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;centering-scheme&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;centering-scheme&#39;</span><span class="p">]</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">fn</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;pot&#39;</span><span class="p">:</span> <span class="n">potential_minimum</span><span class="p">,</span>
-              <span class="s">&#39;com&#39;</span><span class="p">:</span> <span class="n">center_of_mass</span><span class="p">,</span>
-              <span class="s">&#39;ssc&#39;</span><span class="p">:</span> <span class="n">shrink_sphere_center</span><span class="p">,</span>
-              <span class="s">&#39;hyb&#39;</span><span class="p">:</span> <span class="n">hybrid_center</span><span class="p">,</span>
-              <span class="s">&#39;ind&#39;</span><span class="p">:</span> <span class="n">index_center</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pot&#39;</span><span class="p">:</span> <span class="n">potential_minimum</span><span class="p">,</span>
+              <span class="s1">&#39;com&#39;</span><span class="p">:</span> <span class="n">center_of_mass</span><span class="p">,</span>
+              <span class="s1">&#39;ssc&#39;</span><span class="p">:</span> <span class="n">shrink_sphere_center</span><span class="p">,</span>
+              <span class="s1">&#39;hyb&#39;</span><span class="p">:</span> <span class="n">hybrid_center</span><span class="p">,</span>
+              <span class="s1">&#39;ind&#39;</span><span class="p">:</span> <span class="n">index_center</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
         <span class="n">fn</span> <span class="o">=</span> <span class="n">mode</span>
 
@@ -426,8 +441,8 @@
         <span class="n">target</span> <span class="o">=</span> <span class="n">sim</span>
 
     <span class="k">if</span> <span class="n">wrap</span><span class="p">:</span>
-        <span class="c"># centre on something within the halo and wrap</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># centre on something within the halo and wrap</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">target</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">wrap</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">retcen</span><span class="p">:</span>
@@ -437,10 +452,157 @@
         <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">vel</span><span class="p">:</span>
-        <span class="n">velc</span> <span class="o">=</span> <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">velc</span> <span class="o">=</span> <span class="n">vel_center</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_v_translate</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">velc</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tx</span></div>
+
+<div class="viewcode-block" id="halo_shape"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.halo.halo_shape">[docs]</a><span class="k">def</span> <span class="nf">halo_shape</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">rin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="s1">&#39;equal&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns radii in units of ``sim[&#39;pos&#39;]``, axis ratios b/a and c/a,</span>
+<span class="sd">    the alignment angle of axis a in radians, and the rotation matrix</span>
+<span class="sd">    for homeoidal shells over a range of N halo radii.</span>
+
+<span class="sd">    **Keyword arguments:**</span>
+
+<span class="sd">    *N* (100): The number of homeoidal shells to consider. Shells with</span>
+<span class="sd">    few particles will take longer to fit.</span>
+
+<span class="sd">    *rin* (None): The minimum radial bin in units of ``sim[&#39;pos&#39;]``.</span>
+<span class="sd">    Note that this applies to axis a, so particles within this radius</span>
+<span class="sd">    may still be included within homeoidal shells. By default this is</span>
+<span class="sd">    taken as rout/1000.</span>
+
+<span class="sd">    *rout* (None): The maximum radial bin in units of ``sim[&#39;pos&#39;]``.</span>
+<span class="sd">    By default this is taken as the largest radial value in the halo</span>
+<span class="sd">    particle distribution.</span>
+
+<span class="sd">    *bins* (equal): The spacing scheme for the homeoidal shell bins.</span>
+<span class="sd">    ``equal`` initialises bins with equal numbers of particles. This</span>
+<span class="sd">    number is not necessarily maintained during fitting.</span>
+<span class="sd">    ``log`` and ``lin`` initialise bins with logarithmic and linear</span>
+<span class="sd">    radial spacing.</span>
+
+<span class="sd">    Halo must be in a centered frame.</span>
+<span class="sd">    Caution is advised when assigning large number of bins and radial</span>
+<span class="sd">    ranges with many particles, as the algorithm becomes very slow.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#-----------------------------FUNCTIONS-----------------------------</span>
+    <span class="c1"># Define an ellipsoid shell with lengths a,b,c and orientation E:</span>
+    <span class="k">def</span> <span class="nf">Ellipsoid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,[</span><span class="n">r</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">r</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">r</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">a</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span><span class="o">/</span><span class="n">b</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span><span class="o">/</span><span class="n">c</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="c1"># Define moment of inertia tensor:</span>
+    <span class="n">MoI</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">m</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">m</span><span class="o">*</span><span class="n">r</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">r</span><span class="p">[:,</span><span class="n">j</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>\
+                               <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)])</span>
+
+    <span class="c1"># Splits data into number of steps N:</span>
+    <span class="n">sn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">N</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="n">N</span><span class="p">:(</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="n">N</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>\
+                               <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)],</span><span class="n">r</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Retrieves alignment angle:</span>
+    <span class="n">almnt</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">E</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]),[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]))</span>
+    <span class="c1">#-----------------------------FUNCTIONS-----------------------------</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">rout</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span> <span class="n">rout</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">rin</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span> <span class="n">rin</span> <span class="o">=</span> <span class="n">rout</span><span class="o">/</span><span class="mf">1E3</span>
+
+    <span class="n">posr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">])[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">rout</span><span class="p">)]</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">])[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">rout</span><span class="p">)]</span>
+    <span class="n">mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">])[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">rout</span><span class="p">)]</span>
+
+    <span class="n">rx</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">],[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]]</span>
+    <span class="n">ry</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">],[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]]</span>
+    <span class="n">rz</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]]</span>
+
+    <span class="c1"># Define bins:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">bins</span> <span class="o">==</span> <span class="s1">&#39;equal&#39;</span><span class="p">):</span> <span class="c1"># Each bin contains equal number of particles</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="n">sn</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">posr</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">posr</span> <span class="o">&gt;=</span> <span class="n">rin</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">posr</span> <span class="o">&lt;=</span> <span class="n">rout</span><span class="p">))]),</span><span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">rbin</span> <span class="o">=</span> <span class="n">mid</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="n">mid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">elif</span> <span class="p">(</span><span class="n">bins</span> <span class="o">==</span> <span class="s1">&#39;log&#39;</span><span class="p">):</span> <span class="c1"># Bins are logarithmically spaced</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">rin</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">rout</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;rbins&#39;</span><span class="p">]</span>
+        <span class="n">rbin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span><span class="o">*</span><span class="n">mid</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">elif</span> <span class="p">(</span><span class="n">bins</span> <span class="o">==</span> <span class="s1">&#39;lin&#39;</span><span class="p">):</span> <span class="c1"># Bins are linearly spaced</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">rin</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">rout</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;rbins&#39;</span><span class="p">]</span>
+        <span class="n">rbin</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">mid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span><span class="o">+</span><span class="n">mid</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Define b/a and c/a ratios and angle arrays:</span>
+    <span class="n">ba</span><span class="p">,</span><span class="n">ca</span><span class="p">,</span><span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">Es</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">N</span>
+
+    <span class="c1"># Begin loop through radii:</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N</span><span class="p">):</span>
+
+        <span class="c1"># Initialise convergence criterion:</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="mf">1E-3</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Define initial spherical shell:</span>
+        <span class="n">a</span><span class="o">=</span><span class="n">b</span><span class="o">=</span><span class="n">c</span> <span class="o">=</span> <span class="n">rbin</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">L1</span><span class="p">,</span><span class="n">L2</span> <span class="o">=</span> <span class="n">rbin</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">mid</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">mid</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">rbin</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Begin iterative procedure to fit data to shell:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Collect all particle positions and masses within shell:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">posr</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">+</span><span class="n">L2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">posr</span> <span class="o">&gt;</span> <span class="n">c</span><span class="o">-</span><span class="n">L1</span><span class="o">*</span><span class="n">c</span><span class="o">/</span><span class="n">a</span><span class="p">))]</span>
+            <span class="n">inner</span> <span class="o">=</span> <span class="n">Ellipsoid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">a</span><span class="o">-</span><span class="n">L1</span><span class="p">,</span><span class="n">b</span><span class="o">-</span><span class="n">L1</span><span class="o">*</span><span class="n">b</span><span class="o">/</span><span class="n">a</span><span class="p">,</span><span class="n">c</span><span class="o">-</span><span class="n">L1</span><span class="o">*</span><span class="n">c</span><span class="o">/</span><span class="n">a</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span>
+            <span class="n">outer</span> <span class="o">=</span> <span class="n">Ellipsoid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">a</span><span class="o">+</span><span class="n">L2</span><span class="p">,</span><span class="n">b</span><span class="o">+</span><span class="n">L2</span><span class="o">*</span><span class="n">b</span><span class="o">/</span><span class="n">a</span><span class="p">,</span><span class="n">c</span><span class="o">+</span><span class="n">L2</span><span class="o">*</span><span class="n">c</span><span class="o">/</span><span class="n">a</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">inner</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">outer</span> <span class="o">&lt;</span> <span class="mf">1.</span><span class="p">))]</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">inner</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">outer</span> <span class="o">&lt;</span> <span class="mf">1.</span><span class="p">))]</span>
+
+            <span class="c1"># End iterations if there is no data in range:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">ba</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">ca</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">angle</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">Es</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="o">/</span><span class="n">a</span><span class="p">,</span><span class="n">c</span><span class="o">/</span><span class="n">a</span><span class="p">,</span><span class="n">almnt</span><span class="p">(</span><span class="n">E</span><span class="p">),</span><span class="n">E</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No data in range after </span><span class="si">%i</span><span class="s1"> iterations&#39;</span> <span class="o">%</span><span class="n">count</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="c1"># Calculate shape tensor &amp; diagonalise:</span>
+            <span class="n">D</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">MoI</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">m</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
+
+            <span class="c1"># Purge complex numbers:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="nb">complex</span><span class="p">):</span>
+                <span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">real</span> <span class="p">;</span> <span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">real</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Complex numbers in D removed...&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Compute ratios a,b,c from moment of intertia principles:</span>
+            <span class="n">anew</span><span class="p">,</span><span class="n">bnew</span><span class="p">,</span><span class="n">cnew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="mf">3.0</span><span class="p">)</span>
+
+            <span class="c1"># The rotation matrix must be reoriented:</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">anew</span> <span class="o">&gt;</span> <span class="n">bnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bnew</span> <span class="o">&gt;=</span> <span class="n">cnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">bnew</span> <span class="o">&gt;</span> <span class="n">anew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">anew</span> <span class="o">&gt;=</span> <span class="n">cnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">rz</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">cnew</span> <span class="o">&gt;</span> <span class="n">anew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">anew</span> <span class="o">&gt;=</span> <span class="n">bnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">ry</span><span class="p">),</span><span class="n">rx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">bnew</span> <span class="o">&gt;</span> <span class="n">cnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cnew</span> <span class="o">&gt;=</span> <span class="n">anew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">rz</span><span class="p">),</span><span class="n">rx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">anew</span> <span class="o">&gt;</span> <span class="n">cnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cnew</span> <span class="o">&gt;=</span> <span class="n">bnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">rx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">cnew</span> <span class="o">&gt;</span> <span class="n">bnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bnew</span> <span class="o">&gt;=</span> <span class="n">anew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">ry</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">almnt</span><span class="p">(</span><span class="o">-</span><span class="n">E</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">almnt</span><span class="p">(</span><span class="n">E</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="o">-</span><span class="n">E</span>
+            <span class="n">cnew</span><span class="p">,</span><span class="n">bnew</span><span class="p">,</span><span class="n">anew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="mf">3.0</span><span class="p">))</span>
+
+            <span class="c1"># Keep a as semi-major axis and distort b,c by b/a and c/a:</span>
+            <span class="n">div</span> <span class="o">=</span> <span class="n">rbin</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">anew</span>
+            <span class="n">anew</span> <span class="o">*=</span> <span class="n">div</span>
+            <span class="n">bnew</span> <span class="o">*=</span> <span class="n">div</span>
+            <span class="n">cnew</span> <span class="o">*=</span> <span class="n">div</span>
+
+            <span class="c1"># Convergence criterion:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b</span><span class="o">/</span><span class="n">a</span><span class="o">-</span><span class="n">bnew</span><span class="o">/</span><span class="n">anew</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">c</span><span class="o">/</span><span class="n">a</span><span class="o">-</span><span class="n">cnew</span><span class="o">/</span><span class="n">anew</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">):</span>
+                <span class="n">ba</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">ca</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">angle</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">Es</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bnew</span><span class="o">/</span><span class="n">anew</span><span class="p">,</span><span class="n">cnew</span><span class="o">/</span><span class="n">anew</span><span class="p">,</span><span class="n">almnt</span><span class="p">(</span><span class="n">E</span><span class="p">),</span><span class="n">E</span>
+                <span class="k">break</span>
+
+            <span class="c1"># Increase tolerance if convergence has stagnated:</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">count</span><span class="o">%</span><span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span> <span class="n">tol</span> <span class="o">*=</span> <span class="mf">5.</span>
+
+            <span class="c1"># Reset a,b,c for the next iteration:</span>
+            <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span> <span class="o">=</span> <span class="n">anew</span><span class="p">,</span><span class="n">bnew</span><span class="p">,</span><span class="n">cnew</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">rbin</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">),</span> <span class="n">ba</span><span class="p">,</span> <span class="n">ca</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">Es</span><span class="p">]</span></div>
 </pre></div>
 
     </div>
@@ -458,7 +620,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

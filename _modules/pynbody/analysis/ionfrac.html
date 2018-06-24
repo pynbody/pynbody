@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.analysis.ionfrac &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.analysis.ionfrac &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.analysis.ionfrac</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot; </span>
+<span></span><span class="sd">&quot;&quot;&quot; </span>
 
 <span class="sd">ionfrac</span>
 <span class="sd">=======</span>
@@ -137,18 +131,18 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">..array</span> <span class="kn">import</span> <span class="n">SimArray</span>
-<span class="kn">from</span> <span class="nn">pynbody</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">..array</span> <span class="k">import</span> <span class="n">SimArray</span>
+<span class="kn">from</span> <span class="nn">pynbody</span> <span class="k">import</span> <span class="n">config</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.analysis.ionfrac&#39;</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;pynbody.analysis.ionfrac&#39;</span><span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">interpolate</span> <span class="kn">import</span> <span class="n">interpolate3d</span>
+<span class="kn">from</span> <span class="nn">interpolate</span> <span class="k">import</span> <span class="n">interpolate3d</span>
 
 
-<div class="viewcode-block" id="calculate"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ionfrac.calculate">[docs]</a><span class="k">def</span> <span class="nf">calculate</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">ion</span><span class="o">=</span><span class="s">&#39;ovi&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;old&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="calculate"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ionfrac.calculate">[docs]</a><span class="k">def</span> <span class="nf">calculate</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">ion</span><span class="o">=</span><span class="s1">&#39;ovi&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    calculate -- documentation placeholder</span>
@@ -156,34 +150,34 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">global</span> <span class="n">config</span>
-    <span class="c"># ionization fractions calculated for optically thin case with</span>
-    <span class="c"># CLOUDY v 10.0.  J. Xavier Prochaska + Joe Hennawi have many</span>
-    <span class="c"># helper idl routines for running CLOUDY</span>
-    <span class="n">iffile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s">&quot;ionfracs.npz&quot;</span><span class="p">)</span>
+    <span class="c1"># ionization fractions calculated for optically thin case with</span>
+    <span class="c1"># CLOUDY v 10.0.  J. Xavier Prochaska + Joe Hennawi have many</span>
+    <span class="c1"># helper idl routines for running CLOUDY</span>
+    <span class="n">iffile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;ionfracs.npz&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">iffile</span><span class="p">):</span>
-        <span class="c"># import data</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">iffile</span><span class="p">)</span>
+        <span class="c1"># import data</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">iffile</span><span class="p">)</span>
         <span class="n">ifs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">iffile</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s">&quot;ionfracs.npz (Ion Fraction table) not found&quot;</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;ionfracs.npz (Ion Fraction table) not found&quot;</span>
 
-    <span class="c"># allocate temporary metals that we can play with</span>
-    <span class="c"># before inlining, the views on the arrays must be standard np.ndarray</span>
-    <span class="c"># otherwise the normal numpy macros are not generated</span>
-    <span class="n">x_vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="s">&#39;redshiftvals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-    <span class="n">y_vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="s">&#39;tempvals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-    <span class="n">z_vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="s">&#39;denvals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-    <span class="n">vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="n">ion</span> <span class="o">+</span> <span class="s">&#39;if&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="c1"># allocate temporary metals that we can play with</span>
+    <span class="c1"># before inlining, the views on the arrays must be standard np.ndarray</span>
+    <span class="c1"># otherwise the normal numpy macros are not generated</span>
+    <span class="n">x_vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="s1">&#39;redshiftvals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="n">y_vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="s1">&#39;tempvals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="n">z_vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="s1">&#39;denvals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="n">vals</span> <span class="o">=</span> <span class="n">ifs</span><span class="p">[</span><span class="n">ion</span> <span class="o">+</span> <span class="s1">&#39;if&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">))</span>
-    <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;m_p cm^-3&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;temp&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;m_p cm^-3&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span>
     <span class="n">n_x_vals</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_vals</span><span class="p">)</span>
     <span class="n">n_y_vals</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_vals</span><span class="p">)</span>
     <span class="n">n_z_vals</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">z_vals</span><span class="p">)</span>
 
-    <span class="c"># get values off grid to minmax</span>
+    <span class="c1"># get values off grid to minmax</span>
     <span class="n">x</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x_vals</span><span class="p">))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x_vals</span><span class="p">)</span>
     <span class="n">x</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x_vals</span><span class="p">))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x_vals</span><span class="p">)</span>
     <span class="n">y</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y_vals</span><span class="p">))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y_vals</span><span class="p">)</span>
@@ -191,8 +185,8 @@
     <span class="n">z</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">z</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">z_vals</span><span class="p">))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">z_vals</span><span class="p">)</span>
     <span class="n">z</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">z</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">z_vals</span><span class="p">))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">z_vals</span><span class="p">)</span>
 
-    <span class="c"># interpolate</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Interpolation </span><span class="si">%s</span><span class="s"> values&quot;</span> <span class="o">%</span> <span class="n">ion</span><span class="p">)</span>
+    <span class="c1"># interpolate</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Interpolation </span><span class="si">%s</span><span class="s2"> values&quot;</span> <span class="o">%</span> <span class="n">ion</span><span class="p">)</span>
     <span class="n">result_array</span> <span class="o">=</span> <span class="n">interpolate3d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">x_vals</span><span class="p">,</span> <span class="n">y_vals</span><span class="p">,</span> <span class="n">z_vals</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">result_array</span></div>
@@ -213,7 +207,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Pynbody Tutorials &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Pynbody Tutorials &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,9 +21,10 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Basic snapshot manipulation" href="snapshot_manipulation.html" />
     <link rel="prev" title="Pynbody Installation" href="../installation.html" />
 
@@ -64,12 +60,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -82,7 +77,7 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorials &amp; walkthroughs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
 </ul>
@@ -112,11 +107,11 @@
               
                 
   <li>
-    <a href="../installation.html" title="Previous Chapter: Pynbody Installation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Pynbody Insta...</span>
+    <a href="../installation.html" title="Previous Chapter: Pynbody Installation"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Pynbody Installation</span>
     </a>
   </li>
   <li>
-    <a href="snapshot_manipulation.html" title="Next Chapter: Basic snapshot manipulation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Basic snapsho... &raquo;</span>
+    <a href="snapshot_manipulation.html" title="Next Chapter: Basic snapshot manipulation"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Basic snapsho... &raquo;</span>
     </a>
   </li>
               
@@ -142,21 +137,21 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="pynbody-tutorials">
 <span id="tutorials"></span><h1>Pynbody Tutorials<a class="headerlink" href="#pynbody-tutorials" title="Permalink to this headline">¶</a></h1>
 <p>Here you will find tutorials that illustrate the use of pynbody. The
-<a class="reference internal" href="#walkthroughs"><em>Walkthroughs</em></a> demonstrate pynbody functionality through an
+<a class="reference internal" href="#walkthroughs"><span class="std std-ref">Walkthroughs</span></a> demonstrate pynbody functionality through an
 interactive session in the ipython shell that you can follow along
 using either one of the outputs from the bundled test-data or one of
 your own simulations. To complement the walkthroughs, we also provide
 a few <a class="reference external" href="https://github.com/pynbody/pynbody/tree/master/examples/notebooks">IPython notebooks</a>. The
-<a class="reference internal" href="#cookbook"><em>Cookbook/Recipes</em></a> tutorials are more goal-oriented: they provide a
+<a class="reference internal" href="#cookbook"><span class="std std-ref">Cookbook/Recipes</span></a> tutorials are more goal-oriented: they provide a
 script that can be used with only minor modifications to immediately
 produce a result (i.e. make an image). They also include, however, a
 somewhat more involved discussion of more advanced options and common
-pitfalls. Finally, the <a class="reference internal" href="#advanced-topics"><em>Advanced topics</em></a> section is meant to
+pitfalls. Finally, the <a class="reference internal" href="#advanced-topics"><span class="std std-ref">Advanced topics</span></a> section is meant to
 provide a more in-depth look at the inner-workings of the code.</p>
 <div class="section" id="walkthroughs">
 <span id="id1"></span><h2>Walkthroughs<a class="headerlink" href="#walkthroughs" title="Permalink to this headline">¶</a></h2>
@@ -207,14 +202,14 @@ provide a more in-depth look at the inner-workings of the code.</p>
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/tutorials/tutorials.txt"
+  <a href="../_sources/tutorials/tutorials.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

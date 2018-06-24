@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Common Pitfalls &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Common Pitfalls &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
@@ -26,9 +21,10 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="index.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -62,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -96,10 +91,10 @@
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Common Pitfalls</a><ul>
-<li><a class="reference internal" href="#i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines">I get errors like &#8220;Unknown units&#8221; or &#8220;Not convertible&#8221; from analysis or plotting routines</a></li>
+<li><a class="reference internal" href="#i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines">I get errors like “Unknown units” or “Not convertible” from analysis or plotting routines</a></li>
 <li><a class="reference internal" href="#i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me">I tried to make an image but got a generic-looking error spewed back at me</a></li>
-<li><a class="reference internal" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized">I&#8217;m trying to load a file which I&#8217;m sure is fine, but it says the format isn&#8217;t recognized</a></li>
-<li><a class="reference internal" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar">I&#8217;m using a RAMSES snapshot, but when I try to open it I get bizarre errors about &#8220;No space left on device&#8221; or something similar</a></li>
+<li><a class="reference internal" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized">I’m trying to load a file which I’m sure is fine, but it says the format isn’t recognized</a></li>
+<li><a class="reference internal" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar">I’m using a RAMSES snapshot, but when I try to open it I get bizarre errors about “No space left on device” or something similar</a></li>
 <li><a class="reference internal" href="#when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one">When processing multiple files I run out of memory, even if I process them one-by-one</a></li>
 </ul>
 </li>
@@ -134,28 +129,28 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="common-pitfalls">
 <h1>Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines">
-<span id="paramfiles-are-good"></span><h2>I get errors like &#8220;Unknown units&#8221; or &#8220;Not convertible&#8221; from analysis or plotting routines<a class="headerlink" href="#i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines" title="Permalink to this headline">¶</a></h2>
+<span id="paramfiles-are-good"></span><h2>I get errors like “Unknown units” or “Not convertible” from analysis or plotting routines<a class="headerlink" href="#i-get-errors-like-unknown-units-or-not-convertible-from-analysis-or-plotting-routines" title="Permalink to this headline">¶</a></h2>
 <p>One of the great things about <cite>pynbody</cite> is that it takes care of units, but
-if it can&#8217;t figure out what units to use, everything is assumed to be
+if it can’t figure out what units to use, everything is assumed to be
 dimensionless. Some analysis functions then get grumpy, because
-they&#8217;re trying to be smart about using sensible units but the
-information just isn&#8217;t available. The simplest way to avoid this
+they’re trying to be smart about using sensible units but the
+information just isn’t available. The simplest way to avoid this
 situation is to make sure <cite>pynbody</cite> can work out the units for itself.</p>
 <p>In particular, <em>for gasoline/PKD/tipsy users, make sure you have a
 param file in the directory where you are analyzing a tipsy file, and
 make sure that it defines dKpcUnit and dMsolUnit.</em></p>
-<p>Even if you are analyzing a DM only simulation, it&#8217;s can be easier to play
-along and assign units even though they weren&#8217;t needed for the simulation.</p>
+<p>Even if you are analyzing a DM only simulation, it’s can be easier to play
+along and assign units even though they weren’t needed for the simulation.</p>
 </div>
 <div class="section" id="i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me">
 <h2>I tried to make an image but got a generic-looking error spewed back at me<a class="headerlink" href="#i-tried-to-make-an-image-but-got-a-generic-looking-error-spewed-back-at-me" title="Permalink to this headline">¶</a></h2>
 <p>The most common causes of uninformative errors in the
-<em class="xref std std-ref">image-making process</em> are that:</p>
+<span class="xref std std-ref">image-making process</span> are that:</p>
 <blockquote>
 <div><ol class="arabic simple">
 <li>there are no particles in the view you tried to generate; or</li>
@@ -164,20 +159,20 @@ along and assign units even though they weren&#8217;t needed for the simulation.
 </div></blockquote>
 <p>To tackle both of these issues in turn:</p>
 <blockquote>
-<div><p>1. The image is <em>always</em> centred on <tt class="docutils literal"><span class="pre">(0,0,0)</span></tt>, so you need to offset
+<div><p>1. The image is <em>always</em> centred on <code class="docutils literal"><span class="pre">(0,0,0)</span></code>, so you need to offset
 the simulation before you start. The most common way to do this
-is with the function <a class="reference internal" href="reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.halo.center()</span></tt></a>; see
-<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><em>Basic snapshot manipulation</em></a> for an introduction.</p>
+is with the function <a class="reference internal" href="reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.halo.center()</span></code></a>; see
+<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><span class="std std-ref">Basic snapshot manipulation</span></a> for an introduction.</p>
 <p>2. The <cite>width</cite> keyword for the image function
 expects a floating point number in the current units of the
 snapshot. It also defaults to the number <cite>10</cite>, which may be
 very large compared to your snapshot, depending on the units you
 have adopted. That means either you should <em>specify</em> a width which
 is more appropriate (i.e. your call might look like
-<tt class="docutils literal"><span class="pre">pynbody.plot.sph.image(my_snapshot,</span> <span class="pre">width=0.01)</span></tt>) or <em>convert
+<code class="docutils literal"><span class="pre">pynbody.plot.sph.image(my_snapshot,</span> <span class="pre">width=0.01)</span></code>) or <em>convert
 to sensible units first</em>. The easiest way to do the latter is to call
-<a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap.physical_units" title="pynbody.snapshot.SimSnap.physical_units"><tt class="xref py py-func docutils literal"><span class="pre">physical_units()</span></tt></a> on your snapshot,
-e.g. <tt class="docutils literal"><span class="pre">s.physical_units()</span></tt> if your simulation is called <tt class="docutils literal"><span class="pre">s</span></tt>.</p>
+<a class="reference internal" href="reference/essentials.html#pynbody.snapshot.SimSnap.physical_units" title="pynbody.snapshot.SimSnap.physical_units"><code class="xref py py-func docutils literal"><span class="pre">physical_units()</span></code></a> on your snapshot,
+e.g. <code class="docutils literal"><span class="pre">s.physical_units()</span></code> if your simulation is called <code class="docutils literal"><span class="pre">s</span></code>.</p>
 </div></blockquote>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -185,26 +180,26 @@ e.g. <tt class="docutils literal"><span class="pre">s.physical_units()</span></t
 </div>
 </div>
 <div class="section" id="i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized">
-<h2>I&#8217;m trying to load a file which I&#8217;m sure is fine, but it says the format isn&#8217;t recognized<a class="headerlink" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized" title="Permalink to this headline">¶</a></h2>
-<p>When you load a file with <cite>pynbody</cite> you don&#8217;t have to specify what
+<h2>I’m trying to load a file which I’m sure is fine, but it says the format isn’t recognized<a class="headerlink" href="#i-m-trying-to-load-a-file-which-i-m-sure-is-fine-but-it-says-the-format-isn-t-recognized" title="Permalink to this headline">¶</a></h2>
+<p>When you load a file with <cite>pynbody</cite> you don’t have to specify what
 format it is. This is quite handy when everything works. However, if
 there is a minor problem with the file, <cite>pynbody</cite> may move onto trying
 to interpret it as a different format and ultimately conclude it just
-doesn&#8217;t understand what&#8217;s going on. At that point you&#8217;ll get an unhelpful error
-like this: <tt class="docutils literal"><span class="pre">File</span> <span class="pre">'filename':</span> <span class="pre">format</span> <span class="pre">not</span> <span class="pre">understood</span> <span class="pre">or</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist</span></tt>.</p>
+doesn’t understand what’s going on. At that point you’ll get an unhelpful error
+like this: <code class="docutils literal"><span class="pre">File</span> <span class="pre">'filename':</span> <span class="pre">format</span> <span class="pre">not</span> <span class="pre">understood</span> <span class="pre">or</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist</span></code>.</p>
 <p>To expose the underlying problem, you need to explicitly tell pynbody
 what file format you think it is. For instance, if you have a tipsy
-file, try replacing your <tt class="docutils literal"><span class="pre">pynbody.load(filename)</span></tt> with
-<tt class="docutils literal"><span class="pre">pynbody.snapshot.tipsy.TipsySnap(filename)</span></tt>. This will then show you the
-actual error. Most likely it&#8217;s to do with file permissions, or a
-problem with a <tt class="docutils literal"><span class="pre">.param</span></tt> file. If at this point you can&#8217;t see what&#8217;s
+file, try replacing your <code class="docutils literal"><span class="pre">pynbody.load(filename)</span></code> with
+<code class="docutils literal"><span class="pre">pynbody.snapshot.tipsy.TipsySnap(filename)</span></code>. This will then show you the
+actual error. Most likely it’s to do with file permissions, or a
+problem with a <code class="docutils literal"><span class="pre">.param</span></code> file. If at this point you can’t see what’s
 going wrong, do <a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">drop us a line</a>.</p>
 </div>
 <div class="section" id="i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar">
-<span id="pitfall-ramses-sharedmem"></span><h2>I&#8217;m using a RAMSES snapshot, but when I try to open it I get bizarre errors about &#8220;No space left on device&#8221; or something similar<a class="headerlink" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar" title="Permalink to this headline">¶</a></h2>
+<span id="pitfall-ramses-sharedmem"></span><h2>I’m using a RAMSES snapshot, but when I try to open it I get bizarre errors about “No space left on device” or something similar<a class="headerlink" href="#i-m-using-a-ramses-snapshot-but-when-i-try-to-open-it-i-get-bizarre-errors-about-no-space-left-on-device-or-something-similar" title="Permalink to this headline">¶</a></h2>
 <p>This will happen if you are using the parallel loader of RAMSES
 snapshots and your shared memory has filled up. Look in your /dev/shm
-for files named &#8220;pynbody-<a href="#id1"><span class="problematic" id="id2">*</span></a>&#8221; &#8211; there are probably many of them. If
+for files named “pynbody-<a href="#id1"><span class="problematic" id="id2">*</span></a>” – there are probably many of them. If
 your code exits gracefully, these files are deleted, but if your
 session crashes or you kill your python shell for whatever reason,
 these files will stick around. You should periodically delete them by
@@ -216,22 +211,22 @@ machine. You can tell the kernel to allow more; see
 <a class="reference external" href="https://www.zabbix.org/wiki/How_to/configure_shared_memory">here</a>,
 for instance.</p>
 <p>Alternatively, you can disable parallel loading on ramses. Create a
-<tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> file in your home directory with the following
+<code class="docutils literal"><span class="pre">.pynbodyrc</span></code> file in your home directory with the following
 section:</p>
-<div class="highlight-none"><div class="highlight"><pre>[ramses]
+<div class="highlight-none"><div class="highlight"><pre><span></span>[ramses]
 parallel-read: 0
 </pre></div>
 </div>
-<p>If you are still having trouble, <a class="reference internal" href="index.html#getting-help"><em>contact us</em></a>.</p>
+<p>If you are still having trouble, <a class="reference internal" href="index.html#getting-help"><span class="std std-ref">contact us</span></a>.</p>
 </div>
 <div class="section" id="when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one">
 <h2>When processing multiple files I run out of memory, even if I process them one-by-one<a class="headerlink" href="#when-processing-multiple-files-i-run-out-of-memory-even-if-i-process-them-one-by-one" title="Permalink to this headline">¶</a></h2>
 <p>Pynbody lets you have as many files in memory as you can fit, since
 each is stored in a self-contained objection. Clearly, if you try to
-load too many at once, you&#8217;re going to run out of memory.</p>
+load too many at once, you’re going to run out of memory.</p>
 <p>However sometimes you might intend to load files one-by-one and still
 find the memory usage is cumulative.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
     <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">do_something_with</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
@@ -240,7 +235,7 @@ find the memory usage is cumulative.</p>
 is almost certainly that python is not <a class="reference external" href="http://www.digi.com/wiki/developer/index.php/Python_Garbage_Collection">garbage-collecting</a>
 the snapshot.</p>
 <p>You can force python to tidy up by using its <a class="reference external" href="http://docs.python.org/2/library/gc.html">gc module</a>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">gc</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">gc</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
     <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">do_something_with</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
@@ -249,31 +244,31 @@ the snapshot.</p>
 </pre></div>
 </div>
 <p>If you still have problems you may have extra references to the
-snapshot. In python, <tt class="docutils literal"><span class="pre">del</span></tt> only deletes a reference to an object,
-not the object itself. You need to <tt class="docutils literal"><span class="pre">del</span></tt> every reference, or let the
+snapshot. In python, <code class="docutils literal"><span class="pre">del</span></code> only deletes a reference to an object,
+not the object itself. You need to <code class="docutils literal"><span class="pre">del</span></code> every reference, or let the
 reference fall out of scope, before the garbage collector will do
 anything.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">gc</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&quot;my_file&quot;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">gc</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;my_file&quot;</span><span class="p">)</span>
 <span class="n">s2</span> <span class="o">=</span> <span class="n">s</span>
 <span class="k">del</span> <span class="n">s</span>
-<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># does nothing</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c1"># does nothing</span>
 <span class="k">del</span> <span class="n">s2</span>
-<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># success</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c1"># success</span>
 </pre></div>
 </div>
-<p>Note that a <tt class="docutils literal"><span class="pre">SubSnap</span></tt> holds a reference to its parent
-<tt class="docutils literal"><span class="pre">SimSnap</span></tt>. Any references to a <tt class="docutils literal"><span class="pre">SubSnap</span></tt> will keep the parent
-<tt class="docutils literal"><span class="pre">SimSnap</span></tt> alive. On the other hand, a <tt class="docutils literal"><span class="pre">SimArray</span></tt> holds only weak
-references, so it won&#8217;t keep a <tt class="docutils literal"><span class="pre">SimSnap</span></tt> alive.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">gc</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&quot;my_file&quot;</span><span class="p">)</span>
+<p>Note that a <code class="docutils literal"><span class="pre">SubSnap</span></code> holds a reference to its parent
+<code class="docutils literal"><span class="pre">SimSnap</span></code>. Any references to a <code class="docutils literal"><span class="pre">SubSnap</span></code> will keep the parent
+<code class="docutils literal"><span class="pre">SimSnap</span></code> alive. On the other hand, a <code class="docutils literal"><span class="pre">SimArray</span></code> holds only weak
+references, so it won’t keep a <code class="docutils literal"><span class="pre">SimSnap</span></code> alive.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">gc</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;my_file&quot;</span><span class="p">)</span>
 <span class="n">s2</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">dm</span>
-<span class="n">ar</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span>
+<span class="n">ar</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span>
 <span class="k">del</span> <span class="n">s</span>
-<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># does nothing</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c1"># does nothing</span>
 <span class="k">del</span> <span class="n">s2</span>
-<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c"># success, ar alone is left in memory</span>
+<span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="c1"># success, ar alone is left in memory</span>
 </pre></div>
 </div>
 </div>
@@ -292,14 +287,14 @@ references, so it won&#8217;t keep a <tt class="docutils literal"><span class="p
         <br/>
         
 <div id="sourcelink">
-  <a href="_sources/pitfalls.txt"
+  <a href="_sources/pitfalls.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

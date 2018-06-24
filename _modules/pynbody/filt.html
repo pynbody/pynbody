@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.filt &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.filt &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../index.html" />
-    <link rel="up" title="Module code" href="../index.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.filt</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">filt</span>
 <span class="sd">====</span>
@@ -143,14 +137,14 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">cPickle</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">_util</span><span class="p">,</span> <span class="n">family</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">units</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">_util</span><span class="p">,</span> <span class="n">family</span>
 
 <span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;filter&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;filter&quot;</span>
         <span class="k">pass</span>
 
     <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
@@ -169,26 +163,26 @@
         <span class="k">return</span> <span class="n">Or</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;Filter()&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;Filter()&quot;</span>
 
     <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">return</span> <span class="kc">False</span>
 
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">equal</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">v</span>
+                <span class="n">equal</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">v</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">equal</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
                     <span class="n">equal</span> <span class="o">=</span> <span class="n">equal</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">equal</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="bp">False</span>
+                    <span class="k">return</span> <span class="kc">False</span>
 
-        <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="kc">True</span>
 
 
 <span class="k">class</span> <span class="nc">FamilyFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -198,18 +192,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">family_</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;FamilyFilter(&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="o">.</span><span class="n">name</span><span class="o">+</span><span class="s">&quot;)&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;FamilyFilter(&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="o">.</span><span class="n">name</span><span class="o">+</span><span class="s2">&quot;)&quot;</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
         <span class="n">slice_</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">family</span><span class="p">)</span>
         <span class="n">flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-        <span class="n">flags</span><span class="p">[</span><span class="n">slice_</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="n">flags</span><span class="p">[</span><span class="n">slice_</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="n">flags</span>
 
 <span class="k">class</span> <span class="nc">And</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">+</span> <span class="s">&quot;&amp;&quot;</span> <span class="o">+</span> <span class="n">f2</span><span class="o">.</span><span class="n">_descriptor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">+</span> <span class="s2">&quot;&amp;&quot;</span> <span class="o">+</span> <span class="n">f2</span><span class="o">.</span><span class="n">_descriptor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">f1</span> <span class="o">=</span> <span class="n">f1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">f2</span> <span class="o">=</span> <span class="n">f2</span>
 
@@ -217,13 +211,13 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; &amp; &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; &amp; &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
 
 
 <span class="k">class</span> <span class="nc">Or</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">+</span> <span class="s">&quot;|&quot;</span> <span class="o">+</span> <span class="n">f2</span><span class="o">.</span><span class="n">_descriptor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">+</span> <span class="s2">&quot;|&quot;</span> <span class="o">+</span> <span class="n">f2</span><span class="o">.</span><span class="n">_descriptor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">f1</span> <span class="o">=</span> <span class="n">f1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">f2</span> <span class="o">=</span> <span class="n">f2</span>
 
@@ -231,13 +225,13 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; | &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; | &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
 
 
 <span class="k">class</span> <span class="nc">Not</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;~&quot;</span> <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">_descriptor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;~&quot;</span> <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">_descriptor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">f</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
@@ -245,7 +239,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;~&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;~&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Sphere"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.Sphere">[docs]</a><span class="k">class</span> <span class="nc">Sphere</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
@@ -262,10 +256,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;sphere&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;sphere&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Centre must be length 3 array&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Centre must be length 3 array&quot;</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">radius</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
@@ -277,14 +271,14 @@
         <span class="n">wrap</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
 
         <span class="k">with</span> <span class="n">sim</span><span class="o">.</span><span class="n">immediate_mode</span><span class="p">:</span>
-            <span class="n">pos</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>
             <span class="n">radius</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">radius</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">pos</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
                                            <span class="o">**</span><span class="n">pos</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
 
-        <span class="k">if</span> <span class="s">&#39;boxsize&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
-            <span class="n">wrap</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;boxsize&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
+            <span class="n">wrap</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;boxsize&#39;</span><span class="p">]</span>
         
         <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">wrap</span><span class="p">):</span>
             <span class="n">wrap</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">wrap</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">pos</span><span class="o">.</span><span class="n">units</span><span class="p">,</span><span class="o">**</span><span class="n">pos</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
@@ -298,11 +292,11 @@
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radius</span><span class="p">):</span>
 
-            <span class="k">return</span> <span class="s">&quot;Sphere(&#39;</span><span class="si">%s</span><span class="s">&#39;, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radius</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">))</span>
+            <span class="k">return</span> <span class="s2">&quot;Sphere(&#39;</span><span class="si">%s</span><span class="s2">&#39;, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radius</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s">&quot;Sphere(</span><span class="si">%.2e</span><span class="s">, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radius</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">))</span>
+            <span class="k">return</span> <span class="s2">&quot;Sphere(</span><span class="si">%.2e</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radius</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">))</span></div>
 
-</div>
+
 <div class="viewcode-block" id="Cuboid"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.Cuboid">[docs]</a><span class="k">class</span> <span class="nc">Cuboid</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;Create a cube with specified edge coordinates. If any of the cube</span>
@@ -312,37 +306,37 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">z1</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">z2</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">z1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">z2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;cube&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;cube&quot;</span>
         <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">y1</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">y1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">y1</span> <span class="o">=</span> <span class="n">x1</span>
-        <span class="k">if</span> <span class="n">z1</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">z1</span> <span class="o">=</span> <span class="n">x1</span>
-        <span class="k">if</span> <span class="n">x2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">x2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">x2</span> <span class="o">=</span> <span class="o">-</span><span class="n">x1</span>
-        <span class="k">if</span> <span class="n">y2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">y2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">y2</span> <span class="o">=</span> <span class="o">-</span><span class="n">y1</span>
-        <span class="k">if</span> <span class="n">z2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">z2</span> <span class="o">=</span> <span class="o">-</span><span class="n">z1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z2</span> <span class="o">=</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
-        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
                                   <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>
                                   <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z2</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="p">((</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">x1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;y&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">y1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;y&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">y2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">z1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">z2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">((</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">x1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">y1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">y2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">z1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">z2</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;&#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
                                   <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>
                                   <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z2</span><span class="p">]</span>
-        <span class="k">return</span> <span class="s">&quot;Cuboid(</span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;Cuboid(</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">z2</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="Disc"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.Disc">[docs]</a><span class="k">class</span> <span class="nc">Disc</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
@@ -351,10 +345,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;disc&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;disc&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s">&quot;Centre must be length 3 array&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Centre must be length 3 array&quot;</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">radius</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
@@ -371,23 +365,23 @@
 
         <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>
             <span class="n">radius</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
-                <span class="n">radius</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
+                <span class="n">radius</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
         <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">height</span><span class="p">):</span>
             <span class="n">height</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
-                <span class="n">height</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
-        <span class="n">distance</span> <span class="o">=</span> <span class="p">(((</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">)[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">distance</span> <span class="o">&lt;</span> <span class="n">radius</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">height</span><span class="p">)</span>
+                <span class="n">height</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="p">(((</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">)[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">distance</span> <span class="o">&lt;</span> <span class="n">radius</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">height</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">radius</span>
         <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>
 
         <span class="n">radius</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">(</span><span class="s">&quot;&#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="s">&#39;</span><span class="si">%.2e</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+            <span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="si">%.2e</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="s">&quot;Disc(</span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s2">&quot;Disc(</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cen</span><span class="p">))</span></div>
 
-</div>
+
 <div class="viewcode-block" id="BandPass"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.BandPass">[docs]</a><span class="k">class</span> <span class="nc">BandPass</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
@@ -396,7 +390,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;bandpass_&quot;</span> <span class="o">+</span> <span class="n">prop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;bandpass_&quot;</span> <span class="o">+</span> <span class="n">prop</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">min</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="nb">min</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="nb">min</span><span class="p">)</span>
@@ -423,11 +417,11 @@
         <span class="k">return</span> <span class="p">((</span><span class="n">sim</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">min_</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">min_</span><span class="p">,</span> <span class="n">max_</span> <span class="o">=</span> <span class="p">[(</span><span class="s">&quot;&#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span>
-            <span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="s">&#39;</span><span class="si">%.2e</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">]</span>
-        <span class="k">return</span> <span class="s">&quot;BandPass(&#39;</span><span class="si">%s</span><span class="s">&#39;, </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prop</span><span class="p">,</span> <span class="n">min_</span><span class="p">,</span> <span class="n">max_</span><span class="p">)</span>
+        <span class="n">min_</span><span class="p">,</span> <span class="n">max_</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="si">%.2e</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s2">&quot;BandPass(&#39;</span><span class="si">%s</span><span class="s2">&#39;, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prop</span><span class="p">,</span> <span class="n">min_</span><span class="p">,</span> <span class="n">max_</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="HighPass"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.HighPass">[docs]</a><span class="k">class</span> <span class="nc">HighPass</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
@@ -436,7 +430,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="nb">min</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;highpass_&quot;</span> <span class="o">+</span> <span class="n">prop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;highpass_&quot;</span> <span class="o">+</span> <span class="n">prop</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">min</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="nb">min</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="nb">min</span><span class="p">)</span>
@@ -456,11 +450,11 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">min_</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">min</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;&#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">)</span> <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">)</span> <span class="k">else</span> <span class="s">&#39;</span><span class="si">%.2e</span><span class="s">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s">&quot;HighPass(&#39;</span><span class="si">%s</span><span class="s">&#39;, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prop</span><span class="p">,</span> <span class="nb">min</span><span class="p">)</span>
+        <span class="nb">min</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">)</span> <span class="k">if</span> <span class="n">units</span><span class="o">.</span><span class="n">is_unit_like</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="si">%.2e</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;HighPass(&#39;</span><span class="si">%s</span><span class="s2">&#39;, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prop</span><span class="p">,</span> <span class="nb">min</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="LowPass"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.LowPass">[docs]</a><span class="k">class</span> <span class="nc">LowPass</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;Return particles whose property `prop` is less than `max`, which can be</span>
@@ -468,7 +462,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;lowpass_&quot;</span> <span class="o">+</span> <span class="n">prop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;lowpass_&quot;</span> <span class="o">+</span> <span class="n">prop</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">max</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="nb">max</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="nb">max</span><span class="p">)</span>
@@ -488,11 +482,11 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">max</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;&#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">)</span> <span class="k">else</span> <span class="s">&#39;</span><span class="si">%.2e</span><span class="s">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s">&quot;LowPass(&#39;</span><span class="si">%s</span><span class="s">&#39;, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prop</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span>
+        <span class="nb">max</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="si">%.2e</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;LowPass(&#39;</span><span class="si">%s</span><span class="s2">&#39;, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prop</span><span class="p">,</span> <span class="nb">max</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="Annulus"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.Annulus">[docs]</a><span class="k">def</span> <span class="nf">Annulus</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convenience function that returns a filter which selects particles</span>
@@ -501,18 +495,18 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">x</span> <span class="o">=</span> <span class="n">Sphere</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">),</span> <span class="n">cen</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">Sphere</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">),</span> <span class="n">cen</span><span class="p">)</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;annulus&quot;</span>
-    <span class="k">return</span> <span class="n">x</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;annulus&quot;</span>
+    <span class="k">return</span> <span class="n">x</span></div>
 
-</div>
-<div class="viewcode-block" id="SolarNeighborhood"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.SolarNeighborhood">[docs]</a><span class="k">def</span> <span class="nf">SolarNeighborhood</span><span class="p">(</span><span class="n">r1</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;5 kpc&quot;</span><span class="p">),</span> <span class="n">r2</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;10 kpc&quot;</span><span class="p">),</span> <span class="n">height</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s">&quot;2 kpc&quot;</span><span class="p">),</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+
+<div class="viewcode-block" id="SolarNeighborhood"><a class="viewcode-back" href="../../reference/convenience.html#pynbody.filt.SolarNeighborhood">[docs]</a><span class="k">def</span> <span class="nf">SolarNeighborhood</span><span class="p">(</span><span class="n">r1</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s2">&quot;5 kpc&quot;</span><span class="p">),</span> <span class="n">r2</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s2">&quot;10 kpc&quot;</span><span class="p">),</span> <span class="n">height</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s2">&quot;2 kpc&quot;</span><span class="p">),</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convenience function that returns a filter which selects particles</span>
 <span class="sd">    in a disc between radii `r1` and `r2` and thickness `height`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">x</span> <span class="o">=</span> <span class="n">Disc</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">),</span> <span class="n">height</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">Disc</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">),</span> <span class="n">height</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s">&quot;Solar Neighborhood&quot;</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;Solar Neighborhood&quot;</span>
     <span class="k">return</span> <span class="n">x</span></div>
 </pre></div>
 
@@ -531,7 +525,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

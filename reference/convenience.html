@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Generic Convenience Modules &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Generic Convenience Modules &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
-    <link rel="up" title="Pynbody reference documentation" href="index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Automatically Derived Arrays" href="derived.html" />
     <link rel="prev" title="Essential Framework Modules" href="essentials.html" />
 
@@ -65,12 +60,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -114,11 +108,11 @@
               
                 
   <li>
-    <a href="essentials.html" title="Previous Chapter: Essential Framework Modules"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Essential Fra...</span>
+    <a href="essentials.html" title="Previous Chapter: Essential Framework Modules"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Essential Fra...</span>
     </a>
   </li>
   <li>
-    <a href="derived.html" title="Next Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Automatically... &raquo;</span>
+    <a href="derived.html" title="Next Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Automatically... &raquo;</span>
     </a>
   </li>
               
@@ -144,14 +138,14 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="module-pynbody.bridge">
 <span id="generic-convenience-modules"></span><h1>Generic Convenience Modules<a class="headerlink" href="#module-pynbody.bridge" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="bridge">
 <h2>bridge<a class="headerlink" href="#bridge" title="Permalink to this headline">¶</a></h2>
 <p>The bridge module has tools for connecting different outputs. For instance,
-it&#8217;s possible to take a subview (e.g. a halo) from one snapshot and &#8216;push&#8217;
+it’s possible to take a subview (e.g. a halo) from one snapshot and ‘push’
 it into the other. This is especially useful if the two snapshots are
 different time outputs of the same simulation.</p>
 <p>Once connected, bridge called on a specific subset of particles in
@@ -162,21 +156,22 @@ temperature, etc.</p>
 in your simulation, see the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/bridge.html">bridge tutorial</a>.</p>
 <dl class="class">
 <dt id="pynbody.bridge.Bridge">
-<em class="property">class </em><tt class="descclassname">pynbody.bridge.</tt><tt class="descname">Bridge</tt><big>(</big><em>start</em>, <em>end</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.bridge.</code><code class="descname">Bridge</code><span class="sig-paren">(</span><em>start</em>, <em>end</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic Bridge class</p>
+<p class="rubric">Methods</p>
 <dl class="method">
 <dt id="pynbody.bridge.Bridge.is_same">
-<tt class="descname">is_same</tt><big>(</big><em>i1</em>, <em>i2</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.is_same"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.is_same" title="Permalink to this definition">¶</a></dt>
+<code class="descname">is_same</code><span class="sig-paren">(</span><em>i1</em>, <em>i2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.is_same"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.is_same" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns true if the particle i1 in the start point is the same
 as the particle i2 in the end point.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="pynbody.bridge.Bridge.match_catalog">
-<tt class="descname">match_catalog</tt><big>(</big><em>min_index=1</em>, <em>max_index=30</em>, <em>threshold=0.5</em>, <em>groups_1=None</em>, <em>groups_2=None</em>, <em>use_family=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.match_catalog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.match_catalog" title="Permalink to this definition">¶</a></dt>
+<code class="descname">match_catalog</code><span class="sig-paren">(</span><em>min_index=1</em>, <em>max_index=30</em>, <em>threshold=0.5</em>, <em>groups_1=None</em>, <em>groups_2=None</em>, <em>use_family=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.match_catalog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.match_catalog" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given a Halos object groups_1, a Halos object groups_2 and a
 Bridge object connecting the two parent simulations, this identifies
-the most likely ID&#8217;s in groups_2 of the objects specified in groups_1.</p>
+the most likely ID’s in groups_2 of the objects specified in groups_1.</p>
 <p>If groups_1 and groups_2 are not specified, they are automatically obtained
 using the SimSnap.halos method.</p>
 <p>Parameters min_index and max_index are the minimum and maximum halo
@@ -201,7 +196,7 @@ between star particles is random.</p>
 
 <dl class="method">
 <dt id="pynbody.bridge.Bridge.fuzzy_match_catalog">
-<tt class="descname">fuzzy_match_catalog</tt><big>(</big><em>min_index=1</em>, <em>max_index=30</em>, <em>threshold=0.01</em>, <em>groups_1=None</em>, <em>groups_2=None</em>, <em>use_family=None</em>, <em>only_family=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.fuzzy_match_catalog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.fuzzy_match_catalog" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fuzzy_match_catalog</code><span class="sig-paren">(</span><em>min_index=1</em>, <em>max_index=30</em>, <em>threshold=0.01</em>, <em>groups_1=None</em>, <em>groups_2=None</em>, <em>use_family=None</em>, <em>only_family=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.fuzzy_match_catalog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.fuzzy_match_catalog" title="Permalink to this definition">¶</a></dt>
 <dd><p>fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
 identifications in groups_2, along with the fraction of particles in common
 between the two.</p>
@@ -213,7 +208,7 @@ to the output from match_catalog.</p>
 
 <dl class="method">
 <dt id="pynbody.bridge.Bridge.catalog_transfer_matrix">
-<tt class="descname">catalog_transfer_matrix</tt><big>(</big><em>min_index=1</em>, <em>max_index=30</em>, <em>groups_1=None</em>, <em>groups_2=None</em>, <em>use_family=None</em>, <em>only_family=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.catalog_transfer_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.catalog_transfer_matrix" title="Permalink to this definition">¶</a></dt>
+<code class="descname">catalog_transfer_matrix</code><span class="sig-paren">(</span><em>min_index=1</em>, <em>max_index=30</em>, <em>groups_1=None</em>, <em>groups_2=None</em>, <em>use_family=None</em>, <em>only_family=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#Bridge.catalog_transfer_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.Bridge.catalog_transfer_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a max_index x max_index matrix with the number of particles transferred from
 the row group in groups_1 to the column group in groups_2.</p>
 <p>Normally, match_catalog (or fuzzy_match_catalog) are easier to use, but this routine
@@ -224,7 +219,7 @@ provides the maximal information.</p>
 
 <dl class="class">
 <dt id="pynbody.bridge.OrderBridge">
-<em class="property">class </em><tt class="descclassname">pynbody.bridge.</tt><tt class="descname">OrderBridge</tt><big>(</big><em>start</em>, <em>end</em>, <em>order_array='iord'</em>, <em>monotonic=True</em>, <em>allow_family_change=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#OrderBridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.OrderBridge" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.bridge.</code><code class="descname">OrderBridge</code><span class="sig-paren">(</span><em>start</em>, <em>end</em>, <em>order_array='iord'</em>, <em>monotonic=True</em>, <em>allow_family_change=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#OrderBridge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.OrderBridge" title="Permalink to this definition">¶</a></dt>
 <dd><p>An OrderBridge uses integer arrays in two simulations
 (start,end) where particles i_start and i_end are
 defined to be the same if and only if
@@ -233,68 +228,75 @@ start[order_array][i_start] == start[order_array][i_end].</p>
 in both ends of the bridge (and this is not checked for you). If
 monotonic is False, the bridging is slower but this is the
 failsafe option.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.bridge.bridge_factory">
-<tt class="descclassname">pynbody.bridge.</tt><tt class="descname">bridge_factory</tt><big>(</big><em>a</em>, <em>b</em><big>)</big><a class="reference internal" href="../_modules/pynbody/bridge.html#bridge_factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.bridge_factory" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.bridge.</code><code class="descname">bridge_factory</code><span class="sig-paren">(</span><em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/bridge.html#bridge_factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.bridge.bridge_factory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a bridge connecting the two specified snapshots. For
-more information see <em class="xref std std-ref">bridge-tutorial</em>.</p>
+more information see <span class="xref std std-ref">bridge-tutorial</span>.</p>
 </dd></dl>
 
 </div>
 <span class="target" id="module-pynbody.filt"></span><div class="section" id="filt">
 <h2>filt<a class="headerlink" href="#filt" title="Permalink to this headline">¶</a></h2>
-<p>Defines and implements &#8216;filters&#8217; which allow abstract subsets
+<p>Defines and implements ‘filters’ which allow abstract subsets
 of data to be specified.</p>
 <p>See the <a class="reference external" href="http://pynbody.github.io/pynbody/tutorials/filters.html">filter tutorial</a> for some
 sample usage.</p>
 <dl class="class">
 <dt id="pynbody.filt.Sphere">
-<em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">Sphere</tt><big>(</big><em>radius</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#Sphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Sphere" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.filt.</code><code class="descname">Sphere</code><span class="sig-paren">(</span><em>radius</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#Sphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Sphere" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return particles that are within <cite>radius</cite> of the point <cite>cen</cite>.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.filt.Cuboid">
-<em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">Cuboid</tt><big>(</big><em>x1</em>, <em>y1=None</em>, <em>z1=None</em>, <em>x2=None</em>, <em>y2=None</em>, <em>z2=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#Cuboid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Cuboid" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.filt.</code><code class="descname">Cuboid</code><span class="sig-paren">(</span><em>x1</em>, <em>y1=None</em>, <em>z1=None</em>, <em>x2=None</em>, <em>y2=None</em>, <em>z2=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#Cuboid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Cuboid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a cube with specified edge coordinates. If any of the cube
 coordinates <cite>x1</cite>, <cite>y1</cite>, <cite>z1</cite>, <cite>x2</cite>, <cite>y2</cite>, <cite>z2</cite> are not specified
 they are determined as <cite>y1=x1;</cite> <cite>z1=x1;</cite> <cite>x2=-x1;</cite> <cite>y2=-y1;</cite>
 <cite>z2=-z1</cite>.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.filt.Disc">
-<em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">Disc</tt><big>(</big><em>radius</em>, <em>height</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#Disc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Disc" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.filt.</code><code class="descname">Disc</code><span class="sig-paren">(</span><em>radius</em>, <em>height</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#Disc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Disc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return particles that are within a disc of extent <cite>radius</cite> and
 thickness <cite>height</cite> centered on <cite>cen</cite>.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.filt.BandPass">
-<em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">BandPass</tt><big>(</big><em>prop</em>, <em>min</em>, <em>max</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#BandPass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.BandPass" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.filt.</code><code class="descname">BandPass</code><span class="sig-paren">(</span><em>prop</em>, <em>min</em>, <em>max</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#BandPass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.BandPass" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return particles whose property <cite>prop</cite> is within <cite>min</cite> and <cite>max</cite>,
 which can be specified as unit strings.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.filt.HighPass">
-<em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">HighPass</tt><big>(</big><em>prop</em>, <em>min</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#HighPass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.HighPass" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.filt.</code><code class="descname">HighPass</code><span class="sig-paren">(</span><em>prop</em>, <em>min</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#HighPass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.HighPass" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return particles whose property <cite>prop</cite> exceeds <cite>min</cite>, which can be
 specified as a unit string.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.filt.LowPass">
-<em class="property">class </em><tt class="descclassname">pynbody.filt.</tt><tt class="descname">LowPass</tt><big>(</big><em>prop</em>, <em>max</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#LowPass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.LowPass" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.filt.</code><code class="descname">LowPass</code><span class="sig-paren">(</span><em>prop</em>, <em>max</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#LowPass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.LowPass" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return particles whose property <cite>prop</cite> is less than <cite>max</cite>, which can be
 specified as a unit string.</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.filt.Annulus">
-<tt class="descclassname">pynbody.filt.</tt><tt class="descname">Annulus</tt><big>(</big><em>r1</em>, <em>r2</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#Annulus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Annulus" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.filt.</code><code class="descname">Annulus</code><span class="sig-paren">(</span><em>r1</em>, <em>r2</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#Annulus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.Annulus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function that returns a filter which selects particles
 in between two spheres specified by radii <cite>r1</cite> and <cite>r2</cite> centered
 on <cite>cen</cite>.</p>
@@ -302,7 +304,7 @@ on <cite>cen</cite>.</p>
 
 <dl class="function">
 <dt id="pynbody.filt.SolarNeighborhood">
-<tt class="descclassname">pynbody.filt.</tt><tt class="descname">SolarNeighborhood</tt><big>(</big><em>r1=Unit(&quot;5.00e+00 kpc&quot;)</em>, <em>r2=Unit(&quot;1.00e+01 kpc&quot;)</em>, <em>height=Unit(&quot;2.00e+00 kpc&quot;)</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><big>)</big><a class="reference internal" href="../_modules/pynbody/filt.html#SolarNeighborhood"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.SolarNeighborhood" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.filt.</code><code class="descname">SolarNeighborhood</code><span class="sig-paren">(</span><em>r1=Unit(&quot;5.00e+00 kpc&quot;)</em>, <em>r2=Unit(&quot;1.00e+01 kpc&quot;)</em>, <em>height=Unit(&quot;2.00e+00 kpc&quot;)</em>, <em>cen=(0</em>, <em>0</em>, <em>0)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/filt.html#SolarNeighborhood"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.filt.SolarNeighborhood" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function that returns a filter which selects particles
 in a disc between radii <cite>r1</cite> and <cite>r2</cite> and thickness <cite>height</cite>.</p>
 </dd></dl>
@@ -318,11 +320,13 @@ SimSnap.</p>
 examples.</p>
 <dl class="class">
 <dt id="pynbody.halo.Halo">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">Halo</tt><big>(</big><em>halo_id</em>, <em>halo_catalogue</em>, <em>*args</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#Halo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.halo.</code><code class="descname">Halo</code><span class="sig-paren">(</span><em>halo_id</em>, <em>halo_catalogue</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#Halo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic class representing a halo.</p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
 <dl class="method">
 <dt id="pynbody.halo.Halo.is_subhalo">
-<tt class="descname">is_subhalo</tt><big>(</big><em>otherhalo</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#Halo.is_subhalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo.is_subhalo" title="Permalink to this definition">¶</a></dt>
+<code class="descname">is_subhalo</code><span class="sig-paren">(</span><em>otherhalo</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#Halo.is_subhalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.Halo.is_subhalo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function that calls the corresponding function in
 a halo catalogue.</p>
 </dd></dl>
@@ -331,18 +335,20 @@ a halo catalogue.</p>
 
 <dl class="class">
 <dt id="pynbody.halo.HaloCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">HaloCatalogue</tt><big>(</big><em>sim</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#HaloCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.halo.</code><code class="descname">HaloCatalogue</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#HaloCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic halo catalogue object.</p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
 <dl class="method">
 <dt id="pynbody.halo.HaloCatalogue.is_subhalo">
-<tt class="descname">is_subhalo</tt><big>(</big><em>childid</em>, <em>parentid</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#HaloCatalogue.is_subhalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.is_subhalo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks whether the specified &#8216;childid&#8217; halo is a subhalo
-of &#8216;parentid&#8217; halo.</p>
+<code class="descname">is_subhalo</code><span class="sig-paren">(</span><em>childid</em>, <em>parentid</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#HaloCatalogue.is_subhalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.is_subhalo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether the specified ‘childid’ halo is a subhalo
+of ‘parentid’ halo.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="pynbody.halo.HaloCatalogue.get_group_array">
-<tt class="descname">get_group_array</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#HaloCatalogue.get_group_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.get_group_array" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_group_array</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#HaloCatalogue.get_group_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HaloCatalogue.get_group_array" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an array with an integer for each particle in the simulation
 indicating which halo that particle is associated with. If there are multiple
 levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
@@ -352,146 +358,15 @@ the smallest subhalo.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="pynbody.halo.RockstarIntermediateCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">RockstarIntermediateCatalogue</tt><big>(</big><em>sim</em>, <em>sort=True</em>, <em>correct=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarIntermediateCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarIntermediateCatalogue" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reader for Rockstar intermediate catalogues as generated by
-Michael Tremmel&#8217;s tool</p>
-<dl class="method">
-<dt id="pynbody.halo.RockstarIntermediateCatalogue.load_copy">
-<tt class="descname">load_copy</tt><big>(</big><em>i</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarIntermediateCatalogue.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarIntermediateCatalogue.load_copy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a fresh SimSnap with only the particles in halo i</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.RockstarCatalogueOneCpu">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">RockstarCatalogueOneCpu</tt><big>(</big><em>sim</em>, <em>dummy=False</em>, <em>filename=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarCatalogueOneCpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogueOneCpu" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class to handle catalogues produced by Rockstar</p>
-<dl class="method">
-<dt id="pynbody.halo.RockstarCatalogueOneCpu.load_copy">
-<tt class="descname">load_copy</tt><big>(</big><em>i</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarCatalogueOneCpu.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogueOneCpu.load_copy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a fresh SimSnap with only the particles in halo i</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.RockstarCatalogueOneCpu.make_grp">
-<tt class="descname">make_grp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarCatalogueOneCpu.make_grp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogueOneCpu.make_grp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a &#8216;grp&#8217; array which labels each particle according to
-its parent halo.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.RockstarCatalogueOneCpu.writestat">
-<tt class="descname">writestat</tt><big>(</big><em>outfile=None</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarCatalogueOneCpu.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogueOneCpu.writestat" title="Permalink to this definition">¶</a></dt>
-<dd><p>write a condensed skid.stat style ascii file from ahf_halos
-file.  header + 1 halo per line. should reproduce <a href="#id1"><span class="problematic" id="id2">`</span></a>Alyson&#8217;s
-idl script&#8217; except does not do last 2 columns (Is it a
-satellite?) and (Is central halo is <a href="#id3"><span class="problematic" id="id4">`</span></a>false&#8217;ly split?).  output
-units are set to Mpc Msun, km/s.</p>
-<p>user can specify own hubble constant hubble=(H0/(100
-km/s/Mpc)), ignoring the snaphot arg for hubble constant
-(which sometimes has a large roundoff error).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.RockstarCatalogueOneCpu.writetipsy">
-<tt class="descname">writetipsy</tt><big>(</big><em>outfile=None</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#RockstarCatalogueOneCpu.writetipsy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.RockstarCatalogueOneCpu.writetipsy" title="Permalink to this definition">¶</a></dt>
-<dd><p>write halos to tipsy file (write as stars) from ahf_halos
-file.  returns a shapshot where each halo is a star particle.</p>
-<p>user can specify own hubble constant hubble=(H0/(100
-km/s/Mpc)), ignoring the snaphot arg for hubble constant
-(which sometimes has a large roundoff error).</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.AHFCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">AHFCatalogue</tt><big>(</big><em>sim</em>, <em>make_grp=None</em>, <em>get_all_parts=None</em>, <em>use_iord=None</em>, <em>ahf_basename=None</em>, <em>dosort=None</em>, <em>only_stat=None</em>, <em>write_fpos=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class to handle catalogues produced by Amiga Halo Finder (AHF).</p>
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.make_grp">
-<tt class="descname">make_grp</tt><big>(</big><em>name='grp'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.make_grp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.make_grp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a &#8216;grp&#8217; array which labels each particle according to
-its parent halo.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.get_group_array">
-<tt class="descname">get_group_array</tt><big>(</big><em>top_level=False</em>, <em>family=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.get_group_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.get_group_array" title="Permalink to this definition">¶</a></dt>
-<dd><p>output an array of group IDs for each particle.
-:top_level: If False, each particle associated with the lowest level halo they are in.</p>
-<blockquote>
-<div>If True, each particle associated with their top-most level halo</div></blockquote>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Family:</th><td class="field-body">specify the family of particles to output an array for (default is all particles)</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.load_copy">
-<tt class="descname">load_copy</tt><big>(</big><em>i</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.load_copy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the a fresh SimSnap with only the particle in halo i</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.writegrp">
-<tt class="descname">writegrp</tt><big>(</big><em>grpoutfile=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.writegrp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writegrp" title="Permalink to this definition">¶</a></dt>
-<dd><p>simply write a skid style .grp file from ahf_particles
-file. header = total number of particles, then each line is
-the halo id for each particle (0 means free).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.writestat">
-<tt class="descname">writestat</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>statoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.writestat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writestat" title="Permalink to this definition">¶</a></dt>
-<dd><p>write a condensed skid.stat style ascii file from ahf_halos
-file.  header + 1 halo per line. should reproduce <a href="#id5"><span class="problematic" id="id6">`</span></a>Alyson&#8217;s
-idl script&#8217; except does not do last 2 columns (Is it a
-satellite?) and (Is central halo is <a href="#id7"><span class="problematic" id="id8">`</span></a>false&#8217;ly split?).  output
-units are set to Mpc Msun, km/s.</p>
-<p>user can specify own hubble constant hubble=(H0/(100
-km/s/Mpc)), ignoring the snaphot arg for hubble constant
-(which sometimes has a large roundoff error).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.writetipsy">
-<tt class="descname">writetipsy</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>tipsyoutfile</em>, <em>hubble=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.writetipsy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writetipsy" title="Permalink to this definition">¶</a></dt>
-<dd><p>write halos to tipsy file (write as stars) from ahf_halos
-file.  returns a shapshot where each halo is a star particle.</p>
-<p>user can specify own hubble constant hubble=(H0/(100
-km/s/Mpc)), ignoring the snaphot arg for hubble constant
-(which sometimes has a large roundoff error).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="pynbody.halo.AHFCatalogue.writehalos">
-<tt class="descname">writehalos</tt><big>(</big><em>snapshot</em>, <em>halos</em>, <em>hubble=None</em>, <em>outfile=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#AHFCatalogue.writehalos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.AHFCatalogue.writehalos" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write the (ahf) halo catalog to disk.  This is really a
-wrapper that calls writegrp, writetipsy, writestat.  Writes
-.amiga.grp file (ascii group ids), .amiga.stat file (ascii
-halo catalog) and .amiga.gtp file (tipsy halo catalog).
-default outfile base simulation is same as snapshot s.
-function returns simsnap of halo catalog.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="pynbody.halo.GrpCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">GrpCatalogue</tt><big>(</big><em>sim</em>, <em>array='grp'</em>, <em>ignore=None</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#GrpCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.halo.</code><code class="descname">GrpCatalogue</code><span class="sig-paren">(</span><em>sim</em>, <em>array='grp'</em>, <em>ignore=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#GrpCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue" title="Permalink to this definition">¶</a></dt>
 <dd><p>A generic catalogue using a .grp file to specify which particles
 belong to which group.</p>
+<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
 <dl class="method">
 <dt id="pynbody.halo.GrpCatalogue.precalculate">
-<tt class="descname">precalculate</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#GrpCatalogue.precalculate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue.precalculate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">precalculate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#GrpCatalogue.precalculate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue.precalculate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Speed up future operations by precalculating the indices
 for all halos in one operation. This is slow compared to
 getting a single halo, however.</p>
@@ -499,64 +374,10 @@ getting a single halo, however.</p>
 
 <dl class="method">
 <dt id="pynbody.halo.GrpCatalogue.load_copy">
-<tt class="descname">load_copy</tt><big>(</big><em>i</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#GrpCatalogue.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue.load_copy" title="Permalink to this definition">¶</a></dt>
+<code class="descname">load_copy</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/halo.html#GrpCatalogue.load_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.GrpCatalogue.load_copy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load the a fresh SimSnap with only the particle in halo i</p>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.SubfindCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">SubfindCatalogue</tt><big>(</big><em>sim</em>, <em>subs=False</em>, <em>order=True</em>, <em>make_grp=None</em>, <em>v=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#SubfindCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.SubfindCatalogue" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class to handle catalogues produced by the SubFind halo finder. 
-Can import FoF groups (default) or subhalos (by setting subs=True).
-Groups are sorted by mass (descending), most massive group is halo[0]. Subhalos within each group are also sorted by mass.
-IDs within groups are sorted by binding energy, UNLESS the IDs in the snapshots are not ordered starting from 0. In that case,
-setting order=False will generate the correct halo catalogue but the ordering by binding energy within each halo will be lost.
-Additional properties calculated by SubFind can be accessed via e.g. &#8216;halo[0].properties&#8217;.
-make_grp=True generates a particle array with the Fof group number, and -1 if the particles is not in a group. <a href="#id9"><span class="problematic" id="id10">*</span></a>This will take some time! v=True enables a crude progress report.</p>
-<dl class="method">
-<dt id="pynbody.halo.SubfindCatalogue.make_grp">
-<tt class="descname">make_grp</tt><big>(</big><em>name='grp'</em>, <em>v=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#SubfindCatalogue.make_grp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.SubfindCatalogue.make_grp" title="Permalink to this definition">¶</a></dt>
-<dd><p>#Creates a &#8216;grp&#8217; array which labels each particle according to
-#its parent halo. This can take quite some time!
-Option: v=True prints out &#8216;progress&#8217; in terms of total number of groups.
-#</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.SubFindHDFHaloCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">SubFindHDFHaloCatalogue</tt><big>(</big><em>sim</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#SubFindHDFHaloCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.SubFindHDFHaloCatalogue" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gadget&#8217;s SubFind Halo catalogue &#8211; used in concert with <tt class="xref py py-class docutils literal"><span class="pre">SubFindHDFSnap</span></tt></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.SubFindFOFGroup">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">SubFindFOFGroup</tt><big>(</big><em>group_id</em>, <em>*args</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#SubFindFOFGroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.SubFindFOFGroup" title="Permalink to this definition">¶</a></dt>
-<dd><p>SubFind FOF group class</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.SubFindHDFSubhaloCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">SubFindHDFSubhaloCatalogue</tt><big>(</big><em>group_id</em>, <em>group_catalogue</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#SubFindHDFSubhaloCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.SubFindHDFSubhaloCatalogue" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gadget&#8217;s SubFind HDF Subhalo catalogue.</p>
-<p>Initialized with the parent FOF group catalogue and created
-automatically when an fof group is created</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.SubFindHDFSubHalo">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">SubFindHDFSubHalo</tt><big>(</big><em>halo_id</em>, <em>group_id</em>, <em>*args</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#SubFindHDFSubHalo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.SubFindHDFSubHalo" title="Permalink to this definition">¶</a></dt>
-<dd><p>SubFind subhalo class</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="pynbody.halo.HOPCatalogue">
-<em class="property">class </em><tt class="descclassname">pynbody.halo.</tt><tt class="descname">HOPCatalogue</tt><big>(</big><em>sim</em>, <em>fname=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/halo.html#HOPCatalogue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.halo.HOPCatalogue" title="Permalink to this definition">¶</a></dt>
-<dd><p>A HOP Catalogue as used by Ramses. HOP output files must be in simulation directory, in simulation/hop/ directory
-or specified by fname</p>
 </dd></dl>
 
 </div>
@@ -565,13 +386,13 @@ or specified by fname</p>
 <p>pynbody SPH rendering module.</p>
 <p>This module encompasses Kernel objects, which return C fragments from which
 a final C code to perform the rendering is derived.</p>
-<p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><tt class="xref py py-func docutils literal"><span class="pre">render_image()</span></tt></a>.</p>
+<p>For most users, the function of interest will be <a class="reference internal" href="#pynbody.sph.render_image" title="pynbody.sph.render_image"><code class="xref py py-func docutils literal"><span class="pre">render_image()</span></code></a>.</p>
 <dl class="function">
 <dt id="pynbody.sph.render_spherical_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_spherical_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10f085450&gt;</em>, <em>kstep=0.5</em>, <em>denoise=None</em>, <em>out_units=None</em>, <em>threaded=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.sph.</code><code class="descname">render_spherical_image</code><span class="sig-paren">(</span><em>snap</em>, <em>qty='rho'</em>, <em>nside=8</em>, <em>distance=10.0</em>, <em>kernel=&lt;pynbody.sph.Kernel object&gt;</em>, <em>kstep=0.5</em>, <em>denoise=None</em>, <em>out_units=None</em>, <em>threaded=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/sph.html#render_spherical_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_spherical_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render an SPH image on a spherical surface. Requires healpy libraries.</p>
 <p><strong>Keyword arguments:</strong></p>
-<p><em>qty</em> (&#8216;rho&#8217;): The name of the simulation array to render</p>
+<p><em>qty</em> (‘rho’): The name of the simulation array to render</p>
 <p><em>nside</em> (8): The healpix nside resolution to use (must be power of 2)</p>
 <dl class="docutils">
 <dt><em>distance</em> (10.0): The distance of the shell (for 3D kernels) or maximum distance</dt>
@@ -592,11 +413,11 @@ rendering is slower than single-threaded because healpy does not release the gil
 
 <dl class="function">
 <dt id="pynbody.sph.render_image">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">render_image</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10f085510&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
-<dd><p>Render an SPH image using a typical (mass/rho)-weighted &#8216;scatter&#8217;
+<code class="descclassname">pynbody.sph.</code><code class="descname">render_image</code><span class="sig-paren">(</span><em>snap</em>, <em>qty='rho'</em>, <em>x2=100</em>, <em>nx=500</em>, <em>y2=None</em>, <em>ny=None</em>, <em>x1=None</em>, <em>y1=None</em>, <em>z_plane=0.0</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object&gt;</em>, <em>z_camera=None</em>, <em>smooth='smooth'</em>, <em>smooth_in_pixels=False</em>, <em>force_quiet=False</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>denoise=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/sph.html#render_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.render_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render an SPH image using a typical (mass/rho)-weighted ‘scatter’
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
-<p><em>qty</em> (&#8216;rho&#8217;): The name of the array within the simulation to render</p>
+<p><em>qty</em> (‘rho’): The name of the array within the simulation to render</p>
 <p><em>x2</em> (100.0): The x-coordinate of the right edge of the image</p>
 <p><em>nx</em> (500): The number of pixels wide to make the image</p>
 <dl class="docutils">
@@ -620,7 +441,7 @@ the image in the z=0 plane. Particles too close to the camera are
 also excluded.</p>
 <dl class="docutils">
 <dt><em>smooth</em>: The name of the array which contains the smoothing lengths</dt>
-<dd>(default &#8216;smooth&#8217;)</dd>
+<dd>(default ‘smooth’)</dd>
 <dt><em>smooth_in_pixels</em>: If True, the smoothing array contains the smoothing</dt>
 <dd>length in image pixels, rather than in real distance units (default False)</dd>
 <dt><em>approximate_fast</em>: if True, render high smoothing length particles at</dt>
@@ -642,11 +463,11 @@ configuration files).</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.to_3d_grid">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">to_3d_grid</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object at 0x10f085550&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted &#8216;scatter&#8217;
+<code class="descclassname">pynbody.sph.</code><code class="descname">to_3d_grid</code><span class="sig-paren">(</span><em>snap</em>, <em>qty='rho'</em>, <em>nx=None</em>, <em>ny=None</em>, <em>nz=None</em>, <em>x2=None</em>, <em>out_units=None</em>, <em>xy_units=None</em>, <em>kernel=&lt;pynbody.sph.Kernel object&gt;</em>, <em>smooth='smooth'</em>, <em>approximate_fast=True</em>, <em>threaded=None</em>, <em>snap_slice=None</em>, <em>denoise=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/sph.html#to_3d_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.to_3d_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project SPH onto a grid using a typical (mass/rho)-weighted ‘scatter’
 scheme.</p>
 <p><strong>Keyword arguments:</strong></p>
-<p><em>qty</em> (&#8216;rho&#8217;): The name of the array within the simulation to render</p>
+<p><em>qty</em> (‘rho’): The name of the array within the simulation to render</p>
 <p><em>nx</em> (x2-x1 / soft): The number of pixels wide to make the grid</p>
 <p><em>ny</em> (nx): The number of pixels tall to make the grid</p>
 <p><em>nz</em> (nx): The number of pixels deep to make the grid</p>
@@ -655,7 +476,7 @@ scheme.</p>
 <p><em>kernel</em>: The Kernel object to use (default Kernel(), a 3D spline kernel)</p>
 <dl class="docutils">
 <dt><em>smooth</em>: The name of the array which contains the smoothing lengths</dt>
-<dd>(default &#8216;smooth&#8217;)</dd>
+<dd>(default ‘smooth’)</dd>
 <dt><em>denoise</em>: if True, divide through by an estimate of the discreteness noise.</dt>
 <dd>The returned image is then not strictly an SPH estimate, but this option
 can be useful to reduce noise especially when rendering AMR grids which
@@ -665,21 +486,21 @@ often introduce problematic edge effects.</dd>
 
 <dl class="function">
 <dt id="pynbody.sph.spectra">
-<tt class="descclassname">pynbody.sph.</tt><tt class="descname">spectra</tt><big>(</big><em>snap</em>, <em>qty='rho'</em>, <em>x1=0.0</em>, <em>y1=0.0</em>, <em>v2=400</em>, <em>nvel=200</em>, <em>v1=None</em>, <em>element='H'</em>, <em>ion='I'</em>, <em>xy_units=Unit(&quot;kpc&quot;)</em>, <em>vel_units=Unit(&quot;km s**-1&quot;)</em>, <em>smooth='smooth'</em>, <em>__threaded=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/sph.html#spectra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.spectra" title="Permalink to this definition">¶</a></dt>
-<dd><p>Render an SPH spectrum using a (mass/rho)-weighted &#8216;scatter&#8217;
+<code class="descclassname">pynbody.sph.</code><code class="descname">spectra</code><span class="sig-paren">(</span><em>snap</em>, <em>qty='rho'</em>, <em>x1=0.0</em>, <em>y1=0.0</em>, <em>v2=400</em>, <em>nvel=200</em>, <em>v1=None</em>, <em>element='H'</em>, <em>ion='I'</em>, <em>xy_units=Unit(&quot;kpc&quot;)</em>, <em>vel_units=Unit(&quot;km s**-1&quot;)</em>, <em>smooth='smooth'</em>, <em>__threaded=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/sph.html#spectra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.sph.spectra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render an SPH spectrum using a (mass/rho)-weighted ‘scatter’
 scheme of all the particles that have a smoothing length within
 2 h_sm of the position.</p>
 <p><strong>Keyword arguments:</strong></p>
-<p><em>qty</em> (&#8216;rho&#8217;): The name of the array within the simulation to render</p>
+<p><em>qty</em> (‘rho’): The name of the array within the simulation to render</p>
 <p><em>x1</em> (0.0): The x-coordinate of the line of sight.</p>
 <p><em>y1</em> (0.0): The y-coordinate of the line of sight.</p>
 <p><em>v1</em> (-400.0): The minimum velocity of the spectrum</p>
 <p><em>v2</em> (400.0): The maximum velocity of the spectrum</p>
 <p><em>nvel</em> (500): The number of resolution elements in spectrum</p>
-<p><em>xy_units</em> (&#8216;kpc&#8217;): The units for the x and y axes</p>
+<p><em>xy_units</em> (‘kpc’): The units for the x and y axes</p>
 <dl class="docutils">
 <dt><em>smooth</em>: The name of the array which contains the smoothing lengths</dt>
-<dd>(default &#8216;smooth&#8217;)</dd>
+<dd>(default ‘smooth’)</dd>
 </dl>
 </dd></dl>
 
@@ -699,14 +520,14 @@ scheme of all the particles that have a smoothing length within
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/reference/convenience.txt"
+  <a href="../_sources/reference/convenience.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

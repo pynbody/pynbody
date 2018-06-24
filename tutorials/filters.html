@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Subviews and Filters &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Subviews and Filters &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
-    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Tracing Particles between Snapshots" href="bridge.html" />
     <link rel="prev" title="A walk through pynbody’s low-level facilities" href="data_access.html" />
 
@@ -65,12 +60,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -113,11 +107,11 @@
               
                 
   <li>
-    <a href="data_access.html" title="Previous Chapter: A walk through pynbody’s low-level facilities"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; A walk throug...</span>
+    <a href="data_access.html" title="Previous Chapter: A walk through pynbody’s low-level facilities"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; A walk throug...</span>
     </a>
   </li>
   <li>
-    <a href="bridge.html" title="Next Chapter: Tracing Particles between Snapshots"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Tracing Parti... &raquo;</span>
+    <a href="bridge.html" title="Next Chapter: Tracing Particles between Snapshots"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Tracing Parti... &raquo;</span>
     </a>
   </li>
               
@@ -143,7 +137,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="subviews-and-filters">
 <h1>Subviews and Filters<a class="headerlink" href="#subviews-and-filters" title="Permalink to this headline">¶</a></h1>
@@ -152,8 +146,8 @@ groups of particles or sections of the simulated volume. Therefore a
 generic task in analysis routines is to search for indices of
 particles (or cells) corresponding to some interesting property, so
 analysis code often looks something like this:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;group&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">group_id</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;group&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">group_id</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>In this example, we obtained the center of mass of some group
@@ -164,14 +158,14 @@ simulations. Subviews behave exactly like a full simulation, but they
 reference only a subset of the data of that full simulation.</p>
 <p>This makes writing code which processes individual halos trivial; for
 instance</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>will find the centre of mass of whatever you throw at it. So if we had
 some way of defining a <em>sub-view</em> of the whole simulation that refers
 to just the halo that we want, called <cite>halo</cite>, then we could do
 something like</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">halo</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">halo</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">halo</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">halo</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The indexing is taken care of under the hood and all the boilerplate
@@ -181,15 +175,15 @@ that subviews and filters can be used in <cite>pynbody</cite>.</p>
 <h2>How do I create a simple subview?<a class="headerlink" href="#how-do-i-create-a-simple-subview" title="Permalink to this headline">¶</a></h2>
 <p>Quite simply, indexing or slicing operations commute with array-fetch
 operations, i.e.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">]</span> <span class="c"># -&gt; new SimSnap object</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">][</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c"># -&gt; True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c"># -&gt; True</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; new SimSnap object</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">][</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; True</span>
 </pre></div>
 </div>
 <p><cite>slice</cite> here can literally be a python slice (e.g. <cite>sim[22:73:2]</cite>,
 starting at the 22nd particle, finishing at the 72nd, taking every
 second particle). It can also be a list of particle indices.</p>
-<p>Or, more interestingly, it can be a <cite>filter</cite>. More on that below, but first...</p>
+<p>Or, more interestingly, it can be a <cite>filter</cite>. More on that below, but first…</p>
 </div>
 <div class="section" id="conceptually-everything-is-a-pointer">
 <h2>Conceptually, everything is a pointer<a class="headerlink" href="#conceptually-everything-is-a-pointer" title="Permalink to this headline">¶</a></h2>
@@ -197,24 +191,24 @@ second particle). It can also be a list of particle indices.</p>
 it as a _pointer_ into, not a copy of, the original data.</p>
 <p>Thus changing anything in the arrays of your sub-view makes the
 corresponding change in the full data.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">22</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">22</span>
 </pre></div>
 </div>
-<p>You can verify that the corresponding element of <cite>sim[&#8216;x&#8217;]</cite> has now changed</p>
+<p>You can verify that the corresponding element of <cite>sim[‘x’]</cite> has now changed</p>
 </div>
 <div class="section" id="filters">
 <h2>Filters<a class="headerlink" href="#filters" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><tt class="xref py py-mod docutils literal"><span class="pre">pynbody.filt</span></tt></a> defines abstract filters which can be used in place of
+<p><a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal"><span class="pre">pynbody.filt</span></code></a> defines abstract filters which can be used in place of
 index lists. For instance,</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">radius</span> <span class="o">=</span> <span class="s">&quot;1 kpc&quot;</span> <span class="c"># or might be a float if you already know your units</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">centre</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="c"># Take the origin for now</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">radius</span> <span class="o">=</span> <span class="s2">&quot;1 kpc&quot;</span> <span class="c1"># or might be a float if you already know your units</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">centre</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># Take the origin for now</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">centre</span><span class="p">)]</span>
 </pre></div>
 </div>
-<p><cite>sphere</cite> is now a standard subsim, as though you&#8217;d generated it with
+<p><cite>sphere</cite> is now a standard subsim, as though you’d generated it with
 your own index list.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="c"># -&gt; total mass in sphere</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span> <span class="c"># etc</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="c1"># -&gt; total mass in sphere</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span> <span class="c1"># etc</span>
 </pre></div>
 </div>
 <p>Under the hood, filters are very simple objects which have a
@@ -222,18 +216,18 @@ your own index list.</p>
 returning a boolean array representing whether particles are included
 (<cite>True</cite>) or excluded (<cite>False</cite>) according to the given filter
 object. The framework uses this to generate an index list and proceeds
-as though you&#8217;d passed that index list in.</p>
+as though you’d passed that index list in.</p>
 <p>The benefits that this brings are:</p>
 <blockquote>
 <div><ul class="simple">
 <li>Code clarity</li>
-<li>Code factorization (guaranteed that the &#8216;sphere&#8217; filter works,
+<li>Code factorization (guaranteed that the ‘sphere’ filter works,
 rather than having to recode a sphere index-list operation each
 time)</li>
-<li>Future extensibility (e.g. we can just start having Sphere&#8217;s
+<li>Future extensibility (e.g. we can just start having Sphere’s
 accept quantities with units, rather than having to reimplement to
 include units in all code which pulls out spheres)</li>
-<li>Parallelizability (the &#8216;filter&#8217; objects can be trivially sent to
+<li>Parallelizability (the ‘filter’ objects can be trivially sent to
 another node, whereas an index list is irrelevant on another node)</li>
 </ul>
 </div></blockquote>
@@ -262,18 +256,18 @@ another node, whereas an index list is irrelevant on another node)</li>
 </table>
 <p>There are several filter classes currently implemented. Generic filter
 classes work like band-pass filters and are conveniently named so. For example,</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">young</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;1 Gyr&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">old</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">HighPass</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;10 Gyr&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">intermediate</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">BandPass</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;3 Gyr&#39;</span><span class="p">,</span> <span class="s">&#39;7 Gyr&#39;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">young</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;1 Gyr&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">old</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">HighPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;10 Gyr&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">intermediate</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">BandPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;3 Gyr&#39;</span><span class="p">,</span> <span class="s1">&#39;7 Gyr&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>would create three filters that each select particles with different
 value ranges for the <cite>age</cite> array.</p>
-<p>Additionaly, several &#8220;geometric&#8221; filter classes are available. We
-already saw <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Sphere" title="pynbody.filt.Sphere"><tt class="xref py py-class docutils literal"><span class="pre">Sphere</span></tt></a> used above, but
-<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Disc" title="pynbody.filt.Disc"><tt class="xref py py-class docutils literal"><span class="pre">Disc</span></tt></a>, <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Cuboid" title="pynbody.filt.Cuboid"><tt class="xref py py-class docutils literal"><span class="pre">Cuboid</span></tt></a>, and two
-convenience functions <a class="reference internal" href="../reference/convenience.html#pynbody.filt.SolarNeighborhood" title="pynbody.filt.SolarNeighborhood"><tt class="xref py py-func docutils literal"><span class="pre">SolarNeighborhood()</span></tt></a> and
-<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Annulus" title="pynbody.filt.Annulus"><tt class="xref py py-func docutils literal"><span class="pre">Annulus()</span></tt></a> are also available.</p>
+<p>Additionaly, several “geometric” filter classes are available. We
+already saw <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Sphere" title="pynbody.filt.Sphere"><code class="xref py py-class docutils literal"><span class="pre">Sphere</span></code></a> used above, but
+<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Disc" title="pynbody.filt.Disc"><code class="xref py py-class docutils literal"><span class="pre">Disc</span></code></a>, <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Cuboid" title="pynbody.filt.Cuboid"><code class="xref py py-class docutils literal"><span class="pre">Cuboid</span></code></a>, and two
+convenience functions <a class="reference internal" href="../reference/convenience.html#pynbody.filt.SolarNeighborhood" title="pynbody.filt.SolarNeighborhood"><code class="xref py py-func docutils literal"><span class="pre">SolarNeighborhood()</span></code></a> and
+<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Annulus" title="pynbody.filt.Annulus"><code class="xref py py-func docutils literal"><span class="pre">Annulus()</span></code></a> are also available.</p>
 </div>
 </div>
 
@@ -290,14 +284,14 @@ convenience functions <a class="reference internal" href="../reference/convenien
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/tutorials/filters.txt"
+  <a href="../_sources/tutorials/filters.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

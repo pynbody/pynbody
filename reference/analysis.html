@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Analysis &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Analysis &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
-    <link rel="up" title="Pynbody reference documentation" href="index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Plotting" href="plot.html" />
     <link rel="prev" title="Automatically Derived Arrays" href="derived.html" />
 
@@ -65,12 +60,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -127,11 +121,11 @@
               
                 
   <li>
-    <a href="derived.html" title="Previous Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Automatically...</span>
+    <a href="derived.html" title="Previous Chapter: Automatically Derived Arrays"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Automatically...</span>
     </a>
   </li>
   <li>
-    <a href="plot.html" title="Next Chapter: Plotting"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Plotting &raquo;</span>
+    <a href="plot.html" title="Next Chapter: Plotting"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Plotting &raquo;</span>
     </a>
   </li>
               
@@ -157,7 +151,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="module-pynbody.analysis.angmom">
 <span id="analysis"></span><h1>Analysis<a class="headerlink" href="#module-pynbody.analysis.angmom" title="Permalink to this headline">¶</a></h1>
@@ -165,7 +159,7 @@
 <h2>angmom<a class="headerlink" href="#angmom" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="pynbody.analysis.angmom.ang_mom_vec">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">ang_mom_vec</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#ang_mom_vec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.ang_mom_vec" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.angmom.</code><code class="descname">ang_mom_vec</code><span class="sig-paren">(</span><em>snap</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#ang_mom_vec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.ang_mom_vec" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the angular momentum vector of the specified snapshot.</p>
 <p>The return units are [mass]*[dist]*[vel] as per the units of the
 snapshot.</p>
@@ -173,7 +167,7 @@ snapshot.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.ang_mom_vec_units">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">ang_mom_vec_units</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#ang_mom_vec_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.ang_mom_vec_units" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.angmom.</code><code class="descname">ang_mom_vec_units</code><span class="sig-paren">(</span><em>snap</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#ang_mom_vec_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.ang_mom_vec_units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the angular momentum vector of the specified snapshot
 with correct units.
 Note that the halo has to be aligned such that the disk
@@ -183,8 +177,8 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.spin_parameter">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">spin_parameter</tt><big>(</big><em>snap</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#spin_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.spin_parameter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the spin parameter lambda&#8217; of a centered halo
+<code class="descclassname">pynbody.analysis.angmom.</code><code class="descname">spin_parameter</code><span class="sig-paren">(</span><em>snap</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#spin_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.spin_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the spin parameter lambda’ of a centered halo
 as defined in eq. (5) of Bullock et al. 2001
 (2001MNRAS.321..559B).
 Note that the halo has to be aligned such that the disk
@@ -194,9 +188,9 @@ origin.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.sideon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">sideon</tt><big>(</big><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix at 0x10ef7f410&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.angmom.</code><code class="descname">sideon</code><span class="sig-paren">(</span><em>h</em>, <em>vec_to_xform=&lt;function calc_sideon_matrix&gt;</em>, <em>cen_size='1 kpc'</em>, <em>disk_size='5 kpc'</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>move_all=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#sideon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.sideon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
-h&#8217;s disk edge on.</p>
+h’s disk edge on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
 halo of interest), this routine centers the simulation and rotates
 it so that the disk lies in the x-z plane. This gives a side-on
@@ -205,9 +199,9 @@ view for SPH images, for instance.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.angmom.faceon">
-<tt class="descclassname">pynbody.analysis.angmom.</tt><tt class="descname">faceon</tt><big>(</big><em>h</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#faceon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.faceon" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.angmom.</code><code class="descname">faceon</code><span class="sig-paren">(</span><em>h</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/angmom.html#faceon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.angmom.faceon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reposition and rotate the simulation containing the halo h to see
-h&#8217;s disk face on.</p>
+h’s disk face on.</p>
 <p>Given a simulation and a subview of that simulation (probably the
 halo of interest), this routine centers the simulation and rotates
 it so that the disk lies in the x-y plane. This gives a face-on
@@ -220,13 +214,13 @@ view for SPH images, for instance.</p>
 <p>A set of functions for common cosmological calculations.</p>
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.hzoverh0">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">hzoverh0</tt><big>(</big><em>a</em>, <em>omegam0</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#hzoverh0"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.hzoverh0" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">hzoverh0</code><span class="sig-paren">(</span><em>a</em>, <em>omegam0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#hzoverh0"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.hzoverh0" title="Permalink to this definition">¶</a></dt>
 <dd><p>returns: H(a) / H0  = [omegam/a**3 + (1-omegam)]**0.5</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.linear_growth_factor">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">linear_growth_factor</tt><big>(</big><em>f</em>, <em>z=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#linear_growth_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.linear_growth_factor" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">linear_growth_factor</code><span class="sig-paren">(</span><em>f</em>, <em>z=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#linear_growth_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.linear_growth_factor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the linear growth factor b(a), normalized to 1
 at z=0, for the cosmology of snapshot f.</p>
 <p>The output is dimensionless. If a redshift z is
@@ -236,16 +230,16 @@ output f.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.rate_linear_growth">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">rate_linear_growth</tt><big>(</big><em>f</em>, <em>z=None</em>, <em>unit='h Gyr^-1'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#rate_linear_growth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.rate_linear_growth" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate the linear growth rate b&#8217;(a), normalized
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">rate_linear_growth</code><span class="sig-paren">(</span><em>f</em>, <em>z=None</em>, <em>unit='h Gyr^-1'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#rate_linear_growth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.rate_linear_growth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the linear growth rate b’(a), normalized
 to 1 at z=0, for the cosmology of snapshot f.</p>
-<p>The output is in &#8216;h Gyr^-1&#8217; by default. If a redshift z is specified,
+<p>The output is in ‘h Gyr^-1’ by default. If a redshift z is specified,
 it is used in place of the redshift in output f.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.age">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">age</tt><big>(</big><em>f</em>, <em>z=None</em>, <em>unit='Gyr'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#age"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.age" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">age</code><span class="sig-paren">(</span><em>f</em>, <em>z=None</em>, <em>unit='Gyr'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#age"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.age" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the age of the universe in the snapshot f
 by integrating the Friedmann equation.</p>
 <p>The output is given in the specified units. If a redshift
@@ -256,12 +250,12 @@ output f.</p>
 <p><strong>Optional Keywords</strong>:</p>
 <p><em>z (None)</em>: desired redshift. Can be a single number, a list, or a
 numpy.ndarray.</p>
-<p><em>unit (&#8216;Gyr&#8217;)</em>: desired units for age output</p>
+<p><em>unit (‘Gyr’)</em>: desired units for age output</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.redshift">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">redshift</tt><big>(</big><em>*fn_args</em>, <em>**fn_kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#redshift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.redshift" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">redshift</code><span class="sig-paren">(</span><em>*fn_args</em>, <em>**fn_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#redshift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.redshift" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the redshift given a snapshot and a time since Big Bang
 in Gyr.</p>
 <p>Uses scipy.optimize.newton to do the root finding if number of
@@ -277,14 +271,14 @@ interpolation.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.rho_crit">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">rho_crit</tt><big>(</big><em>f</em>, <em>z=None</em>, <em>unit=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#rho_crit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.rho_crit" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">rho_crit</code><span class="sig-paren">(</span><em>f</em>, <em>z=None</em>, <em>unit=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#rho_crit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.rho_crit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the critical density of the universe in
 the snapshot f.</p>
 <p>z specifies the redshift. If z is none, the redshift of the
 provided snapshot is used.</p>
 <p>unit specifies the units of the returned density. If unit is None,
 the returned density will be in the units of
-f[&#8220;mass&#8221;].units/f[&#8220;pos&#8221;].units**3. If that unit cannot be calculated,
+f[“mass”].units/f[“pos”].units**3. If that unit cannot be calculated,
 the returned units are Msol kpc^-3 comoving.</p>
 <p>Note that you can get slightly confusing results if your
 simulation is in comoving units and you specify a different
@@ -295,7 +289,7 @@ the redshift of the snapshot</em>. This is intentional behaviour.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.rho_M">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">rho_M</tt><big>(</big><em>f</em>, <em>z=None</em>, <em>unit=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#rho_M"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.rho_M" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">rho_M</code><span class="sig-paren">(</span><em>f</em>, <em>z=None</em>, <em>unit=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#rho_M"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.rho_M" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the matter density of the universe in snapshot f.</p>
 <p>unit and z are used if not None, as by rho_crit. See also the note in
 rho_crit about confusion over comoving units in this case.</p>
@@ -303,19 +297,19 @@ rho_crit about confusion over comoving units in this case.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.H">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">H</tt><big>(</big><em>f</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#H"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.H" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">H</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#H"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.H" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the Hubble parameter of the universe in snapshot f</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.add_hubble">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">add_hubble</tt><big>(</big><em>f</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#add_hubble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.add_hubble" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">add_hubble</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#add_hubble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.add_hubble" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add the hubble flow to velocities in snapshot f</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.cosmology.comoving_to_physical">
-<tt class="descclassname">pynbody.analysis.cosmology.</tt><tt class="descname">comoving_to_physical</tt><big>(</big><em>ar</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#comoving_to_physical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.comoving_to_physical" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.cosmology.</code><code class="descname">comoving_to_physical</code><span class="sig-paren">(</span><em>ar</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/cosmology.html#comoving_to_physical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.cosmology.comoving_to_physical" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given an array, modify it to be in physical units (remove any
 dependencies on a or aform).</p>
 </dd></dl>
@@ -326,40 +320,40 @@ dependencies on a or aform).</p>
 <p>Tools for bulge/disk/halo decomposition</p>
 <dl class="function">
 <dt id="pynbody.analysis.decomp.decomp">
-<tt class="descclassname">pynbody.analysis.decomp.</tt><tt class="descname">decomp</tt><big>(</big><em>h</em>, <em>aligned=False</em>, <em>j_disk_min=0.8</em>, <em>j_disk_max=1.1</em>, <em>E_cut=None</em>, <em>j_circ_from_r=False</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>log_interp=False</em>, <em>angmom_size='3 kpc'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/decomp.html#decomp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.decomp.decomp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates an array &#8216;decomp&#8217; for star particles in the simulation, with an
+<code class="descclassname">pynbody.analysis.decomp.</code><code class="descname">decomp</code><span class="sig-paren">(</span><em>h</em>, <em>aligned=False</em>, <em>j_disk_min=0.8</em>, <em>j_disk_max=1.1</em>, <em>E_cut=None</em>, <em>j_circ_from_r=False</em>, <em>cen=None</em>, <em>vcen=None</em>, <em>log_interp=False</em>, <em>angmom_size='3 kpc'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/decomp.html#decomp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.decomp.decomp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an array ‘decomp’ for star particles in the simulation, with an
 integer specifying a kinematic decomposition. The possible values are:</p>
-<p>1 &#8211; thin disk</p>
-<p>2 &#8211; halo</p>
-<p>3 &#8211; bulge</p>
-<p>4 &#8211; thick disk</p>
-<p>5 &#8211; pseudo bulge</p>
+<p>1 – thin disk</p>
+<p>2 – halo</p>
+<p>3 – bulge</p>
+<p>4 – thick disk</p>
+<p>5 – pseudo bulge</p>
 <p>This routine is based on an original IDL procedure by Chris Brook.</p>
 <p><strong>Parameters:</strong></p>
-<p><em>h</em> &#8211; the halo to work on</p>
+<p><em>h</em> – the halo to work on</p>
 <dl class="docutils">
-<dt><em>j_disk_min</em> &#8211; the minimum angular momentum as a proportion of</dt>
+<dt><em>j_disk_min</em> – the minimum angular momentum as a proportion of</dt>
 <dd>the circular angular momentum which a particle must
-have to be part of the &#8216;disk&#8217;</dd>
-<dt><em>j_disk_max</em> &#8211; the maximum angular momentum as a proportion of</dt>
+have to be part of the ‘disk’</dd>
+<dt><em>j_disk_max</em> – the maximum angular momentum as a proportion of</dt>
 <dd>the circular angular momentum which a particle can
-have to be part of the &#8216;disk&#8217;</dd>
-<dt><em>E_cut</em> &#8211; the energy boundary between bulge and spheroid. If</dt>
+have to be part of the ‘disk’</dd>
+<dt><em>E_cut</em> – the energy boundary between bulge and spheroid. If</dt>
 <dd>None, this is taken to be the median energy of the stars.</dd>
-<dt><em>aligned</em> &#8211; if False, the simulation is recenterd and aligned so</dt>
+<dt><em>aligned</em> – if False, the simulation is recenterd and aligned so</dt>
 <dd>the disk is in the xy plane as required for the rest of
 the analysis.</dd>
-<dt><em>cen</em> &#8211; if not None, specifies the center of the halo. Otherwise</dt>
+<dt><em>cen</em> – if not None, specifies the center of the halo. Otherwise</dt>
 <dd>it is found.  This has no effect if aligned=True</dd>
-<dt><em>vcen</em> &#8211; if not None, specifies the velocity center of the</dt>
+<dt><em>vcen</em> – if not None, specifies the velocity center of the</dt>
 <dd>halo. Otherwise it is found.  This has no effect if
 aligned=True</dd>
 </dl>
-<p><em>j_circ_from_r</em> &#8211; if True, the maximum angular momentum is
+<p><em>j_circ_from_r</em> – if True, the maximum angular momentum is
 determined as a function of radius, rather than as a function of
 orbital energy. Default False (determine as function of energy).</p>
 <dl class="docutils">
-<dt><em>angmom_size</em> &#8211; the size of the gas sphere used to determine the</dt>
+<dt><em>angmom_size</em> – the size of the gas sphere used to determine the</dt>
 <dd>plane of the disk</dd>
 </dl>
 </dd></dl>
@@ -370,44 +364,44 @@ orbital energy. Default False (determine as function of energy).</p>
 <p>Functions for calculating the gravitational potential and accelerations.</p>
 <dl class="function">
 <dt id="pynbody.analysis.gravity.potential">
-<tt class="descclassname">pynbody.analysis.gravity.</tt><tt class="descname">potential</tt><big>(</big><em>f</em>, <em>pos_vec</em>, <em>eps=None</em>, <em>unit=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.potential" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.gravity.</code><code class="descname">potential</code><span class="sig-paren">(</span><em>f</em>, <em>pos_vec</em>, <em>eps=None</em>, <em>unit=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.potential" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the gravitational potential at the specified position
 using all particles in the specified snapshot.</p>
 <p>The gravitational softening length is determined by (in order of
 preference):</p>
 <ol class="arabic simple">
 <li>The parameter eps (scalar, unit or array)</li>
-<li>The array f[&#8216;eps&#8217;]</li>
-<li>f.properties[&#8216;eps&#8217;] (scalar or unit)</li>
+<li>The array f[‘eps’]</li>
+<li>f.properties[‘eps’] (scalar or unit)</li>
 </ol>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.gravity.accel">
-<tt class="descclassname">pynbody.analysis.gravity.</tt><tt class="descname">accel</tt><big>(</big><em>f</em>, <em>pos_vec</em>, <em>eps=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#accel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.accel" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.gravity.</code><code class="descname">accel</code><span class="sig-paren">(</span><em>f</em>, <em>pos_vec</em>, <em>eps=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#accel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.accel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the gravitational acceleration vector at the specified
 position using all particles in the specified snapshot.</p>
 <p>The gravitational softening length is determined by (in order of
 preference):</p>
 <ol class="arabic simple">
 <li>The parameter eps (scalar, unit or array)</li>
-<li>The array f[&#8216;eps&#8217;]</li>
-<li>f.properties[&#8216;eps&#8217;] (scalar or unit)</li>
+<li>The array f[‘eps’]</li>
+<li>f.properties[‘eps’] (scalar or unit)</li>
 </ol>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.gravity.midplane_rot_curve">
-<tt class="descclassname">pynbody.analysis.gravity.</tt><tt class="descname">midplane_rot_curve</tt><big>(</big><em>f</em>, <em>rxy_points</em>, <em>eps=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#midplane_rot_curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.midplane_rot_curve" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.gravity.</code><code class="descname">midplane_rot_curve</code><span class="sig-paren">(</span><em>f</em>, <em>rxy_points</em>, <em>eps=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#midplane_rot_curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.midplane_rot_curve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the midplane rotation curve at a specified set of
-points. Used primarily by <a class="reference internal" href="#pynbody.analysis.profile.v_circ" title="pynbody.analysis.profile.v_circ"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.profile.v_circ()</span></tt></a></p>
+points. Used primarily by <a class="reference internal" href="#pynbody.analysis.profile.v_circ" title="pynbody.analysis.profile.v_circ"><code class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.profile.v_circ()</span></code></a></p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.gravity.midplane_potential">
-<tt class="descclassname">pynbody.analysis.gravity.</tt><tt class="descname">midplane_potential</tt><big>(</big><em>f</em>, <em>rxy_points</em>, <em>eps=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#midplane_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.midplane_potential" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.gravity.</code><code class="descname">midplane_potential</code><span class="sig-paren">(</span><em>f</em>, <em>rxy_points</em>, <em>eps=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/gravity.html#midplane_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.gravity.midplane_potential" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the midplane potential at a specified set of
-points. Used primarily by <a class="reference internal" href="#pynbody.analysis.profile.pot" title="pynbody.analysis.profile.pot"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.profile.pot()</span></tt></a></p>
+points. Used primarily by <a class="reference internal" href="#pynbody.analysis.profile.pot" title="pynbody.analysis.profile.pot"><code class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.profile.pot()</span></code></a></p>
 </dd></dl>
 
 </div>
@@ -416,19 +410,19 @@ points. Used primarily by <a class="reference internal" href="#pynbody.analysis.
 <p>Functions for dealing with and manipulating halos in simulations.</p>
 <dl class="function">
 <dt id="pynbody.analysis.halo.center_of_mass">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center_of_mass</tt><big>(</big><em>sim</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center_of_mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center_of_mass" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">center_of_mass</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center_of_mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center_of_mass" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the centre of mass of the SimSnap</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.center_of_mass_velocity">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center_of_mass_velocity</tt><big>(</big><em>sim</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center_of_mass_velocity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center_of_mass_velocity" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">center_of_mass_velocity</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center_of_mass_velocity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center_of_mass_velocity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the center of mass velocity of the SimSnap</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.shrink_sphere_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">shrink_sphere_center</tt><big>(</big><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em>, <em>num_threads=8</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">shrink_sphere_center</code><span class="sig-paren">(</span><em>sim</em>, <em>r=None</em>, <em>shrink_factor=0.7</em>, <em>min_particles=100</em>, <em>verbose=False</em>, <em>num_threads=4</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#shrink_sphere_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.shrink_sphere_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the center according to the shrinking-sphere method of
 Power et al (2003)</p>
 <p><strong>Input</strong>:</p>
@@ -436,8 +430,8 @@ Power et al (2003)</p>
 <p><strong>Optional Keywords</strong>:</p>
 <dl class="docutils">
 <dt><em>r</em> (default=None): initial search radius. This can be a string</dt>
-<dd>indicating the unit, i.e. &#8220;200 kpc&#8221;, or an instance of
-<a class="reference internal" href="essentials.html#pynbody.units.Unit" title="pynbody.units.Unit"><tt class="xref py py-func docutils literal"><span class="pre">Unit()</span></tt></a>.</dd>
+<dd>indicating the unit, i.e. “200 kpc”, or an instance of
+<a class="reference internal" href="essentials.html#pynbody.units.Unit" title="pynbody.units.Unit"><code class="xref py py-func docutils literal"><span class="pre">Unit()</span></code></a>.</dd>
 <dt><em>shrink_factor</em> (default=0.7): the amount to shrink the search</dt>
 <dd>radius by on each iteration</dd>
 <dt><em>min_particles</em> (default=100): minimum number of particles within</dt>
@@ -451,32 +445,41 @@ zeroing in on the wrong part of the simulation.</dd>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.virial_radius">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">virial_radius</tt><big>(</big><em>sim</em>, <em>cen=None</em>, <em>overden=178</em>, <em>r_max=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#virial_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.virial_radius" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">virial_radius</code><span class="sig-paren">(</span><em>sim</em>, <em>cen=None</em>, <em>overden=178</em>, <em>r_max=None</em>, <em>rho_def='matter'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#virial_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.virial_radius" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the virial radius of the halo centered on the given
 coordinates.</p>
-<p>This is here defined by the sphere centered on cen which contains a
+<p>The default is here defined by the sphere centered on cen which contains a
 mean density of overden * rho_M_0 * (1+z)^3.</p>
+<p><strong>Input</strong>:</p>
+<p><em>sim</em> : a simulation snapshot - this can be any subclass of SimSnap, especially a halo.</p>
+<p><strong>Optional Keywords</strong>:</p>
+<p><em>cen</em> (default=None): Provides the halo center. If None, assumes that the snapshot is already centered.</p>
+<p><a href="#id1"><span class="problematic" id="id2">*</span></a>rmax (default=None): Maximum radius to start the search. If None, inferred from the halo particle positions.</p>
+<p><a href="#id3"><span class="problematic" id="id4">*</span></a>overden (default=178): Overdensity corresponding to the required halo boundary definition.
+178 is the virial criterion for spherical collapse in an EdS Universe. Common possible values are 200, 500 etc</p>
+<p><a href="#id5"><span class="problematic" id="id6">*</span></a>rho_def (default=’matter’): Physical density used to define the overdensity. Default is the matter density at
+the redshift of the simulation. An other choice is “critical” for the critical density at this redshift.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.hybrid_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">hybrid_center</tt><big>(</big><em>sim</em>, <em>r='3 kpc'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#hybrid_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.hybrid_center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">hybrid_center</code><span class="sig-paren">(</span><em>sim</em>, <em>r='3 kpc'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#hybrid_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.hybrid_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of the halo by finding the shrink-sphere
 -center inside the specified distance of the potential minimum</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.index_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">index_center</tt><big>(</big><em>sim</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#index_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.index_center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">index_center</code><span class="sig-paren">(</span><em>sim</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#index_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.index_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of mass based on specific particles.</p>
-<p>Supply a list of indices using the <tt class="docutils literal"><span class="pre">ind</span></tt> keyword.</p>
+<p>Supply a list of indices using the <code class="docutils literal"><span class="pre">ind</span></code> keyword.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.vel_center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">vel_center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>move_all=True</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">vel_center</code><span class="sig-paren">(</span><em>sim</em>, <em>mode=None</em>, <em>cen_size='1 kpc'</em>, <em>retcen=False</em>, <em>move_all=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#vel_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.vel_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use stars from a sphere to calculate center of velocity. The size
-of the sphere is given by the <tt class="docutils literal"><span class="pre">cen_size</span></tt> keyword and defaults to
+of the sphere is given by the <code class="docutils literal"><span class="pre">cen_size</span></code> keyword and defaults to
 1 kpc.</p>
 <p><strong>Keyword arguments:</strong></p>
 <p><em>mode</em>: reserved for future use; currently ignored</p>
@@ -490,7 +493,7 @@ the particles in the halo passed in.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.halo.center">
-<tt class="descclassname">pynbody.analysis.halo.</tt><tt class="descname">center</tt><big>(</big><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>move_all=True</em>, <em>wrap=False</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">center</code><span class="sig-paren">(</span><em>sim</em>, <em>mode=None</em>, <em>retcen=False</em>, <em>vel=True</em>, <em>cen_size='1 kpc'</em>, <em>move_all=True</em>, <em>wrap=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine the center of mass of the given particles using the
 specified mode, then recenter the particles (of the entire
 ancestor snapshot) accordingly</p>
@@ -499,7 +502,7 @@ ancestor snapshot) accordingly</p>
 <div><p><em>pot</em>: potential minimum</p>
 <p><em>com</em>: center of mass</p>
 <p><em>ssc</em>: shrink sphere center</p>
-<p><em>ind</em>: center on specific particles; supply the list of particles using the <tt class="docutils literal"><span class="pre">ind</span></tt> keyword.</p>
+<p><em>ind</em>: center on specific particles; supply the list of particles using the <code class="docutils literal"><span class="pre">ind</span></code> keyword.</p>
 <dl class="docutils">
 <dt><em>hyb</em>: for sane halos, returns the same as ssc, but works faster by</dt>
 <dd>starting iteration near potential minimum</dd>
@@ -510,7 +513,7 @@ ancestor snapshot) accordingly</p>
 <dl class="docutils">
 <dt><em>retcen</em>: if True only return the center without centering the</dt>
 <dd>snapshot (default = False)</dd>
-<dt><em>ind</em>: only used when <em>mode=ind</em> &#8211; specifies the indices of</dt>
+<dt><em>ind</em>: only used when <em>mode=ind</em> – specifies the indices of</dt>
 <dd>particles to be used for centering</dd>
 </dl>
 <p><em>vel</em>: if True, translate velocities so that the velocity of the
@@ -521,13 +524,39 @@ the particles in the halo passed in.</p>
 of the box are handled correctly. Default False.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="pynbody.analysis.halo.halo_shape">
+<code class="descclassname">pynbody.analysis.halo.</code><code class="descname">halo_shape</code><span class="sig-paren">(</span><em>sim</em>, <em>N=100</em>, <em>rin=None</em>, <em>rout=None</em>, <em>bins='equal'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/halo.html#halo_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.halo.halo_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns radii in units of <code class="docutils literal"><span class="pre">sim['pos']</span></code>, axis ratios b/a and c/a,
+the alignment angle of axis a in radians, and the rotation matrix
+for homeoidal shells over a range of N halo radii.</p>
+<p><strong>Keyword arguments:</strong></p>
+<p><em>N</em> (100): The number of homeoidal shells to consider. Shells with
+few particles will take longer to fit.</p>
+<p><em>rin</em> (None): The minimum radial bin in units of <code class="docutils literal"><span class="pre">sim['pos']</span></code>.
+Note that this applies to axis a, so particles within this radius
+may still be included within homeoidal shells. By default this is
+taken as rout/1000.</p>
+<p><em>rout</em> (None): The maximum radial bin in units of <code class="docutils literal"><span class="pre">sim['pos']</span></code>.
+By default this is taken as the largest radial value in the halo
+particle distribution.</p>
+<p><em>bins</em> (equal): The spacing scheme for the homeoidal shell bins.
+<code class="docutils literal"><span class="pre">equal</span></code> initialises bins with equal numbers of particles. This
+number is not necessarily maintained during fitting.
+<code class="docutils literal"><span class="pre">log</span></code> and <code class="docutils literal"><span class="pre">lin</span></code> initialise bins with logarithmic and linear
+radial spacing.</p>
+<p>Halo must be in a centered frame.
+Caution is advised when assigning large number of bins and radial
+ranges with many particles, as the algorithm becomes very slow.</p>
+</dd></dl>
+
 </div>
 <span class="target" id="module-pynbody.analysis.hmf"></span><div class="section" id="halo-mass-function-hmf">
 <h2>halo mass function (hmf)<a class="headerlink" href="#halo-mass-function-hmf" title="Permalink to this headline">¶</a></h2>
 <p>Various halo mass function routines.</p>
 <dl class="function">
 <dt id="pynbody.analysis.hmf.correlation_func">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">correlation_func</tt><big>(</big><em>context</em>, <em>log_r_min=-3</em>, <em>log_r_max=2</em>, <em>delta_log_r=0.2</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#correlation_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.correlation_func" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">correlation_func</code><span class="sig-paren">(</span><em>context</em>, <em>log_r_min=-3</em>, <em>log_r_max=2</em>, <em>delta_log_r=0.2</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#correlation_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.correlation_func" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the linear density field correlation function.</p>
 <p><strong>Args</strong>:</p>
 <dl class="docutils">
@@ -563,25 +592,25 @@ function)</dd>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_press_schechter">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_press_schechter</tt><big>(</big><em>nu</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_press_schechter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_press_schechter" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">f_press_schechter</code><span class="sig-paren">(</span><em>nu</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_press_schechter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_press_schechter" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Press-Schechter kernel used by halo_mass_function</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_sheth_tormen">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_sheth_tormen</tt><big>(</big><em>nu</em>, <em>Anorm=0.3222</em>, <em>a=0.707</em>, <em>p=0.3</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_sheth_tormen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_sheth_tormen" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">f_sheth_tormen</code><span class="sig-paren">(</span><em>nu</em>, <em>Anorm=0.3222</em>, <em>a=0.707</em>, <em>p=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_sheth_tormen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_sheth_tormen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sheth &amp; Tormen (1999) fit (see also Sheth Mo &amp; Tormen 2001)</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_reed_no_z">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_reed_no_z</tt><big>(</big><em>nu</em>, <em>deltac=1.68647</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_reed_no_z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_no_z" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">f_reed_no_z</code><span class="sig-paren">(</span><em>nu</em>, <em>deltac=1.68647</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_reed_no_z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_no_z" title="Permalink to this definition">¶</a></dt>
 <dd><p>modified S-T fit  by the G1 gaussian term and c</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.f_reed_z_evo">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">f_reed_z_evo</tt><big>(</big><em>nu</em>, <em>neff</em>, <em>deltac=1.68647</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_reed_z_evo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_z_evo" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">f_reed_z_evo</code><span class="sig-paren">(</span><em>nu</em>, <em>neff</em>, <em>deltac=1.68647</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#f_reed_z_evo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.f_reed_z_evo" title="Permalink to this definition">¶</a></dt>
 <dd><p>modified S-T fit  by the n_eff dependence and the G1 and G2 gaussian terms and c 
 where   P(k) proportional to k_halo**(n_eff)  and  
 k_halo = Mhalo / r_halo_precollapse.  
@@ -590,19 +619,19 @@ eqn 13 of Reed et al 2007   estimtes neff = 6 d ln(1/sigma(M))/ d ln M  - 3</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.cole_kaiser_bias">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">cole_kaiser_bias</tt><big>(</big><em>nu</em>, <em>delta_c</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#cole_kaiser_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.cole_kaiser_bias" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">cole_kaiser_bias</code><span class="sig-paren">(</span><em>nu</em>, <em>delta_c</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#cole_kaiser_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.cole_kaiser_bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Cole-Kaiser (1989) bias function. Also in Mo &amp; White 1996.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.sheth_tormen_bias">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">sheth_tormen_bias</tt><big>(</big><em>nu</em>, <em>delta_c</em>, <em>a=0.707</em>, <em>b=0.5</em>, <em>c=0.6</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#sheth_tormen_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.sheth_tormen_bias" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">sheth_tormen_bias</code><span class="sig-paren">(</span><em>nu</em>, <em>delta_c</em>, <em>a=0.707</em>, <em>b=0.5</em>, <em>c=0.6</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#sheth_tormen_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.sheth_tormen_bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Sheth-Tormen (1999) bias function [eq 8]</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.halo_mass_function">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">halo_mass_function</tt><big>(</big><em>context</em>, <em>log_M_min=8.0</em>, <em>log_M_max=15.0</em>, <em>delta_log_M=0.1</em>, <em>kern='ST'</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em>, <em>delta_crit=1.686</em>, <em>no_h=False</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#halo_mass_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.halo_mass_function" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">halo_mass_function</code><span class="sig-paren">(</span><em>context</em>, <em>log_M_min=8.0</em>, <em>log_M_max=15.0</em>, <em>delta_log_M=0.1</em>, <em>kern='ST'</em>, <em>pspec=&lt;class 'pynbody.analysis.hmf.PowerSpectrumCAMB'&gt;</em>, <em>delta_crit=1.686</em>, <em>no_h=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#halo_mass_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.halo_mass_function" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the halo mass function, dN/d log_{10} M in units of Mpc^-3
 h^3.</p>
 <p><strong>Args:</strong></p>
@@ -615,7 +644,7 @@ function)</p>
 <p><em>log_M_max:</em> The maximum halo mass (Msol h^-1) to consider</p>
 <p><em>delta_log_M:</em> The bin spacing of halo masses (see warning below)</p>
 <p><em>kern:</em> The kernel function which dictates what type of mass
-function to calculate; or a string (&#8220;PS&#8221; or &#8220;ST&#8221;) for one
+function to calculate; or a string (“PS” or “ST”) for one
 of the defaults</p>
 <p><em>pspec:</em> A power spectrum object (which also defines the window
 function); default is a WMAP7 cosmology calculated by
@@ -638,7 +667,7 @@ z &gt;~ 5 : reed_universal (no redshift dependence)
 
 <dl class="function">
 <dt id="pynbody.analysis.hmf.halo_bias">
-<tt class="descclassname">pynbody.analysis.hmf.</tt><tt class="descname">halo_bias</tt><big>(</big><em>*fn_args</em>, <em>**fn_kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#halo_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.halo_bias" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.hmf.</code><code class="descname">halo_bias</code><span class="sig-paren">(</span><em>*fn_args</em>, <em>**fn_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/hmf.html#halo_bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.hmf.halo_bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the halo bias for the given halo mass.</p>
 <p><strong>Args:</strong></p>
 <blockquote>
@@ -671,17 +700,17 @@ CAMB, and a top hat window</dd>
 <p>calculates ionization fractions - NEEDS DOCUMENTATION</p>
 <dl class="function">
 <dt id="pynbody.analysis.ionfrac.calculate">
-<tt class="descclassname">pynbody.analysis.ionfrac.</tt><tt class="descname">calculate</tt><big>(</big><em>sim</em>, <em>ion='ovi'</em>, <em>mode='old'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ionfrac.html#calculate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ionfrac.calculate" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculate &#8211; documentation placeholder</p>
+<code class="descclassname">pynbody.analysis.ionfrac.</code><code class="descname">calculate</code><span class="sig-paren">(</span><em>sim</em>, <em>ion='ovi'</em>, <em>mode='old'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ionfrac.html#calculate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ionfrac.calculate" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate – documentation placeholder</p>
 </dd></dl>
 
 </div>
 <span class="target" id="module-pynbody.analysis.luminosity"></span><div class="section" id="luminosity">
 <h2>luminosity<a class="headerlink" href="#luminosity" title="Permalink to this headline">¶</a></h2>
-<p>Calculates luminosities &#8211; NEEDS DOCUMENTATION</p>
+<p>Calculates luminosities – NEEDS DOCUMENTATION</p>
 <dl class="function">
 <dt id="pynbody.analysis.luminosity.calc_mags">
-<tt class="descclassname">pynbody.analysis.luminosity.</tt><tt class="descname">calc_mags</tt><big>(</big><em>simstars</em>, <em>band='v'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#calc_mags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.calc_mags" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.luminosity.</code><code class="descname">calc_mags</code><span class="sig-paren">(</span><em>simstars</em>, <em>band='v'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#calc_mags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.calc_mags" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculating visible magnitudes</p>
 <p>Using Padova Simple stellar populations (SSPs) from Girardi
 <a class="reference external" href="http://stev.oapd.inaf.it/cgi-bin/cmd">http://stev.oapd.inaf.it/cgi-bin/cmd</a>
@@ -690,14 +719,14 @@ Marigo+ (2008), Girardi+ (2010)</p>
 various stellar ages and metallicities.  This function linearly 
 interpolates to the desired value and returns the value as a magnitude.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">luminosity</span><span class="o">.</span><span class="n">calc_mags</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Optional keyword arguments:</strong></p>
 <blockquote>
 <div><dl class="docutils">
-<dt><em>band</em> (default=&#8217;v&#8217;): Which observed bandpass magnitude in which </dt>
+<dt><em>band</em> (default=’v’): Which observed bandpass magnitude in which </dt>
 <dd>magnitude should be calculated</dd>
 </dl>
 </div></blockquote>
@@ -705,21 +734,21 @@ interpolates to the desired value and returns the value as a magnitude.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.luminosity.halo_mag">
-<tt class="descclassname">pynbody.analysis.luminosity.</tt><tt class="descname">halo_mag</tt><big>(</big><em>sim</em>, <em>band='v'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#halo_mag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.halo_mag" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.luminosity.</code><code class="descname">halo_mag</code><span class="sig-paren">(</span><em>sim</em>, <em>band='v'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#halo_mag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.halo_mag" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculating halo magnitude</p>
 <p>Calls pynbody.analysis.luminosity.calc_mags for ever star in passed
 in simulation, converts those magnitudes back to luminosities, adds
 those luminosities, then converts that luminosity back to magnitudes,
 which are returned.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">luminosity</span><span class="o">.</span><span class="n">halo_mag</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Optional keyword arguments:</strong></p>
 <blockquote>
 <div><dl class="docutils">
-<dt><em>band</em> (default=&#8217;v&#8217;): Which observed bandpass magnitude in which </dt>
+<dt><em>band</em> (default=’v’): Which observed bandpass magnitude in which </dt>
 <dd>magnitude should be calculated</dd>
 </dl>
 </div></blockquote>
@@ -727,21 +756,21 @@ which are returned.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.luminosity.halo_lum">
-<tt class="descclassname">pynbody.analysis.luminosity.</tt><tt class="descname">halo_lum</tt><big>(</big><em>sim</em>, <em>band='v'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#halo_lum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.halo_lum" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.luminosity.</code><code class="descname">halo_lum</code><span class="sig-paren">(</span><em>sim</em>, <em>band='v'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#halo_lum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.halo_lum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculating halo luminosiy</p>
 <p>Calls pynbody.analysis.luminosity.calc_mags for every star in passed
 in simulation, converts those magnitudes back to luminosities, adds
 those luminosities, which are returned.  Uses solar magnitudes from
 <a class="reference external" href="http://www.ucolick.org/~cnaw/sun.html">http://www.ucolick.org/~cnaw/sun.html</a>.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">luminosity</span><span class="o">.</span><span class="n">halo_mag</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Optional keyword arguments:</strong></p>
 <blockquote>
 <div><dl class="docutils">
-<dt><em>band</em> (default=&#8217;v&#8217;): Which observed bandpass magnitude in which </dt>
+<dt><em>band</em> (default=’v’): Which observed bandpass magnitude in which </dt>
 <dd>magnitude should be calculated</dd>
 </dl>
 </div></blockquote>
@@ -749,7 +778,7 @@ those luminosities, which are returned.  Uses solar magnitudes from
 
 <dl class="function">
 <dt id="pynbody.analysis.luminosity.half_light_r">
-<tt class="descclassname">pynbody.analysis.luminosity.</tt><tt class="descname">half_light_r</tt><big>(</big><em>sim</em>, <em>band='v'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#half_light_r"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.half_light_r" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.luminosity.</code><code class="descname">half_light_r</code><span class="sig-paren">(</span><em>sim</em>, <em>band='v'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/luminosity.html#half_light_r"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.luminosity.half_light_r" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate half light radius</p>
 <p>Calculates entire luminosity of simulation, finds half that, sorts
 stars by distance from halo center, and finds out inside which radius
@@ -764,8 +793,9 @@ the half luminosity is reached.</p>
 <p><strong>NEEDS DOCUMENTATION</strong></p>
 <dl class="class">
 <dt id="pynbody.analysis.pkdgrav_cosmo.Cosmology">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.pkdgrav_cosmo.</tt><tt class="descname">Cosmology</tt><big>(</big><em>sim=None</em>, <em>H0=2.8944050182330705</em>, <em>Om=0.272</em>, <em>L=0.728</em>, <em>Ob=0.0456</em>, <em>Or=0.0</em>, <em>Quin=0.0</em>, <em>Ok=0.0</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/pkdgrav_cosmo.html#Cosmology"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.pkdgrav_cosmo.Cosmology" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.analysis.pkdgrav_cosmo.</code><code class="descname">Cosmology</code><span class="sig-paren">(</span><em>sim=None</em>, <em>H0=2.8944050182330705</em>, <em>Om=0.272</em>, <em>L=0.728</em>, <em>Ob=0.0456</em>, <em>Or=0.0</em>, <em>Quin=0.0</em>, <em>Ok=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/pkdgrav_cosmo.html#Cosmology"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.pkdgrav_cosmo.Cosmology" title="Permalink to this definition">¶</a></dt>
 <dd><p>docs placeholder</p>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 </div>
@@ -775,7 +805,7 @@ the half luminosity is reached.</p>
 properties.</p>
 <dl class="class">
 <dt id="pynbody.analysis.profile.Profile">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">Profile</tt><big>(</big><em>sim</em>, <em>load_from_file=False</em>, <em>ndim=2</em>, <em>type='lin'</em>, <em>calc_x=None</em>, <em>weight_by='mass'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.analysis.profile.</code><code class="descname">Profile</code><span class="sig-paren">(</span><em>sim</em>, <em>load_from_file=False</em>, <em>ndim=2</em>, <em>type='lin'</em>, <em>calc_x=None</em>, <em>weight_by='mass'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile" title="Permalink to this definition">¶</a></dt>
 <dd><p>A basic profile class for arbitrary profiles. Stores information
 about bins etc.</p>
 <p>Made to work with the pynbody SimSnap instances. The constructor
@@ -786,11 +816,11 @@ property is requested.</p>
 <p><em>sim</em> : a simulation snapshot - this can be any subclass of SimSnap</p>
 <p><strong>Optional Keywords</strong>:</p>
 <dl class="docutils">
-<dt><em>ndim</em> (default = 2): specifies whether it&#8217;s a 2D or 3D profile - in the</dt>
+<dt><em>ndim</em> (default = 2): specifies whether it’s a 2D or 3D profile - in the</dt>
 <dd>2D case, the bins are generated in the xy plane</dd>
-<dt><em>type</em> (default = &#8216;lin&#8217;): specifies whether bins should be spaced linearly (&#8216;lin&#8217;),</dt>
-<dd>logarithmically (&#8216;log&#8217;) or contain equal numbers of
-particles (&#8216;equaln&#8217;)</dd>
+<dt><em>type</em> (default = ‘lin’): specifies whether bins should be spaced linearly (‘lin’),</dt>
+<dd>logarithmically (‘log’) or contain equal numbers of
+particles (‘equaln’)</dd>
 </dl>
 <p><em>min</em> (default = min(x)): minimum value to consider</p>
 <p><em>max</em> (default = max(x)): maximum value to consider</p>
@@ -805,7 +835,7 @@ origin (in either 2 or 3 dimensions), ut you can specify this
 function to return any value you want for making profiles along
 arbitrary axes. Depening on your function, the units of certain
 profiles (such as density) might not make sense.</dd>
-<dt><em>weight_by</em> (default = &#8216;mass&#8217;): name of the array to use for weighting</dt>
+<dt><em>weight_by</em> (default = ‘mass’): name of the array to use for weighting</dt>
 <dd>averages across particles in each bin</dd>
 </dl>
 <p><strong>Output</strong>:</p>
@@ -817,7 +847,7 @@ profiles (such as density) might not make sense.</dd>
 <dl class="docutils">
 <dt><em>fourier</em> <span class="classifier-delimiter">:</span> <span class="classifier">provides fourier coefficients, amplitude and phase for</span></dt>
 <dd>m=0 to m=6.  To access the amplitude profile of m=2 mode, do
-<tt class="docutils literal"><span class="pre">p['fourier']['amp'][2,:]</span></tt></dd>
+<code class="docutils literal"><span class="pre">p['fourier']['amp'][2,:]</span></code></dd>
 </dl>
 <p><em>dyntime</em>    : dynamical time</p>
 <p><em>g_spherical</em>: GM_enc/r^2</p>
@@ -834,23 +864,23 @@ profiles (such as density) might not make sense.</dd>
 <p><em>omega</em>      : circular orbital frequency</p>
 <p><em>kappa</em>      : radial orbital frequency</p>
 <p><em>beta</em>       : 3-D velocity anisotropy parameter</p>
-<p><em>magnitudes</em> : magnitudes in each bin - default band = &#8216;v&#8217;</p>
-<p><em>sb</em>         : surface brightness - default band = &#8216;v&#8217;</p>
+<p><em>magnitudes</em> : magnitudes in each bin - default band = ‘v’</p>
+<p><em>sb</em>         : surface brightness - default band = ‘v’</p>
 <p>Additional functions should use the profile_property to yield the
 desired profile.</p>
 <p><strong>Lazy-loading arrays:</strong></p>
 <p>The Profile class will automatically compute a mass-weighted
 profile for any lazy-loadable array of its parent SimSnap object.</p>
 <p><strong>Dispersions:</strong></p>
-<p>To obtain a dispersion profile, attach a <tt class="docutils literal"><span class="pre">_disp</span></tt> after the desired
+<p>To obtain a dispersion profile, attach a <code class="docutils literal"><span class="pre">_disp</span></code> after the desired
 quantity name.</p>
 <p><strong>RMS:</strong></p>
-<p>The root-mean-square of a quantity can be obtained by using a <tt class="docutils literal"><span class="pre">_rms</span></tt> suffix</p>
+<p>The root-mean-square of a quantity can be obtained by using a <code class="docutils literal"><span class="pre">_rms</span></code> suffix</p>
 <p><strong>Derivatives:</strong></p>
-<p>To compute a derivative of a profile, prepend a <tt class="docutils literal"><span class="pre">d_</span></tt> to the
-profile string, as in <tt class="docutils literal"><span class="pre">p['d_temp']</span></tt> to get a temperature gradient.</p>
+<p>To compute a derivative of a profile, prepend a <code class="docutils literal"><span class="pre">d_</span></code> to the
+profile string, as in <code class="docutils literal"><span class="pre">p['d_temp']</span></code> to get a temperature gradient.</p>
 <p><strong>Saving and loading previously generated profiles:</strong></p>
-<p>Use the <a class="reference internal" href="#pynbody.analysis.profile.Profile.write" title="pynbody.analysis.profile.Profile.write"><tt class="xref py py-func docutils literal"><span class="pre">write()</span></tt></a> function
+<p>Use the <a class="reference internal" href="#pynbody.analysis.profile.Profile.write" title="pynbody.analysis.profile.Profile.write"><code class="xref py py-func docutils literal"><span class="pre">write()</span></code></a> function
 to write the current profiles with all the necessary information
 to a file. Initialize a profile with the load_from_file=True
 keyword to automatically load a previously saved profile. The
@@ -862,12 +892,12 @@ set of particles, centered in the same way. It also means you
 profile.</p>
 <p><strong>Examples:</strong></p>
 <p>Density profile of the entire simulation:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;mysim&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody.profile</span> <span class="kn">as</span> <span class="nn">profile</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="c"># 2D profile of the whole simulation - note</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;mysim&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pynbody.profile</span> <span class="k">as</span> <span class="nn">profile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="c1"># 2D profile of the whole simulation - note</span>
 <span class="go">                           # that this only makes the bins etc. but</span>
 <span class="go">                           # doesn&#39;t generate the density</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">]</span> <span class="c"># now we have a density profile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;density&#39;</span><span class="p">]</span> <span class="c1"># now we have a density profile</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 <span class="go">[&#39;mass&#39;, &#39;n&#39;, &#39;density&#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
@@ -875,18 +905,18 @@ profile.</p>
 </pre></div>
 </div>
 <p>Density profile of the stars:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">)</span> <span class="c"># xy profile of the stars</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">)</span> <span class="c"># same, but with log bins</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">)</span> <span class="c1"># xy profile of the stars</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">)</span> <span class="c1"># same, but with log bins</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
 <span class="go">[&lt;Family star&gt;]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">ps</span><span class="p">[</span><span class="s">&#39;density&#39;</span><span class="p">],</span> <span class="s">&#39;o&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">],</span> <span class="n">ps</span><span class="p">[</span><span class="s1">&#39;density&#39;</span><span class="p">],</span> <span class="s1">&#39;o&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Metallicity profile of the gas in spherical shells (requires appropriate auxilliary files):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pg</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pg</span><span class="p">[</span><span class="s">&#39;feh&#39;</span><span class="p">]</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pg</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pg</span><span class="p">[</span><span class="s1">&#39;feh&#39;</span><span class="p">]</span>
 <span class="go">SimSnap: deriving array feh</span>
 <span class="go">TipsySnap: attempting to load auxiliary array 10/12M_hr.01000.FeMassFrac</span>
 <span class="go">SimSnap: deriving array hydrogen</span>
@@ -896,44 +926,45 @@ profile.</p>
 </pre></div>
 </div>
 <p>Radial velocity dispersion profile and its gradient:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span><span class="p">[</span><span class="s">&#39;vr_disp&#39;</span><span class="p">]</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span><span class="p">[</span><span class="s1">&#39;vr_disp&#39;</span><span class="p">]</span>
 <span class="go">SimSnap: deriving array vr</span>
 <span class="go">SimSnap: deriving array r</span>
 <span class="go">SimArray([ 118.80420996,  122.06102431,  131.13872886,  144.74447697,</span>
 <span class="go">35.89904165,   37.59565128,   35.21608633,   35.03373379], &#39;1.01e+00 km s**-1&#39;)</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s">&#39;d_vr_disp&#39;</span><span class="p">]</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;d_vr_disp&#39;</span><span class="p">]</span>
 <span class="go">SimArray([  21.71365764,   41.11802081,   75.61694836,  105.28110255,</span>
 <span class="go">2.664999  ,   -2.27668148,   -8.54033931,   -1.21577105], &#39;1.01e+00 km s**-1 kpc**-1&#39;)</span>
 </pre></div>
 </div>
 <p>Using another quantity for binning:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">calc_x</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;rform&#39;</span><span class="p">])</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ps</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">calc_x</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;rform&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
+<p class="rubric">Methods</p>
 <dl class="method">
 <dt id="pynbody.analysis.profile.Profile.keys">
-<tt class="descname">keys</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.keys" title="Permalink to this definition">¶</a></dt>
+<code class="descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.keys" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a listing of available profile types</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="pynbody.analysis.profile.Profile.derivable_keys">
-<tt class="descname">derivable_keys</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.derivable_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.derivable_keys" title="Permalink to this definition">¶</a></dt>
+<code class="descname">derivable_keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.derivable_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.derivable_keys" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of possible profiles</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="pynbody.analysis.profile.Profile.families">
-<tt class="descname">families</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.families"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.families" title="Permalink to this definition">¶</a></dt>
+<code class="descname">families</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.families"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.families" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the family of particles used</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="pynbody.analysis.profile.Profile.create_particle_array">
-<tt class="descname">create_particle_array</tt><big>(</big><em>profile_name</em>, <em>particle_name=None</em>, <em>out_sim=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.create_particle_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.create_particle_array" title="Permalink to this definition">¶</a></dt>
+<code class="descname">create_particle_array</code><span class="sig-paren">(</span><em>profile_name</em>, <em>particle_name=None</em>, <em>out_sim=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.create_particle_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.create_particle_array" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a particle array with the results of the profile
 calculation.</p>
 <p>After calling this function, sim[particle_name][i] ==
@@ -944,7 +975,7 @@ profile_name.</p>
 
 <dl class="method">
 <dt id="pynbody.analysis.profile.Profile.write">
-<tt class="descname">write</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.write" title="Permalink to this definition">¶</a></dt>
+<code class="descname">write</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Profile.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Profile.write" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes all the vital information of the profile to a file.</p>
 <p>To recover the profile, initialize a profile with the
 load_from_file=True keyword to automatically load a previously
@@ -960,157 +991,158 @@ method if you want to reuse a saved profile.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.weight_fn">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">weight_fn</tt><big>(</big><em>self</em>, <em>weight_by=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#weight_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.weight_fn" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">weight_fn</code><span class="sig-paren">(</span><em>self</em>, <em>weight_by=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#weight_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.weight_fn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate mass in each bin</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.density">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">density</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#density"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.density" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">density</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#density"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.density" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a radial density profile for the current type of profile</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.fourier">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">fourier</tt><big>(</big><em>self</em>, <em>delta_t='0.1 Myr'</em>, <em>phi_bins=100</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#fourier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.fourier" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">fourier</code><span class="sig-paren">(</span><em>self</em>, <em>delta_t='0.1 Myr'</em>, <em>phi_bins=100</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#fourier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.fourier" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a profile of fourier coefficients, amplitudes and phases</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.pattern_frequency">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">pattern_frequency</tt><big>(</big><em>pro</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#pattern_frequency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.pattern_frequency" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">pattern_frequency</code><span class="sig-paren">(</span><em>pro</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#pattern_frequency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.pattern_frequency" title="Permalink to this definition">¶</a></dt>
 <dd><p>Estimate the pattern speed from the m=2 Fourier mode</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.mass_enc">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">mass_enc</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#mass_enc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.mass_enc" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">mass_enc</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#mass_enc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.mass_enc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the enclosed mass profile</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.density_enc">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">density_enc</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#density_enc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.density_enc" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">density_enc</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#density_enc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.density_enc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the mean enclosed density profile</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.dyntime">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">dyntime</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#dyntime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.dyntime" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">dyntime</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#dyntime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.dyntime" title="Permalink to this definition">¶</a></dt>
 <dd><p>The dynamical time of the bin, sqrt(R^3/2GM).</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.g_spherical">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">g_spherical</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#g_spherical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.g_spherical" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">g_spherical</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#g_spherical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.g_spherical" title="Permalink to this definition">¶</a></dt>
 <dd><p>The naive gravitational acceleration assuming spherical
 symmetry = GM_enc/r^2</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.rotation_curve_spherical">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">rotation_curve_spherical</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#rotation_curve_spherical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.rotation_curve_spherical" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">rotation_curve_spherical</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#rotation_curve_spherical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.rotation_curve_spherical" title="Permalink to this definition">¶</a></dt>
 <dd><p>The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.j_circ">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">j_circ</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#j_circ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.j_circ" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">j_circ</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#j_circ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.j_circ" title="Permalink to this definition">¶</a></dt>
 <dd><p>Angular momentum of particles on circular orbits.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.v_circ">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">v_circ</tt><big>(</big><em>p</em>, <em>grav_sim=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#v_circ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.v_circ" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">v_circ</code><span class="sig-paren">(</span><em>p</em>, <em>grav_sim=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#v_circ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.v_circ" title="Permalink to this definition">¶</a></dt>
 <dd><p>Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
 in the midplane - can be expensive</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.E_circ">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">E_circ</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#E_circ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.E_circ" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">E_circ</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#E_circ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.E_circ" title="Permalink to this definition">¶</a></dt>
 <dd><p>Energy of particles on circular orbits.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.pot">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">pot</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#pot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.pot" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">pot</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#pot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.pot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the potential in the midplane - can be expensive</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.omega">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">omega</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#omega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.omega" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">omega</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#omega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.omega" title="Permalink to this definition">¶</a></dt>
 <dd><p>Circular frequency Omega = v_circ/radius (see Binney &amp; Tremaine Sect. 3.2)</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.kappa">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">kappa</tt><big>(</big><em>R dOmega^2/dR + 4 Omega^2) (see Binney &amp; Tremaine Sect. 3.2</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#kappa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.kappa" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">kappa</code><span class="sig-paren">(</span><em>R dOmega^2/dR + 4 Omega^2) (see Binney &amp; Tremaine Sect. 3.2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#kappa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.kappa" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.beta">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">beta</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#beta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.beta" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">beta</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#beta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.beta" title="Permalink to this definition">¶</a></dt>
 <dd><p>3D Anisotropy parameter as defined in Binney and Tremiane</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.magnitudes">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">magnitudes</tt><big>(</big><em>self</em>, <em>band='v'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#magnitudes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.magnitudes" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">magnitudes</code><span class="sig-paren">(</span><em>self</em>, <em>band='v'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#magnitudes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.magnitudes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate magnitudes in each bin</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.Q">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">Q</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Q"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Q" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">Q</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#Q"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.Q" title="Permalink to this definition">¶</a></dt>
 <dd><p>Toomre Q parameter</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.X">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">X</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#X"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.X" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">X</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#X"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.X" title="Permalink to this definition">¶</a></dt>
 <dd><p>X parameter defined as kappa^2*R/(2*pi*G*sigma*m) 
 See Binney &amp; Tremaine 2008, eq. 6.77</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.jtot">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">jtot</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#jtot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.jtot" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">jtot</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#jtot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.jtot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Magnitude of the total angular momentum</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.j_theta">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">j_theta</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#j_theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.j_theta" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">j_theta</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#j_theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.j_theta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Angle that the angular momentum vector of the bin makes with respect to the xy-plane.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.profile.j_phi">
-<tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">j_phi</tt><big>(</big><em>self</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#j_phi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.j_phi" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.profile.</code><code class="descname">j_phi</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#j_phi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.j_phi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Angle that the angular momentum vector of the bin makes with the x-axis in the xy plane.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.analysis.profile.InclinedProfile">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">InclinedProfile</tt><big>(</big><em>sim</em>, <em>angle</em>, <em>load_from_file=False</em>, <em>ndim=2</em>, <em>type='lin'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#InclinedProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.InclinedProfile" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.analysis.profile.</code><code class="descname">InclinedProfile</code><span class="sig-paren">(</span><em>sim</em>, <em>angle</em>, <em>load_from_file=False</em>, <em>ndim=2</em>, <em>type='lin'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#InclinedProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.InclinedProfile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a profile object to be used with a snapshot inclined by
 some known angle to the xy plane.</p>
 <p>In addition to the SimSnap object, it also requires the angle to
 initialize.</p>
 <p><strong>Example:</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;sim&#39;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;sim&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">InclinedProfile</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
 </pre></div>
 </div>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.analysis.profile.VerticalProfile">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">VerticalProfile</tt><big>(</big><em>sim</em>, <em>rmin</em>, <em>rmax</em>, <em>zmax</em>, <em>load_from_file=False</em>, <em>ndim=3</em>, <em>type='lin'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#VerticalProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.VerticalProfile" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.analysis.profile.</code><code class="descname">VerticalProfile</code><span class="sig-paren">(</span><em>sim</em>, <em>rmin</em>, <em>rmax</em>, <em>zmax</em>, <em>load_from_file=False</em>, <em>ndim=3</em>, <em>type='lin'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#VerticalProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.VerticalProfile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a profile object that uses the absolute value of the z-coordinate for binning.</p>
 <p><strong>Input</strong>:</p>
 <p><em>sim</em>: snapshot to make a profile from</p>
@@ -1123,11 +1155,12 @@ initialize.</p>
 <dd>i.e. density is in units of mass/pc^2. If ndim=3 a volume
 profile is made, i.e. density is in units of mass/pc^3.</dd>
 </dl>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pynbody.analysis.profile.QuantileProfile">
-<em class="property">class </em><tt class="descclassname">pynbody.analysis.profile.</tt><tt class="descname">QuantileProfile</tt><big>(</big><em>sim</em>, <em>q=(0.16</em>, <em>0.5</em>, <em>0.84)</em>, <em>weights=None</em>, <em>load_from_file=False</em>, <em>ndim=3</em>, <em>type='lin'</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#QuantileProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.QuantileProfile" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pynbody.analysis.profile.</code><code class="descname">QuantileProfile</code><span class="sig-paren">(</span><em>sim</em>, <em>q=(0.16</em>, <em>0.5</em>, <em>0.84)</em>, <em>weights=None</em>, <em>load_from_file=False</em>, <em>ndim=3</em>, <em>type='lin'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/profile.html#QuantileProfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.profile.QuantileProfile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a profile object that returns the requested quantiles
 for a given array in a given bin.  The quantiles may be mass weighted.</p>
 <p><strong>Input</strong>:</p>
@@ -1140,7 +1173,7 @@ q can be of arbitrary length allowing the user to select
 any quantiles they desire.</dd>
 <dt><em>weights (default:None)</em>:  </dt>
 <dd>What should be used to weight the quantile.  You will usually
-want to use particle mass: sim[&#8216;mass&#8217;].  
+want to use particle mass: sim[‘mass’].  
 The default is to not weight by anything, weights=None.</dd>
 </dl>
 <p><strong>Optional Keywords</strong>:</p>
@@ -1149,6 +1182,7 @@ The default is to not weight by anything, weights=None.</dd>
 <dd>i.e. density is in units of mass/pc^2. If ndim=3 a volume
 profile is made, i.e. density is in units of mass/pc^3.</dd>
 </dl>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 </div>
@@ -1159,61 +1193,61 @@ demo on how to use RAMSES outputs with pynbody, have a look at the
 <a class="reference external" href="http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb">ipython notebook demo</a></p>
 <div class="section" id="loading-and-centering">
 <h3>Loading and centering<a class="headerlink" href="#loading-and-centering" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span> <span class="c"># centered on the halo 10</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s1">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># centered on halo 0 </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span> <span class="c1"># centered on the halo 10</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="file-conversion">
 <h3>File Conversion<a class="headerlink" href="#file-conversion" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_fullbox</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">)</span> <span class="c"># will convert the whole output</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_fullbox</span><span class="p">(</span><span class="s1">&#39;output_00101&#39;</span><span class="p">)</span> <span class="c1"># will convert the whole output</span>
 </pre></div>
 </div>
 <p>Now you can run AHF or pkdgrav using the file named
 <cite>output_00101_fullbox.tipsy</cite> as an input or</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s_tipsy</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;output_00101_fullbox.tipsy&#39;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s_tipsy</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;output_00101_fullbox.tipsy&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can also just output a part of the simulation :</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="c"># centered on halo 0 </span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_simple</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">,</span> <span class="nb">file</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;200 kpc&#39;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">load_center</span><span class="p">(</span><span class="s1">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># centered on halo 0 </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">convert_to_tipsy_simple</span><span class="p">(</span><span class="s1">&#39;output_00101&#39;</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s1">&#39;200 kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Now we&#8217;ve got a file called <cite>output_00101.tipsy</cite> which holds only the
+<p>Now we’ve got a file called <cite>output_00101.tipsy</cite> which holds only the
 200 kpc sphere centered on halo 0.</p>
 </div>
 <div class="section" id="generating-tform">
 <h3>Generating tform<a class="headerlink" href="#generating-tform" title="Permalink to this headline">¶</a></h3>
 <p>A problem with RAMSES outputs in pynbody is that the <cite>tform</cite> array is
-in funny units that aren&#8217;t easily usable. To generate a new <cite>tform</cite>
-array (in Gyr) you can use the <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a> defined here. It&#8217;s
+in funny units that aren’t easily usable. To generate a new <cite>tform</cite>
+array (in Gyr) you can use the <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><code class="xref py py-func docutils literal"><span class="pre">get_tform()</span></code></a> defined here. It’s
 very easy:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;output_00101&#39;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;output_00101&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">ramses_util</span><span class="o">.</span><span class="n">get_tform</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This now generated a directory called <cite>birth</cite> in the parent directory
 of your output. It then calls the routine <cite>part2birth</cite> located in the
-RAMSES utils (see the <a class="reference external" href="https://bitbucket.org/rteyssie/ramses">bitbucket repository</a>. <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a> also
+RAMSES utils (see the <a class="reference external" href="https://bitbucket.org/rteyssie/ramses">bitbucket repository</a>. <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><code class="xref py py-func docutils literal"><span class="pre">get_tform()</span></code></a> also
 deletes the previous <cite>tform</cite> array (not from disk, just from the
-currently loaded snapshot). The next time you call <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><tt class="xref py py-func docutils literal"><span class="pre">get_tform()</span></tt></a>,
-the data will be loaded from the disk and <cite>part2birth</cite> won&#8217;t need to
+currently loaded snapshot). The next time you call <a class="reference internal" href="#pynbody.analysis.ramses_util.get_tform" title="pynbody.analysis.ramses_util.get_tform"><code class="xref py py-func docutils literal"><span class="pre">get_tform()</span></code></a>,
+the data will be loaded from the disk and <cite>part2birth</cite> won’t need to
 be run again.</p>
 <p>Feb 2016 - RS
-Note that in this version of ramses_util I have moved the &#8216;birth&#8217; files
-into the output directory to which they pertain. The old code wasn&#8217;t
-placing them in a subdir of &#8216;birth&#8217; in the top output and since I had
+Note that in this version of ramses_util I have moved the ‘birth’ files
+into the output directory to which they pertain. The old code wasn’t
+placing them in a subdir of ‘birth’ in the top output and since I had
 to fix it I thought it better not to have a single directory with
-potentially 1000&#8217;s of files for all RAMSES outputs. The get_tform
-routine now creates the files under the approrpiate &#8220;<a href="#id1"><span class="problematic" id="id2">output_</span></a>&#8221; dir
+potentially 1000’s of files for all RAMSES outputs. The get_tform
+routine now creates the files under the approrpiate “<a href="#id7"><span class="problematic" id="id8">output_</span></a>” dir
 and reads them back from there.</p>
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.load_hop">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">load_hop</tt><big>(</big><em>s</em>, <em>hop='$HOME/ramses/trunk/ramses/utils/scripts/script_hop.sh'</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#load_hop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_hop" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">load_hop</code><span class="sig-paren">(</span><em>s</em>, <em>hop='$HOME/ramses/trunk/ramses/utils/scripts/script_hop.sh'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#load_hop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_hop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads the hop catalog for the given RAMSES snapshot. If the
-catalog doesn&#8217;t exist, it tries to run hop to create one via the
-&#8216;script_hop.sh&#8217; script found in the RAMSES distribution. The hop
-output should be in a &#8216;hop&#8217; directory in the base directory of the
+catalog doesn’t exist, it tries to run hop to create one via the
+‘script_hop.sh’ script found in the RAMSES distribution. The hop
+output should be in a ‘hop’ directory in the base directory of the
 simulation.</p>
 <p><strong>Input</strong>:</p>
 <p><em>s</em> : loaded RAMSES snapshot</p>
@@ -1223,7 +1257,7 @@ simulation.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.hop_center">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">hop_center</tt><big>(</big><em>s</em>, <em>halo=0</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#hop_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.hop_center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">hop_center</code><span class="sig-paren">(</span><em>s</em>, <em>halo=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#hop_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.hop_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Center the simulation snapshot on the specified halo using the halo data from hop.</p>
 <p><strong>Input</strong>:</p>
 <p><em>s</em> : RAMSES snapshot</p>
@@ -1233,7 +1267,7 @@ simulation.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.load_center">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">load_center</tt><big>(</big><em>output</em>, <em>align=True</em>, <em>halo=0</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#load_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_center" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">load_center</code><span class="sig-paren">(</span><em>output</em>, <em>align=True</em>, <em>halo=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#load_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.load_center" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads a RAMSES output and centers it on the desired halo. The hop
 center is used for an initial estimate, but for more precise
 centering, a shrinking-sphere center is calculated.</p>
@@ -1246,26 +1280,26 @@ centering, a shrinking-sphere center is calculated.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.convert_to_tipsy_simple">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">convert_to_tipsy_simple</tt><big>(</big><em>output</em>, <em>halo=0</em>, <em>filt=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_simple" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">convert_to_tipsy_simple</code><span class="sig-paren">(</span><em>output</em>, <em>halo=0</em>, <em>filt=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_simple" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert RAMSES output to tipsy format readable by
 e.g. pkdgrav. This is a quick and dirty conversion, meant to be
 used for quick visualization or other simple post
 processing. Importantly, none of the cosmologically-relevant
 information is carried forward. For a more complete conversion for
 e.g. running through pkdgrav or Amiga Halo Finder, see
-<a class="reference internal" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="pynbody.analysis.ramses_util.convert_to_tipsy_fullbox"><tt class="xref py py-func docutils literal"><span class="pre">convert_to_tipsy_fullbox()</span></tt></a>.</p>
+<a class="reference internal" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="pynbody.analysis.ramses_util.convert_to_tipsy_fullbox"><code class="xref py py-func docutils literal"><span class="pre">convert_to_tipsy_fullbox()</span></code></a>.</p>
 <p>The snapshot is put into units where G=1, time unit = 1 Gyr and
 mass unit = 2.222286e5 Msol.</p>
 <p><strong>Input</strong>:</p>
 <p><em>output</em> : path to RAMSES output directory</p>
 <p><strong>Optional Keywords</strong>:</p>
 <p><em>filt</em> : a filter to apply to the box before writing out the tipsy file</p>
-<p><em>halo</em> : which hop halo to center on &#8211; default = 0</p>
+<p><em>halo</em> : which hop halo to center on – default = 0</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.get_tipsy_units">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">get_tipsy_units</tt><big>(</big><em>sim</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#get_tipsy_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.get_tipsy_units" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">get_tipsy_units</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#get_tipsy_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.get_tipsy_units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns snapshot <cite>sim</cite> units in the pkdgrav/gasoline unit
 system.  This is probably not a function to be called by users,
 but it is used instead by other routines for file conversion.</p>
@@ -1277,7 +1311,7 @@ but it is used instead by other routines for file conversion.</p>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.convert_to_tipsy_fullbox">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">convert_to_tipsy_fullbox</tt><big>(</big><em>output</em>, <em>write_param=True</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_fullbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">convert_to_tipsy_fullbox</code><span class="sig-paren">(</span><em>output</em>, <em>write_param=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#convert_to_tipsy_fullbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert RAMSES file <cite>output</cite> to tipsy format readable by pkdgrav
 and Amiga Halo Finder. Does all unit conversions etc. into the
 pkdgrav unit system. Creates a file called <cite>output_fullbox.tipsy</cite>.</p>
@@ -1289,21 +1323,21 @@ pkdgrav unit system. Creates a file called <cite>output_fullbox.tipsy</cite>.</p
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.write_tipsy_param">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">write_tipsy_param</tt><big>(</big><em>sim</em>, <em>tipsyfile</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#write_tipsy_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.write_tipsy_param" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">write_tipsy_param</code><span class="sig-paren">(</span><em>sim</em>, <em>tipsyfile</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#write_tipsy_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.write_tipsy_param" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write a pkdgrav-readable parameter file for RAMSES snapshot
 <cite>sim</cite> with the prefix <cite>filename</cite></p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.write_ahf_input">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">write_ahf_input</tt><big>(</big><em>sim</em>, <em>tipsyfile</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#write_ahf_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.write_ahf_input" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">write_ahf_input</code><span class="sig-paren">(</span><em>sim</em>, <em>tipsyfile</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#write_ahf_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.write_ahf_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write an input file that can be used by the <a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder</a> with the
 corresponding <cite>tipsyfile</cite> which is the <cite>sim</cite> in tipsy format.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.ramses_util.get_tform">
-<tt class="descclassname">pynbody.analysis.ramses_util.</tt><tt class="descname">get_tform</tt><big>(</big><em>sim</em>, <em>part2birth_path='$HOME/ramses/trunk/ramses/utils/f90/part2birth'</em>, <em>cpu_range=None</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#get_tform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.get_tform" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.ramses_util.</code><code class="descname">get_tform</code><span class="sig-paren">(</span><em>sim</em>, <em>part2birth_path='$HOME/ramses/trunk/ramses/utils/f90/part2birth'</em>, <em>cpu_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/ramses_util.html#get_tform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.ramses_util.get_tform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use <cite>part2birth</cite> to calculate the formation time of stars in
 Gyr and <strong>replaces</strong> the original <cite>tform</cite> array.</p>
 <p><strong>Input</strong>:</p>
@@ -1311,9 +1345,9 @@ Gyr and <strong>replaces</strong> the original <cite>tform</cite> array.</p>
 <p><strong>Optional Keywords:</strong></p>
 <dl class="docutils">
 <dt><em>part2birth_path:</em> by default, this is</dt>
-<dd><p class="first">$HOME/ramses/trunk/ramses/utils/f90/part2birth, as specified in
+<dd><p class="first">$HOME/ramses/utils/f90/part2birth, as specified in
 <cite>default_config.ini</cite> in your pynbody install directory. You can
-override this like so &#8211; make a file called &#8221;.pynbodyrc&#8221; in your
+override this like so – make a file called “.pynbodyrc” in your
 home directory, and include</p>
 <dl class="last docutils">
 <dt><em>cpu_range</em>: a list of cpus to process tform for. If specified, birth time</dt>
@@ -1332,14 +1366,14 @@ home directory, and include</p>
 <p>2D and 3D Interpolation routines written in cython</p>
 <dl class="function">
 <dt id="pynbody.analysis.interpolate.interpolate3d">
-<tt class="descclassname">pynbody.analysis.interpolate.</tt><tt class="descname">interpolate3d</tt><big>(</big><em>x</em>, <em>y</em>, <em>z</em>, <em>x_vals</em>, <em>y_vals</em>, <em>z_vals</em>, <em>vals</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/interpolate.html#interpolate3d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.interpolate.interpolate3d" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.interpolate.</code><code class="descname">interpolate3d</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em>, <em>x_vals</em>, <em>y_vals</em>, <em>z_vals</em>, <em>vals</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/interpolate.html#interpolate3d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.interpolate.interpolate3d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interpolate on a 3D regular grid. 
 Yields results identical to scipy.interpolate.interpn.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pynbody.analysis.interpolate.interpolate2d">
-<tt class="descclassname">pynbody.analysis.interpolate.</tt><tt class="descname">interpolate2d</tt><big>(</big><em>x</em>, <em>y</em>, <em>x_vals</em>, <em>y_vals</em>, <em>vals</em><big>)</big><a class="reference internal" href="../_modules/pynbody/analysis/interpolate.html#interpolate2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.interpolate.interpolate2d" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">pynbody.analysis.interpolate.</code><code class="descname">interpolate2d</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>x_vals</em>, <em>y_vals</em>, <em>vals</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/analysis/interpolate.html#interpolate2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.analysis.interpolate.interpolate2d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interpolate on a 2D regular grid. 
 Yields results identical to scipy.interpolate.interpn.</p>
 </dd></dl>
@@ -1360,14 +1394,14 @@ Yields results identical to scipy.interpolate.interpn.</p>
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/reference/analysis.txt"
+  <a href="../_sources/reference/analysis.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

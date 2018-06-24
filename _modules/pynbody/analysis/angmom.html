@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.analysis.angmom &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.analysis.angmom &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,21 +119,21 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.analysis.angmom</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">angmom</span>
 <span class="sd">======</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">transformation</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">halo</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">transformation</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">halo</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;pynbody.analysis.angmom&#39;</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;pynbody.analysis.angmom&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ang_mom_vec"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.angmom.ang_mom_vec">[docs]</a><span class="k">def</span> <span class="nf">ang_mom_vec</span><span class="p">(</span><span class="n">snap</span><span class="p">):</span>
@@ -152,11 +146,11 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">angmom</span> <span class="o">=</span> <span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">snap</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span>
-              <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">],</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">angmom</span>
+    <span class="n">angmom</span> <span class="o">=</span> <span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">snap</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span>
+              <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">snap</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">],</span> <span class="n">snap</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">angmom</span></div>
 
-</div>
+
 <div class="viewcode-block" id="ang_mom_vec_units"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.angmom.ang_mom_vec_units">[docs]</a><span class="k">def</span> <span class="nf">ang_mom_vec_units</span><span class="p">(</span><span class="n">snap</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
@@ -169,9 +163,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">angmom</span> <span class="o">=</span> <span class="n">ang_mom_vec</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">angmom</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">angmom</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="spin_parameter"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.angmom.spin_parameter">[docs]</a><span class="k">def</span> <span class="nf">spin_parameter</span><span class="p">(</span><span class="n">snap</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
@@ -184,13 +178,13 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">m3</span> <span class="o">=</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">m3</span> <span class="o">=</span> <span class="n">snap</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
     <span class="n">m3</span> <span class="o">=</span> <span class="n">m3</span> <span class="o">*</span> <span class="n">m3</span> <span class="o">*</span> <span class="n">m3</span>
     <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(((</span><span class="n">ang_mom_vec_units</span><span class="p">(</span><span class="n">snap</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">/</span>
-                <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">m3</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
-    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;1&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">snap</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
+                <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">m3</span> <span class="o">*</span> <span class="n">snap</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">snap</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span></div>
 
-</div>
+
 <span class="k">def</span> <span class="nf">calc_sideon_matrix</span><span class="p">(</span><span class="n">angmom_vec</span><span class="p">):</span>
     <span class="n">vec_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">angmom_vec</span><span class="p">)</span>
     <span class="n">vec_in</span> <span class="o">=</span> <span class="n">vec_in</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vec_in</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">**</span> <span class="mf">0.5</span>
@@ -215,8 +209,8 @@
     <span class="k">return</span> <span class="n">matr</span>
 
 
-<div class="viewcode-block" id="sideon"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.angmom.sideon">[docs]</a><span class="k">def</span> <span class="nf">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">vec_to_xform</span><span class="o">=</span><span class="n">calc_sideon_matrix</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s">&quot;1 kpc&quot;</span><span class="p">,</span>
-           <span class="n">disk_size</span><span class="o">=</span><span class="s">&quot;5 kpc&quot;</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+<div class="viewcode-block" id="sideon"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.angmom.sideon">[docs]</a><span class="k">def</span> <span class="nf">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">vec_to_xform</span><span class="o">=</span><span class="n">calc_sideon_matrix</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="s2">&quot;1 kpc&quot;</span><span class="p">,</span>
+           <span class="n">disk_size</span><span class="o">=</span><span class="s2">&quot;5 kpc&quot;</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vcen</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
@@ -237,40 +231,40 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">top</span> <span class="o">=</span> <span class="n">h</span>
 
-    <span class="c"># Top is the top-level view of the simulation, which will be</span>
-    <span class="c"># transformed</span>
+    <span class="c1"># Top is the top-level view of the simulation, which will be</span>
+    <span class="c1"># transformed</span>
 
-    <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Finding halo center...&quot;</span><span class="p">)</span>
-        <span class="c"># or h[&#39;pos&#39;][h[&#39;phi&#39;].argmin()]</span>
-        <span class="n">cen</span> <span class="o">=</span> <span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;... cen=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">cen</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Finding halo center...&quot;</span><span class="p">)</span>
+        <span class="c1"># or h[&#39;pos&#39;][h[&#39;phi&#39;].argmin()]</span>
+        <span class="n">cen</span> <span class="o">=</span> <span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... cen=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cen</span><span class="p">)</span>
 
     <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_translate</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">cen</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">vcen</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">vcen</span> <span class="o">=</span> <span class="n">halo</span><span class="o">.</span><span class="n">vel_center</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vcen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">vcen</span> <span class="o">=</span> <span class="n">halo</span><span class="o">.</span><span class="n">vel_center</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cen_size</span><span class="o">=</span><span class="n">cen_size</span><span class="p">)</span>
 
     <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">inverse_v_translate</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">vcen</span><span class="p">)</span>
 
-    <span class="c"># Use gas from inner 10kpc to calculate angular momentum vector</span>
+    <span class="c1"># Use gas from inner 10kpc to calculate angular momentum vector</span>
     <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
         <span class="n">cen</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">disk_size</span><span class="p">)]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">cen</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">disk_size</span><span class="p">)]</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Calculating angular momentum vector...&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating angular momentum vector...&quot;</span><span class="p">)</span>
     <span class="n">trans</span> <span class="o">=</span> <span class="n">vec_to_xform</span><span class="p">(</span><span class="n">ang_mom_vec</span><span class="p">(</span><span class="n">cen</span><span class="p">))</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Transforming simulation...&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Transforming simulation...&quot;</span><span class="p">)</span>
 
     <span class="n">tx</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">trans</span><span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;...done!&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;...done!&quot;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">tx</span>
+    <span class="k">return</span> <span class="n">tx</span></div>
 
-</div>
+
 <div class="viewcode-block" id="faceon"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.angmom.faceon">[docs]</a><span class="k">def</span> <span class="nf">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 
@@ -302,7 +296,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

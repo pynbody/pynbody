@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Plotting Rotation Cuves &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Plotting Rotation Cuves &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
-    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Pictures in Pynbody" href="pictures.html" />
     <link rel="prev" title="Profiles in Pynbody" href="profile.html" />
 
@@ -65,12 +60,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -111,11 +105,11 @@
               
                 
   <li>
-    <a href="profile.html" title="Previous Chapter: Profiles in Pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Profiles in P...</span>
+    <a href="profile.html" title="Previous Chapter: Profiles in Pynbody"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Profiles in Pynbody</span>
     </a>
   </li>
   <li>
-    <a href="pictures.html" title="Next Chapter: Pictures in Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Pictures in P... &raquo;</span>
+    <a href="pictures.html" title="Next Chapter: Pictures in Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Pictures in Pynbody &raquo;</span>
     </a>
   </li>
               
@@ -141,39 +135,39 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="plotting-rotation-cuves">
 <h1>Plotting Rotation Cuves<a class="headerlink" href="#plotting-rotation-cuves" title="Permalink to this headline">¶</a></h1>
-<p>Rotation curves are calculated and plotted using the <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><tt class="xref py py-func docutils literal"><span class="pre">Profile()</span></tt></a>
-object. For a tutorial on profiles see <a class="reference internal" href="profile.html"><em>Profiles in Pynbody</em></a>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<p>Rotation curves are calculated and plotted using the <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><code class="xref py py-func docutils literal"><span class="pre">Profile()</span></code></a>
+object. For a tutorial on profiles see <a class="reference internal" href="profile.html"><span class="doc">Profiles in Pynbody</span></a>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span>
-<span class="c"># load the snapshot and set to physical units</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="c1"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 
-<span class="c"># load the halos</span>
+<span class="c1"># load the halos</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
-<span class="c"># center on the largest halo and align the disk</span>
+<span class="c1"># center on the largest halo and align the disk</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="c"># create a profile object for the stars</span>
+<span class="c1"># create a profile object for the stars</span>
 <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
-<span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">pg</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">ps</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">pg</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">ps</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">s</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
-<span class="c"># make the plot</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s">&#39;total&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pg</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">pg</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s">&#39;gas&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">ps</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s">&#39;stars&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pd</span><span class="p">[</span><span class="s">&#39;rbins&#39;</span><span class="p">],</span><span class="n">pd</span><span class="p">[</span><span class="s">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s">&#39;dm&#39;</span><span class="p">)</span>
+<span class="c1"># make the plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">],</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;total&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pg</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">],</span><span class="n">pg</span><span class="p">[</span><span class="s1">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;gas&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">],</span><span class="n">ps</span><span class="p">[</span><span class="s1">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;stars&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pd</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">],</span><span class="n">pd</span><span class="p">[</span><span class="s1">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;dm&#39;</span><span class="p">)</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;R [kpc]&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$v_c$ [km/s]&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;R [kpc]&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$v_c$ [km/s]&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -189,38 +183,38 @@ it takes a while and it is therefore done in <cite>C</cite>. It is even faster i
 you use the parallel Open-MP version. This was installed automatically
 if pynbody detected an Open-MP C compiler during setup. To see whether
 this happened or not, you can ask how many cores your machine has:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
-<span class="gh">Out[2]: </span><span class="go">8</span>
+<span class="gh">Out[2]: </span><span class="go">4</span>
 </pre></div>
 </div>
 <p>If this returns 1 but you have more than one core, pynbody has not
-been installed with OpenMP support (check your <a class="reference internal" href="../installation.html#pynbody-installation-must-haves"><em>compiler</em></a>, especially on Mac OS - then <a class="reference external" href="https://github.com/pynbody/pynbody/issues">raise
-an issue</a> if you can&#8217;t
+been installed with OpenMP support (check your <a class="reference internal" href="../installation.html#pynbody-installation-must-haves"><span class="std std-ref">compiler</span></a>, especially on Mac OS - then <a class="reference external" href="https://github.com/pynbody/pynbody/issues">raise
+an issue</a> if you can’t
 fix the problem) . If it returns the number of cores on your
-machine, you&#8217;re in luck.</p>
+machine, you’re in luck.</p>
 <p>Assuming OpenMP support is enabled, the actual number of cores used by
 pynbody is determined by the configuration option
-<tt class="docutils literal"><span class="pre">number_of_threads</span></tt>, which is the number of CPUs detected on your</p>
+<code class="docutils literal"><span class="pre">number_of_threads</span></code>, which is the number of CPUs detected on your</p>
 <blockquote>
 <div>machine by default. If you want to reduce this (e.g. you are running on
 a login node or have multiple analyses going on in parallel), you can
 specify the number of cores explicitly:</div></blockquote>
-<div class="highlight-ipython"><div class="highlight"><pre><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;number_of_threads&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;number_of_threads&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
 </pre></div>
 </div>
 <p>Now all gravity calculations will use the parallel gravity calculation
 on only 2 cpus. Note that the number of threads you specify in this option
 will also be the default for other routines, such as
-<a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></tt></a>. See <a class="reference internal" href="threads.html#threads"><em>Use of multiple processors by pynbody</em></a>.</p>
+<a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><code class="xref py py-func docutils literal"><span class="pre">pynbody.plot.sph.image()</span></code></a>. See <a class="reference internal" href="threads.html#threads"><span class="std std-ref">Use of multiple processors by pynbody</span></a>.</p>
 <p>If you want to make your configuration changes permanent, create a
-file called <tt class="docutils literal"><span class="pre">.pynbodyrc</span></tt> in your home directory with the lines</p>
-<div class="highlight-python"><div class="highlight"><pre>[general]
-number_of_threads: 2
+file called <code class="docutils literal"><span class="pre">.pynbodyrc</span></code> in your home directory with the lines</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">general</span><span class="p">]</span>
+<span class="n">number_of_threads</span><span class="p">:</span> <span class="mi">2</span>
 </pre></div>
 </div>
-<p>See  <a class="reference internal" href="configuration.html#configuration"><em>Configuring pynbody</em></a> for more information.</p>
+<p>See  <a class="reference internal" href="configuration.html#configuration"><span class="std std-ref">Configuring pynbody</span></a> for more information.</p>
 </div>
 </div>
 
@@ -237,14 +231,14 @@ number_of_threads: 2
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/tutorials/rotation_curve.txt"
+  <a href="../_sources/tutorials/rotation_curve.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.analysis.pkdgrav_cosmo &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.analysis.pkdgrav_cosmo &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.analysis.pkdgrav_cosmo</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">pkdgrav_cosmo</span>
 <span class="sd">=============</span>
@@ -141,7 +135,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">romberg</span><span class="p">,</span> <span class="n">ode</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="k">import</span> <span class="n">romberg</span><span class="p">,</span> <span class="n">ode</span>
 
 
 <div class="viewcode-block" id="Cosmology"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.pkdgrav_cosmo.Cosmology">[docs]</a><span class="k">class</span> <span class="nc">Cosmology</span><span class="p">:</span>
@@ -150,12 +144,12 @@
 
     <span class="n">EPSCOSMO</span> <span class="o">=</span> <span class="mf">1e-7</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">H0</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">),</span> <span class="n">Om</span><span class="o">=</span><span class="mf">0.272</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">H0</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">),</span> <span class="n">Om</span><span class="o">=</span><span class="mf">0.272</span><span class="p">,</span>
                  <span class="n">L</span><span class="o">=</span><span class="mf">0.728</span><span class="p">,</span> <span class="n">Ob</span><span class="o">=</span><span class="mf">0.0456</span><span class="p">,</span>
                  <span class="n">Or</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">Quin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">Ok</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dLambda</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaL0&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;omegaM0&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dLambda</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;omegaL0&#39;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span> <span class="o">=</span> <span class="n">Om</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dLambda</span> <span class="o">=</span> <span class="n">L</span>
@@ -166,8 +160,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaCurve</span> <span class="o">=</span> <span class="n">Ok</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bComove</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="c"># The cosmological equation of state is entirely determined here.  We</span>
-    <span class="c"># will derive all other quantities from these two functions.</span>
+    <span class="c1"># The cosmological equation of state is entirely determined here.  We</span>
+    <span class="c1"># will derive all other quantities from these two functions.</span>
     <span class="k">def</span> <span class="nf">Exp2Hub</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dExp</span><span class="p">):</span>
         <span class="n">dOmegaCurve</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dLambda</span> <span class="o">-</span>
                        <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaRad</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dQuintess</span><span class="p">)</span>
@@ -180,7 +174,7 @@
                                           <span class="n">dExp</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dExp</span><span class="p">)</span>
                                           <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dLambda</span> <span class="o">*</span> <span class="n">dExp</span> <span class="o">*</span> <span class="n">dExp</span> <span class="o">*</span> <span class="n">dExp</span> <span class="o">*</span> <span class="n">dExp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">dExp</span> <span class="o">*</span> <span class="n">dExp</span><span class="p">))</span>
 
-    <span class="c"># Return a double dot over a.</span>
+    <span class="c1"># Return a double dot over a.</span>
     <span class="k">def</span> <span class="nf">ExpDot2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dExp</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dHubble0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dHubble0</span> <span class="o">*</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dLambda</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span> <span class="o">/</span> <span class="p">(</span><span class="n">dExp</span> <span class="o">*</span> <span class="n">dExp</span> <span class="o">*</span> <span class="n">dExp</span><span class="p">)</span>
@@ -242,13 +236,13 @@
                 <span class="k">return</span><span class="p">(</span><span class="n">dExp</span> <span class="o">/</span> <span class="n">dHubble0</span><span class="p">)</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="c">#* Bad value.</span>
+                <span class="c1">#* Bad value.</span>
                 <span class="k">assert</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># Set accuracy to 0.01 EPSCOSMO to make Romberg integration</span>
-            <span class="c"># more accurate than Newton&#39;s method criterion in Time2Exp. --JPG</span>
+            <span class="c1"># Set accuracy to 0.01 EPSCOSMO to make Romberg integration</span>
+            <span class="c1"># more accurate than Newton&#39;s method criterion in Time2Exp. --JPG</span>
             <span class="k">return</span> <span class="n">romberg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CosmoTint</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span><span class="p">,</span> <span class="n">dExp</span> <span class="o">**</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">0.01</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">Time2Exp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dTime</span><span class="p">):</span>
@@ -257,14 +251,14 @@
         <span class="n">dExpOld</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">dExpNew</span> <span class="o">=</span> <span class="n">dTime</span> <span class="o">*</span> <span class="n">dHubble0</span>
         <span class="n">dDeltaOld</span> <span class="o">=</span> <span class="n">dExpNew</span>
-        <span class="c"># old change in interval</span>
+        <span class="c1"># old change in interval</span>
         <span class="n">dUpper</span> <span class="o">=</span> <span class="mf">1.0e38</span>
-        <span class="c"># bounds on root</span>
+        <span class="c1"># bounds on root</span>
         <span class="n">dLower</span> <span class="o">=</span> <span class="mf">0.0</span>
 
         <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="c"># Root find with Newton&#39;s method.</span>
+        <span class="c1"># Root find with Newton&#39;s method.</span>
         <span class="k">while</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">dExpNew</span> <span class="o">-</span> <span class="n">dExpOld</span><span class="p">)</span> <span class="o">/</span> <span class="n">dExpNew</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span><span class="p">):</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">dTime</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Exp2Time</span><span class="p">(</span><span class="n">dExpNew</span><span class="p">)</span>
             <span class="n">fprime</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">dExpNew</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Exp2Hub</span><span class="p">(</span><span class="n">dExpNew</span><span class="p">))</span>
@@ -277,7 +271,7 @@
             <span class="n">dExpOld</span> <span class="o">=</span> <span class="n">dExpNew</span>
             <span class="n">dDeltaOld</span> <span class="o">=</span> <span class="n">f</span> <span class="o">/</span> <span class="n">fprime</span>
             <span class="n">dExpNext</span> <span class="o">=</span> <span class="n">dExpNew</span> <span class="o">+</span> <span class="n">dDeltaOld</span>
-            <span class="c"># check if bracketed</span>
+            <span class="c1"># check if bracketed</span>
             <span class="k">if</span><span class="p">((</span><span class="n">dExpNext</span> <span class="o">&gt;</span> <span class="n">dLower</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">dExpNext</span> <span class="o">&lt;</span> <span class="n">dUpper</span><span class="p">)):</span>
                 <span class="n">dExpNew</span> <span class="o">=</span> <span class="n">dExpNext</span>
             <span class="k">else</span><span class="p">:</span>
@@ -290,11 +284,11 @@
     <span class="k">def</span> <span class="nf">ComoveDriftInt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dIExp</span><span class="p">):</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">dIExp</span> <span class="o">/</span> <span class="p">(</span><span class="n">Exp2Hub</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">dIExp</span><span class="p">))</span>
 
-<span class="c">#* Make the substitution y = 1/a to integrate da/(a^2*H(a))</span>
+<span class="c1">#* Make the substitution y = 1/a to integrate da/(a^2*H(a))</span>
     <span class="k">def</span> <span class="nf">ComoveKickInt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dIExp</span><span class="p">):</span>
         <span class="k">return</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Exp2Hub</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">dIExp</span><span class="p">))</span>
 
-<span class="c">#* This function integrates the time dependence of the &quot;drift&quot;-Hamiltonian.</span>
+<span class="c1">#* This function integrates the time dependence of the &quot;drift&quot;-Hamiltonian.</span>
     <span class="k">def</span> <span class="nf">ComoveDriftFac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dTime</span><span class="p">,</span> <span class="n">dDelta</span><span class="p">):</span>
         <span class="n">dOmegaM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span>
         <span class="n">dHubble0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dHubble0</span>
@@ -331,19 +325,19 @@
                 <span class="k">return</span><span class="p">(</span><span class="n">B</span> <span class="o">/</span> <span class="n">A</span> <span class="o">/</span> <span class="n">A</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">tanh</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">eta1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">tanh</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">eta2</span><span class="p">)))</span>
 
             <span class="k">elif</span> <span class="p">(</span><span class="n">dOmegaM</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">):</span>
-                <span class="c"># YOU figure this one out!</span>
+                <span class="c1"># YOU figure this one out!</span>
                 <span class="k">assert</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="c"># Bad value?</span>
+                <span class="c1"># Bad value?</span>
                 <span class="k">assert</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">romberg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ComoveDriftInt</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Time2Exp</span><span class="p">(</span><span class="n">dTime</span><span class="p">),</span>
                            <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Time2Exp</span><span class="p">(</span><span class="n">dTime</span> <span class="o">+</span> <span class="n">dDelta</span><span class="p">),</span> <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span><span class="p">)</span>
 
-    <span class="c"># This function integrates the time dependence of the &quot;kick&quot;-Hamiltonian.</span>
+    <span class="c1"># This function integrates the time dependence of the &quot;kick&quot;-Hamiltonian.</span>
     <span class="k">def</span> <span class="nf">ComoveKickFac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dTime</span><span class="p">,</span> <span class="n">dDelta</span><span class="p">):</span>
         <span class="n">dOmegaM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span>
         <span class="n">dHubble0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dHubble0</span>
@@ -382,12 +376,12 @@
                 <span class="k">return</span><span class="p">(</span><span class="n">B</span> <span class="o">/</span> <span class="n">A</span> <span class="o">*</span> <span class="p">(</span><span class="n">eta2</span> <span class="o">-</span> <span class="n">eta1</span><span class="p">))</span>
 
             <span class="k">elif</span> <span class="p">(</span><span class="n">dOmegaM</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">):</span>
-                <span class="c">#* YOU figure this one out!</span>
+                <span class="c1">#* YOU figure this one out!</span>
                 <span class="k">assert</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="c">#* Bad value?</span>
+                <span class="c1">#* Bad value?</span>
                 <span class="k">assert</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 
@@ -408,7 +402,7 @@
             <span class="k">if</span><span class="p">(</span><span class="n">dTime</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span><span class="p">):</span>
                 <span class="n">dTime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span>
             <span class="n">dExpNew</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Time2Exp</span><span class="p">(</span><span class="n">dTime</span><span class="p">)</span>
-            <span class="c"># Root find with Newton&#39;s method.</span>
+            <span class="c1"># Root find with Newton&#39;s method.</span>
             <span class="k">while</span> <span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">dExpNew</span> <span class="o">-</span> <span class="n">dExpOld</span><span class="p">)</span> <span class="o">/</span> <span class="n">dExpNew</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">EPSCOSMO</span><span class="p">):</span>
                 <span class="n">dTimeNew</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Exp2Time</span><span class="p">(</span><span class="n">dExpNew</span><span class="p">)</span>
                 <span class="n">f</span> <span class="o">=</span> <span class="p">(</span><span class="n">dComoveTime</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComoveKickFac</span><span class="p">(</span>
@@ -421,7 +415,7 @@
 
         <span class="k">return</span> <span class="n">dExpNew</span>
 
-<span class="c"># delta[1] =&gt; deltadot</span>
+<span class="c1"># delta[1] =&gt; deltadot</span>
     <span class="k">def</span> <span class="nf">GrowthFacDeriv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dlnExp</span><span class="p">,</span> <span class="n">dlnDelta</span><span class="p">,</span> <span class="n">dlnDeltadot</span><span class="p">):</span>
         <span class="n">dExp</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">dlnExp</span><span class="p">)</span>
         <span class="n">dHubble</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Exp2Hub</span><span class="p">(</span><span class="n">dExp</span><span class="p">)</span>
@@ -441,11 +435,11 @@
 
         <span class="n">dDStart</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">dlnExpStart</span>
         <span class="n">dDStart</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-        <span class="c"># Growing mode</span>
+        <span class="c1"># Growing mode</span>
 
-        <span class="n">integrator</span> <span class="o">=</span> <span class="n">ode</span><span class="p">(</span><span class="n">GrowthFacDeriv</span><span class="p">)</span><span class="o">.</span><span class="n">set_integrator</span><span class="p">(</span><span class="s">&#39;dopri5&#39;</span><span class="p">)</span>
-<span class="c">#        , 2,</span>
-<span class="c">#        , dDEnd,  nSteps);</span>
+        <span class="n">integrator</span> <span class="o">=</span> <span class="n">ode</span><span class="p">(</span><span class="n">GrowthFacDeriv</span><span class="p">)</span><span class="o">.</span><span class="n">set_integrator</span><span class="p">(</span><span class="s1">&#39;dopri5&#39;</span><span class="p">)</span>
+<span class="c1">#        , 2,</span>
+<span class="c1">#        , dDEnd,  nSteps);</span>
         <span class="n">integrator</span> <span class="o">=</span> <span class="n">integrator</span><span class="o">.</span><span class="n">set_initial_value</span><span class="p">(</span>
             <span class="mi">2</span><span class="p">,</span> <span class="n">dlnExpStart</span><span class="p">,</span> <span class="n">dDStart</span><span class="p">,</span> <span class="n">dlnExp</span><span class="p">)</span>
         <span class="n">dDEnd</span> <span class="o">=</span> <span class="n">integrator</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">relax</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -463,13 +457,13 @@
 
         <span class="n">dDStart</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">dlnExpStart</span>
         <span class="n">dDStart</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-        <span class="c"># Growing mode</span>
+        <span class="c1"># Growing mode</span>
 
-        <span class="n">integrator</span> <span class="o">=</span> <span class="n">ode</span><span class="p">(</span><span class="n">GrowthFacDeriv</span><span class="p">)</span><span class="o">.</span><span class="n">set_integrator</span><span class="p">(</span><span class="s">&#39;dopri5&#39;</span><span class="p">)</span>
-<span class="c">#        , 2, dlnExpStart, dDStart, dlnExp, dDEnd,nSteps);</span>
+        <span class="n">integrator</span> <span class="o">=</span> <span class="n">ode</span><span class="p">(</span><span class="n">GrowthFacDeriv</span><span class="p">)</span><span class="o">.</span><span class="n">set_integrator</span><span class="p">(</span><span class="s1">&#39;dopri5&#39;</span><span class="p">)</span>
+<span class="c1">#        , 2, dlnExpStart, dDStart, dlnExp, dDEnd,nSteps);</span>
         <span class="k">return</span> <span class="n">dDEnd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Exp2Hub</span><span class="p">(</span><span class="n">dExp</span><span class="p">)</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="n">dDEnd</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-<span class="c"># expansion dependence of Omega_matter</span>
+<span class="c1"># expansion dependence of Omega_matter</span>
     <span class="k">def</span> <span class="nf">Exp2Om</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dExp</span><span class="p">):</span>
         <span class="n">dHubble</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Exp2Hub</span><span class="p">(</span><span class="n">dExp</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dOmegaM</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dHubble0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dHubble0</span> <span class="o">/</span>
@@ -491,7 +485,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

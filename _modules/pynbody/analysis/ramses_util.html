@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.analysis.ramses_util &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.analysis.ramses_util &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.analysis.ramses_util</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">ramses_util</span>
 <span class="sd">===========</span>
@@ -197,15 +191,15 @@
 
 <span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="nn">units</span> <span class="kn">import</span> <span class="n">Unit</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="n">units</span> <span class="kn">import</span> <span class="nn">Unit</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">config_parser</span>
 
-<span class="n">ramses_utils</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ramses&#39;</span><span class="p">,</span> <span class="s">&#39;ramses_utils&#39;</span><span class="p">)</span>
+<span class="n">ramses_utils</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ramses&#39;</span><span class="p">,</span> <span class="s1">&#39;ramses_utils&#39;</span><span class="p">)</span>
 
-<span class="n">hop_script_path</span> <span class="o">=</span> <span class="n">ramses_utils</span> <span class="o">+</span> <span class="s">&#39;scripts/script_hop.sh&#39;</span>
-<span class="n">part2birth_path</span> <span class="o">=</span> <span class="n">ramses_utils</span> <span class="o">+</span> <span class="s">&#39;f90/part2birth&#39;</span>
+<span class="n">hop_script_path</span> <span class="o">=</span> <span class="n">ramses_utils</span> <span class="o">+</span> <span class="s1">&#39;scripts/script_hop.sh&#39;</span>
+<span class="n">part2birth_path</span> <span class="o">=</span> <span class="n">ramses_utils</span> <span class="o">+</span> <span class="s1">&#39;f90/part2birth&#39;</span>
 
 
 <div class="viewcode-block" id="load_hop"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.load_hop">[docs]</a><span class="k">def</span> <span class="nf">load_hop</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">hop</span><span class="o">=</span><span class="n">hop_script_path</span><span class="p">):</span>
@@ -226,26 +220,26 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">13</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;hop/grp</span><span class="si">%s</span><span class="s">.pos&#39;</span> <span class="o">%</span> <span class="n">name</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">13</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;hop/grp</span><span class="si">%s</span><span class="s1">.pos&#39;</span> <span class="o">%</span> <span class="n">name</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;hop/grp</span><span class="si">%s</span><span class="s">.pos&#39;</span> <span class="o">%</span> <span class="n">name</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;hop/grp</span><span class="si">%s</span><span class="s1">.pos&#39;</span> <span class="o">%</span> <span class="n">name</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">os</span>
-        <span class="nb">dir</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">])</span> <span class="k">else</span> <span class="s">&#39;./&#39;</span>
+        <span class="nb">dir</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">])</span> <span class="k">else</span> <span class="s1">&#39;./&#39;</span>
 
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
-            <span class="s">&#39;cd </span><span class="si">%s</span><span class="s">;</span><span class="si">%s</span><span class="s"> </span><span class="si">%d</span><span class="s">;cd ..&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">hop_script_path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="s1">&#39;cd </span><span class="si">%s</span><span class="s1">;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1">;cd ..&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">hop_script_path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="n">data</span></div>
 
-</div>
+
 <div class="viewcode-block" id="hop_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.hop_center">[docs]</a><span class="k">def</span> <span class="nf">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Center the simulation snapshot on the specified halo using the halo data from hop. </span>
@@ -265,11 +259,11 @@
     <span class="n">cen</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">halo</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
     <span class="n">vcen</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">halo</span><span class="p">][</span><span class="mi">7</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
 
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">vcen</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">vcen</span></div>
 
-</div>
-<div class="viewcode-block" id="load_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.load_center">[docs]</a><span class="k">def</span> <span class="nf">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+
+<div class="viewcode-block" id="load_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.load_center">[docs]</a><span class="k">def</span> <span class="nf">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads a RAMSES output and centers it on the desired halo. The hop</span>
 <span class="sd">    center is used for an initial estimate, but for more precise</span>
@@ -289,24 +283,24 @@
     <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
     <span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halo</span><span class="p">)</span>
 
-    <span class="n">st</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s">&#39;100 kpc&#39;</span><span class="p">)]</span>
+    <span class="n">st</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s1">&#39;100 kpc&#39;</span><span class="p">)]</span>
 
     <span class="n">cen</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span>
-        <span class="n">st</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;ssc&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">st</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;ssc&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">align</span><span class="p">:</span>
         <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span>
-            <span class="n">st</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">disk_size</span><span class="o">=</span><span class="s">&#39;10 kpc&#39;</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="n">cen</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;ssc&#39;</span><span class="p">)</span>
+            <span class="n">st</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">disk_size</span><span class="o">=</span><span class="s1">&#39;10 kpc&#39;</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="n">cen</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;ssc&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen</span>
+        <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen</span>
 
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;km s^-1&#39;</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;kpc&#39;</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;km s^-1&#39;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">s</span>
+    <span class="k">return</span> <span class="n">s</span></div>
 
-</div>
-<div class="viewcode-block" id="convert_to_tipsy_simple"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_simple">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_simple</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="convert_to_tipsy_simple"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_simple">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_simple</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert RAMSES output to tipsy format readable by</span>
 <span class="sd">    e.g. pkdgrav. This is a quick and dirty conversion, meant to be</span>
@@ -333,50 +327,50 @@
 
     <span class="n">s</span> <span class="o">=</span> <span class="n">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="n">halo</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">,</span> <span class="s">&#39;vel&#39;</span><span class="p">,</span> <span class="s">&#39;mass&#39;</span><span class="p">,</span> <span class="s">&#39;iord&#39;</span><span class="p">,</span> <span class="s">&#39;metal&#39;</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="s1">&#39;vel&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;iord&#39;</span><span class="p">,</span> <span class="s1">&#39;metal&#39;</span><span class="p">]:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">s</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
 
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;smooth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
 
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">,</span> <span class="s">&#39;temp&#39;</span><span class="p">,</span> <span class="s">&#39;p&#39;</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;temp&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">]:</span>
         <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="c"># try to load tform -- if it fails assign -1</span>
-    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">])</span>
+    <span class="c1"># try to load tform -- if it fails assign -1</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">])</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">get_tform</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
     <span class="k">except</span><span class="p">:</span>
-        <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
-        <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Gyr&#39;</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;Gyr&#39;</span>
 
-    <span class="n">massunit</span> <span class="o">=</span> <span class="mf">2.222286e5</span>  <span class="c"># in Msol</span>
-    <span class="n">dunit</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c"># in kpc</span>
+    <span class="n">massunit</span> <span class="o">=</span> <span class="mf">2.222286e5</span>  <span class="c1"># in Msol</span>
+    <span class="n">dunit</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># in kpc</span>
     <span class="n">denunit</span> <span class="o">=</span> <span class="n">massunit</span> <span class="o">/</span> <span class="n">dunit</span> <span class="o">**</span> <span class="mi">3</span>
     <span class="n">velunit</span> <span class="o">=</span> <span class="mf">8.0285</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.67384e-8</span> <span class="o">*</span> <span class="n">denunit</span><span class="p">)</span> <span class="o">*</span> <span class="n">dunit</span>
     <span class="n">timeunit</span> <span class="o">=</span> <span class="n">dunit</span> <span class="o">/</span> <span class="n">velunit</span> <span class="o">*</span> <span class="mf">0.97781311</span>
 
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%e</span><span class="s"> km s^-1&#39;</span> <span class="o">%</span> <span class="n">velunit</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%e</span><span class="s"> Msol&#39;</span> <span class="o">%</span> <span class="n">massunit</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%e</span><span class="s"> Msol kpc^-3&#39;</span> <span class="o">%</span> <span class="n">denunit</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;kpc&#39;</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%e</span><span class="s1"> km s^-1&#39;</span> <span class="o">%</span> <span class="n">velunit</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%e</span><span class="s1"> Msol&#39;</span> <span class="o">%</span> <span class="n">massunit</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;kpc&#39;</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%e</span><span class="s1"> Msol kpc^-3&#39;</span> <span class="o">%</span> <span class="n">denunit</span><span class="p">)</span>
 
-    <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;Gyr&#39;</span><span class="p">)</span>
-    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;metal&#39;</span><span class="p">]</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;metal&#39;</span><span class="p">]</span>
-    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;metal&#39;</span><span class="p">])</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">age</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">filt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">s</span><span class="p">[</span><span class="n">filt</span><span class="p">]</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pynbody</span><span class="o">.</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">.tipsy&#39;</span> <span class="o">%</span> <span class="n">output</span><span class="p">[</span><span class="o">-</span><span class="mi">12</span><span class="p">:])</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;Gyr&#39;</span><span class="p">)</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;metal&#39;</span><span class="p">]</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;metal&#39;</span><span class="p">]</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;metal&#39;</span><span class="p">])</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;temp&#39;</span><span class="p">]</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">age</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">s</span><span class="p">[</span><span class="n">filt</span><span class="p">]</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pynbody</span><span class="o">.</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.tipsy&#39;</span> <span class="o">%</span> <span class="n">output</span><span class="p">[</span><span class="o">-</span><span class="mi">12</span><span class="p">:])</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">s</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pynbody</span><span class="o">.</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">.tipsy&#39;</span> <span class="o">%</span> <span class="n">output</span><span class="p">[</span><span class="o">-</span><span class="mi">12</span><span class="p">:])</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pynbody</span><span class="o">.</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.tipsy&#39;</span> <span class="o">%</span> <span class="n">output</span><span class="p">[</span><span class="o">-</span><span class="mi">12</span><span class="p">:])</span></div>
 
-</div>
+
 <div class="viewcode-block" id="get_tipsy_units"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tipsy_units">[docs]</a><span class="k">def</span> <span class="nf">get_tipsy_units</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns snapshot `sim` units in the pkdgrav/gasoline unit</span>
@@ -393,19 +387,19 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c"># figure out the units starting with mass</span>
+    <span class="c1"># figure out the units starting with mass</span>
 
     <span class="n">cmtokpc</span> <span class="o">=</span> <span class="mf">3.2407793e-22</span>
-    <span class="n">lenunit</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;unit_l&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cmtokpc</span>
+    <span class="n">lenunit</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s1">&#39;unit_l&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">cmtokpc</span>
     <span class="n">massunit</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">cosmology</span><span class="o">.</span><span class="n">rho_crit</span><span class="p">(</span>
-        <span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;Msol kpc^-3&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">lenunit</span> <span class="o">**</span> <span class="mi">3</span>
-    <span class="n">G_u</span> <span class="o">=</span> <span class="mf">4.4998712e-6</span>  <span class="c"># G in kpc^3 / Msol / Gyr^2</span>
+        <span class="n">sim</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;Msol kpc^-3&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">lenunit</span> <span class="o">**</span> <span class="mi">3</span>
+    <span class="n">G_u</span> <span class="o">=</span> <span class="mf">4.4998712e-6</span>  <span class="c1"># G in kpc^3 / Msol / Gyr^2</span>
     <span class="n">timeunit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">G_u</span> <span class="o">*</span> <span class="n">lenunit</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">/</span> <span class="n">massunit</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%e</span><span class="s"> kpc&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">),</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%e</span><span class="s"> Msol&#39;</span> <span class="o">%</span> <span class="n">massunit</span><span class="p">),</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%e</span><span class="s"> Gyr&#39;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%e</span><span class="s1"> kpc&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">),</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%e</span><span class="s1"> Msol&#39;</span> <span class="o">%</span> <span class="n">massunit</span><span class="p">),</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%e</span><span class="s1"> Gyr&#39;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span></div>
 
-</div>
-<div class="viewcode-block" id="convert_to_tipsy_fullbox"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_fullbox</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">write_param</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+
+<div class="viewcode-block" id="convert_to_tipsy_fullbox"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_fullbox">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_fullbox</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">write_param</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert RAMSES file `output` to tipsy format readable by pkdgrav</span>
 <span class="sd">    and Amiga Halo Finder. Does all unit conversions etc. into the</span>
@@ -425,110 +419,110 @@
 
     <span class="n">lenunit</span><span class="p">,</span> <span class="n">massunit</span><span class="p">,</span> <span class="n">timeunit</span> <span class="o">=</span> <span class="n">get_tipsy_units</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
-<span class="c">#    l_unit = Unit(&#39;%f kpc&#39;%lenunit)</span>
-<span class="c">#    t_unit = Unit(&#39;%f Gyr&#39;%timeunit)</span>
+<span class="c1">#    l_unit = Unit(&#39;%f kpc&#39;%lenunit)</span>
+<span class="c1">#    t_unit = Unit(&#39;%f Gyr&#39;%timeunit)</span>
     <span class="n">velunit</span> <span class="o">=</span> <span class="n">lenunit</span> <span class="o">/</span> <span class="n">timeunit</span>
 
-    <span class="n">tipsyfile</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">_fullbox.tipsy&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="n">tipsyfile</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_fullbox.tipsy&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
 
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">massunit</span><span class="p">)</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;temp&#39;</span><span class="p">]</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">massunit</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;temp&#39;</span><span class="p">]</span>
 
-    <span class="c"># get the appropriate tform</span>
+    <span class="c1"># get the appropriate tform</span>
     <span class="n">get_tform</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;metal&#39;</span><span class="p">]</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">lenunit</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">velunit</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-    <span class="n">s</span><span class="p">[</span><span class="s">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;metals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;metal&#39;</span><span class="p">]</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">lenunit</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="n">velunit</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;smooth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
 
-    <span class="c"># try to load the potential array -- if it&#39;s not there, make it zeroes</span>
+    <span class="c1"># try to load the potential array -- if it&#39;s not there, make it zeroes</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">s</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span>
+        <span class="n">s</span><span class="p">[</span><span class="s1">&#39;phi&#39;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="n">s</span><span class="p">[</span><span class="s">&#39;phi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">s</span><span class="p">[</span><span class="s1">&#39;phi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s">&#39;metal&#39;</span><span class="p">])</span>
-    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;smooth&#39;</span><span class="p">])</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="s1">&#39;metal&#39;</span><span class="p">])</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;smooth&#39;</span><span class="p">])</span>
 
-    <span class="n">s</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
-            <span class="n">tipsyfile</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="n">pynbody</span><span class="o">.</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="n">binary_aux_arrays</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+            <span class="n">tipsyfile</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="n">pynbody</span><span class="o">.</span><span class="n">tipsy</span><span class="o">.</span><span class="n">TipsySnap</span><span class="p">,</span> <span class="n">binary_aux_arrays</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">write_param</span><span class="p">:</span>
-        <span class="n">write_tipsy_param</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">tipsyfile</span><span class="p">)</span>
+        <span class="n">write_tipsy_param</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">tipsyfile</span><span class="p">)</span></div>
 
-</div>
+
 <div class="viewcode-block" id="write_tipsy_param"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.write_tipsy_param">[docs]</a><span class="k">def</span> <span class="nf">write_tipsy_param</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">tipsyfile</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Write a pkdgrav-readable parameter file for RAMSES snapshot</span>
 <span class="sd">    `sim` with the prefix `filename`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c"># determine units</span>
+    <span class="c1"># determine units</span>
     <span class="n">lenunit</span><span class="p">,</span> <span class="n">massunit</span><span class="p">,</span> <span class="n">timeunit</span> <span class="o">=</span> <span class="n">get_tipsy_units</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> km s^-1 Mpc^-1&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
-    <span class="n">l_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> kpc&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">)</span>
-    <span class="n">t_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> Gyr&#39;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> km s^-1 Mpc^-1&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
+    <span class="n">l_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> kpc&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">)</span>
+    <span class="n">t_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> Gyr&#39;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span>
     <span class="n">v_unit</span> <span class="o">=</span> <span class="n">l_unit</span> <span class="o">/</span> <span class="n">t_unit</span>
 
-    <span class="c"># write the param file</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">.param&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;dKpcUnit = </span><span class="si">%f</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;dMsolUnit = </span><span class="si">%e</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">massunit</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;dOmega0 = </span><span class="si">%f</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">])</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;dLambda = </span><span class="si">%f</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaL0&#39;</span><span class="p">])</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> km s^-1 Mpc^-1&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;dHubble0 = </span><span class="si">%f</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">h</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">v_unit</span> <span class="o">/</span> <span class="n">l_unit</span><span class="p">))</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;bComove = 1</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="c1"># write the param file</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.param&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;dKpcUnit = </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;dMsolUnit = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">massunit</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;dOmega0 = </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;omegaM0&#39;</span><span class="p">])</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;dLambda = </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;omegaL0&#39;</span><span class="p">])</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> km s^-1 Mpc^-1&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;dHubble0 = </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">h</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">v_unit</span> <span class="o">/</span> <span class="n">l_unit</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;bComove = 1</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
-</div>
+
 <div class="viewcode-block" id="write_ahf_input"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.write_ahf_input">[docs]</a><span class="k">def</span> <span class="nf">write_ahf_input</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">tipsyfile</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Write an input file that can be used by the `Amiga Halo Finder</span>
 <span class="sd">    &lt;http://popia.ft.uam.es/AHF/Download.html&gt;`_ with the</span>
 <span class="sd">    corresponding `tipsyfile` which is the `sim` in tipsy format.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c"># determine units</span>
+    <span class="c1"># determine units</span>
     <span class="n">lenunit</span><span class="p">,</span> <span class="n">massunit</span><span class="p">,</span> <span class="n">timeunit</span> <span class="o">=</span> <span class="n">get_tipsy_units</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> km s^-1 Mpc^-1&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
-    <span class="n">l_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> kpc&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">)</span>
-    <span class="n">t_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%f</span><span class="s"> Gyr&#39;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> km s^-1 Mpc^-1&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
+    <span class="n">l_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> kpc&#39;</span> <span class="o">%</span> <span class="n">lenunit</span><span class="p">)</span>
+    <span class="n">t_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%f</span><span class="s1"> Gyr&#39;</span> <span class="o">%</span> <span class="n">timeunit</span><span class="p">)</span>
     <span class="n">v_unit</span> <span class="o">=</span> <span class="n">l_unit</span> <span class="o">/</span> <span class="n">t_unit</span>
 
-    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">.AHF.input&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;[AHF]</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;ic_filename = </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;ic_filetype = 90</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;outfile_prefix = </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;LgridDomain = 256</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;LgridMax = 2097152</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;NperDomCell = 5</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;NperRefCell = 5</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;VescTune = 1.0</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;NminPerHalo = 50</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;RhoVir = 0</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Dvir = 200</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;MaxGatherRad = 1.0</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;[TIPSY]</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;TIPSY_BOXSIZE = </span><span class="si">%e</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;boxsize&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span>
-        <span class="s">&#39;Mpc&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;a&#39;</span><span class="p">]))</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;TIPSY_MUNIT   = </span><span class="si">%e</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">massunit</span> <span class="o">*</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;h&#39;</span><span class="p">]))</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;TIPSY_OMEGA0  = </span><span class="si">%f</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaM0&#39;</span><span class="p">])</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;TIPSY_LAMBDA0 = </span><span class="si">%f</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s">&#39;omegaL0&#39;</span><span class="p">])</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.AHF.input&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;[AHF]</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;ic_filename = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;ic_filetype = 90</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;outfile_prefix = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">tipsyfile</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;LgridDomain = 256</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;LgridMax = 2097152</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;NperDomCell = 5</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;NperRefCell = 5</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;VescTune = 1.0</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;NminPerHalo = 50</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;RhoVir = 0</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Dvir = 200</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;MaxGatherRad = 1.0</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;[TIPSY]</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;TIPSY_BOXSIZE = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;boxsize&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span>
+        <span class="s1">&#39;Mpc&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;TIPSY_MUNIT   = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">massunit</span> <span class="o">*</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;TIPSY_OMEGA0  = </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;omegaM0&#39;</span><span class="p">])</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;TIPSY_LAMBDA0 = </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;omegaL0&#39;</span><span class="p">])</span>
 
- <span class="c">#   velunit = Unit(&#39;%f cm&#39;%s._info[&#39;unit_l&#39;])/Unit(&#39;%f s&#39;%s._info[&#39;unit_t&#39;])</span>
+ <span class="c1">#   velunit = Unit(&#39;%f cm&#39;%s._info[&#39;unit_l&#39;])/Unit(&#39;%f s&#39;%s._info[&#39;unit_t&#39;])</span>
 
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;TIPSY_VUNIT   = </span><span class="si">%e</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
-            <span class="n">v_unit</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s">&#39;km s^-1 a&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;TIPSY_VUNIT   = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span>
+            <span class="n">v_unit</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="s1">&#39;km s^-1 a&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">()))</span>
 
-    <span class="c"># the thermal energy in K -&gt; km^2/s^2</span>
+    <span class="c1"># the thermal energy in K -&gt; km^2/s^2</span>
 
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;TIPSY_EUNIT   = </span><span class="si">%e</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
-        <span class="p">(</span><span class="n">pynbody</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">k</span> <span class="o">/</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">m_p</span><span class="p">)</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s">&#39;km^2 s^-2 K^-1&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.</span> <span class="o">/</span> <span class="mf">3.</span><span class="p">))</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;TIPSY_EUNIT   = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">pynbody</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">k</span> <span class="o">/</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">units</span><span class="o">.</span><span class="n">m_p</span><span class="p">)</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;km^2 s^-2 K^-1&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.</span> <span class="o">/</span> <span class="mf">3.</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
-</div>
-<div class="viewcode-block" id="get_tform"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tform">[docs]</a><span class="k">def</span> <span class="nf">get_tform</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="o">=</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="n">cpu_range</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_tform"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tform">[docs]</a><span class="k">def</span> <span class="nf">get_tform</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="o">=</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="n">cpu_range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Use `part2birth` to calculate the formation time of stars in</span>
 <span class="sd">    Gyr and **replaces** the original `tform` array.</span>
 
@@ -539,7 +533,7 @@
 <span class="sd">    **Optional Keywords:** </span>
 
 <span class="sd">    *part2birth_path:* by default, this is</span>
-<span class="sd">     $HOME/ramses/trunk/ramses/utils/f90/part2birth, as specified in</span>
+<span class="sd">     $HOME/ramses/utils/f90/part2birth, as specified in</span>
 <span class="sd">     `default_config.ini` in your pynbody install directory. You can</span>
 <span class="sd">     override this like so -- make a file called &quot;.pynbodyrc&quot; in your</span>
 <span class="sd">     home directory, and include</span>
@@ -553,65 +547,58 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">fromfile</span>
+    <span class="kn">from</span> <span class="nn">scipy.io</span> <span class="k">import</span> <span class="n">FortranFile</span>
 
     <span class="n">top</span> <span class="o">=</span> <span class="n">sim</span>
-    <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s">&#39;base&#39;</span><span class="p">):</span>
+    <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">):</span>
         <span class="n">top</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">base</span>
 
-    <span class="n">ncpu</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s">&#39;ncpu&#39;</span><span class="p">]</span>
-    <span class="n">nstar</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">ncpu</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s1">&#39;ncpu&#39;</span><span class="p">]</span>
 
-    <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+    <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
     <span class="n">done</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">filename</span>
-    <span class="k">if</span> <span class="n">parent_dir</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">parent_dir</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span><span class="p">:</span>
         <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">parent_dir</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent_dir</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent_dir</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">parent_dir</span> <span class="o">=</span> <span class="s">&#39;./&#39;</span>
+        <span class="n">parent_dir</span> <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
 
-    <span class="c"># RS - If we only load a subset of cpus, </span>
-    <span class="c"># we need to ensure we dont&#39; try to load </span>
-    <span class="c"># them all... </span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_range</span><span class="p">:</span> <span class="c"># means user hasn&#39;t specified a range: use all</span>
+    <span class="c1"># RS - If we only load a subset of cpus,</span>
+    <span class="c1"># we need to ensure we dont&#39; try to load</span>
+    <span class="c1"># them all...</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_range</span><span class="p">:</span> <span class="c1"># means user hasn&#39;t specified a range: use all</span>
         <span class="n">cpu_range</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cpu_range</span><span class="p">:</span>
-            <span class="k">continue</span><span class="p">;</span>
+            <span class="k">continue</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">/output_</span><span class="si">%s</span><span class="s">/birth_</span><span class="si">%s</span><span class="s">.out</span><span class="si">%05d</span><span class="s">&#39;</span> <span class="o">%</span>
-                     <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">birth_file</span> <span class="o">=</span> <span class="n">FortranFile</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/output_</span><span class="si">%s</span><span class="s1">/birth_</span><span class="si">%s</span><span class="s1">.out</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                     <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">os</span>
 
-            <span class="c"># birth_xxx doesn&#39;t exist, create it with ramses part2birth util</span>
-            <span class="c">#os.system(&quot;cd %s; mkdir birth;&quot; % (parent_dir))</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
-                <span class="n">exit_code</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="s">&#39;-inp&#39;</span><span class="p">,</span> <span class="s">&#39;output_</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">],</span>
-                                            <span class="n">stdout</span><span class="o">=</span><span class="n">fnull</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">fnull</span><span class="p">)</span>
-                <span class="c"># part2birth put the files in output_&lt;top._timestep_id&gt;</span>
-                <span class="c">#os.system(&quot;cd %s; mv output_%s/birth_%s.out%05d %sbirth/;&quot; %</span>
-                <span class="c">#          (parent_dir, top._timestep_id, top._timestep_id, i+1, parent_dir))</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">/output_</span><span class="si">%s</span><span class="s">/birth_</span><span class="si">%s</span><span class="s">.out</span><span class="si">%05d</span><span class="s">&#39;</span> <span class="o">%</span>
-                     <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span><span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="c1"># birth_xxx doesn&#39;t exist, create it with ramses part2birth util</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="s1">&#39;-inp&#39;</span><span class="p">,</span> <span class="s1">&#39;output_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">],</span>
+                                <span class="n">stdout</span><span class="o">=</span><span class="n">fnull</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">fnull</span><span class="p">)</span>
+            <span class="c1"># part2birth put the files in output_&lt;top._timestep_id&gt;</span>
+            <span class="n">birth_file</span> <span class="o">=</span> <span class="n">FortranFile</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/output_</span><span class="si">%s</span><span class="s1">/birth_</span><span class="si">%s</span><span class="s1">.out</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                     <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
 
-        <span class="n">n</span> <span class="o">=</span> <span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;i&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">n</span> <span class="o">//=</span> <span class="mi">8</span> <span class="c"># We want integer divide. This will work in py27 and py30+</span>
-            <span class="n">ages</span> <span class="o">=</span> <span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;d&#39;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-            <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">][</span><span class="n">done</span><span class="p">:</span><span class="n">done</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">new</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ages</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
-            <span class="n">done</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+        <span class="n">ages</span> <span class="o">=</span> <span class="n">birth_file</span><span class="o">.</span><span class="n">read_reals</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">][</span><span class="n">done</span><span class="p">:</span><span class="n">done</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">new</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ages</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
+        <span class="n">done</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s">&#39;Gyr&#39;</span>
+        <span class="n">birth_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;Gyr&#39;</span>
 
-    <span class="k">return</span> <span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s">&#39;tform&#39;</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">sim</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span></div>
 </pre></div>
 
     </div>
@@ -629,7 +616,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

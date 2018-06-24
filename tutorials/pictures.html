@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Pictures in Pynbody &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Pictures in Pynbody &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../index.html" />
-    <link rel="up" title="Pynbody Tutorials" href="tutorials.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Halos in Pynbody" href="halos.html" />
     <link rel="prev" title="Plotting Rotation Cuves" href="rotation_curve.html" />
 
@@ -65,12 +60,11 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -104,7 +98,7 @@
 <li><a class="reference internal" href="#temperature-slice">Temperature Slice</a></li>
 <li><a class="reference internal" href="#velocity-vectors">Velocity Vectors</a></li>
 <li><a class="reference internal" href="#multi-band-images-of-stars">Multi-band Images of Stars</a></li>
-<li><a class="reference internal" href="#creating-images-using-image">Creating images using <tt class="docutils literal"><span class="pre">image()</span></tt></a></li>
+<li><a class="reference internal" href="#creating-images-using-image">Creating images using <code class="docutils literal"><span class="pre">image()</span></code></a></li>
 <li><a class="reference internal" href="#common-issues">Common issues</a></li>
 </ul>
 </li>
@@ -117,11 +111,11 @@
               
                 
   <li>
-    <a href="rotation_curve.html" title="Previous Chapter: Plotting Rotation Cuves"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Plotting Rota...</span>
+    <a href="rotation_curve.html" title="Previous Chapter: Plotting Rotation Cuves"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Plotting Rota...</span>
     </a>
   </li>
   <li>
-    <a href="halos.html" title="Next Chapter: Halos in Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Halos in Pynbody &raquo;</span>
+    <a href="halos.html" title="Next Chapter: Halos in Pynbody"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Halos in Pynbody &raquo;</span>
     </a>
   </li>
               
@@ -147,29 +141,29 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="pictures-in-pynbody">
 <h1>Pictures in Pynbody<a class="headerlink" href="#pictures-in-pynbody" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="density-slice">
 <h2>Density Slice<a class="headerlink" href="#density-slice" title="Permalink to this headline">¶</a></h2>
-<p>The essential kind of image &#8211; a density slice:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<p>The essential kind of image – a density slice:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="c"># load the snapshot and set to physical units</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="c1"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
-<span class="c"># load the halos</span>
+<span class="c1"># load the halos</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
-<span class="c"># center on the largest halo and align the disk</span>
+<span class="c1"># center on the largest halo and align the disk</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="c">#create a simple slice of gas density</span>
-<span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s">&quot;g cm^-3&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;Greys&quot;</span><span class="p">)</span>
+<span class="c1">#create a simple slice of gas density</span>
+<span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s2">&quot;rho&quot;</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s2">&quot;g cm^-3&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;Greys&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>(<a class="reference external" href="../tutorials/example_code/density_slice.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/density_slice.png">png</a>, <a class="reference external" href="../tutorials/example_code/density_slice.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/density_slice.pdf">pdf</a>)</p>
@@ -180,22 +174,22 @@
 <div class="section" id="integrated-density">
 <h2>Integrated Density<a class="headerlink" href="#integrated-density" title="Permalink to this headline">¶</a></h2>
 <p>Line-of-sight averaged density map:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="c"># load the snapshot and set to physical units</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="c1"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
-<span class="c"># load the halos</span>
+<span class="c1"># load the halos</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
-<span class="c"># center on the largest halo and align the disk</span>
+<span class="c1"># center on the largest halo and align the disk</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="c">#create an image of gas density integrated down the line of site (z axis)</span>
-<span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&quot;rho&quot;</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s">&quot;g cm^-2&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;Greys&quot;</span><span class="p">)</span>
+<span class="c1">#create an image of gas density integrated down the line of site (z axis)</span>
+<span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s2">&quot;rho&quot;</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s2">&quot;g cm^-2&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;Greys&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>(<a class="reference external" href="../tutorials/example_code/density_integrated.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/density_integrated.png">png</a>, <a class="reference external" href="../tutorials/example_code/density_integrated.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/density_integrated.pdf">pdf</a>)</p>
@@ -207,22 +201,22 @@
 <h2>Temperature Slice<a class="headerlink" href="#temperature-slice" title="Permalink to this headline">¶</a></h2>
 <p>Simple example for displaying a slice of some other quantity (Temperature
 in this case)</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="c"># load the snapshot and set to physical units</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="c1"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
-<span class="c"># load the halos</span>
+<span class="c1"># load the halos</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
-<span class="c"># center on the largest halo and align the disk</span>
+<span class="c1"># center on the largest halo and align the disk</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="c">#create a simple slice showing the gas temperature</span>
-<span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;YlOrRd&quot;</span><span class="p">,</span> <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="c1">#create a simple slice showing the gas temperature</span>
+<span class="n">sph</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="n">qty</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;YlOrRd&quot;</span><span class="p">,</span> <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>(<a class="reference external" href="../tutorials/example_code/temperature_slice.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/temperature_slice.png">png</a>, <a class="reference external" href="../tutorials/example_code/temperature_slice.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/temperature_slice.pdf">pdf</a>)</p>
@@ -234,66 +228,59 @@ in this case)</p>
 <h2>Velocity Vectors<a class="headerlink" href="#velocity-vectors" title="Permalink to this headline">¶</a></h2>
 <p>It is also straightforward to obtain an image with velocity
 vectors or flow lines overlaid:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">pynbody.plot.sph</span> <span class="kn">as</span> <span class="nn">sph</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="c"># load the snapshot and set to physical units</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="c1"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
-<span class="c"># load the halos</span>
+<span class="c1"># load the halos</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
-<span class="c"># center on the largest halo and align the disk</span>
+<span class="c1"># center on the largest halo and align the disk</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="c"># create the subplots</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="c1"># create the subplots</span>
 <span class="n">f</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
 
-<span class="c">#create a simple slice showing the gas temperature, with velocity vectors overlaid</span>
-<span class="n">sph</span><span class="o">.</span><span class="n">velocity_image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&quot;cyan&quot;</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s">&quot;YlOrRd&quot;</span><span class="p">,</span>
-                   <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">subplot</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">show_cbar</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span>
-                   <span class="n">quiverkey</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="c1">#create a simple slice showing the gas temperature, with velocity vectors overlaid</span>
+<span class="n">sph</span><span class="o">.</span><span class="n">velocity_image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s2">&quot;cyan&quot;</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;YlOrRd&quot;</span><span class="p">,</span>
+                   <span class="n">denoise</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span><span class="n">approximate_fast</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">subplot</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">show_cbar</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
 
-<span class="c">#you can also make a stream visualization instead of a quiver plot</span>
+<span class="c1">#you can also make a stream visualization instead of a quiver plot</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">s</span><span class="p">[</span><span class="s">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s">&#39;Mpc&#39;</span><span class="p">)</span>
-<span class="n">sph</span><span class="o">.</span><span class="n">velocity_image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s">&#39;3 Mpc&#39;</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="s">&quot;Greys_r&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;stream&#39;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s">&#39;Msol kpc^-2&#39;</span><span class="p">,</span>
+<span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;Mpc&#39;</span><span class="p">)</span>
+<span class="n">sph</span><span class="o">.</span><span class="n">velocity_image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s1">&#39;3 Mpc&#39;</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="s2">&quot;Greys_r&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;stream&#39;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;Msol kpc^-2&#39;</span><span class="p">,</span>
                    <span class="n">density</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">vector_resolution</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span><span class="n">subplot</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                   <span class="n">show_cbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s">&#39;black&#39;</span><span class="p">)</span>
+                   <span class="n">show_cbar</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">vector_color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>(<a class="reference external" href="../tutorials/example_code/velocity_vectors.py">Source code</a>)</p>
+<p>(<a class="reference external" href="../tutorials/example_code/velocity_vectors.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors.pdf">pdf</a>)</p>
 <div class="figure">
-<img alt="../_images/velocity_vectors_00.png" src="../_images/velocity_vectors_00.png" />
-<p class="caption">(<a class="reference external" href="../tutorials/example_code/velocity_vectors_00.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_00.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_00.pdf">pdf</a>)</p>
-</div>
-<div class="figure">
-<img alt="../_images/velocity_vectors_01.png" src="../_images/velocity_vectors_01.png" />
-<p class="caption">(<a class="reference external" href="../tutorials/example_code/velocity_vectors_01.png">png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_01.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/velocity_vectors_01.pdf">pdf</a>)</p>
+<img alt="../_images/velocity_vectors.png" src="../_images/velocity_vectors.png" />
 </div>
 </div>
 <div class="section" id="multi-band-images-of-stars">
 <h2>Multi-band Images of Stars<a class="headerlink" href="#multi-band-images-of-stars" title="Permalink to this headline">¶</a></h2>
 <p>You can create visualizations of the stellar distribution using
 synthetic colors in a variety of bands:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="c"># load the snapshot and set to physical units</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
+<span class="c1"># load the snapshot and set to physical units</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 <span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
-<span class="c"># load the halos</span>
+<span class="c1"># load the halos</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
-<span class="c"># center on the largest halo and align the disk</span>
+<span class="c1"># center on the largest halo and align the disk</span>
 <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-<span class="c">#create an image using the default bands (i, v, u)</span>
-<span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">stars</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="s">&#39;20 kpc&#39;</span><span class="p">)</span>
+<span class="c1">#create an image using the default bands (i, v, u)</span>
+<span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">stars</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="s1">&#39;20 kpc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>(<a class="reference external" href="../tutorials/example_code/star_render.py">Source code</a>, <a class="reference external" href="../tutorials/example_code/star_render.png">png</a>, <a class="reference external" href="../tutorials/example_code/star_render.hires.png">hires.png</a>, <a class="reference external" href="../tutorials/example_code/star_render.pdf">pdf</a>)</p>
@@ -302,44 +289,44 @@ synthetic colors in a variety of bands:</p>
 </div>
 </div>
 <div class="section" id="creating-images-using-image">
-<h2>Creating images using <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> function is a general purpose function
-for creating an x-y map of a value from your <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><tt class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></tt></a>
+<h2>Creating images using <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><code class="xref py py-func docutils literal"><span class="pre">image()</span></code></a><a class="headerlink" href="#creating-images-using-image" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><code class="xref py py-func docutils literal"><span class="pre">image()</span></code></a> function is a general purpose function
+for creating an x-y map of a value from your <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-func docutils literal"><span class="pre">SimSnap()</span></code></a>
 object. Under the hood, the function calls one two SPH kernels (written in c)
-to calculate the intensity values of whatever value you&#8217;re plotting - a 2d
+to calculate the intensity values of whatever value you’re plotting - a 2d
 kernel for integrated maps, and a 3d kernel for slices. Both kernels require
 the use of a kd-tree to perform an SPH smooth, so you will notice that the
-first time <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is called, it creates a kd-tree.
+first time <a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><code class="xref py py-func docutils literal"><span class="pre">image()</span></code></a> is called, it creates a kd-tree.
 Subsequent calls on the same data set should use the already created tree,
 and thus should be faster.</p>
-<p><a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> returns an x,y array representing pixel
+<p><a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><code class="xref py py-func docutils literal"><span class="pre">image()</span></code></a> returns an x,y array representing pixel
 intensity. The function also displays the image with automatically created
 axes and a colorbar. However, one can use the x-y array and <a class="reference external" href="http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow">plt.imshow()</a>
 (how do I link to matplotlib functions?) to create your own plot.</p>
 </div>
 <div class="section" id="common-issues">
 <h2>Common issues<a class="headerlink" href="#common-issues" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><tt class="xref py py-func docutils literal"><span class="pre">image()</span></tt></a> is prone to a number of common errors
+<p><a class="reference internal" href="../reference/plot.html#pynbody.plot.sph.image" title="pynbody.plot.sph.image"><code class="xref py py-func docutils literal"><span class="pre">image()</span></code></a> is prone to a number of common errors
 when being used by new users. Probably the most common is</p>
-<div class="highlight-python"><div class="highlight"><pre>ValueError: zero-size array to minimum.reduce without identity
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="ne">ValueError</span><span class="p">:</span> <span class="n">zero</span><span class="o">-</span><span class="n">size</span> <span class="n">array</span> <span class="n">to</span> <span class="n">minimum</span><span class="o">.</span><span class="n">reduce</span> <span class="n">without</span> <span class="n">identity</span>
 </pre></div>
 </div>
 <p>This can come about in a number of circumstances, but essentially it
 means that there were not enough particles in the region that was being
 plotted. It could be due to no/bad centering, passing in a very small/empty
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><tt class="xref py py-func docutils literal"><span class="pre">SubSnap()</span></tt></a> object, or bad units (units being an issue should
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-func docutils literal"><span class="pre">SubSnap()</span></code></a> object, or bad units (units being an issue should
 no longer be an issue. In older versions of pynbody, the width parameter
-assumed kpc, so if the simulation distances were in e.g. &#8220;au&#8221;, this could
+assumed kpc, so if the simulation distances were in e.g. “au”, this could
 cause a problem).</p>
 <p>Another common error is the following:</p>
-<div class="highlight-python"><div class="highlight"><pre>TypeError: &#39;int&#39; object does not support item assignment
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="ne">TypeError</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span> <span class="nb">object</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">support</span> <span class="n">item</span> <span class="n">assignment</span>
 </pre></div>
 </div>
 <p>which occurs when the returned image from the kernel is a singular value
 rather than an array. In this case, the issue was because the kernel did
 not complete because of attempting to plot a value for the whole
-<tt class="xref py py-func docutils literal"><span class="pre">Snapshot()</span></tt> object rather than a specific family (such
-as gas). In this case, the &#8220;smooth&#8221; array needed to be deleted before another
+<code class="xref py py-func docutils literal"><span class="pre">Snapshot()</span></code> object rather than a specific family (such
+as gas). In this case, the “smooth” array needed to be deleted before another
 image could be produced because SPH needed to resmooth with the new dark and
 star particles.</p>
 </div>
@@ -358,14 +345,14 @@ star particles.</p>
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/tutorials/pictures.txt"
+  <a href="../_sources/tutorials/pictures.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

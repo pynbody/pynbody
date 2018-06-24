@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>pynbody.family &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>pynbody.family &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
@@ -26,10 +21,10 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="../../index.html" />
-    <link rel="up" title="Module code" href="../index.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -63,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -125,10 +119,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <h1>Source code for pynbody.family</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">family</span>
 <span class="sd">======</span>
@@ -147,13 +141,13 @@
 
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">config_parser</span>
 
 
 <span class="n">_registry</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<div class="viewcode-block" id="family_names"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.family.family_names">[docs]</a><span class="k">def</span> <span class="nf">family_names</span><span class="p">(</span><span class="n">with_aliases</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="family_names"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.family.family_names">[docs]</a><span class="k">def</span> <span class="nf">family_names</span><span class="p">(</span><span class="n">with_aliases</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a list of the names of all particle families.</span>
 <span class="sd">    If with_aliases is True, include aliases in the list.&quot;&quot;&quot;</span>
 
@@ -164,10 +158,10 @@
         <span class="k">if</span> <span class="n">with_aliases</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">aliases</span><span class="p">:</span>
                 <span class="n">l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">l</span>
+    <span class="k">return</span> <span class="n">l</span></div>
 
-</div>
-<div class="viewcode-block" id="get_family"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.family.get_family">[docs]</a><span class="k">def</span> <span class="nf">get_family</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_family"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.family.get_family">[docs]</a><span class="k">def</span> <span class="nf">get_family</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a family corresponding to the specified string.  If the</span>
 <span class="sd">    family does not exist and create is False, raises ValueError. If</span>
 <span class="sd">    the family does not exist and create is True, an appropriate</span>
@@ -177,8 +171,8 @@
         <span class="k">return</span> <span class="n">name</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="c"># or should it check and raise rather than just convert?</span>
-    <span class="c"># Not sure.</span>
+    <span class="c1"># or should it check and raise rather than just convert?</span>
+    <span class="c1"># Not sure.</span>
     <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">_registry</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">n</span><span class="o">.</span><span class="n">aliases</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">n</span>
@@ -187,39 +181,39 @@
         <span class="k">return</span> <span class="n">Family</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span>
-                         <span class="s">&quot; not a family&quot;</span><span class="p">)</span>  <span class="c"># is ValueError the right thing here?</span>
+                         <span class="s2">&quot; not a family&quot;</span><span class="p">)</span>  <span class="c1"># is ValueError the right thing here?</span></div>
 
-</div>
+
 <span class="k">class</span> <span class="nc">Family</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">aliases</span><span class="o">=</span><span class="p">[]):</span>
         <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Family names must be lower case&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">family_names</span><span class="p">(</span><span class="n">with_aliases</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Family name &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot; is not unique&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Family names must be lower case&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">family_names</span><span class="p">(</span><span class="n">with_aliases</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Family name &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not unique&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">aliases</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">a</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Aliases must be lower case&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Aliases must be lower case&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">aliases</span> <span class="o">=</span> <span class="n">aliases</span>
         <span class="n">_registry</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;&lt;Family &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s">&quot;&gt;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;Family &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;&gt;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">get_family</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">True</span><span class="p">),</span> <span class="p">{</span><span class="s">&quot;aliases&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">aliases</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">get_family</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;aliases&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">aliases</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c"># Provided so a single family can be treated as a list of families</span>
+        <span class="c1"># Provided so a single family can be treated as a list of families</span>
         <span class="k">yield</span> <span class="bp">self</span>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
     <span class="k">def</span> <span class="nf">__cmp__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="c"># for python 2.x</span>
+        <span class="c1"># for python 2.x</span>
         <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
@@ -235,13 +229,13 @@
     <span class="n">Family</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">total_ordering</span><span class="p">(</span><span class="n">Family</span><span class="p">)</span>
 
 
-<span class="c"># Instantiate the default families as specified</span>
-<span class="c"># by the configuration file</span>
+<span class="c1"># Instantiate the default families as specified</span>
+<span class="c1"># by the configuration file</span>
 
 <span class="n">g</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()</span>
-<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s">&#39;families&#39;</span><span class="p">):</span>
-    <span class="n">aliases</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;families&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
-    <span class="n">g</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">Family</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">aliases</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)))</span>
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;families&#39;</span><span class="p">):</span>
+    <span class="n">aliases</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;families&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+    <span class="n">g</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">Family</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">aliases</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)))</span>
 </pre></div>
 
     </div>
@@ -259,7 +253,7 @@
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>

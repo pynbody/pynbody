@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Code-specific loaders &mdash; pynbody 0.42 documentation</title>
-    
-    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootswatch-3.1.0/spacelab/bootstrap.min.css" type="text/css" />
+    <title>Code-specific loaders &#8212; pynbody 0.45 documentation</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
-    
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.42',
+        VERSION:     '0.45',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
@@ -26,9 +21,10 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="pynbody 0.42 documentation" href="index.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
 
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
@@ -62,12 +58,11 @@
         </button>
         <a class="navbar-brand" href="index.html">
           pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.42</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
-            <li class="divider-vertical"></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -135,7 +130,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 content">
       
   <div class="section" id="code-specific-loaders">
 <span id="loaders"></span><h1>Code-specific loaders<a class="headerlink" href="#code-specific-loaders" title="Permalink to this headline">¶</a></h1>
@@ -166,14 +161,14 @@ these have the same capabilities; see below.</p>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>Gadget</td>
 <td>Yes</td>
 <td>No <a class="footnote-reference" href="#id8" id="id1">[1]</a></td>
 <td>Yes</td>
 <td>Yes</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-even"><td>GadgetHDF</td>
 <td>Yes</td>
@@ -194,7 +189,7 @@ these have the same capabilities; see below.</p>
 <td>Yes</td>
 <td>No</td>
 <td>No</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
 </tr>
 <tr class="row-odd"><td>GrafIC</td>
 <td>Yes</td>
@@ -214,15 +209,15 @@ CPU outputs. For instance if you wish to load CPU 3 data only, in
 <cite>Gadget</cite> or <cite>GadgetHDF</cite>, you simply ask to load the
 specific file <cite>my_snapshot.003</cite> instead of the imaginary file
 <cite>my_snapshot</cite>. In <cite>Ramses</cite>, you add <cite>cpus=[3]</cite> to your load
-command, e.g. <tt class="docutils literal"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">cpus=[3])</span></tt>.</td></tr>
+command, e.g. <code class="docutils literal"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">cpus=[3])</span></code>.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id9" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id3">[2]</a></td><td>Requires the <cite>h5py</cite> python module. You can determine whether
-you have this by typing <tt class="docutils literal"><span class="pre">import</span> <span class="pre">h5py</span></tt> into python. If you don&#8217;t
-get an error, you have it. If you don&#8217;t have it, see here
+you have this by typing <code class="docutils literal"><span class="pre">import</span> <span class="pre">h5py</span></code> into python. If you don’t
+get an error, you have it. If you don’t have it, see here
 &lt;<a class="reference external" href="http://www.h5py.org">http://www.h5py.org</a>&gt;</td></tr>
 </tbody>
 </table>
@@ -233,7 +228,7 @@ get an error, you have it. If you don&#8217;t have it, see here
 one at the centre of each maximally refined cell. You can ask to
 generate the particles at a higher level of refinement by passing
 in a <cite>maxlevel</cite> argument. For example,
-<tt class="docutils literal"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">maxlevel=10)</span></tt> will place gas
+<code class="docutils literal"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">maxlevel=10)</span></code> will place gas
 particles at refinement level 10 or (numerically) lower.</td></tr>
 </tbody>
 </table>
@@ -244,20 +239,20 @@ particles at refinement level 10 or (numerically) lower.</td></tr>
 parallel loading facility, which splits the task of loading the
 multiple files and decoding the awkward format across multiple
 processes. To do this, you need to install the <a class="reference external" href="http://semanchuk.com/philip/posix_ipc/">posix_ipc</a> module which should be
-as simple as typing <tt class="docutils literal"><span class="pre">easy_install</span> <span class="pre">posix_ipc</span></tt> into your
-shell. See also important notes on <a class="reference internal" href="tutorials/threads.html#posix-ipc"><em>Parallel ramses reader support</em></a>.</td></tr>
+as simple as typing <code class="docutils literal"><span class="pre">easy_install</span> <span class="pre">posix_ipc</span></code> into your
+shell. See also important notes on <a class="reference internal" href="tutorials/threads.html#posix-ipc"><span class="std std-ref">Parallel ramses reader support</span></a>.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id12" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id7">[5]</a></td><td>These are initial conditions generated by Bertschinger&#8217;s
-<a class="reference external" href="http://web.mit.edu/edbert/">GrafIC</a> or Prunet et al&#8217;s <a class="reference external" href="ftp://ftp.iap.fr/pub/from_users/prunet">MPGrafIC</a>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id7">[5]</a></td><td>These are initial conditions generated by Bertschinger’s
+<a class="reference external" href="http://web.mit.edu/edbert/">GrafIC</a> or Prunet et al’s <a class="reference external" href="ftp://ftp.iap.fr/pub/from_users/prunet">MPGrafIC</a>.</td></tr>
 </tbody>
 </table>
 <p>The end-user rarely needs to worry about the implementation of
 different loaders, as all types of simulations are loaded with
-<tt class="xref py py-func docutils literal"><span class="pre">pynbody.load()</span></tt> and the type is determined automatically.</p>
+<code class="xref py py-func docutils literal"><span class="pre">pynbody.load()</span></code> and the type is determined automatically.</p>
 <span class="target" id="module-pynbody.snapshot.tipsy"></span><div class="section" id="tipsy">
 <h2>tipsy<a class="headerlink" href="#tipsy" title="Permalink to this headline">¶</a></h2>
 <p>Implements classes and functions for handling tipsy files.  You rarely
@@ -286,8 +281,8 @@ to the mappings specified by the config.ini section [gadgethdf-type-mapping].
 This can be many-to-one (many gadget particle types mapping into one
 pynbody family), but only datasets which are common to all gadget types
 will be available from pynbody.</p>
-<p>Spanned files are supported. To load a range of files snap.0, snap.1, ... snap.n,
-pass the filename &#8216;snap&#8217;. If you pass snap.0, only that particular file will
+<p>Spanned files are supported. To load a range of files snap.0, snap.1, … snap.n,
+pass the filename ‘snap’. If you pass snap.0, only that particular file will
 be loaded.</p>
 </div>
 <span class="target" id="module-pynbody.snapshot.nchilada"></span><div class="section" id="nchilada">
@@ -323,14 +318,14 @@ the <a class="reference external" href="http://nbviewer.ipython.org/github/pynbo
         <br/>
         
 <div id="sourcelink">
-  <a href="_sources/loaders.txt"
+  <a href="_sources/loaders.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
     </p>
     <p>
         &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
     </p>
   </div>
 </footer>
