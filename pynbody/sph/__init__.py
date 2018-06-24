@@ -561,7 +561,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
 
     if 'boxsize' in snap.properties:
-        boxsize = snap.properties['boxsize'].in_units(snap_proxy['x'].units)
+        boxsize = snap.properties['boxsize'].in_units(snap_proxy['x'].units,**snap.conversion_context())
     else:
         boxsize = None
 
