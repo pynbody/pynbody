@@ -57,17 +57,15 @@ interactive plotting environment:
 
   [user@domain ~]$ ipython --pylab
 
-  Python 2.7.2 |EPD 7.1-2 (64-bit)| (default, Jul 27 2011, 14:50:45)
+  Python 2.7.14 |Anaconda custom (64-bit)| (default, Oct  5 2017, 02:28:52)
   Type "copyright", "credits" or "license" for more information.
 
-  IPython 0.13.1 -- An enhanced Interactive Python.
+  IPython 5.4.1 -- An enhanced Interactive Python.
   ?         -> Introduction and overview of IPython's features.
   %quickref -> Quick reference.
   help      -> Python's own help system.
   object?   -> Details about 'object', use 'object??' for extra details.
-
-  Welcome to pylab, a matplotlib-based Python environment [backend: MacOSX].
-  For more information, type 'help(pylab)'.
+  Using matplotlib backend: MacOSX
 
   In [1]:
 
@@ -80,7 +78,7 @@ Now we can get started with the analysis.
  will also need the standard `pynbody` test files, so that you can
  load the exact same data as used to write the tutorial. You need to
  download these separately here:
- <https://github.com/pynbody/pynbody/releases>
+ <http://star.ucl.ac.uk/~app/testdata.tar.gz>
  (`testdata.tar.gz`). You can then extract them in a directory of your
  choice with ``tar -zxvf testdata.tar.gz``
 
@@ -96,6 +94,8 @@ halo) to analyze its contents.
 .. ipython::
 
  In [1]: import pynbody
+
+ In [1]: import pylab
 
  In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
 
@@ -160,13 +160,15 @@ notice halo 1 doesn't move at all.
 
  In [4]: print(h[5]['pos'][0])
 
- In [4]: my_h5_transform = pynbody.analysis.halo.center(h[5], mode='hyb', move_all=False)
+ In [4]: h5 = h[5]
+
+ In [4]: my_h5_transform = pynbody.analysis.halo.center(h5, mode='hyb', move_all=False)
 
  In [4]: print(h[1]['pos'][0]) # should be unchanged
 
- In [4]: print(h[5]['pos'][0]) # should be changed
+ In [4]: print(h5['pos'][0]) # should be changed
 
-Note however that the data inside ``h[5]`` (or any halo) just *points*
+Note however that the data inside ``h5`` (or any halo) just *points*
 to a subset of the data in the full simulation. So you now have an
 inconsistent state where part of the simulation has been translated
 and the rest of it is where it started out. For that reason, functions
@@ -177,7 +179,7 @@ allows you to undo the operation:
 
  In [5]: my_h5_transform.revert()
 
- In [5]: print(h[5]['pos'][0]) # back to where it started
+ In [5]: print(h5['pos'][0]) # back to where it started
 
  In [5]: print(h[1]['pos'][0]) # still hasn't changed, of course
 
@@ -246,7 +248,7 @@ units first:
  In [5]: s.physical_units()
 
  @savefig snapshot_manipulation_fig1.png width=5in
- In [9]: pynbody.plot.image(h1.g, width=100, cmap='Blues');
+ In [9]: pynbody.plot.image(h1.g, width=100, cmap='Blues')
 
 Here's a slightly more complicated example showing the larger-scale
 dark-matter distribution -- note that you can conveniently specify the
@@ -321,24 +323,22 @@ In the face-on orientation, we may wish to make a profile of the stars:
 
  In [23]: ps = pynbody.analysis.profile.Profile(h1.s, min = 0.01, max = 50, type = 'log')
 
- In [25]: import matplotlib.pylab as plt
+ In [25]: pylab.clf()
 
- In [25]: plt.clf()
+ In [25]: pylab.plot(ps['rbins'], ps['density']);
 
- In [25]: plt.plot(ps['rbins'], ps['density']);
+ In [26]: pylab.semilogy();
 
- In [26]: plt.semilogy();
-
- In [28]: plt.xlabel('$R$ [kpc]');
+ In [28]: pylab.xlabel('$R$ [kpc]');
 
  @savefig snapshot_manipulation_fig3.png width=5in
- In [29]: plt.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]');
+ In [29]: pylab.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]');
 
 We can also generate other profiles, like the rotation curve:
 
 .. ipython::
 
- In [1]: plt.figure()
+ In [1]: pylab.figure()
 
  In [1]: pd = pynbody.analysis.profile.Profile(h1.d,min=.01,max=50, type = 'log')
 
@@ -346,14 +346,14 @@ We can also generate other profiles, like the rotation curve:
 
  In [3]: p = pynbody.analysis.profile.Profile(h1,min=.01,max=50, type = 'log')
 
- In [4]: for prof, name in zip([p,pd,ps,pg],['total','dm','stars','gas']) : plt.plot(prof['rbins'],prof['v_circ'],label=name)
+ In [4]: for prof, name in zip([p,pd,ps,pg],['total','dm','stars','gas']) : pylab.plot(prof['rbins'],prof['v_circ'],label=name)
 
- In [5]: plt.xlabel('$R$ [kpc]');
+ In [5]: pylab.xlabel('$R$ [kpc]');
 
- In [6]: plt.ylabel('$v_{circ}$ [km/s]');
+ In [6]: pylab.ylabel('$v_{circ}$ [km/s]');
 
  @savefig vcirc_profiles.png width=5in
- In [5]: plt.legend()
+ In [5]: pylab.legend()
 
 See the :doc:`profile` tutorial or the
 :class:`~pynbody.analysis.profile.Profile` documentation for more
