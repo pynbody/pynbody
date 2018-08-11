@@ -33,7 +33,12 @@ The full documentation can be found
 
 ### Contributing 
 
-Help us make *pynbody* better! As you develop clever new analysis for your science with pynbody, consider making your code available for everyone else to use. You can do this by creating a [tutorial](http://pynbody.github.io/pynbody/tutorials/tutorials.html) or [cookbook](http://pynbody.github.io/pynbody/tutorials/tutorials.html#cookbook-recipes) or by adding your code to the relevant sub-module and submitting a pull request (make a fork first -- see https://help.github.com/articles/using-pull-requests). 
+Help us make *pynbody* better! As you develop analysis for your science with pynbody, consider making your code available for everyone else to use. You can do this by creating a [tutorial](http://pynbody.github.io/pynbody/tutorials/tutorials.html) or [cookbook](http://pynbody.github.io/pynbody/tutorials/tutorials.html#cookbook-recipes) or by adding your code to the relevant sub-module and submitting a pull request (make a fork first -- see https://help.github.com/articles/using-pull-requests). 
+
+
+### Acknowledging the code
+
+When using pynbody, please acknowledge it by citing the [Astrophysics Source Code Library entry](http://adsabs.harvard.edu/abs/2013ascl.soft05002P). Optionally you can also cite the Zenodo DOI for the specific version of pynbody that you are using (since 0.45), which may be found [here](https://doi.org/10.5281/zenodo.1297087).
 
 ### Support and Contact 
 
