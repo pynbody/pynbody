@@ -602,9 +602,21 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
     """Reads Eagle-like HDF snapshots (download at http://data.cosma.dur.ac.uk:8080/eagle-snapshots/)"""
     _readable_hdf5_test_key = "PartType0/SubGroupNumber"
 
-    def halos(self, subs=False):
+    def halos(self, subs=None):
+        """Load the Eagle FOF halos, or if subs is specified the Subhalos of the given FOF halo number.
+
+        *subs* should be an integer specifying the parent FoF number"""
         if subs:
-            return halo.GrpCatalogue(self, array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
+            if not np.issubdtype(type(subs), np.integer):
+                raise ValueError("The subs argument must specify the group number")
+            parent_group = self[self['GroupNumber']==subs]
+            if len(parent_group)==0:
+                raise ValueError("No group found with id %d"%subs)
+
+            cat = halo.GrpCatalogue(parent_group,
+                                     array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
+            cat._keep_subsnap_alive = parent_group # by default, HaloCatalogue only keeps a weakref (should this be changed?)
+            return cat
         else:
             return halo.GrpCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
 
