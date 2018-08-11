@@ -97,6 +97,21 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     Gadget's SubFind Halo catalogue -- used in concert with :class:`~SubFindHDFSnap`
     """
 
+    # Names of various groups and attributes in the hdf file (which seemingly may vary in different versions of SubFind?)
+
+    _fof_name = 'FOF'
+    _subfind_name = 'SUBFIND'
+    _subfind_grnr_name = 'GrNr'
+    _subfind_first_gr_name = 'FirstSubOfHalo'
+
+    _numgrps_name = 'Total_Number_of_groups'
+    _numsubs_name = 'Total_Number_of_subgroups'
+
+    _grp_offset_name = 'Offset'
+    _grp_len_name = 'Length'
+
+    _sub_offset_name = 'SUB_Offset'
+    _sub_len_name = 'SUB_Length'
 
     def __init__(self, sim) :
         super(SubFindHDFHaloCatalogue,self).__init__(sim)
@@ -121,8 +136,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def __init_halo_properties(self):
         self.__init_ignorable_keys()
-        self._fof_properties = self.__get_property_dictionary_from_hdf('FOF')
-        self._sub_properties = self.__get_property_dictionary_from_hdf('SUBFIND')
+        self._fof_properties = self.__get_property_dictionary_from_hdf(self._fof_name)
+        self._sub_properties = self.__get_property_dictionary_from_hdf(self._subfind_name)
 
 
     def __get_property_dictionary_from_hdf(self, hdf_key):
@@ -146,7 +161,6 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 props[property_key].sim = sim
 
         return props
-
 
 
     def __reshape_multidimensional_properties(self):
@@ -180,22 +194,21 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             self._fof_properties[reassign_i] = self._sub_properties[reassign_i]
             del self._sub_properties[reassign_i]
 
-
     def __init_subhalo_relationships(self):
-
         nsub = 0
         nfof = 0
+        self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
+        self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
         for h in self.base._hdf_files.iterroot():
-            parent_groups = h['SUBFIND']['GrNr']
+            parent_groups = h[self._subfind_name][self._subfind_grnr_name]
             self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups
             nsub += len(parent_groups)
 
-            first_groups = h['SUBFIND']['FirstSubOfHalo']
+            first_groups = h[self._subfind_name][self._subfind_first_gr_name]
             self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups
             nfof += len(first_groups)
 
     def __init_halo_offset_data(self):
-
         hdf0 = self.base._hdf_files.get_file0_root()
 
         self._fof_group_offsets = {}
@@ -203,10 +216,9 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self._subfind_halo_offsets = {}
         self._subfind_halo_lengths = {}
 
-        self.ngroups = hdf0['FOF'].attrs['Total_Number_of_groups']
-        self.nsubhalos = hdf0['FOF'].attrs['Total_Number_of_subgroups']
-        self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
-        self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
+        self.ngroups = hdf0[self._fof_name].attrs[self._numgrps_name]
+        self.nsubhalos = hdf0[self._fof_name].attrs[self._numsubs_name]
+
         for fam in self.base._families_ordered():
             ptypes = self.base._family_to_group_map[fam]
             for ptype in ptypes:
@@ -220,15 +232,15 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
                 for h in self.base._hdf_files:
                     # fof groups
-                    offset = h[ptype]['Offset']
-                    length = h[ptype]['Length']
+                    offset = h[ptype][self._grp_offset_name]
+                    length = h[ptype][self._grp_len_name]
                     self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
                     self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
                     curr_groups += len(offset)
 
                     # subfind subhalos
-                    offset = h[ptype]['SUB_Offset']
-                    length = h[ptype]['SUB_Length']
+                    offset = h[ptype][self._sub_offset_name]
+                    length = h[ptype][self._sub_len_name]
                     self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
                     self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
                     curr_subhalos += len(offset)
@@ -268,8 +280,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
 
     def __len__(self) :
-        return self.base._hdf_files[0].attrs['Total_Number_of_groups']
-
+        return self.base._hdf_files[0].attrs[self._numgrps_name]
 
     @property
     def base(self):
