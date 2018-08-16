@@ -172,6 +172,12 @@ class GrpCatalogue(HaloCatalogue):
     belong to which group.
     """
     def __init__(self, sim, array='grp', ignore=None, **kwargs):
+        """Construct a GrpCatalogue, extracting halos based on a simulation-wide integer array with their IDs
+
+        *sim* - the SimSnap for which the halos will be constructed
+        *array* - the name of the array which should be present, loadable or derivable across the simulation
+        *ignore* - a special value indicating "no halo", or None if no such special value is defined
+        """
         sim[array] # trigger lazy-loading and/or kick up a fuss if unavailable
         self._halos = {}
         self._array = array
