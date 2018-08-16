@@ -21,7 +21,7 @@ To install the latest release version (which depends only on numpy and scipy), u
 
 ``pip install pynbody``
 
-To install from our bleeding edge (which additionally requires cython), use
+To install from our bleeding edge, use
 
 ``pip install git+git://github.com/pynbody/pynbody.git``
 
@@ -40,17 +40,12 @@ common to astronomers, Mac OS X and Linux.
 
 You must have:
 ^^^^^^^^^^^^^^
-  * Python 2.6, 2.7, 3.3 or 3.4. Versions prior to 2.6 and 3.3 are not supported.
-
-  * The standard `numpy` (python numeric arrays) and `scipy` (scientific python) packages
-
-  * If you wish to install from our git repository, you need Cython (at least version 0.20 and preferably
-  0.21). If you are going to install from a release tarball, this is not required.
+  * Python 2.7, or 3.3+. Versions prior to 2.7 and 3.3 are not supported.
 
   * Standard development tools, i.e. compilers, libraries etc.
   On Mac OS that's usually Apple's XCode.
 
-  * **Note for Mac OS X 10.8 and 10.9 users:** XCode no longer comes
+  * **Note for Mac OS X 10.8+ users:** XCode no longer comes
     with the `gcc` compiler and the `clang` compiler doesn't support
     OpenMP -- if you want to take advantage of some parallelized
     sections of the code, you need to install the OpenMP
@@ -61,14 +56,9 @@ You must have:
 You will probably also want
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  * `matplotlib`: Plotting functions use `matplotlib`, but you can
-    access everything except the built-in plots if `matplotlib` is not
-    installed.
-
-
   * `ipython <http://ipython.scipy.org/moin/>`_ makes using python
     much easier.  For example it provides command history and tab
-    completion.
+    completion. Note that `ipython` is required to build the docs.
 
   * use ``ipython --pylab`` to set matplotlib to interactive mode to
     automatically show the plots you make.  Read
@@ -77,13 +67,7 @@ You will probably also want
     True`` in your matplotlibrc file, but see the above webpage for
     caveats.
 
-These packages are all standard and well supported.
-
-You might also want
-^^^^^^^^^^^^^^^^^^^
-
-  * Installing `h5py <http://code.google.com/p/h5py/>`_ will allow you
-    to work with Gadget HDF snapshots. See the :ref:`h5py-ref` below.
+These packages are all standard and well-supported.
 
 .. _distutils:
 
@@ -224,7 +208,7 @@ First, clone the `git repository from Github
 
 4. ``$ cd pynbody``
 
-5. ``$ python setup.py install``
+5. ``$ pip install .[all]``
 
 Now the package is installed wherever your python packages reside and should be importable from within python:
 

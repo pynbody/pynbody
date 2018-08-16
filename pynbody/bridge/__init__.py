@@ -148,12 +148,12 @@ class Bridge(object):
         if groups_1 is None:
             groups_1 = start.halos()
         else:
-            assert groups_1.base is start
+            assert groups_1.base.ancestor is start.ancestor
 
         if groups_2 is None:
             groups_2 = end.halos()
         else:
-            assert groups_2.base is end
+            assert groups_2.base.ancestor is end.ancestor
 
         if use_family:
             end = end[use_family]

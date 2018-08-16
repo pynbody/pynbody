@@ -90,12 +90,13 @@ class GadgetHdfMultiFileManager(object) :
     _nfiles_attrname = "NumFilesPerSnapshot"
     _subgroup_name = None
 
-    def __init__(self, filename) :
+    def __init__(self, filename, mode='r') :
+        self._mode = mode
         if h5py.is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
         else:
-            h1 = h5py.File(filename + ".0.hdf5", "r")
+            h1 = h5py.File(filename + ".0.hdf5", mode)
             self._numfiles = h1[self._nfiles_groupname].attrs[self._nfiles_attrname]
             self._filenames = [filename+"."+str(i)+".hdf5" for i in range(self._numfiles)]
 
@@ -104,7 +105,7 @@ class GadgetHdfMultiFileManager(object) :
     def __iter__(self) :
         for i in range(self._numfiles) :
             if i not in self._open_files:
-                self._open_files[i] = h5py.File(self._filenames[i], "r")
+                self._open_files[i] = h5py.File(self._filenames[i], self._mode)
                 if self._subgroup_name is not None:
                     self._open_files[i] = self._open_files[i][self._subgroup_name]
 
@@ -123,13 +124,17 @@ class GadgetHdfMultiFileManager(object) :
     def get_unit_attrs(self):
         return self[0].parent['Units'].attrs
 
-
     def get_file0_root(self):
         return self[0].parent
 
     def iterroot(self):
         for item in self:
             yield item.parent
+
+    def reopen_in_mode(self, mode):
+        if mode!=self._mode:
+            self._open_files = {}
+            self._mode = mode
 
 
 
@@ -145,7 +150,7 @@ class GadgetHDFSnap(SimSnap):
     """
 
     _multifile_manager_class = GadgetHdfMultiFileManager
-    _readable_hdf5_test_key = "PartType0"
+    _readable_hdf5_test_key = "PartType?"
     _size_from_hdf5_key = "ParticleIDs"
 
     def __init__(self, filename, ):
@@ -270,19 +275,33 @@ class GadgetHDFSnap(SimSnap):
     def _write(self, filename=None):
         raise RuntimeError("Not implemented")
 
-        global config
+    def write_array(self, array_name, fam=None, overwrite=False):
+        translated_name = self._translate_array_name(array_name)
 
-        with self.lazy_off:  # prevent any lazy reading or evaluation
+        self._hdf_files.reopen_in_mode('r+')
 
-            if filename is None:
-                filename = self._filename
+        if fam is None:
+            target = self
+            all_fams_to_write = self.families()
+        else:
+            target = self[fam]
+            all_fams_to_write = [fam]
 
-            logger.info('Writing main file as %s', filename)
+        for writing_fam in all_fams_to_write:
+            i0 = 0
+            target_array = self[writing_fam][array_name]
+            for hdf in self._all_hdf_groups_in_family(writing_fam):
+                npart = hdf['ParticleIDs'].size
+                i1 = i0 + npart
+                target_array_this = target_array[i0:i1]
 
-            self._hdf_out = h5py.File(filename, "w")
+                dataset = self._get_or_create_hdf_dataset(hdf, translated_name,
+                                                          target_array_this.shape,
+                                                          target_array_this.dtype)
 
-    def _write_array(self, array_name, filename=None):
-        raise RuntimeError("Not implemented")
+                dataset.write_direct(target_array_this.reshape(dataset.shape))
+
+                i0 = i1
 
     @staticmethod
     def _get_hdf_allarray_keys(group):
@@ -290,6 +309,18 @@ class GadgetHDFSnap(SimSnap):
         k = []
         group.visititems(functools.partial(_append_if_array, k))
         return k
+
+    def _get_or_create_hdf_dataset(self, particle_group, hdf_name, shape, dtype):
+        if self._translate_array_name(hdf_name,reverse=True)=='mass':
+            raise IOError("Unable to write the mass block due to Gadget header format")
+
+        ret = particle_group
+        for tpart in hdf_name.split("/")[:-1]:
+            ret =ret[tpart]
+
+        dataset_name = hdf_name.split("/")[-1]
+        return ret.require_dataset(dataset_name, shape, dtype, exact=True)
+
 
     def _get_hdf_dataset(self, particle_group, hdf_name):
         """Return the HDF dataset resolving /'s into nested groups, and returning
@@ -419,36 +450,45 @@ class GadgetHDFSnap(SimSnap):
         if fam is None:
             fam = self.families()[0]
 
-        units0 = units.NoUnit()
-        dset0 = None
+        inferred_units = units.NoUnit()
+        representative_dset = None
+        representative_hdf = None
         # not all arrays are present in all hdfs so need to loop
         # until we find one
         for hdf0 in self._hdf_files:
             try:
-                dset0 = self._get_hdf_dataset(hdf0[
+                representative_dset = self._get_hdf_dataset(hdf0[
                                                   self._family_to_group_map[fam][0]], translated_name)
-                if hasattr(dset0, "attrs"):
-                    units0 = self._get_units_from_hdf_attr(dset0.attrs)
-                break
+                representative_hdf = hdf0
+                if hasattr(representative_dset, "attrs"):
+                    inferred_units = self._get_units_from_hdf_attr(representative_dset.attrs)
+
+                if len(representative_dset)!=0:
+                    # suitable for figuring out everything we need to know about this array
+                    break
             except KeyError:
                 continue
-        if dset0 is None:
+        if representative_dset is None:
             raise KeyError, "Array is not present in HDF file"
 
 
-        assert len(dset0.shape) <= 2
-        dy = 1
-        if len(dset0.shape) > 1:
-            dy = dset0.shape[1]
+        assert len(representative_dset.shape) <= 2
 
-        # check if the dimensions make sense -- if
-        # not, assume we're looking at an array that
+        if len(representative_dset.shape) > 1:
+            dy = representative_dset.shape[1]
+        else:
+            dy = 1
+
+        # Some versions of gadget fold the 3D arrays into 1D.
+        # So check if the dimensions make sense -- if not, assume we're looking at an array that
         # is 3D and cross your fingers
-        npart = len(hdf0[self._family_to_group_map[fam][0]]['ParticleIDs'])
-        if len(dset0) != npart:
-            dy = len(dset0) // npart
-        dtype = dset0.dtype
-        return dtype, dy, units0
+        npart = len(representative_hdf[self._family_to_group_map[fam][0]]['ParticleIDs'])
+
+        if len(representative_dset) != npart:
+            dy = len(representative_dset) // npart
+
+        dtype = representative_dset.dtype
+        return dtype, dy, inferred_units
 
     def __init_unit_information(self):
         try:
@@ -477,7 +517,16 @@ class GadgetHDFSnap(SimSnap):
     @classmethod
     def _test_for_hdf5_key(cls, f):
         with h5py.File(f, "r") as h5test:
-            return cls._readable_hdf5_test_key in h5test
+            test_key = cls._readable_hdf5_test_key
+            if test_key[-1]=="?":
+                # try all particle numbers in turn
+                for p in range(6):
+                    test_key = test_key[:-1]+str(p)
+                    if test_key in h5test:
+                        return True
+                return False
+            else:
+                return test_key in h5test
 
     @classmethod
     def _can_load(cls, f):
@@ -584,9 +633,21 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
     """Reads Eagle-like HDF snapshots (download at http://data.cosma.dur.ac.uk:8080/eagle-snapshots/)"""
     _readable_hdf5_test_key = "PartType0/SubGroupNumber"
 
-    def halos(self, subs=False):
+    def halos(self, subs=None):
+        """Load the Eagle FOF halos, or if subs is specified the Subhalos of the given FOF halo number.
+
+        *subs* should be an integer specifying the parent FoF number"""
         if subs:
-            return halo.GrpCatalogue(self, array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
+            if not np.issubdtype(type(subs), np.integer):
+                raise ValueError("The subs argument must specify the group number")
+            parent_group = self[self['GroupNumber']==subs]
+            if len(parent_group)==0:
+                raise ValueError("No group found with id %d"%subs)
+
+            cat = halo.GrpCatalogue(parent_group,
+                                     array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
+            cat._keep_subsnap_alive = parent_group # by default, HaloCatalogue only keeps a weakref (should this be changed?)
+            return cat
         else:
             return halo.GrpCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
 

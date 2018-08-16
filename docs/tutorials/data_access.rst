@@ -301,7 +301,10 @@ You might have noticed in the output from the above experiments that
  old-style `Gadget` snapshots, the default cosmological gadget setup is
  assumed. For `nchilada` and `tipsy`, an nchilada or gasoline
  ``.param`` file is sought in the directory from which you are loading
- the snapshot and its immediate parent.
+ the snapshot and its immediate parent. You can also create a text file
+ with the same name as your snapshot but the extension ``.units`` to override
+ the units at load time. For further information see
+ :func:`~pynbody.snapshot.SimSnap._override_units_system`.
 
 You can print out the units of any given array by accessing the
 ``units`` property:
@@ -459,14 +462,14 @@ new view:
 
   @doctest
   In [28]: every_tenth['pos'][1]
-  Out[28]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
+  Out[28]: SimArray([1., 2., 3.], dtype=float32, 'kpc')
 
 This change is reflected in the main snapshot.
 
 .. ipython::
 
   In [33]: f['pos'][10]
-  Out[33]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
+  Out[33]: SimArray([1., 2., 3.], dtype=float32, 'kpc')
 
 .. note:: If you're used to numpy's flexible indexing abilities, you
  might like to note that, typically, ``f[array_name][index] ==

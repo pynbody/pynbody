@@ -38,3 +38,33 @@ def test_gravity_float():
     f['eps'] = np.ones(100,dtype=np.float32)
     f['mass'] = np.ones(100,dtype=np.float32)
     pynbody.gravity.calc.all_direct(f)
+
+
+def test_eps_retrieval_str():
+    f = pynbody.load("testdata/test_g2_snap.0")
+    f.properties['eps'] = "0.3 kpc"
+    pynbody.gravity.calc.all_direct(f)
+    true_phi_10 = np.array([-0.06696571, -0.07087147, -0.07049192,
+                            -0.06739005, -0.06748439, -0.0695245,
+                            -0.06803885, -0.0679833,  -0.07277965, -0.07189107])
+    npt.assert_allclose(f['phi'][:10], true_phi_10)
+
+
+def test_eps_retrieval_unit():
+    f = pynbody.load("testdata/test_g2_snap.0")
+    f.properties['eps'] = 0.3 * pynbody.units.kpc
+    pynbody.gravity.calc.all_direct(f)
+    true_phi_10 = np.array([-0.06696571, -0.07087147, -0.07049192,
+                            -0.06739005, -0.06748439, -0.0695245,
+                            -0.06803885, -0.0679833,  -0.07277965, -0.07189107])
+    npt.assert_allclose(f['phi'][:10], true_phi_10)
+
+
+def test_eps_retrieval_number():
+    f = pynbody.load("testdata/test_g2_snap.0")
+    f.properties['eps'] = 0.3
+    pynbody.gravity.calc.all_direct(f)
+    true_phi_10 = np.array([-0.06696571, -0.07087147, -0.07049192,
+                            -0.06739005, -0.06748439, -0.0695245,
+                            -0.06803885, -0.0679833,  -0.07277965, -0.07189107])
+    npt.assert_allclose(f['phi'][:10], true_phi_10)

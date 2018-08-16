@@ -121,20 +121,26 @@ def halo_lum(sim, band='v'):
     return np.sum(10.0 ** ((sun_abs_mag - sim.star[band + '_mag']) / 2.5))
 
 
-def half_light_r(sim, band='v'):
+def half_light_r(sim, band='v', cylindrical=False):
     '''Calculate half light radius
 
     Calculates entire luminosity of simulation, finds half that, sorts
     stars by distance from halo center, and finds out inside which radius
     the half luminosity is reached.
+
+    If cylindrical is True compute the half light radius as seen from the z-axis.
     '''
     import pynbody
     import pynbody.filt as f
     half_l = halo_lum(sim, band=band) * 0.5
 
-    max_high_r = np.max(sim.star['r'])
+    if cylindrical:
+        coord = 'rxy'
+    else:
+        coord = 'r'
+    max_high_r = np.max(sim.star[coord])
     test_r = 0.5 * max_high_r
-    testrf = f.LowPass('r', test_r)
+    testrf = f.LowPass(coord, test_r)
     min_low_r = 0.0
     test_l = halo_lum(sim[testrf], band=band)
     it = 0
@@ -147,7 +153,7 @@ def half_light_r(sim, band='v'):
             test_r = 0.5 * (min_low_r + test_r)
         else:
             test_r = (test_r + max_high_r) * 0.5
-        testrf = f.LowPass('r', test_r)
+        testrf = f.LowPass(coord, test_r)
         test_l = halo_lum(sim[testrf], band=band)
 
         if (test_l > half_l):
