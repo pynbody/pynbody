@@ -61,11 +61,6 @@ for hdf_groups in _default_type_map.itervalues():
 
 
 
-def _append_if_array(to_list, name, obj):
-    if not hasattr(obj, 'keys'):
-        to_list.append(name)
-
-
 class DummyHDFData(object):
 
     """A stupid class to allow emulation of mass arrays for particles
@@ -165,6 +160,7 @@ class GadgetHDFSnap(SimSnap):
         self.__init_family_map()
         self.__init_file_map()
         self.__init_loadable_keys()
+        self.__infer_mass_dtype()
 
         self._decorate()
 
@@ -226,6 +222,16 @@ class GadgetHDFSnap(SimSnap):
 
 
         self._num_particles = family_slice_start
+
+    def __infer_mass_dtype(self):
+        """Some files have a mixture of header-based masses and, for other partile types, explicit mass
+        arrays. This routine decides in advance the correct dtype to assign to the mass array, whichever
+        particle type it is loaded for."""
+        mass_dtype = np.float64
+        for hdf in self._all_hdf_groups():
+            if "Mass" in hdf:
+                mass_dtype = hdf['Mass'].dtype
+        self._mass_dtype = mass_dtype
 
     def _families_ordered(self):
         # order by the PartTypeN
@@ -304,9 +310,14 @@ class GadgetHDFSnap(SimSnap):
     @staticmethod
     def _get_hdf_allarray_keys(group):
         """Return all HDF array keys underneath group (includes nested groups)"""
-        k = []
-        group.visititems(functools.partial(_append_if_array, k))
-        return k
+        keys = []
+
+        def _append_if_array(to_list, name, obj):
+            if not hasattr(obj, 'keys'):
+                to_list.append(name)
+
+        group.visititems(functools.partial(_append_if_array, keys))
+        return keys
 
     def _get_or_create_hdf_dataset(self, particle_group, hdf_name, shape, dtype):
         if self._translate_array_name(hdf_name,reverse=True)=='mass':
@@ -330,7 +341,7 @@ class GadgetHDFSnap(SimSnap):
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
                 if mtab > 0:
                     return DummyHDFData(mtab, particle_group[self._size_from_hdf5_key].size,
-                                        particle_group['Coordinates'].dtype)
+                                        self._mass_dtype)
             except (IndexError, KeyError):
                 pass
 
