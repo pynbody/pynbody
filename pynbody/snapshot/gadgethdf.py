@@ -61,11 +61,6 @@ for hdf_groups in _default_type_map.itervalues():
 
 
 
-def _append_if_array(to_list, name, obj):
-    if not hasattr(obj, 'keys'):
-        to_list.append(name)
-
-
 class DummyHDFData(object):
 
     """A stupid class to allow emulation of mass arrays for particles
@@ -165,6 +160,7 @@ class GadgetHDFSnap(SimSnap):
         self.__init_family_map()
         self.__init_file_map()
         self.__init_loadable_keys()
+        self.__infer_mass_dtype()
 
         self._decorate()
 
@@ -178,12 +174,23 @@ class GadgetHDFSnap(SimSnap):
         self._hdf_files = self._multifile_manager_class(filename)
 
     def __init_loadable_keys(self):
-        self._loadable_keys = set()
 
-        for hdf_group in self._all_hdf_groups():
-            hdf_array_names = self._get_hdf_allarray_keys(hdf_group)
-            pynbody_array_names = [self._translate_array_name(x, reverse=True) for x in hdf_array_names]
-            self._loadable_keys.update(pynbody_array_names)
+        self._loadable_family_keys = {}
+        all_fams = self.families()
+        if len(all_fams)==0:
+            return
+
+        for fam in all_fams:
+            self._loadable_family_keys[fam] = set(["mass"])
+            for hdf_group in self._all_hdf_groups_in_family(fam):
+                for this_key in self._get_hdf_allarray_keys(hdf_group):
+                    ar_name = self._translate_array_name(this_key, reverse=True)
+                    self._loadable_family_keys[fam].add(ar_name)
+            self._loadable_family_keys[fam] = list(self._loadable_family_keys[fam])
+
+        self._loadable_keys = set(self._loadable_family_keys[all_fams[0]])
+        for fam_keys in self._loadable_family_keys.itervalues():
+            self._loadable_keys.intersection_update(fam_keys)
 
         self._loadable_keys = list(self._loadable_keys)
 
@@ -216,6 +223,16 @@ class GadgetHDFSnap(SimSnap):
 
         self._num_particles = family_slice_start
 
+    def __infer_mass_dtype(self):
+        """Some files have a mixture of header-based masses and, for other partile types, explicit mass
+        arrays. This routine decides in advance the correct dtype to assign to the mass array, whichever
+        particle type it is loaded for."""
+        mass_dtype = np.float64
+        for hdf in self._all_hdf_groups():
+            if "Mass" in hdf:
+                mass_dtype = hdf['Mass'].dtype
+        self._mass_dtype = mass_dtype
+
     def _families_ordered(self):
         # order by the PartTypeN
         all_families = self._family_to_group_map.keys()
@@ -239,21 +256,8 @@ class GadgetHDFSnap(SimSnap):
     def _family_has_loadable_array(self, fam, name):
         """Returns True if the array can be loaded for the specified family.
         If fam is None, returns True if the array can be loaded for all families."""
+        return name in self.loadable_keys(fam)
 
-        if name == "mass":
-            return True
-
-        if fam is None:
-            return all([self._family_has_loadable_array(fam_x, name) for fam_x in self._family_slice])
-
-        else:
-            translated_name = self._translate_array_name(name)
-
-            for hdf_group in self._all_hdf_groups_in_family(fam):
-                if translated_name not in self._get_hdf_allarray_keys(hdf_group):
-                    return False
-
-            return True
 
     def _get_all_particle_arrays(self, gtype):
         """Return all array names for a given gadget particle type"""
@@ -265,10 +269,10 @@ class GadgetHDFSnap(SimSnap):
         return list(set(l))
 
     def loadable_keys(self, fam=None):
-        if fam is not None:
-            return [x for x in self._loadable_keys if self._family_has_loadable_array(fam, x)]
+        if fam is None:
+            return self._loadable_keys
         else:
-            return [x for x in self._loadable_keys if self._family_has_loadable_array(None, x)]
+            return self._loadable_family_keys[fam]
 
         
     @staticmethod
@@ -306,9 +310,14 @@ class GadgetHDFSnap(SimSnap):
     @staticmethod
     def _get_hdf_allarray_keys(group):
         """Return all HDF array keys underneath group (includes nested groups)"""
-        k = []
-        group.visititems(functools.partial(_append_if_array, k))
-        return k
+        keys = []
+
+        def _append_if_array(to_list, name, obj):
+            if not hasattr(obj, 'keys'):
+                to_list.append(name)
+
+        group.visititems(functools.partial(_append_if_array, keys))
+        return keys
 
     def _get_or_create_hdf_dataset(self, particle_group, hdf_name, shape, dtype):
         if self._translate_array_name(hdf_name,reverse=True)=='mass':
@@ -332,7 +341,7 @@ class GadgetHDFSnap(SimSnap):
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
                 if mtab > 0:
                     return DummyHDFData(mtab, particle_group[self._size_from_hdf5_key].size,
-                                        particle_group['Coordinates'].dtype)
+                                        self._mass_dtype)
             except (IndexError, KeyError):
                 pass
 
