@@ -301,3 +301,10 @@ def aform(self):
     z = analysis.cosmology.redshift(self, self['tform'])
     a = 1. / (1. + z)
     return a
+
+@SimSnap.derived_quantity
+def tform(self):
+    """The time of the specified expansion factor in the aform"""
+    from . import analysis
+    t = analysis.cosmology.age(self, 1./self['aform'] - 1.)
+    return t

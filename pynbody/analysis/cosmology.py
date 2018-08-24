@@ -151,6 +151,8 @@ def age(f, z=None, unit='Gyr'):
 
     import scipy
     import scipy.integrate
+    from scipy.interpolate import interp1d
+    from ..array import SimArray
 
     if z is None:
         z = f.properties['z']
@@ -166,7 +168,16 @@ def age(f, z=None, unit='Gyr'):
         return scipy.integrate.quad(_a_dot_recip, 0, x, (h0, omM, omL))[0] * conv
 
     if isinstance(z, np.ndarray) or isinstance(z, list):
-        return np.array(map(get_age, z))
+        if len(z) > 1000:
+            zs = np.logspace(3, -10, 1000)
+            ages = age(f, zs)
+            i = interp1d(zs, ages)
+            results = i(z)
+        else:
+            results = np.array(map(get_age, z))
+        results = results.view(SimArray)
+        results.units = unit
+        return results
     else:
         return get_age(z)
 
