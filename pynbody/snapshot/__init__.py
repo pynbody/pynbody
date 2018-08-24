@@ -91,7 +91,7 @@ class SimSnap(object):
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
-    _persistent = ["kdtree", "_immediate_cache"]
+    _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["_immediate_cache_lock",
