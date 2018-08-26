@@ -242,8 +242,8 @@ def mu(sim, t0=None):
         x = np.empty(len(sim)).view(array.SimArray)
         if t0 is None:
             t0 = sim['temp']
-        x[np.where(t0 >= 1e4)[0]] = 0.59
-        x[np.where(t0 < 1e4)[0]] = 1.3
+        x[np.where(t0 >= 1e4)[0]] = 1./0.59
+        x[np.where(t0 < 1e4)[0]] = 1./1.3
 
     x.units = units.Unit("1")
     #x.units = units.m_p**-1
