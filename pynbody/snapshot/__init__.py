@@ -1885,7 +1885,7 @@ class IndexedSubSnap(SubSnap):
         return SimSnap._get_family_slice(self, fam)
 
     def _get_family_array(self, name, fam, index=None, always_writable=False):
-        sl = self._family_indices.get(fam,None)
+        sl = self._family_indices.get(fam,slice(0,0))
         sl = util.concatenate_indexing(sl, index)
 
         return self.base._get_family_array(name, fam, sl, always_writable)
@@ -2003,7 +2003,7 @@ def new(n_particles=0, order=None, **families):
     f = new(dm=50, star=25, gas=25, order='star,gas,dm')
 
     guarantees the stars, then gas, then dark matter particles appear
-    in sqeuence.
+    in sequence.
     """
 
     if len(families) == 0:
