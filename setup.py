@@ -311,7 +311,7 @@ for name, reqs in extras_require.items():
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.45',
+             version = '0.46',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://github.com/pynbody/pynbody/releases',
              package_dir = {'pynbody/': ''},
