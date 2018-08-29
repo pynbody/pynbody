@@ -225,29 +225,23 @@ def cs(self):
     return np.sqrt(5.0 / 3.0 * units.k * self['temp'] / self['mu'] / units.m_p)
 
 
-@SimSnap.derived_quantity
-def mu(self, t0=None):
-    """Estimate of mean molecular mass"""
-
 
 @SimSnap.derived_quantity
 def mu(sim, t0=None):
-    """Relative atomic mass, i.e. number of particles per
-    proton mass, ignoring metals (since we generally only know the
-    mass fraction of metals, not their specific atomic numbers)"""
-    try:
-        x = sim["HI"] + 2 * sim["HII"] + sim["HeI"] + \
+	"""mean molecular mass, i.e. the mean atomic mass per particle"""
+	try:
+		x = sim["HI"] + 2 * sim["HII"] + sim["HeI"] + \
             2 * sim["HeII"] + 3 * sim["HeIII"]
-    except KeyError:
-        x = np.empty(len(sim)).view(array.SimArray)
-        if t0 is None:
-            t0 = sim['temp']
-        x[np.where(t0 >= 1e4)[0]] = 0.59
-        x[np.where(t0 < 1e4)[0]] = 1.3
+		x = x**-1
+	except KeyError:
+		x = np.empty(len(sim)).view(array.SimArray)
+		if t0 is None:
+			t0 = sim['temp']
+		x[np.where(t0 >= 1e4)[0]] = 0.59
+		x[np.where(t0 < 1e4)[0]] = 1.3
 
-    x.units = units.Unit("1")
-    #x.units = units.m_p**-1
-    return x
+	x.units = units.Unit("1")
+	return x
 
 
 @SimSnap.derived_quantity
