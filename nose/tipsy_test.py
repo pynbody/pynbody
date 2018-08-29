@@ -357,4 +357,4 @@ def test_issue_313():
 
 
 def test_issue_315():
-    assert np.allclose(f.g['cs'][:3], [187.36890472,  210.86151107,  176.04044173])
+    assert np.allclose(f.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
