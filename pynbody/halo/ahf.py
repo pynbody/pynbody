@@ -2,7 +2,7 @@ import glob
 import gzip
 import os.path
 import re
-
+import warnings
 import numpy as np
 
 from . import HaloCatalogue, logger, Halo, DummyHalo
@@ -113,7 +113,7 @@ class AHFCatalogue(HaloCatalogue):
         if config_parser.getboolean('AHFCatalogue', 'AutoPid'):
             sim['pid'] = np.arange(0, len(sim))
 
-        if write_fpos is not None:
+        if write_fpos:
             if not os.path.exists(self._ahfBasename + 'fpos'):
                 self._write_fpos()
 
@@ -137,14 +137,16 @@ class AHFCatalogue(HaloCatalogue):
         self.base[name] = self.get_group_array()
 
     def _write_fpos(self):
-        f = open(self._ahfBasename + 'fpos','w')
-        for i in range(self._nhalos):
-            if i < self._nhalos - 1:
-                f.write(str(self._halos[i+1].properties['fstart'])+'\n')
-            else:
-                f.write(str(self._halos[i+1].properties['fstart']))
-        f.close()
-
+        try:
+            f = open(self._ahfBasename + 'fpos','w')
+            for i in range(self._nhalos):
+                if i < self._nhalos - 1:
+                    f.write(str(self._halos[i+1].properties['fstart'])+'\n')
+                else:
+                    f.write(str(self._halos[i+1].properties['fstart']))
+            f.close()
+        except IOError:
+            warnings.warn("Unable to write AHF_fpos file; performance will be reduced. Pass write_fpos=False to halo constructor to suppress this message.")
 
     def get_group_array(self, top_level=False, family=None):
         """
