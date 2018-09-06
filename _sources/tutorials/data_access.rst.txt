@@ -460,16 +460,15 @@ new view:
 
   In [27]: every_tenth['pos'][1] = [1,2,3]
 
-  @doctest
   In [28]: every_tenth['pos'][1]
-  Out[28]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
+  Out[28]: SimArray([1., 2., 3.], dtype=float32, 'kpc')
 
 This change is reflected in the main snapshot.
 
 .. ipython::
 
   In [33]: f['pos'][10]
-  Out[33]: SimArray([ 1.,  2.,  3.], dtype=float32, 'kpc')
+  Out[33]: SimArray([1., 2., 3.], dtype=float32, 'kpc')
 
 .. note:: If you're used to numpy's flexible indexing abilities, you
  might like to note that, typically, ``f[array_name][index] ==

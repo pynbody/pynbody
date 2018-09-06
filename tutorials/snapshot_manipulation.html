@@ -1,15 +1,17 @@
-<!DOCTYPE html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Basic snapshot manipulation &#8212; pynbody 0.45 documentation</title>
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <title>Basic snapshot manipulation &#8212; pynbody 0.46 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.45',
+        VERSION:     '0.46',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -19,20 +21,19 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="A walk through pynbody’s low-level facilities" href="data_access.html" />
     <link rel="prev" title="Pynbody Tutorials" href="tutorials.html" />
 
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
+<link href="https://fonts.googleapis.com/css?family=Quicksand" rel="stylesheet">
+<link href="_static/customise.css" rel="stylesheet">
 <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -48,100 +49,13 @@
 
   </head>
   <body>
+  
 
-  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
-      <div class="navbar-header">
-        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="../index.html">
-          pynbody</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.45</b></span>
-      </div>
-
-        <div class="collapse navbar-collapse nav-collapse">
-          <ul class="nav navbar-nav">
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
             
-            
-              <li class="dropdown globaltoc-container">
-  <a role="button"
-     id="dLabelGlobalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="../index.html">Sections <b class="caret"></b></a>
-  <ul class="dropdown-menu globaltoc"
-      role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
-</ul>
-</ul>
-</li>
-              
-                <li class="dropdown">
-  <a role="button"
-     id="dLabelLocalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="#">Page <b class="caret"></b></a>
-  <ul class="dropdown-menu localtoc"
-      role="menu"
-      aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">Basic snapshot manipulation</a><ul>
-<li><a class="reference internal" href="#setting-up-the-interactive-environment">Setting up the interactive environment</a></li>
-<li><a class="reference internal" href="#first-steps">First steps</a></li>
-<li><a class="reference internal" href="#centering-on-something-interesting">Centering on something interesting</a></li>
-<li><a class="reference internal" href="#taking-even-more-control">Taking even more control</a></li>
-<li><a class="reference internal" href="#making-some-images">Making some images</a></li>
-<li><a class="reference internal" href="#aligning-the-snapshot">Aligning the Snapshot</a></li>
-</ul>
-</li>
-</ul>
-</ul>
-</li>
-              
-            
-            
-              
-                
-  <li>
-    <a href="tutorials.html" title="Previous Chapter: Pynbody Tutorials"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Pynbody Tutorials</span>
-    </a>
-  </li>
-  <li>
-    <a href="data_access.html" title="Next Chapter: A walk through pynbody’s low-level facilities"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">A walk throug... &raquo;</span>
-    </a>
-  </li>
-              
-            
-            
-            
-            
-          </ul>
-
-          
-            
-<form class="navbar-form navbar-right" action="../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-          
-        </div>
-    </div>
-  </div>
-
-<div class="container">
-  <div class="row">
-    <div class="col-md-12 content">
-      
   <div class="section" id="basic-snapshot-manipulation">
 <span id="snapshot-manipulation"></span><h1>Basic snapshot manipulation<a class="headerlink" href="#basic-snapshot-manipulation" title="Permalink to this headline">¶</a></h1>
 <p>Once you’ve <a class="reference internal" href="../installation.html#pynbody-installation"><span class="std std-ref">installed pynbody</span></a>, you will
@@ -246,7 +160,7 @@ profiles) in pynbody like your data to be centered on a point of
 interest.  The most straight-forward way to center your snapshot on a
 halo is as follows:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">)</span>
-<span class="gh">Out[7]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x180d08fe10&gt;</span>
+<span class="gh">Out[7]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x1c23154b50&gt;</span>
 </pre></div>
 </div>
 <p>We passed <code class="docutils literal"><span class="pre">h[1]</span></code> to the function
@@ -352,19 +266,19 @@ units first:</p>
 
 <span class="gp">In [26]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">)</span>
 <span class="gh">Out[26]: </span><span class="go"></span>
-<span class="go">SimArray([[ 10263.51074219,  10323.97070312,  10384.4296875 , ...,</span>
-<span class="go">            10334.82519531,  10254.12890625,  10173.43066406],</span>
-<span class="go">          [ 10342.6015625 ,  10403.28125   ,  10463.95996094, ...,</span>
-<span class="go">            10356.80175781,  10276.17285156,  10195.54394531],</span>
-<span class="go">          [ 10421.69433594,  10482.59179688,  10543.48925781, ...,</span>
-<span class="go">            10378.77832031,  10298.21777344,  10217.65722656],</span>
+<span class="go">SimArray([[ 10041.64941406,  10105.10644531,  10168.5625    , ...,</span>
+<span class="go">            10218.58984375,  10166.0859375 ,  10113.58105469],</span>
+<span class="go">          [ 10082.31445312,  10146.28515625,  10210.25683594, ...,</span>
+<span class="go">            10247.0625    ,  10193.54882812,  10140.03417969],</span>
+<span class="go">          [ 10122.97949219,  10187.46484375,  10251.95117188, ...,</span>
+<span class="go">            10275.53417969,  10221.00976562,  10166.48632812],</span>
 <span class="go">          ..., </span>
-<span class="go">          [  9527.12988281,   9636.18164062,   9745.23339844, ...,</span>
-<span class="go">             9798.5859375 ,   9780.06542969,   9761.54492188],</span>
-<span class="go">          [  9500.55664062,   9605.70214844,   9710.84667969, ...,</span>
-<span class="go">             9792.06738281,   9774.04882812,   9756.02929688],</span>
-<span class="go">          [  9473.98242188,   9575.22167969,   9676.4609375 , ...,</span>
-<span class="go">             9785.54882812,   9768.03125   ,   9750.51367188]], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
+<span class="go">          [  9724.58398438,   9856.54003906,   9988.49609375, ...,</span>
+<span class="go">             9300.84667969,   9263.12402344,   9225.40039062],</span>
+<span class="go">          [  9659.01171875,   9787.50390625,   9915.99511719, ...,</span>
+<span class="go">             9279.01757812,   9242.16015625,   9205.30273438],</span>
+<span class="go">          [  9593.43945312,   9718.46679688,   9843.49414062, ...,</span>
+<span class="go">             9257.18945312,   9221.19726562,   9185.20605469]], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1.png"><img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" /></a>
@@ -385,7 +299,7 @@ width as a string with a unit.</p>
 <p>In this example, the disk seems to be aligned more or less face-on,
 but let’s say we want it edge-on:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [28]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-<span class="gh">Out[28]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x180e1a5e90&gt;</span>
+<span class="gh">Out[28]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x1812ec21d0&gt;</span>
 
 <span class="gp">In [29]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
@@ -407,7 +321,7 @@ want to just rotate the snapshot by arbitrary angles, the
 about the respective axes.</p>
 <p>We can use this to rotate the disk into a face-on orientation:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
-<span class="gh">Out[30]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x180cf6ef90&gt;</span>
+<span class="gh">Out[30]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x1812ec25d0&gt;</span>
 </pre></div>
 </div>
 <p>All of these transformations behave in the way that was specified for
@@ -462,7 +376,7 @@ ask them to, so <code class="docutils literal"><span class="pre">s.g.rotate_x(90
 <span class="gp">In [43]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [44]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gh">Out[44]: </span><span class="go">&lt;matplotlib.legend.Legend at 0x180e290bd0&gt;</span>
+<span class="gh">Out[44]: </span><span class="go">&lt;matplotlib.legend.Legend at 0x181273f510&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
@@ -478,28 +392,72 @@ tutorial.</p>
 </div>
 
 
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Basic snapshot manipulation</a><ul>
+<li><a class="reference internal" href="#setting-up-the-interactive-environment">Setting up the interactive environment</a></li>
+<li><a class="reference internal" href="#first-steps">First steps</a></li>
+<li><a class="reference internal" href="#centering-on-something-interesting">Centering on something interesting</a></li>
+<li><a class="reference internal" href="#taking-even-more-control">Taking even more control</a></li>
+<li><a class="reference internal" href="#making-some-images">Making some images</a></li>
+<li><a class="reference internal" href="#aligning-the-snapshot">Aligning the Snapshot</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="tutorials.html">Pynbody Tutorials</a><ul>
+      <li>Previous: <a href="tutorials.html" title="previous chapter">Pynbody Tutorials</a></li>
+      <li>Next: <a href="data_access.html" title="next chapter">A walk through pynbody’s low-level facilities</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/tutorials/snapshot_manipulation.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
     </div>
+    <div class="footer">
+      &copy;2011-18, pynbody team.
       
-  </div>
-</div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
-        <br/>
-        
-<div id="sourcelink">
-  <a href="../_sources/tutorials/snapshot_manipulation.rst.txt"
-     rel="nofollow">Source</a>
-</div>
-      
-    </p>
-    <p>
-        &copy; Copyright 2011-18, pynbody team.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.<br/>
-    </p>
-  </div>
-</footer>
+      |
+      <a href="../_sources/tutorials/snapshot_manipulation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
   </body>
 </html>
