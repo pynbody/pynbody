@@ -91,7 +91,8 @@ def build_tree(sim):
         # has been triggered by getting an array in the calling thread.
         boxsize = sim.properties.get('boxsize',None)
         if boxsize:
-            boxsize = float(boxsize.in_units(sim['pos'].units))
+            if hasattr(boxsize,'units'):
+                boxsize = float(boxsize.in_units(sim['pos'].units))
         else:
             boxsize = -1.0 # represents infinite box
         sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
