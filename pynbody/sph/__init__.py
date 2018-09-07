@@ -91,7 +91,7 @@ def build_tree(sim):
         # has been triggered by getting an array in the calling thread.
         boxsize = sim.properties.get('boxsize',None)
         if boxsize:
-            if hasattr(boxsize,'units'):
+            if units.is_unit_like(boxsize):
                 boxsize = float(boxsize.in_units(sim['pos'].units))
         else:
             boxsize = -1.0 # represents infinite box
