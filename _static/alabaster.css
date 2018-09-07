@@ -85,13 +85,12 @@ div.sphinxsidebarwrapper {
 
 div.sphinxsidebarwrapper p.logo {
     padding: 0;
-    margin: -10px 0 0 10px;
+    margin: -10px 0 30px 10px;
     text-align: center;
 }
 
 div.sphinxsidebarwrapper h1.logo {
     text-align: center;
-    margin-bottom: 5px;
     text-align: left;
 }
 
@@ -496,7 +495,7 @@ a:hover tt, a:hover code {
     }
 
     ul {
-    	margin-left: 0;
+    	margin-left: 30px;
     }
 
 	li > ul {
@@ -534,6 +533,7 @@ a:hover tt, a:hover code {
 
     body {
         margin: 0;
+        margin-top: 40px;
         padding: 20px 30px;
     }
 
@@ -562,7 +562,11 @@ a:hover tt, a:hover code {
     }
 
     div.sphinxsidebar p.logo {
-        display: none;
+        position: absolute;
+        top: 15px;
+        left: 0px;
+        width: 200px;
+
     }
 
     div.document {
