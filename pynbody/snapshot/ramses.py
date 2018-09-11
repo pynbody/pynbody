@@ -840,6 +840,7 @@ class RamsesSnap(SimSnap):
                 for f in self._iter_particle_families():
                     self[f]._create_array(name, dtype=type_)
 
+
     def _load_particle_block(self, blockname):
         offset = self._particle_blocks.index(blockname)
         _type = self._particle_types[offset]
@@ -851,15 +852,20 @@ class RamsesSnap(SimSnap):
             arrays.append(self[f][blockname])
 
 
-        remote_map(self.reader_pool,
-                   _cpui_load_particle_block,
-                   [self._particle_filename(i) for i in self._cpus],
-                   [arrays] * len(self._cpus),
-                   [offset] * len(self._cpus),
-                   self._particle_file_start_indices,
-                   [_type] * len(self._cpus),
-                   self._particle_family_ids_on_disk
-                   )
+        try:
+            remote_map(self.reader_pool,
+                       _cpui_load_particle_block,
+                       [self._particle_filename(i) for i in self._cpus],
+                       [arrays] * len(self._cpus),
+                       [offset] * len(self._cpus),
+                       self._particle_file_start_indices,
+                       [_type] * len(self._cpus),
+                       self._particle_family_ids_on_disk
+                       )
+        except:
+            warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
+            del self[blockname]
+            raise
 
         # The potential is awkwardly not in physical units, but in
         # physical units divided by the box size. This was different
