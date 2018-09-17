@@ -398,8 +398,6 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
         mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))]),N*2)
         rbin = mid[1:N*2+1:2]
         mid = mid[0:N*2+1:2]
-        print(rbin)
-        print(mid)
         
     elif (bins == 'log'): # Bins are logarithmically spaced
         mid = profile.Profile(sim.dm, type='log', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
