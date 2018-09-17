@@ -420,9 +420,6 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     elif (bins == 'lin'): # Bins are linearly spaced
         mid = profile.Profile(sim.dm, type='lin', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
         rbin = 0.5*(mid[0:N]+mid[1:N+1])
-        print(rbin)
-        print(mid)
-        print(len(rbin), len(mid))
 
     # Define b/a and c/a ratios and angle arrays:
     ba,ca,angle = np.zeros(N),np.zeros(N),np.zeros(N)
