@@ -366,6 +366,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     #-----------------------------FUNCTIONS-----------------------------
     # Define an ellipsoid shell with lengths a,b,c and orientation E:
+    print("CHECK!!!!!!!!!!!!!!!!!!")
     def Ellipsoid(r, a,b,c, E):
         x,y,z = np.dot(E,[r[:,0],r[:,1],r[:,2]])
         return (x/a)**2 + (y/b)**2 + (z/c)**2
