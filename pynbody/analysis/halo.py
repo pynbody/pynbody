@@ -372,11 +372,25 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     # Define moment of inertia tensor:
     MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
-                               for i in range(3)])
+                                for i in range(3)])
 
     # Splits data into number of steps N:
     sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
                                for i in range(N)],r[-1])
+
+    def EqualBins(sim, rin, rout, nshells=N, r='down'):
+        """
+        Creates bins with equal number of particles.
+        round: 'down': the last particles are lost
+               'up': the last shell has less particles
+        """
+        pos = np.array(sim.dm['pos'])[np.where((sim.dm['r'] > rin) & (sim.dm['r'] < rout))]
+        if r!='down' and r!='up':
+            raise ValueError("round options: 'down', 'up'")
+        npart = len(pos)
+        n_per_bin = int(np.floor(npart/nshells)) if r=='down' else int(np.ceil(npart/nshells))
+        r = np.sort(sim['r'])[np.where((sim.dm['r'] > rin) & (sim.dm['r'] < rout))]
+        return np.array([r[i] for i in range(0,npart,n_per_bin)])
 
     # Retrieves alignment angle:
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
@@ -395,9 +409,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     # Define bins:
     if (bins == 'equal'): # Each bin contains equal number of particles
-        mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))]),N*2)
-        rbin = mid[1:N*2+1:2]
-        mid = mid[0:N*2+1:2]
+        rbin = EqualBins(sim, rin, rout, N)
+        mid = 0.5*(rbin[:N]+rbin[1:N+1]) 
+        mid = np.append(mid, 2*rbin[-1]-mid[-1])
         
     elif (bins == 'log'): # Bins are logarithmically spaced
         mid = profile.Profile(sim.dm, type='log', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
@@ -406,6 +420,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     elif (bins == 'lin'): # Bins are linearly spaced
         mid = profile.Profile(sim.dm, type='lin', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
         rbin = 0.5*(mid[0:N]+mid[1:N+1])
+        print(rbin)
+        print(mid)
+        print(len(rbin), len(mid))
 
     # Define b/a and c/a ratios and angle arrays:
     ba,ca,angle = np.zeros(N),np.zeros(N),np.zeros(N)
