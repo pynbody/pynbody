@@ -244,7 +244,7 @@ def vel_center(sim, mode=None, cen_size="1 kpc", retcen=False, move_all=True, **
         cen = sim.gas[filt.Sphere(cen_size)]
     if len(cen) < 5:
         # very weird snapshot, or mis-centering!
-        raise ValueError, "Insufficient particles around center to get velocity"
+        raise ValueError("Insufficient particles around center to get velocity")
 
     vcen = (cen['vel'].transpose() * cen['mass']).sum(axis=1) / \
         cen['mass'].sum()
@@ -375,7 +375,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
                                for i in range(3)])
 
     # Splits data into number of steps N:
-    sn = lambda r,N: np.append([r[i*len(r)/N:(1+i)*len(r)/N][0]\
+    sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
                                for i in range(N)],r[-1])
 
     # Retrieves alignment angle:
@@ -384,7 +384,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     if (rout == None): rout = sim.dm['r'].max()
     if (rin == None): rin = rout/1E3
-
+    
     posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)]
     pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)]
     mass = np.array(sim.dm['mass'])[np.where(sim.dm['r'] < rout)]
@@ -398,7 +398,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
         mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))]),N*2)
         rbin = mid[1:N*2+1:2]
         mid = mid[0:N*2+1:2]
-
+        print(rbin)
+        print(mid)
+        
     elif (bins == 'log'): # Bins are logarithmically spaced
         mid = profile.Profile(sim.dm, type='log', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
         rbin = np.sqrt(mid[0:N]*mid[1:N+1])
