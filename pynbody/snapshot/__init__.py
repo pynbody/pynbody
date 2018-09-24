@@ -91,7 +91,7 @@ class SimSnap(object):
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
-    _persistent = ["kdtree", "_immediate_cache"]
+    _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["_immediate_cache_lock",
@@ -637,6 +637,37 @@ class SimSnap(object):
             if x in self.properties:
                 d[x] = self.properties[x]
         return d
+
+    def _override_units_system(self):
+        """Look for and process a text file with a custom units system for this snapshot.
+
+        The text file should be named <filename>.units and contain unit specifications, one-per-line, e.g.
+
+        pos: kpc a
+        vel: km s^-1
+        mass: Msol
+
+        This override functionality needs to be explicitly called by a subclass after it has initialised
+        its best guess at the units.
+        """
+        try:
+            f = open(self.filename+".units","r")
+        except IOError:
+            return
+
+        name_mapping = {'pos': 'distance', 'vel': 'velocity'}
+        units_dict = {}
+
+        for line in f:
+            if (not line.startswith("#")):
+                if ":" not in line:
+                    raise IOError, "Unknown format for units file %r"%(self.filename+".units")
+                else:
+                    t, u = map(str.strip,line.split(":"))
+                    t = name_mapping.get(t,t)
+                    units_dict[t] = u
+
+        self.set_units_system(**units_dict)
 
     def set_units_system(self, velocity=None, distance=None, mass=None, temperature=None):
         """Set the unit system for the snapshot by specifying any or
@@ -1854,7 +1885,7 @@ class IndexedSubSnap(SubSnap):
         return SimSnap._get_family_slice(self, fam)
 
     def _get_family_array(self, name, fam, index=None, always_writable=False):
-        sl = self._family_indices.get(fam,None)
+        sl = self._family_indices.get(fam,slice(0,0))
         sl = util.concatenate_indexing(sl, index)
 
         return self.base._get_family_array(name, fam, sl, always_writable)
@@ -1972,7 +2003,7 @@ def new(n_particles=0, order=None, **families):
     f = new(dm=50, star=25, gas=25, order='star,gas,dm')
 
     guarantees the stars, then gas, then dark matter particles appear
-    in sqeuence.
+    in sequence.
     """
 
     if len(families) == 0:

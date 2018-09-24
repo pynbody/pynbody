@@ -30,6 +30,7 @@ class KDTree(object):
         self.kdtree = kdmain.init(pos, mass, int(leafsize))
         self.derived = True
         self.boxsize=boxsize
+        self._pos = pos
         self.s_len = len(pos)
         self.flags = {'WRITEABLE': False}
 
@@ -66,6 +67,9 @@ class KDTree(object):
             raise ValueError, "Unknown KDTree array"
 
     def set_array_ref(self, name, ar) :
+        if self.array_name_to_id(name)<3:
+            if not np.issubdtype(self._pos.dtype, ar.dtype):
+                raise TypeError("KDTree requires matching dtypes for %s (%s) and pos (%s) arrays"%(name, ar.dtype, self._pos.dtype))
         kdmain.set_arrayref(self.kdtree,self.array_name_to_id(name),ar)
         assert self.get_array_ref(name) is ar
 

@@ -102,12 +102,28 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
     return array.SimArray(com, sim['pos'].units)
 
 
-def virial_radius(sim, cen=None, overden=178, r_max=None):
+def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     """Calculate the virial radius of the halo centered on the given
     coordinates.
 
-    This is here defined by the sphere centered on cen which contains a
+    The default is here defined by the sphere centered on cen which contains a
     mean density of overden * rho_M_0 * (1+z)^3.
+
+    **Input**:
+
+    *sim* : a simulation snapshot - this can be any subclass of SimSnap, especially a halo.
+
+    **Optional Keywords**:
+
+    *cen* (default=None): Provides the halo center. If None, assumes that the snapshot is already centered.
+
+    *rmax (default=None): Maximum radius to start the search. If None, inferred from the halo particle positions.
+
+    *overden (default=178): Overdensity corresponding to the required halo boundary definition.
+    178 is the virial criterion for spherical collapse in an EdS Universe. Common possible values are 200, 500 etc
+
+    *rho_def (default='matter'): Physical density used to define the overdensity. Default is the matter density at
+    the redshift of the simulation. An other choice is "critical" for the critical density at this redshift.
 
     """
 
@@ -126,9 +142,14 @@ def virial_radius(sim, cen=None, overden=178, r_max=None):
     else:
         tx = transformation.null(sim)
 
-    target_rho = overden * \
-        sim.properties[
-            "omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
+    if rho_def == 'matter':
+       ref_density = sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
+    elif rho_def == 'critical':
+        ref_density = cosmology.rho_crit(sim, z=sim.properties["z"])
+    else:
+        raise ValueError(rho_def + "is not a valid definition for the reference density")
+
+    target_rho = overden * ref_density
     logger.info("target_rho=%s", target_rho)
 
     with tx:

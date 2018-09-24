@@ -139,6 +139,12 @@ def test_halo_values() :
     for i,halo in enumerate(h[0:10]) :
         assert(np.allclose(list(halo.g['temp']), list(chain.from_iterable(FoF_Temp[np.arange(FoF_Offset[i],FoF_Offset[i]+FoF_Length[i],dtype=np.int64)])), rtol=1e-3))
 
+def test_write():
+    ar_name = 'test_array'
+    snap[ar_name] = np.random.uniform(0,1,len(snap))
+    snap[ar_name].write()
+    snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+    assert(np.allclose(snap2[ar_name], snap[ar_name]))
 
 def test_hi_derivation():
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,

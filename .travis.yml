@@ -7,11 +7,11 @@ sudo: false # temporary while gfortran package is required for conda problems
 
 # specify different versions of python and numpy
 env:
-  - PYTHON=2.7  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython=3"
-  - PYTHON=2.7  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.4  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.5  NUMPY_VERSION=1.10.4 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.6  NUMPY_VERSION=1.13.1 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython=3"
+  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.4  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.5  NUMPY="numpy>=1.10.4" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.6  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
 
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -28,8 +28,8 @@ before_install:
   - sudo sysctl -w kernel.shmall=268435456
 
 install:
-  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
-  - source activate ${PYTHON}_${NUMPY_VERSION}
+  - conda create --yes -n ${PYTHON} -q python=$PYTHON $NUMPY scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
+  - source activate ${PYTHON}
   - python --version
   - python setup.py install
   # Limit the number of ramses readers to 2; otherwise Travis builds have been known to run out of memory
