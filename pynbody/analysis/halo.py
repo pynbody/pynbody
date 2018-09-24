@@ -367,7 +367,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     #-----------------------------FUNCTIONS-----------------------------
     # Define an ellipsoid shell with lengths a,b,c and orientation E:
     def Ellipsoid(r, a,b,c, E):
-        x,y,z = np.dot(E,[r[:,0],r[:,1],r[:,2]])
+        x,y,z = np.dot(np.transpose(E),[r[:,0],r[:,1],r[:,2]])
         return (x/a)**2 + (y/b)**2 + (z/c)**2
 
     # Define moment of inertia tensor:
@@ -436,7 +436,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
             # End iterations if there is no data in range:
             if (len(r) == 0):
-                ba[i],ca[i],angle[i],Es[i] = b/a,c/a,almnt(E),E
+                ba[i],ca[i],angle[i],Es[i] = b/a,c/a,almnt(D[1]),D[1]
                 logger.info('No data in range after %i iterations' %count)
                 break
 
@@ -451,14 +451,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
             # Compute ratios a,b,c from moment of intertia principles:
             anew,bnew,cnew = np.sqrt(abs(D[0])*3.0)
 
-            # The rotation matrix must be reoriented:
-            if ((anew > bnew) & (bnew >= cnew)): E = D[1]
-            if ((bnew > anew) & (anew >= cnew)): E = np.dot(D[1],rz)
-            if ((cnew > anew) & (anew >= bnew)): E = np.dot(np.dot(D[1],ry),rx)
-            if ((bnew > cnew) & (cnew >= anew)): E = np.dot(np.dot(D[1],rz),rx)
-            if ((anew > cnew) & (cnew >= bnew)): E = np.dot(D[1],rx)
-            if ((cnew > bnew) & (bnew >= anew)): E = np.dot(D[1],ry)
-            if (almnt(-E) < almnt(E)): E = -E
+            if (almnt(-D[1]) < almnt(D[1])): D[1] = -D[1]
             cnew,bnew,anew = np.sort(np.sqrt(abs(D[0])*3.0))
 
             # Keep a as semi-major axis and distort b,c by b/a and c/a:
@@ -469,7 +462,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
             # Convergence criterion:
             if (np.abs(b/a-bnew/anew) < tol) & (np.abs(c/a-cnew/anew) < tol):
-                ba[i],ca[i],angle[i],Es[i] = bnew/anew,cnew/anew,almnt(E),E
+                ba[i],ca[i],angle[i],Es[i] = bnew/anew,cnew/anew,almnt(D[1]),D[1]
                 break
 
             # Increase tolerance if convergence has stagnated:
