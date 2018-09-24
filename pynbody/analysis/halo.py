@@ -375,7 +375,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
                                for i in range(3)])
 
     # Splits data into number of steps N:
-    sn = lambda r,N: np.append([r[i*len(r)/N:(1+i)*len(r)/N][0]\
+    sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
                                for i in range(N)],r[-1])
 
     # Retrieves alignment angle:
