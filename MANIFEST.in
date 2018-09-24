@@ -2,3 +2,5 @@ recursive-include pynbody *.py *.pyx *.c *.h
 recursive-include nose *.py
 recursive-include docs *.rst *.py
 include docs/Makefile
+pyproject.toml
+
