@@ -366,16 +366,16 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     #-----------------------------FUNCTIONS-----------------------------
     # Define an ellipsoid shell with lengths a,b,c and orientation E:
-    def Ellipsoid(r, a,b,c, E):
+    def ellipsoid(r, a,b,c, E):
         x,y,z = np.dot(np.transpose(E),[r[:,0],r[:,1],r[:,2]])
         return (x/a)**2 + (y/b)**2 + (z/c)**2
 
     # Define moment of inertia tensor:
-    MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
+    moi = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
                                for i in range(3)])
 
     # Splits data into number of steps N:
-    sn = lambda r,N: np.append([r[i*len(r)/N:(1+i)*len(r)/N][0]\
+    sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
                                for i in range(N)],r[-1])
 
     # Retrieves alignment angle:
@@ -429,8 +429,8 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
             # Collect all particle positions and masses within shell:
             r = pos[np.where((posr < a+L2) & (posr > c-L1*c/a))]
-            inner = Ellipsoid(r, a-L1,b-L1*b/a,c-L1*c/a, E)
-            outer = Ellipsoid(r, a+L2,b+L2*b/a,c+L2*c/a, E)
+            inner = ellipsoid(r, a-L1,b-L1*b/a,c-L1*c/a, E)
+            outer = ellipsoid(r, a+L2,b+L2*b/a,c+L2*c/a, E)
             r = r[np.where((inner > 1.) & (outer < 1.))]
             m = mass[np.where((inner > 1.) & (outer < 1.))]
 
@@ -441,7 +441,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
                 break
 
             # Calculate shape tensor & diagonalise:
-            D = list(np.linalg.eig(MoI(r,m)/np.sum(m)))
+            D = list(np.linalg.eig(moi(r,m)/np.sum(m)))
 
             # Purge complex numbers:
             if isinstance(D[1][0,0],complex):
