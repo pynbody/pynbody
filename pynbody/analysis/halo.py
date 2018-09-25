@@ -354,8 +354,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     particle distribution.
 
     *bins* (equal): The spacing scheme for the homeoidal shell bins.
-    ``equal`` initialises bins with equal numbers of particles. This
-    number is not necessarily maintained during fitting.
+    ``equal`` initialises radial bins with equal numbers of particles,
+    with the exception of the final bin which will accomodate remainders.
+    This number is not necessarily maintained during fitting.
     ``log`` and ``lin`` initialise bins with logarithmic and linear
     radial spacing.
 
@@ -374,7 +375,8 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
                                for i in range(3)])
 
-    # Splits data into number of steps N:
+    # Splits 'r' array into N groups containing equal numbers of particles.
+    # An array is returned with the radial bins that contain these groups.
     sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
                                for i in range(N)],r[-1])
 
@@ -453,7 +455,11 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
             # The rotation matrix must be reoriented:
             E = D[1]
-            if (almnt(-E) < almnt(E)): E = -E
+            if ((bnew > anew) & (anew >= cnew)): E = np.dot(E,rz)
+            if ((cnew > anew) & (anew >= bnew)): E = np.dot(np.dot(E,ry),rx)
+            if ((bnew > cnew) & (cnew >= anew)): E = np.dot(np.dot(E,rz),rx)
+            if ((anew > cnew) & (cnew >= bnew)): E = np.dot(E,rx)
+            if ((cnew > bnew) & (bnew >= anew)): E = np.dot(E,ry)
             cnew,bnew,anew = np.sort(np.sqrt(abs(D[0])*3.0))
 
             # Keep a as semi-major axis and distort b,c by b/a and c/a:
@@ -464,6 +470,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
             # Convergence criterion:
             if (np.abs(b/a-bnew/anew) < tol) & (np.abs(c/a-cnew/anew) < tol):
+                if (almnt(-E) < almnt(E)): E = -E
                 ba[i],ca[i],angle[i],Es[i] = bnew/anew,cnew/anew,almnt(E),E
                 break
 
