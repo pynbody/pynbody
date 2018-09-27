@@ -154,3 +154,9 @@ def test_dimensionful_comparison():
 
     assert (y['b'] < y['a']).all()
     assert not (y['b'] > y['a']).any()
+
+def test_issue_485():
+    s = pynbody.load("testdata/test_g2_snap.1")
+    stars = s.s
+    indexed_arr = stars[1,2]
+    indexed_arr['vz'].in_units('km s^-1')
