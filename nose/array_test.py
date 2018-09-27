@@ -155,8 +155,29 @@ def test_dimensionful_comparison():
     assert (y['b'] < y['a']).all()
     assert not (y['b'] > y['a']).any()
 
-def test_issue_485():
+def test_issue_485_1():
     s = pynbody.load("testdata/test_g2_snap.1")
     stars = s.s
     indexed_arr = stars[1,2]
-    indexed_arr['vz'].in_units('km s^-1')
+    np.std(indexed_arr['vz'].in_units('km s^-1'))
+    np.std(indexed_arr['vtheta'].in_units('km s^-1'))
+
+def test_issue_485_2():
+    # Adaptation of examples/vdisp.py
+    s = pynbody.load("testdata/test_g2_snap.1")
+
+    stars = s.s
+    rxyhist, rxybins = np.histogram(stars['rxy'], bins=20)
+    rxyinds = np.digitize(stars['rxy'], rxybins)
+    nrbins = len(np.unique(rxyinds))
+    sigvz = np.zeros(nrbins)
+    sigvr = np.zeros(nrbins)
+    sigvt = np.zeros(nrbins)
+    rxy = np.zeros(nrbins)
+
+    for i, ind in enumerate(np.unique(rxyinds)):
+        bininds = np.where(rxyinds == ind)
+        sigvz[i] = np.std(stars[bininds]['vz'].in_units('km s^-1'))
+        sigvr[i] = np.std(stars[bininds]['vr'].in_units('km s^-1'))
+        sigvt[i] = np.std(stars[bininds]['vt'].in_units('km s^-1'))
+        rxy[i] = np.mean(stars[bininds]['rxy'].in_units('kpc'))
