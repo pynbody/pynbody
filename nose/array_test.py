@@ -68,6 +68,7 @@ def test_iop_units():
     z.units = 'm s^-1'
 
     print(repr(x))
+    assert repr(x) == "SimArray([1, 2, 3, 4], 'kpc')"
 
     try:
         x += y
@@ -159,8 +160,8 @@ def test_issue_485_1():
     s = pynbody.load("testdata/test_g2_snap.1")
     stars = s.s
     indexed_arr = stars[1,2]
-    np.std(indexed_arr['vz'].in_units('km s^-1'))
-    np.std(indexed_arr['vtheta'].in_units('km s^-1'))
+    np.testing.assert_almost_equal(np.sum(indexed_arr['vz'].in_units('km s^-1')), -38.2072944641)
+    np.testing.assert_almost_equal(np.std(indexed_arr['vz'].in_units('km s^-1')), 21.0478305817)
 
 def test_issue_485_2():
     # Adaptation of examples/vdisp.py
@@ -175,9 +176,15 @@ def test_issue_485_2():
     sigvt = np.zeros(nrbins)
     rxy = np.zeros(nrbins)
 
+    assert len(np.unique(rxyinds)) == 3
     for i, ind in enumerate(np.unique(rxyinds)):
         bininds = np.where(rxyinds == ind)
         sigvz[i] = np.std(stars[bininds]['vz'].in_units('km s^-1'))
         sigvr[i] = np.std(stars[bininds]['vr'].in_units('km s^-1'))
         sigvt[i] = np.std(stars[bininds]['vt'].in_units('km s^-1'))
         rxy[i] = np.mean(stars[bininds]['rxy'].in_units('kpc'))
+
+    np.testing.assert_almost_equal(sigvz, np.array([37.34634781, 55.9630661,   0. ]))
+    np.testing.assert_almost_equal(sigvr, np.array([48.65430069, 49.35913467,  0. ]))
+    np.testing.assert_almost_equal(sigvt, np.array([54.0749054,  35.75136566,  0. ]))
+    np.testing.assert_almost_equal(rxy, np.array([2905.89624023, 4107.21972656, 4116.42480469]))
