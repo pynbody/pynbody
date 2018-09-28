@@ -68,6 +68,7 @@ def test_iop_units():
     z.units = 'm s^-1'
 
     print(repr(x))
+    assert repr(x) == "SimArray([1, 2, 3, 4], 'kpc')"
 
     try:
         x += y
@@ -154,3 +155,37 @@ def test_dimensionful_comparison():
 
     assert (y['b'] < y['a']).all()
     assert not (y['b'] > y['a']).any()
+
+def test_issue_485_1():
+    s = pynbody.load("testdata/test_g2_snap.1")
+    stars = s.s
+    indexed_arr = stars[1,2]
+    np.testing.assert_almost_equal(np.sum(indexed_arr['vz'].in_units('km s^-1')), -20.13701057434082031250)
+    np.testing.assert_almost_equal(np.std(indexed_arr['vz'].in_units('km s^-1')), 11.09318065643310546875)
+
+def test_issue_485_2():
+    # Adaptation of examples/vdisp.py
+    s = pynbody.load("testdata/test_g2_snap.1")
+
+    stars = s.s
+    rxyhist, rxybins = np.histogram(stars['rxy'], bins=20)
+    rxyinds = np.digitize(stars['rxy'], rxybins)
+    nrbins = len(np.unique(rxyinds))
+    sigvz = np.zeros(nrbins)
+    sigvr = np.zeros(nrbins)
+    sigvt = np.zeros(nrbins)
+    rxy = np.zeros(nrbins)
+
+    assert len(np.unique(rxyinds)) == 3
+    for i, ind in enumerate(np.unique(rxyinds)):
+        bininds = np.where(rxyinds == ind)
+        sigvz[i] = np.std(stars[bininds]['vz'].in_units('km s^-1'))
+        sigvr[i] = np.std(stars[bininds]['vr'].in_units('km s^-1'))
+        sigvt[i] = np.std(stars[bininds]['vt'].in_units('km s^-1'))
+        rxy[i] = np.mean(stars[bininds]['rxy'].in_units('kpc'))
+
+
+    np.testing.assert_almost_equal(sigvz, np.array([19.68325233, 29.49512482,  0.]))
+    np.testing.assert_almost_equal(sigvr, np.array([25.64306641, 26.01454544,  0.]))
+    np.testing.assert_almost_equal(sigvt, np.array([28.49997711, 18.84262276,  0.]))
+    np.testing.assert_almost_equal(rxy, np.array([1136892.125, 1606893.625, 1610494.75]))
