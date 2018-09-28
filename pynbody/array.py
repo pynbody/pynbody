@@ -904,7 +904,10 @@ class IndexedSimArray(object):
 
     @property
     def sim(self):
-        return self.base.sim[self._ptr]
+        if self.base.sim is not None:
+            return self.base.sim[self._ptr]
+        else:
+            return None
 
     @sim.setter
     def sim(self, s):
