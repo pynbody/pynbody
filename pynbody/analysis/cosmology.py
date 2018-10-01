@@ -11,6 +11,9 @@ import math
 import numpy as np
 numpy = np  # alias the alias
 from .. import units
+from ..configuration import config_parser
+
+_interp_points = int(config_parser.get('general','cosmo-interpolation-points'))
 
 
 def _a_dot(a, h0, om_m, om_l):
@@ -151,6 +154,8 @@ def age(f, z=None, unit='Gyr'):
 
     import scipy
     import scipy.integrate
+    from scipy.interpolate import interp1d
+    from ..array import SimArray
 
     if z is None:
         z = f.properties['z']
@@ -166,7 +171,18 @@ def age(f, z=None, unit='Gyr'):
         return scipy.integrate.quad(_a_dot_recip, 0, x, (h0, omM, omL))[0] * conv
 
     if isinstance(z, np.ndarray) or isinstance(z, list):
-        return np.array(map(get_age, z))
+        if len(z) > _interp_points:
+            a_vals = np.logspace(-3,0, _interp_points)
+            z_vals = 1./a_vals-1.
+            log_age_vals = np.log(age(f, z_vals))
+            interp = interp1d(np.log(a_vals), log_age_vals, bounds_error=False)
+            log_a_input = np.log(1./(1.+z))
+            results = np.exp(interp(log_a_input))
+        else:
+            results = np.array(map(get_age, z))
+        results = results.view(SimArray)
+        results.units = unit
+        return results
     else:
         return get_age(z)
 
@@ -199,8 +215,8 @@ def redshift(f, time):
         return age(sim, x) - time
 
     if isinstance(time, list) or isinstance(time, np.ndarray):
-        if len(time) > 1000:
-            zs = np.logspace(3, -10, 1000)
+        if len(time) > _interp_points:
+            zs = np.logspace(3, -10, _interp_points)
             ages = age(f, zs)
             i = interp1d(ages, zs)
             return i(time)

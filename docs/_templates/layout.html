@@ -1,7 +1,14 @@
 {% extends "!layout.html" %}
+{% block relbaritems %}
+<li class="nav-item">{{ title|striptags|e }}</li>
+{% endblock %}
+
+
 
 {% block extrahead %}
 {{ super() }}
+<link href="https://fonts.googleapis.com/css?family=Quicksand" rel="stylesheet">
+<link href="_static/customise.css" rel="stylesheet">
 <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -15,3 +22,5 @@
   })();
 </script>
 {% endblock %}
+
+{% set bootswatch_css_custom = ['_static/styles.css'] %}

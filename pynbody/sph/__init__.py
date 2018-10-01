@@ -91,7 +91,8 @@ def build_tree(sim):
         # has been triggered by getting an array in the calling thread.
         boxsize = sim.properties.get('boxsize',None)
         if boxsize:
-            boxsize = float(boxsize.in_units(sim['pos'].units))
+            if units.is_unit_like(boxsize):
+                boxsize = float(boxsize.in_units(sim['pos'].units))
         else:
             boxsize = -1.0 # represents infinite box
         sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
@@ -131,16 +132,26 @@ def smooth(self):
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units,
                        dtype=self['pos'].dtype)
 
-
     start = time.time()
     self.kdtree.set_array_ref('smooth',sm)
     self.kdtree.populate('hsm', config['sph']['smooth-particles'])
     end = time.time()
 
     logger.info('Smoothing done in %5.3gs' % (end - start))
-
+    self._kdtree_derived_smoothing = True
     return sm
 
+def _get_smooth_array_ensuring_compatibility(self):
+    # On-disk smoothing information may conflict; KDTree assumes the number of nearest neighbours
+    # is rigidly adhered to. Thus we must use our own self-consistent smoothing.
+    if 'smooth' in self:
+        if not getattr(self,'_kdtree_derived_smoothing',False):
+            smooth_ar = smooth(self)
+        else:
+            smooth_ar = self['smooth']
+    else:
+        self['smooth'] = smooth_ar = smooth(self)
+    return smooth_ar
 
 @snapshot.SimSnap.stable_derived_quantity
 def rho(self):
@@ -152,9 +163,11 @@ def rho(self):
         np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
         dtype=self['pos'].dtype)
 
+    
     start = time.time()
 
-    self.kdtree.set_array_ref('smooth',self['smooth'])
+
+    self.kdtree.set_array_ref('smooth',_get_smooth_array_ensuring_compatibility(self))
     self.kdtree.set_array_ref('mass',self['mass'])
     self.kdtree.set_array_ref('rho',rho)
 

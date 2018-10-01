@@ -229,8 +229,8 @@ class GadgetHDFSnap(SimSnap):
         particle type it is loaded for."""
         mass_dtype = np.float64
         for hdf in self._all_hdf_groups():
-            if "Mass" in hdf:
-                mass_dtype = hdf['Mass'].dtype
+            if "Coordinates" in hdf:
+                mass_dtype = hdf['Coordinates'].dtype
         self._mass_dtype = mass_dtype
 
     def _families_ordered(self):
@@ -497,6 +497,8 @@ class GadgetHDFSnap(SimSnap):
             dy = len(representative_dset) // npart
 
         dtype = representative_dset.dtype
+        if translated_name=="Mass":
+            dtype = self._mass_dtype
         return dtype, dy, inferred_units
 
     def __init_unit_information(self):

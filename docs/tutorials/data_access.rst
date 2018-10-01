@@ -460,7 +460,6 @@ new view:
 
   In [27]: every_tenth['pos'][1] = [1,2,3]
 
-  @doctest
   In [28]: every_tenth['pos'][1]
   Out[28]: SimArray([1., 2., 3.], dtype=float32, 'kpc')
 
