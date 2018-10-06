@@ -1686,5 +1686,5 @@ def slparam2units(sim):
 
         sim.star["rhoform"].units = denunit_st
         sim.star["massform"].units = munit_st
-        if "tcoolform" in sim.star.keus():
+        if "tcoolform" in sim.star.keys():
             sim.star['tcoolform'].units = timeunit_st
