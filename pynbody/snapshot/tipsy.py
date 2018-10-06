@@ -937,6 +937,8 @@ class TipsySnap(SimSnap):
         #b(sl)['velform'] = sl['vel'][:len(self.star), :]
         if 'h2form' in sl.star.keys():
             b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
+        if 'tcoolform' in sl.star.keys():
+            b(b(b(sl))).star['tcoolform'] = b(b(sl)).star['tcoolform']
         else: print "No H2 data found in StarLog file"
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
@@ -1156,6 +1158,7 @@ class StarLog(SimSnap):
         bigstarlog = False
         molecH = False
         bigIOrds = False
+        tcool = False
 
         file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                              "x", "y", "z",
@@ -1185,6 +1188,16 @@ class StarLog(SimSnap):
             molecH = True
             # Unfortunately molecularH with small iOrders has the same as
             # no moleculuarH with big iOrders.  Attempt to distinguish here
+            if (iSize > file_structure.itemsize):
+                file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                     "x", "y", "z",
+                                                     "vx", "vy", "vz",
+                                                     "massform", "rhoform", "tempform", "tcoolform","h2form"),
+                                           'formats': ('i4', 'i4', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8', 'f8', 'f8')})
+                tcool = True
             if(iSize == file_structure.itemsize):
                 if(self._byteswap):
                     testread = np.fromstring(
@@ -1194,8 +1207,19 @@ class StarLog(SimSnap):
                 # All star iorders are greater than any gas iorder
                 # so this indicates a bad format. (N.B. there is the
                 # possibility of a false negative)
-                if(testread['iord'][0] < testread['iorderGas'][0]): 
-                    file_structure = np.dtype({'names': ("iord", "iorderGas",
+                if(testread['iord'][0] < testread['iorderGas'][0]):
+                    if tcool == True:
+                        file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                             "x", "y", "z",
+                                                             "vx", "vy", "vz",
+                                                             "massform", "rhoform", "tempform", "h2form"),
+                                                   'formats': ('i4', 'i4', 'f8',
+                                                               'f8', 'f8', 'f8',
+                                                               'f8', 'f8', 'f8',
+                                                               'f8', 'f8', 'f8', 'f8')})
+                        tcool=False
+                    else:
+                        file_structure = np.dtype({'names': ("iord", "iorderGas",
                                              "tform",
                                              "x", "y", "z",
                                              "vx", "vy", "vz",
@@ -1204,9 +1228,9 @@ class StarLog(SimSnap):
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8')})
+                        moledH = False
                     f.seek(4)
                     logger.info("Using 64 bit iOrders")
-                    molecH = False
                     bigIOrds = True
         if (iSize != file_structure.itemsize):
             file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
@@ -1272,6 +1296,8 @@ class StarLog(SimSnap):
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
         if molecH==True:
             self._create_arrays(["h2form"])
+        if tcool==True:
+            self._create_arrays(["tcoolform"])
         if bigstarlog:
             self._create_arrays(["phiform", "nsmooth"])
 
@@ -1660,3 +1686,5 @@ def slparam2units(sim):
 
         sim.star["rhoform"].units = denunit_st
         sim.star["massform"].units = munit_st
+        if "tcoolform" in sim.star.keus():
+            sim.star['tcoolform'].units = timeunit_st
