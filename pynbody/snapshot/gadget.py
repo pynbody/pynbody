@@ -1175,11 +1175,12 @@ def do_units(sim):
     vel_unit = config_parser.get('gadget-units', 'vel')
     dist_unit = config_parser.get('gadget-units', 'pos')
     mass_unit = config_parser.get('gadget-units', 'mass')
+    no_cosmo = config_parser.getboolean('general', 'force_no_cosmological')
 
     vel_unit, dist_unit, mass_unit = [
-        units.Unit(x) for x in vel_unit, dist_unit, mass_unit]
+        units.Unit(x) for x in (vel_unit, dist_unit, mass_unit)]
 
-    if not _header_suggests_cosmological(sim.header):
+    if no_cosmo or not _header_suggests_cosmological(sim.header):
         # remove a and h dependences
         vel_unit = units.Unit(
             "km s^-1") * vel_unit.in_units("km s^-1", a=1, h=1)
@@ -1194,7 +1195,9 @@ def do_units(sim):
 def do_properties(sim):
     h = sim.header
 
-    if _header_suggests_cosmological(h):
+    no_cosmo = config_parser.getboolean('general', 'force_no_cosmological')
+
+    if not(no_cosmo) and _header_suggests_cosmological(h):
         from .. import analysis
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
