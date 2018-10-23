@@ -108,7 +108,7 @@ def test_load_iord():
                              1000429, 1077059, 1011855, 1096842, 1013422, 1020021])
 
 def _make_virtual_output_with_no_ptcls():
-    if os.path.exists("testdata/ramses_new_format_partial_output_no_ptcls_00001"):
+    if os.path.exists("testdata/ramses_new_format_partial_no_ptcls_output_00001"):
         return
 
     os.mkdir("testdata/ramses_new_format_partial_no_ptcls_output_00001")
