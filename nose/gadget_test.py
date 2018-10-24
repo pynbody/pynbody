@@ -1,6 +1,6 @@
 import pynbody
 import numpy as np
-
+from nose.tools import assert_equals
 
 def setup():
     global snap
@@ -190,3 +190,11 @@ def test_issue321():
     f = pynbody.load("testdata/lpicola/lpicola_z0p000.0")
     assert f['pos'].dtype==np.dtype('float32')
     assert f['mass'].dtype==np.dtype('float32')
+
+def test_ignore_cosmology():
+    f = pynbody.load("testdata/test_g2_snap.0")
+    f.physical_units()
+    assert_equals(f.properties['time'].in_units('Gyr'), 2.5769525238964737)
+    f_no_cosmo = pynbody.load("testdata/test_g2_snap.0", ignore_cosmo=True)
+    f_no_cosmo.physical_units()
+    assert_equals(f_no_cosmo.properties['time'].in_units('Gyr'), 0.27161498843919685)

@@ -702,12 +702,13 @@ class GadgetSnap(SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
     of the blocks, which are then read by _load_array"""
 
-    def __init__(self, filename, only_header=False, must_have_paramfile=False):
+    def __init__(self, filename, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
 
         global config
         super(GadgetSnap, self).__init__()
         self._files = []
         self._filename = filename
+        self._ignore_cosmo = ignore_cosmo
         npart = np.empty(N_TYPE)
         # Check whether the file exists, and get the ".0" right
         try:
@@ -1175,12 +1176,11 @@ def do_units(sim):
     vel_unit = config_parser.get('gadget-units', 'vel')
     dist_unit = config_parser.get('gadget-units', 'pos')
     mass_unit = config_parser.get('gadget-units', 'mass')
-    no_cosmo = config_parser.getboolean('general', 'force_no_cosmological')
 
     vel_unit, dist_unit, mass_unit = [
         units.Unit(x) for x in (vel_unit, dist_unit, mass_unit)]
 
-    if no_cosmo or not _header_suggests_cosmological(sim.header):
+    if sim._ignore_cosmo or not _header_suggests_cosmological(sim.header):
         # remove a and h dependences
         vel_unit = units.Unit(
             "km s^-1") * vel_unit.in_units("km s^-1", a=1, h=1)
@@ -1195,9 +1195,7 @@ def do_units(sim):
 def do_properties(sim):
     h = sim.header
 
-    no_cosmo = config_parser.getboolean('general', 'force_no_cosmological')
-
-    if not(no_cosmo) and _header_suggests_cosmological(h):
+    if not(sim._ignore_cosmo) and _header_suggests_cosmological(h):
         from .. import analysis
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
