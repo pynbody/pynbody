@@ -191,10 +191,17 @@ def test_issue321():
     assert f['pos'].dtype==np.dtype('float32')
     assert f['mass'].dtype==np.dtype('float32')
 
+
+def test_units_override():
+    f = pynbody.load("testdata/test_g2_snap.1")
+    assert_equals(f['pos'].units, "kpc a h^-1")
+    f_no_unit_override = pynbody.load("testdata/test_g2_snap.0")
+    assert_equals(f_no_unit_override['pos'].units, "Mpc a h^-1")
+
+
 def test_ignore_cosmology():
     f = pynbody.load("testdata/test_g2_snap.0")
     f.physical_units()
     assert_equals(f.properties['time'].in_units('Gyr'), 2.5769525238964737)
     f_no_cosmo = pynbody.load("testdata/test_g2_snap.0", ignore_cosmo=True)
-    f_no_cosmo.physical_units()
-    assert_equals(f_no_cosmo.properties['time'].in_units('Gyr'), 0.27161498843919685)
+    assert_equals(f_no_cosmo.properties['time'].in_units('Gyr'), 271.6149884391969)
