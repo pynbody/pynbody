@@ -542,8 +542,17 @@ class RamsesSnap(SimSnap):
             ndm, nstar = self._count_particles_using_implicit_families()
             return OrderedDict([(family.dm, ndm), (family.star, nstar)])
 
+    def _has_particle_file(self):
+        """Check whether the output has a particle file available"""
+        if len(self._cpus)>0 :
+            return os.path.exists(self._particle_filename(self._cpus[0]))
+        else:
+            return False
+
     def _count_particles_using_explicit_families(self):
         """Returns an ordered dictionary of family types based on the new explicit RAMSES particle file format"""
+        if not self._has_particle_file():
+            return OrderedDict()
         family_block = self._particle_blocks.index('family')
         family_dtype = self._particle_types[family_block]
         self._particle_family_ids_on_disk = []
