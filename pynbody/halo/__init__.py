@@ -125,7 +125,7 @@ class HaloCatalogue(object):
                 if i!=i_stop and len(self[i]) == 0: continue
             except RuntimeError:
                 break
-            if i == i_stop: raise StopIteration
+            if i == i_stop: return
 
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
