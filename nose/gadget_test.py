@@ -193,15 +193,21 @@ def test_issue321():
 
 
 def test_units_override():
-    f = pynbody.load("testdata/test_g2_snap.1")
+    f = pynbody.load("testdata/test_g2_snap.0")
+    assert_equals(f.filename, "testdata/test_g2_snap")  # final '.0' is stripped
     assert_equals(f['pos'].units, "kpc a h^-1")
-    f_no_unit_override = pynbody.load("testdata/test_g2_snap.0")
-    assert_equals(f_no_unit_override['pos'].units, "Mpc a h^-1")
+
+    # In this case the unit override system is not effective because
+    # the final ".1" is not stripped away in the filename:
+    # the file `test_g2_snap.units` is not used
+    f_no_unit_override = pynbody.load("testdata/test_g2_snap.1")
+    assert_equals(f_no_unit_override.filename, "testdata/test_g2_snap.1")
+    assert_equals(f_no_unit_override['pos'].units, "Mpc a h^-1")  # from default_config.ini
 
 
 def test_ignore_cosmology():
-    f = pynbody.load("testdata/test_g2_snap.0")
+    f = pynbody.load("testdata/test_g2_snap.1")
     f.physical_units()
     assert_equals(f.properties['time'].in_units('Gyr'), 2.5769525238964737)
-    f_no_cosmo = pynbody.load("testdata/test_g2_snap.0", ignore_cosmo=True)
+    f_no_cosmo = pynbody.load("testdata/test_g2_snap.1", ignore_cosmo=True)
     assert_equals(f_no_cosmo.properties['time'].in_units('Gyr'), 271.6149884391969)
