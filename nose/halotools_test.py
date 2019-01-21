@@ -48,3 +48,28 @@ def test_ssc_bighalo():
     h = s.halos()
     pynbody.analysis.halo.center(h[1])
     assert h[1]['r'].min()<0.02
+
+
+def test_binning_hmf():
+    subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+
+    h = subfind.halos()
+    assert len(h) == 4226
+
+    center, means, err = pynbody.analysis.hmf.simulation_halo_mass_function(subfind,
+                                                                            log_M_min=8,
+                                                                            log_M_max=14,
+                                                                            delta_log_M=0.5,
+                                                                            subsample_catalogue=100)
+
+    assert(len(means) == len(center) == len(err) == 12)
+
+    np.testing.assert_allclose(center, [2.08113883e+08,   6.58113883e+08,   2.08113883e+09,   6.58113883e+09,
+                                        2.08113883e+10,   6.58113883e+10,   2.08113883e+11,   6.58113883e+11,
+                                        2.08113883e+12,   6.58113883e+12,   2.08113883e+13,   6.58113883e+13], atol=1e-5)
+
+    np.testing.assert_allclose(means, [0., 0.05600012,  0.02200005,  0.00600001,  0, 0., 0.002,
+                                        0., 0.,          0.,          0.,          0.], atol=1e-5)
+
+    np.testing.assert_allclose(err, [0., 0.01058303,  0.00663326, 0.00346411,  0.,  0., 0.002,
+                                     0.,          0.,         0.,          0.,          0.], atol=1e-5)
