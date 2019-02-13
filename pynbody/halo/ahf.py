@@ -52,11 +52,7 @@ class AHFCatalogue(HaloCatalogue):
         """
 
         import os.path
-        if ahf_basename is not None:
-            can_load_ahf = self._can_load(sim, ahf_basename)
-        else:
-            can_load_ahf = self._can_load(sim)
-        if not can_load_ahf:
+        if not self._can_load(sim, ahf_basename):
             self._run_ahf(sim)
 
         HaloCatalogue.__init__(self,sim)
