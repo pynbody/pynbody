@@ -52,7 +52,11 @@ class AHFCatalogue(HaloCatalogue):
         """
 
         import os.path
-        if not self._can_load(sim):
+        if ahf_basename is not None:
+            can_load_ahf = self._can_load(sim, ahf_basename)
+        else:
+            can_load_ahf = self._can_load(sim)
+        if not can_load_ahf:
             self._run_ahf(sim)
 
         HaloCatalogue.__init__(self,sim)
@@ -574,10 +578,15 @@ class AHFCatalogue(HaloCatalogue):
         return shalos
 
     @staticmethod
-    def _can_load(sim,**kwargs):
-        for file in glob.glob(sim._filename + '*z*particles*'):
-            if os.path.exists(file):
-                return True
+    def _can_load(sim,ahf_basename=None,**kwargs):
+        if ahf_basename is not None:
+            for file in glob.glob(ahf_basename + '*particles*'):
+                if os.path.exists(file):
+                    return True
+        else:
+            for file in glob.glob(sim._filename + '*z*particles*'):
+                if os.path.exists(file):
+                    return True
         return False
 
     def _run_ahf(self, sim):
