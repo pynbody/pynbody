@@ -14,6 +14,47 @@ from ..array import SimArray
 
 from interpolate import interpolate2d
 
+_cmd_lum_file = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
+
+def use_custom_cmd(path):
+    """Use a custom set of stellar populations to calculate magnitudes.
+
+    The path is to a numpy archive with a suitable grid of ages/metallicities and corresponding magnitudes.
+
+    The following script from Stephanie De Beer should help you make a suitable file starting
+    from ugriz SSPs downloaded from http://stev.oapd.inaf.it/cgi-bin/cmd.
+
+    import numpy as np
+
+    metals = np.linspace(0.002, 0.05, 25)
+    ages = np.logspace(5.67, 10.13, 25)
+
+    mags_bol = np.zeros((len(metals),len(ages)))
+    mags_u = np.zeros((len(metals),len(ages)))
+    mags_g = np.zeros((len(metals),len(ages)))
+    mags_r = np.zeros((len(metals),len(ages)))
+    mags_i = np.zeros((len(metals),len(ages)))
+    mags_z = np.zeros((len(metals),len(ages)))
+
+    bands = ['bol', 'u', 'g', 'r', 'i', 'z']
+    k=2
+    for b in bands:
+        for x in range(1,26):
+            with open('/users/sdebeer/render_stuff/PGSP_files/'+str(x)+'_output.txt', 'r') as f:
+                output = f.readlines()
+            i = 0
+            for line in output:
+                magnitudes = line.split()
+                if magnitudes[0]=='#':
+                    continue
+                vars()['mags_'+b][i,x-1]=magnitudes[k]
+                i +=1
+        k+=1
+
+    np.savez('my_cmd.npz', ages=ages, metals=metals, bol=mags_bol, u=mags_u, g=mags_g, r=mags_r, i=mags_i, z=mags_z)
+    """
+    global _cmd_lum_file
+    _cmd_lum_file = path
 
 def calc_mags(simstars, band='v'):
     """Calculating visible magnitudes
@@ -42,9 +83,9 @@ def calc_mags(simstars, band='v'):
     # data is from http://stev.oapd.inaf.it/cgi-bin/cmd
     # Padova group stellar populations Marigo et al (2008), Girardi et al
     # (2010)
-    lumfile = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
-    if os.path.exists(lumfile):
-        lums = np.load(lumfile)
+    global _cmd_lum_file
+    if os.path.exists(_cmd_lum_file):
+        lums = np.load(_cmd_lum_file)
     else:
         raise IOError, "cmdlum.npz (magnitude table) not found"
 
