@@ -56,7 +56,7 @@ def use_custom_cmd(path):
     global _cmd_lum_file
     _cmd_lum_file = path
 
-def calc_mags(simstars, band='v'):
+def calc_mags(simstars, band='v', cmd_path=None):
     """Calculating visible magnitudes
 
     Using Padova Simple stellar populations (SSPs) from Girardi
@@ -77,17 +77,21 @@ def calc_mags(simstars, band='v'):
        *band* (default='v'): Which observed bandpass magnitude in which 
             magnitude should be calculated
 
+       *path* (default=None): Path to the CMD grid. If None, use the
+            default or a path specified by use_custom_cmd. For more information
+            about generating a custom CMD grid, see use_custom_cmd.
+
     """
 
     # find data file in PYTHONPATH
     # data is from http://stev.oapd.inaf.it/cgi-bin/cmd
     # Padova group stellar populations Marigo et al (2008), Girardi et al
     # (2010)
-    global _cmd_lum_file
-    if os.path.exists(_cmd_lum_file):
-        lums = np.load(_cmd_lum_file)
+    if cmd_path is not None:
+        lums = np.load(cmd_path)
     else:
-        raise IOError, "cmdlum.npz (magnitude table) not found"
+        lums = np.load(_cmd_lum_file)
+
 
     age_star = simstars['age'].in_units('yr')
     # allocate temporary metals that we can play with
