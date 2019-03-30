@@ -568,7 +568,7 @@ class AHFCatalogue(HaloCatalogue):
         grpoutfile = s.filename + ".amiga.grp"
         statoutfile = s.filename + ".amiga.stat"
         tipsyoutfile = s.filename + ".amiga.gtp"
-        halos.writegrp(s, halos, grpoutfile)
+        halos.writegrp(grpoutfile)
         halos.writestat(s, halos, statoutfile, hubble=hubble)
         shalos = halos.writetipsy(s, halos, tipsyoutfile, hubble=hubble)
         return shalos
