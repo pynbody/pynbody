@@ -58,7 +58,7 @@ class AHFCatalogue(HaloCatalogue):
         HaloCatalogue.__init__(self,sim)
 
         if use_iord is None:
-            use_iord = isinstance(sim.ancestor, snapshot.gadget.GadgetSnap)
+            use_iord = isinstance(sim.ancestor, (snapshot.gadget.GadgetSnap, snapshot.gadgethdf.GadgetHDFSnap))
 
         self._use_iord = use_iord
 
