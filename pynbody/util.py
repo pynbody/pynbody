@@ -641,7 +641,9 @@ if sys.version_info[0]>2:
         # that numpy works around the python 3 buffering. This simple implementation is almost as fast as
         # the python 2 numpy.fromfile
         buf = np.empty(num, dtype)
-        f.readinto(buf)
+        bytes_read = f.readinto(buf)
+        if bytes_read!=buf.nbytes:
+            return buf[:bytes_read//np.dtype(dtype).itemsize] # this seems to be the behaviour of np.fromfile
         return buf
 else:
     _fromfile = np.fromfile
