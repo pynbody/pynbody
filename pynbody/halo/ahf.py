@@ -52,13 +52,13 @@ class AHFCatalogue(HaloCatalogue):
         """
 
         import os.path
-        if not self._can_load(sim):
+        if not self._can_load(sim, ahf_basename):
             self._run_ahf(sim)
 
         HaloCatalogue.__init__(self,sim)
 
         if use_iord is None:
-            use_iord = isinstance(sim.ancestor, snapshot.gadget.GadgetSnap)
+            use_iord = isinstance(sim.ancestor, (snapshot.gadget.GadgetSnap, snapshot.gadgethdf.GadgetHDFSnap))
 
         self._use_iord = use_iord
 
@@ -568,16 +568,21 @@ class AHFCatalogue(HaloCatalogue):
         grpoutfile = s.filename + ".amiga.grp"
         statoutfile = s.filename + ".amiga.stat"
         tipsyoutfile = s.filename + ".amiga.gtp"
-        halos.writegrp(s, halos, grpoutfile)
+        halos.writegrp(grpoutfile)
         halos.writestat(s, halos, statoutfile, hubble=hubble)
         shalos = halos.writetipsy(s, halos, tipsyoutfile, hubble=hubble)
         return shalos
 
     @staticmethod
-    def _can_load(sim,**kwargs):
-        for file in glob.glob(sim._filename + '*z*particles*'):
-            if os.path.exists(file):
-                return True
+    def _can_load(sim,ahf_basename=None,**kwargs):
+        if ahf_basename is not None:
+            for file in glob.glob(ahf_basename + '*particles*'):
+                if os.path.exists(file):
+                    return True
+        else:
+            for file in glob.glob(sim._filename + '*z*particles*'):
+                if os.path.exists(file):
+                    return True
         return False
 
     def _run_ahf(self, sim):

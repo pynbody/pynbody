@@ -2,6 +2,7 @@ import pynbody
 import numpy as np
 import glob
 import os
+from nose.tools import assert_raises
 
 
 def setup():
@@ -349,6 +350,10 @@ def test_3d_interpolation():
     arr = pynbody.analysis.luminosity.calc_mags(f.s)
     assert(np.allclose(arr[0:100], ref2d))
 
+def test_alternative_cmd():
+    """A very basic test that the alternative cmd path is respected"""
+    with assert_raises(IOError):
+        pynbody.analysis.luminosity.calc_mags(f.s, cmd_path="/nonexistent/path")
 
 def test_issue_313():
     f = pynbody.load("testdata/g15784.lr.01024")

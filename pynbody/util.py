@@ -16,6 +16,7 @@ import time
 import functools
 import logging
 import math
+import sys
 
 import numpy as np
 import scipy
@@ -633,20 +634,33 @@ def threadsafe_inline(*args, **kwargs):
 
 _head_type = np.dtype('i4')
 
+if sys.version_info[0]>2:
+    def _fromfile(f, dtype, num):
+        # Relates to issue 501:
+        # in python 3, numpy.fromfile is very slow for repeated small data chunks. This is due to the way
+        # that numpy works around the python 3 buffering. This simple implementation is almost as fast as
+        # the python 2 numpy.fromfile
+        buf = np.empty(num, dtype)
+        bytes_read = f.readinto(buf)
+        if bytes_read!=buf.nbytes:
+            return buf[:bytes_read//np.dtype(dtype).itemsize] # this seems to be the behaviour of np.fromfile
+        return buf
+else:
+    _fromfile = np.fromfile
 
 def read_fortran(f, dtype, n=1):
     if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
 
     length = n * dtype.itemsize
-    alen = np.fromfile(f, _head_type, 1)
+    alen = _fromfile(f, _head_type, 1)
     if alen != length:
         raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
             alen, length)
 
-    data = np.fromfile(f, dtype, n)
+    data = _fromfile(f, dtype, n)
 
-    alen = np.fromfile(f, _head_type, 1)
+    alen = _fromfile(f, _head_type, 1)
     if alen != length:
         raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
             alen, length)
