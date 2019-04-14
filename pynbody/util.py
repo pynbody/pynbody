@@ -628,70 +628,24 @@ def threadsafe_inline(*args, **kwargs):
 
 
 
-#############################################
-# fortran reading facilities for ramses etc
-#############################################
+##################################################
+# fortran reading facilities for ramses and grafic
+#################################################
 
 _head_type = np.dtype('i4')
 
-if sys.version_info[0]>2:
-    def _fromfile(f, dtype, num):
-        # Relates to issue 501:
-        # in python 3, numpy.fromfile is very slow for repeated small data chunks. This is due to the way
-        # that numpy works around the python 3 buffering. This simple implementation is almost as fast as
-        # the python 2 numpy.fromfile
-        buf = np.empty(num, dtype)
-        bytes_read = f.readinto(buf)
-        if bytes_read!=buf.nbytes:
-            return buf[:bytes_read//np.dtype(dtype).itemsize] # this seems to be the behaviour of np.fromfile
-        return buf
-else:
-    _fromfile = np.fromfile
-
-def read_fortran(f, dtype, n=1):
-    if not isinstance(dtype, np.dtype):
-        dtype = np.dtype(dtype)
-
-    length = n * dtype.itemsize
-    alen = _fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
-            alen, length)
-
-    data = _fromfile(f, dtype, n)
-
-    alen = _fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
-            alen, length)
-
-    return data
-
-
-def skip_fortran(f, n=1):
-    for i in xrange(n):
-        alen = np.fromfile(f, _head_type, 1)
-        f.seek(alen[0], 1)
-        alen2 = np.fromfile(f, _head_type, 1)
-        assert alen == alen2
-
-
-def read_fortran_series(f, dtype):
-    q = np.empty(1, dtype=dtype)
-    for i in xrange(len(dtype.fields)):
-        data = read_fortran(f, dtype[i], 1)
-
-        # I really don't understand why the following acrobatic should
-        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
-        if hasattr(data[0], "__len__"):
-            q[0][i][:] = data[0]
-        else:
-            q[0][i] = data[0]
-
-    return q[0]
-
 class FortranFile(object):
-    """A version of the fortran reading routines that uses a memmap for improved efficiency on Python 3.x"""
+    """Utilities to help reading fortran files efficiently, using a numpy memmap
+
+    Usage:
+
+    with FortranFile(fname) as f:
+        data = f.read_field(dtype, size) # loads a fortran field consisting of size elements of type dtype
+        f.skip_fields(num) # skip over <num> fortran fields
+        data_as_map = f.read_field_memmapped(dtype, size) # loads the fortran field as a RO memmap straight onto the file
+        header = f.read_series(fields_dtype) # load a series of fortran fields defined by the composite numpy dtype
+    """
+
     def __init__(self, filename):
         self._map = np.memmap(filename, mode='r')
         self._offset = 0
@@ -702,18 +656,21 @@ class FortranFile(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         del self._map
 
-    def _get_next(self, dtype, length):
+    def get_raw_memmapped(self, dtype, length=1):
         start = self._offset
         end = start + length * dtype.itemsize
         result = np.frombuffer(self._map[start:end], dtype=dtype)
         self._offset = end
         return result
 
+    def skip(self, bytes):
+        self._offset+=bytes
+
     def skip_fields(self, n=1):
         for i in xrange(n):
-            alen = self._get_next(_head_type, 1)
-            self._offset+=alen[0]
-            alen2 = self._get_next(_head_type, 1)
+            alen = self.get_raw_memmapped(_head_type, 1)
+            self.skip(alen[0])
+            alen2 = self.get_raw_memmapped(_head_type, 1)
             assert alen==alen2
 
     def read_field(self, dtype, field_length=1):
@@ -724,14 +681,14 @@ class FortranFile(object):
             dtype = np.dtype(dtype)
 
         length = field_length * dtype.itemsize
-        alen = self._get_next(_head_type, 1)
+        alen = self.get_raw_memmapped(_head_type, 1)
         if alen != length:
             raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
                 alen, length)
 
-        data = self._get_next(dtype, field_length)
+        data = self.get_raw_memmapped(dtype, field_length)
 
-        alen = self._get_next(_head_type, 1)
+        alen = self.get_raw_memmapped(_head_type, 1)
         if alen != length:
             raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
                 alen, length)

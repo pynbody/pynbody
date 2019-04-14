@@ -14,7 +14,7 @@ from .. import analysis
 from .. import units
 from . import SimSnap
 
-from ..util import read_fortran, read_fortran_series, grid_gen
+from ..util import FortranFile, grid_gen
 
 import numpy as np
 import os
@@ -41,7 +41,7 @@ def _monitor(i):
 
 
 def _midway_fortran_skip(f, alen, pos):
-    bits = np.fromfile(f, util._head_type, 2)
+    bits = f.get_raw_memmapped(util._head_type, 2)
     assert (alen == bits[0] and alen == bits[1]
             ), "Incorrect FORTRAN block sizes"
 
@@ -57,8 +57,8 @@ class GrafICSnap(SimSnap):
 
     def __init__(self, f, take=None, use_pos_file=True):
         super(GrafICSnap, self).__init__()
-        f_cx = open(os.path.join(f, "ic_velcx"))
-        self._header = read_fortran(f_cx, genic_header)[0]
+        with FortranFile(os.path.join(f, "ic_velcx")) as f_cx:
+            self._header = f_cx.read_field(genic_header)[0]
         h = self._header
         self._dlen = int(h['nx'] * h['ny'])
         self.properties['a'] = float(h['astart'])
@@ -195,10 +195,10 @@ class GrafICSnap(SimSnap):
         self._read_grafic_file(filename, self['pvar'], _float_data_type)
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
-        with open(filename, 'rb') as f:
-            h = read_fortran(f, genic_header)
+        with FortranFile(filename) as f:
+            h = f.read_field(genic_header)
             length = self._dlen * data_type.itemsize
-            alen = np.fromfile(f, util._head_type, 1)
+            alen = f.get_raw_memmapped(util._head_type)
             if alen != length:
                 raise IOError("Unexpected FORTRAN block length %d!=%d" % (alen, length))
             for readlen, buf_index, mem_index in (self._load_control.iterate_with_interrupts(family.dm, family.dm,
@@ -210,11 +210,11 @@ class GrafICSnap(SimSnap):
                                                                                                  length))):
 
                 if buf_index is not None:
-                    re = np.fromfile(f, data_type, readlen)
+                    re = f.get_raw_memmapped(data_type, readlen)
                     target_buffer[mem_index] = re[buf_index]
                 else:
-                    f.seek(data_type.itemsize * readlen, 1)
-            alen = np.fromfile(f, util._head_type, 1)
+                    f.seek(data_type.itemsize * readlen)
+            alen = f.get_raw_memmapped(util._head_type)
             if alen != length:
                 raise IOError("Unexpected FORTRAN block length (tail) %d!=%d" % (alen, length))
 
