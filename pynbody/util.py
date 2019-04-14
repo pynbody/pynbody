@@ -717,6 +717,9 @@ class FortranFile(object):
             assert alen==alen2
 
     def read_field(self, dtype, field_length=1):
+        return self.get_field_memmapped(dtype, field_length).copy()
+
+    def get_field_memmapped(self, dtype, field_length=1):
         if not isinstance(dtype, np.dtype):
             dtype = np.dtype(dtype)
 
@@ -726,7 +729,7 @@ class FortranFile(object):
             raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
                 alen, length)
 
-        data = self._get_next(dtype, field_length).copy() # need to copy as don't want to leave whole memmap alive
+        data = self._get_next(dtype, field_length)
 
         alen = self._get_next(_head_type, 1)
         if alen != length:

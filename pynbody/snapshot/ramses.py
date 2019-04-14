@@ -121,7 +121,7 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
     with FortranFile(filename) as f:
         header = f.read_series(ramses_particle_header)
         f.skip_fields(offset)
-        data = f.read_field(type_, header['npart'])
+        data = f.get_field_memmapped(type_, header['npart'])
         for fam_id, ar in enumerate(arrays):
             data_this_family = data[family_mask == fam_id]
             ind0 = first_index[fam_id]
@@ -303,7 +303,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                             i0 = i1
                             i1 = i0 + (refine[icel] == 0).sum()
                             for ar in dims:
-                                ar[i0:i1] = f.read_field(
+                                ar[i0:i1] = f.get_field_memmapped(
                                     _float_type, ncache)[(refine[icel] == 0)]
     
                             f.skip_fields((nvar_file - nvar))
