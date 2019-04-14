@@ -690,6 +690,64 @@ def read_fortran_series(f, dtype):
 
     return q[0]
 
+class FortranFile(object):
+    """A version of the fortran reading routines that uses a memmap for improved efficiency on Python 3.x"""
+    def __init__(self, filename):
+        self._map = np.memmap(filename, mode='r')
+        self._offset = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del self._map
+
+    def _get_next(self, dtype, length):
+        start = self._offset
+        end = start + length * dtype.itemsize
+        result = np.frombuffer(self._map[start:end], dtype=dtype)
+        self._offset = end
+        return result
+
+    def skip_fields(self, n=1):
+        for i in xrange(n):
+            alen = self._get_next(_head_type, 1)
+            self._offset+=alen[0]
+            alen2 = self._get_next(_head_type, 1)
+            assert alen==alen2
+
+    def read_field(self, dtype, field_length=1):
+        if not isinstance(dtype, np.dtype):
+            dtype = np.dtype(dtype)
+
+        length = field_length * dtype.itemsize
+        alen = self._get_next(_head_type, 1)
+        if alen != length:
+            raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
+                alen, length)
+
+        data = self._get_next(dtype, field_length).copy() # need to copy as don't want to leave whole memmap alive
+
+        alen = self._get_next(_head_type, 1)
+        if alen != length:
+            raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
+                alen, length)
+
+        return data
+
+    def read_series(self, dtype):
+        q = np.empty(1, dtype=dtype)
+        for i in xrange(len(dtype.fields)):
+            data = self.read_field(dtype[i], 1)
+
+            # I really don't understand why the following acrobatic should
+            # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
+            if hasattr(data[0], "__len__"):
+                q[0][i][:] = data[0]
+            else:
+                q[0][i] = data[0]
+
+        return q[0]
 
 def _thread_map(func, *args):
 
