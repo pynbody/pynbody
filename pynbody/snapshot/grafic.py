@@ -55,7 +55,7 @@ class GrafICSnap(SimSnap):
     def _can_load(f):
         return os.path.isdir(f) and os.path.exists(os.path.join(f, "ic_velcx"))
 
-    def __init__(self, f, take=None):
+    def __init__(self, f, take=None, use_pos_file=True):
         super(GrafICSnap, self).__init__()
         f_cx = open(os.path.join(f, "ic_velcx"))
         self._header = read_fortran(f_cx, genic_header)[0]
@@ -72,6 +72,7 @@ class GrafICSnap(SimSnap):
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
         self._filename = f
+        self._use_pos_file = self._can_use_pos_file() and use_pos_file
 
         boxsize = self._header['dx'] * self._header['nx']
         self.properties['boxsize'] = boxsize * units.Unit("Mpc a")
@@ -86,18 +87,43 @@ class GrafICSnap(SimSnap):
         self['mass'].units = "Msol"
 
     def _derive_pos(self):
+        self._setup_pos_grid()
+        if self._use_pos_file:
+            self._displace_pos_from_file()
+        else:
+            self._displace_pos_zeldovich()
+
+    def _can_use_pos_file(self):
+        return os.path.exists(os.path.join(self._filename, 'ic_poscx'))
+
+    def _displace_pos_from_file(self):
+        for vd in 'x', 'y', 'z':
+            target_buffer = self[vd]
+            filename = os.path.join(self._filename, 'ic_posc' + vd)
+            diff_buffer = np.empty_like(target_buffer)
+
+            self._read_grafic_file(filename, diff_buffer, _float_data_type)
+
+            # Do unit conversion. Caution: this assumes displacements are in Mpc a h^-1, which is slightly inconsistent
+            # with the original GrafIC documentation -- but later implementations of the format seem to assume this.
+            diff_buffer/=self.properties['h']
+            target_buffer+=diff_buffer
+
+
+    def _displace_pos_zeldovich(self):
+        self['pos'] += self['zeldovich_offset']
+
+    def _setup_pos_grid(self):
         self._create_array('pos', 3)
         self['pos'].units = "Mpc a"
         pos = self['pos']
         nx, ny, nz = [int(self._header[x]) for x in 'nx', 'ny', 'nz']
-
         # the following is equivalent to
         #
         # self['z'],self['y'],self['x'] = np.mgrid[0.0:self._header['nx'], 0.0:self._header['ny'], 0.0:self._header['nz']]
         #
         # but works on partial loading without having to generate the entire mgrid
         # (which might easily exceed the available memory for a big grid)
-
         pos_cache = np.empty((_max_buflen, 3))
         fp0 = 0
         for readlen, buf_index, mem_index in self._load_control.iterate(family.dm, family.dm):
@@ -105,11 +131,7 @@ class GrafICSnap(SimSnap):
                 pos[mem_index] = grid_gen(
                     slice(fp0, fp0 + readlen), nx, ny, nz, pos=pos_cache)[buf_index]
             fp0 += readlen
-
         self['pos'] *= self._header['dx'] * self._header['nx']
-        a = self.properties['a']
-
-        self['pos'] += self['zeldovich_offset']
         self['pos'] += (self._header['lx'], self._header['ly'], self._header['lz'])
 
     def _derive_vel(self):
