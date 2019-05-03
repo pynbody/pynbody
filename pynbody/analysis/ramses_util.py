@@ -61,6 +61,7 @@ and reads them back from there.
 import pynbody
 import subprocess
 import numpy as np
+import os
 from .. units import Unit
 
 from .. import config_parser
@@ -95,7 +96,8 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
 
     """
 
-    s = load_center(output, halo=halo)
+    h = output.halos()[halo]
+    s = pynbody.analysis.halo.center(h)
 
     for key in ['pos', 'vel', 'mass', 'iord', 'metal']:
         try:
@@ -319,46 +321,31 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
 
     from scipy.io import FortranFile
 
-    top = sim
-    while hasattr(top, 'base'):
+    if hasattr(sim, 'base'):
         top = sim.base
+    else:
+        top = sim
 
-    ncpu = top._info['ncpu']
+    cpu_range = top._cpus
 
     top.s['tform'] = -1.0
     done = 0
 
-    parent_dir = top.filename
-    if parent_dir[-1] == '/':
-        parent_dir = parent_dir[:-1]
+    for cpu_id in cpu_range:
 
-    if len(parent_dir.split('/')) > 1:
-        parent_dir = top.filename[:-12]
-    else:
-        parent_dir = './'
-
-    # RS - If we only load a subset of cpus,
-    # we need to ensure we dont' try to load
-    # them all...
-    if not cpu_range: # means user hasn't specified a range: use all
-        cpu_range = range(ncpu)
-
-    for i in range(ncpu):
-        if i not in cpu_range:
-            continue
+        # Birth files are located inside the output directory.
+        birthfile_name = "birth_%s.out%05d" %(top._timestep_id, cpu_id)
+        birthfile_path = os.path.join(top.filename, birthfile_name)
         try:
-            birth_file = FortranFile('%s/output_%s/birth_%s.out%05d' %
-                                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
-        except IOError:
-            import os
+            birth_file = FortranFile(birthfile_path)
+        except FileNotFoundError:
 
             # birth_xxx doesn't exist, create it with ramses part2birth util
             with open(os.devnull, 'w') as fnull:
                 subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
                                 stdout=fnull, stderr=fnull)
-            # part2birth put the files in output_<top._timestep_id>
-            birth_file = FortranFile('%s/output_%s/birth_%s.out%05d' %
-                                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
+
+            birth_file = FortranFile(birthfile_path)
 
         ages = birth_file.read_reals(np.float64)
         new = np.where(ages > 0)[0]
