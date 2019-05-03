@@ -294,7 +294,7 @@ def write_ahf_input(sim, tipsyfile):
     f.close()
 
 
-def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
+def get_tform(sim, part2birth_path=part2birth_path):
     """Use `part2birth` to calculate the formation time of stars in
     Gyr and **replaces** the original `tform` array.
 
@@ -309,9 +309,6 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
      `default_config.ini` in your pynbody install directory. You can
      override this like so -- make a file called ".pynbodyrc" in your
      home directory, and include
-
-     *cpu_range*: a list of cpus to process tform for. If specified, birth time
-      will only be processed for cpus in the list. - RS
 
     [ramses]
 
