@@ -143,3 +143,7 @@ def test_forcegas_dmo():
             2.25179981e+15,   2.25179981e+15,   2.25179981e+15,
             2.25179981e+15,   2.25179981e+15,   2.25179981e+15,
             1.80143985e+16], rtol=1e-5)
+
+
+def test_metals_field_correctly_copied_from_metal():
+    np.testing.assert_allclose(f.st['metals'][::5000], f.st['metal'][::5000], rtol=1e-5)
