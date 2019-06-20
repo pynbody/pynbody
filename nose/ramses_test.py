@@ -147,3 +147,14 @@ def test_forcegas_dmo():
 
 def test_metals_field_correctly_copied_from_metal():
     np.testing.assert_allclose(f.st['metals'][::5000], f.st['metal'][::5000], rtol=1e-5)
+
+
+def test_tform_and_tform_raw():
+    # Tform is not available for test data, so test warning generation and that the array is full of -1
+    with np.testing.assert_warns(UserWarning):
+        assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
+        np.testing.assert_allclose(f.st['tform'], - np.ones((2655,), dtype=np.float64), rtol=1e-5)
+
+    np.testing.assert_allclose(f.st['tform_raw'][:10], [4.58574701, 4.58100771, 4.58284129, 3.18777836, 4.55801122,
+                                                        4.50733498, 4.5100136,  4.57288808, 4.55926183, 4.52128465],
+                               rtol=1e-5)
