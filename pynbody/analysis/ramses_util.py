@@ -347,7 +347,7 @@ def get_tform(sim, part2birth_path=part2birth_path):
                 warnings.warn("Failed to read 'tform' from birth files at %s and to generate them with utility at %s.\n"
                               "Formation times in Ramses code units can be accessed through the 'tform_raw' array."
                               % (birthfile_path, part2birth_path))
-                raise OSError
+                return
 
         ages = birth_file.read_reals(np.float64)
         new = np.where(ages > 0)[0]
