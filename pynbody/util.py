@@ -628,68 +628,86 @@ def threadsafe_inline(*args, **kwargs):
 
 
 
-#############################################
-# fortran reading facilities for ramses etc
-#############################################
+##################################################
+# fortran reading facilities for ramses and grafic
+#################################################
 
 _head_type = np.dtype('i4')
 
-if sys.version_info[0]>2:
-    def _fromfile(f, dtype, num):
-        # Relates to issue 501:
-        # in python 3, numpy.fromfile is very slow for repeated small data chunks. This is due to the way
-        # that numpy works around the python 3 buffering. This simple implementation is almost as fast as
-        # the python 2 numpy.fromfile
-        buf = np.empty(num, dtype)
-        bytes_read = f.readinto(buf)
-        if bytes_read!=buf.nbytes:
-            return buf[:bytes_read//np.dtype(dtype).itemsize] # this seems to be the behaviour of np.fromfile
-        return buf
-else:
-    _fromfile = np.fromfile
+class FortranFile(object):
+    """Utilities to help reading fortran files efficiently, using a numpy memmap
 
-def read_fortran(f, dtype, n=1):
-    if not isinstance(dtype, np.dtype):
-        dtype = np.dtype(dtype)
+    Usage:
 
-    length = n * dtype.itemsize
-    alen = _fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
-            alen, length)
+    with FortranFile(fname) as f:
+        data = f.read_field(dtype, size) # loads a fortran field consisting of size elements of type dtype
+        f.skip_fields(num) # skip over <num> fortran fields
+        data_as_map = f.read_field_memmapped(dtype, size) # loads the fortran field as a RO memmap straight onto the file
+        header = f.read_series(fields_dtype) # load a series of fortran fields defined by the composite numpy dtype
+    """
 
-    data = _fromfile(f, dtype, n)
+    def __init__(self, filename):
+        self._map = np.memmap(filename, mode='r')
+        self._offset = 0
 
-    alen = _fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
-            alen, length)
+    def __enter__(self):
+        return self
 
-    return data
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del self._map
 
+    def get_raw_memmapped(self, dtype, length=1):
+        start = self._offset
+        end = start + length * dtype.itemsize
+        result = np.frombuffer(self._map[start:end], dtype=dtype)
+        self._offset = end
+        return result
 
-def skip_fortran(f, n=1):
-    for i in xrange(n):
-        alen = np.fromfile(f, _head_type, 1)
-        f.seek(alen[0], 1)
-        alen2 = np.fromfile(f, _head_type, 1)
-        assert alen == alen2
+    def skip(self, bytes):
+        self._offset+=bytes
 
+    def skip_fields(self, n=1):
+        for i in xrange(n):
+            alen = self.get_raw_memmapped(_head_type, 1)
+            self.skip(alen[0])
+            alen2 = self.get_raw_memmapped(_head_type, 1)
+            assert alen==alen2
 
-def read_fortran_series(f, dtype):
-    q = np.empty(1, dtype=dtype)
-    for i in xrange(len(dtype.fields)):
-        data = read_fortran(f, dtype[i], 1)
+    def read_field(self, dtype, field_length=1):
+        return self.get_field_memmapped(dtype, field_length).copy()
 
-        # I really don't understand why the following acrobatic should
-        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
-        if hasattr(data[0], "__len__"):
-            q[0][i][:] = data[0]
-        else:
-            q[0][i] = data[0]
+    def get_field_memmapped(self, dtype, field_length=1):
+        if not isinstance(dtype, np.dtype):
+            dtype = np.dtype(dtype)
 
-    return q[0]
+        length = field_length * dtype.itemsize
+        alen = self.get_raw_memmapped(_head_type, 1)
+        if alen != length:
+            raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
+                alen, length)
 
+        data = self.get_raw_memmapped(dtype, field_length)
+
+        alen = self.get_raw_memmapped(_head_type, 1)
+        if alen != length:
+            raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
+                alen, length)
+
+        return data
+
+    def read_series(self, dtype):
+        q = np.empty(1, dtype=dtype)
+        for i in xrange(len(dtype.fields)):
+            data = self.read_field(dtype[i], 1)
+
+            # I really don't understand why the following acrobatic should
+            # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
+            if hasattr(data[0], "__len__"):
+                q[0][i][:] = data[0]
+            else:
+                q[0][i] = data[0]
+
+        return q[0]
 
 def _thread_map(func, *args):
 
