@@ -482,6 +482,7 @@ class RamsesSnap(SimSnap):
 
     def _load_namelist_from_specified_file(self, f):
         for l in f:
+            l = l.split("!")[0]  # remove fortran comments
             if '=' in l:
                 name, val = map(str.strip, l.split('='))
                 if val == ".true.":
