@@ -500,10 +500,14 @@ class RamsesSnap(SimSnap):
 
     def _load_namelistfile(self):
         self._namelist = {}
-        try:
+
+        if os.path.exists(self._filename + "/namelist.txt"):
             f = open(self._filename + "/namelist.txt", "r")
-            self._load_namelist_from_specified_file(f)
-        except IOError:
+            try:
+                self._load_namelist_from_specified_file(f)
+            except ValueError:
+                warnings.warn("Namelist found but unable to read.")    
+        else:
             warnings.warn("No namelist file found.")
 
     def _setup_particle_descriptor(self):
