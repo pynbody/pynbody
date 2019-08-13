@@ -382,6 +382,7 @@ class RamsesSnap(SimSnap):
         self._filename = dirname
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
+        self._load_namelistfile()
         self._setup_particle_descriptor()
 
         assert self._info['ndim'] <= 3
@@ -478,6 +479,31 @@ class RamsesSnap(SimSnap):
         except IOError:
             warnings.warn(
                 "No header file found -- no particle block information available")
+
+    def _load_namelist_from_specified_file(self, f):
+        for l in f:
+            if '=' in l:
+                name, val = map(str.strip, l.split('='))
+                if val == ".true.":
+                    self._namelist[name] = True
+                elif val == ".false.":
+                    self._namelist[name] = False
+                else:
+                    try:
+                        if '.' in val:
+                            self._namelist[name] = float(val)
+                        else:
+                            self._namelist[name] = int(val)
+                    except ValueError:
+                        self._namelist[name] = val
+
+    def _load_namelistfile(self):
+        self._namelist = {}
+        try:
+            f = open(self._filename + "/namelist.txt", "r")
+            self._load_namelist_from_specified_file(f)
+        except IOError:
+            warnings.warn("No namelist file found.")
 
     def _setup_particle_descriptor(self):
         try:
@@ -887,14 +913,15 @@ class RamsesSnap(SimSnap):
                 self[f]['phi'] *= self._info['boxlen']
 
     def _load_particle_cpuid(self):
-        raise NotImplementedError, "The particle CPU data cannot currently be loaded" # TODO: re-implement
         ind0_dm = 0
         ind0_star = 0
-        for i, star_mask, nstar in zip(self._cpus, self._particle_family_ids_on_disk, self._nstar):
-            with FortranFile(self._particle_filename(i)) as f:
-                header = f.read_series(ramses_particle_header)
-            ind1_dm = ind0_dm + header['npart'] - nstar
-            ind1_star = ind0_star + nstar
+        for i, fam_mask in zip(self._cpus, self._particle_family_ids_on_disk):            
+            mask_dm = fam_mask == 0
+            mask_st = fam_mask == 1
+  
+            ind1_dm = ind0_dm + mask_dm.sum()
+            ind1_star = ind0_star + mask_st.sum()
+
             self.dm['cpu'][ind0_dm:ind1_dm] = i
             self.star['cpu'][ind0_star:ind1_star] = i
             ind0_dm, ind0_star = ind1_dm, ind1_star
@@ -933,8 +960,10 @@ class RamsesSnap(SimSnap):
         return list(keys_ND)
 
     def _not_cosmological(self):
-        # could potentially be improved with reference to stored namelist.txt, if present
-        return self._info['omega_k'] == self._info['omega_l'] == 0
+        if "cosmo" in self._namelist and self._namelist["cosmo"]:
+            return False
+        else:
+            return True
 
     def _load_array(self, array_name, fam=None):
         # Framework always calls with 3D name. Ramses particle blocks are
