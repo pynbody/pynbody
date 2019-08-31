@@ -305,7 +305,6 @@ class AHFCatalogue(HaloCatalogue):
         if self.isnew:
             if not isinstance(f, gzip.GzipFile):
                 if self.special:
-                    print("special file format")
                     data = (np.fromfile(
                         f, sep=" ", count=nparts * 8).reshape(nparts, 8))[:, 0]
                     data = np.ascontiguousarray(data, dtype=int)
