@@ -105,15 +105,17 @@ class SubfindCatalogue(HaloCatalogue):
 
     def _readheader(self):
         header = np.array([], dtype='int32')
-        filename = self.halodir + "/subhalo_tab_" + \
-            self.halodir.split("_")[-1] + ".0"
+        filename = self.halodir + "/fof_subhalo_tab_" + \
+            self.halodir.split("_")[-1] + ".0.hdf5"
         fd = open(filename, "rb")
         # read header: this is strange but it works: there is an extra value in
         # header which we delete in the next step
         header1 = np.fromfile(fd, dtype='int32', sep="", count=8)
-        header = np.delete(header1, 4)
+        print(header1)
+        #header = np.delete(header1, 4)
+        print(header)
         fd.close()
-        return header  # [4]
+        return header1  # [4]
 
     def _read_ids(self):
         data_ids = np.array([], dtype=self.dtype_int)
@@ -153,9 +155,9 @@ class SubfindCatalogue(HaloCatalogue):
         self._keys=keys_flt+keys_int
         if self._subs is True:
             self._keys=subkeys_flt+subkeys_int
-
+        print(self._tasks)
         for n in xrange(0,self._tasks):
-            filename=self.halodir+"/subhalo_tab_"+self.halodir.split("_")[-1]+"." +str(n)
+            filename=self.halodir+"/fof_subhalo_tab_"+self.halodir.split("_")[-1]+"." +str(n)
             fd=open(filename, "rb")
             header1=np.fromfile(fd, dtype='int32', sep="", count=8)
             header=np.delete(header1,4)
@@ -231,7 +233,7 @@ class SubfindCatalogue(HaloCatalogue):
         snapnum = os.path.basename(
             os.path.dirname(sim.filename)).split("_")[-1]
         parent_dir = os.path.dirname(os.path.dirname(sim.filename))
-        dir_path=os.path.join(parent_dir,"groups_" + snapnum)
+        dir_path=os.path.join('./',"groups_" + snapnum) #os.path.join(parent_dir,"groups_" + snapnum)
 
         if os.path.exists(dir_path):
             return dir_path

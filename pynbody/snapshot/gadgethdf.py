@@ -152,9 +152,7 @@ class GadgetHDFSnap(SimSnap):
         super(GadgetHDFSnap, self).__init__()
 
         self._filename = filename
-
         self._init_hdf_filemanager(filename)
-
         self._translate_array_name = namemapper.AdaptiveNameMapper('gadgethdf-name-mapping')
         self.__init_unit_information()
         self.__init_family_map()
