@@ -58,7 +58,7 @@ class AHFCatalogue(HaloCatalogue):
         HaloCatalogue.__init__(self,sim)
 
         if use_iord is None:
-            use_iord = isinstance(sim.ancestor, snapshot.gadget.GadgetSnap)
+            use_iord = isinstance(sim.ancestor, (snapshot.gadget.GadgetSnap, snapshot.gadgethdf.GadgetHDFSnap))
 
         self._use_iord = use_iord
 
@@ -584,7 +584,7 @@ class AHFCatalogue(HaloCatalogue):
         grpoutfile = s.filename + ".amiga.grp"
         statoutfile = s.filename + ".amiga.stat"
         tipsyoutfile = s.filename + ".amiga.gtp"
-        halos.writegrp(s, halos, grpoutfile)
+        halos.writegrp(grpoutfile)
         halos.writestat(s, halos, statoutfile, hubble=hubble)
         shalos = halos.writetipsy(s, halos, tipsyoutfile, hubble=hubble)
         return shalos
