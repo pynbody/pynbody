@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pynbody'
-copyright = u'2011-18, pynbody team'
+copyright = u'2011-19, pynbody team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
