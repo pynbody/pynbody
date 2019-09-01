@@ -6,7 +6,6 @@ def setup():
     global f
     f = pynbody.load("testdata/ramses_partial_output_00250")
 
-
 def test_lengths():
     assert len(f.gas) == 152667
     assert len(f.star) == 2655
@@ -16,6 +15,10 @@ def test_properties():
     np.testing.assert_almost_equal(f.properties['a'], 1.0)
     np.testing.assert_almost_equal(f.properties['h'], 0.01)
     np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
+
+def test_loaded_namelist():
+    np.testing.assert_warns(UserWarning, f._load_namelistfile)
+    assert f._namelist == {}
 
 def test_particle_arrays():
     f['pos']
@@ -110,6 +113,12 @@ def test_forcegas_dmo():
     assert len(f_dmo.families())==2
     assert len(f_dmo.dm)==274004
     assert len(f_dmo.g)==907818
+
+    assert len(f_dmo.dm["cpu"]) == 274004
+    assert len(f_dmo.g["cpu"]) == 907818
+
+    assert np.all(f_dmo.dm["cpu"] == 1)
+    assert np.all(f_dmo.g["cpu"] == 1)
 
     np.testing.assert_allclose(f_dmo.g['mass'][::5000], np.ones((182,), dtype=np.float64), rtol = 1e-5)
     np.testing.assert_allclose(f_dmo.g['rho'][::10000],[  2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
