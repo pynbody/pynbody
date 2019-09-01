@@ -1,6 +1,11 @@
 import pynbody
 import numpy as np
 
+import sys
+if sys.version_info[0] < 3:
+    import warnings
+    warnings.simplefilter('always', UserWarning)
+
 
 def setup():
     global f
