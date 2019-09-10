@@ -16,12 +16,15 @@ import time
 import functools
 import logging
 import math
+import sys
 
 import numpy as np
 import scipy
 
 from .backcompat import fractions
 from . import config
+from . import units
+from .array import SimArray
 
 logger = logging.getLogger('pynbody.util')
 from ._util import *
@@ -57,6 +60,37 @@ def open_with_size(filename, *args):
         return f, buflen
 
 
+def eps_as_simarray(f, eps):
+    """Convert th given eps to a SimArray with units of f['pos'] and dtype of f['mass']""" 
+    if isinstance(eps, str):
+        eps = units.Unit(eps)
+    if not isinstance(eps, units.UnitBase):
+        eps = eps * f['pos'].units
+        logger.info("Considering eps = {}".format(eps))
+    eps_value = eps._scale
+    eps_unit = eps/eps_value
+    eps = SimArray(np.ones(len(f), dtype=f['mass'].dtype) * eps_value, eps_unit)
+    return eps
+
+
+def get_eps(f):
+    """The gravitational softening length is determined from (in order of
+    preference):
+    1. the array f['eps']
+    2. f.properties['eps'] (scalar or unit)
+
+    Return a SimArray with correct units and dtype (same dtype as 'mass' array)"""
+
+    try:
+        eps = f['eps']
+    except KeyError:
+        if 'eps' in f.properties:
+            eps = eps_as_simarray(f, f.properties['eps'])
+        else:
+            raise RuntimeError("Cannot retrieve 'eps' from SimSnap")
+    return eps
+
+
 def gcf(a, b):
     while b > 0:
         a, b = b, a % b
@@ -64,7 +98,7 @@ def gcf(a, b):
 
 
 def lcm(a, b):
-    return a * b / gcf(a, b)
+    return (a * b) // gcf(a, b)
 
 
 def intersect_slices(s1, s2, array_length=None):
@@ -594,55 +628,86 @@ def threadsafe_inline(*args, **kwargs):
 
 
 
-#############################################
-# fortran reading facilities for ramses etc
-#############################################
+##################################################
+# fortran reading facilities for ramses and grafic
+#################################################
 
 _head_type = np.dtype('i4')
 
+class FortranFile(object):
+    """Utilities to help reading fortran files efficiently, using a numpy memmap
 
-def read_fortran(f, dtype, n=1):
-    if not isinstance(dtype, np.dtype):
-        dtype = np.dtype(dtype)
+    Usage:
 
-    length = n * dtype.itemsize
-    alen = np.fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
-            alen, length)
+    with FortranFile(fname) as f:
+        data = f.read_field(dtype, size) # loads a fortran field consisting of size elements of type dtype
+        f.skip_fields(num) # skip over <num> fortran fields
+        data_as_map = f.read_field_memmapped(dtype, size) # loads the fortran field as a RO memmap straight onto the file
+        header = f.read_series(fields_dtype) # load a series of fortran fields defined by the composite numpy dtype
+    """
 
-    data = np.fromfile(f, dtype, n)
+    def __init__(self, filename):
+        self._map = np.memmap(filename, mode='r')
+        self._offset = 0
 
-    alen = np.fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
-            alen, length)
+    def __enter__(self):
+        return self
 
-    return data
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del self._map
 
+    def get_raw_memmapped(self, dtype, length=1):
+        start = self._offset
+        end = start + length * dtype.itemsize
+        result = np.frombuffer(self._map[start:end], dtype=dtype)
+        self._offset = end
+        return result
 
-def skip_fortran(f, n=1):
-    for i in xrange(n):
-        alen = np.fromfile(f, _head_type, 1)
-        f.seek(alen, 1)
-        alen2 = np.fromfile(f, _head_type, 1)
-        assert alen == alen2
+    def skip(self, bytes):
+        self._offset+=bytes
 
+    def skip_fields(self, n=1):
+        for i in xrange(n):
+            alen = self.get_raw_memmapped(_head_type, 1)
+            self.skip(alen[0])
+            alen2 = self.get_raw_memmapped(_head_type, 1)
+            assert alen==alen2
 
-def read_fortran_series(f, dtype):
-    q = np.empty(1, dtype=dtype)
-    for i in xrange(len(dtype.fields)):
-        data = read_fortran(f, dtype[i], 1)
+    def read_field(self, dtype, field_length=1):
+        return self.get_field_memmapped(dtype, field_length).copy()
 
-        # I really don't understand why the following acrobatic should
-        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
-        if hasattr(data[0], "__len__"):
-            q[0][i][:] = data[0]
-        else:
-            q[0][i] = data[0]
+    def get_field_memmapped(self, dtype, field_length=1):
+        if not isinstance(dtype, np.dtype):
+            dtype = np.dtype(dtype)
 
-    return q[0]
+        length = field_length * dtype.itemsize
+        alen = self.get_raw_memmapped(_head_type, 1)
+        if alen != length:
+            raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
+                alen, length)
 
+        data = self.get_raw_memmapped(dtype, field_length)
+
+        alen = self.get_raw_memmapped(_head_type, 1)
+        if alen != length:
+            raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
+                alen, length)
+
+        return data
+
+    def read_series(self, dtype):
+        q = np.empty(1, dtype=dtype)
+        for i in xrange(len(dtype.fields)):
+            data = self.read_field(dtype[i], 1)
+
+            # I really don't understand why the following acrobatic should
+            # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
+            if hasattr(data[0], "__len__"):
+                q[0][i][:] = data[0]
+            else:
+                q[0][i] = data[0]
+
+        return q[0]
 
 def _thread_map(func, *args):
 

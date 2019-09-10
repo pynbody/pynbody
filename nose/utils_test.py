@@ -117,8 +117,8 @@ def test_IC_grid_gen():
 
 def test_openmp_summations():
     np.random.seed(0)
-    a = np.random.normal(size=5e7)
-    b = np.random.normal(size=5e7)
+    a = np.random.normal(size=int(5e7))
+    b = np.random.normal(size=int(5e7))
 
     start = time.time()
     sum_a = np.dot(a,(b>1.0))
@@ -144,3 +144,10 @@ def test_invert():
     Minv = pynbody.util.rational_matrix_inv(M)
 
     assert (np.dot(Minv,M)==np.diag([1]*5)).all()
+
+def test_find_boundaries():
+    # regression test for failure of find_boundaries when negative indices are present
+
+    our_numbers = np.array([-1,-1,0,0,0,1,2,2,3,3,5,5,5], dtype=np.int32)
+    boundaries = pynbody.util.find_boundaries(our_numbers)
+    assert (boundaries==[2,5,6,8,-1,10]).all()

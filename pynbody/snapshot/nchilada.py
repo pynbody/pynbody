@@ -107,18 +107,44 @@ class NchiladaSnap(SimSnap):
                     loadable = loadable.intersection(f.iterkeys())
             return list(loadable)
 
-    def _load_array(self, array_name, fam=None):
-        if fam is None:
-            raise IOError, "No snapshot-level arrays in NChilada format"
-
+    def _open_file_for_array(self, fam, array_name):
         fname = self._loadable_keys_registry[fam].get(array_name, None)
         if not fname:
             raise IOError, "No such array on disk"
         f = open(fname, 'rb')
+        return f
+
+    def _attempt_load_all_families(self, array_name):
+        fams = self.families()
+        universal_dtype = None
+        universal_ndim = None
+        if fams==[]:
+            return
+        for fam in fams:
+            # this will raise an IOError propagating upwards if any family doesn't have the appropriate array
+            _, nbod, ndim, dtype = self._load_header(self._open_file_for_array(fam, array_name))
+            if universal_dtype is not None:
+                if ndim!=universal_ndim:
+                    raise IOError, "Mismatching dimensions for array"
+                if dtype!=universal_dtype:
+                    raise IOError, "Mismatching data type for array"
+            universal_ndim, universal_dtype = ndim, dtype
+
+        self._create_array(array_name,universal_ndim,universal_dtype,False)
+
+        for fam in fams:
+            self._load_array(array_name, fam)
+
+
+    def _load_array(self, array_name, fam=None):
+        if fam is None:
+            self._attempt_load_all_families(array_name)
+            return
+
+        f = self._open_file_for_array(fam, array_name)
+
         _, nbod, ndim, dtype = self._load_header(f)
-        if dtype == 'float32':
-            self._create_family_array(array_name, fam, ndim=ndim,dtype=None)
-        else:
+        if array_name not in self.keys():
             self._create_family_array(array_name, fam, ndim=ndim,dtype=dtype)
         r = self[fam][array_name]
         if units.has_units(r):

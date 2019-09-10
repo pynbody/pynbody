@@ -1,6 +1,6 @@
 import pynbody
 import numpy as np
-
+import numpy.testing as npt
 
 def setup():
     global f
@@ -74,3 +74,23 @@ def test_logic():
     assert len(comp)+len(not_test)==len(f)
     assert len(comp)!=0
     assert len(not_test)!=0
+
+def test_family_filter():
+    f = pynbody.new(dm=100,gas=100)
+    f_dm = f.dm
+    f_dm_filter = f[pynbody.filt.FamilyFilter(pynbody.family.dm)]
+    f_gas = f.gas
+    f_gas_filter = f[pynbody.filt.FamilyFilter(pynbody.family.gas)]
+    assert (f_dm.get_index_list(f) == f_dm_filter.get_index_list(f)).all()
+    assert (f_gas.get_index_list(f) == f_gas_filter.get_index_list(f)).all()
+
+
+def test_hashing():
+    X = {}
+    X[pynbody.filt.Sphere('100 kpc')] = 5
+
+    X[pynbody.filt.FamilyFilter(pynbody.family.gas)] = 10
+    assert X.get(pynbody.filt.Sphere('100 kpc'), None) == 5
+    assert X.get(pynbody.filt.FamilyFilter(pynbody.family.gas),None)==10
+    with npt.assert_raises(KeyError):
+        X[pynbody.filt.FamilyFilter(pynbody.family.dm)]

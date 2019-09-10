@@ -2,6 +2,7 @@ import pynbody
 import numpy as np
 import glob
 import os
+from nose.tools import assert_raises
 
 
 def setup():
@@ -123,12 +124,21 @@ def test_write():
     f2.dm['test_array'] = np.ones(9)
     f2['x'] = np.arange(0, 40)
     f2['vx'] = np.arange(40, 80)
+    f2.properties['a'] = 0.5
+    f2.properties['time'] = 12.0
     f2.write(fmt=pynbody.tipsy.TipsySnap, filename="testdata/test_out.tipsy")
 
     f3 = pynbody.load("testdata/test_out.tipsy")
     assert all(f3['x'] == f2['x'])
     assert all(f3['vx'] == f3['vx'])
     assert all(f3.dm['test_array'] == f2.dm['test_array'])
+    assert f3.properties['a']==0.5
+
+    # this looks strange, but it's because the .param file in the testdata folder implies a cosmological tipsy snap
+    # whereas we have just written the snapshot asserting it is non-cosmological
+    f2.write(fmt=pynbody.tipsy.TipsySnap, filename="testdata/test_out.tipsy", cosmological=False)
+    f3 = pynbody.load("testdata/test_out.tipsy")
+    assert f3.properties['a']==12
 
 
 def test_array_write():
@@ -349,6 +359,10 @@ def test_3d_interpolation():
     arr = pynbody.analysis.luminosity.calc_mags(f.s)
     assert(np.allclose(arr[0:100], ref2d))
 
+def test_alternative_cmd():
+    """A very basic test that the alternative cmd path is respected"""
+    with assert_raises(IOError):
+        pynbody.analysis.luminosity.calc_mags(f.s, cmd_path="/nonexistent/path")
 
 def test_issue_313():
     f = pynbody.load("testdata/g15784.lr.01024")
@@ -357,4 +371,4 @@ def test_issue_313():
 
 
 def test_issue_315():
-    assert np.allclose(f.g['cs'][:3], [187.36890472,  210.86151107,  176.04044173])
+    assert np.allclose(f.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])

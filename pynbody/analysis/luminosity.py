@@ -14,8 +14,49 @@ from ..array import SimArray
 
 from interpolate import interpolate2d
 
+_cmd_lum_file = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
 
-def calc_mags(simstars, band='v'):
+def use_custom_cmd(path):
+    """Use a custom set of stellar populations to calculate magnitudes.
+
+    The path is to a numpy archive with a suitable grid of ages/metallicities and corresponding magnitudes.
+
+    The following script from Stephanie De Beer should help you make a suitable file starting
+    from ugriz SSPs downloaded from http://stev.oapd.inaf.it/cgi-bin/cmd.
+
+    import numpy as np
+
+    metals = np.linspace(0.002, 0.05, 25)
+    ages = np.logspace(5.67, 10.13, 25)
+
+    mags_bol = np.zeros((len(metals),len(ages)))
+    mags_u = np.zeros((len(metals),len(ages)))
+    mags_g = np.zeros((len(metals),len(ages)))
+    mags_r = np.zeros((len(metals),len(ages)))
+    mags_i = np.zeros((len(metals),len(ages)))
+    mags_z = np.zeros((len(metals),len(ages)))
+
+    bands = ['bol', 'u', 'g', 'r', 'i', 'z']
+    k=2
+    for b in bands:
+        for x in range(1,26):
+            with open('/users/sdebeer/render_stuff/PGSP_files/'+str(x)+'_output.txt', 'r') as f:
+                output = f.readlines()
+            i = 0
+            for line in output:
+                magnitudes = line.split()
+                if magnitudes[0]=='#':
+                    continue
+                vars()['mags_'+b][i,x-1]=magnitudes[k]
+                i +=1
+        k+=1
+
+    np.savez('my_cmd.npz', ages=ages, metals=metals, bol=mags_bol, u=mags_u, g=mags_g, r=mags_r, i=mags_i, z=mags_z)
+    """
+    global _cmd_lum_file
+    _cmd_lum_file = path
+
+def calc_mags(simstars, band='v', cmd_path=None):
     """Calculating visible magnitudes
 
     Using Padova Simple stellar populations (SSPs) from Girardi
@@ -36,17 +77,21 @@ def calc_mags(simstars, band='v'):
        *band* (default='v'): Which observed bandpass magnitude in which 
             magnitude should be calculated
 
+       *path* (default=None): Path to the CMD grid. If None, use the
+            default or a path specified by use_custom_cmd. For more information
+            about generating a custom CMD grid, see use_custom_cmd.
+
     """
 
     # find data file in PYTHONPATH
     # data is from http://stev.oapd.inaf.it/cgi-bin/cmd
     # Padova group stellar populations Marigo et al (2008), Girardi et al
     # (2010)
-    lumfile = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
-    if os.path.exists(lumfile):
-        lums = np.load(lumfile)
+    if cmd_path is not None:
+        lums = np.load(cmd_path)
     else:
-        raise IOError, "cmdlum.npz (magnitude table) not found"
+        lums = np.load(_cmd_lum_file)
+
 
     age_star = simstars['age'].in_units('yr')
     # allocate temporary metals that we can play with
@@ -121,20 +166,26 @@ def halo_lum(sim, band='v'):
     return np.sum(10.0 ** ((sun_abs_mag - sim.star[band + '_mag']) / 2.5))
 
 
-def half_light_r(sim, band='v'):
+def half_light_r(sim, band='v', cylindrical=False):
     '''Calculate half light radius
 
     Calculates entire luminosity of simulation, finds half that, sorts
     stars by distance from halo center, and finds out inside which radius
     the half luminosity is reached.
+
+    If cylindrical is True compute the half light radius as seen from the z-axis.
     '''
     import pynbody
     import pynbody.filt as f
     half_l = halo_lum(sim, band=band) * 0.5
 
-    max_high_r = np.max(sim.star['r'])
+    if cylindrical:
+        coord = 'rxy'
+    else:
+        coord = 'r'
+    max_high_r = np.max(sim.star[coord])
     test_r = 0.5 * max_high_r
-    testrf = f.LowPass('r', test_r)
+    testrf = f.LowPass(coord, test_r)
     min_low_r = 0.0
     test_l = halo_lum(sim[testrf], band=band)
     it = 0
@@ -147,7 +198,7 @@ def half_light_r(sim, band='v'):
             test_r = 0.5 * (min_low_r + test_r)
         else:
             test_r = (test_r + max_high_r) * 0.5
-        testrf = f.LowPass('r', test_r)
+        testrf = f.LowPass(coord, test_r)
         test_l = halo_lum(sim[testrf], band=band)
 
         if (test_l > half_l):
@@ -155,4 +206,4 @@ def half_light_r(sim, band='v'):
         else:
             min_low_r = test_r
 
-    return test_r * sim.star['r'].units
+    return test_r

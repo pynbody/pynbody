@@ -91,7 +91,7 @@ class SimSnap(object):
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
-    _persistent = ["kdtree", "_immediate_cache"]
+    _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
 
     # The following will be objects common to a SimSnap and all its SubSnaps
     _inherited = ["_immediate_cache_lock",
@@ -395,7 +395,7 @@ class SimSnap(object):
 
     def __remove_family_array_if_derived(self, name):
         if self.is_derived_array(name):
-            del self[name]
+            del self.ancestor[name]
 
 
     def __load_remaining_families_if_loadable(self, name):
@@ -638,6 +638,37 @@ class SimSnap(object):
                 d[x] = self.properties[x]
         return d
 
+    def _override_units_system(self):
+        """Look for and process a text file with a custom units system for this snapshot.
+
+        The text file should be named <filename>.units and contain unit specifications, one-per-line, e.g.
+
+        pos: kpc a
+        vel: km s^-1
+        mass: Msol
+
+        This override functionality needs to be explicitly called by a subclass after it has initialised
+        its best guess at the units.
+        """
+        try:
+            f = open(self.filename+".units","r")
+        except IOError:
+            return
+
+        name_mapping = {'pos': 'distance', 'vel': 'velocity'}
+        units_dict = {}
+
+        for line in f:
+            if (not line.startswith("#")):
+                if ":" not in line:
+                    raise IOError, "Unknown format for units file %r"%(self.filename+".units")
+                else:
+                    t, u = map(str.strip,line.split(":"))
+                    t = name_mapping.get(t,t)
+                    units_dict[t] = u
+
+        self.set_units_system(**units_dict)
+
     def set_units_system(self, velocity=None, distance=None, mass=None, temperature=None):
         """Set the unit system for the snapshot by specifying any or
         all of `velocity`, `distance`, `mass` and `temperature`
@@ -801,9 +832,6 @@ class SimSnap(object):
             u = self.infer_original_units(u)
         return u
 
-    ############################################
-    # HALO CATALOGUES
-    ############################################
     def halos(self, *args, **kwargs):
         """Tries to instantiate a halo catalogue object for the given
         snapshot, using the first available method (as defined in the
@@ -827,10 +855,6 @@ class SimSnap(object):
 
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 
-    ############################################
-    # BRIDGES
-    ############################################
-
     def bridge(self, other):
         """Tries to construct a bridge function between this SimSnap
         and another one.
@@ -842,6 +866,13 @@ class SimSnap(object):
         """
         from .. import bridge
         return bridge.bridge_factory(self, other)
+
+    def load_copy(self):
+        """Tries to load a copy of this snapshot, using partial loading to select
+        only a subset of particles corresponding to a given SubSnap"""
+        if getattr(self.ancestor,'partial_load',False):
+            raise NotImplementedError, "Cannot load a copy of data that was itself partial-loaded"
+        return load(self.ancestor.filename, take=self.get_index_list(self.ancestor))
 
     ############################################
     # HELPER FUNCTIONS FOR LAZY LOADING
@@ -1436,6 +1467,14 @@ class SimSnap(object):
 
         return fn
 
+    def _find_deriving_function(self, name):
+        for cl in type(self).__mro__:
+            if cl in self._derived_quantity_registry \
+                    and name in self._derived_quantity_registry[cl]:
+                return self._derived_quantity_registry[cl][name]
+        else:
+            return None
+
     def _derive_array(self, name, fam=None):
         """Calculate and store, for this SnapShot, the derivable array 'name'.
         If *fam* is not None, derive only for the specified family.
@@ -1446,47 +1485,44 @@ class SimSnap(object):
         global config
 
         calculated = False
+        fn = self._find_deriving_function(name)
+        if fn:
+            logger.info("Deriving array %s" % name)
+            with self.auto_propagate_off:
+                if fam is None:
+                    result = fn(self)
+                    ndim = result.shape[-1] if len(
+                        result.shape) > 1 else 1
+                    self._create_array(
+                        name, ndim, dtype=result.dtype, derived=not fn.__stable__)
+                    write_array = self._get_array(
+                        name, always_writable=True)
+                else:
+                    result = fn(self[fam])
+                    ndim = result.shape[-1] if len(
+                        result.shape) > 1 else 1
 
-        for cl in type(self).__mro__:
-            if cl in self._derived_quantity_registry \
-                    and name in self._derived_quantity_registry[cl]:
-                logger.info("Deriving array %s" % name)
-                with self.auto_propagate_off:
-                    fn = self._derived_quantity_registry[cl][name]
-                    if fam is None:
-                        result = fn(self)
-                        ndim = result.shape[-1] if len(
-                            result.shape) > 1 else 1
-                        self._create_array(
-                            name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                        write_array = self._get_array(
-                            name, always_writable=True)
-                    else:
-                        result = fn(self[fam])
-                        ndim = result.shape[-1] if len(
-                            result.shape) > 1 else 1
+                    # check if a family array already exists with a different dtype
+                    # if so, cast the result to the existing dtype
+                    # numpy version < 1.7 does not support doing this in-place
 
-                        # check if a family array already exists with a different dtype
-                        # if so, cast the result to the existing dtype
-                        # numpy version < 1.7 does not support doing this in-place
+                    if self._get_preferred_dtype(name) != result.dtype \
+                       and self._get_preferred_dtype(name) is not None:
+                        if int(np.version.version.split('.')[1]) > 6 :
+                            result = result.astype(self._get_preferred_dtype(name),copy=False)
+                        else :
+                            result = result.astype(self._get_preferred_dtype(name))
 
-                        if self._get_preferred_dtype(name) != result.dtype \
-                           and self._get_preferred_dtype(name) is not None:
-                            if int(np.version.version.split('.')[1]) > 6 :
-                                result = result.astype(self._get_preferred_dtype(name),copy=False)
-                            else :
-                                result = result.astype(self._get_preferred_dtype(name))
+                    self[fam]._create_array(
+                        name, ndim, dtype=result.dtype, derived=not fn.__stable__)
+                    write_array = self[fam]._get_array(
+                        name, always_writable=True)
 
-                        self[fam]._create_array(
-                            name, ndim, dtype=result.dtype, derived=not fn.__stable__)
-                        write_array = self[fam]._get_array(
-                            name, always_writable=True)
+                self.ancestor._autoconvert_array_unit(result)
 
-                    self.ancestor._autoconvert_array_unit(result)
-
-                    write_array[:] = result
-                    if units.has_units(result):
-                        write_array.units = result.units
+                write_array[:] = result
+                if units.has_units(result):
+                    write_array.units = result.units
 
 
 
@@ -1849,7 +1885,7 @@ class IndexedSubSnap(SubSnap):
         return SimSnap._get_family_slice(self, fam)
 
     def _get_family_array(self, name, fam, index=None, always_writable=False):
-        sl = self._family_indices[fam]
+        sl = self._family_indices.get(fam,slice(0,0))
         sl = util.concatenate_indexing(sl, index)
 
         return self.base._get_family_array(name, fam, sl, always_writable)
@@ -1967,7 +2003,7 @@ def new(n_particles=0, order=None, **families):
     f = new(dm=50, star=25, gas=25, order='star,gas,dm')
 
     guarantees the stars, then gas, then dark matter particles appear
-    in sqeuence.
+    in sequence.
     """
 
     if len(families) == 0:
@@ -2013,7 +2049,8 @@ def _get_snap_classes():
     from . import grafic
     from . import ascii
 
-    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, nchilada.NchiladaSnap, gadget.GadgetSnap,
+    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
+                     nchilada.NchiladaSnap, gadget.GadgetSnap,
                      tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
                      ascii.AsciiSnap]
 

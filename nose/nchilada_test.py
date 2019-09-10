@@ -1,5 +1,6 @@
 import pynbody
 import numpy as np
+import numpy.testing as npt
 
 correct_pos_3000 = np.array([[4.80664825e+01,  -8.99647751e+01,
                                  3.74038162e+01],
@@ -194,7 +195,7 @@ def test_array_completion_unit_sanity():
     f.gas['pos'].convert_units("Mpc")
     f.star['pos'].convert_units("pc")
 
-    assert (np.abs(f['pos'][2998::3000] - x_pos_3000).mean() < 1.e-6)
+    assert (np.abs(f['pos'][2998::3000] - x_pos_3000).mean() < 1.e-2)
 
 
 def test_partial_loading():
@@ -211,3 +212,13 @@ def test_partial_loading():
     f_p = pynbody.load("testdata/nchilada_test/12M.00001", take=test_ptcls)
 
     assert((f_p['pos'] == f_f['pos'][test_ptcls]).all())
+
+def test_HI_not_present_for_non_gas_particles():
+    fresh_f = pynbody.load("testdata/nchilada_test/12M.00001")
+    with npt.assert_raises(KeyError):
+        fresh_f['HI']
+
+    with npt.assert_raises(KeyError):
+        fresh_f.dm['HI']
+
+    # correct value of f.gas['HI'] is tested above

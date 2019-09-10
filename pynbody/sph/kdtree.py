@@ -26,9 +26,11 @@ class KDTree(object):
     PROPID_QTYDISP_1D = 5
     PROPID_QTYDISP_ND = 6
 
-    def __init__(self, pos, mass, leafsize=32):
+    def __init__(self, pos, mass, leafsize=32, boxsize=None):
         self.kdtree = kdmain.init(pos, mass, int(leafsize))
         self.derived = True
+        self.boxsize=boxsize
+        self._pos = pos
         self.s_len = len(pos)
         self.flags = {'WRITEABLE': False}
 
@@ -36,7 +38,7 @@ class KDTree(object):
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), 1)
+        smx = kdmain.nn_start(self.kdtree, int(nn), 1, self.boxsize)
 
         while True:
             nbr_list = kdmain.nn_next(self.kdtree, smx)
@@ -65,6 +67,9 @@ class KDTree(object):
             raise ValueError, "Unknown KDTree array"
 
     def set_array_ref(self, name, ar) :
+        if self.array_name_to_id(name)<3:
+            if not np.issubdtype(self._pos.dtype, ar.dtype):
+                raise TypeError("KDTree requires matching dtypes for %s (%s) and pos (%s) arrays"%(name, ar.dtype, self._pos.dtype))
         kdmain.set_arrayref(self.kdtree,self.array_name_to_id(name),ar)
         assert self.get_array_ref(name) is ar
 
@@ -110,7 +115,7 @@ class KDTree(object):
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn))
+        smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
 
         propid = self.smooth_operation_to_id(mode)
 

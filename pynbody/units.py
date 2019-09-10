@@ -113,7 +113,6 @@ import keyword
 import numpy as np
 from . import backcompat
 from .backcompat import fractions
-from . import util
 import functools
 
 Fraction = fractions.Fraction
@@ -612,6 +611,8 @@ class CompositeUnit(UnitBase):
         # solution would not be unique.
         M_T_M = np.dot(matrix.transpose(), matrix)
 
+        from . import util
+
         try:
             M_T_M_inv = util.rational_matrix_inv(M_T_M)
         except np.linalg.linalg.LinAlgError:
@@ -788,6 +789,12 @@ def has_unit(obj):
         return False
 
 has_units = has_unit
+
+def get_item_with_unit(array, item):
+    if has_unit(array):
+        return array[item]*array.units
+    else:
+        return array[item]
 
 
 def is_unit(obj):

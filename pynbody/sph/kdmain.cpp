@@ -218,6 +218,8 @@ PyObject *kdfree(PyObject *self, PyObject *args)
     return Py_None;
 }
 
+#define BIGFLOAT ((float)1.0e37)
+
 /*==========================================================================*/
 /* nn_start                                                                 */
 /*==========================================================================*/
@@ -235,18 +237,31 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     int nSmooth, nProcs;
     long i;
     float hsm;
+    float period = BIGFLOAT;
 
-    PyArg_ParseTuple(args, "Oi", &kdobj, &nSmooth);
+    PyArg_ParseTuple(args, "Oi|f", &kdobj, &nSmooth, &period);
     kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
-#define BIGFLOAT ((float)1.0e37)
+    if(period<=0)
+        period = BIGFLOAT;
 
-    float fPeriod[3] = {BIGFLOAT, BIGFLOAT, BIGFLOAT};
+    float fPeriod[3] = {period, period, period};
 
     if(nSmooth>PyArray_DIM(kd->pNumpyPos,0)) {
         PyErr_SetString(PyExc_ValueError, "Number of smoothing particles exceeds number of particles in tree");
         return NULL;
     }
+
+    /*
+	 ** Check to make sure that the bounds of the simulation agree
+	 ** with the period specified, if not cause an error.
+	 */
+
+	if(!smCheckFits(kd, fPeriod)) {
+		PyErr_SetString(PyExc_ValueError, "The particles span a region larger than the specified boxsize");
+		return NULL;
+    }
+
     if(!smInit(&smx, kd, nSmooth, fPeriod)) {
         PyErr_SetString(PyExc_RuntimeError, "Unable to create smoothing context");
         return NULL;

@@ -66,14 +66,20 @@ def _thread_map(func, *args):
         t,obj,trace= exceptions[0]
         raise t,obj,trace
 
-def _auto_denoise(sim):
+def _kernel_suitable_for_denoise(kernel):
+    if type(kernel) is not Kernel:
+        # e.g. does not work properly with Kernel2D
+        return False
+    else:
+        return True
+
+def _auto_denoise(sim, kernel):
     """Returns True if pynbody thinks denoise flag should be on for best
-    results with this simulation.
+    results with this simulation."""
 
-    At the moment it inspects to see if it's a RamsesSnap, and if so, returns
-    True."""
-
-    if isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
+    if not _kernel_suitable_for_denoise(kernel):
+        return False
+    elif isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
         return True
     else:
         return False
@@ -83,8 +89,15 @@ def build_tree(sim):
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
         # has been triggered by getting an array in the calling thread.
+        boxsize = sim.properties.get('boxsize',None)
+        if boxsize:
+            if units.is_unit_like(boxsize):
+                boxsize = float(boxsize.in_units(sim['pos'].units))
+        else:
+            boxsize = -1.0 # represents infinite box
         sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
-                        leafsize=config['sph']['tree-leafsize'])
+                        leafsize=config['sph']['tree-leafsize'],
+                        boxsize=boxsize)
 
 
 def _tree_decomposition(obj):
@@ -119,16 +132,26 @@ def smooth(self):
     sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units,
                        dtype=self['pos'].dtype)
 
-
     start = time.time()
     self.kdtree.set_array_ref('smooth',sm)
     self.kdtree.populate('hsm', config['sph']['smooth-particles'])
     end = time.time()
 
     logger.info('Smoothing done in %5.3gs' % (end - start))
-
+    self._kdtree_derived_smoothing = True
     return sm
 
+def _get_smooth_array_ensuring_compatibility(self):
+    # On-disk smoothing information may conflict; KDTree assumes the number of nearest neighbours
+    # is rigidly adhered to. Thus we must use our own self-consistent smoothing.
+    if 'smooth' in self:
+        if not getattr(self,'_kdtree_derived_smoothing',False):
+            smooth_ar = smooth(self)
+        else:
+            smooth_ar = self['smooth']
+    else:
+        self['smooth'] = smooth_ar = smooth(self)
+    return smooth_ar
 
 @snapshot.SimSnap.stable_derived_quantity
 def rho(self):
@@ -140,9 +163,11 @@ def rho(self):
         np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
         dtype=self['pos'].dtype)
 
+    
     start = time.time()
 
-    self.kdtree.set_array_ref('smooth',self['smooth'])
+
+    self.kdtree.set_array_ref('smooth',_get_smooth_array_ensuring_compatibility(self))
     self.kdtree.set_array_ref('mass',self['mass'])
     self.kdtree.set_array_ref('rho',rho)
 
@@ -246,7 +271,10 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
     """
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
 
     renderer = _render_spherical_image
 
@@ -268,7 +296,10 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
     import healpy as hp
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
 
     if out_units is not None:
         conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * snap['smooth'].units ** kernel.h_power)).ratio(out_units,
@@ -371,6 +402,8 @@ def _threaded_render_image(fn, s, *args, **kwargs):
             t.join()
 
     # Each output is a 1-element list with a numpy array. Sum them.
+    if any([len(o)==0 for o in outputs]):
+        raise RuntimeError("There was a problem with the multi-threaded image render. Try running again with threaded=False to debug the underlying error.")
     return sum([o[0] for o in outputs])
 
 
@@ -478,7 +511,11 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     """
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
+
 
     if approximate_fast:
         base_renderer = _interpolated_renderer(
@@ -536,6 +573,11 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         if snap_slice is not None:
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
 
+    if 'boxsize' in snap.properties:
+        boxsize = snap.properties['boxsize'].in_units(snap_proxy['x'].units,**snap.conversion_context())
+    else:
+        boxsize = None
+
     in_time = time.time()
 
     if y2 is None:
@@ -557,8 +599,8 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         dy = float(y2 - y1) / ny
 
         # degrade resolution
-        nx /= res_downgrade
-        ny /= res_downgrade
+        nx //= res_downgrade
+        ny //= res_downgrade
 
         # shift boundaries (since x1, x2 etc refer to centres of pixels,
         # not edges, but we want the *edges* to remain invariant)
@@ -577,6 +619,9 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     else:
         smooth_lo = 0.0
         smooth_hi = 100000.0
+
+    nx = int(nx + .5)
+    ny = int(ny + .5)
 
     result = np.zeros((ny, nx), dtype=np.float32)
 
@@ -603,13 +648,20 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         # Calculate the ratio now so we don't waste time calculating
         # the image only to throw a UnitsException later
         conv_ratio = (qty.units * mass.units / (rho.units * sm.units ** kernel.h_power)).ratio(out_units,
-                                                                                               **x.conversion_context())
+                                                                                               **snap.conversion_context())
 
     if z_camera is None:
         z_camera = 0.0
 
+    if boxsize:
+        # work out the tile offsets required to make the image wrap
+        num_repeats = int(round(x2/boxsize))+1
+        repeat_array = np.linspace(-num_repeats*boxsize,num_repeats*boxsize,num_repeats*2+1)
+    else:
+        repeat_array = [0.0]
+
     result = _render.render_image(nx, ny, x, y, z, sm, x1, x2, y1, y2, z_camera, 0.0, qty, mass, rho,
-                                  smooth_lo, smooth_hi, kernel)
+                                  smooth_lo, smooth_hi, kernel, repeat_array, repeat_array)
 
     result = result.view(array.SimArray)
 
@@ -672,7 +724,10 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     global config
 
     if denoise is None:
-        denoise = _auto_denoise(snap)
+        denoise = _auto_denoise(snap, kernel)
+
+    if denoise and not _kernel_suitable_for_denoise(kernel):
+        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
 
     in_time = time.time()
 
@@ -751,9 +806,9 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
         dy = float(y2 - y1) / ny
         dz = float(z2 - z1) / nz
 
-        nx /= res_downgrade
-        ny /= res_downgrade
-        nz /= res_downgrade
+        nx //= res_downgrade
+        ny //= res_downgrade
+        nz //= res_downgrade
 
         # shift boundaries (see _render_image above for explanation)
         sx, sy, sz = [

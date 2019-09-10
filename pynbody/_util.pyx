@@ -32,10 +32,9 @@ def find_boundaries(np.ndarray[fused_int, ndim=1] ordered) :
     cdef np.ndarray[fused_int, ndim=1] boundaries = np.zeros(ordered[len(ordered)-1]+1,dtype=ordered.dtype) - 1
     cdef int n, size = len(ordered), current=ordered[0]-1
 
-    ordered[0] = 0
     with nogil :
         for n in range(size) :
-            if current<ordered[n] :
+            if ordered[n]>=0 and current<ordered[n] :
                 current = ordered[n]
                 boundaries[current] = n
 
@@ -51,10 +50,11 @@ def _grid_gen_from_slice(sl, int nx, int ny, int nz, np.ndarray[fused_float, ndi
 
     start = sl.start
     stop = sl.stop
-    step = sl.step
 
-    if step is None:
+    if sl.step is None:
         step = 1
+    else:
+        step = sl.step
 
     with nogil:
         n = start

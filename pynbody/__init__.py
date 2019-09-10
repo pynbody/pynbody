@@ -22,16 +22,50 @@ from . import util, filt, array, family, snapshot
 from .snapshot import tipsy, gadget, gadgethdf, ramses, grafic, nchilada, ascii
 from . import analysis, halo, derived, bridge, gravity, sph, transformation
 
-try:
-    from . import plot
-except:
-    warnings.warn(
-        "Unable to import plotting package (missing matplotlib or running from a text-only terminal? Plotting is disabled.", RuntimeWarning)
+
+# The PlotModuleProxy serves to delay import of pynbody.plot until it's accessed.
+# Importing pynbody.plot imports pylab which in turn is quite slow and cause problem
+# for terminal-only applications. However, since pynbody always auto-imported
+# pynbody.plot, it would seem to be too destructive to stop this behaviour.
+# So this hack is the compromise and should be completely transparent to most
+# users.
+class PlotModuleProxy(object):
+    def _do_import(self):
+        global plot
+        del plot
+        from . import plot as plot_module
+        plot = plot_module
+
+    def __hasattr__(self, key):
+        self._do_import()
+        return hasattr(plot, key)
+
+    def __getattr__(self, key):
+        self._do_import()
+        global plot
+        return getattr(plot, key)
+
+    def __setattr__(self, key, value):
+        self._do_import()
+        global plot
+        return setattr(plot, key, value)
+
+    def __dir__(self):
+        self._do_import()
+        global plot
+        return dir(plot)
+
+    def __repr__(self):
+        return "<Unloaded plot module>"
+
+plot = PlotModuleProxy()
 
 from .snapshot import new, load
 
 configuration.configure_snapshot_and_halo_loading_priority()
 
 derived_array = snapshot.SimSnap.derived_quantity
+
+__version__ = '0.47'
 
 __all__ = ['load', 'new', 'derived_array']

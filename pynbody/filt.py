@@ -14,8 +14,8 @@ sample usage.
 
 
 import numpy as np
-from . import units, util, _util
-
+import cPickle
+from . import units, util, _util, family
 
 class Filter(object):
 
@@ -41,6 +41,40 @@ class Filter(object):
     def __repr__(self):
         return "Filter()"
 
+    def __hash__(self):
+        return hash(cPickle.dumps(self))
+
+    def __eq__(self, other):
+        if type(self) is not type(other):
+            return False
+
+        for k, v in self.__dict__.iteritems():
+            if k not in other.__dict__:
+                return False
+            else:
+                equal = other.__dict__[k]==v
+                if isinstance(equal, np.ndarray):
+                    equal = equal.all()
+                if not equal:
+                    return False
+
+        return True
+
+
+class FamilyFilter(Filter):
+    def __init__(self, family_):
+        assert isinstance(family_, family.Family)
+        self._descriptor = family_.name
+        self.family = family_
+
+    def __repr__(self):
+        return "FamilyFilter("+self.family.name+")"
+
+    def __call__(self, sim):
+        slice_ = sim._get_family_slice(self.family)
+        flags = np.zeros(len(sim), dtype=bool)
+        flags[slice_] = True
+        return flags
 
 class And(Filter):
 

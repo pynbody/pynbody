@@ -1,6 +1,6 @@
 import pynbody
 import numpy as np
-
+from nose.tools import assert_equals
 
 def setup():
     global snap
@@ -111,8 +111,8 @@ def test_write():
     snap.write(filename='testdata/test_gadget_write')
     snap3 = pynbody.load('testdata/test_gadget_write')
     assert(set(snap.loadable_keys()) == set(snap3.loadable_keys()))
-    assert((snap3["pos"] == snap["pos"]).all())
-    assert((snap3.gas["rho"] == snap.gas["rho"]).all())
+    assert((snap3["pos"].view(np.ndarray) == snap["pos"]).all())
+    assert((snap3.gas["rho"].view(np.ndarray) == snap.gas["rho"]).all())
     assert(snap3.check_headers(snap.header, snap3.header))
 
 
@@ -190,3 +190,24 @@ def test_issue321():
     f = pynbody.load("testdata/lpicola/lpicola_z0p000.0")
     assert f['pos'].dtype==np.dtype('float32')
     assert f['mass'].dtype==np.dtype('float32')
+
+
+def test_units_override():
+    f = pynbody.load("testdata/test_g2_snap.0")
+    assert_equals(f.filename, "testdata/test_g2_snap")  # final '.0' is stripped
+    assert_equals(f['pos'].units, "kpc a h^-1")
+
+    # In this case the unit override system is not effective because
+    # the final ".1" is not stripped away in the filename:
+    # the file `test_g2_snap.units` is not used
+    f_no_unit_override = pynbody.load("testdata/test_g2_snap.1")
+    assert_equals(f_no_unit_override.filename, "testdata/test_g2_snap.1")
+    assert_equals(f_no_unit_override['pos'].units, "Mpc a h^-1")  # from default_config.ini
+
+
+def test_ignore_cosmology():
+    f = pynbody.load("testdata/test_g2_snap.1")
+    f.physical_units()
+    assert_equals(f.properties['time'].in_units('Gyr'), 2.5769525238964737)
+    f_no_cosmo = pynbody.load("testdata/test_g2_snap.1", ignore_cosmo=True)
+    assert_equals(f_no_cosmo.properties['time'].in_units('Gyr'), 271.6149884391969)

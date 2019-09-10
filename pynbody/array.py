@@ -891,6 +891,10 @@ class IndexedSimArray(object):
         return tuple(x)
 
     @property
+    def ndim(self):
+        return self.base.ndim
+
+    @property
     def units(self):
         return self.base.units
 
@@ -900,7 +904,10 @@ class IndexedSimArray(object):
 
     @property
     def sim(self):
-        return self.base.sim[self._ptr]
+        if self.base.sim is not None:
+            return self.base.sim[self._ptr]
+        else:
+            return None
 
     @sim.setter
     def sim(self, s):
@@ -1101,8 +1108,7 @@ if posix_ipc:
             if isinstance(item, SimArray):
                 item = _shared_array_deconstruct(item, transfer_ownership)
             elif isinstance(item, list) or isinstance(item, tuple):
-                item = _recursive_shared_array_deconstruct(
-                    item, transfer_ownership)
+                item = _recursive_shared_array_deconstruct(item, transfer_ownership)
             output.append(item)
         return output
 

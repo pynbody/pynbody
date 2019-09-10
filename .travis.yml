@@ -7,44 +7,42 @@ sudo: false # temporary while gfortran package is required for conda problems
 
 # specify different versions of python and numpy
 env:
-  - PYTHON=2.7  NUMPY_VERSION=1.7.1 CYTHON="cython>=0.20" IPYTHON="ipython=3"
-  - PYTHON=2.7  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.4  NUMPY_VERSION=1.9.2 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.5  NUMPY_VERSION=1.10.4 CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython=3"
+  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.5  NUMPY="numpy>=1.10.4" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.6  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.7  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
 
 before_install:
-#  - git clone https://github.com/github/git-lfs.git
-#  - export PATH=`pwd`/git-lfs/bin/:$PATH
-#  - cd git-lfs
-#  - git checkout b0318b25350b9abfe56af0afb0
-#  - script/bootstrap
-#  - cd ..
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda/
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
   - cd nose
-#  - git clone https://github.com/pynbody/testdata.git
   - wget http://star.ucl.ac.uk/~app/testdata.tar.gz
   - tar --exclude="._*" -xzvf testdata.tar.gz
-#  - cd testdata
-#  - ../../git-lfs/bin/git-lfs init
-#  - ../../git-lfs/bin/git-lfs fetch
-#  - rm -rf *
-#  - git checkout -f
-  - ls -lht testdata/
-  - ls -lht testdata/Test_NOSN_NOZCOOL_L010N0128/data/*
-#  - cd ../../
   - cd ..
+# ensure there are no unnecessary limits on shared memory available
+  - sudo sysctl -w kernel.shmmax=268435456
+  - sudo sysctl -w kernel.shmall=268435456
 
 install:
-  - conda create --yes -n ${PYTHON}_${NUMPY_VERSION} python=$PYTHON numpy=$NUMPY_VERSION scipy matplotlib nose h5py pip sphinx pygments pandas $IPYTHON $CYTHON
-  - source activate ${PYTHON}_${NUMPY_VERSION}
+  - conda create --yes -n ${PYTHON} -q python=$PYTHON $NUMPY scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
+  - source activate ${PYTHON}
   - python --version
   - python setup.py install
+  # Limit the number of ramses readers to 2; otherwise Travis builds have been known to run out of memory
+  - echo "[ramses]" >> ~/.pynbodyrc
+  - echo "parallel-read=2" >> ~/.pynbodyrc
 
 
 script:
-  - "cd nose; nosetests"
-  - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx_bootstrap_theme; cd ../docs; make html; fi
+  # first test ramses without shared memory loading
+  - cd nose
+  - nosetests ramses_new_ptcl_format_test.py ramses_test.py
+  # install posix_ipc and proceed with all tests
+  - pip install posix_ipc
+  - nosetests
+  # check documentation build
+  - if [ ${PYTHON:0:1} -eq 2 ]; then pip install sphinx==1.6.* sphinx_bootstrap_theme; cd ../docs; make html; fi

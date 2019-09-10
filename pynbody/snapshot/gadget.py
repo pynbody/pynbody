@@ -528,6 +528,9 @@ class GadgetFile(object):
         except KeyError:
             raise KeyError("Block " + name + " not in file " + self._filename)
 
+        if not cur_block.p_types[p_type]:
+            return
+
         parts = self.get_block_parts(name, p_type)
         p_start = self.get_start_part(name, p_type)
         MinType = np.ravel(np.where(cur_block.p_types * self.header.npart))[0]
@@ -570,7 +573,7 @@ class GadgetFile(object):
 
         fd.close()
 
-    def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=-1):
+    def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=None):
         """Add a block to the block table at the end of the file. Do not actually write anything"""
         name = _to_raw(name)
 
@@ -578,10 +581,8 @@ class GadgetFile(object):
             raise KeyError(
                 "Block " + name + " already present in file. Not adding")
 
-        def st(val):
-            return val.start
         # Get last block
-        lb = max(self.blocks.values(), key=st)
+        lb = max(self.blocks.values(), key=lambda val: val.start)
 
         if np.issubdtype(dtype, float):
             dtype = np.float32  # coerce to single precision
@@ -590,7 +591,7 @@ class GadgetFile(object):
         block = GadgetBlock(length=blocksize, partlen=partlen, dtype=dtype)
         block.start = lb.start + lb.length + 6 * \
             4  # For the block header, and footer of the previous block
-        if p_types == -1:
+        if p_types is None:
             block.p_types = np.ones(N_TYPE, bool)
         else:
             block.p_types = p_types
@@ -701,12 +702,13 @@ class GadgetSnap(SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
     of the blocks, which are then read by _load_array"""
 
-    def __init__(self, filename, only_header=False, must_have_paramfile=False):
+    def __init__(self, filename, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
 
         global config
         super(GadgetSnap, self).__init__()
         self._files = []
         self._filename = filename
+        self._ignore_cosmo = ignore_cosmo
         npart = np.empty(N_TYPE)
         # Check whether the file exists, and get the ".0" right
         try:
@@ -1131,6 +1133,8 @@ class GadgetSnap(SimSnap):
                     f_parts = [f.get_block_parts(
                         g_name, gfam) for f in self._files]
                     for i in np.arange(0, nfiles):
+                        if f_parts[i]==0:
+                            continue
                         # Set up filename
                         if filename != None:
                             ffile = filename + "." + str(i)
@@ -1161,6 +1165,9 @@ class GadgetSnap(SimSnap):
                         s += f_parts[i]
 
 
+def _header_suggests_cosmological(gadget_header):
+    return (gadget_header.HubbleParam != 0.) and (gadget_header.Omega0 != 0.) and (gadget_header.BoxSize != 0.)
+
 @GadgetSnap.decorator
 def do_units(sim):
     # cosmo =
@@ -1171,9 +1178,9 @@ def do_units(sim):
     mass_unit = config_parser.get('gadget-units', 'mass')
 
     vel_unit, dist_unit, mass_unit = [
-        units.Unit(x) for x in vel_unit, dist_unit, mass_unit]
+        units.Unit(x) for x in (vel_unit, dist_unit, mass_unit)]
 
-    if sim.header.HubbleParam == 0.:
+    if sim._ignore_cosmo or not _header_suggests_cosmological(sim.header):
         # remove a and h dependences
         vel_unit = units.Unit(
             "km s^-1") * vel_unit.in_units("km s^-1", a=1, h=1)
@@ -1181,17 +1188,22 @@ def do_units(sim):
         dist_unit = units.Unit("kpc") * dist_unit.in_units("kpc", a=1, h=1)
 
     sim._file_units_system = [units.Unit("K"), vel_unit, dist_unit, mass_unit]
+    sim._override_units_system()
 
 
 @GadgetSnap.decorator
 def do_properties(sim):
     h = sim.header
 
-    sim.properties['time'] = sim.infer_original_units("s") * h.time
-    if h.HubbleParam != 0.:
+    if not(sim._ignore_cosmo) and _header_suggests_cosmological(h):
+        from .. import analysis
         sim.properties['omegaM0'] = h.Omega0
         # sim.properties['omegaB0'] = ... This one is non-trivial to calculate
         sim.properties['omegaL0'] = h.OmegaLambda
         sim.properties['boxsize'] = sim.infer_original_units("kpc")*h.BoxSize
         sim.properties['z'] = h.redshift
         sim.properties['h'] = h.HubbleParam
+        time_units = sim.infer_original_units("s")
+        sim.properties['time'] = analysis.cosmology.age(sim,unit=time_units)*time_units
+    else:
+        sim.properties['time'] = sim.infer_original_units("s") * h.time

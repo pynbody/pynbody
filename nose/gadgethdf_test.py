@@ -139,6 +139,12 @@ def test_halo_values() :
     for i,halo in enumerate(h[0:10]) :
         assert(np.allclose(list(halo.g['temp']), list(chain.from_iterable(FoF_Temp[np.arange(FoF_Offset[i],FoF_Offset[i]+FoF_Length[i],dtype=np.int64)])), rtol=1e-3))
 
+def test_write():
+    ar_name = 'test_array'
+    snap[ar_name] = np.random.uniform(0,1,len(snap))
+    snap[ar_name].write()
+    snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+    assert(np.allclose(snap2[ar_name], snap[ar_name]))
 
 def test_hi_derivation():
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,
@@ -166,3 +172,11 @@ def test_fof_vs_sub_assignment():
     assert(np.allclose( h[0].properties['Halo_M_Crit200'], 29.796955896599684))
     assert(np.allclose(h[1].properties['Mass'], 8.880245794949587))
     assert(np.allclose(h[1].properties['Halo_M_Crit200'],8.116568749712314))
+
+def test_hdf_ordering():
+    # HDF files do not intrinsically specify the order in which the particle types occur
+    # Because some operations may require stability, pynbody now imposes order by the particle type
+    # number
+    assert snap._family_slice[pynbody.family.gas] == slice(0, 2076907, None)
+    assert snap._family_slice[pynbody.family.dm] == slice(2076907, 4174059, None)
+    assert snap._family_slice[pynbody.family.star] == slice(4174059, 4194304, None)

@@ -4,7 +4,7 @@ _build
 *.pyc
 *.DS_Store
 direct_omp.c
-testdata
+testdata*
 docs/_static/*png
 docs/*png
 .DS_Store

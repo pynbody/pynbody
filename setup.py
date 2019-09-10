@@ -1,6 +1,5 @@
 import os
-from distutils.core import setup, Extension
-from distutils.sysconfig import get_python_lib
+from setuptools import setup, Extension
 
 import numpy
 import numpy.distutils.misc_util
@@ -280,17 +279,45 @@ and the detected cython version is {1}.
 
                 sys.exit(1)
 
+install_requires = [
+    'cython>=0.20',
+    'h5py',
+    'matplotlib',
+    'numpy>=1.9.2',
+    'pandas',
+    'posix_ipc',
+    'scipy',
+]
+
+tests_require = [
+    'nose'
+]
+
+docs_require = [
+    'ipython>=3',
+    'Sphinx==1.6.*',
+    'sphinx-bootstrap-theme',
+],
+
+extras_require = {
+    'docs': docs_require,
+    'tests': tests_require,
+}
+
+extras_require['all'] = []
+for name, reqs in extras_require.items():
+    extras_require['all'].extend(reqs)
+
 dist = setup(name = 'pynbody',
-             install_requires='numpy>=1.5',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.41',
+             version = '0.48',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://github.com/pynbody/pynbody/releases',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules',
                          'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                         'pynbody/snapshot', 'pynbody/bridge' ],
+                         'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo' ],
              package_data={'pynbody': ['default_config.ini'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'h1.hdf5',
@@ -300,15 +327,17 @@ dist = setup(name = 'pynbody',
                            'pynbody/plot': ['tollerud2008mw']},
              ext_modules = ext_modules,
              cmdclass = cmdclass,
-             classifiers = ["Development Status :: 4 - Beta",
+             classifiers = ["Development Status :: 5 - Production/Stable",
                             "Intended Audience :: Developers",
                             "Intended Audience :: Science/Research",
                             "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                             "Programming Language :: Python :: 2",
                             "Programming Language :: Python :: 3",
                             "Topic :: Scientific/Engineering :: Astronomy",
-                            "Topic :: Scientific/Engineering :: Visualization"]
-
+                            "Topic :: Scientific/Engineering :: Visualization"],
+             install_requires=install_requires,
+             tests_require=tests_require,
+             extras_require=extras_require,
       )
 
 #if dist.have_run.get('install'):
