@@ -987,7 +987,10 @@ def _abundance_estimator(metal):
 def HII(sim):
     """Number of HII ions per proton mass"""
     Y_H, Y_He = _abundance_estimator(sim["metals"])
-    return Y_H - sim["HI"]
+    try:
+        return Y_H - sim["HI"] - 2 * sim["H2"]
+    except KeyError:
+        return Y_H - sim["HI"]
 
 
 @TipsySnap.derived_quantity
