@@ -85,3 +85,12 @@ def test_render_stars():
     compare= np.load("test_stars_2d.npy")
 
     npt.assert_allclose(compare,im[40:60],atol=0.01)
+
+
+@pynbody.derived_array
+def intentional_circular_reference(sim):
+    return sim['intentional_circular_reference']
+
+def test_exception_propagation():
+    with npt.assert_raises(RuntimeError):
+        pynbody.plot.sph.image(f.gas, qty='intentional_circular_reference')
