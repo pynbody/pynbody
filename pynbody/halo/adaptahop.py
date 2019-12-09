@@ -8,6 +8,8 @@ import numpy as np
 from . import HaloCatalogue, Halo
 from .. import util, fortran_utils as fpu
 
+from yt.utilities.cython_fortran_utils import FortranFile
+
 
 class DummyHalo(object):
 
@@ -29,20 +31,37 @@ class AdaptaHOPCatalogue(HaloCatalogue):
     # the list of particles, the id of the halo and the "timestep" (first 4 records).
     _halo_attributes = (
         (('level', 'host_id', 'first_subhalo_id', 'n_subhalos', 'next_subhalo_id'), 5, 'i'),
-        ('m', 1, 'f'),
-        (('x', 'y', 'z'), 3, 'f'),
-        (('vx', 'vy', 'vz'), 3, 'f'),
-        (('lx', 'ly', 'lz'), 3, 'f'),
-        (('r', 'a', 'b', 'c'), 4, 'f'),
-        (('ek', 'ep', 'etot'), 3, 'f'),
-        ('spin', 1 , 'f'),
-        (('rvir', 'mvir', 'Tvir', 'vvir'), 4, 'f'),
-        (('rho0', 'R_c'), 2, 'f'))
+        ('m', 1, 'd'),
+        ('ntot', 1, 'i'),
+        ('mtot', 1, 'd'),
+        (('x', 'y', 'z'), 3, 'd'),
+        (('vx', 'vy', 'vz'), 3, 'd'),
+        (('lx', 'ly', 'lz'), 3, 'd'),
+        (('r', 'a', 'b', 'c'), 4, 'd'),
+        (('ek', 'ep', 'etot'), 3, 'd'),
+        ('spin', 1 , 'd'),
+        ('sigma', 1, 'd'),
+        (('rvir', 'mvir', 'Tvir', 'vvir'), 4, 'd'),
+        (('rmax', 'vmax'), 2, 'd'),
+        ('c', 1, 'd'),
+        (('r200', 'm200'), 2, 'd'),
+        (('r50', 'r90'), 2, 'd'),
+        ('rr3D', -1, 'd'),
+        ('rho3d', -1, 'd'),
+        (('rho0', 'R_c'), 2, 'd')
+    )
+
+    _halo_attributes_contam = (
+        ('contaminated', 1, 'i'),
+        (('m_contam', 'mtot_contam'), 2, 'd'),
+        (('n_contam', 'ntot_contam'), 2, 'i')
+    )
 
     def __init__(self, sim, fname=None, read_contamination=False):
 
         if fname is None:
             for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
+                print('Trying {fname}'.format(fname=fname))
                 if os.path.exists(fname):
                     break
 
@@ -54,8 +73,7 @@ class AdaptaHOPCatalogue(HaloCatalogue):
         self._fname = fname
         self._AdaptaHOP_fname = fname
         self._metadata = {}
-        if read_contamination:
-            raise NotImplementedError
+        self._read_contamination = read_contamination
 
         # Call parent class
         super(AdaptaHOPCatalogue, self).__init__(sim)
@@ -67,13 +85,13 @@ class AdaptaHOPCatalogue(HaloCatalogue):
         """
         Compute the offset in the brick file of each halo.
         """
-        with open(self._fname, 'rb') as f:
-            npart = fpu.read_vector(f, 'i')[0]
-            massp = fpu.read_vector(f, 'f')[0]
-            aexp = fpu.read_vector(f, 'f')[0]
-            omega_t = fpu.read_vector(f, 'f')[0]
-            age = fpu.read_vector(f, 'f')[0]
-            nhalos, nsubs = fpu.read_vector(f, 'i')
+        with FortranFile(self._fname) as fpu:
+            npart = fpu.read_vector('i')[0]
+            massp = fpu.read_vector('d')[0]
+            aexp = fpu.read_vector('d')[0]
+            omega_t = fpu.read_vector('d')[0]
+            age = fpu.read_vector('d')[0]
+            nhalos, nsubs = fpu.read_vector('i')
 
             self._metadata.update(
                 npart=npart, massp=massp, aexp=aexp, omega_t=omega_t, age=age, nhalos=nhalos,
@@ -81,29 +99,17 @@ class AdaptaHOPCatalogue(HaloCatalogue):
             )
 
             for _ in range(nhalos + nsubs):
-                ipos = f.tell()
-                # Structure is as follows:
-                #    1. number of particles
-                #    2. list of particles IDs
-                #    3. halo ID
-                #    4. timestep
-                #    5. parent/children infos
-                #    6. total mass
-                #    7. center
-                #    8. velocity
-                #    9. angular momentum
-                #   10. shape (ellipticity)
-                #   11. energies
-                #   12. spin parameter
-                #   13. virial parameters
-                #   14. NFW parameters
-                # (15). contamination
-                fpu.skip(f, 2)
-                halo_ID = fpu.read_vector(f, 'i')[0]
+                ipos = fpu.tell()
+                fpu.skip(2)  # number + ids of parts
+                halo_ID = fpu.read_vector('i')[0]
+                fpu.skip(1)  # timesteps
+
+                # Skip data from halo
+                fpu.skip(len(self._halo_attributes))
                 if self._read_contamination:
-                    fpu.skip(f, 12)
-                else:
-                    fpu.skip(f, 11)
+                    fpu.skip(len(self._halo_attributes_contam))
+
+                # Fill-in dummy container
                 dummy = DummyHalo()
                 dummy.properties['file_offset'] = ipos
                 self._halos[halo_ID] = dummy
@@ -137,14 +143,18 @@ class AdaptaHOPCatalogue(HaloCatalogue):
         halo : Halo object
             The halo object, filled with the data read from file.
         """
-        with open(self._fname, 'rb') as f:
-            f.seek(offset)
-            npart = fpu.read_vector(f, 'i')[0]
-            index_array = fpu.read_vector(f, 'i')
-            halo_id_read = fpu.read_vector(f, 'i')[0]
+        with FortranFile(self._fname) as fpu:
+            fpu.seek(offset)
+            npart = fpu.read_int()
+            index_array = fpu.read_vector('i')
+            halo_id_read = fpu.read_int()
             assert halo_id == halo_id_read
-            fpu.skip(f, 1)  # skip timestep
-            parameters = fpu.read_attrs(f, self._halo_attributes)
+            fpu.skip(1)  # skip timestep
+            if self._read_contamination:
+                attrs = self._halo_attributes + self._halo_attributes_contam
+            else:
+                attrs = self._halo_attributes
+            parameters = fpu.read_attrs(attrs)
 
         parameters['file_offset'] = offset
         parameters['npart'] = npart
@@ -157,7 +167,7 @@ class AdaptaHOPCatalogue(HaloCatalogue):
 
 
     @staticmethod
-    def _can_load(sim, arr_name='grp'):
+    def _can_load(sim, arr_name='grp', *args, **kwa):
         exists = any([os.path.exists(fname) for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
         return exists
 
@@ -168,7 +178,7 @@ class AdaptaHOPCatalogue(HaloCatalogue):
             if match is None:
                 raise IOError("Cannot guess the HOP catalogue filename for %s" % sim.filename)
             isim = int(match.group(1))
-            name = 'tree_bricks%d' % isim
+            name = 'tree_bricks%03d' % isim
         except (IOError, ValueError):
             return []
 
@@ -177,7 +187,8 @@ class AdaptaHOPCatalogue(HaloCatalogue):
         s_dir_parent = os.path.dirname(s_dir)
 
         return [os.path.join(s_dir, name),
+                os.path.join(s_dir, 'Halos', name),
                 os.path.join(s_dir_parent, 'Halos', '%d' % isim, name)]
 
-    def _can_run(self):
+    def _can_run(self, *args, **kwa):
         return False
