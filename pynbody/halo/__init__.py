@@ -277,6 +277,7 @@ class AmigaGrpCatalogue(GrpCatalogue):
 
 from pynbody.halo.ahf import AHFCatalogue
 from pynbody.halo.hop import HOPCatalogue
+from pynbody.halo.adaptahop import AdaptaHOPCatalogue
 from pynbody.halo.legacy import RockstarIntermediateCatalogue
 from pynbody.halo.rockstar import RockstarCatalogue
 from pynbody.halo.subfind import SubfindCatalogue
@@ -287,6 +288,6 @@ def _get_halo_classes():
     # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
                      RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-                     RockstarIntermediateCatalogue, HOPCatalogue]
+                     RockstarIntermediateCatalogue, HOPCatalogue, AdaptaHOPCatalogue]
 
     return _halo_classes
