@@ -302,6 +302,7 @@ docs_require = [
 extras_require = {
     'docs': docs_require,
     'tests': tests_require,
+    'adaptahop': 'cython_fortran_file'
 }
 
 extras_require['all'] = []
