@@ -1,12 +1,13 @@
 import os.path
 import re
 import struct
+from itertools import repeat
 from scipy.io import FortranFile as FF
 
 import numpy as np
 
-from . import HaloCatalogue, Halo
-from .. import util, fortran_utils as fpu
+from . import HaloCatalogue, Halo, logger
+from .. import util, units
 
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -16,8 +17,28 @@ class DummyHalo(object):
     def __init__(self):
         self.properties = {}
 
+unit_length = units.Mpc
+unit_vel = units.km / units.s
+unit_mass = 1e11 * units.Msol
+unit_angular_momentum = unit_mass * unit_vel * unit_length
+unit_energy = unit_mass * unit_vel**2
+unit_temperature = units.K
+unit_density = unit_mass / unit_length**3
 
-class AdaptaHOPCatalogue(HaloCatalogue):
+MAPPING = (
+    ('x y z a b c R_c r rvir', unit_length),
+    ('vx vy vz vvir', unit_vel),
+    ('lx ly lz', unit_angular_momentum),
+    ('m mvir', unit_mass),
+    ('ek ep etot', unit_energy),
+    ('Tvir', unit_temperature),
+    ('rho0', unit_density)
+)
+UNITS = {}
+for k, u in MAPPING:
+    for key, unit in zip(k.split(), repeat(u)):
+        UNITS[key] = unit
+
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
     """A AdaptaHOP Catalogue. AdaptaHOP output files must be in
     Halos/<simulation_number>/ directory or specified by fname"""
@@ -131,8 +152,13 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         for k in 'xyz':
             props[k] = boxsize.in_units('Mpc') * (props[k] / Mpc2boxsize + 0.5)
 
-        parameters['file_offset'] = offset
-        parameters['npart'] = npart
+        # Add units for known fields
+        for k, v in props.items():
+            if k in UNITS:
+                props[k] = v * UNITS[k]
+
+        props['file_offset'] = offset
+        props['npart'] = npart
 
         # Create halo object and fill properties
         halo = Halo(halo_id, self, self.base, np.abs(index_array))
