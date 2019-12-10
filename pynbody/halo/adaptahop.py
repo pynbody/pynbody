@@ -79,10 +79,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
 
-        # Mapping from iord to index requires sorted iord (only supported in RAMSES)
-        if not isinstance(sim, RamsesSnap):
-            raise NotImplementedError('AdaptaHOP is only supported with RAMSES')
-
         @sim.derived_quantity
         def iord_argsort(sim):
             return np.argsort(sim['iord'])
