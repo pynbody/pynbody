@@ -185,9 +185,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         s_dir = os.path.dirname(s_filename)
 
         ret = [os.path.join(s_filename, name),
-                os.path.join(s_filename, 'Halos', name),
-                os.path.join(s_dir, 'Halos', name),
-                os.path.join(s_dir, 'Halos', '%d' % isim, name)]
+               os.path.join(s_filename, 'Halos', name),
+               os.path.join(s_dir, 'Halos', name),
+               os.path.join(s_dir, 'Halos', '%d' % isim, name)]
         return ret
 
     def _can_run(self, *args, **kwa):
