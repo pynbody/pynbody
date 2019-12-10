@@ -8,6 +8,7 @@ import numpy as np
 
 from . import HaloCatalogue, Halo, logger
 from .. import util, units
+from ..snapshot.ramses import RamsesSnap
 
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -63,20 +64,28 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             if not os.path.exists(fname):
                 raise RuntimeError("Unable to find AdaptaHOP brick file in simulation directory")
 
+        # Call parent class
+        super(BaseAdaptaHOPCatalogue, self).__init__(sim)
+
         # Initialize internal data
         self._halos = {}
         self._fname = fname
         self._AdaptaHOP_fname = fname
         self._read_contamination = read_contamination
 
-        # Call parent class
-        super(BaseAdaptaHOPCatalogue, self).__init__(sim)
-
         logger.debug("AdaptaHOPCatalogue loading offsets")
 
         # Compute offsets
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
+
+        # Mapping from iord to index requires sorted iord (only supported in RAMSES)
+        if not isinstance(sim, RamsesSnap):
+            raise NotImplementedError('AdaptaHOP is only supported with RAMSES')
+
+        @sim.derived_quantity
+        def iord_argsort(sim):
+            return np.argsort(sim['iord'])
 
     def _ahop_compute_offset(self):
         """
@@ -158,9 +167,18 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         props['file_offset'] = offset
         props['npart'] = npart
+        props['members'] = index_array
+
+        # Find index of particles using a search sort
+        iord = self.base['iord']
+        iord_argsort = self.base['iord_argsort']
+        indices = iord_argsort[np.searchsorted(iord, index_array, sorter=iord_argsort)]
+
+        # Check that the iord match
+        assert np.all(iord[indices] == index_array)
 
         # Create halo object and fill properties
-        halo = Halo(halo_id, self, self.base, np.abs(index_array))
+        halo = Halo(halo_id, self, self.base, indices)
         halo.properties.update(props)
 
         return halo
