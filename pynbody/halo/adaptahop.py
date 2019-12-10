@@ -83,7 +83,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         Compute the offset in the brick file of each halo.
         """
         with FortranFile(self._fname) as fpu:
-            self._headers = fpu.read_attrs(self._header_attributes).copy()
+            self._headers = fpu.read_attrs(self._header_attributes)
 
             nhalos = self._headers['nhalos']
             nsubs = self._headers['nsubs']
@@ -102,7 +102,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 dummy = DummyHalo()
                 dummy.properties['file_offset'] = ipos
                 self._halos[halo_ID] = dummy
-        print('Done!')
 
     def calc_item(self, halo_id):
         return self._get_halo(halo_id)
