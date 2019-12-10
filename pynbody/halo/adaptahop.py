@@ -184,16 +184,17 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         s_filename = os.path.abspath(sim.filename)
         s_dir = os.path.dirname(s_filename)
-        s_dir_parent = os.path.dirname(s_dir)
 
-        return [os.path.join(s_dir, name),
+        ret = [os.path.join(s_filename, name),
+                os.path.join(s_filename, 'Halos', name),
                 os.path.join(s_dir, 'Halos', name),
-                os.path.join(s_dir_parent, 'Halos', '%d' % isim, name)]
+                os.path.join(s_dir, 'Halos', '%d' % isim, name)]
+        return ret
 
     def _can_run(self, *args, **kwa):
         return False
 
-class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
+class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     _header_attributes = (
         ('npart', 1, 'i'),
         ('massp', 1, 'd'),
@@ -235,7 +236,7 @@ class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     )
 
 
-class OldAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
+class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     _header_attributes = (
         ('npart', 1, 'i'),
         ('massp', 1, 'f'),
