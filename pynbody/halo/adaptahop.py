@@ -79,10 +79,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
 
-        @sim.derived_quantity
-        def iord_argsort(sim):
-            return np.argsort(sim['iord'])
-
     def _ahop_compute_offset(self):
         """
         Compute the offset in the brick file of each halo.
@@ -140,7 +136,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
             npart = fpu.read_int()
-            index_array = fpu.read_vector('i')
+            iord_array = fpu.read_vector('i')
             halo_id_read = fpu.read_int()
             assert halo_id == halo_id_read
             if self._read_contamination:
@@ -163,18 +159,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         props['file_offset'] = offset
         props['npart'] = npart
-        props['members'] = index_array
-
-        # Find index of particles using a search sort
-        iord = self.base['iord']
-        iord_argsort = self.base['iord_argsort']
-        indices = iord_argsort[np.searchsorted(iord, index_array, sorter=iord_argsort)]
-
-        # Check that the iord match
-        assert np.all(iord[indices] == index_array)
+        props['members'] = iord_array
 
         # Create halo object and fill properties
-        halo = Halo(halo_id, self, self.base, indices)
+        halo = Halo(halo_id, self, self.base, index_array=None, iord_array=iord_array)
         halo.properties.update(props)
 
         return halo
