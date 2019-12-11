@@ -30,6 +30,7 @@ before_install:
 install:
   - conda create --yes -n ${PYTHON} -q python=$PYTHON $NUMPY scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
   - source activate ${PYTHON}
+  - pip install cython-fortran-file
   - python --version
   - python setup.py install
   # Limit the number of ramses readers to 2; otherwise Travis builds have been known to run out of memory
