@@ -10,7 +10,10 @@ from . import HaloCatalogue, Halo, logger
 from .. import util, units
 from ..snapshot.ramses import RamsesSnap
 
-from cython_fortran_file import FortranFile
+try:
+    from cython_fortran_file import FortranFile
+except ImportError:
+    FortranFile = None
 
 
 class DummyHalo(object):
@@ -55,6 +58,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _header_attributes = tuple()
 
     def __init__(self, sim, fname=None, read_contamination=False):
+
+        if FortranFile is None:
+            raise RuntimeError('Support for AdaptaHOP requires the package `cython-fortran-file` to be installed.')
 
         if fname is None:
             for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
