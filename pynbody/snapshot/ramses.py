@@ -364,7 +364,10 @@ ramses_rt_header = (
     ('gamma', 1, 'd')
 )
 
-TYPE_MAP = {'i4': 'i', 'i8': 'l', 'f4': 'f', 'f8': 'd'}
+TYPE_MAP = {'i4': 'i',
+            'i8': 'l',
+            'f4': 'f',
+            'f8': 'd'}
 particle_blocks = map(
     str.strip, config_parser.get('ramses', "particle-blocks").split(","))
 particle_format = map(
