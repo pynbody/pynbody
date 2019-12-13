@@ -287,6 +287,7 @@ install_requires = [
     'pandas',
     'posix_ipc',
     'scipy',
+    'cython_fortran_file>=0.10'
 ]
 
 tests_require = [
