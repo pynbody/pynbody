@@ -82,14 +82,18 @@ def _cpu_id(i):
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
 
-    with FortranFile(filename) as fpu:
-        header = fpu.read_attrs(ramses_particle_header)
+    with FortranFile(filename) as f:
+        f.seek(0, 2)
+        eof_fpos = f.tell()
+        f.seek(0, 0)
+        header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
-        try:
-            fpu.skip(distinguisher_field)
-            data = fpu.read_vector(distinguisher_type)
-        except TypeError:
-            data = []
+        f.skip(distinguisher_field)
+        # Avoid end-of-file issues
+        if f.tell() == eof_fpos:
+            data = np.array([])
+        else:
+            data = f.read_vector(distinguisher_type)
 
         if len(data)>0:
             my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
@@ -923,8 +927,8 @@ class RamsesSnap(SimSnap):
         ind0_dm = 0
         ind0_star = 0
         for i, star_mask, nstar in zip(self._cpus, self._particle_family_ids_on_disk, self._nstar):
-            with FortranFile(self._particle_filename(i)) as fpu:
-                header = fpu.read_attrs(ramses_particle_header)
+            with FortranFile(self._particle_filename(i)) as f:
+                header = f.read_attrs(ramses_particle_header)
             ind1_dm = ind0_dm + header['npart'] - nstar
             ind1_star = ind0_star + nstar
             self.dm['cpu'][ind0_dm:ind1_dm] = i
