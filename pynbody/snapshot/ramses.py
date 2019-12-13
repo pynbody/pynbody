@@ -135,7 +135,6 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
     with FortranFile(amr_filename) as f:
-        print(ramses_amr_header)
         header = f.read_attrs(ramses_amr_header)
         f.skip(13)
 
@@ -257,12 +256,9 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
     grid_info_iter = _cpui_level_iterator(*lia)
 
     with FortranFile(filename) as f:
-
         exact_nvar = False
-    
         if mode is _gv_load_hydro:
             header = f.read_attrs(ramses_hydro_header)
-    
             nvar_file = header['nvarh']
         elif mode is _gv_load_gravity:
             header = f.read_attrs(ramses_grav_header)
