@@ -14,7 +14,8 @@ from .. import analysis
 from .. import units
 from . import SimSnap
 
-from ..util import FortranFile, grid_gen
+from ..extern.cython_fortran_file import FortranFile
+from ..util import grid_gen
 
 import numpy as np
 import os
@@ -22,13 +23,13 @@ import functools
 import warnings
 import glob
 
-_float_data_type = np.dtype('f4')
-_int_data_type = np.dtype('i8')
+_float_data_type = 'f'
+_int_data_type = 'l'
 
-genic_header = np.dtype([('nx', 'i4'), ('ny', 'i4'), ('nz', 'i4'),
-                         ('dx', 'f4'), ('lx', 'f4'), ('ly', 'f4'),
-                         ('lz', 'f4'), ('astart', 'f4'), ('omegam', 'f4'),
-                         ('omegal', 'f4'), ('h0', 'f4')])
+genic_header = dict(
+    keys=('nx', 'ny', 'nz', 'dx', 'lx', 'ly', 'lz', 'astart', 'omegam', 'omegal', 'h0'),
+    dtype='i,i,i,f,f,f,f,f,f,f,f'
+)
 
 Tcmb = 2.72548
 
@@ -58,7 +59,9 @@ class GrafICSnap(SimSnap):
     def __init__(self, f, take=None, use_pos_file=True):
         super(GrafICSnap, self).__init__()
         with FortranFile(os.path.join(f, "ic_velcx")) as f_cx:
-            self._header = f_cx.read_field(genic_header)[0]
+            self._header = {
+                k: v
+                for k, v in zip(genic_header['keys'], f_cx.read_vector(genic_header['dtype'])[0])}
         h = self._header
         self._dlen = int(h['nx'] * h['ny'])
         self.properties['a'] = float(h['astart'])
