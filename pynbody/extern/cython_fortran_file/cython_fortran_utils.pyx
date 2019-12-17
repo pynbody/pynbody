@@ -102,8 +102,8 @@ cdef class FortranFile:
         elif dtype == 'l':
             return 8
         else:
-            # Fallback to (slow) struct to compute the size
-            return struct.calcsize(dtype)
+            # Fallback to (slow) numpy to compute the size
+            return np.dtype(dtype).itemsize
 
     cpdef np.ndarray read_vector(self, str dtype):
         """Reads a record from the file and return it as numpy array.
