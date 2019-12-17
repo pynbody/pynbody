@@ -30,6 +30,9 @@ cdef class FortranFile:
     the docstrings.
     """
 
+    cdef FILE* cfile
+    cdef bint _closed
+
     def __cinit__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
         self._closed = False
