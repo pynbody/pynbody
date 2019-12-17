@@ -4,8 +4,9 @@ import cython
 from libc.stdio cimport FILE, fread, SEEK_SET, fopen, fseek, ftell, fclose, SEEK_CUR
 import struct
 
-cimport cython_fortran_utils
-from cython_fortran_utils cimport INT32_t, INT64_t
+ctypedef np.int32_t INT32_t
+ctypedef np.int64_t INT64_t
+ctypedef np.float64_t DOUBLE_t
 
 cdef INT32_SIZE = sizeof(np.int32_t)
 cdef INT64_SIZE = sizeof(np.int64_t)
