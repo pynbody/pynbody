@@ -2,7 +2,6 @@ cimport numpy as np
 import numpy as np
 import cython
 from libc.stdio cimport FILE, fread, SEEK_SET, fopen, fseek, ftell, fclose, SEEK_CUR
-import struct
 
 ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
