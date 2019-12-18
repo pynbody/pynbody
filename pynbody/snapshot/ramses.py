@@ -23,8 +23,8 @@ from .. import units
 from .. import config, config_parser
 from .. import analysis
 from . import SimSnap
-from ..extern.cython_fortran_file import FortranFile
 from . import namemapper
+from ..extern.cython_fortran_file.cython_fortran_utils import FortranFile
 
 import os
 import numpy as np

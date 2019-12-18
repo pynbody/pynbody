@@ -14,8 +14,8 @@ from .. import analysis
 from .. import units
 from . import SimSnap
 
-from ..extern.cython_fortran_file import FortranFile
 from ..util import grid_gen
+from ..extern.cython_fortran_file.cython_fortran_utils import FortranFile
 
 import numpy as np
 import os
