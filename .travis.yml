@@ -32,6 +32,7 @@ install:
   - source activate ${PYTHON}
   - pip install cython-fortran-file
   - python --version
+  - pip install cython_fortran_file
   - python setup.py install
   # Limit the number of ramses readers to 2; otherwise Travis builds have been known to run out of memory
   - echo "[ramses]" >> ~/.pynbodyrc

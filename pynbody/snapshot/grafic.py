@@ -14,7 +14,8 @@ from .. import analysis
 from .. import units
 from . import SimSnap
 
-from ..util import FortranFile, grid_gen
+from ..util import grid_gen
+from ..extern.cython_fortran_file.cython_fortran_utils import FortranFile
 
 import numpy as np
 import os
@@ -22,13 +23,13 @@ import functools
 import warnings
 import glob
 
-_float_data_type = np.dtype('f4')
-_int_data_type = np.dtype('i8')
+_float_data_type = 'f'
+_int_data_type = 'l'
 
-genic_header = np.dtype([('nx', 'i4'), ('ny', 'i4'), ('nz', 'i4'),
-                         ('dx', 'f4'), ('lx', 'f4'), ('ly', 'f4'),
-                         ('lz', 'f4'), ('astart', 'f4'), ('omegam', 'f4'),
-                         ('omegal', 'f4'), ('h0', 'f4')])
+genic_header = dict(
+    keys=('nx', 'ny', 'nz', 'dx', 'lx', 'ly', 'lz', 'astart', 'omegam', 'omegal', 'h0'),
+    dtype='i,i,i,f,f,f,f,f,f,f,f'
+)
 
 Tcmb = 2.72548
 
@@ -58,7 +59,9 @@ class GrafICSnap(SimSnap):
     def __init__(self, f, take=None, use_pos_file=True):
         super(GrafICSnap, self).__init__()
         with FortranFile(os.path.join(f, "ic_velcx")) as f_cx:
-            self._header = f_cx.read_field(genic_header)[0]
+            self._header = {
+                k: v
+                for k, v in zip(genic_header['keys'], f_cx.read_vector(genic_header['dtype'])[0])}
         h = self._header
         self._dlen = int(h['nx'] * h['ny'])
         self.properties['a'] = float(h['astart'])
@@ -196,27 +199,32 @@ class GrafICSnap(SimSnap):
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
         with FortranFile(filename) as f:
-            h = f.read_field(genic_header)
-            length = self._dlen * data_type.itemsize
-            alen = f.get_raw_memmapped(util._head_type)
-            if alen != length:
-                raise IOError("Unexpected FORTRAN block length %d!=%d" % (alen, length))
-            for readlen, buf_index, mem_index in (self._load_control.iterate_with_interrupts(family.dm, family.dm,
-                                                                                             np.arange(
-                                                                                                 1, h['nz']) * (
-                                                                                                 h['nx'] * h['ny']),
-                                                                                             functools.partial(
-                                                                                                 _midway_fortran_skip, f,
-                                                                                                 length))):
-
-                if buf_index is not None:
-                    re = f.get_raw_memmapped(data_type, readlen)
-                    target_buffer[mem_index] = re[buf_index]
-                else:
-                    f.seek(data_type.itemsize * readlen)
-            alen = f.get_raw_memmapped(util._head_type)
-            if alen != length:
-                raise IOError("Unexpected FORTRAN block length (tail) %d!=%d" % (alen, length))
+            h = {k: v for k, v in zip(genic_header['keys'], f.read_vector(genic_header['dtype'])[0])}
+            ii = 0
+            for _ in range(h['nz']):
+                sliced_data = f.read_vector(data_type)
+                if len(sliced_data) != self._dlen:
+                    raise IOError(
+                        'Expected a slice of length %s, got %s' % (
+                            self._dlen, len(sliced_data)
+                        ))
+                target_buffer[ii:ii+self._dlen] = sliced_data
+                ii += self._dlen
+            # alen = f.get_raw_memmapped(util._head_type)
+            # if alen != length:
+            #     raise IOError("Unexpected FORTRAN block length %d!=%d" % (alen, length))
+            # for readlen, buf_index, mem_index in (self._load_control.iterate_with_interrupts(
+            #     family.dm, family.dm, np.arange(1, h['nz']) * (h['nx'] * h['ny']),
+            #     disk_interrupt_fn=functools.partial(_midway_fortran_skip, f, length))):
+            #
+            #     if buf_index is not None:
+            #         re = f.get_raw_memmapped(data_type, readlen)
+            #         target_buffer[mem_index] = re[buf_index]
+            #     else:
+            #         f.seek(data_type.itemsize * readlen)
+            # alen = f.get_raw_memmapped(util._head_type)
+            # if alen != length:
+            #     raise IOError("Unexpected FORTRAN block length (tail) %d!=%d" % (alen, length))
 
     def _load_array(self, name, fam=None):
 
