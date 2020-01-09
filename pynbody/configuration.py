@@ -18,6 +18,8 @@ def _get_config_parser_with_defaults():
     else:
         import configparser
         config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
+        old_get = config_parser.get
+        config_parser.get = lambda *args, **kwa: str(old_get(*args, **kwa))
     config_parser.optionxform = str
     config_parser.read(
         os.path.join(os.path.dirname(__file__), "default_config.ini"))

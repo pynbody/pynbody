@@ -16,6 +16,7 @@ specified, the loader will look for a file `*.param` in the current and
 parent directories.
 
 """
+from __future__ import print_function
 
   # for py2.5
 

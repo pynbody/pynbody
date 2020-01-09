@@ -11,6 +11,7 @@ a final C code to perform the rendering is derived.
 For most users, the function of interest will be :func:`~pynbody.sph.render_image`.
 
 """
+from __future__ import print_function
 
 import numpy as np
 import scipy

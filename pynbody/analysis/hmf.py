@@ -6,6 +6,7 @@ halo mass function (hmf)
 Various halo mass function routines. 
 
 """
+from __future__ import print_function
 
 import numpy as np
 from . import cosmology

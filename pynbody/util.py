@@ -658,4 +658,3 @@ def _thread_map(func, *args):
     if excp is None:
         return rets
     raise excp  # Note this is a re-raised exception from within a thread
-
