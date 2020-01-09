@@ -82,7 +82,7 @@ def _cpu_id(i):
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
 
-    with cython_fortran_utils.FortranFile(filename) as f:
+    with FortranFile(filename) as f:
         f.seek(0, 2)
         eof_fpos = f.tell()
         f.seek(0, 0)
