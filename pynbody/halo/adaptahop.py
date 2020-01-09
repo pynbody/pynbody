@@ -165,7 +165,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         props['members'] = iord_array
 
         # Create halo object and fill properties
-        halo = Halo(halo_id, self, self.base, index_array=None, iord_array=iord_array)
+        halo = Halo(halo_id, self, self.base.dm, index_array=None, iord_array=iord_array)
         halo.properties.update(props)
 
         return halo
