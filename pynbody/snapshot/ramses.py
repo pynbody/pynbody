@@ -24,7 +24,7 @@ from .. import config, config_parser
 from .. import analysis
 from . import SimSnap
 from . import namemapper
-from ..extern.cython_fortran_file.cython_fortran_utils import FortranFile
+from ..extern import cython_fortran_utils
 
 import os
 import numpy as np
@@ -82,7 +82,7 @@ def _cpu_id(i):
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
 
-    with FortranFile(filename) as f:
+    with cython_fortran_utils.FortranFile(filename) as f:
         f.seek(0, 2)
         eof_fpos = f.tell()
         f.seek(0, 0)

@@ -238,9 +238,9 @@ util_pyx = Extension('pynbody._util',
                      extra_compile_args=openmp_args,
                      extra_link_args=openmp_args)
 
-cython_fortran_file = Extension('pynbody.extern.cython_fortran_file.cython_fortran_utils',
-                                sources=['pynbody/extern/cython_fortran_file/cython_fortran_utils.pyx'],
-                                include_dirs=incdir + ['pynbody/extern/cython_fortran_file'])
+cython_fortran_file = Extension('pynbody.extern.cython_fortran_utils',
+                                sources=['pynbody/extern/cython_fortran_utils.pyx'],
+                                include_dirs=incdir)
 
 interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               sources = ['pynbody/analysis/_interpolate3d.pyx'],
@@ -291,7 +291,8 @@ install_requires = [
     'numpy>=1.9.2',
     'pandas',
     'posix_ipc',
-    'scipy'
+    'scipy',
+    'future;python_version<"3.0"',
 ]
 
 tests_require = [
@@ -306,7 +307,7 @@ docs_require = [
 
 extras_require = {
     'docs': docs_require,
-    'tests': tests_require,
+    'tests': tests_require
 }
 
 extras_require['all'] = []
