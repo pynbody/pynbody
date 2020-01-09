@@ -21,7 +21,7 @@ be loaded.
 """
 
 
-from __future__ import with_statement  # for py2.5
+  # for py2.5
 
 from .. import util, halo
 from .. import family
@@ -29,7 +29,7 @@ from .. import units
 from .. import config_parser
 from . import SimSnap
 
-import ConfigParser
+import configparser
 
 import numpy as np
 import functools, itertools
@@ -50,11 +50,11 @@ for x in family.family_names():
     try:
         _default_type_map[family.get_family(x)] = \
                  [q.strip() for q in config_parser.get('gadgethdf-type-mapping', x).split(",")]
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
         pass
 
 _all_hdf_particle_groups = []
-for hdf_groups in _default_type_map.itervalues():
+for hdf_groups in _default_type_map.values():
     for hdf_group in hdf_groups:
         _all_hdf_particle_groups.append(hdf_group)
 
@@ -189,7 +189,7 @@ class GadgetHDFSnap(SimSnap):
             self._loadable_family_keys[fam] = list(self._loadable_family_keys[fam])
 
         self._loadable_keys = set(self._loadable_family_keys[all_fams[0]])
-        for fam_keys in self._loadable_family_keys.itervalues():
+        for fam_keys in self._loadable_family_keys.values():
             self._loadable_keys.intersection_update(fam_keys)
 
         self._loadable_keys = list(self._loadable_keys)
@@ -235,18 +235,18 @@ class GadgetHDFSnap(SimSnap):
 
     def _families_ordered(self):
         # order by the PartTypeN
-        all_families = self._family_to_group_map.keys()
+        all_families = list(self._family_to_group_map.keys())
         all_families_sorted = sorted(all_families, key=lambda v: self._family_to_group_map[v][0])
         return all_families_sorted
 
     def __init_family_map(self):
         type_map = {}
-        for fam, g_types in _default_type_map.iteritems():
+        for fam, g_types in _default_type_map.items():
             my_types = []
             for x in g_types:
                 # Get all keys from all hdf files
                 for hdf in self._hdf_files:
-                    if x in hdf.keys():
+                    if x in list(hdf.keys()):
                         my_types.append(x)
                         break
             if len(my_types):
@@ -384,7 +384,7 @@ class GadgetHDFSnap(SimSnap):
     def _get_units_from_description(self, description, expectedCgsConversionFactor=None):
         arr_units = units.Unit('1.0')
         conversion = 1.0
-        for unitname in self._hdf_unitvar.keys():
+        for unitname in list(self._hdf_unitvar.keys()):
             power = 1.
             if unitname in description:
                 sstart = description.find(unitname)
@@ -478,7 +478,7 @@ class GadgetHDFSnap(SimSnap):
             except KeyError:
                 continue
         if representative_dset is None:
-            raise KeyError, "Array is not present in HDF file"
+            raise KeyError("Array is not present in HDF file")
 
 
         assert len(representative_dset.shape) <= 2
@@ -560,7 +560,7 @@ class GadgetHDFSnap(SimSnap):
 @GadgetHDFSnap.decorator
 def do_units(sim):
 
-    cosmo = 'HubbleParam' in sim._get_hdf_header_attrs().keys()
+    cosmo = 'HubbleParam' in list(sim._get_hdf_header_attrs().keys())
 
     try:
         atr = sim._get_hdf_unit_attrs()
@@ -618,7 +618,7 @@ def do_properties(sim):
         from .. import analysis
         sim.properties['time'] = analysis.cosmology.age(sim) * units.Gyr
 
-    for s,value in sim._get_hdf_header_attrs().iteritems():
+    for s,value in sim._get_hdf_header_attrs().items():
         if s not in ['ExpansionFactor', 'Time_GYR', 'Time', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
             sim.properties[s] = value
 

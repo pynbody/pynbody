@@ -44,7 +44,7 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
 
         # create the particle lists
         tot_len = 0
-        for g_ptypes in type_map.values() :
+        for g_ptypes in list(type_map.values()) :
             for g_ptype in g_ptypes:
                 tot_len += halo_lengths[g_ptype][absolute_id]
 
@@ -117,7 +117,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         super(SubFindHDFHaloCatalogue,self).__init__(sim)
 
         if not isinstance(sim, snapshot.gadgethdf.SubFindHDFSnap):
-            raise ValueError, "SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation"
+            raise ValueError("SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation")
 
         self.__init_halo_offset_data()
         self.__init_subhalo_relationships()
@@ -126,10 +126,10 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self.__reassign_properties_from_sub_to_fof()
 
     def __init_ignorable_keys(self):
-        self.fof_ignore = map(str.strip,config_parser.get("SubfindHDF","FoF-ignore").split(","))
-        self.sub_ignore = map(str.strip,config_parser.get("SubfindHDF","Sub-ignore").split(","))
+        self.fof_ignore = list(map(str.strip,config_parser.get("SubfindHDF","FoF-ignore").split(",")))
+        self.sub_ignore = list(map(str.strip,config_parser.get("SubfindHDF","Sub-ignore").split(",")))
 
-        for t in self.base._family_to_group_map.values():
+        for t in list(self.base._family_to_group_map.values()):
             # Don't add SubFind particles ever as this list is actually spherical overdensity
             self.sub_ignore.append(t[0])
             self.fof_ignore.append(t[0])
@@ -145,15 +145,15 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         hdf0 = sim._hdf_files.get_file0_root()
 
         props = {}
-        for property_key in hdf0[hdf_key].keys():
+        for property_key in list(hdf0[hdf_key].keys()):
             if property_key not in self.fof_ignore:
                 props[property_key] = np.array([])
 
         for h in sim._hdf_files.iterroot():
-            for property_key in props.keys():
+            for property_key in list(props.keys()):
                 props[property_key] = np.append(props[property_key], h[hdf_key][property_key].value)
 
-        for property_key in props.keys():
+        for property_key in list(props.keys()):
             arr_units = sim._get_units_from_hdf_attr(hdf0[hdf_key][property_key].attrs)
             if property_key in props:
                 props[property_key] = props[property_key].view(array.SimArray)
@@ -167,7 +167,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         sub_properties = self._sub_properties
         fof_properties = self._fof_properties
 
-        for key in sub_properties.keys():
+        for key in list(sub_properties.keys()):
             # Test if there are no remainders, i.e. array is multiple of halo length
             # then solve for the case where this is 1, 2 or 3 dimension
             if len(sub_properties[key]) % self.nsubhalos == 0:
@@ -186,7 +186,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def __reassign_properties_from_sub_to_fof(self):
         reassign = []
-        for k,v in self._sub_properties.iteritems():
+        for k,v in self._sub_properties.items():
             if v.shape[0]==self.ngroups:
                 reassign.append(k)
 
@@ -257,7 +257,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
         # create the particle lists
         tot_len = 0
-        for g_ptypes in type_map.values() :
+        for g_ptypes in list(type_map.values()) :
             for g_ptype in g_ptypes:
                 tot_len += self._fof_group_lengths[g_ptype][i]
 
@@ -300,7 +300,7 @@ class SubFindFOFGroup(Halo) :
         self._descriptor = "fof_group_"+str(group_id)
 
         # load properties
-        for key in self._halo_catalogue._fof_properties.keys() :
+        for key in list(self._halo_catalogue._fof_properties.keys()) :
             self.properties[key] = array.SimArray(self._halo_catalogue._fof_properties[key][group_id],
                                             self._halo_catalogue._fof_properties[key].units)
             self.properties[key].sim = self.base

@@ -23,7 +23,7 @@ class GravTree:
             pos, mass, eps, rs, int(leafsize))
         end = time.clock()
         if config['verbose']:
-            print 'Tree build done in %5.3g s' % (end - start)
+            print('Tree build done in %5.3g s' % (end - start))
 
         self.derived = True
         self.flags = {'WRITEABLE': False}
@@ -32,13 +32,13 @@ class GravTree:
         accel = np.zeros((len(vec_pos), 3))
         pot = np.zeros(len(vec_pos))
         if config['verbose']:
-            print 'Calculating Gravity'
+            print('Calculating Gravity')
 
         start = time.clock()
         pkdgrav.pkdPythonDoGravity(self.tree, accel, pot, theta=0.55)
         end = time.clock()
         if config['verbose']:
-            print 'Gravity calculated in %5.3g s' % (end - start)
+            print('Gravity calculated in %5.3g s' % (end - start))
 
         return accel, pot
 

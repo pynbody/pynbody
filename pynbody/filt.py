@@ -14,7 +14,7 @@ sample usage.
 
 
 import numpy as np
-import cPickle
+import pickle
 from . import units, util, _util, family
 
 class Filter(object):
@@ -42,13 +42,13 @@ class Filter(object):
         return "Filter()"
 
     def __hash__(self):
-        return hash(cPickle.dumps(self))
+        return hash(pickle.dumps(self))
 
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
 
-        for k, v in self.__dict__.iteritems():
+        for k, v in self.__dict__.items():
             if k not in other.__dict__:
                 return False
             else:
@@ -135,7 +135,7 @@ class Sphere(Filter):
         self._descriptor = "sphere"
         self.cen = np.asarray(cen)
         if self.cen.shape != (3,):
-            raise ValueError, "Centre must be length 3 array"
+            raise ValueError("Centre must be length 3 array")
 
         if isinstance(radius, str):
             radius = units.Unit(radius)
@@ -186,7 +186,7 @@ class Cuboid(Filter):
 
         self._descriptor = "cube"
         x1, y1, z1, x2, y2, z2 = [
-            units.Unit(x) if isinstance(x, str) else x for x in x1, y1, z1, x2, y2, z2]
+            units.Unit(x) if isinstance(x, str) else x for x in (x1, y1, z1, x2, y2, z2)]
         if y1 is None:
             y1 = x1
         if z1 is None:
@@ -202,14 +202,14 @@ class Cuboid(Filter):
     def __call__(self, sim):
         x1, y1, z1, x2, y2, z2 = [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
                                   if units.is_unit_like(x) else x
-                                  for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
+                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
 
         return ((sim["x"] > x1) * (sim["x"] < x2) * (sim["y"] > y1) * (sim["y"] < y2) * (sim["z"] > z1) * (sim["z"] < z2))
 
     def __repr__(self):
         x1, y1, z1, x2, y2, z2 = ["'%s'" % str(x)
                                   if units.is_unit_like(x) else x
-                                  for x in self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
+                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
         return "Cuboid(%s, %s, %s, %s, %s, %s)" % (x1, y1, z1, x2, y2, z2)
 
 
@@ -224,7 +224,7 @@ class Disc(Filter):
         self._descriptor = "disc"
         self.cen = np.asarray(cen)
         if self.cen.shape != (3,):
-            raise ValueError, "Centre must be length 3 array"
+            raise ValueError("Centre must be length 3 array")
 
         if isinstance(radius, str):
             radius = units.Unit(radius)
@@ -253,7 +253,7 @@ class Disc(Filter):
         height = self.height
 
         radius, height = [
-            ("'%s'" % str(x) if units.is_unit_like(x) else '%.2e' % x) for x in radius, height]
+            ("'%s'" % str(x) if units.is_unit_like(x) else '%.2e' % x) for x in (radius, height)]
 
         return "Disc(%s, %s, %s)" % (radius, height, repr(self.cen))
 
@@ -294,7 +294,7 @@ class BandPass(Filter):
 
     def __repr__(self):
         min_, max_ = [("'%s'" % str(x) if units.is_unit_like(
-            x) else '%.2e' % x) for x in self._min, self._max]
+            x) else '%.2e' % x) for x in (self._min, self._max)]
         return "BandPass('%s', %s, %s)" % (self._prop, min_, max_)
 
 

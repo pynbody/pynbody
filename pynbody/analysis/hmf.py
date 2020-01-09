@@ -35,7 +35,7 @@ logger = logging.getLogger('pynbody.analysis.hmf')
 class FieldFilter(object):
 
     def __init__(self):
-        raise RuntimeError, "Cannot instantiate directly, use a subclass instead"
+        raise RuntimeError("Cannot instantiate directly, use a subclass instead")
 
     def M_to_R(self, M):
         """Return the mass scale (Msol h^-1) for a given length (Mpc h^-1 comoving)"""
@@ -47,7 +47,7 @@ class FieldFilter(object):
 
     @staticmethod
     def Wk(kR):
-        raise RuntimeError, "Not implemented"
+        raise RuntimeError("Not implemented")
 
 
 class TophatFilter(FieldFilter):
@@ -184,7 +184,7 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB):
         from .. import config_parser
         path_to_camb = config_parser.get('camb', 'path')
         if path_to_camb == '/path/to/camb':
-            raise RuntimeError, "You need to compile CAMB and set up the executable path in your pynbody configuration file."
+            raise RuntimeError("You need to compile CAMB and set up the executable path in your pynbody configuration file.")
 
         file_in = open(
             os.path.join(os.path.dirname(__file__), "cambtemplate.ini"), "r")
@@ -207,9 +207,9 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB):
                 name = name.strip()
                 if name in camb_params:
                     val = camb_params[name]
-                print >> file_out, name, "=", val
+                print(name, "=", val, file=file_out)
             else:
-                print >> file_out, line.strip()
+                print(line.strip(), file=file_out)
 
         file_out.close()
 
@@ -375,7 +375,7 @@ def correlation(r, powspec=PowerSpectrumCAMB):
                 m += 2
 
             if m >= 50:
-                raise RuntimeError, "Convergence failure in sin y/y series integral"
+                raise RuntimeError("Convergence failure in sin y/y series integral")
 
             if m > 18:
                 gamma_method = True

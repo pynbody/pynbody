@@ -44,7 +44,7 @@ def mdf(sim, filename=None, clear=True, range=[-5, 0.3], axes=False, **kwargs):
 
     plt.plot(midpoints, metpdf)
     if (filename):
-        print "Saving " + filename
+        print("Saving " + filename)
         plt.savefig(filename)
 
 

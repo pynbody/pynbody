@@ -9,8 +9,8 @@ automatically via pynbody.load.
 
 """
 
-from __future__ import with_statement  # for py2.5
-from __future__ import division
+  # for py2.5
+
 
 from .. import array, util
 from .. import family
@@ -35,9 +35,9 @@ import xdrlib
 _name_map, _rev_name_map = namemapper.setup_name_maps('nchilada-name-mapping')
 _translate_array_name = namemapper.name_map_function(_name_map, _rev_name_map)
 
-_type_codes = map(np.dtype, [None, 'int8', 'uint8', 'int16', 'uint16',
+_type_codes = list(map(np.dtype, [None, 'int8', 'uint8', 'int16', 'uint16',
                              'int32', 'uint32', 'int64', 'uint64',
-                             'float32', 'float64'])
+                             'float32', 'float64']))
 
 
 _max_buf = 1024 * 512
@@ -75,7 +75,7 @@ class NchiladaSnap(SimSnap):
         # set up a logical map of particles on disk
         for f in sorted(self._loadable_keys_registry.keys()):
             ars = self._loadable_keys_registry[f]
-            tf = open(ars.values()[0], 'rb')
+            tf = open(list(ars.values())[0], 'rb')
             header_time, nbod, _, _ = self._load_header(tf)
             disk_family_slice[f] = slice(i, i + nbod)
             i += nbod
@@ -97,20 +97,20 @@ class NchiladaSnap(SimSnap):
 
     def loadable_keys(self, fam=None):
         if fam is not None:
-            return self._loadable_keys_registry[fam].keys()
+            return list(self._loadable_keys_registry[fam].keys())
         else:
             loadable = None
-            for f in self._loadable_keys_registry.itervalues():
+            for f in self._loadable_keys_registry.values():
                 if loadable is None:
-                    loadable = set(f.iterkeys())
+                    loadable = set(f.keys())
                 else:
-                    loadable = loadable.intersection(f.iterkeys())
+                    loadable = loadable.intersection(iter(f.keys()))
             return list(loadable)
 
     def _open_file_for_array(self, fam, array_name):
         fname = self._loadable_keys_registry[fam].get(array_name, None)
         if not fname:
-            raise IOError, "No such array on disk"
+            raise IOError("No such array on disk")
         f = open(fname, 'rb')
         return f
 
@@ -125,9 +125,9 @@ class NchiladaSnap(SimSnap):
             _, nbod, ndim, dtype = self._load_header(self._open_file_for_array(fam, array_name))
             if universal_dtype is not None:
                 if ndim!=universal_ndim:
-                    raise IOError, "Mismatching dimensions for array"
+                    raise IOError("Mismatching dimensions for array")
                 if dtype!=universal_dtype:
-                    raise IOError, "Mismatching data type for array"
+                    raise IOError("Mismatching data type for array")
             universal_ndim, universal_dtype = ndim, dtype
 
         self._create_array(array_name,universal_ndim,universal_dtype,False)
@@ -144,7 +144,7 @@ class NchiladaSnap(SimSnap):
         f = self._open_file_for_array(fam, array_name)
 
         _, nbod, ndim, dtype = self._load_header(f)
-        if array_name not in self.keys():
+        if array_name not in list(self.keys()):
             self._create_family_array(array_name, fam, ndim=ndim,dtype=dtype)
         r = self[fam][array_name]
         if units.has_units(r):

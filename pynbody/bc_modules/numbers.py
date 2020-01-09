@@ -5,20 +5,19 @@
 
 TODO: Fill out more detailed documentation on the operators."""
 
-from __future__ import division
-from abc import ABCMeta, abstractmethod, abstractproperty
+
+from .abc import ABCMeta, abstractmethod, abstractproperty
 
 __all__ = ["Number", "Complex", "Real", "Rational", "Integral"]
 
 
-class Number(object):
+class Number(object, metaclass=ABCMeta):
 
     """All numbers inherit from this class.
 
     If you just want to check if an argument x is a number, without
     caring what kind, use isinstance(x, Number).
     """
-    __metaclass__ = ABCMeta
 
     # Concrete numeric types must provide their own hash implementation
     __hash__ = None
@@ -50,7 +49,7 @@ class Complex(Number):
 
     # Will be __bool__ in 3.0.
 
-    def __nonzero__(self):
+    def __bool__(self):
         """True if self != 0. Called for bool(self)."""
         return self != 0
 
@@ -302,7 +301,7 @@ class Integral(Rational):
 
     def __index__(self):
         """index(self)"""
-        return long(self)
+        return int(self)
 
     @abstractmethod
     def __pow__(self, exponent, modulus=None):
@@ -373,7 +372,7 @@ class Integral(Rational):
     # Concrete implementations of Rational and Real abstract methods.
     def __float__(self):
         """float(self) == float(long(self))"""
-        return float(long(self))
+        return float(int(self))
 
     @property
     def numerator(self):
@@ -386,4 +385,4 @@ class Integral(Rational):
         return 1
 
 Integral.register(int)
-Integral.register(long)
+Integral.register(int)

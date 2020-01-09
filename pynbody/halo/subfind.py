@@ -60,7 +60,7 @@ class SubfindCatalogue(HaloCatalogue):
         ar = np.zeros(len(self.base), dtype=int)-1
         for i in range(0, self.header[1]): #total number of groups
             if v:
-                print "Halo #", i , "of", self.header[1]
+                print("Halo #", i , "of", self.header[1])
             halo=self[i]
             ar[halo.get_index_list(self.base)] = halo._halo_id
         return ar
@@ -154,7 +154,7 @@ class SubfindCatalogue(HaloCatalogue):
         if self._subs is True:
             self._keys=subkeys_flt+subkeys_int
 
-        for n in xrange(0,self._tasks):
+        for n in range(0,self._tasks):
             filename=self.halodir+"/subhalo_tab_"+self.halodir.split("_")[-1]+"." +str(n)
             fd=open(filename, "rb")
             header1=np.fromfile(fd, dtype='int32', sep="", count=8)

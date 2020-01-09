@@ -64,7 +64,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     def load_copy(self, i):
         """Load a fresh SimSnap with only the particles in halo i"""
         if i>=len(self):
-            raise KeyError, "No such halo"
+            raise KeyError("No such halo")
 
         from . import load
         halo = load(self.base.filename, take=self._get_particles_for_halo(i))

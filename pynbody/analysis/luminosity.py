@@ -12,7 +12,7 @@ import numpy as np
 import os
 from ..array import SimArray
 
-from interpolate import interpolate2d
+from .interpolate import interpolate2d
 
 _cmd_lum_file = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
 
@@ -112,7 +112,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
     try:
         vals = output_mags - 2.5 * \
             np.log10(simstars['massform'].in_units('Msol'))
-    except KeyError, ValueError:
+    except KeyError as ValueError:
         vals = output_mags - 2.5 * np.log10(simstars['mass'].in_units('Msol'))
 
     vals.units = None

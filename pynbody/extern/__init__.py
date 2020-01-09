@@ -1,3 +1,3 @@
-import cython_fortran_file
+from . import cython_fortran_file
 
 __all__ = ['cython_fortran_file']

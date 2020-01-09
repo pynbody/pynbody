@@ -432,7 +432,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             try:
                 im[np.where(im == 0)] = abs(im[np.where(abs(im != 0))]).min()
             except ValueError:
-                raise ValueError, "Failed to make a sensible logarithmic image. This probably means there are no particles in the view."
+                raise ValueError("Failed to make a sensible logarithmic image. This probably means there are no particles in the view.")
 
             # check if there are negative values -- if so, use the symmetric
             # log normalization

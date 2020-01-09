@@ -46,7 +46,7 @@ on how to implement this final step.
 
 """
 
-from __future__ import division
+
 import random
 import math
 import numpy as np
@@ -111,7 +111,7 @@ class Chunk:
                     self.random = int(self.random * self.len)
                 self.random = min(self.random, slice_len)
                 self.ids = random.sample(
-                    xrange(self.start, self.stop, self.step), self.random)
+                    range(self.start, self.stop, self.step), self.random)
                 self.ids.sort()
                 self.len = len(self.ids)
 
@@ -125,11 +125,11 @@ class Chunk:
             step = self.step
 
         if self.ids is None:
-            for i in xrange(self.start, self.stop, self.step):
+            for i in range(self.start, self.stop, self.step):
                 yield self.step
         else:
             yield self.ids[0]
-            for i in xrange(len(self.ids) - 1):
+            for i in range(len(self.ids) - 1):
                 yield self.ids[i + 1] - self.ids[i]
 
     def contiguous(self):
@@ -197,7 +197,7 @@ class LoadControl(object):
 
     def _generate_family_order(self):
         famlist = []
-        for fam, sl in self._disk_family_slice.iteritems():
+        for fam, sl in self._disk_family_slice.items():
             famlist.append((fam, sl.start, sl.stop))
 
         famlist.sort(key=lambda x: x[1])
@@ -226,7 +226,7 @@ class LoadControl(object):
         for current_family in self._ordered_families:
             self._family_chunks[current_family] = []
             disk_sl = self._disk_family_slice[current_family]
-            for i0 in xrange(0, disk_sl.stop - disk_sl.start, max_chunk):
+            for i0 in range(0, disk_sl.stop - disk_sl.start, max_chunk):
                 nread = min(disk_sl.stop - disk_sl.start - i0, max_chunk)
                 buf_sl = slice(0, nread)
                 mem_sl = slice(i0, i0 + nread)

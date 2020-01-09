@@ -240,7 +240,7 @@ class Profile:
             # The profile object is initialized given some array of values
             # and optional keyword parameters
 
-            if kwargs.has_key('max'):
+            if 'max' in kwargs:
                 if isinstance(kwargs['max'], str):
                     self.max = units.Unit(kwargs['max']).ratio(x.units,
                                                                **sim.conversion_context())
@@ -248,14 +248,14 @@ class Profile:
                     self.max = kwargs['max']
             else:
                 self.max = np.max(x)
-            if kwargs.has_key('bins'):
+            if 'bins' in kwargs:
                 self.nbins = len(kwargs['bins']) - 1
-            elif kwargs.has_key('nbins'):
+            elif 'nbins' in kwargs:
                 self.nbins = kwargs['nbins']
             else:
                 self.nbins = 100
 
-            if kwargs.has_key('min'):
+            if 'min' in kwargs:
                 if isinstance(kwargs['min'], str):
                     self.min = units.Unit(kwargs['min']).ratio(x.units,
                                                                **sim.conversion_context())
@@ -264,7 +264,7 @@ class Profile:
             else:
                 self.min = np.min(x[x > 0])
 
-            if kwargs.has_key('bins'):
+            if 'bins' in kwargs:
                 self._properties['bin_edges'] = kwargs['bins']
                 self.min = kwargs['bins'].min()
                 self.max = kwargs['bins'].max()
@@ -278,7 +278,7 @@ class Profile:
                 self._properties['bin_edges'] = util.equipartition(
                     x, self.nbins, self.min, self.max)
             else:
-                raise RuntimeError, "Bin type must be one of: lin, log, equaln"
+                raise RuntimeError("Bin type must be one of: lin, log, equaln")
 
             self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
             self['bin_edges'].sim = self.sim
@@ -351,31 +351,31 @@ class Profile:
                 pass
             return self._profiles[name]
 
-        elif name in self.sim.keys() or name in self.sim.all_keys():
+        elif name in list(self.sim.keys()) or name in self.sim.all_keys():
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-5:] == "_disp" and (name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys()):
+        elif name[-5:] == "_disp" and (name[:-5] in list(self.sim.keys()) or name[:-5] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(
                 name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_rms" and (name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys()):
+        elif name[-4:] == "_rms" and (name[:-4] in list(self.sim.keys()) or name[:-4] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(name[:-4], rms=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_med" and (name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys()):
+        elif name[-4:] == "_med" and (name[:-4] in list(self.sim.keys()) or name[:-4] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(name[:-4], median=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[0:2] == "d_" and (name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys()):
+        elif name[0:2] == "d_" and (name[2:] in list(self.keys()) or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys()):
             #            if np.diff(self['dr']).all() < 1e-13 :
             logger.info("Auto-deriving %s/dR" % name)
             self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
@@ -385,7 +385,7 @@ class Profile:
             #    raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
 
         else:
-            raise KeyError, name + " is not a valid profile"
+            raise KeyError(name + " is not a valid profile")
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros(self.nbins)
@@ -440,7 +440,7 @@ class Profile:
         elif name in self._profiles:
             self._profiles[name] = item
         else:
-            raise KeyError, name + " is not a valid profile or property"
+            raise KeyError(name + " is not a valid profile or property")
 
     def __delitem__(self, name):
         del self._profiles[name]
@@ -449,15 +449,15 @@ class Profile:
         return ("<Profile: " +
                 str(self.families()) + " ; " +
                 str(self.ndim) + "D ; " +
-                self.type) + " ; " + str(self.keys()) + ">"
+                self.type) + " ; " + str(list(self.keys())) + ">"
 
     def keys(self):
         """Returns a listing of available profile types"""
-        return self._profiles.keys()
+        return list(self._profiles.keys())
 
     def derivable_keys(self):
         """Returns a list of possible profiles"""
-        return self._profile_registry.keys()
+        return list(self._profile_registry.keys())
 
     def families(self):
         """Returns the family of particles used"""
@@ -745,7 +745,7 @@ def pot(p):
 
     grav_sim = p.sim
     # Go up to the halo level
-    while hasattr(grav_sim, 'base') and grav_sim.base.properties.has_key("halo_id"):
+    while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
     start = time.clock()
@@ -1017,13 +1017,13 @@ class QuantileProfile(Profile):
         if name in self._profiles:
             return self._profiles[name]
 
-        elif name in self.sim.keys() or name in self.sim.all_keys():
+        elif name in list(self.sim.keys()) or name in self.sim.all_keys():
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
         else:
-            raise KeyError, name + " is not a valid QuantileProfile"
+            raise KeyError(name + " is not a valid QuantileProfile")
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros((self.nbins, len(self.quantiles)))

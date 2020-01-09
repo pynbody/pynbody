@@ -50,7 +50,7 @@ class RockstarCatalogue(HaloCatalogue):
             self._files.sort()
 
         if len(self._files)==0:
-            raise IOError, "Could not find any Rockstar output. Try specifying pathname='/path/to/rockstar/outputfolder'"
+            raise IOError("Could not find any Rockstar output. Try specifying pathname='/path/to/rockstar/outputfolder'")
 
         self._cpus = [RockstarCatalogueOneCpu(sim,dummy,file_i, format_revision=format_revision) for file_i in self._files]
         self._prune_files_from_wrong_scalefactor()
@@ -262,7 +262,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         return len(self._halo_lens)
 
     def _load_all(self):
-        for i in xrange(self._halo_min, self._halo_max):
+        for i in range(self._halo_min, self._halo_max):
             self._load_rs_halo_if_required(i)
             self._load_rs_particles_for_halo_if_required(i)
 
@@ -278,7 +278,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
     def load_copy(self, i):
         """Load a fresh SimSnap with only the particles in halo i"""
         if i<self._halo_min or i>=self._halo_max:
-            raise KeyError, "No such halo"
+            raise KeyError("No such halo")
 
         from . import load
         return load(self.base.filename, take=self._get_particles_for_halo(i))
@@ -286,7 +286,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
     def _update_grp_array(self, ar):
         """Insert into an existing grp array halos from this CPU"""
         self._load_all()
-        for halo in self._halos.values():
+        for halo in list(self._halos.values()):
             ar[halo.get_index_list(self.base)] = halo._halo_id
 
     def _setup_children(self):
@@ -297,10 +297,10 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         fails for some reason.
         """
 
-        for i in xrange(self._nhalos):
+        for i in range(self._nhalos):
             self._halos[i+1].properties['children'] = []
 
-        for i in xrange(self._nhalos):
+        for i in range(self._nhalos):
             host = self._halos[i+1].properties.get('hostHalo', -2)
             if host > -1:
                 try:
@@ -318,7 +318,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
     def _get_dummy_for_halo(self, n):
         if n<self._halo_min or n>=self._halo_max:
-            raise KeyError, "No such halo"
+            raise KeyError("No such halo")
 
         with util.open_(self._rsFilename, 'rb') as f:
             f.seek(self._haloprops_offset+(n-self._halo_min)*self.halo_type.itemsize)
@@ -326,7 +326,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
         hn = DummyHalo()
         # TODO: properties are in Msun / h, Mpc / h
-        hn.properties = dict(zip(halo_data.dtype.names,halo_data[0]))
+        hn.properties = dict(list(zip(halo_data.dtype.names,halo_data[0])))
         return hn
 
 
@@ -344,7 +344,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
         this_id = self._halo_min
 
-        for h in xrange(self._head['num_halos'][0]):
+        for h in range(self._head['num_halos'][0]):
             halo_data =np.fromfile(f, dtype=self.halo_type, count=1)
             assert halo_data['id']==this_id
             self._halo_offsets[this_id-self._halo_min] = int(offset)
@@ -386,7 +386,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
     def _load_ahf_substructure(self, filename):
         f = util.open_(filename)
 
-        for i in xrange(len(self._halos)):
+        for i in range(len(self._halos)):
 
             haloid, nsubhalos = [int(x) for x in f.readline().split()]
             self._halos[haloid+1].properties['children'] = [
@@ -416,12 +416,12 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             hubble = s.properties['h']
 
         if outfile is None: outfile = self._base().filename+'.stat'
-        print "write stat file to ", outfile
+        print("write stat file to ", outfile)
         fpout = open(outfile, "w")
         header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
-        print >> fpout, header
+        print(header, file=fpout)
         for ii in np.arange(self._nhalos)+1:
-            print '%d '%ii,
+            print('%d '%ii, end=' ')
             sys.stdout.flush()
             h = self[ii].properties  # halo index starts with 1 not 0
 ##  'Contaminated'? means multiple dark matter particle masses in halo)"
@@ -451,7 +451,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             outstring += "unknown" + \
                 ss  # unknown means sat. test not implemented.
             outstring += "unknown"+ss  # false central breakup.
-            print >> fpout, outstring
+            print(outstring, file=fpout)
         fpout.close()
 
     def writetipsy(self, outfile=None, hubble=None):
@@ -469,7 +469,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         import math
         s = self._base()
         if outfile is None: outfile = s.filename+'.gtp'
-        print "write tipsy file to ", outfile
+        print("write tipsy file to ", outfile)
         sout = new(star=self._nhalos)  # create new tipsy snapshot written as halos.
         sout.properties['a'] = s.properties['a']
         sout.properties['z'] = s.properties['z']
@@ -484,8 +484,8 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         tipsyvunitkms = lboxmpch * 100. / (math.pi * 8./3.)**.5
         tipsymunitmsun = rhocrithhco * lboxmpch**3 / sout.properties['h']
 
-        print "transforming ", self._nhalos, " halos into tipsy star particles"
-        for ii in xrange(self._nhalos):
+        print("transforming ", self._nhalos, " halos into tipsy star particles")
+        for ii in range(self._nhalos):
             h = self[ii+1].properties
             sout.star[ii]['mass'] = h['m']/hubble / tipsymunitmsun
             ## tipsy units: box centered at 0. (assume 0<=x<=1)
@@ -499,7 +499,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             sout.star[ii]['metals'] = 0.
             sout.star[ii]['phi'] = 0.
             sout.star[ii]['tform'] = 0.
-        print "writing tipsy outfile %s"%outfile
+        print("writing tipsy outfile %s"%outfile)
         sout.write(fmt=tipsy.TipsySnap, filename=outfile)
         return sout
 

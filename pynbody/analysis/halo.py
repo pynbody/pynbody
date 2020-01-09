@@ -244,7 +244,7 @@ def vel_center(sim, mode=None, cen_size="1 kpc", retcen=False, move_all=True, **
         cen = sim.gas[filt.Sphere(cen_size)]
     if len(cen) < 5:
         # very weird snapshot, or mis-centering!
-        raise ValueError, "Insufficient particles around center to get velocity"
+        raise ValueError("Insufficient particles around center to get velocity")
 
     vcen = (cen['vel'].transpose() * cen['mass']).sum(axis=1) / \
         cen['mass'].sum()

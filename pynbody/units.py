@@ -138,9 +138,9 @@ class UnitBase(object):
             p = Fraction(p[0], p[1])
         if not (isinstance(p, Fraction) or isinstance(p, int)):
             if isinstance(p, float):
-                raise ValueError, "Units can only be raised to integer or fractional powers. Use python's built-in fractions module or a tuple: e.g. unit**(1,2) represents a square root."
+                raise ValueError("Units can only be raised to integer or fractional powers. Use python's built-in fractions module or a tuple: e.g. unit**(1,2) represents a square root.")
             else :
-                raise ValueError, "Units can only be raised to integer or fractional powers"
+                raise ValueError("Units can only be raised to integer or fractional powers")
         return CompositeUnit(1, [self], [p]).simplify()
 
     def __truediv__(self, m):
@@ -266,7 +266,7 @@ class UnitBase(object):
             raise UnitsException("Unit with this name already exists")
         if "**" in st or "^" in st or " " in st:
             # will cause problems for simple string parser in Unit() factory
-            raise UnitsException, "Unit names cannot contain '**' or '^' or spaces"
+            raise UnitsException("Unit names cannot contain '**' or '^' or spaces")
         _registry[st] = self
 
     def __deepcopy__(self, memo):
@@ -488,14 +488,13 @@ class CompositeUnit(UnitBase):
                        if bi is b])
                   for b in bases]
 
-        bp = sorted(filter(lambda x: x[0] != 0,
-                           zip(powers, bases)),
+        bp = sorted([x for x in zip(powers, bases) if x[0] != 0],
                     reverse=True,
                     key=lambda x: x[0])
         # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
 
         if len(bp) != 0:
-            self._powers, self._bases = map(list, zip(*bp))
+            self._powers, self._bases = list(map(list, list(zip(*bp))))
         else:
             self._powers, self._bases = [], []
 
@@ -713,8 +712,8 @@ def takes_arg_in_units(*args, **orig_kwargs):
 
     context_arg = orig_kwargs.get('context_arg', None)
 
-    kwargs = filter(lambda x: hasattr(x[0], '__len__'), args)
-    args = filter(lambda x: not hasattr(x[0], '__len__'), args)
+    kwargs = [x for x in args if hasattr(x[0], '__len__')]
+    args = [x for x in args if not hasattr(x[0], '__len__')]
 
     def decorator_fn(x):
         @functools.wraps(x)

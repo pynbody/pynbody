@@ -447,7 +447,7 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
     # we need to ensure we dont' try to load
     # them all...
     if not cpu_range: # means user hasn't specified a range: use all
-        cpu_range = range(ncpu)
+        cpu_range = list(range(ncpu))
 
     for i in range(ncpu):
         if i not in cpu_range:
