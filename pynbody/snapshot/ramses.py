@@ -24,7 +24,7 @@ from .. import config, config_parser
 from .. import analysis
 from . import SimSnap
 from . import namemapper
-from ..extern import cython_fortran_utils
+from ..extern.cython_fortran_utils import FortranFile
 
 import os
 import numpy as np

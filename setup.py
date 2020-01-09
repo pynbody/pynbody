@@ -238,8 +238,8 @@ util_pyx = Extension('pynbody._util',
                      extra_compile_args=openmp_args,
                      extra_link_args=openmp_args)
 
-cython_fortran_file = Extension('pynbody.extern.cython_fortran_utils',
-                                sources=['pynbody/extern/cython_fortran_utils.pyx'],
+cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
+                                sources=['pynbody/extern/_cython_fortran_utils.pyx'],
                                 include_dirs=incdir)
 
 interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
@@ -291,8 +291,7 @@ install_requires = [
     'numpy>=1.9.2',
     'pandas',
     'posix_ipc',
-    'scipy',
-    'future;python_version<"3.0"',
+    'scipy'
 ]
 
 tests_require = [
@@ -323,7 +322,7 @@ dist = setup(name = 'pynbody',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules',
                          'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                         'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo' ],
+                         'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern'],
              package_data={'pynbody': ['default_config.ini'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'h1.hdf5',
