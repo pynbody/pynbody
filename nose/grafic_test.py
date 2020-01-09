@@ -38,7 +38,7 @@ def test_deltab():
 def test_partial_loading():
     np.random.seed(1)  # so that results are reproducible
     f1 = f
-    for test_len in [100, 10000, 20000]:
+    for test_len in [16, 32, 48]:
         for i in range(5):
             subindex = np.random.permutation(np.arange(0, len(f1)))[:test_len]
             subindex.sort()
