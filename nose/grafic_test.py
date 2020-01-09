@@ -1,5 +1,6 @@
 import pynbody
 import numpy.testing as npt
+import numpy as np
 
 def setup():
     global f
@@ -32,5 +33,17 @@ def test_mass():
 
 def test_deltab():
     npt.assert_allclose(f['deltab'][::10], [0.0058372 , -0.00301547, -0.00595138, -0.00416407, -0.01490865,
-          -0.01760859, -0.00807793],atol=1e-8)
+          -0.01760859, -0.00807793], atol=1e-8)
+
+def test_partial_loading():
+    np.random.seed(1)  # so that results are reproducible
+    f1 = f
+    for test_len in [100, 10000, 20000]:
+        for i in range(5):
+            subindex = np.random.permutation(np.arange(0, len(f1)))[:test_len]
+            subindex.sort()
+            f2 = pynbody.load("testdata/grafic_test/", take=subindex)
+
+            assert (f2['x'] == f1[subindex]['x']).all()
+            assert (f2['iord'] == f1[subindex]['iord']).all()
 

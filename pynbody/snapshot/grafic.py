@@ -196,27 +196,17 @@ class GrafICSnap(SimSnap):
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
         with FortranFile(filename) as f:
-            h = f.read_field(genic_header)
-            length = self._dlen * data_type.itemsize
-            alen = f.get_raw_memmapped(util._head_type)
-            if alen != length:
-                raise IOError("Unexpected FORTRAN block length %d!=%d" % (alen, length))
-            for readlen, buf_index, mem_index in (self._load_control.iterate_with_interrupts(family.dm, family.dm,
-                                                                                             np.arange(
-                                                                                                 1, h['nz']) * (
-                                                                                                 h['nx'] * h['ny']),
-                                                                                             functools.partial(
-                                                                                                 _midway_fortran_skip, f,
-                                                                                                 length))):
-
-                if buf_index is not None:
-                    re = f.get_raw_memmapped(data_type, readlen)
-                    target_buffer[mem_index] = re[buf_index]
-                else:
-                    f.seek(data_type.itemsize * readlen)
-            alen = f.get_raw_memmapped(util._head_type)
-            if alen != length:
-                raise IOError("Unexpected FORTRAN block length (tail) %d!=%d" % (alen, length))
+            h = {k: v for k, v in zip(genic_header['keys'], f.read_vector(genic_header['dtype'])[0])}
+            ii = 0
+            for _ in range(h['nz']):
+                sliced_data = f.read_vector(data_type)
+                if len(sliced_data) != self._dlen:
+                    raise IOError(
+                        'Expected a slice of length %s, got %s' % (
+                            self._dlen, len(sliced_data)
+                        ))
+                target_buffer[ii:ii+self._dlen] = sliced_data
+                ii += self._dlen
 
     def _load_array(self, name, fam=None):
 
