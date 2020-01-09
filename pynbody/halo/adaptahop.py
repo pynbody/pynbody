@@ -10,7 +10,7 @@ from . import HaloCatalogue, Halo, logger
 from .. import util, units
 from ..snapshot.ramses import RamsesSnap
 
-from ..extern.cython_fortran_file import FortranFile
+from ..extern.cython_fortran_utils import FortranFile
 
 
 class DummyHalo(object):
