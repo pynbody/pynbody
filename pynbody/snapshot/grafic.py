@@ -41,12 +41,6 @@ def _monitor(i):
         yield q
 
 
-def _midway_fortran_skip(f, alen, pos):
-    bits = f.get_raw_memmapped(util._head_type, 2)
-    assert (alen == bits[0] and alen == bits[1]
-            ), "Incorrect FORTRAN block sizes"
-
-
 _max_buflen = 1024 ** 2
 
 
@@ -199,17 +193,27 @@ class GrafICSnap(SimSnap):
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
         with FortranFile(filename) as f:
-            h = {k: v for k, v in zip(genic_header['keys'], f.read_vector(genic_header['dtype'])[0])}
-            ii = 0
-            for _ in range(h['nz']):
+            h = {k: v for k, v
+                 in zip(genic_header['keys'], f.read_vector(genic_header['dtype'])[0])}
+
+            def dummy_interrupt(pos):
+                pass
+
+            for readlen, buf_index, mem_index in \
+                    self._load_control.iterate_with_interrupts(
+                        family.dm, family.dm,
+                        np.arange(1, h['nz']) * (h['nx'] * h['ny']),
+                        dummy_interrupt):
+                if buf_index is None:
+                    f.skip(1)
+                    continue
                 sliced_data = f.read_vector(data_type)
                 if len(sliced_data) != self._dlen:
                     raise IOError(
                         'Expected a slice of length %s, got %s' % (
                             self._dlen, len(sliced_data)
                         ))
-                target_buffer[ii:ii+self._dlen] = sliced_data
-                ii += self._dlen
+                target_buffer[mem_index] = sliced_data[buf_index]
 
     def _load_array(self, name, fam=None):
 
