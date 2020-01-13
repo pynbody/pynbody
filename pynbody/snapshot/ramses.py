@@ -968,6 +968,19 @@ class RamsesSnap(SimSnap):
         # could potentially be improved with reference to stored namelist.txt, if present
         return self._info['omega_k'] == self._info['omega_l'] == 0
 
+    def _convert_tform(self):
+        from ..analysis import ramses_util
+        # Copy the existing array in weird Ramses format into a hidden raw array
+        self.star['tform_raw'] = self.star['tform']
+        self.star['tform_raw'].units = self._file_units_system[1]
+        # Replace the tform array by its usual meaning using the birth files
+        ramses_util.get_tform(self)
+
+    def _convert_metal_name(self):
+        # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
+        # Correcting this prevents analysis routines relying on 'metals' field from breaking.
+        self.star['metals'] = self.star['metal']
+
     def _load_array(self, array_name, fam=None):
         # Framework always calls with 3D name. Ramses particle blocks are
         # stored as 1D slices.
@@ -979,7 +992,15 @@ class RamsesSnap(SimSnap):
 
         elif fam is not family.gas and fam is not None:
 
-            if array_name in self._split_arrays:
+            if array_name == 'tform' or array_name == 'tform_raw' :
+                self._load_particle_block('tform')
+                self._convert_tform()
+
+            elif array_name == 'metals' or array_name == 'metal':
+                self._load_particle_block('metal')
+                self._convert_metal_name()
+
+            elif array_name in self._split_arrays:
                 for array_1D in self._array_name_ND_to_1D(array_name):
                     self._load_particle_block(array_1D)
 
@@ -987,6 +1008,7 @@ class RamsesSnap(SimSnap):
                 self._load_particle_block(array_name)
             else:
                 raise IOError, "No such array on disk"
+
         elif fam is family.gas:
 
             if array_name == 'pos' or array_name == 'smooth':
@@ -1072,11 +1094,6 @@ def translate_info(sim):
 @RamsesSnap.derived_quantity
 def mass(sim):
     return sim['rho'] * sim['smooth'] ** 3
-
-
-@RamsesSnap.derived_quantity
-def tform(sim):
-    return sim.properties['time'] - sim['age']
 
 
 @RamsesSnap.derived_quantity
