@@ -238,6 +238,10 @@ util_pyx = Extension('pynbody._util',
                      extra_compile_args=openmp_args,
                      extra_link_args=openmp_args)
 
+cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
+                                sources=['pynbody/extern/_cython_fortran_utils.pyx'],
+                                include_dirs=incdir)
+
 interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               sources = ['pynbody/analysis/_interpolate3d.pyx'],
                               include_dirs=incdir,
@@ -245,7 +249,8 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               extra_link_args=openmp_args)
 
 
-ext_modules+=[kdmain,gravity,chunkscan,sph_render,halo_pyx,bridge_pyx, util_pyx,interpolate3d_pyx, omp_commands]
+ext_modules+=[kdmain, gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
+              cython_fortran_file, interpolate3d_pyx, omp_commands]
 
 if not build_cython :
     for mod in ext_modules :
@@ -286,7 +291,7 @@ install_requires = [
     'numpy>=1.9.2',
     'pandas',
     'posix_ipc',
-    'scipy',
+    'scipy'
 ]
 
 tests_require = [
@@ -301,7 +306,7 @@ docs_require = [
 
 extras_require = {
     'docs': docs_require,
-    'tests': tests_require,
+    'tests': tests_require
 }
 
 extras_require['all'] = []
@@ -317,7 +322,7 @@ dist = setup(name = 'pynbody',
              package_dir = {'pynbody/': ''},
              packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules',
                          'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                         'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo' ],
+                         'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern'],
              package_data={'pynbody': ['default_config.ini'],
                            'pynbody/analysis': ['cmdlum.npz',
                                                 'h1.hdf5',
