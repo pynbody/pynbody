@@ -5,6 +5,7 @@ cimport libc.math as cmath
 from libc.math cimport atan, pow
 from libc.stdlib cimport malloc, free
 from cython.parallel cimport prange
+cimport openmp
 
 ctypedef fused fused_float:
     np.float32_t
@@ -19,6 +20,10 @@ ctypedef fused fused_float_3:
     np.float64_t
 
 ctypedef fused fused_int:
+    np.int32_t
+    np.int64_t
+
+ctypedef fused fused_int_2:
     np.int32_t
     np.int64_t
 
@@ -201,9 +206,72 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
             if z<-wrap_by_two:
                 z=z+wrap
         output[i]=(x*x+y*y+z*z)<r_max_2
-    
+
     return output
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nogil(True)
+cdef np.int64_t search(fused_int a, fused_int[:] B, fused_int2[:] sorter, fused_int2 ileft, fused_int2 iright, fused_int2 Nb) nogil:
+    cdef fused_int b
+    cdef fused_int2 imid
+    while ileft <= iright:
+        imid = (ileft + iright) // 2
+        b = B[sorter[imid]]
+        if b < a:
+            ileft = imid + 1
+        elif b > a:
+            iright = imid - 1
+        else:
+            return imid
+    return Nb
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nogil(True)
+cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_int[:] b, np.ndarray[fused_int2, ndim=1] sorter, int num_threads=-1):
+    """Search elements of a in b, assuming a, b[sorter] are sorted in increasing order."""
+
+    cdef fused_int2 Na = len(a), Nb = len(b)
+
+    cdef fused_int2 ileft=0, iright=Nb - 1
+    cdef int i, ii, j, pivot
+    cdef fused_int2 index
+
+    cdef fused_int2[:] indices = np.empty(Na, dtype=sorter.dtype)
+    cdef fused_int2[:] sorter_mview = sorter
+
+    cdef int ichunk, chunk_size, Nchunk = openmp.omp_get_num_threads(), this_chunk
+
+    if num_threads > -1:
+        Nchunk = num_threads
+    openmp.omp_set_num_threads(Nchunk)
+
+    chunk_size = int(np.ceil(Na / Nchunk))
+
+    for ichunk in prange(Nchunk, nogil=True, chunksize=1, schedule='static', num_threads=Nchunk):
+        ileft = 0
+        iright = Nb - 1
+        this_chunk = min(chunk_size, Na-ichunk*chunk_size)
+        pivot = (this_chunk + 1) // 2
+
+        for ii in range(pivot):
+            i = ichunk * chunk_size + ii
+            j = ichunk * chunk_size + this_chunk - 1 - ii
+
+            index = search(a[i], b, sorter_mview, ileft, iright, Nb)
+            indices[i] = sorter_mview[index]
+
+            if index < Nb:
+                ileft = index
+
+            if j > i:
+                index = search(a[j], b, sorter_mview, ileft, iright, Nb)
+                indices[j] = sorter_mview[index]
+                if index < Nb:
+                    iright = index
+
+    return np.asarray(indices)
 
 __all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
-           '_sphere_selection']
+           '_sphere_selection', 'binary_search']
