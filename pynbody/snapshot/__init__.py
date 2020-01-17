@@ -1912,10 +1912,13 @@ class IndexedSubSnap(SubSnap):
         if 'iord_argsort' not in self.base:
             self.base['iord_argsort'] = np.argsort(self.base['iord'])
 
+        if not util.is_sorted(iord) == 1:
+            raise Exception('Expected iord to be sorted in increasing order.')
+
         # Find index of particles using a search sort
         iord_base = self.base['iord']
         iord_argsort = self.base['iord_argsort']
-        index_array = iord_argsort[np.searchsorted(iord_base, iord, sorter=iord_argsort)]
+        index_array = util.binary_search(iord, iord_base, sorter=iord_argsort)
 
         # TODO: custom search sort to prevent this check
         # Check that the iord match
