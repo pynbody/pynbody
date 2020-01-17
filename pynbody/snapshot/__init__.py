@@ -1909,8 +1909,6 @@ class IndexedSubSnap(SubSnap):
     def _iord_to_index(self, iord):
         # Maps iord to indices. Note that this requires to perform an argsort (O(N log N) operations)
         # and a binary search (O(M log N) operations) with M = len(iord) and N = len(self.base).
-        if 'iord_argsort' not in self.base:
-            self.base['iord_argsort'] = np.argsort(self.base['iord'])
 
         if not util.is_sorted(iord) == 1:
             raise Exception('Expected iord to be sorted in increasing order.')
