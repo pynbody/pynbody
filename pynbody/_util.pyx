@@ -212,7 +212,7 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nogil(True)
-cdef np.int64_t search(fused_int a, fused_int[:] B, fused_int_2[:] sorter, fused_int_2 ileft, fused_int_2 iright, fused_int_2 Nb) nogil:
+cdef np.int64_t search(fused_int a, fused_int[:] B, fused_int_2[:] sorter, fused_int_2 ileft, fused_int_2 iright) nogil:
     cdef fused_int b
     cdef fused_int_2 imid
     while ileft <= iright:
@@ -224,7 +224,7 @@ cdef np.int64_t search(fused_int a, fused_int[:] B, fused_int_2[:] sorter, fused
             iright = imid - 1
         else:
             return imid
-    return Nb
+    return -1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -268,7 +268,10 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
         Nchunk = num_threads
     openmp.omp_set_num_threads(Nchunk)
 
-    chunk_size = int(np.ceil(Na / Nchunk))
+    if Na % Nchunk == 0:
+        chunk_size = Na // Nchunk
+    else:
+        chunk_size = Na // Nchunk + 1
 
     for ichunk in prange(Nchunk, nogil=True, chunksize=1, schedule='static', num_threads=Nchunk):
         ileft = 0
@@ -280,18 +283,21 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
             i = ichunk * chunk_size + ii
             j = ichunk * chunk_size + this_chunk - 1 - ii
 
-            index = search(a[i], b, sorter_mview, ileft, iright, Nb)
-            indices[i] = sorter_mview[index]
-
-            if index < Nb:
+            index = search(a[i], b, sorter_mview, ileft, iright)
+            if index > -1:
                 ileft = index
+                indices[i] = sorter_mview[index]
+            else:
+                indices[i] = Nb
+
 
             if j > i:
-                index = search(a[j], b, sorter_mview, ileft, iright, Nb)
-                indices[j] = sorter_mview[index]
-                if index < Nb:
+                index = search(a[j], b, sorter_mview, ileft, iright)
+                if index > -1:
                     iright = index
-
+                    indices[j] = sorter_mview[index]
+                else:
+                    indices[j] = Nb
     return np.asarray(indices)
 
 __all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
