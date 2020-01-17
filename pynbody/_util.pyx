@@ -27,6 +27,12 @@ ctypedef fused fused_int_2:
     np.int32_t
     np.int64_t
 
+ctypedef fused int_or_float:
+    np.float32_t
+    np.float64_t
+    np.int32_t
+    np.int64_t
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -300,5 +306,51 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
                     indices[j] = Nb
     return np.asarray(indices)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nogil(True)
+cpdef int is_sorted(int_or_float[:] A):
+    """Check whether input is sorted in ascending order.
+
+    Arguments
+    ---------
+    A : array
+
+    Returns
+    -------
+    ret : int
+        +1 if A is in ascending order
+        -1 if A is in descending order
+        0 otherwise
+    """
+    cdef int Na = len(A), i, i0
+    cdef ret = 0
+
+    # Special case for single-valued arrays
+    if Na <= 1:
+        return 1
+
+    # Iterate until finding two consecutive non-null elements
+    i0 = 1
+    while i0 < Na:
+        if A[i0] != A[0]:
+            break
+        i0 += 1
+
+    # Special case if array is constant
+    if i0 == Na:
+        return 1
+
+    if A[i0] >= A[0]:
+        for i in range(i0, Na):
+            if A[i] < A[i-1]:
+                return 0
+        return 1
+    else:
+        for i in range(i0, Na):
+            if A[i] > A[i-1]:
+                return 0
+        return -1
+
 __all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
-           '_sphere_selection', 'binary_search']
+           '_sphere_selection', 'binary_search', 'is_sorted']
