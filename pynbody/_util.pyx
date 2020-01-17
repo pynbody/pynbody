@@ -246,7 +246,7 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
         The input arrays
 
     num_threads : int, optional
-        If larger than one, use parallelism
+        If greater than zero, use that many parallel threads.
 
 
     Returns
@@ -270,7 +270,7 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
 
     cdef int ichunk, chunk_size, Nchunk = openmp.omp_get_num_threads(), this_chunk
 
-    if num_threads > -1:
+    if num_threads > 0:
         Nchunk = num_threads
     openmp.omp_set_num_threads(Nchunk)
 
