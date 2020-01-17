@@ -208,6 +208,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         indicating which halo that particle is associated with. If there are multiple
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
         the smallest subhalo."""
+        if family is None:
+            family == 'dm'
         data = getattr(self.base, family)
 
         iord = data['iord']
