@@ -308,3 +308,8 @@ def tform(self):
     from . import analysis
     t = analysis.cosmology.age(self, 1./self['aform'] - 1.)
     return t
+
+@SimSnap.derived_quantity
+def iord_argsort(self):
+    """Indices so that particles are ordered by increasing ids"""
+    return np.argsort(self['iord'])
