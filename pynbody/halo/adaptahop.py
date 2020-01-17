@@ -40,6 +40,7 @@ for k, u in MAPPING:
     for key, unit in zip(k.split(), repeat(u)):
         UNITS[key] = unit
 
+
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
     """A AdaptaHOP Catalogue. AdaptaHOP output files must be in
     Halos/<simulation_number>/ directory or specified by fname"""
@@ -115,9 +116,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             raise Exception()
 
         halo = self._halos[halo_id]
-        if not isinstance(halo, Halo):
-            halo = self._halos[halo_id] = \
-                self._read_halo_data(halo_id, halo.properties['file_offset'])
+        halo_dummy = self._halos[halo_id]
+        halo = self._read_halo_data(halo_id, halo.properties['file_offset'])
+        halo.dummy = halo_dummy
+
         return halo
 
     def _read_halo_data(self, halo_id, offset):
