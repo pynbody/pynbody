@@ -203,6 +203,31 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         return halo
 
+    def get_group_array(self, family='dm'):
+        """Return an array with an integer for each particle in the simulation
+        indicating which halo that particle is associated with. If there are multiple
+        levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
+        the smallest subhalo."""
+        data = getattr(self.base, family)
+
+        iord = data['iord']
+        iord_argsort = data['iord_argsort']
+
+        igrp = np.zeros(len(data), dtype=int) - 1
+
+        with FortranFile(self._fname) as fpu:
+            for halo_id, halo in self._halos.items():
+                fpu.seek(halo.properties['file_offset'])
+                fpu.skip(1)  # number of particles
+                particle_ids = fpu.read_vector('i')
+
+                indices = util.binary_search(particle_ids, iord, iord_argsort)
+                assert all(indices < len(iord))
+
+                igrp[indices] = halo_id
+
+        return igrp
+
     @staticmethod
     def _can_load(sim, arr_name="grp", *args, **kwa):
         exists = any(
