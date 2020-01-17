@@ -218,7 +218,9 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nogil(True)
-cdef np.int64_t search(fused_int a, fused_int[:] B, fused_int_2[:] sorter, fused_int_2 ileft, fused_int_2 iright) nogil:
+cdef np.int64_t search(fused_int a, fused_int[:] B,
+                       fused_int_2[:] sorter,
+                       fused_int_2 ileft, fused_int_2 iright) nogil:
     cdef fused_int b
     cdef fused_int_2 imid
     while ileft <= iright:
@@ -235,7 +237,9 @@ cdef np.int64_t search(fused_int a, fused_int[:] B, fused_int_2[:] sorter, fused
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nogil(True)
-cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_int[:] b, np.ndarray[fused_int_2, ndim=1] sorter, int num_threads=-1):
+cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
+        fused_int[:] a, fused_int[:] b,
+        np.ndarray[fused_int_2, ndim=1] sorter, int num_threads=-1):
     """Search elements of a in b, assuming a, b[sorter] are sorted in increasing order.
 
     Parameters
@@ -266,6 +270,11 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
     cdef fused_int_2 index
 
     cdef fused_int_2[:] indices = np.empty(Na, dtype=sorter.dtype)
+
+    # HACK: prevent cython from complaining about "buffer source array is read-only"
+    cdef bint write_flag = sorter.flags['WRITEABLE']
+    sorter.setflags(write=True)
+
     cdef fused_int_2[:] sorter_mview = sorter
 
     cdef int ichunk, chunk_size, Nchunk = openmp.omp_get_num_threads(), this_chunk
@@ -304,6 +313,9 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(fused_int[:] a, fused_in
                     indices[j] = sorter_mview[index]
                 else:
                     indices[j] = Nb
+
+    # Restore write flag on sorter array
+    sorter.setflags(write=write_flag)
     return np.asarray(indices)
 
 @cython.boundscheck(False)
