@@ -217,7 +217,6 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nogil(True)
 cdef np.int64_t search(fused_int a, fused_int[:] B,
                        fused_int_2[:] sorter,
                        fused_int_2 ileft, fused_int_2 iright) nogil:
@@ -236,7 +235,6 @@ cdef np.int64_t search(fused_int a, fused_int[:] B,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nogil(True)
 cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
         fused_int[:] a, fused_int[:] b,
         np.ndarray[fused_int_2, ndim=1] sorter, int num_threads=-1):
@@ -320,7 +318,6 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nogil(True)
 cpdef int is_sorted(int_or_float[:] A):
     """Check whether input is sorted in ascending order.
 
@@ -336,7 +333,7 @@ cpdef int is_sorted(int_or_float[:] A):
         0 otherwise
     """
     cdef int Na = len(A), i, i0
-    cdef ret = 0
+    cdef int ret = 0
 
     # Special case for single-valued arrays
     if Na <= 1:
