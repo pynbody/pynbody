@@ -254,11 +254,25 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
     Returns
     -------
     indices : array(N, )
-        An array such that b[indices] == a
+        An array such that b[indices] == a, for elements found in b.
+        Elements of a that cannot be found have the index M.
 
     Notes
     -----
     The code does *not* check that a and b[sorted] are effectively sorted in increasing order.
+
+    This functions can be used in place of np.searchsorted (note however that the order of the argument differ).
+    The algorithm performs particularly well when a is much smaller than b and can be found at close locations in b.
+
+    Algorithm
+    ---------
+    The algorithm implemented is a binary search algorithm of the elements of a into b. The algorithm consumes elements
+    of a from both ends. Since a is sorted, the index of a[0] and a[-1] give boundaries to look for the next elements
+    of a in b, resulting in the next binary search being faster.
+    If the elements of a are almost contiguous in b, the algorithm scales as N log(N), with N = len(a) instead of 
+    N log(M) with M = len(b).
+    
+    Note that the algorithm performs similarly to np.searchsorted when N~M.
     """
 
     cdef fused_int_2 Na = len(a), Nb = len(b)
