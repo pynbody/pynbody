@@ -1915,8 +1915,8 @@ class IndexedSubSnap(SubSnap):
 
         # Find index of particles using a search sort
         iord_base = self.base['iord']
-        iord_argsort = self.base['iord_argsort']
-        index_array = util.binary_search(iord, iord_base, sorter=iord_argsort)
+        iord_base_argsort = self.base['iord_argsort']
+        index_array = util.binary_search(iord, iord_base, sorter=iord_base_argsort)
 
         # TODO: custom search sort to prevent this check
         # Check that the iord match
