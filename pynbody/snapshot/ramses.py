@@ -392,6 +392,9 @@ negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('
 class RamsesSnap(SimSnap):
     reader_pool = None
 
+    __particle_family_ids_on_disk = None
+    __particle_file_start_indices = None
+
     def __init__(self, dirname, **kwargs):
         """Initialize a RamsesSnap. Extra kwargs supported:
 
@@ -578,13 +581,57 @@ class RamsesSnap(SimSnap):
             return False
 
     def _count_particles_using_explicit_families(self):
-        """Returns an ordered dictionary of family types based on the new explicit RAMSES particle file format"""
-        if not self._has_particle_file():
-            return OrderedDict()
+        """Returns an ordered dictionary of family types read from the header files"""
+        iout = int(self._filename.split('_')[-1][:5])
+        fname = os.path.join(self._filename, 'header_%05d.txt' % iout)
+        counts = OrderedDict()
+
+        with open(fname, 'r') as f:
+            f.readline()
+            l = f.readline()
+            while 'Particle fields' not in l:
+                fam, count = l[:13].strip(), l[13:].replace('\n', '')
+                count = int(count)
+                if count > 0:
+                    pynbody_family = family.get_family(fam)
+                    counts[pynbody_family] = count
+                l = f.readline()
+
+        n_sinks = self._count_sink_particles()
+
+        if n_sinks>0:
+            counts[self._sink_family] = n_sinks
+
+        return counts
+
+    @property
+    def _particle_file_start_indices(self):
+        if self.__particle_file_start_indices is None:
+            self._compute_particle_file_start_indices()
+
+        return self.__particle_file_start_indices
+
+    @_particle_file_start_indices.setter
+    def _particle_file_start_indices(self, val):
+        self.__particle_file_start_indices = val
+
+    @property
+    def _particle_family_ids_on_disk(self):
+        if self.__particle_family_ids_on_disk is None:
+            self._compute_particle_file_start_indices()
+
+        return self.__particle_family_ids_on_disk
+
+    @_particle_family_ids_on_disk.setter
+    def _particle_family_ids_on_disk(self, val):
+        self.__particle_family_ids_on_disk = val
+
+    def _compute_particle_file_start_indices(self):
+        # Compute it
         family_block = self._particle_blocks.index('family')
         family_dtype = self._particle_types[family_block]
-        self._particle_family_ids_on_disk = []
-        self._particle_file_start_indices = []
+        _particle_family_ids_on_disk = []
+        _particle_file_start_indices = []
         results = remote_map(self.reader_pool,
                              _cpui_count_particles_with_explicit_families,
                              [self._particle_filename(i) for i in self._cpus],
@@ -594,7 +641,7 @@ class RamsesSnap(SimSnap):
         aggregate_counts = np.zeros(256,dtype=np.int64)
         for counts, family_ids in results:
             aggregate_counts+=counts
-            self._particle_family_ids_on_disk.append(family_ids)
+            _particle_family_ids_on_disk.append(family_ids)
 
         # The above family IDs are defined according to ramses' own internal system. We now need
         # to map them to pynbody family types
@@ -627,28 +674,24 @@ class RamsesSnap(SimSnap):
             aggregate_counts_remapped[internal_id]+=aggregate_counts[ramses_family_id]
 
         # perform the remapping for our stored particle identifiers
-        for fid in self._particle_family_ids_on_disk:
+        for fid in _particle_family_ids_on_disk:
             fid[:] = ramses_id_to_internal_id[fid]
 
         return_d = OrderedDict()
-        self._particle_file_start_indices = [ [] for x in results]
+        _particle_file_start_indices = [ [] for x in results]
         for internal_family_id in range(256):
             if aggregate_counts_remapped[internal_family_id]>0:
                 fam = internal_id_to_family[internal_family_id]
                 count = aggregate_counts_remapped[internal_family_id]
                 return_d[fam] = count
                 startpoint = 0
-                for i,fid in enumerate(self._particle_family_ids_on_disk):
-                    self._particle_file_start_indices[i].append(startpoint)
+                for i,fid in enumerate(_particle_family_ids_on_disk):
+                    _particle_file_start_indices[i].append(startpoint)
                     startpoint+=(fid==internal_family_id).sum()
                 assert startpoint==count
 
-        n_sinks = self._count_sink_particles()
-
-        if n_sinks>0:
-            return_d[self._sink_family] = n_sinks
-
-        return return_d
+        self._particle_family_ids_on_disk = _particle_family_ids_on_disk
+        self._particle_file_start_indices = _particle_file_start_indices
 
 
     def _load_sink_data_to_temporary_store(self):
