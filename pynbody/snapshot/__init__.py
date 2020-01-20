@@ -1918,9 +1918,9 @@ class IndexedSubSnap(SubSnap):
         iord_base_argsort = self.base['iord_argsort']
         index_array = util.binary_search(iord, iord_base, sorter=iord_base_argsort)
 
-        # TODO: custom search sort to prevent this check
         # Check that the iord match
-        assert np.all(iord_base[index_array] == iord)
+        if np.any(index_array == len(iord_base)):
+            raise Exception('Some of the requested ids cannot be found in the dataset.')
 
         return index_array
 
