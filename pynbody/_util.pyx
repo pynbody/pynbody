@@ -27,6 +27,10 @@ ctypedef fused fused_int_2:
     np.int32_t
     np.int64_t
 
+ctypedef fused fused_int_3:
+    np.int32_t
+    np.int64_t
+
 ctypedef fused int_or_float:
     np.float32_t
     np.float64_t
@@ -217,11 +221,11 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.int64_t search(fused_int a, fused_int[:] B,
-                       fused_int_2[:] sorter,
-                       fused_int_2 ileft, fused_int_2 iright) nogil:
-    cdef fused_int b
-    cdef fused_int_2 imid
+cdef np.int64_t search(fused_int a, fused_int_2[:] B,
+                       fused_int_3[:] sorter,
+                       fused_int_3 ileft, fused_int_3 iright) nogil:
+    cdef fused_int_2 b
+    cdef fused_int_3 imid
     while ileft <= iright:
         imid = (ileft + iright) // 2
         b = B[sorter[imid]]
@@ -237,7 +241,7 @@ cdef np.int64_t search(fused_int a, fused_int[:] B,
 @cython.wraparound(False)
 cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
         fused_int[:] a, fused_int[:] b,
-        np.ndarray[fused_int_2, ndim=1] sorter, int num_threads=-1):
+        np.ndarray[fused_int_3, ndim=1] sorter, int num_threads=-1):
     """Search elements of a in b, assuming a, b[sorter] are sorted in increasing order.
 
     Parameters
@@ -269,25 +273,25 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
     The algorithm implemented is a binary search algorithm of the elements of a into b. The algorithm consumes elements
     of a from both ends. Since a is sorted, the index of a[0] and a[-1] give boundaries to look for the next elements
     of a in b, resulting in the next binary search being faster.
-    If the elements of a are almost contiguous in b, the algorithm scales as N log(N), with N = len(a) instead of 
+    If the elements of a are almost contiguous in b, the algorithm scales as N log(N), with N = len(a) instead of
     N log(M) with M = len(b).
-    
+
     Note that the algorithm performs similarly to np.searchsorted when N~M.
     """
 
-    cdef fused_int_2 Na = len(a), Nb = len(b)
+    cdef int Na = len(a), Nb = len(b)
 
-    cdef fused_int_2 ileft=0, iright=Nb - 1
+    cdef int ileft=0, iright=Nb - 1
     cdef int i, ii, j, pivot
-    cdef fused_int_2 index
+    cdef int index
 
-    cdef fused_int_2[:] indices = np.empty(Na, dtype=sorter.dtype)
+    cdef fused_int_3[:] indices = np.empty(Na, dtype=sorter.dtype)
 
     # HACK: prevent cython from complaining about "buffer source array is read-only"
     cdef bint write_flag = sorter.flags['WRITEABLE']
     sorter.setflags(write=True)
 
-    cdef fused_int_2[:] sorter_mview = sorter
+    cdef fused_int_3[:] sorter_mview = sorter
 
     cdef int ichunk, chunk_size, Nchunk = openmp.omp_get_num_threads(), this_chunk
 
