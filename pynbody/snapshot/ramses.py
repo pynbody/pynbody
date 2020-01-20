@@ -321,7 +321,7 @@ ramses_particle_header = (
     ('ncpu', 1, 'i'),
     ('ndim', 1, 'i'),
     ('npart', 1, 'i'),
-    ('randseed', 4, 'i'),
+    ('randseed', -1, 'i'),
     ('nstar', 1, 'i'),
     ('mstar', 1, 'd'),
     ('mstar_lost', 1, 'd'),
