@@ -240,7 +240,7 @@ cdef np.int64_t search(fused_int a, fused_int_2[:] B,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
-        fused_int[:] a, fused_int[:] b,
+        fused_int[:] a, fused_int_2[:] b,
         np.ndarray[fused_int_3, ndim=1] sorter, int num_threads=-1):
     """Search elements of a in b, assuming a, b[sorter] are sorted in increasing order.
 
