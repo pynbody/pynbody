@@ -87,6 +87,14 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
 
+    def precalculate(self):
+        """Speed up future operations by precalculating the indices
+        for all halos in one operation. This is slow compared to
+        getting a single halo, however."""
+        # Get the mapping from particle to halo
+        self._group_array = self.get_group_array()
+
+
     def _ahop_compute_offset(self):
         """
         Compute the offset in the brick file of each halo.
@@ -196,9 +204,13 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         props["members"] = iord_array
 
         # Create halo object and fill properties
-        halo = Halo(
-            halo_id, self, self.base.dm, index_array=None, iord_array=iord_array
-        )
+        if hasattr(self, '_group_array'):
+            index_array = np.nonzero(self._group_array == halo_id)
+            iord_array = None
+        else:
+            index_array = None
+            iord_array = iord_array
+        halo = Halo(halo_id, self, self.base.dm, index_array=index_array, iord_array=iord_array)
         halo.properties.update(props)
 
         return halo
