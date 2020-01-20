@@ -3,6 +3,7 @@ import re
 import struct
 from itertools import repeat
 from scipy.io import FortranFile as FF
+import weakref
 
 import numpy as np
 
@@ -72,6 +73,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         super(BaseAdaptaHOPCatalogue, self).__init__(sim)
 
         # Initialize internal data
+        self._base_dm = sim.dm
+
         self._halos = {}
         self._fname = fname
         self._AdaptaHOP_fname = fname
@@ -88,6 +91,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         for all halos in one operation. This is slow compared to
         getting a single halo, however."""
         # Get the mapping from particle to halo
+        self._base_dm._family_index()  # filling the cache
         self._group_array = self.get_group_array(group_to_indices=True)
 
     def _ahop_compute_offset(self):
@@ -159,7 +163,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         # Convert positions between [-Lbox/2, Lbox/2] to [0, Lbox].
         # /!\: AdaptaHOP assumes that 1Mpc == 3.08e24 (exactly)
-        boxsize = self._base().properties['boxsize']
+        boxsize = self.base.properties['boxsize']
         Mpc2boxsize = boxsize.in_units('cm') / 3.08e24  # Hard-coded in AdaptaHOP...
         for k in 'xyz':
             props[k] = boxsize.in_units('Mpc') * (props[k] / Mpc2boxsize + 0.5)
@@ -180,7 +184,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         else:
             index_array = None
             iord_array = iord_array
-        halo = Halo(halo_id, self, self.base.dm, index_array=index_array, iord_array=iord_array)
+        halo = Halo(halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array)
         halo.properties.update(props)
 
         return halo
