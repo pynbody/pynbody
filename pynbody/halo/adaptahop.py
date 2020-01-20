@@ -92,8 +92,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         for all halos in one operation. This is slow compared to
         getting a single halo, however."""
         # Get the mapping from particle to halo
-        self._group_array = self.get_group_array()
-
+        self._group_array = self.get_group_array(group_to_indices=True)
 
     def _ahop_compute_offset(self):
         """
@@ -204,8 +203,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         props["members"] = iord_array
 
         # Create halo object and fill properties
-        if hasattr(self, '_group_array'):
-            index_array = np.nonzero(self._group_array == halo_id)
+        if hasattr(self, '_group_to_indices'):
+            index_array = self._group_to_indices[halo_id]
             iord_array = None
         else:
             index_array = None
@@ -215,11 +214,24 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         return halo
 
-    def get_group_array(self, family='dm'):
+    def get_group_array(self, family='dm', group_to_indices=False):
         """Return an array with an integer for each particle in the simulation
         indicating which halo that particle is associated with. If there are multiple
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
-        the smallest subhalo."""
+        the smallest subhalo.
+
+        Arguments
+        ---------
+        family : optional, default : dm
+            The family of the particles that make the group
+        group_to_indices : optional, bool
+            If True, store the mapping from groups to particle on-disk location.
+
+        Returns
+        -------
+        igrp : int array
+            An array that contains the index of the group that contains each particle.
+        """
         if family is None:
             family == 'dm'
         data = getattr(self.base, family)
@@ -229,6 +241,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         igrp = np.zeros(len(data), dtype=int) - 1
 
+        if group_to_indices:
+            grp2indices = {}
         with FortranFile(self._fname) as fpu:
             for halo_id, halo in self._halos.items():
                 fpu.seek(halo.properties['file_offset'])
@@ -240,6 +254,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
                 igrp[indices] = halo_id
 
+                if group_to_indices:
+                    grp2indices[halo_id] = indices
+        if group_to_indices:
+            self._group_to_indices = grp2indices
         return igrp
 
     @staticmethod
