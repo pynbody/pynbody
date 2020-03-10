@@ -42,7 +42,7 @@ class SubfindCatalogue(HaloCatalogue):
         if ordered is not None:
             self._ordered = ordered
         else:
-            self._ordered = (self.base['iord']==np.arange(len(self.base))).all()
+            self._ordered = bool((self.base['iord']==np.arange(len(self.base))).all())
 
         self._halos = {}
         HaloCatalogue.__init__(self,sim)
