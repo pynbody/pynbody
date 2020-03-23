@@ -236,9 +236,21 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         igrp : int array
             An array that contains the index of the group that contains each particle.
         """
+        logger.debug('Get_group_array')
         if family is None:
-            family == 'dm'
-        data = getattr(self.base, family)
+            family == self.base.families()[0]
+        elif isinstance(family, str):
+            families = self.base.families()
+            matched_families = [f for f in families if f.name == family]
+            if len(matched_families) != 1:
+                raise Exception('Could not find family %s' % family)
+            family = matched_families[0]
+        try:
+            data = self.base[family]
+        except:
+            logger.error((type(self.base)))
+            logger.error((type(family)))
+            raise
 
         iord = data['iord']
         iord_argsort = data['iord_argsort']
