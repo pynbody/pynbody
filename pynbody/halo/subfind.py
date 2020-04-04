@@ -1,6 +1,6 @@
 import os.path
 import weakref
-
+import warnings
 import numpy as np
 
 from . import HaloCatalogue, Halo
@@ -10,24 +10,39 @@ from ..array import SimArray
 
 class SubfindCatalogue(HaloCatalogue):
 
-    """
-        Class to handle catalogues produced by the SubFind halo finder.
-        Can import FoF groups (default) or subhalos (by setting subs=True).
-        Groups are sorted by mass (descending), most massive group is halo[0]. Subhalos within each group are also sorted by mass.
-        IDs within groups are sorted by binding energy, UNLESS the IDs in the snapshots are not ordered starting from 0. In that case,
-        setting order=False will generate the correct halo catalogue but the ordering by binding energy within each halo will be lost.
-        Additional properties calculated by SubFind can be accessed via e.g. 'halo[0].properties'.
-        make_grp=True generates a particle array with the Fof group number, and -1 if the particles is not in a group. *This will take some time! v=True enables a crude progress report.
+    """Class to handle catalogues produced by the SubFind halo finder.
+
+    By default, the FoF groups are imported, but the subhalos can also be imported by setting subs=True
+    when constructing.
+
     """
 
 
-    def __init__(self, sim, subs=False, order=True, make_grp=None, v=False, **kwargs):
+    def __init__(self, sim, subs=False, ordered=None, make_grp=None, verbose=False, **kwargs):
+        """Initialise a SubFind catalogue
+
+        **kwargs** :
+
+        *subs*: if True, load the subhalos; otherwise, load FoF groups (default)
+        *ordered*: if True, the snapshot must have sequential iords. If False, the iords might be out-of-sequence, and
+                 therefore reordering will take place. If None (default), the iords are examined to check whether
+                 re-ordering is required or not. Note that re-ordering can be undesirable because it also destroys
+                 subfind's order-by-binding-energy
+        *make_grp*: if True, create a 'grp' array with the halo id to which each particle is assigned
+        *verbose*: if True, produces printed output to track progress while making the 'grp' array
+        """
+
+        if 'order' in kwargs:
+            warnings.warn("The keyword 'order' has been renamed to 'ordered'", DeprecationWarning)
+            ordered = kwargs.pop('order')
+
         self._base = weakref.ref(sim)
-        self._order=order
         self._subs=subs
-        if self._order is False:
-            if (self.base['iord'][0] != 0 or self.base['iord'][1] != 1):
-                raise ValueError("IDs are not ordered. Use argument order=False to load halos for this simulation.")
+
+        if ordered is not None:
+            self._ordered = ordered
+        else:
+            self._ordered = bool((self.base['iord']==np.arange(len(self.base))).all())
 
         self._halos = {}
         HaloCatalogue.__init__(self,sim)
@@ -46,15 +61,14 @@ class SubfindCatalogue(HaloCatalogue):
         self._halodat, self._subhalodat=self._read_groups()
         #self.data_len, self.data_off = self._read_groups()
         if make_grp:
-            self.make_grp(v=v)
+            self.make_grp(v=verbose)
 
     def make_grp(self, name='grp', v=False):
+        """Creates a 'grp' array which labels each particle according to its parent halo.
+
+        This can take quite some time! Option: v=True prints out 'progress' in terms of total number of groups.
         """
-        #Creates a 'grp' array which labels each particle according to
-        #its parent halo. This can take quite some time!
-        Option: v=True prints out 'progress' in terms of total number of groups.
-        #"""
-        self.base[name] = self.get_group_array(v=v) #np.zeros(len(self.base), dtype=int)#self.get_group_array()
+        self.base[name] = self.get_group_array(v=v)
 
     def get_group_array(self, v=False):
         ar = np.zeros(len(self.base), dtype=int)-1
@@ -85,8 +99,7 @@ class SubfindCatalogue(HaloCatalogue):
         return properties
 
     def _get_halo(self,i):
-        """This also works if the IDs are not sorted, but it will break the ordering by binding energy which is not desirable. We do however save the group's mostboundID"""
-        if self._order is False:
+        if self._ordered is False:
             if self._subs is True:
                 #this needs to be tested again on a snapshot that is not ordered!
                 x = Halo(i, self, self.base, np.where(np.in1d(self.base['iord'], self.ids[self._subhalodat['sub_off'][i]:self._subhalodat['sub_off'][i]+self._subhalodat['sub_len'][i]]  )))
