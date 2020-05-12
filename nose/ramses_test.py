@@ -1,12 +1,6 @@
 import pynbody
 import numpy as np
 
-import sys
-if sys.version_info[0] < 3:
-    import warnings
-    warnings.simplefilter('always', UserWarning)
-
-
 def setup():
     global f
     f = pynbody.load("testdata/ramses_partial_output_00250")
@@ -21,16 +15,12 @@ def test_properties():
     np.testing.assert_almost_equal(f.properties['h'], 0.01)
     np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
 
-def test_loaded_namelist():
-    np.testing.assert_warns(UserWarning, f._load_namelistfile)
-    assert f._namelist == {}
-
 def test_particle_arrays():
     f['pos']
     f['vel']
     np.testing.assert_allclose(f.star['pos'][50], [29.93861623, 29.29166795, 29.77920022])
-    np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
-    np.testing.assert_equal(f.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
+    np.testing.assert_allclose(f.dm['pos'][50], [23.76016295,  21.64945726, 7.70719058])
+    np.testing.assert_equal(f.dm['iord'][-50:-40], [126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
        522489, 697169])
     np.testing.assert_equal(f.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
        144166,  26147])
@@ -86,8 +76,9 @@ def test_rt_arrays():
 
     f1.gas['rad_0_flux'] # ensure 3d name triggers loading
 
-    np.testing.assert_allclose(f1.gas['rad_0_rho'][::5000],
-      [  8.63987256e-02,   3.73498855e-04,   3.46061505e-04,
+    np.testing.assert_allclose(
+        f1.gas['rad_0_rho'][::5000],
+        [8.63987256e-02,   3.73498855e-04,   3.46061505e-04,
          2.13979002e-04,   3.22825503e-04,   3.29494226e-04,
          2.26216739e-04,   3.30639509e-06,   3.61922553e-05,
          8.25142141e-06,   1.25595394e-05,   7.11374568e-07,
