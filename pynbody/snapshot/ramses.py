@@ -414,7 +414,6 @@ class RamsesSnap(SimSnap):
         self._filename = dirname
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
-        self._load_namelistfile()
         self._setup_particle_descriptor()
 
         assert self._info['ndim'] <= 3
@@ -511,36 +510,6 @@ class RamsesSnap(SimSnap):
         except IOError:
             warnings.warn(
                 "No header file found -- no particle block information available")
-
-    def _load_namelist_from_specified_file(self, f):
-        for l in f:
-            l = l.split("!")[0]  # remove fortran comments
-            if '=' in l:
-                name, val = map(str.strip, l.split('='))
-                if val == ".true.":
-                    self._namelist[name] = True
-                elif val == ".false.":
-                    self._namelist[name] = False
-                else:
-                    try:
-                        if '.' in val:
-                            self._namelist[name] = float(val)
-                        else:
-                            self._namelist[name] = int(val)
-                    except ValueError:
-                        self._namelist[name] = val
-
-    def _load_namelistfile(self):
-        self._namelist = {}
-
-        if os.path.exists(self._filename + "/namelist.txt"):
-            f = open(self._filename + "/namelist.txt", "r")
-            try:
-                self._load_namelist_from_specified_file(f)
-            except ValueError:
-                warnings.warn("Namelist found but unable to read.")
-        else:
-            warnings.warn("No namelist file found.")
 
     def _setup_particle_descriptor(self):
         try:
@@ -950,15 +919,14 @@ class RamsesSnap(SimSnap):
                 self[f]['phi'] *= self._info['boxlen']
 
     def _load_particle_cpuid(self):
+        raise NotImplementedError, "The particle CPU data cannot currently be loaded" # TODO: re-implement
         ind0_dm = 0
         ind0_star = 0
-        for i, fam_mask in zip(self._cpus, self._particle_family_ids_on_disk):            
-            mask_dm = fam_mask == 0
-            mask_st = fam_mask == 1
-  
-            ind1_dm = ind0_dm + mask_dm.sum()
-            ind1_star = ind0_star + mask_st.sum()
-
+        for i, star_mask, nstar in zip(self._cpus, self._particle_family_ids_on_disk, self._nstar):
+            with FortranFile(self._particle_filename(i)) as f:
+                header = f.read_attrs(ramses_particle_header)
+            ind1_dm = ind0_dm + header['npart'] - nstar
+            ind1_star = ind0_star + nstar
             self.dm['cpu'][ind0_dm:ind1_dm] = i
             self.star['cpu'][ind0_star:ind1_star] = i
             ind0_dm, ind0_star = ind1_dm, ind1_star
@@ -997,18 +965,22 @@ class RamsesSnap(SimSnap):
         return list(keys_ND)
 
     def _not_cosmological(self):
-        if "cosmo" in self._namelist and self._namelist["cosmo"]:
-            return False
-        else:
-            return True
+        # could potentially be improved with reference to stored namelist.txt, if present
+        return self._info['omega_k'] == self._info['omega_l'] == 0
 
     def _convert_tform(self):
-        from ..analysis import ramses_util
         # Copy the existing array in weird Ramses format into a hidden raw array
         self.star['tform_raw'] = self.star['tform']
         self.star['tform_raw'].units = self._file_units_system[1]
-        # Replace the tform array by its usual meaning using the birth files
-        ramses_util.get_tform(self)
+        if config_parser.getboolean("ramses", "proper_time", fallback=False):
+            t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
+            birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/ self.properties["a"]**2
+            birth_time[birth_time > t0] = t0 - 1e-7
+            self.star['tform'] = birth_time
+        else:
+            from ..analysis import ramses_util
+            # Replace the tform array by its usual meaning using the birth files
+            ramses_util.get_tform(self)
 
     def _convert_metal_name(self):
         # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
