@@ -28,7 +28,7 @@ def test_loaded_namelist():
 def test_particle_arrays():
     f['pos']
     f['vel']
-    np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
+    np.testing.assert_allclose(f.star['pos'][50], [29.93861623, 29.29166795, 29.77920022])
     np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
     np.testing.assert_equal(f.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
        522489, 697169])
