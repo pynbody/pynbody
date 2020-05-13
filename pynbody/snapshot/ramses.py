@@ -975,7 +975,7 @@ class RamsesSnap(SimSnap):
         
         try:
             is_proper_time = config_parser.getboolean("ramses", "proper_time")
-        except KeyError:
+        except:
             is_proper_time = False
 
         if is_proper_time:
