@@ -974,7 +974,7 @@ class RamsesSnap(SimSnap):
         self.star['tform_raw'].units = self._file_units_system[1]
         if config_parser.getboolean("ramses", "proper_time", fallback=False):
             t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/ self.properties["a"]**2
+            birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/self.properties["a"]**2
             birth_time[birth_time > t0] = t0 - 1e-7
             self.star['tform'] = birth_time
         else:
