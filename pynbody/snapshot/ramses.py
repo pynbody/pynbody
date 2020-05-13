@@ -972,7 +972,13 @@ class RamsesSnap(SimSnap):
         # Copy the existing array in weird Ramses format into a hidden raw array
         self.star['tform_raw'] = self.star['tform']
         self.star['tform_raw'].units = self._file_units_system[1]
-        if config_parser.getboolean("ramses", "proper_time", fallback=False):
+        
+        try:
+            is_proper_time = config_parser.getboolean("ramses", "proper_time")
+        except NoOptionError:
+            is_proper_time = False
+
+        if is_proper_time:
             t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
             birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/self.properties["a"]**2
             birth_time[birth_time > t0] = t0 - 1e-7
