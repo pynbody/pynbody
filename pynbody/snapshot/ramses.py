@@ -972,13 +972,8 @@ class RamsesSnap(SimSnap):
         # Copy the existing array in weird Ramses format into a hidden raw array
         self.star['tform_raw'] = self.star['tform']
         self.star['tform_raw'].units = self._file_units_system[1]
-        
-        try:
-            is_proper_time = config_parser.getboolean("ramses", "proper_time")
-        except:
-            is_proper_time = False
 
-        if is_proper_time:
+        if self._is_using_proper_time:
             t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
             birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/self.properties["a"]**2
             birth_time[birth_time > t0] = t0 - 1e-7
@@ -987,6 +982,12 @@ class RamsesSnap(SimSnap):
             from ..analysis import ramses_util
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self)
+
+    def _read_proper_time(self):
+        try:
+            self._is_using_proper_time = config_parser.getboolean("ramses", "proper_time")
+        except:
+            self._is_using_proper_time = False
 
     def _convert_metal_name(self):
         # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
@@ -1004,8 +1005,9 @@ class RamsesSnap(SimSnap):
 
         elif fam is not family.gas and fam is not None:
 
-            if array_name == 'tform' or array_name == 'tform_raw' :
+            if array_name == 'tform' or array_name == 'tform_raw':
                 self._load_particle_block('tform')
+                self._read_proper_time()
                 self._convert_tform()
 
             elif array_name == 'metals' or array_name == 'metal':
