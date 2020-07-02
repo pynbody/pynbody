@@ -175,7 +175,7 @@ class UnitBase(object):
         return CompositeUnit(m, [self], [1]).simplify()
 
     def __add__(self, m):
-        scale = m.in_units(self) if hasattr(m, 'in_units') else m
+        scale = m.in_units(self) if hasattr(m, 'in_units') else m/float(self)
         if hasattr(scale, 'units'):
             scale.units = 1
         return self * (1.0 + scale)
