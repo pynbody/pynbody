@@ -812,7 +812,8 @@ def sb(self, band='v'):
 @Profile.profile_property
 def Q(self):
     """Toomre Q parameter"""
-    return (self['vr_disp'] * self['kappa'] / (3.36 * self['density'] * units.G)).in_units("")
+    logger.warning("Toomre Q routine assumes the disk is in the x-y plane")
+    return (self['vrxy_disp'] * self['kappa'] / (3.36 * self['density'] * units.G)).in_units("")
 
 
 @Profile.profile_property
