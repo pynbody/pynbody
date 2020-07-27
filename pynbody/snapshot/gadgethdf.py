@@ -116,8 +116,15 @@ class GadgetHdfMultiFileManager(object) :
     def get_header_attrs(self):
         return self[0].parent['Header'].attrs
 
+    def get_parameters_attrs(self):
+        return self[0].parent['Parameters'].attrs
+
     def get_unit_attrs(self):
-        return self[0].parent['Units'].attrs
+        try:
+            return self[0].parent['Units'].attrs
+        except KeyError: #Arepo stores unit information in Header, not Units
+            return self[0].parent['Header'].attrs
+            
 
     def get_file0_root(self):
         return self[0].parent
@@ -166,6 +173,9 @@ class GadgetHDFSnap(SimSnap):
 
     def _get_hdf_header_attrs(self):
         return self._hdf_files.get_header_attrs()
+
+    def _get_hdf_parameters_attrs(self):
+        return self._hdf_files.get_parameters_attrs()
 
     def _get_hdf_unit_attrs(self):
         return self._hdf_files.get_unit_attrs()
@@ -355,8 +365,16 @@ class GadgetHDFSnap(SimSnap):
         """Return the cosmological factors for a given array"""
         match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
         if len(match) > 0 : 
-            aexp = hdf[match[0]].attrs['aexp-scale-exponent']
-            hexp = hdf[match[0]].attrs['h-scale-exponent']
+            try:
+                aexp = hdf[match[0]].attrs['aexp-scale-exponent']
+                hexp = hdf[match[0]].attrs['h-scale-exponent']
+            except KeyError: #AREPO uses a different name here
+                try:
+                    aexp = hdf[match[0]].attrs['a_scaling']
+                    hexp = hdf[match[0]].attrs['h_scaling']
+                except KeyError: # Dimensionless quantities can occasionally have missing scale factors
+                    aexp = 0
+                    hexp = 0
             return units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator(), units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
         else : 
             return units.Unit('1.0'), units.Unit('1.0')
@@ -368,9 +386,20 @@ class GadgetHDFSnap(SimSnap):
 
 
         VarDescription = str(hdfattrs['VarDescription'])
-        CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
-        aexp = hdfattrs['aexp-scale-exponent']
-        hexp = hdfattrs['h-scale-exponent']
+        try:
+            CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
+        except KeyError: #AREPO uses a different name here
+            CGSConversionFactor = float(hdfattrs['to_cgs'])
+        try:
+            aexp = hdfattrs['aexp-scale-exponent']
+            hexp = hdfattrs['h-scale-exponent']
+        except KeyError: #AREPO uses a different name here
+            try:
+                aexp = hdfattrs['a_scaling']
+                hexp = hdfattrs['h_scaling']
+            except KeyError:
+                aexp = 0
+                hexp = 0
 
         arr_units = self._get_units_from_description(VarDescription, CGSConversionFactor)
 
@@ -512,7 +541,14 @@ class GadgetHDFSnap(SimSnap):
         vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
         dist_unit = atr['UnitLength_in_cm'] * units.cm
         mass_unit = atr['UnitMass_in_g'] * units.g
-        time_unit = atr['UnitTime_in_s'] * units.s
+        try:
+            time_unit = atr['UnitTime_in_s'] * units.s
+        except KeyError:
+            try:
+                time_unit = atr['UnitLength_in_cm']/atr['UnitVelocity_in_cm_per_s'] * units.s
+            except KeyError:
+                warnings.warn("No unit information found!", RuntimeWarning)
+                return {},{}
         # Create a dictionary for the units, this will come in handy later
         unitvar = {'U_V': vel_unit, 'U_L': dist_unit, 'U_M': mass_unit,
                    'U_T': time_unit, '[K]': units.K,
@@ -560,7 +596,13 @@ class GadgetHDFSnap(SimSnap):
 @GadgetHDFSnap.decorator
 def do_units(sim):
 
-    cosmo = 'HubbleParam' in sim._get_hdf_header_attrs().keys()
+    #AREPO always stores HubbleParam in the Header, even for non-cosmo runs
+    try:
+        cosmo = sim._get_hdf_parameters_attrs()['ComovingIntegrationOn']
+        arepo = True
+    except KeyError:
+        cosmo = 'HubbleParam' in sim._get_hdf_header_attrs().keys()
+        arepo = False
 
     try:
         atr = sim._get_hdf_unit_attrs()
@@ -580,9 +622,14 @@ def do_units(sim):
     mass_unit = atr['UnitMass_in_g']*units.g
 
     if cosmo:
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Coordinates') : dist_unit *= fac
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Velocity') : vel_unit *= fac
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Mass') : mass_unit *= fac
+        if arepo:
+            for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Coordinates') : dist_unit *= fac
+            for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Velocities') : vel_unit *= fac
+            for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Masses') : mass_unit *= fac
+        else:
+            for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Coordinates') : dist_unit *= fac
+            for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Velocity') : vel_unit *= fac
+            for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Mass') : mass_unit *= fac
 
     sim._file_units_system = [units.Unit(x) for x in [
                               vel_unit, dist_unit, mass_unit, "K"]]
