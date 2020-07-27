@@ -1174,98 +1174,50 @@ def moster(xmasses, z):
 					* B11e + dmdg10 * dmdg10 * G10e * G10e + dmdg11 * dmdg11 * G11e * G11e)
 	return 10 ** smp, 10 ** sigma
 
-def behroozi(xmasses, z):
-	'''Based on Behroozi+ (2013) return what stellar mass corresponds to the
-	halo mass passed in.
-
-	**Usage**
-
-	   >>> from pynbody.plot.stars import moster
-	   >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
-	   >>> ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties['z'])
-	   >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
-						 y2=np.array(ystarmasses)*np.array(errors),
-						 facecolor='#BBBBBB',color='#BBBBBB')
-	'''
-	loghm = np.log10(xmasses)
-	# from Behroozi et al (2013)
-	EPS = -1.777
-	EPSpe = 0.133
-	EPSme = 0.146
-
-	EPSanu = -0.006
-	EPSanupe = 0.113
-	EPSanume = 0.361
-
-	EPSznu = 0
-	EPSznupe = 0.003
-	EPSznume = 0.104
-
-	EPSa = 0.119
-	EPSape = 0.061
-	EPSame = -0.012
-
-	M1 = 11.514
-	M1pe = 0.053
-	M1me = 0.009
-
-	M1a = -1.793
-	M1ape = 0.315
-	M1ame = 0.330
-
-	M1z = -0.251
-	M1zpe = 0.012
-	M1zme = 0.125
-
-	AL = -1.412
-	ALpe = 0.02
-	ALme = 0.105
-
-	ALa = 0.731
-	ALape = 0.344
-	ALame = 0.296
-
-	DEL = 3.508
-	DELpe = 0.087
-	DELme = 0.369
-
-	DELa = 2.608
-	DELape = 2.446
-	DELame = 1.261
-
-	DELz = -0.043
-	DELzpe = 0.958
-	DELzme = 0.071
-
-	G = 0.316
-	Gpe = 0.076
-	Gme = 0.012
-
-	Ga = 1.319
-	Gape = 0.584
-	Game = 0.505
-
-	Gz = 0.279
-	Gzpe = 0.256
-	Gzme = 0.081
-
-	a = 1.0 / (z + 1.0)
-	nu = np.exp(-4 * a ** 2)
-	logm1 = M1 + nu * (M1a * (a - 1.0) + M1z * z)
-	logeps = EPS + nu * (EPSanu * (a - 1.0) + EPSznu * z) - EPSa * (a - 1.0)
-	alpha = AL + nu * ALa * (a - 1.0)
-	delta = DEL + nu * DELa * (a - 1.0)
-	g = G + nu * (Ga * (a - 1.0) + z * Gz)
-
-	x = loghm - logm1
-	f0 = -np.log10(2.0) + delta * np.log10(2.0) ** g / (1.0 + np.exp(1))
-	smp = logm1 + logeps + f(x, alpha, delta, g) - f0
-
-	if isinstance(smp, np.ndarray):
-		scatter = np.zeros(len(smp))
-	scatter = 0.218 - 0.023 * (a - 1.0)
-
-	return 10 ** smp, 10 ** scatter
+def hudson(xmasses, z):	
+	''' Based on Hudson+ (2014), returns what stellar mass corresponds to the 	
+	halo mass passed in.  This is the only SMHMR function that is not based	
+	on abundance matching, but instead uses date from CFHTLenS galaxy lensing data.	
+	   >>> from pynbody.plot.stars import hudson	
+	   >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)	
+	   >>> ystarmasses, errors = hudson(xmasses,halo_catalog._halos[1].properties['z'])	
+	   >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),	
+	                     y2=np.array(ystarmasses)*np.array(errors),	
+	                     facecolor='#BBBBBB',color='#BBBBBB')	
+	'''	
+	f05 = 0.0414	
+	f05_err = 0.0024	
+	fz = 0.029	
+	fz_err = 0.009	
+	log10M05 = 12.07	
+	log10M05_err = 0.07	
+	Mz = 0.09	
+	Mz_err = 0.24	
+	beta = 0.69	
+	beta_err = 0.09	
+	gamma = 0.8	
+	
+	f1 = f05 + (z-0.5)*fz	
+	f1_err = np.sqrt(f05_err**2+(z-0.5)**2*fz_err**2)	
+	
+	M1_exp = (log10M05+(z-0.5)*Mz) 	
+	M1_exp_err = np.sqrt(log10M05_err**2+(z-0.5)**2*Mz_err**2)	
+	
+	M1 = np.power(10, M1_exp)	
+	M1_err = np.abs(M1*np.log(10)*M1_exp_err)	
+	
+	beta_term = np.power(xmasses/M1, -beta)	
+	beta_term_err = np.sqrt((beta/M1*M1_err/M1**2)**2 + (np.log(M1)*beta_err)**2)	
+	
+	gamma_term = np.power(xmasses/M1, gamma)	
+	gamma_term_err = np.abs(gamma_term*gamma*M1_err/M1**3)	
+	
+	fstar_denom = beta_term + gamma_term	
+	fstar_denom_err = np.sqrt(beta_term*2+ gamma_term**2)	
+	
+	fstar = 2.0*f1/fstar_denom	
+	fstar_err = np.sqrt((f1_err/f1)**2 + (fstar_denom_err/fstar_denom)**2)	
+	return fstar*xmasses, 2.0/fstar_err
 
 def subfindguo(halo_catalog, clear=False, compare=True, baryfrac=False,
 		filename=False, **kwargs):
