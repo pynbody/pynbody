@@ -143,3 +143,38 @@ def test_forcegas_dmo():
             2.25179981e+15,   2.25179981e+15,   2.25179981e+15,
             2.25179981e+15,   2.25179981e+15,   2.25179981e+15,
             1.80143985e+16], rtol=1e-5)
+
+
+def test_metals_field_correctly_copied_from_metal():
+    np.testing.assert_allclose(f.st['metals'][::5000], f.st['metal'][::5000], rtol=1e-5)
+
+
+def test_tform_and_tform_raw():
+    # Tform is not available for test data, so test warning generation and that the array is full of -1
+    with np.testing.assert_warns(UserWarning):
+        assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
+        np.testing.assert_allclose(f.st['tform'], - np.ones((2655,), dtype=np.float64), rtol=1e-5)
+
+    np.testing.assert_allclose(f.st['tform_raw'][:10], [4.58574701, 4.58100771, 4.58284129, 3.18777836, 4.55801122,
+                                                        4.50733498, 4.5100136,  4.57288808, 4.55926183, 4.52128465],
+                               rtol=1e-5)
+
+def test_proper_time_loading():
+    f_pt = pynbody.load(
+        "testdata/prop_time_output_00030", cpus=range(10, 20))
+
+    f_pt._is_using_proper_time = True
+
+    f_pt._load_particle_block('tform')
+    f_pt._convert_tform()
+    np.testing.assert_allclose(
+        f_pt.s["tform"].in_units("Gyr"),
+        [2.52501534, 2.57053015, 2.66348155, 2.99452429, 2.49332345,
+        3.62452373, 2.22125997, 2.53889974, 2.30228611, 3.45341852,
+        2.48534871, 3.42507129, 2.39147047, 2.74341721, 3.07370808,
+        2.69028377, 2.96989821, 3.0768944, 2.48748702, 3.79943883,
+        3.94957879, 2.24967707, 4.01734689, 3.65785368, 2.63618622,
+        2.69290132, 2.59963679, 4.03835932, 2.77991464, 2.71311552,
+        2.38078038, 4.3666123, 2.68693346, 3.37377901, 3.27283305,
+        3.03470615, 2.4334257, 2.65158796, 2.90785361, 2.56396249],
+        rtol=1e-5)

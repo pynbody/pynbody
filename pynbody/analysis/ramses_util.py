@@ -8,13 +8,6 @@ demo on how to use RAMSES outputs with pynbody, have a look at the
 `ipython notebook demo
 <http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
 
-
-Loading and centering
----------------------
-
->>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0 
->>> pynbody.analysis.ramses_util.hop_center(s,10) # centered on the halo 10
-
 File Conversion
 ---------------
 
@@ -68,112 +61,14 @@ and reads them back from there.
 import pynbody
 import subprocess
 import numpy as np
+import os
 from .. units import Unit
 
 from .. import config_parser
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
 
-hop_script_path = ramses_utils + 'scripts/script_hop.sh'
 part2birth_path = ramses_utils + 'f90/part2birth'
-
-
-def load_hop(s, hop=hop_script_path):
-    """
-    Loads the hop catalog for the given RAMSES snapshot. If the
-    catalog doesn't exist, it tries to run hop to create one via the
-    'script_hop.sh' script found in the RAMSES distribution. The hop
-    output should be in a 'hop' directory in the base directory of the
-    simulation.
-
-    **Input**:
-
-    *s* : loaded RAMSES snapshot
-
-    **Optional Keywords**:
-
-    *hop* : path to `script_hop.sh`
-
-    """
-
-    if s.filename[-1] == '/':
-        name = s.filename[-6:-1]
-        filename = s.filename[:-13] + 'hop/grp%s.pos' % name
-    else:
-        name = s.filename[-5:]
-        filename = s.filename[:-12] + 'hop/grp%s.pos' % name
-
-    try:
-        data = np.genfromtxt(filename, unpack=True)
-    except IOError:
-        import os
-        dir = s.filename[:-12] if len(s.filename[:-12]) else './'
-
-        os.system(
-            'cd %s;%s %d;cd ..' % (dir, hop_script_path, int(name)))
-        data = np.genfromtxt(filename, unpack=True)
-
-    return data
-
-
-def hop_center(s, halo=0):
-    """
-    Center the simulation snapshot on the specified halo using the halo data from hop. 
-
-    **Input**: 
-
-    *s* : RAMSES snapshot
-
-    **Optional Keywords**:
-
-    *halo* : halo ID to use for centering (default = 0)
-
-    """
-
-    data = load_hop(s)
-
-    cen = data.T[halo][4:7]
-    vcen = data.T[halo][7:10]
-
-    s['pos'] -= cen
-    s['vel'] -= vcen
-
-
-def load_center(output, align=True, halo=0):
-    """
-    Loads a RAMSES output and centers it on the desired halo. The hop
-    center is used for an initial estimate, but for more precise
-    centering, a shrinking-sphere center is calculated.
-
-    **Inputs**:    
-
-    *output* : path to RAMSES output directory
-
-    **Optional Keywords**: 
-
-    *align* : whether to align the snapshot based on the angular momentum in the central region (default = True)
-
-    *halo* : halo to center on (default = 0)
-    """
-
-    s = pynbody.load(output)
-    hop_center(s, halo)
-
-    st = s[pynbody.filt.Sphere('100 kpc')]
-
-    cen = pynbody.analysis.halo.center(
-        st, retcen=True, mode='ssc', verbose=True)
-
-    if align:
-        pynbody.analysis.angmom.faceon(
-            st.s, disk_size='10 kpc', cen=cen, mode='ssc')
-    else:
-        s['pos'] -= cen
-
-    s['pos'].convert_units('kpc')
-    s['vel'].convert_units('km s^-1')
-
-    return s
 
 
 def convert_to_tipsy_simple(output, halo=0, filt=None):
@@ -201,7 +96,8 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
 
     """
 
-    s = load_center(output, halo=halo)
+    h = output.halos()[halo]
+    s = pynbody.analysis.halo.center(h)
 
     for key in ['pos', 'vel', 'mass', 'iord', 'metal']:
         try:
@@ -398,7 +294,7 @@ def write_ahf_input(sim, tipsyfile):
     f.close()
 
 
-def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
+def get_tform(sim, part2birth_path=part2birth_path):
     """Use `part2birth` to calculate the formation time of stars in
     Gyr and **replaces** the original `tform` array.
 
@@ -414,9 +310,6 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
      override this like so -- make a file called ".pynbodyrc" in your
      home directory, and include
 
-     *cpu_range*: a list of cpus to process tform for. If specified, birth time
-      will only be processed for cpus in the list. - RS
-
     [ramses]
 
     ramses_utils = /path/to/your/ramses/utils/directory
@@ -425,46 +318,36 @@ def get_tform(sim, part2birth_path=part2birth_path, cpu_range=None):
 
     from scipy.io import FortranFile
 
-    top = sim
-    while hasattr(top, 'base'):
+    if hasattr(sim, 'base'):
         top = sim.base
+    else:
+        top = sim
 
-    ncpu = top._info['ncpu']
+    cpu_range = top._cpus
 
     top.s['tform'] = -1.0
     done = 0
 
-    parent_dir = top.filename
-    if parent_dir[-1] == '/':
-        parent_dir = parent_dir[:-1]
+    for cpu_id in cpu_range:
 
-    if len(parent_dir.split('/')) > 1:
-        parent_dir = top.filename[:-12]
-    else:
-        parent_dir = './'
-
-    # RS - If we only load a subset of cpus,
-    # we need to ensure we dont' try to load
-    # them all...
-    if not cpu_range: # means user hasn't specified a range: use all
-        cpu_range = range(ncpu)
-
-    for i in range(ncpu):
-        if i not in cpu_range:
-            continue
+        # Birth files are located inside the output directory.
+        birthfile_name = "birth_%s.out%05d" %(top._timestep_id, cpu_id)
+        birthfile_path = os.path.join(top.filename, birthfile_name)
         try:
-            birth_file = FortranFile('%s/output_%s/birth_%s.out%05d' %
-                                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
-        except IOError:
-            import os
-
-            # birth_xxx doesn't exist, create it with ramses part2birth util
-            with open(os.devnull, 'w') as fnull:
-                subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
-                                stdout=fnull, stderr=fnull)
-            # part2birth put the files in output_<top._timestep_id>
-            birth_file = FortranFile('%s/output_%s/birth_%s.out%05d' %
-                                     (parent_dir, top._timestep_id, top._timestep_id, i + 1))
+            birth_file = FortranFile(birthfile_path)
+        except (IOError, OSError):      # Both are necessary as python 2 throws OSError, while python 3 throws IOError
+            try:
+                # birth_xxx doesn't exist, create it with ramses part2birth util
+                with open(os.devnull, 'w') as fnull:
+                    subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
+                                    stdout=fnull, stderr=fnull)
+                birth_file = FortranFile(birthfile_path)
+            except (IOError, OSError):
+                import warnings
+                warnings.warn("Failed to read 'tform' from birth files at %s and to generate them with utility at %s.\n"
+                              "Formation times in Ramses code units can be accessed through the 'tform_raw' array."
+                              % (birthfile_path, part2birth_path))
+                raise IOError
 
         ages = birth_file.read_reals(np.float64)
         new = np.where(ages > 0)[0]

@@ -1834,9 +1834,26 @@ class SubSnap(SimSnap):
 class IndexedSubSnap(SubSnap):
 
     """Represents a subset of the simulation particles according
-    to an index array."""
+    to an index array.
 
-    def __init__(self, base, index_array):
+    Parameters
+    ----------
+    base : SimSnap object
+        The base snapshot
+    index_array : integer array or None
+        The indices of the elements that define the sub snapshot. Set to None to use iord-based instead.
+    iord_array : integer array or None
+        The iord of the elements that define the sub snapshot. Set to None to use index-based instead.
+        This may be computationally expensive. See note below.
+
+    Notes
+    -----
+    `index_array` and `iord_array` arguments are mutually exclusive.
+    In the case of `iord_array`, an sorting operation is required that may take
+    a significant time and require O(N) memory.
+    """
+
+    def __init__(self, base, index_array=None, iord_array=None):
 
         self._descriptor = "indexed"
         self.base = base
@@ -1844,6 +1861,15 @@ class IndexedSubSnap(SubSnap):
 
         self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
+
+        if index_array is None and iord_array is None:
+            raise ValueError(
+                "Cannot define a subsnap without an index_array or iord_array.")
+        if index_array is not None and iord_array is not None:
+            raise ValueError(
+                "Cannot define a subsnap without both and index_array and iord_array.")
+        if iord_array is not None:
+            index_array = self._iord_to_index(iord_array)
 
         if isinstance(index_array, filt.Filter):
             self._descriptor = index_array._descriptor
@@ -1878,6 +1904,23 @@ class IndexedSubSnap(SubSnap):
                 self._family_indices[fam] = np.asarray(index_array[
                                                        new_slice]) - base._get_family_slice(fam).start
 
+
+    def _iord_to_index(self, iord):
+        # Maps iord to indices. Note that this requires to perform an argsort (O(N log N) operations)
+        # and a binary search (O(M log N) operations) with M = len(iord) and N = len(self.base).
+        if 'iord_argsort' not in self.base:
+            self.base['iord_argsort'] = np.argsort(self.base['iord'])
+
+        # Find index of particles using a search sort
+        iord_base = self.base['iord']
+        iord_argsort = self.base['iord_argsort']
+        index_array = iord_argsort[np.searchsorted(iord_base, iord, sorter=iord_argsort)]
+
+        # TODO: custom search sort to prevent this check
+        # Check that the iord match
+        assert np.all(iord_base[index_array] == iord)
+
+        return index_array
 
     def _get_family_slice(self, fam):
         # A bit messy: jump out the SubSnap inheritance chain

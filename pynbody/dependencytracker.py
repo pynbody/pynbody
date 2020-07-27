@@ -12,6 +12,7 @@ class DependencyContext(object):
     def __enter__(self):
         self.tracker._calculation_lock.__enter__()
         if self.name in self.tracker._current_calculation_stack:
+            self.tracker._calculation_lock.__exit__(None, None, None)
             raise DependencyError, "Circular dependency"
         self.tracker._push(self.name)
 
