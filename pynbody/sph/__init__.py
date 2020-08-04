@@ -25,7 +25,7 @@ import time
 logger = logging.getLogger('pynbody.sph')
 
 from . import _render
-from .. import snapshot, array, config, units, util, config_parser
+from .. import snapshot, array, config, units, util, config_parser, backcompat
 
 try:
     from . import kdtree
@@ -115,9 +115,9 @@ def build_tree_or_trees(sim):
 
     logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
 
-    start = time.clock()
+    start = backcompat.clock()
     build_tree(sim)
-    end = time.clock()
+    end = backcompat.clock()
 
     logger.info('Tree build done in %5.3g s' % (end - start))
 

@@ -50,3 +50,8 @@ if sys.version_info[:2] <= (2, 6):
 else:
     import collections
     from collections import OrderedDict
+
+if sys.version_info[:2] <= (3,3):
+    from time import clock
+else:
+    from time import process_time as clock
