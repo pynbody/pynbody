@@ -196,7 +196,7 @@ def test_mean_by_mass():
 
 
 def test_name_awareness():
-    assert f['pos'].name is 'pos'
+    assert f['pos'].name == 'pos'
 
 
 def test_immediate_mode():
