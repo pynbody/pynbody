@@ -1,6 +1,6 @@
 import pynbody
 from pynbody import units
-
+import numpy.testing as npt
 
 def numacc(a, b, tol=1.e-9):
     print(a, b)
@@ -54,3 +54,17 @@ def test_units_pickle():
 
 def test_units_rdiv():
     assert 4.0/pynbody.units.m_p == pynbody.units.Unit("4.0 m_p^-1")
+
+def test_dimensionless_addition():
+    dimless_unit = units.Unit("0.5")
+    print(dimless_unit-0.25)
+    npt.assert_allclose(float(dimless_unit-0.25),0.25)
+    npt.assert_allclose(float(dimless_unit+0.25),0.75)
+
+def test_units_addition():
+    _2_kpc = units.Unit("2.0 kpc")
+    _3_Mpc = units.Unit("3.0 Mpc")
+    npt.assert_allclose((_2_kpc + _3_Mpc).in_units("kpc"),3002)
+    npt.assert_allclose((_3_Mpc - _2_kpc).in_units("kpc"), 2998)
+    npt.assert_allclose((_2_kpc + 2.0).in_units("kpc"), 4.0)
+    npt.assert_allclose((_3_Mpc + 2.0).in_units("kpc"), 5000)
