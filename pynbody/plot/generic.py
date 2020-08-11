@@ -276,7 +276,7 @@ Since this function produces a density estimate, the units of the
        *scalemax*: float
          maximum value to use for the color scale
     """
-    from util import fast_kde
+    from .util import fast_kde
     from scipy.stats.kde import gaussian_kde
 
     global config
@@ -492,7 +492,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
     cs = plt.contourf(
         xs, ys, arr, levels, norm=cont_color, cmap=cmap, **kwargs)
 
-    if kwargs.has_key('xlabel'):
+    if 'xlabel' in kwargs:
         xlabel = kwargs['xlabel']
     else:
         try:
@@ -512,7 +512,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
         except:
             pass
 
-    if kwargs.has_key('ylabel'):
+    if 'ylabel' in kwargs:
         ylabel = kwargs['ylabel']
     else:
         try:
@@ -545,7 +545,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
 
     if (filename):
         if config['verbose']:
-            print "Saving " + filename
+            print("Saving " + filename)
         plt.savefig(filename)
 
 
@@ -641,7 +641,7 @@ def prob_plot(x, y, weight, nbins=(100, 100), extent=None, axes=None, **kwargs):
     xbinedges = np.linspace(extent[0], extent[1], nbins[0] + 1)
     ybinedges = np.linspace(extent[2], extent[3], nbins[1] + 1)
 
-    for i in xrange(nbins[0]):
+    for i in range(nbins[0]):
 
         ind = np.where((x > xbinedges[i]) & (x < xbinedges[i + 1]))[0]
         h, bins = np.histogram(

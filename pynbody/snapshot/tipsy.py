@@ -17,8 +17,8 @@ parent directories.
 
 """
 
-from __future__ import with_statement  # for py2.5
-from __future__ import division
+  # for py2.5
+
 
 from .. import array, util
 from .. import family
@@ -122,9 +122,9 @@ class TipsySnap(SimSnap):
         self._s_dtype = np.dtype({'names': ("mass", "x", "y", "z", "vx", "vy", "vz", "metals", "tform", "eps", "phi"),
                                   'formats': ('f', ptype, ptype, ptype, vtype, vtype, vtype, 'f', 'f', 'f', 'f')})
 
-        if not self._paramfile.has_key('dKpcUnit'):
+        if 'dKpcUnit' not in self._paramfile:
             if must_have_paramfile:
-                raise RuntimeError, "Could not find .param file for this run. Place it in the run's directory or parent directory."
+                raise RuntimeError("Could not find .param file for this run. Place it in the run's directory or parent directory.")
             else:
                 warnings.warn(
                     "No readable param file in the run directory or parent directory: using defaults.", RuntimeWarning)
@@ -152,21 +152,21 @@ class TipsySnap(SimSnap):
         write = []
 
         for w, ndim in ("pos", 3), ("vel", 3), ("mass", 1), ("eps", 1), ("phi", 1):
-            if w not in self.keys():
+            if w not in list(self.keys()):
                 self._create_array(w, ndim, zeros=False)
                 write.append(w)
 
         for w in "rho", "temp":
-            if w not in self.gas.keys():
+            if w not in list(self.gas.keys()):
                 self.gas._create_array(w, zeros=False)
                 write.append(w)
 
-        if ("metals" not in self.gas.keys()) and ("metals" not in self.star.keys()):
+        if ("metals" not in list(self.gas.keys())) and ("metals" not in list(self.star.keys())):
             self.gas._create_array("metals", zeros=False)
             self.star._create_array("metals", zeros=False)
             write.append("metals")
 
-        if "tform" not in self.star.keys():
+        if "tform" not in list(self.star.keys()):
             self.star._create_array("tform", zeros=False)
             write.append("tform")
 
@@ -178,7 +178,7 @@ class TipsySnap(SimSnap):
                 self[k].set_default_units(quiet=True)
 
         # only do this for cosmo runs
-        if "phi" in write and self.properties.has_key('h'):
+        if "phi" in write and 'h' in self.properties:
             self['phi'].units = self['phi'].units * units.a ** -3  # messy :-(
 
         for k in "rho", "temp", "metals":
@@ -196,7 +196,7 @@ class TipsySnap(SimSnap):
             write += ['vx', 'vy', 'vz']
 
         max_item_size = max(
-            [q.itemsize for q in self._g_dtype, self._d_dtype, self._s_dtype])
+            [q.itemsize for q in (self._g_dtype, self._d_dtype, self._s_dtype)])
         tbuf = bytearray(max_item_size * 10240)
 
         for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)):
@@ -238,8 +238,8 @@ class TipsySnap(SimSnap):
                 else:
                     buflen = struct.unpack("i", header)[0]
 
-                ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffffL
-                ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffffL
+                ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffff
+                ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffff
 
                 if buflen == ourlen_1:  # it's a vector
                     return True
@@ -253,27 +253,26 @@ class TipsySnap(SimSnap):
 
         import glob
 
-        fs = map(util.cutgz, glob.glob(self._filename + ".*"))
-        res = map(lambda q: q[len(self._filename) + 1:],
-                  filter(is_readable_array, fs))
+        fs = list(map(util.cutgz, glob.glob(self._filename + ".*")))
+        res = [q[len(self._filename) + 1:] for q in list(filter(is_readable_array, fs))]
 
         # Create an empty dictionary of sets to store the loadable
         # arrays for each family
         rdict = dict([(x, set()) for x in self.families()])
         rdict.update(dict([a, copy.copy(b)]
-                          for a, b in self._basic_loadable_keys.iteritems() if a is not None))
+                          for a, b in self._basic_loadable_keys.items() if a is not None))
         # Now work out which families can load which arrays
         # according to the stored metadata
         for r in res:
             fams = self._get_loadable_array_metadata(r)[1]
-            for x in fams or rdict.keys():
+            for x in fams or list(rdict.keys()):
                 rdict[x].add(r)
 
         self._loadable_keys_registry = rdict
 
     def loadable_keys(self, fam=None):
         """Produce and return a list of loadable arrays for this TIPSY file."""
-        if len(self._loadable_keys_registry) is 0:
+        if len(self._loadable_keys_registry) == 0:
             self._update_loadable_keys()
 
         if fam is not None:
@@ -281,7 +280,7 @@ class TipsySnap(SimSnap):
             return list(self._loadable_keys_registry[fam])
         else:
             # Return what is loadable to all families
-            return list(set.intersection(*self._loadable_keys_registry.values()))
+            return list(set.intersection(*list(self._loadable_keys_registry.values())))
 
     def _update_snapshot(self, arrays, filename=None, fam_out=[family.gas, family.dm, family.star]):
         """
@@ -290,7 +289,7 @@ class TipsySnap(SimSnap):
         """
 
         if self.partial_load:
-            raise RuntimeError, "Writing back to partially loaded files not yet supported"
+            raise RuntimeError("Writing back to partially loaded files not yet supported")
 
         global config
 
@@ -605,15 +604,15 @@ class TipsySnap(SimSnap):
     def _write_array_metafile(self, filename, units, families, dtype):
 
         f = open(filename + ".pynbody-meta", "w")
-        print>>f, "# This file automatically created by pynbody"
+        print("# This file automatically created by pynbody", file=f)
         if not hasattr(units, "_no_unit"):
-            print>>f, "units:", units
-        print>>f, "families:",
+            print("units:", units, file=f)
+        print("families:", end=' ', file=f)
         for x in families:
-            print>>f, x.name,
-        print >>f
+            print(x.name, end=' ', file=f)
+        print(file=f)
         if dtype is not None:
-            print >>f, "dtype:", TipsySnap.__get_write_dtype(dtype)
+            print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
 
         f.close()
 
@@ -624,7 +623,7 @@ class TipsySnap(SimSnap):
 
     @staticmethod
     def _families_in_main_file(array_name, fam=None):
-        fam_for_default = [fX for fX, ars in TipsySnap._basic_loadable_keys.iteritems(
+        fam_for_default = [fX for fX, ars in TipsySnap._basic_loadable_keys.items(
         ) if array_name in ars and fX in fam]
         return fam_for_default
 
@@ -633,7 +632,7 @@ class TipsySnap(SimSnap):
         assert fam is not None
 
         if self.partial_load:
-            raise RuntimeError, "Writing back to partially loaded files not yet supported"
+            raise RuntimeError("Writing back to partially loaded files not yet supported")
 
         fam_in_main = self._families_in_main_file(array_name, fam)
         if len(fam_in_main) > 0:
@@ -692,7 +691,7 @@ class TipsySnap(SimSnap):
                 if len(fam) == 0:
                     return
             else:
-                raise RuntimeError, "Cannot call static _write_array to write into main tipsy file."
+                raise RuntimeError("Cannot call static _write_array to write into main tipsy file.")
 
         units_out = None
         dtype = None
@@ -769,7 +768,7 @@ class TipsySnap(SimSnap):
             # Bottom line says 'you requested one family, but that one's not
             # available'
 
-            raise IOError, "This array is marked as available only for families %s" % fams
+            raise IOError("This array is marked as available only for families %s" % fams)
 
         data = self.__read_array_from_disk(array_name, fam=fam,
                                            filename=filename,
@@ -829,7 +828,7 @@ class TipsySnap(SimSnap):
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
-                raise IOError, "Incorrect file format"
+                raise IOError("Incorrect file format")
 
             if not dtype:
                 # Inspect the first line to see whether it's float or int
@@ -860,12 +859,12 @@ class TipsySnap(SimSnap):
                 l = struct.unpack("i", f.read(4))[0]
 
             if l != self._load_control.disk_num_particles:
-                raise IOError, "Incorrect file format"
+                raise IOError("Incorrect file format")
 
             if dtype is None:
                 # Set data format to be read (float or int) based on config
-                int_arrays = map(
-                    str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(","))
+                int_arrays = list(map(
+                    str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(",")))
                 if array_name in int_arrays:
                     dtype = 'i'
                 else:
@@ -923,7 +922,7 @@ class TipsySnap(SimSnap):
         else:
             l = glob.glob(os.path.join(x, "../*.starlog"))
             if (len(l) == 0):
-                raise IOError, "Couldn't find starlog file"
+                raise IOError("Couldn't find starlog file")
             for filename in l:
                 sl = StarLog(filename)
 
@@ -941,9 +940,9 @@ class TipsySnap(SimSnap):
         #b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
         #b(sl)['posform'] = sl['pos'][:len(self.star), :]
         #b(sl)['velform'] = sl['vel'][:len(self.star), :]
-        if 'h2form' in sl.star.keys():
+        if 'h2form' in list(sl.star.keys()):
             b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
-        else: print "No H2 data found in StarLog file"
+        else: print("No H2 data found in StarLog file")
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
         for i, x in enumerate(['vx', 'vy', 'vz']):
@@ -1231,12 +1230,12 @@ class StarLog(SimSnap):
             molecH = False
 
             if (iSize != file_structure.itemsize and iSize != 104):
-                raise IOError, "Unknown starlog structure iSize:" + \
+                raise IOError("Unknown starlog structure iSize:" + \
                     str(iSize) + ", file_structure itemsize:" + \
-                    str(file_structure.itemsize)
+                    str(file_structure.itemsize))
             else:
                 bigstarlog = True
-        if molecH == True: print "h2 information found in StarLog!"
+        if molecH == True: print("h2 information found in StarLog!")
         datasize = os.path.getsize(filename) - f.tell()
 
         # check whether datasize is a multiple of iSize. If it is not,
@@ -1287,10 +1286,10 @@ class StarLog(SimSnap):
         self._decorate()
 
         if sort:
-            for name in file_structure.fields.keys():
+            for name in list(file_structure.fields.keys()):
                 self.star[name][:] = g[name][indices]
         else:
-            for name in file_structure.fields.keys():
+            for name in list(file_structure.fields.keys()):
                 self.star[name] = g[name]
 
     @staticmethod
@@ -1308,7 +1307,7 @@ class StarLog(SimSnap):
 
             f = util.open_(filename, 'wb')
 
-            if 'phiform' in self.keys():  # long starlog format
+            if 'phiform' in list(self.keys()):  # long starlog format
                 file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                      "x", "y", "z",
                                                      "vx", "vy", "vz",
@@ -1370,7 +1369,7 @@ def load_paramfile(sim):
     sim._paramfile = {}
     f = None
     if sim._paramfilename is None:
-        for i in xrange(2):
+        for i in range(2):
             x = os.path.dirname(x)
             l = [x for x in glob.glob(
                 os.path.join(x, "*.param")) if "mpeg" not in x]
@@ -1410,7 +1409,7 @@ def load_paramfile(sim):
                 s = line.split("#")[0].split()
                 sim._paramfile[s[0]] = " ".join(s[2:])
 
-        except IndexError, ValueError:
+        except IndexError as ValueError:
             pass
 
         if len(sim._paramfile) > 1:
@@ -1477,7 +1476,7 @@ def param2units(sim):
         # is the same for G=1 runs)?
         potunit_st = "%.5g km^2 s^-2" % (velunit ** 2)
 
-        if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove']) != 0:
+        if 'bComove' in sim._paramfile and int(sim._paramfile['bComove']) != 0:
             hubunit = 10. * velunit / dunit
             hubunit_st = ("%.3f" % (hubunit * hub))
             sim.properties['h'] = hub * hubunit
@@ -1557,7 +1556,7 @@ def param2units(sim):
 
 @TipsySnap.decorator
 def settime(sim):
-    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove']) != 0:
+    if 'bComove' in sim._paramfile and int(sim._paramfile['bComove']) != 0:
         t = sim._header_t
         sim.properties['a'] = t
         try:
@@ -1567,8 +1566,8 @@ def settime(sim):
             pass
 
         if (sim.properties['z'] is not None and
-                sim._paramfile.has_key('dMsolUnit') and
-                sim._paramfile.has_key('dKpcUnit')):
+                'dMsolUnit' in sim._paramfile and
+                'dKpcUnit' in sim._paramfile):
             from ..analysis import cosmology
             sim.properties['time'] = cosmology.age(
                 sim, unit=sim.infer_original_units('yr'))
@@ -1587,7 +1586,7 @@ def settime(sim):
 
 @nchilada.NchiladaSnap.decorator
 def settimeN(sim):
-    if sim._paramfile.has_key('bComove') and int(sim._paramfile['bComove']) != 0:
+    if 'bComove' in sim._paramfile and int(sim._paramfile['bComove']) != 0:
         #t = sim._header_t
         #sim.properties['a'] = t
         try:
@@ -1597,8 +1596,8 @@ def settimeN(sim):
             pass
 
         if (sim.properties['z'] is not None and
-                sim._paramfile.has_key('dMsolUnit') and
-                sim._paramfile.has_key('dKpcUnit')):
+                'dMsolUnit' in sim._paramfile and
+                'dKpcUnit' in sim._paramfile):
             from ..analysis import cosmology
             sim.properties['time'] = cosmology.age(
                 sim, unit=sim.infer_original_units('yr'))

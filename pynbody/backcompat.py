@@ -1,5 +1,5 @@
 import sys
-import __builtin__
+import builtins
 
 
 if sys.version_info[:2] <= (2, 5):
@@ -9,7 +9,7 @@ if sys.version_info[:2] <= (2, 5):
     # emulation of python 2.6 property class from
     # http://blog.yjl.im/2009/02/propery-setter-and-deleter-in-python-25.html
 
-    class property(__builtin__.property):
+    class property(builtins.property):
 
         def __init__(self, fget, *args, **kwargs):
 
@@ -19,7 +19,7 @@ if sys.version_info[:2] <= (2, 5):
         def setter(self, fset):
 
             cls_ns = sys._getframe(1).f_locals
-            for k, v in cls_ns.iteritems():
+            for k, v in cls_ns.items():
                 if v == self:
                     propname = k
                     break
@@ -30,7 +30,7 @@ if sys.version_info[:2] <= (2, 5):
         def deleter(self, fdel):
 
             cls_ns = sys._getframe(1).f_locals
-            for k, v in cls_ns.iteritems():
+            for k, v in cls_ns.items():
                 if v == self:
                     propname = k
                     break
@@ -40,13 +40,13 @@ if sys.version_info[:2] <= (2, 5):
 
 
 else:
-    property = __builtin__.property
+    property = builtins.property
     import fractions
 
 
 if sys.version_info[:2] <= (2, 6):
     from .bc_modules import ordered_dict
-    from bc_modules.ordered_dict import OrderedDict
+    from .bc_modules.ordered_dict import OrderedDict
 else:
     import collections
     from collections import OrderedDict

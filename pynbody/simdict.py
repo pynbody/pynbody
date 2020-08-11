@@ -58,7 +58,7 @@ class SimDict(dict):
         elif k in SimDict._getters:
             return SimDict._getters[k](self)
         else:
-            raise KeyError, k
+            raise KeyError(k)
 
     def __setitem__(self, k, v):
         if k in SimDict._setters:

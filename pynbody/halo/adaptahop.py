@@ -156,7 +156,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             props[k] = boxsize.in_units('Mpc') * (props[k] / Mpc2boxsize + 0.5)
 
         # Add units for known fields
-        for k, v in props.items():
+        for k, v in list(props.items()):
             if k in UNITS:
                 props[k] = v * UNITS[k]
 

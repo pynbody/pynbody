@@ -321,7 +321,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ## If the dataset is present in the file then read it into tmpset, and if dataset exists concatenate them
             e = global_var_name in fin
             if e == True:
-                tmpset = pd.DataFrame(fin[global_var_name].value) ## Let HDF5 metadata dictate array format
+                tmpset = pd.DataFrame(fin[global_var_name][()]) ## Let HDF5 metadata dictate array format
 
                 try:
                     dataset

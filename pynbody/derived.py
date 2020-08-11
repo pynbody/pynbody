@@ -8,7 +8,7 @@ getting the radial position. For more information see :ref:`derived`.
 """
 
 from . import snapshot
-from snapshot import SimSnap
+from .snapshot import SimSnap
 from . import array
 from . import analysis
 from . import sph
@@ -116,7 +116,7 @@ def vtheta(self):
 @SimSnap.derived_quantity
 def v_mean(self):
     """SPH-smoothed mean velocity"""
-    import sph
+    from . import sph
 
     sph.build_tree(self)
 
@@ -146,7 +146,7 @@ def v_mean(self):
 @SimSnap.derived_quantity
 def v_disp(self):
     """SPH-smoothed local velocity dispersion"""
-    import sph
+    from . import sph
 
     sph.build_tree(self)
     nsmooth = config['sph']['smooth-particles']

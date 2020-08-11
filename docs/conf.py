@@ -33,16 +33,17 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.todo',
               'sphinx.ext.coverage',
-              'sphinx.ext.pngmath',
+              'sphinx.ext.imgmath',
               'sphinx.ext.ifconfig',
               'sphinx.ext.viewcode',
               'matplotlib.sphinxext.mathmpl',
-              'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.inheritance_diagram',
               'numpydoc']
 
 
+
+ipython_warning_is_error = False
 
 try:
     import IPython.sphinxext.ipython_console_highlighting
@@ -65,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pynbody'
-copyright = u'2011-19, pynbody team'
+copyright = u'2011-20, pynbody team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

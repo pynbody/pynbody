@@ -200,9 +200,9 @@ def relative_slice(s_relative_to, s):
     s_step = s.step if s.step is not None else 1
 
     if (s.start - s_relative_to.start) % s_relative_to_step != 0:
-        raise ValueError, "Incompatible slices"
+        raise ValueError("Incompatible slices")
     if s_step % s_relative_to_step != 0:
-        raise ValueError, "Incompatible slices"
+        raise ValueError("Incompatible slices")
 
     start = (s.start - s_relative_to.start) // s_relative_to_step
     step = s_step // s_relative_to_step
@@ -278,10 +278,10 @@ def concatenate_indexing(i1, i2):
         return chained_slice(i1, i2)
     elif isinstance(i1, slice) and isinstance(i2, (np.ndarray, list)):
         return index_before_slice(i1, i2)
-    elif isinstance(i1, (np.ndarray, list)) and isinstance(i2, (slice, np.ndarray, slice)):
+    elif isinstance(i1, (np.ndarray, list)) and isinstance(i2, (slice, np.ndarray)):
         return np.asarray(i1)[i2]
     else:
-        raise TypeError, "Don't know how to chain these index types"
+        raise TypeError("Don't know how to chain these index types")
 
 
 def indexing_length(sl_or_ar):
@@ -380,7 +380,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200):
         epsilon = (right - left) * 1.e-7
 
     logger.info("Entering bisection search algorithm")
-    for i in xrange(niter_max):
+    for i in range(niter_max):
 
         if (right - left) < epsilon:
             return (right + left) / 2
@@ -397,7 +397,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200):
         else:
             right = mid
 
-    raise ValueError, "Bisection algorithm did not converge"
+    raise ValueError("Bisection algorithm did not converge")
 
 
 def gauss_jordan(out):
@@ -429,7 +429,7 @@ def gauss_jordan(out):
 
             # no, out of options, must be a singular matrix
             if out[y][y]==0:
-                raise np.linalg.linalg.LinAlgError, "Singular matrix"
+                raise np.linalg.linalg.LinAlgError("Singular matrix")
 
         for y2 in range(y + 1, h):    # Eliminate column y
             c = out[y2][y] / out[y][y]
@@ -456,11 +456,11 @@ def rational_matrix_inv(matrix):
     x = np.ndarray(
         shape=(len(matrix), len(matrix[0]) + len(matrix)), dtype=fractions.Fraction)
     x[:, :] = fractions.Fraction(0)
-    for i in xrange(len(x)):
+    for i in range(len(x)):
         x[i, len(x) + i] = fractions.Fraction(1)
 
-    for i in xrange(len(x)):
-        for j in xrange(len(x)):
+    for i in range(len(x)):
+        for j in range(len(x)):
             x[i, j] = fractions.Fraction(matrix[i][j])
 
     return gauss_jordan(x)[:, len(x):]
@@ -516,7 +516,7 @@ class ExecutionControl(object):
         if self.count == 0 and self.on_exit is not None:
             self.on_exit()
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.count > 0
 
     def __repr__(self):
@@ -636,7 +636,7 @@ def _thread_map(func, *args):
         try:
             this_t = threading.current_thread()
             this_t.ret_value = func(*afunc)
-        except Exception, e:
+        except Exception as e:
             this_t.ret_excp = e
 
     threads = []

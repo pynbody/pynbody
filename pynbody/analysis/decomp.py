@@ -172,7 +172,7 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
     h['jz_by_jzcirc'] = h['j'][:, 2] / h['j_circ']
     h_star = h.star
 
-    if not h_star.has_key('decomp'):
+    if 'decomp' not in h_star:
         h_star._create_array('decomp', dtype=int)
     disk = np.where(
         (h_star['jz_by_jzcirc'] > j_disk_min) * (h_star['jz_by_jzcirc'] < j_disk_max))

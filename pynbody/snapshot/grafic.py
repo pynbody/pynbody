@@ -5,7 +5,7 @@ grafic
 
 Support for loading grafIC files
 """
-from __future__ import print_function
+
 from .. import util
 from .. import array
 from .. import chunk
@@ -114,7 +114,7 @@ class GrafICSnap(SimSnap):
         self._create_array('pos', 3)
         self['pos'].units = "Mpc a"
         pos = self['pos']
-        nx, ny, nz = [int(self._header[x]) for x in 'nx', 'ny', 'nz']
+        nx, ny, nz = [int(self._header[x]) for x in ('nx', 'ny', 'nz')]
         # the following is equivalent to
         #
         # self['z'],self['y'],self['x'] = np.mgrid[0.0:self._header['nx'], 0.0:self._header['ny'], 0.0:self._header['nz']]

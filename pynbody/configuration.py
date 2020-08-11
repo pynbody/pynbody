@@ -16,8 +16,8 @@ def _get_config_parser_with_defaults():
         import configparser 
         config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
     else:
-        import ConfigParser
-        config_parser = ConfigParser.ConfigParser(dict_type=backcompat.OrderedDict)
+        import configparser
+        config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
     config_parser.optionxform = str
     config_parser.read(
         os.path.join(os.path.dirname(__file__), "default_config.ini"))
@@ -32,8 +32,8 @@ def _merge_defaults_for_problematic_keys(config_parser):
         opt = config_parser.get(*merge_i)
         default_opt = config_parser_defaults.get(*merge_i)
 
-        items = map(str.strip,opt.split(","))
-        default_items = map(str.strip,default_opt.split(","))
+        items = list(map(str.strip,opt.split(",")))
+        default_items = list(map(str.strip,default_opt.split(",")))
 
         for checking_item in default_items:
             if checking_item not in items:
@@ -52,10 +52,10 @@ def _get_basic_config_from_parser(config_parser):
     config = {'verbose': config_parser.getboolean('general', 'verbose'),
               'centering-scheme': config_parser.get('general', 'centering-scheme')}
 
-    config['snap-class-priority'] = map(str.strip,
-                                        config_parser.get('general', 'snap-class-priority').split(","))
-    config['halo-class-priority'] = map(str.strip,
-                                        config_parser.get('general', 'halo-class-priority').split(","))
+    config['snap-class-priority'] = list(map(str.strip,
+                                        config_parser.get('general', 'snap-class-priority').split(",")))
+    config['halo-class-priority'] = list(map(str.strip,
+                                        config_parser.get('general', 'halo-class-priority').split(",")))
 
 
     config['default-cosmology'] = {}
