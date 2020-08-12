@@ -120,7 +120,7 @@ into the top-level `pynbody` source directory (the one with
 
    git checkout master  # make sure you are on the master branch
    git pull origin master
-   python setup.py install
+   pip install .
 
 
 If you are testing a new feature or a bug fix that resides in a branch
@@ -130,7 +130,7 @@ other than `master` this procedure is slightly different:
 
    git fetch
    git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
-   python setup.py install
+   pip install .
 
 When you install a new version of the code and you already have a
 python session active with `pynbody` loaded, you have to (carefully)

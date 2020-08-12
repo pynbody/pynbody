@@ -100,8 +100,7 @@ it -
   $ export CC='/usr/local/bin/gcc'
   $ cd pynbody
   $ rm -rf build/
-  $ python setup.py build
-  $ python setup.py install
+  $ pip install .
 
 Now, with luck, you'll see that OpenMP is enabled.
 

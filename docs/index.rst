@@ -10,8 +10,8 @@ Pynbody Documentation
 Welcome to the documentation for `pynbody
 <http://pynbody.github.io>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
-simulations, supporting Python 3.5+. Old versions are available
-(versions prior to 1.0) that support Python 2.5+.
+simulations, supporting Python 3.5+. (Old versions are
+available, prior to 1.0, that support Python 2.5+).
 
 We recommend you get started by reading about
 :ref:`pynbody-installation` and trying the :ref:`tutorials`. We are
@@ -41,7 +41,7 @@ Our full documentation is organized into three sections:
 
 
 All of the information in the reference guide is also available
-through the interactive python help system. In ipython, this is as
+through the interactive python help system. In ipython or Jupyter, this is as
 easy as putting a `?` at the end of a command:
 
 .. ipython::
@@ -74,6 +74,10 @@ encounter a problem, feel free to create an issue there.
 We greatly value feedback from users, especially when things are not
 working correctly because this is the best way for us to correct
 bugs.  This includes any problems you encounter with documentation.
+
+Please note that we adhere to a  `community code of conduct
+<https://github.com/pynbody/pynbody/blob/master/CODE_OF_CONDUCT.md>`_,
+which you should read and understand before posting to the users list or in a github issue.
 
 If you use the code regularly for your projects, please consider contributing
 your code back using a `pull request
