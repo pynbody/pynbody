@@ -7,8 +7,6 @@ sudo: false # temporary while gfortran package is required for conda problems
 
 # specify different versions of python and numpy
 env:
-  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython=3"
-  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
   - PYTHON=3.5  NUMPY="numpy>=1.10.4" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
   - PYTHON=3.6  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
   - PYTHON=3.7  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"

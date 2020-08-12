@@ -316,7 +316,7 @@ for name, reqs in extras_require.items():
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.48',
+             version = '1.0',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://github.com/pynbody/pynbody/releases',
              package_dir = {'pynbody/': ''},
@@ -336,13 +336,13 @@ dist = setup(name = 'pynbody',
                             "Intended Audience :: Developers",
                             "Intended Audience :: Science/Research",
                             "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-                            "Programming Language :: Python :: 2",
                             "Programming Language :: Python :: 3",
                             "Topic :: Scientific/Engineering :: Astronomy",
                             "Topic :: Scientific/Engineering :: Visualization"],
              install_requires=install_requires,
              tests_require=tests_require,
              extras_require=extras_require,
+             python_requires='>=3.5',
       )
 
 #if dist.have_run.get('install'):
