@@ -28,50 +28,10 @@ Setting up the interactive environment
 In this walkthrough (and in others found in this documentation) we
 will use the `ipython <http://ipython.org>`_ interpreter which offers a
 much richer interactive environment over the vanilla `python`
-interpreter. However, you can type exactly the same commands into
+interpreter. This is also the same as using a `Jupyter <https://jupyter.org>`_ notebook.
+However, you can type exactly the same commands into
 vanilla `python`; only the formatting will look slightly
-different. For instance, the `ipython` prompt looks like
-
-::
-
-  In [1]:
-
-
-while the `python` prompt looks like
-
-::
-
-   >>>
-
-
-We highly recommend `ipython` for interactive data analysis. You should also
-install `matplotlib <http://matplotlib.org/>`_ to generate the plots at the
-end of the walkthrough (see the :ref:`pynbody-installation` documentation for
-more details).
-
-Once `ipython` and `matplotlib` are installed, you can start the
-`ipython` shell with the ``--pylab`` flag to automatically load the
-interactive plotting environment:
-
-::
-
-  [user@domain ~]$ ipython --pylab
-
-  Python 2.7.14 |Anaconda custom (64-bit)| (default, Oct  5 2017, 02:28:52)
-  Type "copyright", "credits" or "license" for more information.
-
-  IPython 5.4.1 -- An enhanced Interactive Python.
-  ?         -> Introduction and overview of IPython's features.
-  %quickref -> Quick reference.
-  help      -> Python's own help system.
-  object?   -> Details about 'object', use 'object??' for extra details.
-  Using matplotlib backend: MacOSX
-
-  In [1]:
-
-
-Now we can get started with the analysis.
-
+different.
 
 .. note:: Before you start make sure `pynbody` is properly
  installed. See :ref:`pynbody-installation` for more information. You
