@@ -38,9 +38,9 @@ machine, you're in luck.
 Assuming OpenMP support is enabled, the actual number of cores used by
 pynbody is determined by the configuration option
 ``number_of_threads``, which is the number of CPUs detected on your
- machine by default. If you want to reduce this (e.g. you are running on
- a login node or have multiple analyses going on in parallel), you can
- specify the number of cores explicitly:
+machine by default. If you want to reduce this (e.g. you are running on
+a login node or have multiple analyses going on in parallel), you can
+specify the number of cores explicitly:
 
 .. ipython::
 

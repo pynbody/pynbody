@@ -176,7 +176,7 @@ known about the halo one can use the standard python dictionary method `keys`:
 
 .. ipython::
 
- In [6]: h[1].properties.keys()[:10] # show only the first ten
+ In [6]: h[1].properties.keys()
 
 
 Dealing with big simulations and lots of halos

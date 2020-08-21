@@ -11,7 +11,7 @@ Welcome to the documentation for `pynbody
 <http://pynbody.github.io>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
 simulations, supporting Python 3.5+. (Old versions are
-available, prior to 1.0, that support Python 2.5+).
+available, prior to 1.0, that support Python 2.5, 2.6 and 2.7).
 
 We recommend you get started by reading about
 :ref:`pynbody-installation` and trying the :ref:`tutorials`. We are

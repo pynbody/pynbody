@@ -14,7 +14,7 @@ pynbody.analysis.angmom.faceon(h[1])
 s.physical_units()
 
 # create a profile object for the stars (by default this is a 2D profile)
-p = pynbody.analysis.profile.Profile(h[1].s,min=.01,max=50)
+p = pynbody.analysis.profile.Profile(h[1].s, vmin =.01, max=50)
 
 # make the figure and sub plots
 f, axs = plt.subplots(1,2,figsize=(14,6))
