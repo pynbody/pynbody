@@ -69,39 +69,10 @@ image of your simulation.</p>
 <p>In this walkthrough (and in others found in this documentation) we
 will use the <a class="reference external" href="http://ipython.org">ipython</a> interpreter which offers a
 much richer interactive environment over the vanilla <cite>python</cite>
-interpreter. However, you can type exactly the same commands into
+interpreter. This is also the same as using a <a class="reference external" href="https://jupyter.org">Jupyter</a> notebook.
+However, you can type exactly the same commands into
 vanilla <cite>python</cite>; only the formatting will look slightly
-different. For instance, the <cite>ipython</cite> prompt looks like</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
-</pre></div>
-</div>
-<p>while the <cite>python</cite> prompt looks like</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;</span>
-</pre></div>
-</div>
-<p>We highly recommend <cite>ipython</cite> for interactive data analysis. You should also
-install <a class="reference external" href="http://matplotlib.org/">matplotlib</a> to generate the plots at the
-end of the walkthrough (see the <a class="reference internal" href="../installation.html#pynbody-installation"><span class="std std-ref">Pynbody Installation</span></a> documentation for
-more details).</p>
-<p>Once <cite>ipython</cite> and <cite>matplotlib</cite> are installed, you can start the
-<cite>ipython</cite> shell with the <code class="docutils literal notranslate"><span class="pre">--pylab</span></code> flag to automatically load the
-interactive plotting environment:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[user@domain ~]$ ipython --pylab
-
-Python 2.7.14 |Anaconda custom (64-bit)| (default, Oct  5 2017, 02:28:52)
-Type &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
-
-IPython 5.4.1 -- An enhanced Interactive Python.
-?         -&gt; Introduction and overview of IPython&#39;s features.
-%quickref -&gt; Quick reference.
-help      -&gt; Python&#39;s own help system.
-object?   -&gt; Details about &#39;object&#39;, use &#39;object??&#39; for extra details.
-Using matplotlib backend: MacOSX
-
-In [1]:
-</pre></div>
-</div>
-<p>Now we can get started with the analysis.</p>
+different.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Before you start make sure <cite>pynbody</cite> is properly
@@ -154,7 +125,7 @@ profiles) in pynbody like your data to be centered on a point of
 interest.  The most straight-forward way to center your snapshot on a
 halo is as follows:</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">)</span>
-<span class="gh">Out[7]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x7ffc144ba6a0&gt;</span>
+<span class="gh">Out[7]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x7ff488dec3a0&gt;</span>
 </pre></div>
 </div>
 <p>We passed <code class="docutils literal notranslate"><span class="pre">h[1]</span></code> to the function
@@ -260,19 +231,19 @@ units first:</p>
 
 <span class="gp">In [26]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">)</span>
 <span class="gh">Out[26]: </span><span class="go"></span>
-<span class="go">SimArray([[10041.649 , 10105.106 , 10168.5625, ..., 10218.59  ,</span>
-<span class="go">           10166.086 , 10113.581 ],</span>
-<span class="go">          [10082.314 , 10146.285 , 10210.257 , ..., 10247.0625,</span>
-<span class="go">           10193.548 , 10140.033 ],</span>
-<span class="go">          [10122.979 , 10187.465 , 10251.951 , ..., 10275.534 ,</span>
-<span class="go">           10221.01  , 10166.486 ],</span>
+<span class="go">SimArray([[10263.511, 10323.971, 10384.43 , ..., 10334.826, 10254.129,</span>
+<span class="go">           10173.432],</span>
+<span class="go">          [10342.603, 10403.281, 10463.96 , ..., 10356.802, 10276.174,</span>
+<span class="go">           10195.545],</span>
+<span class="go">          [10421.694, 10482.592, 10543.489, ..., 10378.778, 10298.219,</span>
+<span class="go">           10217.659],</span>
 <span class="go">          ...,</span>
-<span class="go">          [ 9724.582 ,  9856.539 ,  9988.495 , ...,  9300.846 ,</span>
-<span class="go">            9263.123 ,  9225.4   ],</span>
-<span class="go">          [ 9659.011 ,  9787.502 ,  9915.994 , ...,  9279.018 ,</span>
-<span class="go">            9242.16  ,  9205.303 ],</span>
-<span class="go">          [ 9593.438 ,  9718.466 ,  9843.493 , ...,  9257.189 ,</span>
-<span class="go">            9221.197 ,  9185.205 ]], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
+<span class="go">          [ 9527.13 ,  9636.182,  9745.233, ...,  9798.586,  9780.065,</span>
+<span class="go">            9761.545],</span>
+<span class="go">          [ 9500.556,  9605.701,  9710.848, ...,  9792.067,  9774.049,</span>
+<span class="go">            9756.028],</span>
+<span class="go">          [ 9473.981,  9575.222,  9676.462, ...,  9785.549,  9768.03 ,</span>
+<span class="go">            9750.513]], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1.png"><img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" /></a>
@@ -293,7 +264,7 @@ width as a string with a unit.</p>
 <p>In this example, the disk seems to be aligned more or less face-on,
 but let’s say we want it edge-on:</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [28]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-<span class="gh">Out[28]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x7ffc01e8cdf0&gt;</span>
+<span class="gh">Out[28]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x7ff48a0c8fa0&gt;</span>
 
 <span class="gp">In [29]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
@@ -315,7 +286,7 @@ want to just rotate the snapshot by arbitrary angles, the
 about the respective axes.</p>
 <p>We can use this to rotate the disk into a face-on orientation:</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
-<span class="gh">Out[30]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x7ffc1379bdc0&gt;</span>
+<span class="gh">Out[30]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x7ff48a157d60&gt;</span>
 </pre></div>
 </div>
 <p>All of these transformations behave in the way that was specified for
@@ -370,7 +341,7 @@ ask them to, so <code class="docutils literal notranslate"><span class="pre">s.g
 <span class="gp">In [43]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$v_</span><span class="si">{circ}</span><span class="s1">$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [44]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gh">Out[44]: </span><span class="go">&lt;matplotlib.legend.Legend at 0x7ffc27450850&gt;</span>
+<span class="gh">Out[44]: </span><span class="go">&lt;matplotlib.legend.Legend at 0x7ff48a1f62b0&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
