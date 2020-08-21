@@ -344,7 +344,7 @@ def index_of_first(array, find):
     return right
 
 
-def equipartition(ar, nbins, min=None, max=None):
+def equipartition(ar, nbins, vmin=None, vmax=None):
     """
 
     Given an array ar, return nbins+1 monotonically increasing bin
@@ -355,10 +355,10 @@ def equipartition(ar, nbins, min=None, max=None):
 
     a_s = np.sort(ar)
 
-    if max is not None:
-        a_s = a_s[a_s <= max]
-    if min is not None:
-        a_s = a_s[a_s > min]
+    if vmax is not None:
+        a_s = a_s[a_s <= vmax]
+    if vmin is not None:
+        a_s = a_s[a_s > vmin]
 
     return a_s[np.array(np.linspace(0, len(a_s) - 1, nbins + 1), dtype='int')]
 

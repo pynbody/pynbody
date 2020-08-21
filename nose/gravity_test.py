@@ -8,7 +8,7 @@ def test_gravity():
     h = f.halos()
     pynbody.analysis.angmom.faceon(h[1])
     pro = pynbody.analysis.profile.Profile(
-        h[1], type='equaln', nbins=50, min='100 pc', max='50 kpc')
+        h[1], type='equaln', nbins=50, rmin='100 pc', rmax='50 kpc')
 
     v_circ_correct = np.array([  57.19634349,  103.04331454,  132.12411594,  155.65275799,
         175.52850379,  193.26102536,  209.52418648,  224.3799979 ,

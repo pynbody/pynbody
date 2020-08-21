@@ -42,7 +42,7 @@ def rotation_curve(sim, center=True, r_units='kpc',
         max_r = sim['rxy'].max()
 
     pro = profile.Profile(sim, type=bin_spacing, nbins=nbins,
-                          min=min_r, max=max_r)
+                          rmin =min_r, rmax =max_r)
 
     r = pro['rbins'].in_units(r_units)
     if quick:
@@ -60,11 +60,11 @@ def rotation_curve(sim, center=True, r_units='kpc',
     if parts:
         p.plot(r, v, label='total', **kwargs)
         gpro = profile.Profile(sim.gas, type=bin_spacing, nbins=nbins,
-                               min=min_r, max=max_r)
+                               rmin =min_r, rmax =max_r)
         dpro = profile.Profile(sim.dark, type=bin_spacing, nbins=nbins,
-                               min=min_r, max=max_r)
+                               rmin =min_r, rmax =max_r)
         spro = profile.Profile(sim.star, type=bin_spacing, nbins=nbins,
-                               min=min_r, max=max_r)
+                               rmin =min_r, rmax =max_r)
         if quick:
             gv = gpro['rotation_curve_spherical'].in_units(v_units)
             dv = dpro['rotation_curve_spherical'].in_units(v_units)
@@ -131,7 +131,7 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
                           - pretime.in_units('Myr'))[0]
 
     pro = profile.Profile(diskstars[youngstars], type=bin_spacing,
-                          nbins=nbins, min=min_r, max=max_r)
+                          nbins=nbins, rmin =min_r, rmax =max_r)
 
     r = pro['rbins'].in_units(r_units)
     fourierprof = pro['fourier']
@@ -180,7 +180,7 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_
 
     if 'min' in kwargs:
         ps = profile.Profile(
-            sim, ndim=3, type='log', nbins=40, min=kwargs['min'])
+            sim, ndim=3, type='log', nbins=40, rmin =kwargs['min'])
         del kwargs['min']
     else:
         ps = profile.Profile(sim, ndim=3, type='log', nbins=40)

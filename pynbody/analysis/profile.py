@@ -13,6 +13,7 @@ import pynbody
 from .. import family, units, array, util, backcompat
 import math
 import logging
+import warnings
 logger = logging.getLogger('pynbody.analysis.profile')
 
 
@@ -41,14 +42,14 @@ class Profile:
                             logarithmically ('log') or contain equal numbers of
                             particles ('equaln')
 
-    *min* (default = min(x)): minimum value to consider
+    *rmin* (default = min(x)): minimum radial value to consider
 
-    *max* (default = max(x)): maximum value to consider
+    *rmax* (default = max(x)): maximum radial value to consider
 
     *nbins* (default = 100): number of bins
 
     *bins* : array like - predefined bin edges in units of binning quantity. If this
-             keyword is set, the values of the keywords *type*, *nbins*, *min* and *max*
+             keyword is set, the values of the keywords *type*, *nbins*, *rmin* and *rmax*
              will be ignored
 
     *calc_x* (default = None): function to use to calculate the value
@@ -138,61 +139,6 @@ class Profile:
     profile.
 
 
-    **Examples:**
-
-    Density profile of the entire simulation: 
-
-    >>> s = pynbody.load('mysim')
-    >>> import pynbody.profile as profile
-    >>> p = profile.Profile(s) # 2D profile of the whole simulation - note
-                               # that this only makes the bins etc. but
-                               # doesn't generate the density
-    >>> p['density'] # now we have a density profile
-    >>> p.keys()
-    ['mass', 'n', 'density']
-    >>> p.families()
-    [<Family dm>, <Family star>, <Family gas>]
-
-
-    Density profile of the stars:
-
-    >>> ps = profile.Profile(s.s) # xy profile of the stars
-    >>> ps = profile.Profile(s.s, type='log') # same, but with log bins
-    >>> ps.families()
-    [<Family star>]
-    >>> import matplotlib.pyplot as plt
-    >>> plt.plot(ps['rbins'], ps['density'], 'o')
-    >>> plt.semilogy()
-
-    Metallicity profile of the gas in spherical shells (requires appropriate auxilliary files):
-
-    >>> pg = profile.Profile(s.g, ndim=3)
-    >>> pg['feh']
-    SimSnap: deriving array feh
-    TipsySnap: attempting to load auxiliary array 10/12M_hr.01000.FeMassFrac
-    SimSnap: deriving array hydrogen
-    SimSnap: deriving array hetot
-    SimArray([  1.83251940e-01,   1.48439968e-02,  -4.09390892e-01,
-    -1.82734736e+01])
-
-    Radial velocity dispersion profile and its gradient:
-
-    >>> ps = profile.Profile(s.s, max=15)
-    >>> ps['vr_disp']
-    SimSnap: deriving array vr
-    SimSnap: deriving array r
-    SimArray([ 118.80420996,  122.06102431,  131.13872886,  144.74447697,
-    35.89904165,   37.59565128,   35.21608633,   35.03373379], '1.01e+00 km s**-1')
-
-    >>> p['d_vr_disp']
-    SimArray([  21.71365764,   41.11802081,   75.61694836,  105.28110255,
-    2.664999  ,   -2.27668148,   -8.54033931,   -1.21577105], '1.01e+00 km s**-1 kpc**-1')
-
-
-    Using another quantity for binning:
-
-    >>> ps = profile.Profile(s.s, calc_x = lambda x: x.s['rform'])
-
     """
 
     _profile_registry = {}
@@ -240,11 +186,18 @@ class Profile:
             # and optional keyword parameters
 
             if 'max' in kwargs:
-                if isinstance(kwargs['max'], str):
-                    self.max = units.Unit(kwargs['max']).ratio(x.units,
+                kwargs['rmax'] = kwargs.pop('max')
+                warnings.warn("Use of max as a keyword argument is deprecated. Use rmax instead.", DeprecationWarning)
+            if 'min' in kwargs:
+                kwargs['rmin'] = kwargs.pop('min')
+                warnings.warn("Use of min as a keyword argument is deprecated. Use rmin instead.", DeprecationWarning)
+
+            if 'rmax' in kwargs:
+                if isinstance(kwargs['rmax'], str):
+                    self.max = units.Unit(kwargs['rmax']).ratio(x.units,
                                                                **sim.conversion_context())
                 else:
-                    self.max = kwargs['max']
+                    self.max = kwargs['rmax']
             else:
                 self.max = np.max(x)
             if 'bins' in kwargs:
@@ -254,12 +207,12 @@ class Profile:
             else:
                 self.nbins = 100
 
-            if 'min' in kwargs:
-                if isinstance(kwargs['min'], str):
-                    self.min = units.Unit(kwargs['min']).ratio(x.units,
+            if 'rmin' in kwargs:
+                if isinstance(kwargs['rmin'], str):
+                    self.min = units.Unit(kwargs['rmin']).ratio(x.units,
                                                                **sim.conversion_context())
                 else:
-                    self.min = kwargs['min']
+                    self.min = kwargs['rmin']
             else:
                 self.min = np.min(x[x > 0])
 
