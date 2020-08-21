@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Basic snapshot manipulation &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic snapshot manipulation &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="A walk through pynbody’s low-level facilities" href="data_access.html" />
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="basic-snapshot-manipulation">
@@ -64,9 +58,9 @@ pretty picture or two.</p>
 <p><cite>Pynbody</cite> includes some essential tools that allow you to quickly
 generate (and visualize) physically interesting quantities. Some of
 the snapshot manipulation functions are included in the low-level
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">pynbody.snapshot.SimSnap</span></code></a> class, others can be found in two
-analysis modules <a class="reference internal" href="../reference/analysis.html#module-pynbody.analysis.angmom" title="pynbody.analysis.angmom"><code class="xref py py-mod docutils literal"><span class="pre">pynbody.analysis.angmom</span></code></a> and
-<a class="reference internal" href="../reference/analysis.html#module-pynbody.analysis.halo" title="pynbody.analysis.halo"><code class="xref py py-mod docutils literal"><span class="pre">pynbody.analysis.halo</span></code></a>. This brief walkthrough will show you
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">pynbody.snapshot.SimSnap</span></code></a> class, others can be found in two
+analysis modules <a class="reference internal" href="../reference/analysis.html#module-pynbody.analysis.angmom" title="pynbody.analysis.angmom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pynbody.analysis.angmom</span></code></a> and
+<a class="reference internal" href="../reference/analysis.html#module-pynbody.analysis.halo" title="pynbody.analysis.halo"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pynbody.analysis.halo</span></code></a>. This brief walkthrough will show you
 some of their capabilities that form the first steps of any simulation
 analysis workflow and by the end you should be able to display a basic
 image of your simulation.</p>
@@ -78,11 +72,11 @@ much richer interactive environment over the vanilla <cite>python</cite>
 interpreter. However, you can type exactly the same commands into
 vanilla <cite>python</cite>; only the formatting will look slightly
 different. For instance, the <cite>ipython</cite> prompt looks like</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
 </pre></div>
 </div>
 <p>while the <cite>python</cite> prompt looks like</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;</span>
 </pre></div>
 </div>
 <p>We highly recommend <cite>ipython</cite> for interactive data analysis. You should also
@@ -90,9 +84,9 @@ install <a class="reference external" href="http://matplotlib.org/">matplotlib</
 end of the walkthrough (see the <a class="reference internal" href="../installation.html#pynbody-installation"><span class="std std-ref">Pynbody Installation</span></a> documentation for
 more details).</p>
 <p>Once <cite>ipython</cite> and <cite>matplotlib</cite> are installed, you can start the
-<cite>ipython</cite> shell with the <code class="docutils literal"><span class="pre">--pylab</span></code> flag to automatically load the
+<cite>ipython</cite> shell with the <code class="docutils literal notranslate"><span class="pre">--pylab</span></code> flag to automatically load the
 interactive plotting environment:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>[user@domain ~]$ ipython --pylab
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[user@domain ~]$ ipython --pylab
 
 Python 2.7.14 |Anaconda custom (64-bit)| (default, Oct  5 2017, 02:28:52)
 Type &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
@@ -109,15 +103,15 @@ In [1]:
 </div>
 <p>Now we can get started with the analysis.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Before you start make sure <cite>pynbody</cite> is properly
+<p class="admonition-title">Note</p>
+<p>Before you start make sure <cite>pynbody</cite> is properly
 installed. See <a class="reference internal" href="../installation.html#pynbody-installation"><span class="std std-ref">Pynbody Installation</span></a> for more information. You
 will also need the standard <cite>pynbody</cite> test files, so that you can
 load the exact same data as used to write the tutorial. You need to
 download these separately here:
 &lt;<a class="reference external" href="http://star.ucl.ac.uk/~app/testdata.tar.gz">http://star.ucl.ac.uk/~app/testdata.tar.gz</a>&gt;
 (<cite>testdata.tar.gz</cite>). You can then extract them in a directory of your
-choice with <code class="docutils literal"><span class="pre">tar</span> <span class="pre">-zxvf</span> <span class="pre">testdata.tar.gz</span></code></p>
+choice with <code class="docutils literal notranslate"><span class="pre">tar</span> <span class="pre">-zxvf</span> <span class="pre">testdata.tar.gz</span></code></p>
 </div>
 </div>
 <div class="section" id="first-steps">
@@ -125,32 +119,32 @@ choice with <code class="docutils literal"><span class="pre">tar</span> <span cl
 <p>The first step of any analysis is to load the data. Afterwards, we
 will want to center it on the halo of interest (in this case the main
 halo) to analyze its contents.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="kn">import</span> <span class="nn">pylab</span>
 
 <span class="gp">In [3]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>This loads the snapshot <code class="docutils literal"><span class="pre">s</span></code> (make sure you use the correct path to
+<p>This loads the snapshot <code class="docutils literal notranslate"><span class="pre">s</span></code> (make sure you use the correct path to
 the <cite>testdata</cite> directory). Now we load the halos and center on the
 main halo (see the <a class="reference internal" href="halos.html#halo-tutorial"><span class="std std-ref">Halos in Pynbody</span></a> tutorial for more detailed
 information on how to deal with halos):</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>For later convenience, we can store the main halo in a separate
 variable:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">h1</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">h1</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>And perhaps check quickly how many particles of each type are identified there:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="k">print</span><span class="p">(</span><span class="s1">&#39;ngas = </span><span class="si">%e</span><span class="s1">, ndark = </span><span class="si">%e</span><span class="s1">, nstar = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">gas</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">dark</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">star</span><span class="p">)))</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ngas = </span><span class="si">%e</span><span class="s1">, ndark = </span><span class="si">%e</span><span class="s1">, nstar = </span><span class="si">%e</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">gas</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">dark</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">star</span><span class="p">)))</span>
 <span class="go">ngas = 7.906000e+04, ndark = 1.610620e+05, nstar = 2.621780e+05</span>
 </pre></div>
 </div>
-<p>The halos of <code class="docutils literal"><span class="pre">s</span></code> are now loaded in <code class="docutils literal"><span class="pre">h</span></code> and <code class="docutils literal"><span class="pre">h[1]</span></code> yields the
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal"><span class="pre">SubSnap</span></code></a> of <cite>s</cite> that corresponds to
+<p>The halos of <code class="docutils literal notranslate"><span class="pre">s</span></code> are now loaded in <code class="docutils literal notranslate"><span class="pre">h</span></code> and <code class="docutils literal notranslate"><span class="pre">h[1]</span></code> yields the
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubSnap</span></code></a> of <cite>s</cite> that corresponds to
 halo 1.</p>
 </div>
 <div class="section" id="centering-on-something-interesting">
@@ -159,65 +153,65 @@ halo 1.</p>
 profiles) in pynbody like your data to be centered on a point of
 interest.  The most straight-forward way to center your snapshot on a
 halo is as follows:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">)</span>
-<span class="gh">Out[7]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x1c23154b50&gt;</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">)</span>
+<span class="gh">Out[7]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x7ffc144ba6a0&gt;</span>
 </pre></div>
 </div>
-<p>We passed <code class="docutils literal"><span class="pre">h[1]</span></code> to the function
-<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal"><span class="pre">center()</span></code></a> to center the <em>entire</em> snapshot
+<p>We passed <code class="docutils literal notranslate"><span class="pre">h[1]</span></code> to the function
+<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal notranslate"><span class="pre">center()</span></code></a> to center the <em>entire</em> snapshot
 on the largest halo. We specify the mode of centering using the
-keyword <code class="docutils literal"><span class="pre">mode</span></code> - here, we used <code class="docutils literal"><span class="pre">hyb</span></code>, which stands for hybrid: the
+keyword <code class="docutils literal notranslate"><span class="pre">mode</span></code> - here, we used <code class="docutils literal notranslate"><span class="pre">hyb</span></code>, which stands for hybrid: the
 snapshot is first centered on the particle with the lowest potential,
 and this guess is then refined using the <cite>shrinking sphere</cite> method
-(see the documentation for <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal"><span class="pre">center()</span></code></a> for
+(see the documentation for <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal notranslate"><span class="pre">center()</span></code></a> for
 more details).</p>
 <p>Suppose we now want to center only the contents of halo 5, leaving the
 rest of the simulation untouched. This is no problem. Let’s check
 where a particle in halo 5 is, then shift it and try again. You’ll
 notice halo 1 doesn’t move at all.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="k">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 <span class="go">[-0.00091396 -0.00044043 -0.00365958]</span>
 
-<span class="gp">In [9]: </span><span class="k">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">In [9]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 <span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
 
 <span class="gp">In [10]: </span><span class="n">h5</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 
-<span class="gp">In [11]: </span><span class="n">my_h5_transform</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h5</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="gp">In [11]: </span><span class="n">my_h5_transform</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h5</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">,</span> <span class="n">move_all</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<span class="gp">In [12]: </span><span class="k">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># should be unchanged</span>
+<span class="gp">In [12]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># should be unchanged</span>
 <span class="go">[-0.00091396 -0.00044043 -0.00365958]</span>
 
-<span class="gp">In [13]: </span><span class="k">print</span><span class="p">(</span><span class="n">h5</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># should be changed</span>
-<span class="go">[  7.37221446e-05   8.42725399e-05   1.28729490e-04]</span>
+<span class="gp">In [13]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h5</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># should be changed</span>
+<span class="go">[7.37221446e-05 8.42725399e-05 1.28729490e-04]</span>
 </pre></div>
 </div>
-<p>Note however that the data inside <code class="docutils literal"><span class="pre">h5</span></code> (or any halo) just <em>points</em>
+<p>Note however that the data inside <code class="docutils literal notranslate"><span class="pre">h5</span></code> (or any halo) just <em>points</em>
 to a subset of the data in the full simulation. So you now have an
 inconsistent state where part of the simulation has been translated
 and the rest of it is where it started out. For that reason, functions
 that transform data return a <cite>Tranformation</cite> object that conveniently
 allows you to undo the operation:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">my_h5_transform</span><span class="o">.</span><span class="n">revert</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">my_h5_transform</span><span class="o">.</span><span class="n">revert</span><span class="p">()</span>
 
-<span class="gp">In [15]: </span><span class="k">print</span><span class="p">(</span><span class="n">h5</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># back to where it started</span>
+<span class="gp">In [15]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h5</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># back to where it started</span>
 <span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
 
-<span class="gp">In [16]: </span><span class="k">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># still hasn&#39;t changed, of course</span>
+<span class="gp">In [16]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># still hasn&#39;t changed, of course</span>
 <span class="go">[-0.00091396 -0.00044043 -0.00365958]</span>
 </pre></div>
 </div>
 <p>In fact, there’s a more pythonic and compact way to do this. Suppose
-you want to process <code class="docutils literal"><span class="pre">h[5]</span></code> in some way, but be sure that the
+you want to process <code class="docutils literal notranslate"><span class="pre">h[5]</span></code> in some way, but be sure that the
 centering is unaffected after you are done. This is the thing to do:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="k">with</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">):</span> <span class="k">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-<span class="go">[  7.37221446e-05   8.42725399e-05   1.28729490e-04]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="k">with</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">[7.37221446e-05 8.42725399e-05 1.28729490e-04]</span>
 
-<span class="gp">In [18]: </span><span class="k">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">In [18]: </span><span class="nb">print</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 <span class="go">[-0.00092652  0.00130131 -0.00042332]</span>
 </pre></div>
 </div>
-<p>Inside the <code class="docutils literal"><span class="pre">with</span></code> code block, <code class="docutils literal"><span class="pre">h[5]</span></code> is centered. The moment the block
+<p>Inside the <code class="docutils literal notranslate"><span class="pre">with</span></code> code block, <code class="docutils literal notranslate"><span class="pre">h[5]</span></code> is centered. The moment the block
 exits, the transformation is undone – even if the block exits with an
 exception.</p>
 </div>
@@ -225,21 +219,21 @@ exception.</p>
 <h2>Taking even more control<a class="headerlink" href="#taking-even-more-control" title="Permalink to this headline">¶</a></h2>
 <p>If you want to make sure that the coordinates which pynbody finds for
 the center are reasonable before recentering, supply
-<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal"><span class="pre">center()</span></code></a> with the <code class="docutils literal"><span class="pre">retcen</span></code> keyword and
+<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal notranslate"><span class="pre">center()</span></code></a> with the <code class="docutils literal notranslate"><span class="pre">retcen</span></code> keyword and
 change the positions manually. This is useful for comparing the
 results of different centering schemes, when accurate center
 determination is essential. So lets repeat some of the previous steps
 to illustrate this:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">);</span> <span class="n">h1</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()[</span><span class="mi">1</span><span class="p">];</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">);</span> <span class="n">h1</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()[</span><span class="mi">1</span><span class="p">];</span>
 
-<span class="gp">In [20]: </span><span class="n">cen_hyb</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="gp">In [20]: </span><span class="n">cen_hyb</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;hyb&#39;</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="gp">In [21]: </span><span class="n">cen_pot</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="gp">In [21]: </span><span class="n">cen_pot</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span><span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="gp">In [22]: </span><span class="k">print</span><span class="p">(</span><span class="n">cen_hyb</span><span class="p">)</span>
+<span class="gp">In [22]: </span><span class="nb">print</span><span class="p">(</span><span class="n">cen_hyb</span><span class="p">)</span>
 <span class="go">[ 0.02445621 -0.03411364 -0.12243623]</span>
 
-<span class="gp">In [23]: </span><span class="k">print</span><span class="p">(</span><span class="n">cen_pot</span><span class="p">)</span>
+<span class="gp">In [23]: </span><span class="nb">print</span><span class="p">(</span><span class="n">cen_pot</span><span class="p">)</span>
 <span class="go">[ 0.02445719 -0.03411397 -0.12243643]</span>
 
 <span class="gp">In [24]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen_hyb</span>
@@ -248,13 +242,13 @@ to illustrate this:</p>
 <p>In this case, we decided that the <cite>hyb</cite> center was better, so we use
 it for the last step.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">When calling <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal"><span class="pre">center()</span></code></a> without
-the <code class="docutils literal"><span class="pre">retcen</span></code> keyword, the particle velocities are also
+<p class="admonition-title">Note</p>
+<p>When calling <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.center" title="pynbody.analysis.halo.center"><code class="xref py py-func docutils literal notranslate"><span class="pre">center()</span></code></a> without
+the <code class="docutils literal notranslate"><span class="pre">retcen</span></code> keyword, the particle velocities are also
 centered according to the mean velocity around the
 center. If you perform the centering manually, this is not done.
 You have to determine the bulk velocity separately using
-<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.vel_center" title="pynbody.analysis.halo.vel_center"><code class="xref py py-func docutils literal"><span class="pre">vel_center()</span></code></a>.</p>
+<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.halo.vel_center" title="pynbody.analysis.halo.vel_center"><code class="xref py py-func docutils literal notranslate"><span class="pre">vel_center()</span></code></a>.</p>
 </div>
 </div>
 <div class="section" id="making-some-images">
@@ -262,90 +256,90 @@ You have to determine the bulk velocity separately using
 <p>Enough centering! We can take a look at what we have at the center
 now, but to make things easier to interpret we convert to physical
 units first:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
 <span class="gp">In [26]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">)</span>
 <span class="gh">Out[26]: </span><span class="go"></span>
-<span class="go">SimArray([[ 10041.64941406,  10105.10644531,  10168.5625    , ...,</span>
-<span class="go">            10218.58984375,  10166.0859375 ,  10113.58105469],</span>
-<span class="go">          [ 10082.31445312,  10146.28515625,  10210.25683594, ...,</span>
-<span class="go">            10247.0625    ,  10193.54882812,  10140.03417969],</span>
-<span class="go">          [ 10122.97949219,  10187.46484375,  10251.95117188, ...,</span>
-<span class="go">            10275.53417969,  10221.00976562,  10166.48632812],</span>
-<span class="go">          ..., </span>
-<span class="go">          [  9724.58398438,   9856.54003906,   9988.49609375, ...,</span>
-<span class="go">             9300.84667969,   9263.12402344,   9225.40039062],</span>
-<span class="go">          [  9659.01171875,   9787.50390625,   9915.99511719, ...,</span>
-<span class="go">             9279.01757812,   9242.16015625,   9205.30273438],</span>
-<span class="go">          [  9593.43945312,   9718.46679688,   9843.49414062, ...,</span>
-<span class="go">             9257.18945312,   9221.19726562,   9185.20605469]], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
+<span class="go">SimArray([[10041.649 , 10105.106 , 10168.5625, ..., 10218.59  ,</span>
+<span class="go">           10166.086 , 10113.581 ],</span>
+<span class="go">          [10082.314 , 10146.285 , 10210.257 , ..., 10247.0625,</span>
+<span class="go">           10193.548 , 10140.033 ],</span>
+<span class="go">          [10122.979 , 10187.465 , 10251.951 , ..., 10275.534 ,</span>
+<span class="go">           10221.01  , 10166.486 ],</span>
+<span class="go">          ...,</span>
+<span class="go">          [ 9724.582 ,  9856.539 ,  9988.495 , ...,  9300.846 ,</span>
+<span class="go">            9263.123 ,  9225.4   ],</span>
+<span class="go">          [ 9659.011 ,  9787.502 ,  9915.994 , ...,  9279.018 ,</span>
+<span class="go">            9242.16  ,  9205.303 ],</span>
+<span class="go">          [ 9593.438 ,  9718.466 ,  9843.493 , ...,  9257.189 ,</span>
+<span class="go">            9221.197 ,  9185.205 ]], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1.png"><img alt="../_images/snapshot_manipulation_fig1.png" src="../_images/snapshot_manipulation_fig1.png" style="width: 5in;" /></a>
 <p>Here’s a slightly more complicated example showing the larger-scale
 dark-matter distribution – note that you can conveniently specify the
 width as a string with a unit.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s1">&#39;10 Mpc&#39;</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="s1">&#39;10 Mpc&#39;</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;Msol kpc^-2&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys&#39;</span><span class="p">);</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s1">&#39;10 Mpc&#39;</span><span class="p">)],</span> <span class="n">width</span><span class="o">=</span><span class="s1">&#39;10 Mpc&#39;</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;Msol kpc^-2&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greys&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig1_wide.png"><img alt="../_images/snapshot_manipulation_fig1_wide.png" src="../_images/snapshot_manipulation_fig1_wide.png" style="width: 5in;" /></a>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">see the <a class="reference internal" href="pictures.html"><span class="doc">Pictures in Pynbody</span></a> tutorial for more examples and help regarding images.</p>
+<p class="admonition-title">Note</p>
+<p>see the <a class="reference internal" href="pictures.html"><span class="doc">Pictures in Pynbody</span></a> tutorial for more examples and help regarding images.</p>
 </div>
 </div>
 <div class="section" id="aligning-the-snapshot">
 <h2>Aligning the Snapshot<a class="headerlink" href="#aligning-the-snapshot" title="Permalink to this headline">¶</a></h2>
 <p>In this example, the disk seems to be aligned more or less face-on,
 but let’s say we want it edge-on:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [28]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-<span class="gh">Out[28]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x1812ec21d0&gt;</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [28]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">sideon</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gh">Out[28]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x7ffc01e8cdf0&gt;</span>
 
 <span class="gp">In [29]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">);</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig2.png"><img alt="../_images/snapshot_manipulation_fig2.png" src="../_images/snapshot_manipulation_fig2.png" style="width: 5in;" /></a>
-<p>Note that the function <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.angmom.sideon" title="pynbody.analysis.angmom.sideon"><code class="xref py py-func docutils literal"><span class="pre">sideon()</span></code></a> will
+<p>Note that the function <a class="reference internal" href="../reference/analysis.html#pynbody.analysis.angmom.sideon" title="pynbody.analysis.angmom.sideon"><code class="xref py py-func docutils literal notranslate"><span class="pre">sideon()</span></code></a> will
 actually by default center the snapshot first, unless you feed it the
-<code class="docutils literal"><span class="pre">cen</span></code> keyword. We did that here since we already centered it
+<code class="docutils literal notranslate"><span class="pre">cen</span></code> keyword. We did that here since we already centered it
 earlier. It then calculates the angular momentum vector in a sphere
 around the center and rotates the snapshot such that the angular
 momentum vector is parallel to the <cite>y</cite>-axis. If, instead, you’d like
 the disk face-on, you can call the equivalent
-<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.angmom.faceon" title="pynbody.analysis.angmom.faceon"><code class="xref py py-func docutils literal"><span class="pre">pynbody.analysis.angmom.faceon()</span></code></a>. Alternatively, if you
+<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.angmom.faceon" title="pynbody.analysis.angmom.faceon"><code class="xref py py-func docutils literal notranslate"><span class="pre">pynbody.analysis.angmom.faceon()</span></code></a>. Alternatively, if you
 want to just rotate the snapshot by arbitrary angles, the
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">SimSnap</span></code></a> class includes functions
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.rotate_x" title="pynbody.snapshot.SimSnap.rotate_x"><code class="xref py py-func docutils literal"><span class="pre">rotate_x()</span></code></a>,
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.rotate_y" title="pynbody.snapshot.SimSnap.rotate_y"><code class="xref py py-func docutils literal"><span class="pre">rotate_y()</span></code></a>,
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.rotate_z" title="pynbody.snapshot.SimSnap.rotate_z"><code class="xref py py-func docutils literal"><span class="pre">rotate_z()</span></code></a> that rotate the snapshot
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimSnap</span></code></a> class includes functions
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.rotate_x" title="pynbody.snapshot.SimSnap.rotate_x"><code class="xref py py-func docutils literal notranslate"><span class="pre">rotate_x()</span></code></a>,
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.rotate_y" title="pynbody.snapshot.SimSnap.rotate_y"><code class="xref py py-func docutils literal notranslate"><span class="pre">rotate_y()</span></code></a>,
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.rotate_z" title="pynbody.snapshot.SimSnap.rotate_z"><code class="xref py py-func docutils literal notranslate"><span class="pre">rotate_z()</span></code></a> that rotate the snapshot
 about the respective axes.</p>
 <p>We can use this to rotate the disk into a face-on orientation:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
-<span class="gh">Out[30]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x1812ec25d0&gt;</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="n">s</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
+<span class="gh">Out[30]: </span><span class="go">&lt;pynbody.transformation.GenericRotation at 0x7ffc1379bdc0&gt;</span>
 </pre></div>
 </div>
 <p>All of these transformations behave in the way that was specified for
-centering. That is, you can revert them by using a <code class="docutils literal"><span class="pre">with</span></code> block or
-by storing the transformation and applying the <code class="docutils literal"><span class="pre">revert</span></code> method
+centering. That is, you can revert them by using a <code class="docutils literal notranslate"><span class="pre">with</span></code> block or
+by storing the transformation and applying the <code class="docutils literal notranslate"><span class="pre">revert</span></code> method
 later.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">High-level snapshot manipulation functions defined in
-<code class="docutils literal"><span class="pre">pynbody.analysis</span></code> typically transform the <em>entire</em> simulation,
-even if you only pass in a <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal"><span class="pre">SubSnap</span></code></a>. This
+<p class="admonition-title">Note</p>
+<p>High-level snapshot manipulation functions defined in
+<code class="docutils literal notranslate"><span class="pre">pynbody.analysis</span></code> typically transform the <em>entire</em> simulation,
+even if you only pass in a <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubSnap</span></code></a>. This
 is because you normally want to <em>calculate</em> the transform
 from a subset of particles, but <em>apply</em> the transform to the full
 simulation (e.g. when centering on a particular halo). So, for
-instance, <code class="docutils literal"><span class="pre">pynbody.analysis.angmom.sideon(h1)</span></code> calculates the
+instance, <code class="docutils literal notranslate"><span class="pre">pynbody.analysis.angmom.sideon(h1)</span></code> calculates the
 transforms for halo 1, but then applies them to the entire snapshot,
 unless you specifically ask otherwise.
 However, <em>core</em> routines (i.e. those that are not part of the
-<code class="docutils literal"><span class="pre">pynbody.analysis</span></code> module) typically operate on exactly what you
-ask them to, so <code class="docutils literal"><span class="pre">s.g.rotate_x(90)</span></code> rotates only the gas while
-<code class="docutils literal"><span class="pre">s.rotate_x(90)</span></code> rotates the entire simulation.</p>
+<code class="docutils literal notranslate"><span class="pre">pynbody.analysis</span></code> module) typically operate on exactly what you
+ask them to, so <code class="docutils literal notranslate"><span class="pre">s.g.rotate_x(90)</span></code> rotates only the gas while
+<code class="docutils literal notranslate"><span class="pre">s.rotate_x(90)</span></code> rotates the entire simulation.</p>
 </div>
 <p>In the face-on orientation, we may wish to make a profile of the stars:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [31]: </span><span class="n">ps</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [31]: </span><span class="n">ps</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="nb">max</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
 
 <span class="gp">In [32]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
 
@@ -360,28 +354,28 @@ ask them to, so <code class="docutils literal"><span class="pre">s.g.rotate_x(90
 </div>
 <a class="reference internal image-reference" href="../_images/snapshot_manipulation_fig3.png"><img alt="../_images/snapshot_manipulation_fig3.png" src="../_images/snapshot_manipulation_fig3.png" style="width: 5in;" /></a>
 <p>We can also generate other profiles, like the rotation curve:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
 <span class="gh">Out[37]: </span><span class="go">&lt;Figure size 552x416 with 0 Axes&gt;</span>
 
-<span class="gp">In [38]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="gp">In [38]: </span><span class="n">pd</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">d</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mi">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
 
-<span class="gp">In [39]: </span><span class="n">pg</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="gp">In [39]: </span><span class="n">pg</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="o">.</span><span class="n">g</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mi">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
 
-<span class="gp">In [40]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mo">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="gp">In [40]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span><span class="nb">min</span><span class="o">=.</span><span class="mi">01</span><span class="p">,</span><span class="nb">max</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span><span class="p">)</span>
 
 <span class="gp">In [41]: </span><span class="k">for</span> <span class="n">prof</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">p</span><span class="p">,</span><span class="n">pd</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">pg</span><span class="p">],[</span><span class="s1">&#39;total&#39;</span><span class="p">,</span><span class="s1">&#39;dm&#39;</span><span class="p">,</span><span class="s1">&#39;stars&#39;</span><span class="p">,</span><span class="s1">&#39;gas&#39;</span><span class="p">])</span> <span class="p">:</span> <span class="n">pylab</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">],</span><span class="n">prof</span><span class="p">[</span><span class="s1">&#39;v_circ&#39;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
 <span class="gp">In [42]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;$R$ [kpc]&#39;</span><span class="p">);</span>
 
-<span class="gp">In [43]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$v_{circ}$ [km/s]&#39;</span><span class="p">);</span>
+<span class="gp">In [43]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$v_</span><span class="si">{circ}</span><span class="s1">$ [km/s]&#39;</span><span class="p">);</span>
 
 <span class="gp">In [44]: </span><span class="n">pylab</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="gh">Out[44]: </span><span class="go">&lt;matplotlib.legend.Legend at 0x181273f510&gt;</span>
+<span class="gh">Out[44]: </span><span class="go">&lt;matplotlib.legend.Legend at 0x7ffc27450850&gt;</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="../_images/vcirc_profiles.png"><img alt="../_images/vcirc_profiles.png" src="../_images/vcirc_profiles.png" style="width: 5in;" /></a>
 <p>See the <a class="reference internal" href="profile.html"><span class="doc">Profiles in Pynbody</span></a> tutorial or the
-<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><code class="xref py py-class docutils literal"><span class="pre">Profile</span></code></a> documentation for more
+<a class="reference internal" href="../reference/analysis.html#pynbody.analysis.profile.Profile" title="pynbody.analysis.profile.Profile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Profile</span></code></a> documentation for more
 information on available options and other profiles that you can
 generate.</p>
 <p>We’ve only touched on the basic information that <cite>pynbody</cite> is able to
@@ -393,25 +387,32 @@ tutorial.</p>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Basic snapshot manipulation</a><ul>
-<li><a class="reference internal" href="#setting-up-the-interactive-environment">Setting up the interactive environment</a></li>
-<li><a class="reference internal" href="#first-steps">First steps</a></li>
-<li><a class="reference internal" href="#centering-on-something-interesting">Centering on something interesting</a></li>
-<li><a class="reference internal" href="#taking-even-more-control">Taking even more control</a></li>
-<li><a class="reference internal" href="#making-some-images">Making some images</a></li>
-<li><a class="reference internal" href="#aligning-the-snapshot">Aligning the Snapshot</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -423,33 +424,34 @@ tutorial.</p>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/snapshot_manipulation.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/snapshot_manipulation.rst.txt"

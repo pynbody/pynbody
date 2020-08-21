@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.snapshot &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.snapshot &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.snapshot</h1><div class="highlight"><pre>
@@ -66,15 +60,15 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">array</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">family</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">util</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">filt</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">units</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">simdict</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">dependencytracker</span>
-<span class="kn">from</span> <span class="nn">..units</span> <span class="k">import</span> <span class="n">has_units</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">family</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">simdict</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">dependencytracker</span>
+<span class="kn">from</span> <span class="nn">..units</span> <span class="kn">import</span> <span class="n">has_units</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">copy</span>
@@ -88,6 +82,7 @@
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;pynbody.snapshot&#39;</span><span class="p">)</span>
 
@@ -169,12 +164,12 @@
 <span class="sd">        if no such mapping is possible.</span>
 
 <span class="sd">        e.g. &#39;vy&#39; -&gt; &#39;vel&#39;; &#39;acc_z&#39; -&gt; &#39;acc&#39;; &#39;mass&#39; -&gt; None&quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">k</span>
 
         <span class="n">generic_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;^(.+)_[xyz]$&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">generic_match</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">generic_match</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="kc">None</span>
@@ -192,7 +187,7 @@
         <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
             <span class="n">array_name_1D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">array_name_1D</span> <span class="o">=</span> <span class="p">[</span><span class="n">array_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]</span>
+            <span class="n">array_name_1D</span> <span class="o">=</span> <span class="p">[</span><span class="n">array_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">)]</span>
 
         <span class="k">return</span> <span class="n">array_name_1D</span>
 
@@ -204,20 +199,20 @@
 <span class="sd">        then looks for generic names such as acc_x - however this would only be</span>
 <span class="sd">        considered a &quot;match&quot; for a ND subslice if &#39;acc&#39; is in loadable_keys().</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
               <span class="k">return</span> <span class="kc">True</span>
 
         <span class="n">generic_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;^(.+)_[xyz]$&quot;</span><span class="p">,</span> <span class="n">array_name</span><span class="p">)</span>
         <span class="n">loadable_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">generic_match</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">generic_match</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_arrays</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">loadable_keys</span> <span class="ow">or</span> <span class="n">generic_match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">keys</span>
         <span class="k">return</span> <span class="kc">False</span>
 
 
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize an empty, zero-length SimSnap.</span>
 
 <span class="sd">        For most purposes SimSnaps should instead be initialized through</span>
@@ -286,10 +281,10 @@
     <span class="k">def</span> <span class="nf">filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
 
-    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="s2">&quot;&lt;SimSnap </span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> len=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;&gt;&quot;</span>
         <span class="k">else</span><span class="p">:</span>
@@ -312,7 +307,7 @@
     <span class="c1"># THE BASICS: GETTING AND SETTING</span>
     <span class="c1">############################################</span>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return either a specific array or a subview of this simulation. See</span>
 <span class="sd">        the class documentation (:class:`SimSnap`) for more information.&quot;&quot;&quot;</span>
 
@@ -331,7 +326,7 @@
 
         <span class="k">raise</span> <span class="ne">TypeError</span>
 
-    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set the contents of an array in this snapshot&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_propagate_off</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Derived array is not writable&quot;</span><span class="p">)</span>
@@ -349,7 +344,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">ax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="c1"># Array needs to be created. We do this through the</span>
             <span class="c1"># private _create_array method, so that if we are operating</span>
             <span class="c1"># within a particle-specific subview we automatically create</span>
@@ -374,13 +369,13 @@
         <span class="c1"># += etc, since these call __setitem__).</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_array</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">:</span>
             <span class="c1"># mustn&#39;t have simulation-level array of this name</span>
             <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                 <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
                     <span class="k">del</span> <span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span>
 
@@ -399,7 +394,7 @@
 
     <span class="k">def</span> <span class="nf">_get_array_with_lazy_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
 
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dependency_tracker</span><span class="o">.</span><span class="n">touching</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         
@@ -417,14 +412,14 @@
 
 
     <span class="k">def</span> <span class="nf">__load_if_required</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">__load_array_and_perform_postprocessing</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
                 <span class="k">pass</span>
 
     <span class="k">def</span> <span class="nf">__derive_if_required</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_derive_array</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__resolve_obscuring_family_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -477,11 +472,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_persistent_objects</span><span class="p">[</span><span class="nb">hash</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
 
     <span class="k">def</span> <span class="nf">_clear_immediate_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent_objects</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent_objects</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="s1">&#39;_immediate_cache&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
                 <span class="k">del</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;_immediate_cache&#39;</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This function overrides the behaviour of f.X where f is a SimSnap object.</span>
 
 <span class="sd">        It serves two purposes; first, it provides the family-handling behaviour</span>
@@ -500,7 +495,7 @@
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%r</span><span class="s2"> object has no attribute </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
             <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This function overrides the behaviour of setting f.X where f is a SimSnap object.</span>
 
 <span class="sd">        It serves two purposes; first it prevents overwriting of family names (so you can&#39;t</span>
@@ -514,7 +509,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This function allows persistent objects (as shared between two equivalent SubSnaps)</span>
 <span class="sd">        to be permanently deleted.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">SimSnap</span><span class="o">.</span><span class="n">_persistent</span><span class="p">:</span>
@@ -533,16 +528,16 @@
     <span class="c1">############################################</span>
 <div class="viewcode-block" id="SimSnap.keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the directly accessible array names (in memory)&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="SimSnap.has_key"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.has_key">[docs]</a>    <span class="k">def</span> <span class="nf">has_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns True if the array name is accessible (in memory)&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="SimSnap.values"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of the actual arrays in memory&quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">x</span></div>
 
@@ -550,7 +545,7 @@
         <span class="sd">&quot;&quot;&quot;Returns a list of tuples describing the array</span>
 <span class="sd">        names and their contents in memory&quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">x</span></div>
 
@@ -563,7 +558,7 @@
             <span class="k">return</span> <span class="n">alternative</span></div>
 
     <span class="k">def</span> <span class="nf">iterkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">yield</span> <span class="n">k</span>
 
     <span class="fm">__iter__</span> <span class="o">=</span> <span class="n">iterkeys</span>
@@ -596,7 +591,7 @@
         <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">cl</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">cl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">:</span>
-                <span class="n">res</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="n">res</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_derived_quantity_registry</span><span class="p">[</span><span class="n">cl</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="SimSnap.all_keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.all_keys">[docs]</a>    <span class="k">def</span> <span class="nf">all_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -613,7 +608,7 @@
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span> <span class="k">if</span> <span class="n">fam</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">x</span><span class="p">]]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
     <span class="c1">############################################</span>
     <span class="c1"># ANCESTRY FUNCTIONS</span>
@@ -718,9 +713,9 @@
         <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)):</span>
                 <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;Unknown format for units file </span><span class="si">%r</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot;.units&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Unknown format for units file </span><span class="si">%r</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot;.units&quot;</span><span class="p">))</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">t</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">))</span>
+                    <span class="n">t</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)))</span>
                     <span class="n">t</span> <span class="o">=</span> <span class="n">name_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
                     <span class="n">units_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span>
 
@@ -735,8 +730,8 @@
 <span class="sd">        If any of the units are not specified and a previous</span>
 <span class="sd">        `file_units_system` does not exist, the defaults are used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">config_parser</span>
-        <span class="kn">import</span> <span class="nn">ConfigParser</span>
+        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config_parser</span>
+        <span class="kn">import</span> <span class="nn">configparser</span>
 
         <span class="c1"># if the units system doesn&#39;t exist (if this is a new snapshot), create</span>
         <span class="c1"># one</span>
@@ -774,7 +769,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="n">new_units</span>
 
         <span class="c1"># set new units for all known arrays</span>
-        <span class="k">for</span> <span class="n">arr_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">arr_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">arr_name</span><span class="p">]</span>
             <span class="c1"># if the array has units, then use the current units, else</span>
             <span class="c1"># check if a default dimension for this array exists in</span>
@@ -785,7 +780,7 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">ref_unit</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                         <span class="s1">&#39;default-array-dimensions&#39;</span><span class="p">,</span> <span class="n">arr_name</span><span class="p">)</span>
-                <span class="k">except</span> <span class="n">ConfigParser</span><span class="o">.</span><span class="n">NoOptionError</span><span class="p">:</span>
+                <span class="k">except</span> <span class="n">configparser</span><span class="o">.</span><span class="n">NoOptionError</span><span class="p">:</span>
                     <span class="c1"># give up -- no applicable dimension found</span>
                     <span class="k">continue</span>
 
@@ -843,16 +838,16 @@
 
         <span class="k">global</span> <span class="n">config</span>
 
-        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">distance</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">]</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">)]</span>
 
-        <span class="nb">all</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="nb">all</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">:</span>
-            <span class="nb">all</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="nb">all</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
         <span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="nb">all</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_autoconvert_array_unit</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">units</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
                 <span class="k">try</span><span class="p">:</span>
@@ -894,7 +889,7 @@
 <span class="sd">        snapshot, using the first available method (as defined in the</span>
 <span class="sd">        configuration files).&quot;&quot;&quot;</span>
 
-        <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">halo</span>
+        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">halo</span>
 
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;halo-class-priority&#39;</span><span class="p">]:</span>
             <span class="k">try</span><span class="p">:</span>
@@ -921,14 +916,14 @@
 <span class="sd">        documentation for :py:mod:`pynbody.bridge`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">bridge</span>
+        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">bridge</span>
         <span class="k">return</span> <span class="n">bridge</span><span class="o">.</span><span class="n">bridge_factory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimSnap.load_copy"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SimSnap.load_copy">[docs]</a>    <span class="k">def</span> <span class="nf">load_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Tries to load a copy of this snapshot, using partial loading to select</span>
 <span class="sd">        only a subset of particles corresponding to a given SubSnap&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">,</span><span class="s1">&#39;partial_load&#39;</span><span class="p">,</span><span class="kc">False</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">,</span> <span class="s2">&quot;Cannot load a copy of data that was itself partial-loaded&quot;</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Cannot load a copy of data that was itself partial-loaded&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">take</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">))</span></div>
 
     <span class="c1">############################################</span>
@@ -958,7 +953,7 @@
 
         <span class="c1"># the following function builds a dictionary mapping families to a set of the</span>
         <span class="c1"># named arrays defined for them.</span>
-        <span class="n">fk</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">fami</span><span class="p">,</span> <span class="nb">set</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">anc</span><span class="o">.</span><span class="n">_family_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">fami</span> <span class="ow">in</span> <span class="n">anc</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">k</span><span class="p">]]))</span>
+        <span class="n">fk</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">fami</span><span class="p">,</span> <span class="nb">set</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">anc</span><span class="o">.</span><span class="n">_family_arrays</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">fami</span> <span class="ow">in</span> <span class="n">anc</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">k</span><span class="p">]]))</span>
                            <span class="k">for</span> <span class="n">fami</span> <span class="ow">in</span> <span class="n">family</span><span class="o">.</span><span class="n">_registry</span><span class="p">])</span>
         <span class="n">pre_fam_keys</span> <span class="o">=</span> <span class="n">fk</span><span class="p">()</span>
 
@@ -988,7 +983,7 @@
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">units</span><span class="o">.</span><span class="n">has_units</span><span class="p">(</span><span class="n">anc</span><span class="p">[</span><span class="n">v</span><span class="p">]):</span>
                     <span class="n">anc</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">anc</span><span class="o">.</span><span class="n">_default_units_for</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
                 <span class="n">anc</span><span class="o">.</span><span class="n">_autoconvert_array_unit</span><span class="p">(</span><span class="n">anc</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
-            <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">new_fam_keys</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">new_fam_keys</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">:</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">units</span><span class="o">.</span><span class="n">has_units</span><span class="p">(</span><span class="n">anc</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">v</span><span class="p">]):</span>
                         <span class="n">anc</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">anc</span><span class="o">.</span><span class="n">_default_units_for</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
@@ -1000,12 +995,12 @@
     <span class="c1"># VECTOR TRANSFORMATIONS OF THE SNAPSHOT</span>
     <span class="c1">############################################</span>
     <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">transformation</span>
+        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">transformation</span>
         <span class="k">return</span> <span class="n">transformation</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Transforms the snapshot according to the 3x3 matrix given.&quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ar</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">ar</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
                 <span class="bp">self</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">ar</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
@@ -1054,7 +1049,7 @@
                 <span class="bp">self</span><span class="p">[</span><span class="n">coord</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">boxsize</span>
                 <span class="bp">self</span><span class="p">[</span><span class="n">coord</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">boxsize</span><span class="p">)]</span> <span class="o">-=</span> <span class="n">boxsize</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Unknown wrapping convention&quot;</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown wrapping convention&quot;</span><span class="p">)</span></div>
 
     <span class="c1">############################################</span>
     <span class="c1"># WRITING FUNCTIONS</span>
@@ -1134,10 +1129,10 @@
 
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_get_preferred_dtype</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
         <span class="k">elif</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">():</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">][</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">dtype</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
@@ -1237,7 +1232,7 @@
         <span class="n">fams</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">dtx</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">fams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">fams</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
             <span class="n">dtx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">array_name</span><span class="p">][</span><span class="n">fams</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">dtype</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">pass</span>
@@ -1278,7 +1273,7 @@
             <span class="k">if</span> <span class="n">array_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="p">[</span><span class="n">family</span><span class="p">]:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="p">[</span><span class="n">family</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">ndim</span> <span class="ow">is</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">array_name_1D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_name_ND_to_1D</span><span class="p">(</span><span class="n">array_name</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">array_name_1D</span><span class="p">):</span>
                 <span class="n">sfa</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">new_ar</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
@@ -1437,9 +1432,9 @@
 
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
-                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
                     <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
                         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Data types of family arrays do not match; assuming &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
                             <span class="n">dtype</span><span class="p">),</span>  <span class="ne">RuntimeWarning</span><span class="p">)</span>
@@ -1498,7 +1493,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                     <span class="s2">&quot;Conjoining derived and non-derived arrays. Assuming result is non-derived, so no further updates will be made.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                 <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
                     <span class="k">del</span> <span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span>
 
@@ -1591,7 +1586,7 @@
 
         <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_name_1D_to_ND</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="n">name</span>
         <span class="k">if</span> <span class="n">name</span><span class="o">==</span><span class="s1">&#39;pos&#39;</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">_persistent_objects</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="o">.</span><span class="n">_persistent_objects</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                 <span class="k">if</span> <span class="s1">&#39;kdtree&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
                     <span class="k">del</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;kdtree&#39;</span><span class="p">]</span>
 
@@ -1608,7 +1603,7 @@
         <span class="n">fam</span> <span class="o">=</span> <span class="n">fam</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span>
         <span class="k">if</span> <span class="n">fam</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_array_names</span>
-        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived_array_names</span>
         <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">():</span>
             <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_derived_array_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_family_arrays</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
@@ -1681,10 +1676,10 @@
             <span class="n">rval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__inclusion_hash</span>
         <span class="k">return</span> <span class="n">rval</span>
 
-    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="nb">object</span><span class="o">.</span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ancestor</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inclusion_hash</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Equality test for Snapshots. Returns true if both sides of the</span>
 <span class="sd">        == operator point to the same data.&quot;&quot;&quot;</span>
 
@@ -1705,17 +1700,17 @@
         <span class="n">new_snap</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="o">**</span><span class="n">create_args</span><span class="p">)</span>
 
         <span class="c1"># ordering fix</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">new_snap</span><span class="o">.</span><span class="n">_family_slice</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">new_snap</span><span class="o">.</span><span class="n">_family_slice</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
             <span class="n">new_snap</span><span class="o">.</span><span class="n">_family_slice</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">new_snap</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">family_keys</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">fam</span> <span class="ow">in</span> <span class="n">family</span><span class="o">.</span><span class="n">_registry</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">self_fam</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fam</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">self_fam</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">self_fam</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">self_fam</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">self_fam</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
                         <span class="n">new_snap</span><span class="p">[</span><span class="n">fam</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">self_fam</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
         <span class="n">new_snap</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
@@ -1736,7 +1731,7 @@
 <span class="sd">    slice.  Arrays accessed through __getitem__ are automatically</span>
 <span class="sd">    sub-viewed using the given slice.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">_slice</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">_slice</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">_file_units_system</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">_unifamily</span>
@@ -1813,7 +1808,7 @@
     <span class="k">def</span> <span class="nf">_promote_family_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_promote_family_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="c1"># is this the right behaviour?</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Arrays can only be deleted from the base snapshot&quot;</span><span class="p">)</span>
 
@@ -1825,17 +1820,17 @@
     <span class="k">def</span> <span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span>
 
-    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="viewcode-block" id="SubSnap.keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
-    <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SubSnap.loadable_keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.loadable_keys">[docs]</a>    <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">derivable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()</span>
+<div class="viewcode-block" id="SubSnap.derivable_keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.derivable_keys">[docs]</a>    <span class="k">def</span> <span class="nf">derivable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SubSnap.infer_original_units"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.infer_original_units">[docs]</a>    <span class="k">def</span> <span class="nf">infer_original_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the units on disk for a quantity with the specified dimensions&quot;&quot;&quot;</span>
@@ -1849,19 +1844,19 @@
     <span class="k">def</span> <span class="nf">_load_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_load_array</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">write_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="SubSnap.write_array"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.write_array">[docs]</a>    <span class="k">def</span> <span class="nf">write_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">fam</span> <span class="o">=</span> <span class="n">fam</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">fam</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
                 <span class="s2">&quot;Array writing is available for entire simulation arrays or family-level arrays, but not for arbitrary subarrays&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">write_array</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="n">fam</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">write_array</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="n">fam</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_derive_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_derive_array</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">family_keys</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span>
+<div class="viewcode-block" id="SubSnap.family_keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.family_keys">[docs]</a>    <span class="k">def</span> <span class="nf">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">family_keys</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_create_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -1869,31 +1864,48 @@
     <span class="k">def</span> <span class="nf">_create_family_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_create_family_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">physical_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">physical_units</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<div class="viewcode-block" id="SubSnap.physical_units"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.physical_units">[docs]</a>    <span class="k">def</span> <span class="nf">physical_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">physical_units</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">is_derived_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+<div class="viewcode-block" id="SubSnap.is_derived_array"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.is_derived_array">[docs]</a>    <span class="k">def</span> <span class="nf">is_derived_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">is_derived_array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">unlink_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">unlink_array</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<div class="viewcode-block" id="SubSnap.unlink_array"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.unlink_array">[docs]</a>    <span class="k">def</span> <span class="nf">unlink_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">unlink_array</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">get_index_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relative_to</span><span class="p">,</span> <span class="n">of_particles</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SubSnap.get_index_list"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.SubSnap.get_index_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_index_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relative_to</span><span class="p">,</span> <span class="n">of_particles</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">of_particles</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">of_particles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">relative_to</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">of_particles</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="n">relative_to</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">concatenate_indexing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">,</span> <span class="n">of_particles</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">get_index_list</span><span class="p">(</span><span class="n">relative_to</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">concatenate_indexing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">,</span> <span class="n">of_particles</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="IndexedSubSnap"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.IndexedSubSnap">[docs]</a><span class="k">class</span> <span class="nc">IndexedSubSnap</span><span class="p">(</span><span class="n">SubSnap</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;Represents a subset of the simulation particles according</span>
-<span class="sd">    to an index array.&quot;&quot;&quot;</span>
+<span class="sd">    to an index array.</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">index_array</span><span class="p">):</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    base : SimSnap object</span>
+<span class="sd">        The base snapshot</span>
+<span class="sd">    index_array : integer array or None</span>
+<span class="sd">        The indices of the elements that define the sub snapshot. Set to None to use iord-based instead.</span>
+<span class="sd">    iord_array : integer array or None</span>
+<span class="sd">        The iord of the elements that define the sub snapshot. Set to None to use index-based instead.</span>
+<span class="sd">        This may be computationally expensive. See note below.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    `index_array` and `iord_array` arguments are mutually exclusive.</span>
+<span class="sd">    In the case of `iord_array`, an sorting operation is required that may take</span>
+<span class="sd">    a significant time and require O(N) memory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">index_array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">iord_array</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="s2">&quot;indexed&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
@@ -1901,6 +1913,15 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">_unifamily</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">_file_units_system</span>
+
+        <span class="k">if</span> <span class="n">index_array</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">iord_array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot define a subsnap without an index_array or iord_array.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index_array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">iord_array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot define a subsnap without both and index_array and iord_array.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">iord_array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">index_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iord_to_index</span><span class="p">(</span><span class="n">iord_array</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index_array</span><span class="p">,</span> <span class="n">filt</span><span class="o">.</span><span class="n">Filter</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_descriptor</span> <span class="o">=</span> <span class="n">index_array</span><span class="o">.</span><span class="n">_descriptor</span>
@@ -1936,6 +1957,23 @@
                                                        <span class="n">new_slice</span><span class="p">])</span> <span class="o">-</span> <span class="n">base</span><span class="o">.</span><span class="n">_get_family_slice</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span><span class="o">.</span><span class="n">start</span>
 
 
+    <span class="k">def</span> <span class="nf">_iord_to_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iord</span><span class="p">):</span>
+        <span class="c1"># Maps iord to indices. Note that this requires to perform an argsort (O(N log N) operations)</span>
+        <span class="c1"># and a binary search (O(M log N) operations) with M = len(iord) and N = len(self.base).</span>
+        <span class="k">if</span> <span class="s1">&#39;iord_argsort&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="s1">&#39;iord_argsort&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="s1">&#39;iord&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Find index of particles using a search sort</span>
+        <span class="n">iord_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="s1">&#39;iord&#39;</span><span class="p">]</span>
+        <span class="n">iord_argsort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">[</span><span class="s1">&#39;iord_argsort&#39;</span><span class="p">]</span>
+        <span class="n">index_array</span> <span class="o">=</span> <span class="n">iord_argsort</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">iord_base</span><span class="p">,</span> <span class="n">iord</span><span class="p">,</span> <span class="n">sorter</span><span class="o">=</span><span class="n">iord_argsort</span><span class="p">)]</span>
+
+        <span class="c1"># TODO: custom search sort to prevent this check</span>
+        <span class="c1"># Check that the iord match</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">iord_base</span><span class="p">[</span><span class="n">index_array</span><span class="p">]</span> <span class="o">==</span> <span class="n">iord</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">index_array</span>
+
     <span class="k">def</span> <span class="nf">_get_family_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="p">):</span>
         <span class="c1"># A bit messy: jump out the SubSnap inheritance chain</span>
         <span class="c1"># and call SimSnap method directly...</span>
@@ -1959,7 +1997,7 @@
 
     <span class="sd">&quot;&quot;&quot;Represents a one-family portion of a parent snap object&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">fam</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">fam</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_inherit</span><span class="p">()</span>
@@ -1971,23 +2009,23 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_particles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="o">.</span><span class="n">start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file_units_system</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">_file_units_system</span>
 
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Cannot delete global simulation property from sub-view&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_del_family_array</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">global_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="viewcode-block" id="FamilySubSnap.keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.FamilySubSnap.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">global_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="n">family_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">global_keys</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">family_keys</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">global_keys</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">family_keys</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FamilySubSnap.family_keys"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.snapshot.FamilySubSnap.family_keys">[docs]</a>    <span class="k">def</span> <span class="nf">family_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># We now define there to be no family-specific subproperties,</span>
         <span class="c1"># because all properties can be accessed through standard</span>
         <span class="c1"># __setitem__, __getitem__ methods</span>
-        <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="p">[]</span></div>
 
     <span class="k">def</span> <span class="nf">_get_family_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">:</span>
@@ -2007,7 +2045,7 @@
             <span class="n">array_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unifamily</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">derived</span><span class="p">,</span> <span class="n">shared</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_set_array</span><span class="p">(</span>
                 <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">concatenate_indexing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2070,7 +2108,7 @@
     <span class="n">tot_particles</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">families</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">families</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
 
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
             <span class="n">t_fam</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">family</span><span class="o">.</span><span class="n">get_family</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">))</span>
@@ -2098,13 +2136,13 @@
     <span class="k">return</span> <span class="n">x</span></div>
 
 <span class="k">def</span> <span class="nf">_get_snap_classes</span><span class="p">():</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">gadgethdf</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">nchilada</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">gadget</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">tipsy</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">ramses</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">grafic</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">ascii</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">gadgethdf</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">nchilada</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">gadget</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">tipsy</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ramses</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">grafic</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ascii</span>
 
     <span class="n">_snap_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">gadgethdf</span><span class="o">.</span><span class="n">GadgetHDFSnap</span><span class="p">,</span> <span class="n">gadgethdf</span><span class="o">.</span><span class="n">SubFindHDFSnap</span><span class="p">,</span> <span class="n">gadgethdf</span><span class="o">.</span><span class="n">EagleLikeHDFSnap</span><span class="p">,</span>
                      <span class="n">nchilada</span><span class="o">.</span><span class="n">NchiladaSnap</span><span class="p">,</span> <span class="n">gadget</span><span class="o">.</span><span class="n">GadgetSnap</span><span class="p">,</span>
@@ -2115,13 +2153,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../index.html">
-              <img class="logo" src="../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -2131,25 +2189,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

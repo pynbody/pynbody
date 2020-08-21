@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Automatically Derived Arrays &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automatically Derived Arrays &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Analysis" href="analysis.html" />
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="automatically-derived-arrays">
@@ -68,97 +62,97 @@ arrays</p>
 </div></blockquote>
 <div class="section" id="built-in-derived-arrays">
 <h2>Built-in derived arrays<a class="headerlink" href="#built-in-derived-arrays" title="Permalink to this headline">¶</a></h2>
-<p>The quantities listed under <a class="reference internal" href="#module-pynbody.derived" title="pynbody.derived"><code class="xref py py-mod docutils literal"><span class="pre">derived</span></code></a> are calculated for
+<p>The quantities listed under <a class="reference internal" href="#module-pynbody.derived" title="pynbody.derived"><code class="xref py py-mod docutils literal notranslate"><span class="pre">derived</span></code></a> are calculated for
 all simulation types. If you want, for example, to calculate the
-specific kinetic energy, you can just access the <code class="docutils literal"><span class="pre">ke</span></code> array and
+specific kinetic energy, you can just access the <code class="docutils literal notranslate"><span class="pre">ke</span></code> array and
 pynbody will calculate it:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 
 <span class="gp">In [3]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
 <span class="gh">Out[3]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.01443704,  0.01435218,  0.01545113, ...,  0.02690037,</span>
-<span class="go">           0.02084463,  0.02266956], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">SimArray([0.01443704, 0.01435218, 0.01545113, ..., 0.02690037, 0.02084463,</span>
+<span class="go">          0.02266956], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
 </div>
 <p>Note that you cannot directly alter a derived array:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="gt">---------------------------------------------------------------------------</span>
 <span class="ne">ValueError</span><span class="g g-Whitespace">                                </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-4-6eb96c8ef7aa&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
+<span class="o">&lt;</span><span class="n">ipython</span><span class="o">-</span><span class="nb">input</span><span class="o">-</span><span class="mi">4</span><span class="o">-</span><span class="mi">115</span><span class="n">c2ca7f0b6</span><span class="o">&gt;</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
 <span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-<span class="nn">/Users/app/Science/pynbody/pynbody/array.pyc</span> in <span class="ni">q</span><span class="nt">(a, *y, **kw)</span>
-<span class="g g-Whitespace">    </span><span class="mi">701</span>             <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
-<span class="g g-Whitespace">    </span><span class="mi">702</span>         <span class="k">else</span><span class="p">:</span>
-<span class="ne">--&gt; </span><span class="mi">703</span>             <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span>
-<span class="g g-Whitespace">    </span><span class="mi">704</span> 
-<span class="g g-Whitespace">    </span><span class="mi">705</span>     <span class="n">q</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="vm">__name__</span>
+<span class="nn">~/Science/pynbody/pynbody/array.py</span> in <span class="ni">q</span><span class="nt">(a, *y, **kw)</span>
+<span class="g g-Whitespace">    </span><span class="mi">702</span>             <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+<span class="g g-Whitespace">    </span><span class="mi">703</span>         <span class="k">else</span><span class="p">:</span>
+<span class="ne">--&gt; </span><span class="mi">704</span>             <span class="k">return</span> <span class="n">w</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span>
+<span class="g g-Whitespace">    </span><span class="mi">705</span> 
+<span class="g g-Whitespace">    </span><span class="mi">706</span>     <span class="n">q</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="vm">__name__</span>
 
-<span class="nn">/Users/app/Science/pynbody/pynbody/array.pyc</span> in <span class="ni">__setitem__</span><span class="nt">(self, item, to)</span>
-<span class="g g-Whitespace">    </span><span class="mi">489</span>             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">))</span>
-<span class="g g-Whitespace">    </span><span class="mi">490</span>         <span class="k">else</span><span class="p">:</span>
-<span class="ne">--&gt; </span><span class="mi">491</span>             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
-<span class="g g-Whitespace">    </span><span class="mi">492</span> 
-<span class="g g-Whitespace">    </span><span class="mi">493</span>     <span class="k">def</span> <span class="fm">__setslice__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+<span class="nn">~/Science/pynbody/pynbody/array.py</span> in <span class="ni">__setitem__</span><span class="nt">(self, item, to)</span>
+<span class="g g-Whitespace">    </span><span class="mi">490</span>             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">))</span>
+<span class="g g-Whitespace">    </span><span class="mi">491</span>         <span class="k">else</span><span class="p">:</span>
+<span class="ne">--&gt; </span><span class="mi">492</span>             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
+<span class="g g-Whitespace">    </span><span class="mi">493</span> 
+<span class="g g-Whitespace">    </span><span class="mi">494</span>     <span class="k">def</span> <span class="nf">__setslice__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
 
 <span class="ne">ValueError</span>: assignment destination is read-only
 </pre></div>
 </div>
 <p>But the array updates itself when one of its dependencies changes:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
 
 <span class="gp">In [6]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
 <span class="gh">Out[6]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.05774817,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
-<span class="go">           0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">SimArray([0.05774817, 0.05740871, 0.0618045 , ..., 0.10760149, 0.08337851,</span>
+<span class="go">          0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
 </div>
 <p>The recalculation only takes place when required – in the example
-above the <code class="docutils literal"><span class="pre">ke</span></code> array is stored (just like a normal array) until the velocity array is updated,
-at which point it is deleted. When you ask for the <code class="docutils literal"><span class="pre">ke</span></code> array again,
+above the <code class="docutils literal notranslate"><span class="pre">ke</span></code> array is stored (just like a normal array) until the velocity array is updated,
+at which point it is deleted. When you ask for the <code class="docutils literal notranslate"><span class="pre">ke</span></code> array again,
 it is recalculated.</p>
 <p>This is why you’re not allowed to change values in a derived array –
 your changes could be overwritten, leading to confusing bugs. However,
 if you want to make a derived array back into a normal array you can
 do so.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">derived</span> <span class="o">=</span> <span class="bp">False</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">derived</span> <span class="o">=</span> <span class="kc">False</span>
 
 <span class="gp">In [8]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
 <span class="gp">In [9]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
 <span class="gh">Out[9]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.        ,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
-<span class="go">           0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">SimArray([0.        , 0.05740871, 0.0618045 , ..., 0.10760149, 0.08337851,</span>
+<span class="go">          0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
 </div>
 <p>At this point you’ve taken full responsibility for the
 array, so if you update its dependencies the framework <em>won’t</em> help
 you out any longer:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">*=</span><span class="mi">2</span>
 
 <span class="gp">In [11]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
 <span class="gh">Out[11]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.        ,  0.05740871,  0.0618045 , ...,  0.10760149,</span>
-<span class="go">           0.08337851,  0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">SimArray([0.        , 0.05740871, 0.0618045 , ..., 0.10760149, 0.08337851,</span>
+<span class="go">          0.09067823], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
 </div>
 <p>To get the framework back on your side, you can delete the modified
 array:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="k">del</span> <span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="k">del</span> <span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
 
 <span class="gp">In [13]: </span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ke&#39;</span><span class="p">]</span>
 <span class="gh">Out[13]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.23099267,  0.22963485,  0.247218  , ...,  0.43040596,</span>
-<span class="go">           0.33351406,  0.36271291], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
+<span class="go">SimArray([0.23099267, 0.22963485, 0.247218  , ..., 0.43040596, 0.33351406,</span>
+<span class="go">          0.36271291], &#39;2.98e+06 km**2 a**2 s**-2&#39;)</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="defining-your-own-deriving-functions">
 <h2>Defining your own deriving functions<a class="headerlink" href="#defining-your-own-deriving-functions" title="Permalink to this headline">¶</a></h2>
 <p>You can easily define your own derived arrays. The easiest way to do
-this is using the decorator <code class="docutils literal"><span class="pre">pynbody.derived_array</span></code>. An example is
+this is using the decorator <code class="docutils literal notranslate"><span class="pre">pynbody.derived_array</span></code>. An example is
 given in the <a class="reference internal" href="../tutorials/data_access.html#create-arrays"><span class="std std-ref">data access tutorial</span></a>.</p>
 <p>When your function is called, the framework monitors any arrays it
 retrieves from the simulation. It automatically marks the accessed
@@ -170,179 +164,185 @@ arrays as dependencies for your function.</p>
 <h3>derived<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <p>Holds procedures for creating new arrays from existing ones, e.g. for
 getting the radial position. For more information see <a class="reference internal" href="#derived"><span class="std std-ref">Automatically Derived Arrays</span></a>.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.r">
-<code class="descclassname">pynbody.derived.</code><code class="descname">r</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#r"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.r" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">r</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#r"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.r" title="Permalink to this definition">¶</a></dt>
 <dd><p>Radial position</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.rxy">
-<code class="descclassname">pynbody.derived.</code><code class="descname">rxy</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#rxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.rxy" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">rxy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#rxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.rxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cylindrical radius in the x-y plane</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.vr">
-<code class="descclassname">pynbody.derived.</code><code class="descname">vr</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vr" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">vr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Radial velocity</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.v2">
-<code class="descclassname">pynbody.derived.</code><code class="descname">v2</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#v2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.v2" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">v2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#v2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.v2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Squared velocity</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.vt">
-<code class="descclassname">pynbody.derived.</code><code class="descname">vt</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vt" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">vt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vt" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tangential velocity</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.ke">
-<code class="descclassname">pynbody.derived.</code><code class="descname">ke</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#ke"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.ke" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">ke</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#ke"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.ke" title="Permalink to this definition">¶</a></dt>
 <dd><p>Specific kinetic energy</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.te">
-<code class="descclassname">pynbody.derived.</code><code class="descname">te</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#te"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.te" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">te</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#te"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.te" title="Permalink to this definition">¶</a></dt>
 <dd><p>Specific total energy</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.j">
-<code class="descclassname">pynbody.derived.</code><code class="descname">j</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#j"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.j" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">j</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#j"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.j" title="Permalink to this definition">¶</a></dt>
 <dd><p>Specific angular momentum</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.j2">
-<code class="descclassname">pynbody.derived.</code><code class="descname">j2</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#j2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.j2" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">j2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#j2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.j2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Square of the specific angular momentum</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.jz">
-<code class="descclassname">pynbody.derived.</code><code class="descname">jz</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#jz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.jz" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">jz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#jz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.jz" title="Permalink to this definition">¶</a></dt>
 <dd><p>z-component of the angular momentum</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.vrxy">
-<code class="descclassname">pynbody.derived.</code><code class="descname">vrxy</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vrxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vrxy" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">vrxy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vrxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vrxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cylindrical radial velocity in the x-y plane</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.vcxy">
-<code class="descclassname">pynbody.derived.</code><code class="descname">vcxy</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vcxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vcxy" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">vcxy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vcxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vcxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cylindrical tangential velocity in the x-y plane</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.vphi">
-<code class="descclassname">pynbody.derived.</code><code class="descname">vphi</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vphi" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">vphi</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vphi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Azimuthal velocity (synonym for vcxy)</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.vtheta">
-<code class="descclassname">pynbody.derived.</code><code class="descname">vtheta</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vtheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vtheta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">vtheta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#vtheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.vtheta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Velocity projected to polar direction</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.v_mean">
-<code class="descclassname">pynbody.derived.</code><code class="descname">v_mean</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#v_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.v_mean" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">v_mean</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#v_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.v_mean" title="Permalink to this definition">¶</a></dt>
 <dd><p>SPH-smoothed mean velocity</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.v_disp">
-<code class="descclassname">pynbody.derived.</code><code class="descname">v_disp</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#v_disp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.v_disp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">v_disp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#v_disp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.v_disp" title="Permalink to this definition">¶</a></dt>
 <dd><p>SPH-smoothed local velocity dispersion</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.age">
-<code class="descclassname">pynbody.derived.</code><code class="descname">age</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#age"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.age" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">age</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#age"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.age" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stellar age determined from formation time and current snapshot time</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.X">
-<code class="descclassname">pynbody.derived.</code><code class="descname">X</code><span class="sig-paren">(</span><em>s</em>, <em>b='K'</em><span class="sig-paren">)</span><a class="headerlink" href="#pynbody.derived.X" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">X</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">b</span><span class="o">=</span><span class="default_value">'K'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pynbody.derived.X" title="Permalink to this definition">¶</a></dt>
 <dd><p>K magnitude from analysis.luminosity.calc_mags</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
+<dt id="pynbody.derived.lum_den">
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">lum_den</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pynbody.derived.lum_den" title="Permalink to this definition">¶</a></dt>
+<dd><p>Luminosity density in astronomy-friendly units: 10^(-0.4 K_mag) per unit volume. The magnitude is taken from analysis.luminosity.calc_mags.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="pynbody.derived.theta">
-<code class="descclassname">pynbody.derived.</code><code class="descname">theta</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.theta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">theta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.theta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Angle from the z axis, from [0:2pi]</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.alt">
-<code class="descclassname">pynbody.derived.</code><code class="descname">alt</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#alt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.alt" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">alt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#alt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.alt" title="Permalink to this definition">¶</a></dt>
 <dd><p>Angle from the horizon, from [-pi/2:pi/2]</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.az">
-<code class="descclassname">pynbody.derived.</code><code class="descname">az</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#az"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.az" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">az</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#az"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.az" title="Permalink to this definition">¶</a></dt>
 <dd><p>Angle in the xy plane from the x axis, from [-pi:pi]</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.cs">
-<code class="descclassname">pynbody.derived.</code><code class="descname">cs</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#cs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.cs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">cs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#cs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.cs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sound speed</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.mu">
-<code class="descclassname">pynbody.derived.</code><code class="descname">mu</code><span class="sig-paren">(</span><em>sim</em>, <em>t0=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#mu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.mu" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">mu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#mu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.mu" title="Permalink to this definition">¶</a></dt>
 <dd><p>mean molecular mass, i.e. the mean atomic mass per particle</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.p">
-<code class="descclassname">pynbody.derived.</code><code class="descname">p</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.p" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">p</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.p" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pressure</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.u">
-<code class="descclassname">pynbody.derived.</code><code class="descname">u</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#u"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.u" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">u</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#u"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.u" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gas internal energy derived from temperature</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.temp">
-<code class="descclassname">pynbody.derived.</code><code class="descname">temp</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#temp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.temp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">temp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#temp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.temp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gas temperature derived from internal energy</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.zeldovich_offset">
-<code class="descclassname">pynbody.derived.</code><code class="descname">zeldovich_offset</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#zeldovich_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.zeldovich_offset" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">zeldovich_offset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#zeldovich_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.zeldovich_offset" title="Permalink to this definition">¶</a></dt>
 <dd><p>The position offset in the current snapshot according to
 the Zel’dovich approximation applied to the current velocities.
 (Only useful in the generation or analysis of initial conditions.)</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.aform">
-<code class="descclassname">pynbody.derived.</code><code class="descname">aform</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#aform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.aform" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">aform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#aform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.aform" title="Permalink to this definition">¶</a></dt>
 <dd><p>The expansion factor at the time specified by the tform array.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.derived.tform">
-<code class="descclassname">pynbody.derived.</code><code class="descname">tform</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#tform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.tform" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.derived.</code><code class="sig-name descname">tform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/derived.html#tform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.derived.tform" title="Permalink to this definition">¶</a></dt>
 <dd><p>The time of the specified expansion factor in the aform</p>
 </dd></dl>
 
@@ -351,114 +351,114 @@ the Zel’dovich approximation applied to the current velocities.
 <div class="section" id="tipsy">
 <h2>tipsy<a class="headerlink" href="#tipsy" title="Permalink to this headline">¶</a></h2>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">These take advantage of arrays present in Gasoline snapshots</p>
+<p class="admonition-title">Note</p>
+<p>These take advantage of arrays present in Gasoline snapshots</p>
 </div>
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.HII">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">HII</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#HII"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.HII" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">HII</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#HII"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.HII" title="Permalink to this definition">¶</a></dt>
 <dd><p>Number of HII ions per proton mass</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.HeIII">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">HeIII</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#HeIII"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.HeIII" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">HeIII</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#HeIII"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.HeIII" title="Permalink to this definition">¶</a></dt>
 <dd><p>Number of HeIII ions per proton mass</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.ne">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">ne</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ne"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ne" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">ne</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ne"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ne" title="Permalink to this definition">¶</a></dt>
 <dd><p>Number of electrons per proton mass</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.hetot">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">hetot</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#hetot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.hetot" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">hetot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#hetot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.hetot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helium mass fraction including correction based on metallicity</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.hydrogen">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">hydrogen</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#hydrogen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.hydrogen" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">hydrogen</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#hydrogen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.hydrogen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hydrogen mass fraction including correction based on metallicity</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.feh">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">feh</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#feh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.feh" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">feh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#feh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.feh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Iron abundance [Fe/H] derived from tipsy array FeMassFrac, with solar
 values from Asplund et al 09</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.oxh">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">oxh</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#oxh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.oxh" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">oxh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#oxh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.oxh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Oxygen abundance [O/H] derived from tipsy array FeMassFrac, with solar
 values from Asplund et al 09</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.ofe">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">ofe</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ofe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ofe" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">ofe</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ofe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ofe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Oxygen-to-iron ratio [O/Fe] derived from tipsy arrays OxMassFrac and FeMassFrac
 with solar values from Asplund et al 09</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.mgfe">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">mgfe</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#mgfe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.mgfe" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">mgfe</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#mgfe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.mgfe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Magnesium-to-iron ratio [Mg/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
 with solar values from Asplund et al 09</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.nefe">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">nefe</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#nefe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.nefe" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">nefe</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#nefe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.nefe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Neon-to-iron ratio [Ne/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
 with solar values from Asplund et al 09</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.sife">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">sife</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#sife"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.sife" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">sife</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#sife"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.sife" title="Permalink to this definition">¶</a></dt>
 <dd><p>Silicon-to-iron ratio [Si/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
 with solar values from Asplund et al 09</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.c_s">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">c_s</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#c_s"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.c_s" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">c_s</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#c_s"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.c_s" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ideal gas sound speed based on pressure and density</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.c_s_turb">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">c_s_turb</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#c_s_turb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.c_s_turb" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">c_s_turb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#c_s_turb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.c_s_turb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Turbulent sound speed (from Mac Low &amp; Klessen 2004)</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.mjeans">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">mjeans</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#mjeans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.mjeans" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">mjeans</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#mjeans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.mjeans" title="Permalink to this definition">¶</a></dt>
 <dd><p>Classical Jeans mass</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.mjeans_turb">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">mjeans_turb</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#mjeans_turb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.mjeans_turb" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">mjeans_turb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#mjeans_turb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.mjeans_turb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Turbulent Jeans mass</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.ljeans">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">ljeans</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ljeans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ljeans" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">ljeans</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ljeans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ljeans" title="Permalink to this definition">¶</a></dt>
 <dd><p>Jeans length</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.tipsy.ljeans_turb">
-<code class="descclassname">pynbody.snapshot.tipsy.</code><code class="descname">ljeans_turb</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ljeans_turb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ljeans_turb" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.tipsy.</code><code class="sig-name descname">ljeans_turb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/tipsy.html#ljeans_turb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.tipsy.ljeans_turb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Turbulent Jeans length</p>
 </dd></dl>
 
@@ -469,9 +469,9 @@ with solar values from Asplund et al 09</p>
 </div>
 <div class="section" id="ramses">
 <h2>Ramses<a class="headerlink" href="#ramses" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
+<dl class="py function">
 <dt id="pynbody.snapshot.ramses.mass">
-<code class="descclassname">pynbody.snapshot.ramses.</code><code class="descname">mass</code><span class="sig-paren">(</span><em>sim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/ramses.html#mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.ramses.mass" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pynbody.snapshot.ramses.</code><code class="sig-name descname">mass</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynbody/snapshot/ramses.html#mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pynbody.snapshot.ramses.mass" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -479,28 +479,32 @@ with solar values from Asplund et al 09</p>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Automatically Derived Arrays</a><ul>
-<li><a class="reference internal" href="#built-in-derived-arrays">Built-in derived arrays</a></li>
-<li><a class="reference internal" href="#defining-your-own-deriving-functions">Defining your own deriving functions</a></li>
-<li><a class="reference internal" href="#module-pynbody.derived">Built-in derived arrays for all snapshot classes</a><ul>
-<li><a class="reference internal" href="#id1">derived</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a></li>
 </ul>
-</li>
-<li><a class="reference internal" href="#tipsy">tipsy</a></li>
-<li><a class="reference internal" href="#gadget">gadget</a></li>
-<li><a class="reference internal" href="#ramses">Ramses</a></li>
-</ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -512,33 +516,34 @@ with solar values from Asplund et al 09</p>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/reference/derived.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/reference/derived.rst.txt"

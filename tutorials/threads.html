@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Use of multiple processors by pynbody &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use of multiple processors by pynbody &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Pynbody reference documentation" href="../reference/index.html" />
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="use-of-multiple-processors-by-pynbody">
@@ -62,19 +56,19 @@
 on a single shared-memory machine. There are three distinct ways in which
 parallelization works in pynbody.</p>
 <ol class="arabic simple">
-<li><em>Native threading</em>, using the <cite>python</cite> module <code class="docutils literal"><span class="pre">threading</span></code>, or in C code,
-the POSIX standard <code class="docutils literal"><span class="pre">pthread</span></code> library. On any modern Mac and Linux machine,
+<li><p><em>Native threading</em>, using the <cite>python</cite> module <code class="docutils literal notranslate"><span class="pre">threading</span></code>, or in C code,
+the POSIX standard <code class="docutils literal notranslate"><span class="pre">pthread</span></code> library. On any modern Mac and Linux machine,
 this “just works”. This is mainly used in the SPH module where we have
 gone to some lengths to create algorithms that scale well to moderately
 large numbers of cores (16 certainly, often 32) that you’d fine on a
-typical analysis workstation.</li>
-<li><em>OpenMP threading</em>. This is used by a large number of parts of the library,
+typical analysis workstation.</p></li>
+<li><p><em>OpenMP threading</em>. This is used by a large number of parts of the library,
 for example some of the halo analysis code, where simple, inexpensive
 parallelization is possible. If you have an OpenMP compiler this will also
-“just work”. However, you might not do - <a class="reference internal" href="#openmp-fix"><span class="std std-ref">see below</span></a>.</li>
-<li><em>Process threading</em>. This is currently used only by the ramses loader to
+“just work”. However, you might not do - <a class="reference internal" href="#openmp-fix"><span class="std std-ref">see below</span></a>.</p></li>
+<li><p><em>Process threading</em>. This is currently used only by the ramses loader to
 get around problems with the python GIL. It requires shared memory support,
-for which you need the <a class="reference internal" href="#posix-ipc"><span class="std std-ref">the appropriate python module</span></a>.</li>
+for which you need the <a class="reference internal" href="#posix-ipc"><span class="std std-ref">the appropriate python module</span></a>.</p></li>
 </ol>
 <p>In cases (2) and (3), you may have to do some work to get everything working.
 For (1), it should just work out the box.</p>
@@ -86,13 +80,13 @@ is not so desirable - perhaps you need to leave resources for other users,
 or for other processes you are running.</p>
 <p>Therefore you can limit the number of processors used by pynbody, either
 during a session or permanently. During a python session, you can type</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;number_of_threads&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">2</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;number_of_threads&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">2</span>
 </pre></div>
 </div>
 <p>which, as an example, limits the number of CPUs in use to 2. To make the
-change permanent, create a <code class="docutils literal"><span class="pre">.pynbodyrc</span></code> file in your home directory
+change permanent, create a <code class="docutils literal notranslate"><span class="pre">.pynbodyrc</span></code> file in your home directory
 with the following section:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>[general]
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[general]
 number-of-threads: 2
 </pre></div>
 </div>
@@ -105,7 +99,7 @@ number-of-threads: 2
 throw up some complaint during the installation procedure. The installation
 will succeed, but many parallel procedures will run only on one core.</p>
 <p>To check if this has happened to you, try the following commands</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;number_of_threads&#39;</span><span class="p">]</span>
 <span class="gh">Out[2]: </span><span class="go">8</span>
@@ -113,7 +107,7 @@ will succeed, but many parallel procedures will run only on one core.</p>
 </div>
 <p>So far, we can see that the main pynbody configuration has seen more than
 one core on the machine. But let’s see how many cores OpenMP can see:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
 <span class="gh">Out[3]: </span><span class="go">1</span>
 </pre></div>
 </div>
@@ -126,15 +120,14 @@ compilers do not support OpenMP. A fast solution is to download
 the latest GNU compilers <a class="reference external" href="http://hpc.sourceforge.net">http://hpc.sourceforge.net</a>, install them, and
 point the setup procedure to gcc. At your shell, something like this would do
 it -</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nb">export</span> <span class="nv">CC</span><span class="o">=</span><span class="s1">&#39;/usr/local/bin/gcc&#39;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">export</span> <span class="nv">CC</span><span class="o">=</span><span class="s1">&#39;/usr/local/bin/gcc&#39;</span>
 $ <span class="nb">cd</span> pynbody
 $ rm -rf build/
-$ python setup.py build
-$ python setup.py install
+$ pip install .
 </pre></div>
 </div>
 <p>Now, with luck, you’ll see that OpenMP is enabled.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">openmp</span><span class="o">.</span><span class="n">get_cpus</span><span class="p">()</span>
 <span class="gh">Out[2]: </span><span class="go">8</span>
@@ -152,19 +145,19 @@ standard threading techniques used above.</p>
 on your machine - it’s tied more to IO performance than to raw computing power.
 Second, for technical reasons related to the
 <a class="reference external" href="https://wiki.python.org/moin/GlobalInterpreterLock">Python GIL</a>
-you need an extra module to make this work. The module is known as <code class="docutils literal"><span class="pre">posix_ipc</span></code>,
+you need an extra module to make this work. The module is known as <code class="docutils literal notranslate"><span class="pre">posix_ipc</span></code>,
 and it normally compiles very straight-forwardly on Linux or Mac OS. At your
 standard command prompt just type:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ easy_install posix_ipc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ easy_install posix_ipc
 </pre></div>
 </div>
 <p>and you should be done. There’s not even any need to reinstall pynbody.</p>
 <p>As explained above, you may well want to change the number of
 processes used for the reading process. This can be done using pynbody’s
 standard <a class="reference internal" href="configuration.html#configuration"><span class="std std-ref">configuration</span></a> system; for instance, create a
-<code class="docutils literal"><span class="pre">.pynbodyrc</span></code> file in your home directory with the following
+<code class="docutils literal notranslate"><span class="pre">.pynbodyrc</span></code> file in your home directory with the following
 section:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>[ramses]
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[ramses]
 parallel-read: 4
 </pre></div>
 </div>
@@ -172,8 +165,8 @@ parallel-read: 4
 see what works best on your system, which depends on a combination
 of CPU and IO performance.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Many systems limit the amount of shared memory available,
+<p class="admonition-title">Note</p>
+<p>Many systems limit the amount of shared memory available,
 which can cause problems once you enable parallel-reading. See
 <a class="reference internal" href="../pitfalls.html#pitfall-ramses-sharedmem"><span class="std std-ref">our separate note on this issue</span></a>.</p>
 </div>
@@ -182,22 +175,32 @@ which can cause problems once you enable parallel-reading. See
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Use of multiple processors by pynbody</a><ul>
-<li><a class="reference internal" href="#limiting-the-number-of-cpus-used-by-pynbody">Limiting the number of CPUs used by pynbody</a></li>
-<li><a class="reference internal" href="#checking-and-fixing-openmp-support">Checking and fixing OpenMP support</a></li>
-<li><a class="reference internal" href="#parallel-ramses-reader-support">Parallel ramses reader support</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -209,33 +212,34 @@ which can cause problems once you enable parallel-reading. See
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/threads.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/threads.rst.txt"

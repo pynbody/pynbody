@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.snapshot.tipsy &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.snapshot.tipsy &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.snapshot.tipsy</h1><div class="highlight"><pre>
@@ -74,16 +68,16 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">with_statement</span>  <span class="c1"># for py2.5</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+  <span class="c1"># for py2.5</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">util</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">family</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">units</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">config</span><span class="p">,</span> <span class="n">config_parser</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">chunk</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">nchilada</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">SimSnap</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">family</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span><span class="p">,</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">chunk</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">nchilada</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">SimSnap</span>
 
 <span class="kn">import</span> <span class="nn">struct</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -107,7 +101,7 @@
                                               <span class="s1">&#39;eps&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;vel&#39;</span><span class="p">]),</span>
                             <span class="kc">None</span><span class="p">:</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;phi&#39;</span><span class="p">,</span> <span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="s1">&#39;eps&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;vel&#39;</span><span class="p">])}</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="k">global</span> <span class="n">config</span>
 
@@ -179,9 +173,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_s_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s1">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;vx&quot;</span><span class="p">,</span> <span class="s2">&quot;vy&quot;</span><span class="p">,</span> <span class="s2">&quot;vz&quot;</span><span class="p">,</span> <span class="s2">&quot;metals&quot;</span><span class="p">,</span> <span class="s2">&quot;tform&quot;</span><span class="p">,</span> <span class="s2">&quot;eps&quot;</span><span class="p">,</span> <span class="s2">&quot;phi&quot;</span><span class="p">),</span>
                                   <span class="s1">&#39;formats&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="n">ptype</span><span class="p">,</span> <span class="n">ptype</span><span class="p">,</span> <span class="n">ptype</span><span class="p">,</span> <span class="n">vtype</span><span class="p">,</span> <span class="n">vtype</span><span class="p">,</span> <span class="n">vtype</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)})</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;dKpcUnit&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;dKpcUnit&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">must_have_paramfile</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s2">&quot;Could not find .param file for this run. Place it in the run&#39;s directory or parent directory.&quot;</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Could not find .param file for this run. Place it in the run&#39;s directory or parent directory.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                     <span class="s2">&quot;No readable param file in the run directory or parent directory: using defaults.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
@@ -209,21 +203,21 @@
         <span class="n">write</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">ndim</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;vel&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;eps&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">zeros</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
                 <span class="n">write</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="s2">&quot;rho&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">zeros</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
                 <span class="n">write</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;metals&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;metals&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;metals&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;metals&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s2">&quot;metals&quot;</span><span class="p">,</span> <span class="n">zeros</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s2">&quot;metals&quot;</span><span class="p">,</span> <span class="n">zeros</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">write</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;metals&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="s2">&quot;tform&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s2">&quot;tform&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">_create_array</span><span class="p">(</span><span class="s2">&quot;tform&quot;</span><span class="p">,</span> <span class="n">zeros</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">write</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;tform&quot;</span><span class="p">)</span>
 
@@ -235,7 +229,7 @@
                 <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">set_default_units</span><span class="p">(</span><span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># only do this for cosmo runs</span>
-        <span class="k">if</span> <span class="s2">&quot;phi&quot;</span> <span class="ow">in</span> <span class="n">write</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;phi&quot;</span> <span class="ow">in</span> <span class="n">write</span> <span class="ow">and</span> <span class="s1">&#39;h&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
             <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">a</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span>  <span class="c1"># messy :-(</span>
 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="s2">&quot;rho&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;metals&quot;</span><span class="p">:</span>
@@ -253,7 +247,7 @@
             <span class="n">write</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;vx&#39;</span><span class="p">,</span> <span class="s1">&#39;vy&#39;</span><span class="p">,</span> <span class="s1">&#39;vz&#39;</span><span class="p">]</span>
 
         <span class="n">max_item_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">q</span><span class="o">.</span><span class="n">itemsize</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_g_dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_s_dtype</span><span class="p">])</span>
+            <span class="p">[</span><span class="n">q</span><span class="o">.</span><span class="n">itemsize</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_g_dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_s_dtype</span><span class="p">)])</span>
         <span class="n">tbuf</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">max_item_size</span> <span class="o">*</span> <span class="mi">10240</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">fam</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="p">((</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_g_dtype</span><span class="p">),</span> <span class="p">(</span><span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_dtype</span><span class="p">),</span> <span class="p">(</span><span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_s_dtype</span><span class="p">)):</span>
@@ -295,8 +289,8 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">buflen</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="n">header</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-                <span class="n">ourlen_1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">)</span><span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="n">L</span>
-                <span class="n">ourlen_3</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span><span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="n">L</span>
+                <span class="n">ourlen_1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">)</span><span class="o">&amp;</span> <span class="mh">0xffffffff</span>
+                <span class="n">ourlen_3</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span><span class="o">&amp;</span> <span class="mh">0xffffffff</span>
 
                 <span class="k">if</span> <span class="n">buflen</span> <span class="o">==</span> <span class="n">ourlen_1</span><span class="p">:</span>  <span class="c1"># it&#39;s a vector</span>
                     <span class="k">return</span> <span class="kc">True</span>
@@ -310,27 +304,26 @@
 
         <span class="kn">import</span> <span class="nn">glob</span>
 
-        <span class="n">fs</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">util</span><span class="o">.</span><span class="n">cutgz</span><span class="p">,</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s2">&quot;.*&quot;</span><span class="p">))</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">q</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:],</span>
-                  <span class="nb">filter</span><span class="p">(</span><span class="n">is_readable_array</span><span class="p">,</span> <span class="n">fs</span><span class="p">))</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">util</span><span class="o">.</span><span class="n">cutgz</span><span class="p">,</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">+</span> <span class="s2">&quot;.*&quot;</span><span class="p">)))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">is_readable_array</span><span class="p">,</span> <span class="n">fs</span><span class="p">))]</span>
 
         <span class="c1"># Create an empty dictionary of sets to store the loadable</span>
         <span class="c1"># arrays for each family</span>
         <span class="n">rdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">()])</span>
         <span class="n">rdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">b</span><span class="p">)]</span>
-                          <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basic_loadable_keys</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">))</span>
+                          <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basic_loadable_keys</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">))</span>
         <span class="c1"># Now work out which families can load which arrays</span>
         <span class="c1"># according to the stored metadata</span>
         <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
             <span class="n">fams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loadable_array_metadata</span><span class="p">(</span><span class="n">r</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fams</span> <span class="ow">or</span> <span class="n">rdict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fams</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span><span class="n">rdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
                 <span class="n">rdict</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys_registry</span> <span class="o">=</span> <span class="n">rdict</span>
 
     <span class="k">def</span> <span class="nf">loadable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Produce and return a list of loadable arrays for this TIPSY file.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys_registry</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys_registry</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_update_loadable_keys</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -338,7 +331,7 @@
             <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys_registry</span><span class="p">[</span><span class="n">fam</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Return what is loadable to all families</span>
-            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys_registry</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loadable_keys_registry</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
 
     <span class="k">def</span> <span class="nf">_update_snapshot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fam_out</span><span class="o">=</span><span class="p">[</span><span class="n">family</span><span class="o">.</span><span class="n">gas</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="n">family</span><span class="o">.</span><span class="n">star</span><span class="p">]):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -347,7 +340,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_load</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s2">&quot;Writing back to partially loaded files not yet supported&quot;</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Writing back to partially loaded files not yet supported&quot;</span><span class="p">)</span>
 
         <span class="k">global</span> <span class="n">config</span>
 
@@ -444,7 +437,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;mv &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.tmp &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">double_pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">double_vel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary_aux_arrays</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">double_pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">double_vel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary_aux_arrays</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cosmological</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Write a TIPSY (standard) formatted file.</span>
@@ -470,6 +463,9 @@
 <span class="sd">                                    arrays in binary format; if left &#39;None&#39;, the preference is</span>
 <span class="sd">                                    taken from the param file</span>
 
+<span class="sd">        *cosmological* (True): if True (default), the header will store the self.properties[&#39;a&#39;];</span>
+<span class="sd">                               otherwise it will store self.properties[&#39;time&#39;]</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">global</span> <span class="n">config</span>
@@ -481,9 +477,12 @@
 
         <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">cosmological</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                 <span class="s2">&quot;Time is unknown: writing zero in header&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
@@ -656,15 +655,15 @@
     <span class="k">def</span> <span class="nf">_write_array_metafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">families</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
 
         <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.pynbody-meta&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;# This file automatically created by pynbody&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;# This file automatically created by pynbody&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="s2">&quot;_no_unit&quot;</span><span class="p">):</span>
-            <span class="nb">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;units:&quot;</span><span class="p">,</span> <span class="n">units</span>
-        <span class="nb">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;families:&quot;</span><span class="p">,</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;units:&quot;</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;families:&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">families</span><span class="p">:</span>
-            <span class="nb">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">f</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;dtype:&quot;</span><span class="p">,</span> <span class="n">TipsySnap</span><span class="o">.</span><span class="n">__get_write_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dtype:&quot;</span><span class="p">,</span> <span class="n">TipsySnap</span><span class="o">.</span><span class="n">__get_write_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
 
         <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
@@ -675,7 +674,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_families_in_main_file</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">fam_for_default</span> <span class="o">=</span> <span class="p">[</span><span class="n">fX</span> <span class="k">for</span> <span class="n">fX</span><span class="p">,</span> <span class="n">ars</span> <span class="ow">in</span> <span class="n">TipsySnap</span><span class="o">.</span><span class="n">_basic_loadable_keys</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span>
+        <span class="n">fam_for_default</span> <span class="o">=</span> <span class="p">[</span><span class="n">fX</span> <span class="k">for</span> <span class="n">fX</span><span class="p">,</span> <span class="n">ars</span> <span class="ow">in</span> <span class="n">TipsySnap</span><span class="o">.</span><span class="n">_basic_loadable_keys</span><span class="o">.</span><span class="n">items</span><span class="p">(</span>
         <span class="p">)</span> <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">ars</span> <span class="ow">and</span> <span class="n">fX</span> <span class="ow">in</span> <span class="n">fam</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">fam_for_default</span>
 
@@ -684,7 +683,7 @@
         <span class="k">assert</span> <span class="n">fam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_load</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s2">&quot;Writing back to partially loaded files not yet supported&quot;</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Writing back to partially loaded files not yet supported&quot;</span><span class="p">)</span>
 
         <span class="n">fam_in_main</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_families_in_main_file</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fam_in_main</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -743,7 +742,7 @@
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fam</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">return</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s2">&quot;Cannot call static _write_array to write into main tipsy file.&quot;</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Cannot call static _write_array to write into main tipsy file.&quot;</span><span class="p">)</span>
 
         <span class="n">units_out</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
@@ -820,7 +819,7 @@
             <span class="c1"># Bottom line says &#39;you requested one family, but that one&#39;s not</span>
             <span class="c1"># available&#39;</span>
 
-            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;This array is marked as available only for families </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">fams</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;This array is marked as available only for families </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">fams</span><span class="p">)</span>
 
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__read_array_from_disk</span><span class="p">(</span><span class="n">array_name</span><span class="p">,</span> <span class="n">fam</span><span class="o">=</span><span class="n">fam</span><span class="p">,</span>
                                            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
@@ -880,7 +879,7 @@
             <span class="n">l</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
             <span class="n">binary</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">if</span> <span class="n">l</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;Incorrect file format&quot;</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Incorrect file format&quot;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="n">dtype</span><span class="p">:</span>
                 <span class="c1"># Inspect the first line to see whether it&#39;s float or int</span>
@@ -911,12 +910,12 @@
                 <span class="n">l</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
 
             <span class="k">if</span> <span class="n">l</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_control</span><span class="o">.</span><span class="n">disk_num_particles</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;Incorrect file format&quot;</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Incorrect file format&quot;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># Set data format to be read (float or int) based on config</span>
-                <span class="n">int_arrays</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
-                    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tipsy&#39;</span><span class="p">,</span> <span class="s1">&#39;binary-int-arrays&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">))</span>
+                <span class="n">int_arrays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tipsy&#39;</span><span class="p">,</span> <span class="s1">&#39;binary-int-arrays&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)))</span>
                 <span class="k">if</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="n">int_arrays</span><span class="p">:</span>
                     <span class="n">dtype</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -974,7 +973,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">l</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;../*.starlog&quot;</span><span class="p">))</span>
             <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;Couldn&#39;t find starlog file&quot;</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find starlog file&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
                 <span class="n">sl</span> <span class="o">=</span> <span class="n">StarLog</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
@@ -992,9 +991,9 @@
         <span class="c1">#b(sl).star[&#39;tempform&#39;] = sl.star[&#39;tempform&#39;][:len(self.star)]</span>
         <span class="c1">#b(sl)[&#39;posform&#39;] = sl[&#39;pos&#39;][:len(self.star), :]</span>
         <span class="c1">#b(sl)[&#39;velform&#39;] = sl[&#39;vel&#39;][:len(self.star), :]</span>
-        <span class="k">if</span> <span class="s1">&#39;h2form&#39;</span> <span class="ow">in</span> <span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s1">&#39;h2form&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">star</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">)))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s1">&#39;h2form&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sl</span><span class="p">))</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="s1">&#39;h2form&#39;</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span> <span class="nb">print</span> <span class="s2">&quot;No H2 data found in StarLog file&quot;</span>
+        <span class="k">else</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No H2 data found in StarLog file&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_arrays</span><span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;form&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;posform&#39;</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s1">&#39;vx&#39;</span><span class="p">,</span> <span class="s1">&#39;vy&#39;</span><span class="p">,</span> <span class="s1">&#39;vz&#39;</span><span class="p">]):</span>
@@ -1038,7 +1037,10 @@
 <span class="k">def</span> <span class="nf">HII</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Number of HII ions per proton mass&quot;&quot;&quot;</span>
     <span class="n">Y_H</span><span class="p">,</span> <span class="n">Y_He</span> <span class="o">=</span> <span class="n">_abundance_estimator</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;metals&quot;</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">Y_H</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;HI&quot;</span><span class="p">]</span></div>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Y_H</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;HI&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;H2&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Y_H</span> <span class="o">-</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;HI&quot;</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="HeIII"><a class="viewcode-back" href="../../../reference/derived.html#pynbody.snapshot.tipsy.HeIII">[docs]</a><span class="nd">@TipsySnap</span><span class="o">.</span><span class="n">derived_quantity</span>
@@ -1202,7 +1204,7 @@
 
 <span class="k">class</span> <span class="nc">StarLog</span><span class="p">(</span><span class="n">SimSnap</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">paramfile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">paramfile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="kn">import</span> <span class="nn">os</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">StarLog</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
@@ -1279,12 +1281,12 @@
             <span class="n">molecH</span> <span class="o">=</span> <span class="kc">False</span>
 
             <span class="k">if</span> <span class="p">(</span><span class="n">iSize</span> <span class="o">!=</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span> <span class="ow">and</span> <span class="n">iSize</span> <span class="o">!=</span> <span class="mi">104</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;Unknown starlog structure iSize:&quot;</span> <span class="o">+</span> \
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Unknown starlog structure iSize:&quot;</span> <span class="o">+</span> \
                     <span class="nb">str</span><span class="p">(</span><span class="n">iSize</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, file_structure itemsize:&quot;</span> <span class="o">+</span> \
-                    <span class="nb">str</span><span class="p">(</span><span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">file_structure</span><span class="o">.</span><span class="n">itemsize</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">bigstarlog</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">if</span> <span class="n">molecH</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span> <span class="nb">print</span> <span class="s2">&quot;h2 information found in StarLog!&quot;</span>
+        <span class="k">if</span> <span class="n">molecH</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;h2 information found in StarLog!&quot;</span><span class="p">)</span>
         <span class="n">datasize</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
 
         <span class="c1"># check whether datasize is a multiple of iSize. If it is not,</span>
@@ -1335,10 +1337,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_decorate</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">name</span><span class="p">][:]</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">indices</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">file_structure</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">star</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
@@ -1356,7 +1358,7 @@
 
             <span class="n">f</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">open_</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="s1">&#39;phiform&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>  <span class="c1"># long starlog format</span>
+            <span class="k">if</span> <span class="s1">&#39;phiform&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># long starlog format</span>
                 <span class="n">file_structure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s1">&#39;names&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;iord&quot;</span><span class="p">,</span> <span class="s2">&quot;iorderGas&quot;</span><span class="p">,</span> <span class="s2">&quot;tform&quot;</span><span class="p">,</span>
                                                      <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span>
                                                      <span class="s2">&quot;vx&quot;</span><span class="p">,</span> <span class="s2">&quot;vy&quot;</span><span class="p">,</span> <span class="s2">&quot;vz&quot;</span><span class="p">,</span>
@@ -1418,7 +1420,7 @@
     <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">f</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfilename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
             <span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;*.param&quot;</span><span class="p">))</span> <span class="k">if</span> <span class="s2">&quot;mpeg&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
@@ -1458,7 +1460,7 @@
                 <span class="n">s</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
                 <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
-        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">pass</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -1525,7 +1527,7 @@
         <span class="c1"># is the same for G=1 runs)?</span>
         <span class="n">potunit_st</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.5g</span><span class="s2"> km^2 s^-2&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">velunit</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;bComove&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s1">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;bComove&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s1">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">hubunit</span> <span class="o">=</span> <span class="mf">10.</span> <span class="o">*</span> <span class="n">velunit</span> <span class="o">/</span> <span class="n">dunit</span>
             <span class="n">hubunit_st</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hubunit</span> <span class="o">*</span> <span class="n">hub</span><span class="p">))</span>
             <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hub</span> <span class="o">*</span> <span class="n">hubunit</span>
@@ -1605,7 +1607,7 @@
 
 <span class="nd">@TipsySnap</span><span class="o">.</span><span class="n">decorator</span>
 <span class="k">def</span> <span class="nf">settime</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;bComove&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s1">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">&#39;bComove&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s1">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">t</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">_header_t</span>
         <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1615,9 +1617,9 @@
             <span class="k">pass</span>
 
         <span class="k">if</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;dMsolUnit&#39;</span><span class="p">)</span> <span class="ow">and</span>
-                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;dKpcUnit&#39;</span><span class="p">)):</span>
-            <span class="kn">from</span> <span class="nn">..analysis</span> <span class="k">import</span> <span class="n">cosmology</span>
+                <span class="s1">&#39;dMsolUnit&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="ow">and</span>
+                <span class="s1">&#39;dKpcUnit&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">cosmology</span>
             <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">age</span><span class="p">(</span>
                 <span class="n">sim</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">sim</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="s1">&#39;yr&#39;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1635,7 +1637,7 @@
 
 <span class="nd">@nchilada</span><span class="o">.</span><span class="n">NchiladaSnap</span><span class="o">.</span><span class="n">decorator</span>
 <span class="k">def</span> <span class="nf">settimeN</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;bComove&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s1">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">&#39;bComove&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">[</span><span class="s1">&#39;bComove&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1">#t = sim._header_t</span>
         <span class="c1">#sim.properties[&#39;a&#39;] = t</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1645,9 +1647,9 @@
             <span class="k">pass</span>
 
         <span class="k">if</span> <span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;dMsolUnit&#39;</span><span class="p">)</span> <span class="ow">and</span>
-                <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;dKpcUnit&#39;</span><span class="p">)):</span>
-            <span class="kn">from</span> <span class="nn">..analysis</span> <span class="k">import</span> <span class="n">cosmology</span>
+                <span class="s1">&#39;dMsolUnit&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span> <span class="ow">and</span>
+                <span class="s1">&#39;dKpcUnit&#39;</span> <span class="ow">in</span> <span class="n">sim</span><span class="o">.</span><span class="n">_paramfile</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">cosmology</span>
             <span class="n">sim</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">age</span><span class="p">(</span>
                 <span class="n">sim</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">sim</span><span class="o">.</span><span class="n">infer_original_units</span><span class="p">(</span><span class="s1">&#39;yr&#39;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1720,13 +1722,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../../index.html">
-              <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../../index.html">Documentation overview</a><ul>
@@ -1738,25 +1760,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

@@ -1,30 +1,23 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Performance optimisation in pynbody &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance optimisation in pynbody &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Configuring pynbody" href="configuration.html" />
-    <link rel="prev" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
+    <link rel="prev" title="Halo Mass function" href="hmf.html" />
 
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="performance-optimisation-in-pynbody">
@@ -76,7 +70,7 @@ below.</p>
 <p>To cut a long story short, if your routine does a lot of array access on an object which might
 be a <cite>SubSnap</cite> of a certain flavour (explained further below), you will find that wrapping your
 code as follows speeds it up.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">my_expensive_operation</span><span class="p">(</span><span class="n">sim_or_subsim</span><span class="p">)</span> <span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">my_expensive_operation</span><span class="p">(</span><span class="n">sim_or_subsim</span><span class="p">)</span> <span class="p">:</span>
     <span class="k">with</span> <span class="n">sim_or_subsim</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
         <span class="n">mass_array</span> <span class="o">=</span> <span class="n">sim_or_subsim</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span>
         <span class="n">other_array</span> <span class="o">=</span> <span class="n">sim_or_subsim</span><span class="p">[</span><span class="s1">&#39;other&#39;</span><span class="p">]</span>
@@ -100,14 +94,14 @@ code as follows speeds it up.</p>
 it is constructed in one of two ways.</p>
 <blockquote>
 <div><ul class="simple">
-<li>If the set of particles indexed by the <cite>SubSnap</cite> is expressable a slice, the
+<li><p>If the set of particles indexed by the <cite>SubSnap</cite> is expressable a slice, the
 arrays constructed are still <cite>numpy</cite> arrays.  This will be the case if you explicitly
-slice the simulation (e.g. <code class="docutils literal"><span class="pre">f[2:100:3]</span></code>), or if you ask for a specific particle family (e.g. <code class="docutils literal"><span class="pre">f.dm</span></code>).</li>
-<li>If the set of particles is not expressable in this way, the arrays constructed are
+slice the simulation (e.g. <code class="docutils literal notranslate"><span class="pre">f[2:100:3]</span></code>), or if you ask for a specific particle family (e.g. <code class="docutils literal notranslate"><span class="pre">f.dm</span></code>).</p></li>
+<li><p>If the set of particles is not expressable in this way, the arrays constructed are
 emulating <cite>numpy</cite> arrays and this can become expensive (see below). This will
-be the cae if you ask for a list of particles (e.g. <code class="docutils literal"><span class="pre">f[[2,10,15,22]]</span></code>) use a <cite>numpy</cite>-like
-indexing trick (e.g. <code class="docutils literal"><span class="pre">f[f['x']&gt;10]</span></code> or <code class="docutils literal"><span class="pre">f[numpy.where(f['x']&gt;10)]</span></code>) or use a
-<a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal"><span class="pre">filter</span></code></a>.</li>
+be the cae if you ask for a list of particles (e.g. <code class="docutils literal notranslate"><span class="pre">f[[2,10,15,22]]</span></code>) use a <cite>numpy</cite>-like
+indexing trick (e.g. <code class="docutils literal notranslate"><span class="pre">f[f['x']&gt;10]</span></code> or <code class="docutils literal notranslate"><span class="pre">f[numpy.where(f['x']&gt;10)]</span></code>) or use a
+<a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal notranslate"><span class="pre">filter</span></code></a>.</p></li>
 </ul>
 </div></blockquote>
 <p>In the first case, the optimization is unchanged from the raw <cite>SimSnap</cite> case.
@@ -122,7 +116,7 @@ The <cite>pynbody</cite> framework requires all sub-arrays to continue pointing 
 but a simple experiment with numpy shows that it does not enable this behaviour in all
 cases that we want to cover.</p>
 <p>Here’s what happens when you use a slice of an existing <cite>numpy</cite> array.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="gp">In [2]: </span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 
@@ -131,18 +125,18 @@ cases that we want to cover.</p>
 <span class="gp">In [4]: </span><span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
 
 <span class="gp">In [5]: </span><span class="n">a</span>
-<span class="gh">Out[5]: </span><span class="go">array([   0.,    0.,    0.,    0.,  100.,    0.,    0.,    0.,    0.,    0.])</span>
+<span class="gh">Out[5]: </span><span class="go">array([  0.,   0.,   0.,   0., 100.,   0.,   0.,   0.,   0.,   0.])</span>
 </pre></div>
 </div>
 <p>The <cite>a</cite> array has been updated as required, because the <cite>b</cite> and <cite>a</cite> objects
 actually point back to the same part of the computer memory.</p>
 <p>On the other hand, when you <em>index</em> a <cite>numpy</cite> array, the behaviour is different.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="p">[[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">]]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="p">[[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">]]</span>
 
 <span class="gp">In [7]: </span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
 
 <span class="gp">In [8]: </span><span class="n">a</span>
-<span class="gh">Out[8]: </span><span class="go">array([   0.,    0.,    0.,    0.,  100.,    0.,    0.,    0.,    0.,    0.])</span>
+<span class="gh">Out[8]: </span><span class="go">array([  0.,   0.,   0.,   0., 100.,   0.,   0.,   0.,   0.,   0.])</span>
 </pre></div>
 </div>
 <p>Here changing <cite>c</cite> has not updated <cite>a</cite>. That’s because the construction of <cite>c</cite> actually
@@ -153,14 +147,14 @@ pattern in the memory.</p>
 <div class="section" id="back-to-pynbody">
 <h3>Back to pynbody<a class="headerlink" href="#back-to-pynbody" title="Permalink to this headline">¶</a></h3>
 <p>The <cite>IndexedSubArray</cite> class fixes this problem:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [10]: </span><span class="n">d</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">IndexedSimArray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">])</span>
 
 <span class="gp">In [11]: </span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
 
 <span class="gp">In [12]: </span><span class="n">a</span>
-<span class="gh">Out[12]: </span><span class="go">array([   0.,    0.,    0.,    0.,  100.,  200.,    0.,    0.,    0.,    0.])</span>
+<span class="gh">Out[12]: </span><span class="go">array([  0.,   0.,   0.,   0., 100., 200.,   0.,   0.,   0.,   0.])</span>
 </pre></div>
 </div>
 <p>Note that <cite>a</cite> has been updated correctly. This is achieved by the <cite>IndexedSimArray</cite>
@@ -169,18 +163,18 @@ the syntax <cite>d[1]=200</cite> is then translated into <cite>a[[4,5,6][1]]=200
 <p>The cost of this is that each time you call a function that requires a <cite>numpy</cite> array
 as an input, the <cite>IndexedSimArray</cite> has to generate a proxy for this purpose. This can become slow.
 Have a look at the following timings:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="o">%</span><span class="k">time</span> for i in xrange(10000) : d+=1
-<span class="go">CPU times: user 190 ms, sys: 850 us, total: 191 ms</span>
-<span class="go">Wall time: 192 ms</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="o">%</span><span class="k">time</span> for i in range(10000) : d+=1
+<span class="go">CPU times: user 76.7 ms, sys: 199 us, total: 76.9 ms</span>
+<span class="go">Wall time: 77 ms</span>
 
-<span class="gp">In [14]: </span><span class="o">%</span><span class="k">time</span> for i in xrange(10000) : a+=1
-<span class="go">CPU times: user 15.8 ms, sys: 87 us, total: 15.9 ms</span>
-<span class="go">Wall time: 15.9 ms</span>
+<span class="gp">In [14]: </span><span class="o">%</span><span class="k">time</span> for i in range(10000) : a+=1
+<span class="go">CPU times: user 14.3 ms, sys: 21 us, total: 14.3 ms</span>
+<span class="go">Wall time: 14.4 ms</span>
 </pre></div>
 </div>
 <p>Adding to the subarray is <em>slower</em> than adding to the entire array!
 This is because of the overheads of continually constructing proxy
-<cite>numpy</cite> arrays to pass to the <code class="docutils literal"><span class="pre">__add__</span></code> method.</p>
+<cite>numpy</cite> arrays to pass to the <code class="docutils literal notranslate"><span class="pre">__add__</span></code> method.</p>
 </div>
 <div class="section" id="how-to-remove-this-bottleneck">
 <h3>How to remove this bottleneck<a class="headerlink" href="#how-to-remove-this-bottleneck" title="Permalink to this headline">¶</a></h3>
@@ -194,14 +188,14 @@ and force only `numpy</cite> arrays to be returned. This means you must take res
 for understanding which operations copy, as opposed to referencing, data.</p>
 <p>This is known as <cite>immediate mode</cite> and is activated using python’s <cite>with</cite> mechanism.
 Let’s create a test snapshot and a subview into that snapshot to try it out.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">f</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">dm</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">f</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">dm</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 
 <span class="gp">In [16]: </span><span class="n">sub_f</span> <span class="o">=</span> <span class="n">f</span><span class="p">[[</span><span class="mi">20</span><span class="p">,</span><span class="mi">21</span><span class="p">,</span><span class="mi">22</span><span class="p">]]</span>
 </pre></div>
 </div>
-<p>Under normal conditions, the type of arrays returned from <code class="docutils literal"><span class="pre">sub_f</span></code> is <code class="docutils literal"><span class="pre">IndexedSimArray</span></code>.
+<p>Under normal conditions, the type of arrays returned from <code class="docutils literal notranslate"><span class="pre">sub_f</span></code> is <code class="docutils literal notranslate"><span class="pre">IndexedSimArray</span></code>.
 Updating one of these arrays will transparently update the main snapshot.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">sub_mass</span> <span class="o">=</span> <span class="n">sub_f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">sub_mass</span> <span class="o">=</span> <span class="n">sub_f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span>
 
 <span class="gp">In [18]: </span><span class="nb">type</span><span class="p">(</span><span class="n">sub_mass</span><span class="p">)</span>
 <span class="gh">Out[18]: </span><span class="go">pynbody.array.IndexedSimArray</span>
@@ -209,13 +203,13 @@ Updating one of these arrays will transparently update the main snapshot.</p>
 <span class="gp">In [19]: </span><span class="n">sub_mass</span><span class="p">[:]</span><span class="o">=</span><span class="mi">3</span>
 
 <span class="gp">In [20]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">][[</span><span class="mi">20</span><span class="p">,</span><span class="mi">21</span><span class="p">,</span><span class="mi">22</span><span class="p">]]</span>
-<span class="gh">Out[20]: </span><span class="go">SimArray([ 3.,  3.,  3.])</span>
+<span class="gh">Out[20]: </span><span class="go">SimArray([3., 3., 3.])</span>
 </pre></div>
 </div>
-<p>Conversely, in <cite>immediate mode</cite>, the type of arrays returned from <code class="docutils literal"><span class="pre">sub_f</span></code> is <code class="docutils literal"><span class="pre">SimArray</span></code> (so just
+<p>Conversely, in <cite>immediate mode</cite>, the type of arrays returned from <code class="docutils literal notranslate"><span class="pre">sub_f</span></code> is <code class="docutils literal notranslate"><span class="pre">SimArray</span></code> (so just
 a wrapper round a real <cite>numpy</cite> array). But updating that returned <cite>numpy</cite> array has <em>no effect</em> on the
 parent snapshot.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="k">with</span> <span class="n">f</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="k">with</span> <span class="n">f</span><span class="o">.</span><span class="n">immediate_mode</span> <span class="p">:</span>
 <span class="gp">   ....: </span>    <span class="n">sub_mass</span> <span class="o">=</span> <span class="n">sub_f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span>
 <span class="gp">   ....: </span>
 
@@ -223,30 +217,30 @@ parent snapshot.</p>
 <span class="gh">Out[22]: </span><span class="go">pynbody.array.SimArray</span>
 
 <span class="gp">In [23]: </span><span class="n">sub_mass</span>
-<span class="gh">Out[23]: </span><span class="go">SimArray([ 3.,  3.,  3.])</span>
+<span class="gh">Out[23]: </span><span class="go">SimArray([3., 3., 3.])</span>
 
 <span class="gp">In [24]: </span><span class="n">sub_mass</span><span class="p">[:]</span><span class="o">=</span><span class="mi">5</span>
 
 <span class="gp">In [25]: </span><span class="n">sub_mass</span> <span class="c1"># updated as expected</span>
-<span class="gh">Out[25]: </span><span class="go">SimArray([ 5.,  5.,  5.])</span>
+<span class="gh">Out[25]: </span><span class="go">SimArray([5., 5., 5.])</span>
 
 <span class="gp">In [26]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">][[</span><span class="mi">20</span><span class="p">,</span><span class="mi">21</span><span class="p">,</span><span class="mi">22</span><span class="p">]]</span> <span class="c1"># NOT updated - should still be 3,3,3!</span>
-<span class="gh">Out[26]: </span><span class="go">SimArray([ 3.,  3.,  3.])</span>
+<span class="gh">Out[26]: </span><span class="go">SimArray([3., 3., 3.])</span>
 </pre></div>
 </div>
 <p>So it becomes your responsibility to copy the results back in this case, if required. A template for performance
 critical code which might be operating on a <cite>SubSnap</cite> follows.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last"><code class="docutils literal"><span class="pre">with</span> <span class="pre">f_sub.immediate_mode</span></code>
-is equivalent to <code class="docutils literal"><span class="pre">with</span> <span class="pre">f.immediate_mode</span></code> where <cite>f_sub</cite> is any <cite>SubSnap</cite> of <cite>f</cite>.</p>
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">f_sub.immediate_mode</span></code>
+is equivalent to <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">f.immediate_mode</span></code> where <cite>f_sub</cite> is any <cite>SubSnap</cite> of <cite>f</cite>.</p>
 </div>
 <p>So in summary, the template code at the start of this document advocates:</p>
 <blockquote>
 <div><ul class="simple">
-<li>storing a <em>copy</em> of the data for the subset of particles</li>
-<li>working on the copy</li>
-<li>(if necessary) updating the main snapshot data explicitly before returning</li>
+<li><p>storing a <em>copy</em> of the data for the subset of particles</p></li>
+<li><p>working on the copy</p></li>
+<li><p>(if necessary) updating the main snapshot data explicitly before returning</p></li>
 </ul>
 </div></blockquote>
 </div>
@@ -254,16 +248,16 @@ is equivalent to <code class="docutils literal"><span class="pre">with</span> <s
 <div class="section" id="overheads-of-raw-simarrays">
 <h2>Overheads of raw SimArrays<a class="headerlink" href="#overheads-of-raw-simarrays" title="Permalink to this headline">¶</a></h2>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This information is provided for interest. We have never come across a realistic use case
+<p class="admonition-title">Note</p>
+<p>This information is provided for interest. We have never come across a realistic use case
 where the following is necessary.</p>
 </div>
-<p>In <cite>pynbody</cite>, arrays are implemented by the class <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray" title="pynbody.array.SimArray"><code class="xref py py-class docutils literal"><span class="pre">SimArray</span></code></a>. This is a wrapper
+<p>In <cite>pynbody</cite>, arrays are implemented by the class <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray" title="pynbody.array.SimArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimArray</span></code></a>. This is a wrapper
 around a <cite>numpy</cite> array. There is a small extra cost associated with every operation to allow
 units to be matched and updated. For long arrays such as those found in typical simulations, this is usually a tiny fraction of the
 actual computation time. We have never found it to be a problem, but if you want to disable the
 unit tracking you can always do so using <cite>numpy</cite>’s view mechanism to get a raw <cite>numpy</cite> array.
-Suppose you have a <cite>SimSnap</cite> <code class="docutils literal"><span class="pre">f</span></code>; then <code class="docutils literal"><span class="pre">pos</span> <span class="pre">=</span> <span class="pre">f['pos'].view(numpy.ndarray)</span></code> (for example) will return the position
+Suppose you have a <cite>SimSnap</cite> <code class="docutils literal notranslate"><span class="pre">f</span></code>; then <code class="docutils literal notranslate"><span class="pre">pos</span> <span class="pre">=</span> <span class="pre">f['pos'].view(numpy.ndarray)</span></code> (for example) will return the position
 array without any of the <cite>SimArray</cite> wrapping. The new <cite>pos</cite> variable can be manipulated without
 any unit handling code being called.</p>
 </div>
@@ -271,66 +265,71 @@ any unit handling code being called.</p>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Performance optimisation in pynbody</a><ul>
-<li><a class="reference internal" href="#overheads-of-subsnaps">Overheads of SubSnaps</a><ul>
-<li><a class="reference internal" href="#a-template-for-performance-critical-code">A template for performance-critical code</a></li>
-<li><a class="reference internal" href="#what-is-a-subsnap-really">What is a SubSnap, really?</a></li>
-<li><a class="reference internal" href="#numpy-s-behaviour">Numpy’s behaviour</a></li>
-<li><a class="reference internal" href="#back-to-pynbody">Back to pynbody</a></li>
-<li><a class="reference internal" href="#how-to-remove-this-bottleneck">How to remove this bottleneck</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-<li><a class="reference internal" href="#overheads-of-raw-simarrays">Overheads of raw SimArrays</a></li>
-</ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="tutorials.html">Pynbody Tutorials</a><ul>
-      <li>Previous: <a href="processing.html" title="previous chapter">Batch-processing Snapshots with Pynbody</a></li>
+      <li>Previous: <a href="hmf.html" title="previous chapter">Halo Mass function</a></li>
       <li>Next: <a href="configuration.html" title="next chapter">Configuring pynbody</a></li>
   </ul></li>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/performance.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/performance.rst.txt"

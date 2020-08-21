@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.plot.stars &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.plot.stars &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.plot.stars</h1><div class="highlight"><pre>
@@ -67,13 +61,13 @@
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
-<span class="kn">from</span> <span class="nn">..analysis</span> <span class="k">import</span> <span class="n">profile</span><span class="p">,</span> <span class="n">angmom</span><span class="p">,</span> <span class="n">halo</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span>
-<span class="kn">from</span> <span class="nn">.sph</span> <span class="k">import</span> <span class="n">image</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">_units</span>
+<span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">profile</span><span class="p">,</span> <span class="n">angmom</span><span class="p">,</span> <span class="n">halo</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span>
+<span class="kn">from</span> <span class="nn">.sph</span> <span class="kn">import</span> <span class="n">image</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">_units</span>
 
-<span class="kn">from</span> <span class="nn">..sph</span> <span class="k">import</span> <span class="n">render_spherical_image</span>
-<span class="kn">from</span> <span class="nn">..sph</span> <span class="k">import</span> <span class="n">Kernel2D</span>
+<span class="kn">from</span> <span class="nn">..sph</span> <span class="kn">import</span> <span class="n">render_spherical_image</span>
+<span class="kn">from</span> <span class="nn">..sph</span> <span class="kn">import</span> <span class="n">Kernel2D</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;pynbody.plot.stars&#39;</span><span class="p">)</span>
@@ -405,8 +399,8 @@
 <span class="sd">	gnomview, cartview, orthview, azeqview</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">try</span><span class="p">:</span>
-		<span class="kn">from</span> <span class="nn">healpy</span> <span class="k">import</span> <span class="n">projaxes</span> <span class="k">as</span> <span class="n">PA</span>
-		<span class="kn">from</span> <span class="nn">healpy</span> <span class="k">import</span> <span class="n">pixelfunc</span>                 
+		<span class="kn">from</span> <span class="nn">healpy</span> <span class="kn">import</span> <span class="n">projaxes</span> <span class="k">as</span> <span class="n">PA</span>
+		<span class="kn">from</span> <span class="nn">healpy</span> <span class="kn">import</span> <span class="n">pixelfunc</span>                 
 	<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
 		<span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
 			<span class="s2">&quot;Could not load healpy package. If you want to use this feature, &quot;</span>
@@ -723,7 +717,7 @@
 
 
 	<span class="c1"># add a z axis on top if it has not been already done by an earlier plot:</span>
-	<span class="kn">from</span> <span class="nn">pynbody.analysis</span> <span class="k">import</span> <span class="n">pkdgrav_cosmo</span> <span class="k">as</span> <span class="n">cosmo</span>
+	<span class="kn">from</span> <span class="nn">pynbody.analysis</span> <span class="kn">import</span> <span class="n">pkdgrav_cosmo</span> <span class="k">as</span> <span class="n">cosmo</span>
 	<span class="n">c</span> <span class="o">=</span> <span class="n">cosmo</span><span class="o">.</span><span class="n">Cosmology</span><span class="p">(</span><span class="n">sim</span><span class="o">=</span><span class="n">sim</span><span class="p">)</span>
 
 	<span class="n">old_axis</span> <span class="o">=</span> <span class="n">pyplot</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
@@ -915,7 +909,7 @@
 
 
 <span class="sd">	&#39;&#39;&#39;</span>
-	<span class="kn">from</span> <span class="nn">..analysis</span> <span class="k">import</span> <span class="n">luminosity</span> <span class="k">as</span> <span class="n">lum</span>
+	<span class="kn">from</span> <span class="nn">..analysis</span> <span class="kn">import</span> <span class="n">luminosity</span> <span class="k">as</span> <span class="n">lum</span>
 	<span class="kn">import</span> <span class="nn">os</span>
 
 	<span class="n">halomags</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1042,7 +1036,7 @@
 							<span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s1">&#39;sb,&#39;</span> <span class="o">+</span> <span class="n">band</span><span class="p">][</span><span class="n">exp_inds</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
 
 		<span class="c1"># 1.0857 is how many magnitudes a 1/e decrease is</span>
-		<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;h: &quot;</span><span class="p">,</span> <span class="mf">1.0857</span> <span class="o">/</span> <span class="n">expfit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;  u_0:&quot;</span><span class="p">,</span> <span class="n">expfit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+		<span class="nb">print</span><span class="p">((</span><span class="s2">&quot;h: &quot;</span><span class="p">,</span> <span class="mf">1.0857</span> <span class="o">/</span> <span class="n">expfit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;  u_0:&quot;</span><span class="p">,</span> <span class="n">expfit</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 
 		<span class="n">fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">expfit</span><span class="p">)</span>
 		<span class="k">if</span> <span class="s1">&#39;label&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -1055,7 +1049,7 @@
 		<span class="n">sersicfit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">sersic_inds</span><span class="p">])),</span>
 							   <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ps</span><span class="p">[</span><span class="s1">&#39;sb,&#39;</span> <span class="o">+</span> <span class="n">band</span><span class="p">][</span><span class="n">sersic_inds</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
 		<span class="n">fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">sersicfit</span><span class="p">)</span>
-		<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;n: &quot;</span><span class="p">,</span> <span class="n">sersicfit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;  other: &quot;</span><span class="p">,</span> <span class="n">sersicfit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+		<span class="nb">print</span><span class="p">((</span><span class="s2">&quot;n: &quot;</span><span class="p">,</span> <span class="n">sersicfit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;  other: &quot;</span><span class="p">,</span> <span class="n">sersicfit</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 		<span class="k">if</span> <span class="s1">&#39;label&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
 			<span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
 		<span class="k">if</span> <span class="s1">&#39;linestyle&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -1077,7 +1071,7 @@
 	<span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">10.0</span> <span class="o">**</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">delta</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span> <span class="o">**</span> <span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="o">-</span><span class="n">x</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">behroozi</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=-</span><span class="mf">1.412</span><span class="p">,</span> <span class="n">Kravtsov</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="behroozi"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.behroozi">[docs]</a><span class="k">def</span> <span class="nf">behroozi</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=-</span><span class="mf">1.412</span><span class="p">,</span> <span class="n">Kravtsov</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;Based on Behroozi+ (2013) return what stellar mass corresponds to the</span>
 <span class="sd">	halo mass passed in.</span>
 
@@ -1172,7 +1166,7 @@
 		<span class="n">scatter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">smp</span><span class="p">))</span>
 	<span class="n">scatter</span> <span class="o">=</span> <span class="mf">0.218</span> <span class="o">-</span> <span class="mf">0.023</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
 
-	<span class="k">return</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">smp</span><span class="p">,</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">scatter</span>
+	<span class="k">return</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">smp</span><span class="p">,</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">scatter</span></div>
 
 
 <div class="viewcode-block" id="moster"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.moster">[docs]</a><span class="k">def</span> <span class="nf">moster</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
@@ -1231,98 +1225,50 @@
 					<span class="o">*</span> <span class="n">B11e</span> <span class="o">+</span> <span class="n">dmdg10</span> <span class="o">*</span> <span class="n">dmdg10</span> <span class="o">*</span> <span class="n">G10e</span> <span class="o">*</span> <span class="n">G10e</span> <span class="o">+</span> <span class="n">dmdg11</span> <span class="o">*</span> <span class="n">dmdg11</span> <span class="o">*</span> <span class="n">G11e</span> <span class="o">*</span> <span class="n">G11e</span><span class="p">)</span>
 	<span class="k">return</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">smp</span><span class="p">,</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">sigma</span></div>
 
-<div class="viewcode-block" id="behroozi"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.behroozi">[docs]</a><span class="k">def</span> <span class="nf">behroozi</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;Based on Behroozi+ (2013) return what stellar mass corresponds to the</span>
-<span class="sd">	halo mass passed in.</span>
-
-<span class="sd">	**Usage**</span>
-
-<span class="sd">	   &gt;&gt;&gt; from pynbody.plot.stars import moster</span>
-<span class="sd">	   &gt;&gt;&gt; xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)</span>
-<span class="sd">	   &gt;&gt;&gt; ystarmasses, errors = moster(xmasses,halo_catalog._halos[1].properties[&#39;z&#39;])</span>
-<span class="sd">	   &gt;&gt;&gt; plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),</span>
-<span class="sd">						 y2=np.array(ystarmasses)*np.array(errors),</span>
-<span class="sd">						 facecolor=&#39;#BBBBBB&#39;,color=&#39;#BBBBBB&#39;)</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="n">loghm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">xmasses</span><span class="p">)</span>
-	<span class="c1"># from Behroozi et al (2013)</span>
-	<span class="n">EPS</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.777</span>
-	<span class="n">EPSpe</span> <span class="o">=</span> <span class="mf">0.133</span>
-	<span class="n">EPSme</span> <span class="o">=</span> <span class="mf">0.146</span>
-
-	<span class="n">EPSanu</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.006</span>
-	<span class="n">EPSanupe</span> <span class="o">=</span> <span class="mf">0.113</span>
-	<span class="n">EPSanume</span> <span class="o">=</span> <span class="mf">0.361</span>
-
-	<span class="n">EPSznu</span> <span class="o">=</span> <span class="mi">0</span>
-	<span class="n">EPSznupe</span> <span class="o">=</span> <span class="mf">0.003</span>
-	<span class="n">EPSznume</span> <span class="o">=</span> <span class="mf">0.104</span>
-
-	<span class="n">EPSa</span> <span class="o">=</span> <span class="mf">0.119</span>
-	<span class="n">EPSape</span> <span class="o">=</span> <span class="mf">0.061</span>
-	<span class="n">EPSame</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.012</span>
-
-	<span class="n">M1</span> <span class="o">=</span> <span class="mf">11.514</span>
-	<span class="n">M1pe</span> <span class="o">=</span> <span class="mf">0.053</span>
-	<span class="n">M1me</span> <span class="o">=</span> <span class="mf">0.009</span>
-
-	<span class="n">M1a</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.793</span>
-	<span class="n">M1ape</span> <span class="o">=</span> <span class="mf">0.315</span>
-	<span class="n">M1ame</span> <span class="o">=</span> <span class="mf">0.330</span>
-
-	<span class="n">M1z</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.251</span>
-	<span class="n">M1zpe</span> <span class="o">=</span> <span class="mf">0.012</span>
-	<span class="n">M1zme</span> <span class="o">=</span> <span class="mf">0.125</span>
-
-	<span class="n">AL</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.412</span>
-	<span class="n">ALpe</span> <span class="o">=</span> <span class="mf">0.02</span>
-	<span class="n">ALme</span> <span class="o">=</span> <span class="mf">0.105</span>
-
-	<span class="n">ALa</span> <span class="o">=</span> <span class="mf">0.731</span>
-	<span class="n">ALape</span> <span class="o">=</span> <span class="mf">0.344</span>
-	<span class="n">ALame</span> <span class="o">=</span> <span class="mf">0.296</span>
-
-	<span class="n">DEL</span> <span class="o">=</span> <span class="mf">3.508</span>
-	<span class="n">DELpe</span> <span class="o">=</span> <span class="mf">0.087</span>
-	<span class="n">DELme</span> <span class="o">=</span> <span class="mf">0.369</span>
-
-	<span class="n">DELa</span> <span class="o">=</span> <span class="mf">2.608</span>
-	<span class="n">DELape</span> <span class="o">=</span> <span class="mf">2.446</span>
-	<span class="n">DELame</span> <span class="o">=</span> <span class="mf">1.261</span>
-
-	<span class="n">DELz</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.043</span>
-	<span class="n">DELzpe</span> <span class="o">=</span> <span class="mf">0.958</span>
-	<span class="n">DELzme</span> <span class="o">=</span> <span class="mf">0.071</span>
-
-	<span class="n">G</span> <span class="o">=</span> <span class="mf">0.316</span>
-	<span class="n">Gpe</span> <span class="o">=</span> <span class="mf">0.076</span>
-	<span class="n">Gme</span> <span class="o">=</span> <span class="mf">0.012</span>
-
-	<span class="n">Ga</span> <span class="o">=</span> <span class="mf">1.319</span>
-	<span class="n">Gape</span> <span class="o">=</span> <span class="mf">0.584</span>
-	<span class="n">Game</span> <span class="o">=</span> <span class="mf">0.505</span>
-
-	<span class="n">Gz</span> <span class="o">=</span> <span class="mf">0.279</span>
-	<span class="n">Gzpe</span> <span class="o">=</span> <span class="mf">0.256</span>
-	<span class="n">Gzme</span> <span class="o">=</span> <span class="mf">0.081</span>
-
-	<span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
-	<span class="n">nu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span> <span class="o">*</span> <span class="n">a</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-	<span class="n">logm1</span> <span class="o">=</span> <span class="n">M1</span> <span class="o">+</span> <span class="n">nu</span> <span class="o">*</span> <span class="p">(</span><span class="n">M1a</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">M1z</span> <span class="o">*</span> <span class="n">z</span><span class="p">)</span>
-	<span class="n">logeps</span> <span class="o">=</span> <span class="n">EPS</span> <span class="o">+</span> <span class="n">nu</span> <span class="o">*</span> <span class="p">(</span><span class="n">EPSanu</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPSznu</span> <span class="o">*</span> <span class="n">z</span><span class="p">)</span> <span class="o">-</span> <span class="n">EPSa</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
-	<span class="n">alpha</span> <span class="o">=</span> <span class="n">AL</span> <span class="o">+</span> <span class="n">nu</span> <span class="o">*</span> <span class="n">ALa</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
-	<span class="n">delta</span> <span class="o">=</span> <span class="n">DEL</span> <span class="o">+</span> <span class="n">nu</span> <span class="o">*</span> <span class="n">DELa</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
-	<span class="n">g</span> <span class="o">=</span> <span class="n">G</span> <span class="o">+</span> <span class="n">nu</span> <span class="o">*</span> <span class="p">(</span><span class="n">Ga</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">Gz</span><span class="p">)</span>
-
-	<span class="n">x</span> <span class="o">=</span> <span class="n">loghm</span> <span class="o">-</span> <span class="n">logm1</span>
-	<span class="n">f0</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">delta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">**</span> <span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
-	<span class="n">smp</span> <span class="o">=</span> <span class="n">logm1</span> <span class="o">+</span> <span class="n">logeps</span> <span class="o">+</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="o">-</span> <span class="n">f0</span>
-
-	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">smp</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-		<span class="n">scatter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">smp</span><span class="p">))</span>
-	<span class="n">scatter</span> <span class="o">=</span> <span class="mf">0.218</span> <span class="o">-</span> <span class="mf">0.023</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
-
-	<span class="k">return</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">smp</span><span class="p">,</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">scatter</span></div>
+<div class="viewcode-block" id="hudson"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.hudson">[docs]</a><span class="k">def</span> <span class="nf">hudson</span><span class="p">(</span><span class="n">xmasses</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>	
+	<span class="sd">&#39;&#39;&#39; Based on Hudson+ (2014), returns what stellar mass corresponds to the 	</span>
+<span class="sd">	halo mass passed in.  This is the only SMHMR function that is not based	</span>
+<span class="sd">	on abundance matching, but instead uses date from CFHTLenS galaxy lensing data.	</span>
+<span class="sd">	   &gt;&gt;&gt; from pynbody.plot.stars import hudson	</span>
+<span class="sd">	   &gt;&gt;&gt; xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)	</span>
+<span class="sd">	   &gt;&gt;&gt; ystarmasses, errors = hudson(xmasses,halo_catalog._halos[1].properties[&#39;z&#39;])	</span>
+<span class="sd">	   &gt;&gt;&gt; plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),	</span>
+<span class="sd">	                     y2=np.array(ystarmasses)*np.array(errors),	</span>
+<span class="sd">	                     facecolor=&#39;#BBBBBB&#39;,color=&#39;#BBBBBB&#39;)	</span>
+<span class="sd">	&#39;&#39;&#39;</span>	
+	<span class="n">f05</span> <span class="o">=</span> <span class="mf">0.0414</span>	
+	<span class="n">f05_err</span> <span class="o">=</span> <span class="mf">0.0024</span>	
+	<span class="n">fz</span> <span class="o">=</span> <span class="mf">0.029</span>	
+	<span class="n">fz_err</span> <span class="o">=</span> <span class="mf">0.009</span>	
+	<span class="n">log10M05</span> <span class="o">=</span> <span class="mf">12.07</span>	
+	<span class="n">log10M05_err</span> <span class="o">=</span> <span class="mf">0.07</span>	
+	<span class="n">Mz</span> <span class="o">=</span> <span class="mf">0.09</span>	
+	<span class="n">Mz_err</span> <span class="o">=</span> <span class="mf">0.24</span>	
+	<span class="n">beta</span> <span class="o">=</span> <span class="mf">0.69</span>	
+	<span class="n">beta_err</span> <span class="o">=</span> <span class="mf">0.09</span>	
+	<span class="n">gamma</span> <span class="o">=</span> <span class="mf">0.8</span>	
+	
+	<span class="n">f1</span> <span class="o">=</span> <span class="n">f05</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span><span class="o">*</span><span class="n">fz</span>	
+	<span class="n">f1_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">f05_err</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">z</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">fz_err</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>	
+	
+	<span class="n">M1_exp</span> <span class="o">=</span> <span class="p">(</span><span class="n">log10M05</span><span class="o">+</span><span class="p">(</span><span class="n">z</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span><span class="o">*</span><span class="n">Mz</span><span class="p">)</span> 	
+	<span class="n">M1_exp_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">log10M05_err</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="n">z</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Mz_err</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>	
+	
+	<span class="n">M1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">M1_exp</span><span class="p">)</span>	
+	<span class="n">M1_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">M1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">*</span><span class="n">M1_exp_err</span><span class="p">)</span>	
+	
+	<span class="n">beta_term</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">xmasses</span><span class="o">/</span><span class="n">M1</span><span class="p">,</span> <span class="o">-</span><span class="n">beta</span><span class="p">)</span>	
+	<span class="n">beta_term_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">beta</span><span class="o">/</span><span class="n">M1</span><span class="o">*</span><span class="n">M1_err</span><span class="o">/</span><span class="n">M1</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">M1</span><span class="p">)</span><span class="o">*</span><span class="n">beta_err</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>	
+	
+	<span class="n">gamma_term</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">xmasses</span><span class="o">/</span><span class="n">M1</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>	
+	<span class="n">gamma_term_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gamma_term</span><span class="o">*</span><span class="n">gamma</span><span class="o">*</span><span class="n">M1_err</span><span class="o">/</span><span class="n">M1</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>	
+	
+	<span class="n">fstar_denom</span> <span class="o">=</span> <span class="n">beta_term</span> <span class="o">+</span> <span class="n">gamma_term</span>	
+	<span class="n">fstar_denom_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">beta_term</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span> <span class="n">gamma_term</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>	
+	
+	<span class="n">fstar</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">f1</span><span class="o">/</span><span class="n">fstar_denom</span>	
+	<span class="n">fstar_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">f1_err</span><span class="o">/</span><span class="n">f1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">fstar_denom_err</span><span class="o">/</span><span class="n">fstar_denom</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>	
+	<span class="k">return</span> <span class="n">fstar</span><span class="o">*</span><span class="n">xmasses</span><span class="p">,</span> <span class="mf">2.0</span><span class="o">/</span><span class="n">fstar_err</span></div>
 
 <div class="viewcode-block" id="subfindguo"><a class="viewcode-back" href="../../../reference/plot.html#pynbody.plot.stars.subfindguo">[docs]</a><span class="k">def</span> <span class="nf">subfindguo</span><span class="p">(</span><span class="n">halo_catalog</span><span class="p">,</span> <span class="n">clear</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">baryfrac</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 		<span class="n">filename</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -1467,13 +1413,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../../index.html">
-              <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../../index.html">Documentation overview</a><ul>
@@ -1483,25 +1449,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

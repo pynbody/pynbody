@@ -1,29 +1,22 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Halos in Pynbody &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halos in Pynbody &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Batch-processing Snapshots with Pynbody" href="processing.html" />
+    <link rel="next" title="Halo Mass function" href="hmf.html" />
     <link rel="prev" title="Pictures in Pynbody" href="pictures.html" />
 
    
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="halos-in-pynbody">
@@ -64,25 +58,25 @@ available today that find these groups of particles.
 <cite>Pynbody</cite> includes interfaces to several commonly used group finders.</p>
 <p>Groups that are virialized are called “halos”,
 so groups are available in <cite>pynbody</cite> using the
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><code class="xref py py-class docutils literal"><span class="pre">halos</span></code></a> function on a
-simulation object (<cite>SimSnap</cite>).  When <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><code class="xref py py-class docutils literal"><span class="pre">halos</span></code></a>
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><code class="xref py py-class docutils literal notranslate"><span class="pre">halos</span></code></a> function on a
+simulation object (<cite>SimSnap</cite>).  When <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><code class="xref py py-class docutils literal notranslate"><span class="pre">halos</span></code></a>
 is called, <cite>pynbody</cite> creates
-a <a class="reference internal" href="../reference/convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><code class="xref py py-class docutils literal"><span class="pre">HaloCatalogue</span></code></a> that consists of
-<a class="reference internal" href="../reference/convenience.html#pynbody.halo.Halo" title="pynbody.halo.Halo"><code class="xref py py-class docutils literal"><span class="pre">Halo</span></code></a> objects.
+a <a class="reference internal" href="../reference/convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaloCatalogue</span></code></a> that consists of
+<a class="reference internal" href="../reference/convenience.html#pynbody.halo.Halo" title="pynbody.halo.Halo"><code class="xref py py-class docutils literal notranslate"><span class="pre">Halo</span></code></a> objects.
 The <cite>Halo</cite> object holds information about the particle IDs and other properties
-about a given halo.  A <a class="reference internal" href="../reference/convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><code class="xref py py-class docutils literal"><span class="pre">HaloCatalogue</span></code></a> is an
+about a given halo.  A <a class="reference internal" href="../reference/convenience.html#pynbody.halo.HaloCatalogue" title="pynbody.halo.HaloCatalogue"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaloCatalogue</span></code></a> is an
 object is a compilation of all the halos in a given snapshot.</p>
 <p>Some possible halo finders that pynbody recognises include:</p>
 <blockquote>
 <div><ul class="simple">
-<li><a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder (AHF)</a> (<code class="xref py py-class docutils literal"><span class="pre">AHFCatalogue</span></code>);</li>
-<li><a class="reference external" href="https://bitbucket.org/pbehroozi/rockstar-galaxies">Rockstar</a> (<code class="xref py py-class docutils literal"><span class="pre">RockstarCatalogue</span></code>);</li>
-<li>SKID (<a class="reference internal" href="../reference/convenience.html#pynbody.halo.GrpCatalogue" title="pynbody.halo.GrpCatalogue"><code class="xref py py-class docutils literal"><span class="pre">GrpCatalogue</span></code></a> class);</li>
-<li>SubFind (<code class="xref py py-class docutils literal"><span class="pre">SubfindCatalogue</span></code>).</li>
+<li><p><a class="reference external" href="http://popia.ft.uam.es/AHF/Download.html">Amiga Halo Finder (AHF)</a> (<code class="xref py py-class docutils literal notranslate"><span class="pre">AHFCatalogue</span></code>);</p></li>
+<li><p><a class="reference external" href="https://bitbucket.org/pbehroozi/rockstar-galaxies">Rockstar</a> (<code class="xref py py-class docutils literal notranslate"><span class="pre">RockstarCatalogue</span></code>);</p></li>
+<li><p>SKID (<a class="reference internal" href="../reference/convenience.html#pynbody.halo.GrpCatalogue" title="pynbody.halo.GrpCatalogue"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrpCatalogue</span></code></a> class);</p></li>
+<li><p>SubFind (<code class="xref py py-class docutils literal notranslate"><span class="pre">SubfindCatalogue</span></code>).</p></li>
 </ul>
 </div></blockquote>
-<p>The <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><code class="xref py py-func docutils literal"><span class="pre">halos()</span></code></a> function in
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">SimSnap</span></code></a>
+<p>The <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.halos" title="pynbody.snapshot.SimSnap.halos"><code class="xref py py-func docutils literal notranslate"><span class="pre">halos()</span></code></a> function in
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimSnap</span></code></a>
 automatically determines whether halo data exists
 on disk already for <cite>pynbody</cite> to read, or if it should run a halo
 finder to create halo data.</p>
@@ -100,7 +94,7 @@ for you if you haven’t already generated halo catalogues for your simulation.<
 <h3>Rockstar<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <p>To install Rockstar, grab the code from Peter Behroozi’s bitbucket
 repository, make it, and copy it into your <cite>$PATH</cite></p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">bitbucket</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">pbehroozi</span><span class="o">/</span><span class="n">rockstar</span><span class="o">-</span><span class="n">galaxies</span><span class="o">.</span><span class="n">git</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">bitbucket</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">pbehroozi</span><span class="o">/</span><span class="n">rockstar</span><span class="o">-</span><span class="n">galaxies</span><span class="o">.</span><span class="n">git</span>
 <span class="o">&gt;</span> <span class="n">cd</span> <span class="n">rockstar</span><span class="o">-</span><span class="n">galaxies</span><span class="p">;</span> <span class="n">make</span>
 <span class="o">&gt;</span> <span class="n">cp</span> <span class="n">rockstar</span><span class="o">-</span><span class="n">galaxies</span> <span class="o">~/</span><span class="nb">bin</span><span class="o">/</span>
 </pre></div>
@@ -110,13 +104,13 @@ repository, make it, and copy it into your <cite>$PATH</cite></p>
 <h3>AHF<a class="headerlink" href="#ahf" title="Permalink to this headline">¶</a></h3>
 <p>To install AHF, take the most recent version from Alexander Knebe’s AHF
 page, uncompress it</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">wget</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">popia</span><span class="o">.</span><span class="n">ft</span><span class="o">.</span><span class="n">uam</span><span class="o">.</span><span class="n">es</span><span class="o">/</span><span class="n">AHF</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">ahf</span><span class="o">-</span><span class="n">v1</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mf">084.</span><span class="n">tgz</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">wget</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">popia</span><span class="o">.</span><span class="n">ft</span><span class="o">.</span><span class="n">uam</span><span class="o">.</span><span class="n">es</span><span class="o">/</span><span class="n">AHF</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">ahf</span><span class="o">-</span><span class="n">v1</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mf">084.</span><span class="n">tgz</span>
 <span class="o">&gt;</span> <span class="n">tar</span> <span class="n">zxf</span> <span class="n">ahf</span><span class="o">-</span><span class="n">v1</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mf">084.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">ahf</span><span class="o">-</span><span class="n">v1</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">084</span>
 </pre></div>
 </div>
 <p>Edit Makefile.config appropriate for your code, make AHF,
 and copy it into your $PATH.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">make</span> <span class="n">AHF</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">make</span> <span class="n">AHF</span>
 <span class="o">&gt;</span> <span class="n">cp</span> <span class="n">AHF</span><span class="o">-</span><span class="n">v1</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">084</span> <span class="o">~/</span><span class="nb">bin</span><span class="o">/</span>
 </pre></div>
 </div>
@@ -135,7 +129,7 @@ section, you can arrange the priority of halo finders to use as you like.</p>
 <p>We will use the AHF catalogue here since that is the one that is
 available for the sample output in the <cite>testdata</cite> bundle. The SubFind specific
 halo / subhalo structure is handled later.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span><span class="o">,</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span><span class="o">,</span> <span class="nn">matplotlib.pylab</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="gp">In [2]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/g15784.lr.01024.gz&#39;</span><span class="p">)</span>
 
@@ -144,26 +138,26 @@ halo / subhalo structure is handled later.</p>
 </div>
 <p>We’ve got the snapshot loaded, now we ask <cite>pynbody</cite> to load any
 available halo catalogue:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 </pre></div>
 </div>
 <p><cite>h</cite> is  the halo catalogue.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If the halo finders have to run to find the groups, they may take
+<p class="admonition-title">Note</p>
+<p>If the halo finders have to run to find the groups, they may take
 some time.  AHF typically takes 5 minutes for a million particle
 simulation while Rockstar takes 5-10 minutes running on a single
 processor.</p>
 </div>
 <p>We can easily retrieve some basic
 information, like the total number of halos in this catalogue:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 <span class="gh">Out[5]: </span><span class="go">1411</span>
 </pre></div>
 </div>
 <p>To actually access a halo, use square bracket syntax. For example, the following
 returns the number of particles in halos 1 and 2</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 <span class="gh">Out[6]: </span><span class="go">(502300, 82543)</span>
 </pre></div>
 </div>
@@ -172,12 +166,12 @@ halo for this zoom simulation will be the one we would most likely be
 interested in. Halo IDs begin with 1 for many halo finders (including AHF,
 which is the sample file being used here).</p>
 <p>As may now be evident, “halos” are treated using the
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal"><span class="pre">SubSnap</span></code></a> class. The syntax for dealing
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubSnap</span></code></a> class. The syntax for dealing
 with an individual halo therefore precisely mirrors the syntax for
 dealing with an entire simulation. For example, we can get the total mass
 in halo 1 and see the position of its first few particles as follows:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;1e12 Msol&#39;</span><span class="p">)</span>
-<span class="gh">Out[7]: </span><span class="go">SimArray(1.6963924146865035, &#39;1.00e+12 Msol&#39;)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;1e12 Msol&#39;</span><span class="p">)</span>
+<span class="gh">Out[7]: </span><span class="go">SimArray(1.69639241, &#39;1.00e+12 Msol&#39;)</span>
 
 <span class="gp">In [8]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
 <span class="gh">Out[8]: </span><span class="go"></span>
@@ -190,9 +184,9 @@ in halo 1 and see the position of its first few particles as follows:</p>
 </div>
 <p>A really common use-case is that one wants to center the simulation on
 a given halo and analyze some of its properties. Since halos are just
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal"><span class="pre">SubSnap</span></code></a> objects, this is easy to do:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="gh">Out[9]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x109c7ff90&gt;</span>
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubSnap</span></code></a> objects, this is easy to do:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="gh">Out[9]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x7f9288e4d2e0&gt;</span>
 
 <span class="gp">In [10]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s1">&#39;500 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
 </pre></div>
@@ -204,25 +198,15 @@ a given halo and analyze some of its properties. Since halos are just
 <p>Any additional information generated by the halo finder
 is available through the <cite>properties</cite> dictionary associated with halos. For
 example</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]</span>
 <span class="gh">Out[11]: </span><span class="go">[]</span>
 </pre></div>
 </div>
 <p>returns a list of sub-halos of this halo. Here there are no sub-halos, so
 we’ve been returned an empty list. To see everything that is
 known about the halo one can use the standard python dictionary method <cite>keys</cite>:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">keys</span><span class="p">()[:</span><span class="mi">10</span><span class="p">]</span> <span class="c1"># show only the first ten</span>
-<span class="gh">Out[12]: </span><span class="go"></span>
-<span class="go">[&#39;Ecy_gas&#39;,</span>
-<span class="go"> &#39;children&#39;,</span>
-<span class="go"> &#39;omegaM0&#39;,</span>
-<span class="go"> &#39;Rmax&#39;,</span>
-<span class="go"> &#39;Eay&#39;,</span>
-<span class="go"> &#39;Eax&#39;,</span>
-<span class="go"> &#39;Eaz&#39;,</span>
-<span class="go"> &#39;lambdaE_gas&#39;,</span>
-<span class="go"> &#39;fstart&#39;,</span>
-<span class="go"> &#39;lambda_gas&#39;]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<span class="gh">Out[12]: </span><span class="go">dict_keys([&#39;omegaM0&#39;, &#39;omegaL0&#39;, &#39;h&#39;, &#39;boxsize&#39;, &#39;a&#39;, &#39;time&#39;, &#39;halo_id&#39;, &#39;npart&#39;, &#39;nvpart&#39;, &#39;Xc&#39;, &#39;Yc&#39;, &#39;Zc&#39;, &#39;VXc&#39;, &#39;VYc&#39;, &#39;VZc&#39;, &#39;mass&#39;, &#39;Rvir&#39;, &#39;Vmax&#39;, &#39;Rmax&#39;, &#39;sigV&#39;, &#39;lambda&#39;, &#39;Lx&#39;, &#39;Ly&#39;, &#39;Lz&#39;, &#39;a_axis&#39;, &#39;Eax&#39;, &#39;Eay&#39;, &#39;Eaz&#39;, &#39;b_axis&#39;, &#39;Ebx&#39;, &#39;Eby&#39;, &#39;Ebz&#39;, &#39;c_axis&#39;, &#39;Ecx&#39;, &#39;Ecy&#39;, &#39;Ecz&#39;, &#39;ovdens&#39;, &#39;Redge&#39;, &#39;nbins&#39;, &#39;Ekin&#39;, &#39;Epot&#39;, &#39;mbp_offset&#39;, &#39;com_offset&#39;, &#39;r2&#39;, &#39;lambdaE&#39;, &#39;v_esc&#39;, &#39;Phi0&#39;, &#39;n_gas&#39;, &#39;M_gas&#39;, &#39;lambda_gas&#39;, &#39;Lx_gas&#39;, &#39;Ly_gas&#39;, &#39;Lz_gas&#39;, &#39;a_gas&#39;, &#39;Eax_gas&#39;, &#39;Eay_gas&#39;, &#39;Eaz_gas&#39;, &#39;b_gas&#39;, &#39;Ebx_gas&#39;, &#39;Eby_gas&#39;, &#39;Ebz_gas&#39;, &#39;c_gas&#39;, &#39;Ecx_gas&#39;, &#39;Ecy_gas&#39;, &#39;Ecz_gas&#39;, &#39;Ekin_gas&#39;, &#39;Epot_gas&#39;, &#39;lambdaE_gas&#39;, &#39;n_star&#39;, &#39;M_star&#39;, &#39;lambda_star&#39;, &#39;Lx_star&#39;, &#39;Ly_star&#39;, &#39;Lz_star&#39;, &#39;a_star&#39;, &#39;Eax_star&#39;, &#39;Eay_star&#39;, &#39;Eaz_star&#39;, &#39;b_star&#39;, &#39;Ebx_star&#39;, &#39;Eby_star&#39;, &#39;Ebz_star&#39;, &#39;c_star&#39;, &#39;Ecx_star&#39;, &#39;Ecy_star&#39;, &#39;Ecz_star&#39;, &#39;Ekin_star&#39;, &#39;Epot_star&#39;, &#39;lambdaE_star&#39;, &#39;fstart&#39;, &#39;children&#39;])</span>
 </pre></div>
 </div>
 </div>
@@ -232,7 +216,7 @@ known about the halo one can use the standard python dictionary method <cite>key
 machine. On the other hand, pynbody never actually loads particle data until
 it’s needed so it is possible to load a halo catalogue anyway.</p>
 <p>Consider the following example.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">f</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;testdata/g15784.lr.01024&quot;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">f</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;testdata/g15784.lr.01024&quot;</span><span class="p">)</span>
 
 <span class="gp">In [14]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 
@@ -247,7 +231,7 @@ it’s needed so it is possible to load a halo catalogue anyway.</p>
 halo catalogue. In fact, with some formats (including AHF, which is what’s
 in our sample test data here), you can specify <cite>dummy=True</cite> to load only the
 properties dictionary:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">halos</span><span class="p">(</span><span class="n">dummy</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">h</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">halos</span><span class="p">(</span><span class="n">dummy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="gp">In [18]: </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span> <span class="c1"># this is still OK</span>
 <span class="gh">Out[18]: </span><span class="go">11968400000000.0</span>
@@ -257,23 +241,23 @@ properties dictionary:</p>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">The remainder of this section requires the underlying snapshot loader
+<p class="admonition-title">Note</p>
+<p>The remainder of this section requires the underlying snapshot loader
 to support partial loading, which is currently only the case for <em>tipsy</em>
 and <em>nchilada</em> formats. See <a class="reference internal" href="../loaders.html#loaders"><span class="std std-ref">Code-specific loaders</span></a>.</p>
 </div>
 <p>Combined with pynbody’s partial-loading system, one can go further and
 pull only a single halo into your computer’s memory at once. The following
 example shows you how:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">h2data</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">load_copy</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">h2data</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">load_copy</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
 <span class="gp">In [21]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h2data</span><span class="p">)</span> <span class="c1"># this is correct again</span>
 <span class="gh">Out[21]: </span><span class="go">82543</span>
 
 <span class="gp">In [22]: </span><span class="n">h2data</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span>
 <span class="gh">Out[22]: </span><span class="go"></span>
-<span class="go">SimArray([  2.23517413e-10,   2.23517413e-10,   2.23517413e-10, ...,</span>
-<span class="go">            1.14440915e-07,   1.14440915e-07,   1.14440915e-07], &#39;4.75e+16 Msol&#39;)</span>
+<span class="go">SimArray([2.23517413e-10, 2.23517413e-10, 2.23517413e-10, ...,</span>
+<span class="go">          1.14440915e-07, 1.14440915e-07, 1.14440915e-07], &#39;4.75e+16 Msol&#39;)</span>
 </pre></div>
 </div>
 <p>As you can see from the last line, you can now access particle arrays
@@ -292,9 +276,9 @@ users might notice that this produces outfiles similar to ‘Alyson’s
 idl script’.</p>
 <p>The 3 written file types are:</p>
 <ol class="arabic simple">
-<li>.gtp (tipsy file with halos as star particles);</li>
-<li>.grp (ascii halo id of every snapshot particle, 0 if none);</li>
-<li>.stat (ascii condensed version of AHF halos file).</li>
+<li><p>.gtp (tipsy file with halos as star particles);</p></li>
+<li><p>.grp (ascii halo id of every snapshot particle, 0 if none);</p></li>
+<li><p>.stat (ascii condensed version of AHF halos file).</p></li>
 </ol>
 <p>This halo file set emulates the halo finder SKID. Tipsy and skid can be found at
 <a class="reference external" href="http://www-hpcc.astro.washington.edu/tools/">http://www-hpcc.astro.washington.edu/tools/</a>.</p>
@@ -304,7 +288,7 @@ idl script’.</p>
 <p>If using the Gadget3 SubFind HDF5 output (for example, OWLS / Eagle or Smaug sims)
 most of the examples from AHF above can be used, except for the subhalos structure.
 One major change is that the halo catalogue is a separate file to the snapshot.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [23]: </span><span class="kn">import</span> <span class="nn">pynbody</span><span class="o">,</span> <span class="nn">matplotlib.pylab</span> <span class="kn">as</span> <span class="nn">plt</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [23]: </span><span class="kn">import</span> <span class="nn">pynbody</span><span class="o">,</span> <span class="nn">matplotlib.pylab</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="gp">In [24]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5&#39;</span><span class="p">)</span>
 
@@ -314,7 +298,7 @@ One major change is that the halo catalogue is a separate file to the snapshot.<
 <p>We’ve got the snapshot loaded and can access the particle data in any manner we
 like as usual but unlike AHF we can’t load halos. Instead to get <cite>pynbody</cite>
 to load the halo catalogue we have to access the subfind output directly:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103&#39;</span><span class="p">)</span>
 
 <span class="gp">In [27]: </span><span class="n">s</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 
@@ -324,14 +308,14 @@ to load the halo catalogue we have to access the subfind output directly:</p>
 <p><cite>h</cite> is  the Friends-of-Friends (FOF) halo catalogue, upon which SubFind is based.</p>
 <p>As with the AHF example we can easily retrieve some basic
 information, like the total number of halos in this catalogue:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [29]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">h</span><span class="o">.</span><span class="n">ngroups</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">nsubhalos</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [29]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">h</span><span class="o">.</span><span class="n">ngroups</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">nsubhalos</span>
 <span class="gh">Out[29]: </span><span class="go">(4226, 4226, 3294)</span>
 </pre></div>
 </div>
 <p>Where the last value is the number of subhalos, see next section on these.
 To actually access a halo, use square bracket syntax as before.
 For example, the following returns the number of particles in halos 1 and 2</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 <span class="gh">Out[30]: </span><span class="go">(5064, 4910)</span>
 </pre></div>
 </div>
@@ -339,26 +323,26 @@ For example, the following returns the number of particles in halos 1 and 2</p>
 halo for this small box simulation will be the largest object.
 Halo IDs begin with 0 for SubFind / FOF unlike AHF.</p>
 <p>The “halos” are treated using the
-<code class="xref py py-class docutils literal"><span class="pre">SubFindHDFSnap</span></code> class. The syntax for dealing
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SubFindHDFSnap</span></code> class. The syntax for dealing
 with an individual halo is the same as AHF and the snapshot simulation.
 For example, we can get the total mass in the second FOF halo
 and see the position of its first few particles as follows:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [31]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;1e12 Msol&#39;</span><span class="p">)</span>
-<span class="gh">Out[31]: </span><span class="go">SimArray(0.1265043160057913, &#39;1.00e+12 Msol&#39;)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [31]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;1e12 Msol&#39;</span><span class="p">)</span>
+<span class="gh">Out[31]: </span><span class="go">SimArray(0.12650432, &#39;1.00e+12 Msol&#39;)</span>
 
 <span class="gp">In [32]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
 <span class="gh">Out[32]: </span><span class="go"></span>
-<span class="go">SimArray([[ 2361.6180398 ,  1970.33215876,   790.31792316],</span>
-<span class="go">          [ 2361.5917753 ,  1970.42023542,   790.38369763],</span>
-<span class="go">          [ 2361.5818129 ,  1970.40982018,   790.26443187],</span>
-<span class="go">          [ 2361.68822943,  1970.38491419,   790.33558378],</span>
-<span class="go">          [ 2361.54785018,  1970.31540382,   790.31322499]], &#39;kpc&#39;)</span>
+<span class="go">SimArray([[2361.6180398 , 1970.33215876,  790.31792316],</span>
+<span class="go">          [2361.5917753 , 1970.42023542,  790.38369763],</span>
+<span class="go">          [2361.5818129 , 1970.40982018,  790.26443187],</span>
+<span class="go">          [2361.68822943, 1970.38491419,  790.33558378],</span>
+<span class="go">          [2361.54785018, 1970.31540382,  790.31322499]], &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>A really common use-case is that one wants to center the simulation on
 a given halo and analyze some of its properties:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [33]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vel</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="gh">Out[33]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x109fd2190&gt;</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [33]: </span><span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vel</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gh">Out[33]: </span><span class="go">&lt;pynbody.transformation.GenericTranslation at 0x7f9289445a30&gt;</span>
 
 <span class="gp">In [34]: </span><span class="n">im</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="s1">&#39;40 kpc&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;Msol kpc^-2&#39;</span><span class="p">)</span>
 </pre></div>
@@ -370,7 +354,7 @@ a given halo and analyze some of its properties:</p>
 <p>After the FOF group has been found, SubFind runs on this reduced particle list
 to determine gravitational bound substructures (or subhalos) within the larger FOF halo.
 To access the list of subhalos simply call:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [35]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sub</span><span class="p">[:]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [35]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sub</span><span class="p">[:]</span>
 <span class="gh">Out[35]: </span><span class="go"></span>
 <span class="go">[&lt;SimSnap &quot;testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103:fof_group_1_subhalo_0&quot; len=4353&gt;,</span>
 <span class="go"> &lt;SimSnap &quot;testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103:fof_group_1_subhalo_1&quot; len=658&gt;]</span>
@@ -378,12 +362,12 @@ To access the list of subhalos simply call:</p>
 </div>
 <p>to return a list of sub-halos of this halo. Then one can select subhalo particles as
 before (e.g. dark matter velocities):</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [36]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [36]: </span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span>
 <span class="gh">Out[36]: </span><span class="go"></span>
 <span class="go">SimArray([[  30.14551033,  -18.16250408,   19.76518634],</span>
 <span class="go">          [ -10.09107784,  -20.86471745,   14.59541386],</span>
 <span class="go">          [  30.12826743,   28.85348224,  -61.51923505],</span>
-<span class="go">          ..., </span>
+<span class="go">          ...,</span>
 <span class="go">          [  50.27657113, -172.77083383,  -24.60836056],</span>
 <span class="go">          [   3.33786135, -166.7441768 ,   19.80777034],</span>
 <span class="go">          [  71.04409011, -192.64996009,  -21.51857116]], &#39;km s**-1&#39;)</span>
@@ -393,123 +377,125 @@ before (e.g. dark matter velocities):</p>
 catalogue values such as the centre of mass, or the velocity dispersion, can be accessed
 by the properties list for each halo / subhalo. Note that the subhalo properties list
 is far more extensive than the FOF halo:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>
 <span class="gh">Out[37]: </span><span class="go"></span>
-<span class="go">{u&#39;CenterOfMass&#39;: SimArray([ 4.10285216,  6.03583403,  0.52038905], &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;CenterOfMassVelocity&#39;: SimArray([-0.43261364,  7.97283217, -3.20020145], &#39;1.00e+05 cm a**1/2 s**-1&#39;),</span>
-<span class="go"> u&#39;EnvironmentMass&#39;: SimArray(5.669837944646133, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;FirstSubOfHalo&#39;: SimArray(8.0, &#39;1.00e+00&#39;),</span>
-<span class="go"> u&#39;Flag_Cooling&#39;: 0,</span>
-<span class="go"> u&#39;Flag_Feedback&#39;: 1,</span>
-<span class="go"> u&#39;Flag_Metals&#39;: 1,</span>
-<span class="go"> u&#39;Flag_Sfr&#39;: 1,</span>
-<span class="go"> u&#39;Flag_StellarAge&#39;: 1,</span>
-<span class="go"> u&#39;Halo_M_Crit200&#39;: SimArray(5.669837884022854, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_M_Crit2500&#39;: SimArray(2.063213893590728, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_M_Crit500&#39;: SimArray(3.710128132661339, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_M_Mean200&#39;: SimArray(5.707452306523919, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_M_Mean2500&#39;: SimArray(2.09112238875241, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_M_Mean500&#39;: SimArray(3.7416808829293586, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_M_TopHat200&#39;: SimArray(6.105132120515918, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_Crit200&#39;: SimArray(0.0956813246011734, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_Crit2500&#39;: SimArray(0.029434040188789368, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_Crit500&#39;: SimArray(0.06120672821998596, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_Mean200&#39;: SimArray(0.09628485143184662, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_Mean2500&#39;: SimArray(0.029686596244573593, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_Mean500&#39;: SimArray(0.06162656843662262, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Halo_R_TopHat200&#39;: SimArray(0.10221511125564575, &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Mass&#39;: SimArray(8.55388652230613, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;MassTable&#39;: array([ 0.        ,  0.00303354,  0.        ,  0.        ,  0.        ,  0.        ]),</span>
-<span class="go"> u&#39;MassType&#39;: SimArray([ 1.30246423,  6.97107166,  0.        ,  0.        ,  0.28035063,</span>
-<span class="go">            0.        ], &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;NsubPerHalo&#39;: SimArray(6.0, &#39;1.00e+00&#39;),</span>
-<span class="go"> u&#39;NumFilesPerSnapshot&#39;: 1,</span>
-<span class="go"> u&#39;NumPart_ThisFile&#39;: array([277386, 279009,      0,      0,   1635,      0], dtype=int32),</span>
-<span class="go"> u&#39;NumPart_Total&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
-<span class="go"> u&#39;NumPart_Total_HighWord&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
-<span class="go"> u&#39;Redshift&#39;: 5.0000024000009597,</span>
-<span class="go"> u&#39;RunLabel&#39;: &#39;&quot;SubFind Parent Box 10 with 128 WMAP7&quot;\n&#39;,</span>
-<span class="go"> u&#39;StarFormationRate&#39;: SimArray(21.57577236974612, &#39;Msol yr**-1&#39;),</span>
-<span class="go"> &#39;a&#39;: 0.1666666,</span>
-<span class="go"> &#39;boxsize&#39;: Unit(&quot;2.37e+03 kpc&quot;),</span>
-<span class="go"> &#39;h&#39;: 0.70199999999999996,</span>
-<span class="go"> &#39;halo_id&#39;: 2,</span>
+<span class="go">{&#39;a&#39;: 0.1666666,</span>
 <span class="go"> &#39;omegaB0&#39;: 0.0458,</span>
-<span class="go"> &#39;omegaL0&#39;: 0.72499999999999998,</span>
-<span class="go"> &#39;omegaM0&#39;: 0.27500000000000002,</span>
-<span class="go"> &#39;time&#39;: Unit(&quot;1.23e+00 kpc s km**-1&quot;)}</span>
+<span class="go"> &#39;omegaM0&#39;: 0.275,</span>
+<span class="go"> &#39;omegaL0&#39;: 0.725,</span>
+<span class="go"> &#39;boxsize&#39;: Unit(&quot;2.37e+03 kpc&quot;),</span>
+<span class="go"> &#39;h&#39;: 0.702,</span>
+<span class="go"> &#39;time&#39;: Unit(&quot;1.23e+00 kpc s km**-1&quot;),</span>
+<span class="go"> &#39;Flag_Cooling&#39;: 0,</span>
+<span class="go"> &#39;Flag_Feedback&#39;: 1,</span>
+<span class="go"> &#39;Flag_Metals&#39;: 1,</span>
+<span class="go"> &#39;Flag_Sfr&#39;: 1,</span>
+<span class="go"> &#39;Flag_StellarAge&#39;: 1,</span>
+<span class="go"> &#39;MassTable&#39;: array([0.        , 0.00303354, 0.        , 0.        , 0.        ,</span>
+<span class="go">        0.        ]),</span>
+<span class="go"> &#39;NumFilesPerSnapshot&#39;: 1,</span>
+<span class="go"> &#39;NumPart_ThisFile&#39;: array([277386, 279009,      0,      0,   1635,      0], dtype=int32),</span>
+<span class="go"> &#39;NumPart_Total&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
+<span class="go"> &#39;NumPart_Total_HighWord&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
+<span class="go"> &#39;Redshift&#39;: 5.00000240000096,</span>
+<span class="go"> &#39;RunLabel&#39;: b&#39;&quot;SubFind Parent Box 10 with 128 WMAP7&quot;\n&#39;,</span>
+<span class="go"> &#39;halo_id&#39;: 2,</span>
+<span class="go"> &#39;CenterOfMass&#39;: SimArray([4.10285216, 6.03583403, 0.52038905], &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;CenterOfMassVelocity&#39;: SimArray([-0.43261364,  7.97283217, -3.20020145], &#39;1.00e+05 cm a**1/2 s**-1&#39;),</span>
+<span class="go"> &#39;Mass&#39;: SimArray(8.55388652, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;MassType&#39;: SimArray([1.30246423, 6.97107166, 0.        , 0.        , 0.28035063,</span>
+<span class="go">           0.        ], &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;StarFormationRate&#39;: SimArray(21.57577237, &#39;Msol yr**-1&#39;),</span>
+<span class="go"> &#39;EnvironmentMass&#39;: SimArray(5.66983794, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;FirstSubOfHalo&#39;: SimArray(8., &#39;1.00e+00&#39;),</span>
+<span class="go"> &#39;Halo_M_Crit200&#39;: SimArray(5.66983788, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_M_Crit2500&#39;: SimArray(2.06321389, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_M_Crit500&#39;: SimArray(3.71012813, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_M_Mean200&#39;: SimArray(5.70745231, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_M_Mean2500&#39;: SimArray(2.09112239, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_M_Mean500&#39;: SimArray(3.74168088, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_M_TopHat200&#39;: SimArray(6.10513212, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_Crit200&#39;: SimArray(0.09568132, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_Crit2500&#39;: SimArray(0.02943404, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_Crit500&#39;: SimArray(0.06120673, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_Mean200&#39;: SimArray(0.09628485, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_Mean2500&#39;: SimArray(0.0296866, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_Mean500&#39;: SimArray(0.06162657, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;Halo_R_TopHat200&#39;: SimArray(0.10221511, &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;NsubPerHalo&#39;: SimArray(6., &#39;1.00e+00&#39;)}</span>
 
 <span class="gp">In [38]: </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;CenterOfMass&#39;</span><span class="p">]</span>
-<span class="gh">Out[38]: </span><span class="go">SimArray([ 4.10285216,  6.03583403,  0.52038905], &#39;3.09e+24 cm a h**-1&#39;)</span>
+<span class="gh">Out[38]: </span><span class="go">SimArray([4.10285216, 6.03583403, 0.52038905], &#39;3.09e+24 cm a h**-1&#39;)</span>
 
 <span class="gp">In [39]: </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span>
 <span class="gh">Out[39]: </span><span class="go"></span>
-<span class="go">{u&#39;CenterOfMass&#39;: SimArray([ 4.04154364,  6.01377394,  0.52375431], &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;CenterOfMassVelocity&#39;: SimArray([-110.75990997,  -42.79930189,   12.74084843], &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> u&#39;Flag_Cooling&#39;: 0,</span>
-<span class="go"> u&#39;Flag_Feedback&#39;: 1,</span>
-<span class="go"> u&#39;Flag_Metals&#39;: 1,</span>
-<span class="go"> u&#39;Flag_Sfr&#39;: 1,</span>
-<span class="go"> u&#39;Flag_StellarAge&#39;: 1,</span>
-<span class="go"> u&#39;GasSpin&#39;: SimArray([-0.00720652,  0.00422568,  0.00261926], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
-<span class="go"> u&#39;GrNr&#39;: SimArray(2.0, &#39;1.00e+00&#39;),</span>
-<span class="go"> u&#39;InertiaTensor&#39;: SimArray([  4.03272663e-08,   1.44714877e-08,  -1.30650405e-08,</span>
-<span class="go">             1.44714877e-08,   2.74477659e-08,  -2.03776720e-08,</span>
-<span class="go">            -1.30650405e-08,  -2.03776720e-08,   1.09618478e-07], &#39;1.00e+00&#39;),</span>
-<span class="go"> u&#39;KineticEnergy&#39;: SimArray(43.73894561982026, &#39;1.99e+53 cm**2 g h**-1 s**-2&#39;),</span>
-<span class="go"> u&#39;Mass&#39;: SimArray(0.07278115241206251, &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;MassTable&#39;: array([ 0.        ,  0.00303354,  0.        ,  0.        ,  0.        ,  0.        ]),</span>
-<span class="go"> u&#39;MassType&#39;: SimArray([ 0.01114693,  0.06067077,  0.        ,  0.        ,  0.00096345,</span>
-<span class="go">            0.        ], &#39;1.99e+43 g h**-1&#39;),</span>
-<span class="go"> u&#39;NSFSpin&#39;: SimArray([-0.01060776,  0.00725118,  0.00515794], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
-<span class="go"> u&#39;NumFilesPerSnapshot&#39;: 1,</span>
-<span class="go"> u&#39;NumPart_ThisFile&#39;: array([277386, 279009,      0,      0,   1635,      0], dtype=int32),</span>
-<span class="go"> u&#39;NumPart_Total&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
-<span class="go"> u&#39;NumPart_Total_HighWord&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
-<span class="go"> u&#39;Position&#39;: SimArray([ 4.04084158,  6.01266718,  0.52605957], &#39;3.09e+24 cm a h**-1&#39;),</span>
-<span class="go"> u&#39;Redshift&#39;: 5.0000024000009597,</span>
-<span class="go"> u&#39;RunLabel&#39;: &#39;&quot;SubFind Parent Box 10 with 128 WMAP7&quot;\n&#39;,</span>
-<span class="go"> u&#39;SFSpin&#39;: SimArray([-0.00051066, -0.00173048, -0.00237851], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
-<span class="go"> u&#39;StarFormationRate&#39;: SimArray(0.026268440764397383, &#39;Msol yr**-1&#39;),</span>
-<span class="go"> u&#39;StarSpin&#39;: SimArray([-0.00552418, -0.00141915,  0.00129262], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
-<span class="go"> u&#39;SubHalfMass&#39;: SimArray([ 0.00133806,  0.00118501,  0.        ,  0.        ,  0.        ,</span>
-<span class="go">            0.        ], &#39;3.09e+24 cm h**-1&#39;),</span>
-<span class="go"> u&#39;SubHalfMassProj&#39;: SimArray([ 0.00088806,  0.00087589,  0.        ,  0.        ,  0.        ,</span>
-<span class="go">            0.        ], &#39;3.09e+24 cm h**-1&#39;),</span>
-<span class="go"> u&#39;SubMostBoundID&#39;: SimArray(189504.0, &#39;1.00e+00&#39;),</span>
-<span class="go"> u&#39;SubParentHalo&#39;: SimArray(0.0, &#39;1.00e+00&#39;),</span>
-<span class="go"> u&#39;SubSpin&#39;: SimArray([-0.00650772, -0.00060551, -0.00222365], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
-<span class="go"> u&#39;SubStellarVelDisp&#39;: SimArray(5.863657433462831, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> u&#39;SubStellarVelDispHalfProj&#39;: SimArray(7.826269882560104, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> u&#39;SubVelDisp&#39;: SimArray(20.690812471636985, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> u&#39;SubVmax&#39;: SimArray(37.46568600338013, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> u&#39;SubVmaxRad&#39;: SimArray(0.0015790374180771416, &#39;3.09e+24 cm h**-1&#39;),</span>
-<span class="go"> u&#39;ThermalEnergy&#39;: SimArray(2.665470585599798, &#39;1.99e+53 cm**2 g h**-1 s**-2&#39;),</span>
-<span class="go"> u&#39;TotalEnergy&#39;: SimArray(-25.378239183056074, &#39;1.99e+53 cm**2 g h**-1 s**-2&#39;),</span>
-<span class="go"> &#39;a&#39;: 0.1666666,</span>
-<span class="go"> &#39;boxsize&#39;: Unit(&quot;2.37e+03 kpc&quot;),</span>
-<span class="go"> &#39;h&#39;: 0.70199999999999996,</span>
-<span class="go"> &#39;halo_id&#39;: 4,</span>
+<span class="go">{&#39;a&#39;: 0.1666666,</span>
 <span class="go"> &#39;omegaB0&#39;: 0.0458,</span>
-<span class="go"> &#39;omegaL0&#39;: 0.72499999999999998,</span>
-<span class="go"> &#39;omegaM0&#39;: 0.27500000000000002,</span>
-<span class="go"> &#39;time&#39;: Unit(&quot;1.23e+00 kpc s km**-1&quot;)}</span>
+<span class="go"> &#39;omegaM0&#39;: 0.275,</span>
+<span class="go"> &#39;omegaL0&#39;: 0.725,</span>
+<span class="go"> &#39;boxsize&#39;: Unit(&quot;2.37e+03 kpc&quot;),</span>
+<span class="go"> &#39;h&#39;: 0.702,</span>
+<span class="go"> &#39;time&#39;: Unit(&quot;1.23e+00 kpc s km**-1&quot;),</span>
+<span class="go"> &#39;Flag_Cooling&#39;: 0,</span>
+<span class="go"> &#39;Flag_Feedback&#39;: 1,</span>
+<span class="go"> &#39;Flag_Metals&#39;: 1,</span>
+<span class="go"> &#39;Flag_Sfr&#39;: 1,</span>
+<span class="go"> &#39;Flag_StellarAge&#39;: 1,</span>
+<span class="go"> &#39;MassTable&#39;: array([0.        , 0.00303354, 0.        , 0.        , 0.        ,</span>
+<span class="go">        0.        ]),</span>
+<span class="go"> &#39;NumFilesPerSnapshot&#39;: 1,</span>
+<span class="go"> &#39;NumPart_ThisFile&#39;: array([277386, 279009,      0,      0,   1635,      0], dtype=int32),</span>
+<span class="go"> &#39;NumPart_Total&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
+<span class="go"> &#39;NumPart_Total_HighWord&#39;: array([0, 0, 0, 0, 0, 0], dtype=uint32),</span>
+<span class="go"> &#39;Redshift&#39;: 5.00000240000096,</span>
+<span class="go"> &#39;RunLabel&#39;: b&#39;&quot;SubFind Parent Box 10 with 128 WMAP7&quot;\n&#39;,</span>
+<span class="go"> &#39;halo_id&#39;: 4,</span>
+<span class="go"> &#39;CenterOfMass&#39;: SimArray([4.04154364, 6.01377394, 0.52375431], &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;CenterOfMassVelocity&#39;: SimArray([-110.75990997,  -42.79930189,   12.74084843], &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> &#39;GasSpin&#39;: SimArray([-0.00720652,  0.00422568,  0.00261926], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
+<span class="go"> &#39;GrNr&#39;: SimArray(2., &#39;1.00e+00&#39;),</span>
+<span class="go"> &#39;InertiaTensor&#39;: SimArray([ 4.03272663e-08,  1.44714877e-08, -1.30650405e-08,</span>
+<span class="go">            1.44714877e-08,  2.74477659e-08, -2.03776720e-08,</span>
+<span class="go">           -1.30650405e-08, -2.03776720e-08,  1.09618478e-07], &#39;1.00e+00&#39;),</span>
+<span class="go"> &#39;KineticEnergy&#39;: SimArray(43.73894562, &#39;1.99e+53 cm**2 g h**-1 s**-2&#39;),</span>
+<span class="go"> &#39;Mass&#39;: SimArray(0.07278115, &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;MassType&#39;: SimArray([0.01114693, 0.06067077, 0.        , 0.        , 0.00096345,</span>
+<span class="go">           0.        ], &#39;1.99e+43 g h**-1&#39;),</span>
+<span class="go"> &#39;NSFSpin&#39;: SimArray([-0.01060776,  0.00725118,  0.00515794], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
+<span class="go"> &#39;Position&#39;: SimArray([4.04084158, 6.01266718, 0.52605957], &#39;3.09e+24 cm a h**-1&#39;),</span>
+<span class="go"> &#39;SFSpin&#39;: SimArray([-0.00051066, -0.00173048, -0.00237851], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
+<span class="go"> &#39;StarFormationRate&#39;: SimArray(0.02626844, &#39;Msol yr**-1&#39;),</span>
+<span class="go"> &#39;StarSpin&#39;: SimArray([-0.00552418, -0.00141915,  0.00129262], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
+<span class="go"> &#39;SubHalfMass&#39;: SimArray([0.00133806, 0.00118501, 0.        , 0.        , 0.        ,</span>
+<span class="go">           0.        ], &#39;3.09e+24 cm h**-1&#39;),</span>
+<span class="go"> &#39;SubHalfMassProj&#39;: SimArray([0.00088806, 0.00087589, 0.        , 0.        , 0.        ,</span>
+<span class="go">           0.        ], &#39;3.09e+24 cm h**-1&#39;),</span>
+<span class="go"> &#39;SubMostBoundID&#39;: SimArray(189504., &#39;1.00e+00&#39;),</span>
+<span class="go"> &#39;SubParentHalo&#39;: SimArray(0., &#39;1.00e+00&#39;),</span>
+<span class="go"> &#39;SubSpin&#39;: SimArray([-0.00650772, -0.00060551, -0.00222365], &#39;3.09e+29 cm**2 s**-1 h**-1&#39;),</span>
+<span class="go"> &#39;SubStellarVelDisp&#39;: SimArray(5.86365743, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> &#39;SubStellarVelDispHalfProj&#39;: SimArray(7.82626988, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> &#39;SubVelDisp&#39;: SimArray(20.69081247, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> &#39;SubVmax&#39;: SimArray(37.465686, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> &#39;SubVmaxRad&#39;: SimArray(0.00157904, &#39;3.09e+24 cm h**-1&#39;),</span>
+<span class="go"> &#39;ThermalEnergy&#39;: SimArray(2.66547059, &#39;1.99e+53 cm**2 g h**-1 s**-2&#39;),</span>
+<span class="go"> &#39;TotalEnergy&#39;: SimArray(-25.37823918, &#39;1.99e+53 cm**2 g h**-1 s**-2&#39;)}</span>
 
 <span class="gp">In [40]: </span><span class="n">h</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;CenterOfMass&#39;</span><span class="p">]</span>
-<span class="gh">Out[40]: </span><span class="go">SimArray([ 4.04154364,  6.01377394,  0.52375431], &#39;3.09e+24 cm a h**-1&#39;)</span>
+<span class="gh">Out[40]: </span><span class="go">SimArray([4.04154364, 6.01377394, 0.52375431], &#39;3.09e+24 cm a h**-1&#39;)</span>
 </pre></div>
 </div>
 <p>To access the entire dataset of a given property (say all of the Stellar
 Velocity Dispersions) requires an embedded for loop over the HDF5 catalogue and
 appending to an array:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [41]: </span><span class="n">SubStellarVelDisp</span> <span class="o">=</span> <span class="p">[[</span><span class="n">subhalo</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;SubStellarVelDisp&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">subhalo</span> <span class="ow">in</span> <span class="n">halo</span><span class="o">.</span><span class="n">sub</span><span class="p">]</span> <span class="k">for</span> <span class="n">halo</span> <span class="ow">in</span> <span class="n">h</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [41]: </span><span class="n">SubStellarVelDisp</span> <span class="o">=</span> <span class="p">[[</span><span class="n">subhalo</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;SubStellarVelDisp&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">subhalo</span> <span class="ow">in</span> <span class="n">halo</span><span class="o">.</span><span class="n">sub</span><span class="p">]</span> <span class="k">for</span> <span class="n">halo</span> <span class="ow">in</span> <span class="n">h</span><span class="p">]</span>
 
 <span class="gp">In [42]: </span><span class="n">SubStellarVelDisp</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <span class="gh">Out[42]: </span><span class="go"></span>
-<span class="go">[SimArray(41.94170323667739, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> SimArray(33.54862683657804, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> SimArray(17.48874067370036, &#39;1.00e+05 cm s**-1&#39;),</span>
-<span class="go"> SimArray(0.0, &#39;1.00e+05 cm s**-1&#39;)]</span>
+<span class="go">[SimArray(41.94170324, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> SimArray(33.54862684, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> SimArray(17.48874067, &#39;1.00e+05 cm s**-1&#39;),</span>
+<span class="go"> SimArray(0., &#39;1.00e+05 cm s**-1&#39;)]</span>
 </pre></div>
 </div>
 </div>
@@ -517,69 +503,71 @@ appending to an array:</p>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Halos in Pynbody</a><ul>
-<li><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li><a class="reference internal" href="#id1">Rockstar</a></li>
-<li><a class="reference internal" href="#ahf">AHF</a></li>
-<li><a class="reference internal" href="#id2">Configuration</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-<li><a class="reference internal" href="#working-with-halos-and-catalogues">Working with Halos and Catalogues</a></li>
-<li><a class="reference internal" href="#halo-catalogue-information">Halo catalogue information</a></li>
-<li><a class="reference internal" href="#dealing-with-big-simulations-and-lots-of-halos">Dealing with big simulations and lots of halos</a></li>
-<li><a class="reference internal" href="#write-halo-catalog-i-e-convert-ahf-outfiles-to-tipsy-format">Write halo catalog (i.e. convert AHF outfiles to tipsy format)</a></li>
-<li><a class="reference internal" href="#working-with-subfind-halos-and-subhalos">Working with SubFind Halos and Subhalos</a></li>
-<li><a class="reference internal" href="#subhalo-catalogue-information">Subhalo catalogue information</a></li>
-</ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="tutorials.html">Pynbody Tutorials</a><ul>
       <li>Previous: <a href="pictures.html" title="previous chapter">Pictures in Pynbody</a></li>
-      <li>Next: <a href="processing.html" title="next chapter">Batch-processing Snapshots with Pynbody</a></li>
+      <li>Next: <a href="hmf.html" title="next chapter">Halo Mass function</a></li>
   </ul></li>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/halos.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/halos.rst.txt"

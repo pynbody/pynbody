@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.units &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.units &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.units</h1><div class="highlight"><pre>
@@ -168,8 +162,8 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">keyword</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">backcompat</span>
-<span class="kn">from</span> <span class="nn">.backcompat</span> <span class="k">import</span> <span class="n">fractions</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">backcompat</span>
+<span class="kn">from</span> <span class="nn">.backcompat</span> <span class="kn">import</span> <span class="n">fractions</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 
 <span class="n">Fraction</span> <span class="o">=</span> <span class="n">fractions</span><span class="o">.</span><span class="n">Fraction</span>
@@ -177,8 +171,8 @@
 <span class="n">_registry</span> <span class="o">=</span> <span class="p">{}</span>
 
 
-<span class="k">class</span> <span class="nc">UnitsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="k">pass</span>
+<div class="viewcode-block" id="UnitsException"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.UnitsException">[docs]</a><span class="k">class</span> <span class="nc">UnitsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="UnitBase"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.UnitBase">[docs]</a><span class="k">class</span> <span class="nc">UnitBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -186,24 +180,24 @@
     <span class="sd">&quot;&quot;&quot;Base class for units. To instantiate a unit, call the :func:`pynbody.units.Unit`</span>
 <span class="sd">    factory function.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot directly initialize abstract base class&quot;</span><span class="p">)</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Units can only be raised to integer or fractional powers. Use python&#39;s built-in fractions module or a tuple: e.g. unit**(1,2) represents a square root.&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Units can only be raised to integer or fractional powers. Use python&#39;s built-in fractions module or a tuple: e.g. unit**(1,2) represents a square root.&quot;</span><span class="p">)</span>
             <span class="k">else</span> <span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Units can only be raised to integer or fractional powers&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Units can only be raised to integer or fractional powers&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="p">])</span><span class="o">.</span><span class="n">simplify</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__div__</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__rdiv__</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
@@ -218,7 +212,7 @@
     <span class="k">def</span> <span class="nf">__rdiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">simplify</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;_no_unit&quot;</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">NoUnit</span><span class="p">()</span>
         <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;units&quot;</span><span class="p">):</span>
@@ -228,49 +222,49 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">simplify</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">simplify</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
-        <span class="n">scale</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s1">&#39;in_units&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">m</span>
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s1">&#39;in_units&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">m</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;units&#39;</span><span class="p">):</span>
             <span class="n">scale</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="bp">self</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="n">m</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s1">&#39;Unit(&quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;)&#39;</span>
 
-    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.</span>
         <span class="k">except</span> <span class="n">UnitsException</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span> <span class="o">==</span> <span class="n">other</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1.</span>
 
-    <span class="k">def</span> <span class="nf">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.</span>
 
-    <span class="k">def</span> <span class="nf">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1.</span>
 
-    <span class="k">def</span> <span class="nf">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">1.</span>
 
-    <span class="k">def</span> <span class="nf">__neg__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__neg__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__float__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__float__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="mf">1.</span>
 
-    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">simplify</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -323,7 +317,7 @@
             <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span><span class="s2">&quot;Unit with this name already exists&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;**&quot;</span> <span class="ow">in</span> <span class="n">st</span> <span class="ow">or</span> <span class="s2">&quot;^&quot;</span> <span class="ow">in</span> <span class="n">st</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span> <span class="ow">in</span> <span class="n">st</span><span class="p">:</span>
             <span class="c1"># will cause problems for simple string parser in Unit() factory</span>
-            <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">,</span> <span class="s2">&quot;Unit names cannot contain &#39;**&#39; or &#39;^&#39; or spaces&quot;</span>
+            <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span><span class="s2">&quot;Unit names cannot contain &#39;**&#39; or &#39;^&#39; or spaces&quot;</span><span class="p">)</span>
         <span class="n">_registry</span><span class="p">[</span><span class="n">st</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
 
     <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
@@ -333,16 +327,16 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
-<span class="k">class</span> <span class="nc">NoUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
+<div class="viewcode-block" id="NoUnit"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.NoUnit">[docs]</a><span class="k">class</span> <span class="nc">NoUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_no_unit</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">substitutions</span><span class="p">):</span>
+<div class="viewcode-block" id="NoUnit.ratio"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.NoUnit.ratio">[docs]</a>    <span class="k">def</span> <span class="nf">ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">substitutions</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NoUnit</span><span class="p">):</span>
             <span class="k">return</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span><span class="s2">&quot;Unknown units&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span><span class="s2">&quot;Unknown units&quot;</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">dimensional_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span><span class="s2">&quot;Unknown units&quot;</span><span class="p">)</span>
@@ -353,7 +347,7 @@
     <span class="k">def</span> <span class="nf">simplify</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
@@ -362,20 +356,20 @@
     <span class="k">def</span> <span class="nf">__rdiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;NoUnit()&quot;</span>
 
     <span class="k">def</span> <span class="nf">latex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span>
+<div class="viewcode-block" id="NoUnit.irrep"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.NoUnit.irrep">[docs]</a>    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
 
 <span class="n">no_unit</span> <span class="o">=</span> <span class="n">NoUnit</span><span class="p">()</span>
 
@@ -392,28 +386,28 @@
         <span class="k">return</span> <span class="n">nu</span>
 
 
-<span class="k">class</span> <span class="nc">IrreducibleUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
+<div class="viewcode-block" id="IrreducibleUnit"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.IrreducibleUnit">[docs]</a><span class="k">class</span> <span class="nc">IrreducibleUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span> <span class="o">=</span> <span class="n">st</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_unit</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">_resurrect_named_unit</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span>
 
     <span class="k">def</span> <span class="nf">latex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="sa">r</span><span class="s2">&quot;\mathrm{&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span>
 
-    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<div class="viewcode-block" id="IrreducibleUnit.irrep"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.IrreducibleUnit.irrep">[docs]</a>    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">NamedUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
+<div class="viewcode-block" id="NamedUnit"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.NamedUnit">[docs]</a><span class="k">class</span> <span class="nc">NamedUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">represents</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">represents</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span> <span class="o">=</span> <span class="n">st</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">represents</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">represents</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">represents</span><span class="p">)</span>
@@ -424,7 +418,7 @@
     <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">_resurrect_named_unit</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_latex&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_represents</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span>
 
     <span class="k">def</span> <span class="nf">latex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -432,13 +426,13 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span>
         <span class="k">return</span> <span class="sa">r</span><span class="s2">&quot;\mathrm{&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_st_rep</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span>
 
-    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_represents</span><span class="o">.</span><span class="n">irrep</span><span class="p">()</span>
+<div class="viewcode-block" id="NamedUnit.irrep"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.NamedUnit.irrep">[docs]</a>    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_represents</span><span class="o">.</span><span class="n">irrep</span><span class="p">()</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">CompositeUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit">[docs]</a><span class="k">class</span> <span class="nc">CompositeUnit</span><span class="p">(</span><span class="n">UnitBase</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">powers</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">powers</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a composite unit.</span>
 
 <span class="sd">        Direct use of this function is not recommended. Instead use the</span>
@@ -451,7 +445,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span> <span class="o">=</span> <span class="n">bases</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_powers</span> <span class="o">=</span> <span class="n">powers</span>
 
-    <span class="k">def</span> <span class="nf">latex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit.latex"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit.latex">[docs]</a>    <span class="k">def</span> <span class="nf">latex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a LaTeX representation of this unit.</span>
 
 <span class="sd">        Prefactors are converted into exponent notation. Named units by default</span>
@@ -480,9 +474,9 @@
                 <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;^{&quot;</span>
                 <span class="n">s</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
                 <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;}&quot;</span>
-        <span class="k">return</span> <span class="n">s</span>
+        <span class="k">return</span> <span class="n">s</span></div>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">s</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bases</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%.2e</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scale</span>
@@ -504,7 +498,7 @@
                     <span class="n">s</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">s</span>
 
-    <span class="k">def</span> <span class="nf">__float__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__float__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scale</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expand_to_irrep</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -545,22 +539,21 @@
                        <span class="k">if</span> <span class="n">bi</span> <span class="ow">is</span> <span class="n">b</span><span class="p">])</span>
                   <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">]</span>
 
-        <span class="n">bp</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span>
-                           <span class="nb">zip</span><span class="p">(</span><span class="n">powers</span><span class="p">,</span> <span class="n">bases</span><span class="p">)),</span>
+        <span class="n">bp</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">powers</span><span class="p">,</span> <span class="n">bases</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">],</span>
                     <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="c1"># Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_powers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">bp</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_powers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">bp</span><span class="p">))))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_powers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
 
-    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit.copy"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create a copy which is &#39;shallow&#39; in the sense that it</span>
 <span class="sd">        references exactly the same underlying base units, but where</span>
 <span class="sd">        the list of those units can be manipulated separately.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span><span class="p">[:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_powers</span><span class="p">[:])</span>
+        <span class="k">return</span> <span class="n">CompositeUnit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span><span class="p">[:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_powers</span><span class="p">[:])</span></div>
 
     <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;For compatibility with python copy module&quot;&quot;&quot;</span>
@@ -571,22 +564,22 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_gather</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit.irrep"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit.irrep">[docs]</a>    <span class="k">def</span> <span class="nf">irrep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a new unit which represents this unit expressed</span>
 <span class="sd">        solely in terms of IrreducibleUnit bases.&quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">x</span><span class="o">.</span><span class="n">_expand</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">x</span><span class="o">.</span><span class="n">_gather</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">x</span></div>
 
-    <span class="k">def</span> <span class="nf">is_dimensionless</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit.is_dimensionless"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit.is_dimensionless">[docs]</a>    <span class="k">def</span> <span class="nf">is_dimensionless</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns true if this unit actually translates into a scalar</span>
 <span class="sd">        quantity.&quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">irrep</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">_powers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
 
-    <span class="k">def</span> <span class="nf">dimensionless_constant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">substitutions</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit.dimensionless_constant"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit.dimensionless_constant">[docs]</a>    <span class="k">def</span> <span class="nf">dimensionless_constant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">substitutions</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;If this unit is dimensionless, return its scalar quantity.</span>
 
 <span class="sd">        Direct use of this function is not recommended. It is generally</span>
@@ -603,7 +596,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span><span class="s2">&quot;Not dimensionless&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">c</span>
+        <span class="k">return</span> <span class="n">c</span></div>
 
     <span class="k">def</span> <span class="nf">_power_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bases</span><span class="p">:</span>
@@ -611,7 +604,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">dimensional_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis_units</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeUnit.dimensional_project"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.CompositeUnit.dimensional_project">[docs]</a>    <span class="k">def</span> <span class="nf">dimensional_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis_units</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Work out how to express the dimensions of this unit relative to the</span>
 <span class="sd">        specified list of basis units.</span>
 
@@ -668,7 +661,7 @@
         <span class="c1"># solution would not be unique.</span>
         <span class="n">M_T_M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">matrix</span><span class="p">)</span>
 
-        <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">util</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">util</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">M_T_M_inv</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">rational_matrix_inv</span><span class="p">(</span><span class="n">M_T_M</span><span class="p">)</span>
@@ -689,7 +682,7 @@
             <span class="k">raise</span> <span class="n">UnitsException</span><span class="p">(</span>
                 <span class="s2">&quot;Basis units do not span dimensions of specified unit&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">candidate</span>
+        <span class="k">return</span> <span class="n">candidate</span></div></div>
 
 
 <div class="viewcode-block" id="Unit"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.units.Unit">[docs]</a><span class="k">def</span> <span class="nf">Unit</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
@@ -732,7 +725,7 @@
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown unit &quot;</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">denominator</span> <span class="ow">is</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">denominator</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">numerator</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">u</span> <span class="o">=</span> <span class="n">_registry</span><span class="p">[</span><span class="n">com</span><span class="p">]</span>
@@ -770,8 +763,8 @@
 
     <span class="n">context_arg</span> <span class="o">=</span> <span class="n">orig_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;context_arg&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;__len__&#39;</span><span class="p">),</span> <span class="n">args</span><span class="p">)</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;__len__&#39;</span><span class="p">),</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;__len__&#39;</span><span class="p">)]</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;__len__&#39;</span><span class="p">)]</span>
 
     <span class="k">def</span> <span class="nf">decorator_fn</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -806,7 +799,7 @@
     <span class="k">return</span> <span class="n">decorator_fn</span></div>
 
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config_parser</span>
 
 
 <span class="k">def</span> <span class="nf">__is_clean_name</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
@@ -868,13 +861,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../index.html">
-              <img class="logo" src="../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
@@ -884,25 +897,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

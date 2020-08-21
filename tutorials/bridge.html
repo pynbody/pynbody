@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Tracing Particles between Snapshots &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracing Particles between Snapshots &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Profiles in Pynbody" href="profile.html" />
@@ -47,94 +40,179 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="tracing-particles-between-snapshots">
 <span id="bridge-tutorial"></span><h1>Tracing Particles between Snapshots<a class="headerlink" href="#tracing-particles-between-snapshots" title="Permalink to this headline">¶</a></h1>
-<p>The <a class="reference internal" href="../reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><code class="xref py py-mod docutils literal"><span class="pre">bridge</span></code></a> module has tools for connecting different
+<p>The <a class="reference internal" href="../reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bridge</span></code></a> module has tools for connecting different
 outputs which allows you to trace particles from one snapshot of the
 simulation to another. Normally, matching up particle IDs between
-different snapshots can be a pain, but <a class="reference internal" href="../reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><code class="xref py py-mod docutils literal"><span class="pre">bridge</span></code></a> does all
-of this for you transparently. All that is needed is to initialize a
-<a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><code class="xref py py-class docutils literal"><span class="pre">Bridge</span></code></a> object that links two snapshots
+different snapshots can be a pain, but <a class="reference internal" href="../reference/convenience.html#module-pynbody.bridge" title="pynbody.bridge"><code class="xref py py-mod docutils literal notranslate"><span class="pre">bridge</span></code></a> does all
+of this for you transparently.</p>
+<p>In pynbody, a <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bridge</span></code></a> is an object that links two snapshots
 together. Once connected, a bridge object called on a specific subset
 of particles in one snapshot will trace these particles back (or
-forward) to the second snapshot.</p>
+forward) to the second snapshot. Constructing bridges is also very straight-forward
+in most cases. The easiest way is to try it in action.</p>
+<p>Since the pynbody test data does not include a simulation with two different outputs,
+we will borrow the <code class="docutils literal notranslate"><span class="pre">test_gadget</span></code> data from tangos to illustrate the point. Click
+<a class="reference external" href="ftp://ftp.star.ucl.ac.uk/app/tangos/tutorial_gadget.tar.gz">here</a> to download.</p>
 <div class="section" id="basic-usage">
 <h2>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
-<p>Load the data:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">high_redshift_file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">f2</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">low_redshift_file</span><span class="p">)</span>
+<p>Load the data at high and low redshift:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+
+<span class="gp">In [2]: </span><span class="n">f1</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;tutorial_gadget/snapshot_018&quot;</span><span class="p">)</span>
+
+<span class="gp">In [3]: </span><span class="n">f2</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;tutorial_gadget/snapshot_020&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Load the halo catalogue:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">h_high_z</span> <span class="o">=</span> <span class="n">f1</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
+<p>Verify the redshifts:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="s2">&quot;f1 redshift=</span><span class="si">%.2f</span><span class="s2">; f2 redshift=</span><span class="si">%.2f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">f1</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">],</span> <span class="n">f2</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">])</span>
+<span class="gh">Out[4]: </span><span class="go">&#39;f1 redshift=0.48; f2 redshift=0.00&#39;</span>
+</pre></div>
+</div>
+<p>Load the halo catalogue at low redshift:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">h2</span> <span class="o">=</span> <span class="n">f2</span><span class="o">.</span><span class="n">halos</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Create the bridge object:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">OrderBridge</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span> <span class="c1"># Or a different class, see &quot;Which class to use&quot; below</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">f2</span><span class="o">.</span><span class="n">bridge</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">b</span></code> is now an <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><code class="xref py py-class docutils literal"><span class="pre">OrderBridge</span></code></a> object that links
-the two outputs <code class="docutils literal"><span class="pre">f1</span></code> and <code class="docutils literal"><span class="pre">f2</span></code> together. Passing a <code class="docutils literal"><span class="pre">SubSnap</span></code> from
-one of the two linked snapshots to <code class="docutils literal"><span class="pre">b</span></code> will return a <code class="docutils literal"><span class="pre">SubSnap</span></code>
+<p><code class="docutils literal notranslate"><span class="pre">b</span></code> is now an <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bridge</span></code></a> object that links
+the two outputs <code class="docutils literal notranslate"><span class="pre">f1</span></code> and <code class="docutils literal notranslate"><span class="pre">f2</span></code> together. Note that you can either
+bridge from <code class="docutils literal notranslate"><span class="pre">f2</span></code> to <code class="docutils literal notranslate"><span class="pre">f1</span></code> (as here) or from <code class="docutils literal notranslate"><span class="pre">f1</span></code> to <code class="docutils literal notranslate"><span class="pre">f2</span></code> and it
+makes no difference at all to basic functionality: the bridge can be traversed
+in either direction.</p>
+<p>There are different
+subclasses of bridge that implement the mapping back and forth in different ways,
+and by default the <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.bridge" title="pynbody.snapshot.SimSnap.bridge"><code class="xref py py-func docutils literal notranslate"><span class="pre">bridge()</span></code></a>
+method will attempt to choose the best
+possible option, by inspecting the file formats. However, if you
+prefer, you can explicitly instantiate the bridge for yourself (see
+below).</p>
+<p>Passing a <code class="docutils literal notranslate"><span class="pre">SubSnap</span></code> from
+one of the two linked snapshots to <code class="docutils literal notranslate"><span class="pre">b</span></code> will return a <code class="docutils literal notranslate"><span class="pre">SubSnap</span></code>
 with the same particles in the <em>other</em> snapshot. So, if we want to see
-where all the particles that were in halo 1 in the high-redshift
-snapshot (<code class="docutils literal"><span class="pre">f1</span></code>) end up at low redshift (<code class="docutils literal"><span class="pre">f2</span></code>), we can simply do:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">h1_at_low_z</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+where all the particles that are in halo 9 in the low-redshift
+snapshot (<code class="docutils literal notranslate"><span class="pre">f1</span></code>) came from at low redshift (<code class="docutils literal notranslate"><span class="pre">f2</span></code>), we can simply do:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">progenitor_particles</span> <span class="o">=</span> <span class="n">b</span><span class="p">(</span><span class="n">h2</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">h1_at_low_z</span> <span class="pre">now</span></code> contains the particles which were in h[1] in the high redshift output</p>
+<p><code class="docutils literal notranslate"><span class="pre">progenitor_particles</span></code> now contains the particles which were in halos_1[9]
+in the high redshift output.  This will have been achieved by matching the
+unique particle indexes, also known in pynbody as the <code class="docutils literal notranslate"><span class="pre">iord</span></code> array. To verify,</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">h2</span><span class="p">[</span><span class="mi">9</span><span class="p">][</span><span class="s1">&#39;iord&#39;</span><span class="p">]</span>
+<span class="gh">Out[8]: </span><span class="go">SimArray([1703383, 1637974, 1706077, ..., 2085209,   20825,    4440])</span>
+
+<span class="gp">In [9]: </span><span class="n">progenitor_particles</span><span class="p">[</span><span class="s1">&#39;iord&#39;</span><span class="p">]</span>
+<span class="gh">Out[9]: </span><span class="go">SimArray([1703383, 1637974, 1706077, ..., 2085209,   20825,    4440])</span>
+
+<span class="gp">In [10]: </span><span class="nb">all</span><span class="p">(</span><span class="n">h2</span><span class="p">[</span><span class="mi">9</span><span class="p">][</span><span class="s1">&#39;iord&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">progenitor_particles</span><span class="p">[</span><span class="s1">&#39;iord&#39;</span><span class="p">])</span>
+<span class="gh">Out[10]: </span><span class="go">True</span>
+</pre></div>
+</div>
+<p>But of course the actual particle properties are different in the two cases,
+being taken from the two snapshots, e.g.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">progenitor_particles</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+<span class="gh">Out[11]: </span><span class="go"></span>
+<span class="go">SimArray([44.0088008 , 43.99995   , 44.06862841, ..., 46.11663313,</span>
+<span class="go">          46.11094241, 46.1493806 ], &#39;Mpc a h**-1&#39;)</span>
+
+<span class="gp">In [12]: </span><span class="n">h2</span><span class="p">[</span><span class="mi">9</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+<span class="gh">Out[12]: </span><span class="go"></span>
+<span class="go">SimArray([45.55277015, 45.56460556, 45.54647529, ..., 44.46931648,</span>
+<span class="go">          44.53770257, 44.43297325], &#39;Mpc a h**-1&#39;)</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="identifying-halos-between-different-outputs">
 <h2>Identifying halos between different outputs<a class="headerlink" href="#identifying-halos-between-different-outputs" title="Permalink to this headline">¶</a></h2>
 <p>You may wish to work out how a halo catalogue maps onto a halo
 catalogue for a different output. For this purpose a simple function,
-match_catalog, is provided. Extending the example above,
+:func:<a href="#id1"><span class="problematic" id="id2">`</span></a>~pynbody.bridge.Bridge.match_catalog, is provided. Extending the example above,
 this would be called as follows:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cat</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">match_catalog</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">cat</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">match_catalog</span><span class="p">()</span>
+
+<span class="gp">In [14]: </span><span class="n">cat</span>
+<span class="gh">Out[14]: </span><span class="go"></span>
+<span class="go">array([-2, 17,  2,  3,  5,  7, 19,  9, 10, 12, 14, 13, -1, -1, 28, 15, -1,</span>
+<span class="go">       27, 16, 20, 26, 22, 18, -1, -1, 21, -1, 23, 24, -1, -1])</span>
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">cat</span></code> is now a numpy index array such that <code class="docutils literal"><span class="pre">f1.halos()[i]</span></code> is
-(probably!) the major progenitor for <code class="docutils literal"><span class="pre">f2.halos()[cat[i]]</span></code>.</p>
+<p>The ith element of the returned array indicates that <code class="docutils literal notranslate"><span class="pre">f1.halos()[cat[i]]</span></code> is
+the major progenitor for <code class="docutils literal notranslate"><span class="pre">f2.halos()[i]</span></code>. Negative
+values indicate a halo that either does not exist (e.g. halo 0 in
+SubFind catalogues) or that cannot be matched in the counterpart
+catalogue.</p>
+<p>If you want multiple matches per halo, e.g. to identify mergers, you
+can usee <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge.fuzzy_match_catalog" title="pynbody.bridge.Bridge.fuzzy_match_catalog"><code class="xref py py-func docutils literal notranslate"><span class="pre">fuzzy_match_catalog()</span></code></a>; see the reference documentation.</p>
 </div>
 <div class="section" id="which-class-to-use">
 <h2>Which class to use?<a class="headerlink" href="#which-class-to-use" title="Permalink to this headline">¶</a></h2>
+<p>There is a built-in-logic which selects the best possible subclass of
+<a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bridge</span></code></a> when you call the method
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.bridge" title="pynbody.snapshot.SimSnap.bridge"><code class="xref py py-func docutils literal notranslate"><span class="pre">bridge()</span></code></a>.
+However, you can equally well choose the bridge and its options
+for yourself.</p>
 <p>For files where the particle ordering is static, so that the particle
 with index i in the first snapshot also has index i in the second
-snapshot, use the <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><code class="xref py py-class docutils literal"><span class="pre">Bridge</span></code></a> class.</p>
+snapshot, use the <a class="reference internal" href="../reference/convenience.html#pynbody.bridge.Bridge" title="pynbody.bridge.Bridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bridge</span></code></a> class, as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">Bridge</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>For files which can spawn new particles, and therefore have a monotonically
 increasing particle ordering array (e.g. “iord” in gasoline), use the
-<a class="reference internal" href="../reference/convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><code class="xref py py-class docutils literal"><span class="pre">OrderBridge</span></code></a> class.</p>
-<p>Snapshot formats where the particle ordering can change are not currently supported.</p>
+<a class="reference internal" href="../reference/convenience.html#pynbody.bridge.OrderBridge" title="pynbody.bridge.OrderBridge"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrderBridge</span></code></a> class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">OrderBridge</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Snapshot formats where the particle ordering can change require a more
+processor and memory intensive mapping algorithm to be used, which
+you can enable by asking for it explicitly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">b</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">bridge</span><span class="o">.</span><span class="n">OrderBridge</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">monotonic</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 </div>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Tracing Particles between Snapshots</a><ul>
-<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
-<li><a class="reference internal" href="#identifying-halos-between-different-outputs">Identifying halos between different outputs</a></li>
-<li><a class="reference internal" href="#which-class-to-use">Which class to use?</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -146,33 +224,34 @@ increasing particle ordering array (e.g. “iord” in gasoline), use the
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/bridge.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/bridge.rst.txt"

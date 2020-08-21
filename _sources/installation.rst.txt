@@ -37,20 +37,19 @@ Analytics that comes with a nice and easy to use package manager
 `conda`. They  provide free licenses for academic use, and the default
 installation includes all the pakages you require.
 
-If you are at an academic institution (which is likely the case if you are
-installing pynbody) then you can also use  `canopy <http://www.enthought.com/>`_
-(formerly Enthought Python Distribution). Go to the `Academic License
-<http://www.enthought.com/products/edudownload.php>`_ page and trust them with
-your email address to get a download link. See the full `package index
-<http://www.enthought.com/products/epdlibraries.php>`_.
+As of 2020, Python 2.X is `no longer supported <https://python3statement.org>` by the Python developers or by
+core modules such as numpy. For this reason, we have also removed support
+from pynbody.
 
+If you desparately want to continue using Python 2.7, you can use pip to install old versions
+of pynbody, but these are provided without support.
 
 .. _install-pynbody:
 
-Install pynbody
----------------
+Installing pynbody direct from the repository
+---------------------------------------------
 
-You can try to type, in your shell:
+You can type in your shell:
 
 ::
 
@@ -121,7 +120,7 @@ into the top-level `pynbody` source directory (the one with
 
    git checkout master  # make sure you are on the master branch
    git pull origin master
-   python setup.py install
+   pip install .
 
 
 If you are testing a new feature or a bug fix that resides in a branch
@@ -131,7 +130,7 @@ other than `master` this procedure is slightly different:
 
    git fetch
    git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
-   python setup.py install
+   pip install .
 
 When you install a new version of the code and you already have a
 python session active with `pynbody` loaded, you have to (carefully)

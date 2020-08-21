@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Code-specific loaders &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code-specific loaders &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="code-specific-loaders">
@@ -59,122 +53,109 @@
 <p><cite>Pynbody</cite> uses a number of different modules behind the scenes to take
 care of loading files in different formats. Unfortunately not all of
 these have the same capabilities; see below.</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="9%" />
-<col width="10%" />
-<col width="17%" />
-<col width="10%" />
-<col width="17%" />
-<col width="36%" />
+<col style="width: 9%" />
+<col style="width: 10%" />
+<col style="width: 17%" />
+<col style="width: 10%" />
+<col style="width: 17%" />
+<col style="width: 36%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Filetype</th>
-<th class="head">Can load?</th>
-<th class="head">Partial loading?</th>
-<th class="head">Can save?</th>
-<th class="head">Array-level save?</th>
-<th class="head">Notes</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Filetype</p></th>
+<th class="head"><p>Can load?</p></th>
+<th class="head"><p>Partial loading?</p></th>
+<th class="head"><p>Can save?</p></th>
+<th class="head"><p>Array-level save?</p></th>
+<th class="head"><p>Notes</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>Tipsy</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>&#160;</td>
+<tbody>
+<tr class="row-even"><td><p>Tipsy</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
 </tr>
-<tr class="row-odd"><td>Gadget</td>
-<td>Yes</td>
-<td>No <a class="footnote-reference" href="#id8" id="id1">[1]</a></td>
-<td>Yes</td>
-<td>Yes</td>
-<td>&#160;</td>
+<tr class="row-odd"><td><p>Gadget</p></td>
+<td><p>Yes</p></td>
+<td><p>No <a class="footnote-reference brackets" href="#id8" id="id1">1</a></p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
 </tr>
-<tr class="row-even"><td>GadgetHDF</td>
-<td>Yes</td>
-<td>No <a class="footnote-reference" href="#id8" id="id2">[1]</a></td>
-<td>No</td>
-<td>No</td>
-<td><a class="footnote-reference" href="#id9" id="id3">[2]</a></td>
+<tr class="row-even"><td><p>GadgetHDF</p></td>
+<td><p>Yes</p></td>
+<td><p>No <a class="footnote-reference brackets" href="#id8" id="id2">1</a></p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+<td><p><a class="footnote-reference brackets" href="#id9" id="id3">2</a></p></td>
 </tr>
-<tr class="row-odd"><td>Ramses</td>
-<td>Yes</td>
-<td>No <a class="footnote-reference" href="#id8" id="id4">[1]</a></td>
-<td>No</td>
-<td>No</td>
-<td><a class="footnote-reference" href="#id10" id="id5">[3]</a>, <a class="footnote-reference" href="#id11" id="id6">[4]</a></td>
+<tr class="row-odd"><td><p>Ramses</p></td>
+<td><p>Yes</p></td>
+<td><p>No <a class="footnote-reference brackets" href="#id8" id="id4">1</a></p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+<td><p><a class="footnote-reference brackets" href="#id10" id="id5">3</a>, <a class="footnote-reference brackets" href="#id11" id="id6">4</a></p></td>
 </tr>
-<tr class="row-even"><td>NChilada</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-<td>No</td>
-<td>&#160;</td>
+<tr class="row-even"><td><p>NChilada</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+<td></td>
 </tr>
-<tr class="row-odd"><td>GrafIC</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-<td>No</td>
-<td><a class="footnote-reference" href="#id12" id="id7">[5]</a></td>
+<tr class="row-odd"><td><p>GrafIC</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+<td><p><a class="footnote-reference brackets" href="#id12" id="id7">5</a></p></td>
 </tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id8" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id2">2</a>, <a class="fn-backref" href="#id4">3</a>)</em> Currently these modules do not support the standard partial
+<dl class="footnote brackets">
+<dt class="label" id="id8"><span class="brackets">1</span><span class="fn-backref">(<a href="#id1">1</a>,<a href="#id2">2</a>,<a href="#id4">3</a>)</span></dt>
+<dd><p>Currently these modules do not support the standard partial
 loading mechanism. However they do allow you to load only certain
 CPU outputs. For instance if you wish to load CPU 3 data only, in
 <cite>Gadget</cite> or <cite>GadgetHDF</cite>, you simply ask to load the
 specific file <cite>my_snapshot.003</cite> instead of the imaginary file
 <cite>my_snapshot</cite>. In <cite>Ramses</cite>, you add <cite>cpus=[3]</cite> to your load
-command, e.g. <code class="docutils literal"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">cpus=[3])</span></code>.</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id9" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id3">[2]</a></td><td>Requires the <cite>h5py</cite> python module. You can determine whether
-you have this by typing <code class="docutils literal"><span class="pre">import</span> <span class="pre">h5py</span></code> into python. If you don’t
+command, e.g. <code class="docutils literal notranslate"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">cpus=[3])</span></code>.</p>
+</dd>
+<dt class="label" id="id9"><span class="brackets"><a class="fn-backref" href="#id3">2</a></span></dt>
+<dd><p>Requires the <cite>h5py</cite> python module. You can determine whether
+you have this by typing <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">h5py</span></code> into python. If you don’t
 get an error, you have it. If you don’t have it, see here
-&lt;<a class="reference external" href="http://www.h5py.org">http://www.h5py.org</a>&gt;</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id10" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id5">[3]</a></td><td>Ramses gas cells are loaded and converted into <cite>gas</cite> particles,
+&lt;<a class="reference external" href="http://www.h5py.org">http://www.h5py.org</a>&gt;</p>
+</dd>
+<dt class="label" id="id10"><span class="brackets"><a class="fn-backref" href="#id5">3</a></span></dt>
+<dd><p>Ramses gas cells are loaded and converted into <cite>gas</cite> particles,
 one at the centre of each maximally refined cell. You can ask to
 generate the particles at a higher level of refinement by passing
 in a <cite>maxlevel</cite> argument. For example,
-<code class="docutils literal"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">maxlevel=10)</span></code> will place gas
-particles at refinement level 10 or (numerically) lower.</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id11" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id6">[4]</a></td><td>Ramses loading is enormously speeded up if you enable the
+<code class="docutils literal notranslate"><span class="pre">pynbody.load('output_00080',</span> <span class="pre">maxlevel=10)</span></code> will place gas
+particles at refinement level 10 or (numerically) lower.</p>
+</dd>
+<dt class="label" id="id11"><span class="brackets"><a class="fn-backref" href="#id6">4</a></span></dt>
+<dd><p>Ramses loading is enormously speeded up if you enable the
 parallel loading facility, which splits the task of loading the
 multiple files and decoding the awkward format across multiple
 processes. To do this, you need to install the <a class="reference external" href="http://semanchuk.com/philip/posix_ipc/">posix_ipc</a> module which should be
-as simple as typing <code class="docutils literal"><span class="pre">easy_install</span> <span class="pre">posix_ipc</span></code> into your
-shell. See also important notes on <a class="reference internal" href="tutorials/threads.html#posix-ipc"><span class="std std-ref">Parallel ramses reader support</span></a>.</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id12" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id7">[5]</a></td><td>These are initial conditions generated by Bertschinger’s
-<a class="reference external" href="http://web.mit.edu/edbert/">GrafIC</a> or Prunet et al’s <a class="reference external" href="ftp://ftp.iap.fr/pub/from_users/prunet">MPGrafIC</a>.</td></tr>
-</tbody>
-</table>
+as simple as typing <code class="docutils literal notranslate"><span class="pre">easy_install</span> <span class="pre">posix_ipc</span></code> into your
+shell. See also important notes on <a class="reference internal" href="tutorials/threads.html#posix-ipc"><span class="std std-ref">Parallel ramses reader support</span></a>.</p>
+</dd>
+<dt class="label" id="id12"><span class="brackets"><a class="fn-backref" href="#id7">5</a></span></dt>
+<dd><p>These are initial conditions generated by Bertschinger’s
+<a class="reference external" href="http://web.mit.edu/edbert/">GrafIC</a> or Prunet et al’s <a class="reference external" href="ftp://ftp.iap.fr/pub/from_users/prunet">MPGrafIC</a>.</p>
+</dd>
+</dl>
 <p>The end-user rarely needs to worry about the implementation of
 different loaders, as all types of simulations are loaded with
-<code class="xref py py-func docutils literal"><span class="pre">pynbody.load()</span></code> and the type is determined automatically.</p>
+<code class="xref py py-func docutils literal notranslate"><span class="pre">pynbody.load()</span></code> and the type is determined automatically.</p>
 <span class="target" id="module-pynbody.snapshot.tipsy"></span><div class="section" id="tipsy">
 <h2>tipsy<a class="headerlink" href="#tipsy" title="Permalink to this headline">¶</a></h2>
 <p>Implements classes and functions for handling tipsy files.  You rarely
@@ -229,25 +210,32 @@ the <a class="reference external" href="http://nbviewer.ipython.org/github/pynbo
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="index.html">
-              <img class="logo" src="_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Code-specific loaders</a><ul>
-<li><a class="reference internal" href="#tipsy">tipsy</a></li>
-<li><a class="reference internal" href="#gadget">gadget</a></li>
-<li><a class="reference internal" href="#gadgethdf">gadgethdf</a></li>
-<li><a class="reference internal" href="#nchilada">nchilada</a></li>
-<li><a class="reference internal" href="#ramses">ramses</a></li>
-<li><a class="reference internal" href="#id13">grafic</a></li>
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -255,33 +243,34 @@ the <a class="reference external" href="http://nbviewer.ipython.org/github/pynbo
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/loaders.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="_sources/loaders.rst.txt"

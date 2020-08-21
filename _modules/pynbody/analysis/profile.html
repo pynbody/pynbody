@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.analysis.profile &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.analysis.profile &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.analysis.profile</h1><div class="highlight"><pre>
@@ -67,10 +61,10 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pynbody</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">family</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">family</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">backcompat</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;pynbody.analysis.profile&#39;</span><span class="p">)</span>
 
 
@@ -99,14 +93,14 @@
 <span class="sd">                            logarithmically (&#39;log&#39;) or contain equal numbers of</span>
 <span class="sd">                            particles (&#39;equaln&#39;)</span>
 
-<span class="sd">    *min* (default = min(x)): minimum value to consider</span>
+<span class="sd">    *rmin* (default = min(x)): minimum radial value to consider</span>
 
-<span class="sd">    *max* (default = max(x)): maximum value to consider</span>
+<span class="sd">    *rmax* (default = max(x)): maximum radial value to consider</span>
 
 <span class="sd">    *nbins* (default = 100): number of bins</span>
 
 <span class="sd">    *bins* : array like - predefined bin edges in units of binning quantity. If this</span>
-<span class="sd">             keyword is set, the values of the keywords *type*, *nbins*, *min* and *max*</span>
+<span class="sd">             keyword is set, the values of the keywords *type*, *nbins*, *rmin* and *rmax*</span>
 <span class="sd">             will be ignored</span>
 
 <span class="sd">    *calc_x* (default = None): function to use to calculate the value</span>
@@ -196,61 +190,6 @@
 <span class="sd">    profile.</span>
 
 
-<span class="sd">    **Examples:**</span>
-
-<span class="sd">    Density profile of the entire simulation: </span>
-
-<span class="sd">    &gt;&gt;&gt; s = pynbody.load(&#39;mysim&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; import pynbody.profile as profile</span>
-<span class="sd">    &gt;&gt;&gt; p = profile.Profile(s) # 2D profile of the whole simulation - note</span>
-<span class="sd">                               # that this only makes the bins etc. but</span>
-<span class="sd">                               # doesn&#39;t generate the density</span>
-<span class="sd">    &gt;&gt;&gt; p[&#39;density&#39;] # now we have a density profile</span>
-<span class="sd">    &gt;&gt;&gt; p.keys()</span>
-<span class="sd">    [&#39;mass&#39;, &#39;n&#39;, &#39;density&#39;]</span>
-<span class="sd">    &gt;&gt;&gt; p.families()</span>
-<span class="sd">    [&lt;Family dm&gt;, &lt;Family star&gt;, &lt;Family gas&gt;]</span>
-
-
-<span class="sd">    Density profile of the stars:</span>
-
-<span class="sd">    &gt;&gt;&gt; ps = profile.Profile(s.s) # xy profile of the stars</span>
-<span class="sd">    &gt;&gt;&gt; ps = profile.Profile(s.s, type=&#39;log&#39;) # same, but with log bins</span>
-<span class="sd">    &gt;&gt;&gt; ps.families()</span>
-<span class="sd">    [&lt;Family star&gt;]</span>
-<span class="sd">    &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
-<span class="sd">    &gt;&gt;&gt; plt.plot(ps[&#39;rbins&#39;], ps[&#39;density&#39;], &#39;o&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; plt.semilogy()</span>
-
-<span class="sd">    Metallicity profile of the gas in spherical shells (requires appropriate auxilliary files):</span>
-
-<span class="sd">    &gt;&gt;&gt; pg = profile.Profile(s.g, ndim=3)</span>
-<span class="sd">    &gt;&gt;&gt; pg[&#39;feh&#39;]</span>
-<span class="sd">    SimSnap: deriving array feh</span>
-<span class="sd">    TipsySnap: attempting to load auxiliary array 10/12M_hr.01000.FeMassFrac</span>
-<span class="sd">    SimSnap: deriving array hydrogen</span>
-<span class="sd">    SimSnap: deriving array hetot</span>
-<span class="sd">    SimArray([  1.83251940e-01,   1.48439968e-02,  -4.09390892e-01,</span>
-<span class="sd">    -1.82734736e+01])</span>
-
-<span class="sd">    Radial velocity dispersion profile and its gradient:</span>
-
-<span class="sd">    &gt;&gt;&gt; ps = profile.Profile(s.s, max=15)</span>
-<span class="sd">    &gt;&gt;&gt; ps[&#39;vr_disp&#39;]</span>
-<span class="sd">    SimSnap: deriving array vr</span>
-<span class="sd">    SimSnap: deriving array r</span>
-<span class="sd">    SimArray([ 118.80420996,  122.06102431,  131.13872886,  144.74447697,</span>
-<span class="sd">    35.89904165,   37.59565128,   35.21608633,   35.03373379], &#39;1.01e+00 km s**-1&#39;)</span>
-
-<span class="sd">    &gt;&gt;&gt; p[&#39;d_vr_disp&#39;]</span>
-<span class="sd">    SimArray([  21.71365764,   41.11802081,   75.61694836,  105.28110255,</span>
-<span class="sd">    2.664999  ,   -2.27668148,   -8.54033931,   -1.21577105], &#39;1.01e+00 km s**-1 kpc**-1&#39;)</span>
-
-
-<span class="sd">    Using another quantity for binning:</span>
-
-<span class="sd">    &gt;&gt;&gt; ps = profile.Profile(s.s, calc_x = lambda x: x.s[&#39;rform&#39;])</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">_profile_registry</span> <span class="o">=</span> <span class="p">{}</span>
@@ -258,7 +197,7 @@
     <span class="k">def</span> <span class="nf">_calculate_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">((</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="n">calc_x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight_by</span><span class="o">=</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="n">calc_x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight_by</span><span class="o">=</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="n">generate_new</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="n">calc_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -297,31 +236,38 @@
             <span class="c1"># The profile object is initialized given some array of values</span>
             <span class="c1"># and optional keyword parameters</span>
 
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
+            <span class="k">if</span> <span class="s1">&#39;max&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmax&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Use of max as a keyword argument is deprecated. Use rmax instead.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;min&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">)</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Use of min as a keyword argument is deprecated. Use rmin instead.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s1">&#39;rmax&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmax&#39;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmax&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
                                                                <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmax&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;bins&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;bins&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
-            <span class="k">elif</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;nbins&#39;</span><span class="p">):</span>
+            <span class="k">elif</span> <span class="s1">&#39;nbins&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="mi">100</span>
 
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
+            <span class="k">if</span> <span class="s1">&#39;rmin&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmin&#39;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmin&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
                                                                <span class="o">**</span><span class="n">sim</span><span class="o">.</span><span class="n">conversion_context</span><span class="p">())</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;rmin&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
 
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s1">&#39;bins&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;bins&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="s1">&#39;bin_edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
@@ -335,7 +281,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="s1">&#39;bin_edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">equipartition</span><span class="p">(</span>
                     <span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="s2">&quot;Bin type must be one of: lin, log, equaln&quot;</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Bin type must be one of: lin, log, equaln&quot;</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bin_edges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bin_edges&#39;</span><span class="p">],</span> <span class="n">x</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
             <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bin_edges&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
@@ -377,7 +323,7 @@
                                                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bin_edges&#39;</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
 
         <span class="c1"># sort the partbin array</span>
-        <span class="kn">from</span> <span class="nn">bisect</span> <span class="k">import</span> <span class="n">bisect</span>
+        <span class="kn">from</span> <span class="nn">bisect</span> <span class="kn">import</span> <span class="n">bisect</span>
         <span class="n">sortind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">partbin</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
         <span class="n">sort_pind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">partbin</span><span class="p">[</span><span class="n">sortind</span><span class="p">]</span>
 
@@ -388,7 +334,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">binind</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">sortind</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">new_index</span><span class="p">]))</span>
             <span class="n">prev_index</span> <span class="o">=</span> <span class="n">new_index</span>
 
-    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns the number of bins used in this profile object&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span>
 
@@ -408,31 +354,31 @@
                 <span class="k">pass</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">():</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_profile</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;_disp&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;_disp&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Auto-deriving </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_profile</span><span class="p">(</span>
                 <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">],</span> <span class="n">dispersion</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;_rms&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;_rms&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Auto-deriving </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_profile</span><span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">],</span> <span class="n">rms</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;_med&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;_med&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Auto-deriving </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_profile</span><span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">],</span> <span class="n">median</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;d_&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;d_&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivable_keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">()):</span>
             <span class="c1">#            if np.diff(self[&#39;dr&#39;]).all() &lt; 1e-13 :</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Auto-deriving </span><span class="si">%s</span><span class="s2">/dR&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]],</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;dr&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -442,7 +388,7 @@
             <span class="c1">#    raise RuntimeError, &quot;Derivatives only possible for profiles of fixed bin width.&quot;</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not a valid profile&quot;</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not a valid profile&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_auto_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dispersion</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">median</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
@@ -483,38 +429,38 @@
         <span class="n">result</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
         <span class="k">return</span> <span class="n">result</span>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the profile of a given kind&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_profile</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set the profile or property by hand&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
         <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not a valid profile or property&quot;</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not a valid profile or property&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="s2">&quot;&lt;Profile: &quot;</span> <span class="o">+</span>
                 <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">families</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; ; &quot;</span> <span class="o">+</span>
                 <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;D ; &quot;</span> <span class="o">+</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; ; &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;&gt;&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; ; &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;&gt;&quot;</span>
 
 <div class="viewcode-block" id="Profile.keys"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.Profile.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a listing of available profile types&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="Profile.derivable_keys"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.Profile.derivable_keys">[docs]</a>    <span class="k">def</span> <span class="nf">derivable_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns a list of possible profiles&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profile_registry</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_profile_registry</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="Profile.families"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.Profile.families">[docs]</a>    <span class="k">def</span> <span class="nf">families</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns the family of particles used&quot;&quot;&quot;</span>
@@ -760,7 +706,7 @@
 <span class="sd">    in the midplane - can be expensive&quot;&quot;&quot;</span>
 
     <span class="kn">import</span> <span class="nn">pynbody.gravity.calc</span> <span class="k">as</span> <span class="nn">gravity</span>
-    <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">config</span>
+    <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config</span>
 
     <span class="k">global</span> <span class="n">config</span>
 
@@ -777,10 +723,10 @@
     <span class="c1"># elif hasattr(grav_sim,&#39;base&#39;) :</span>
     <span class="c1">#    grav_sim = grav_sim.base</span>
 
-    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">backcompat</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
     <span class="n">rc</span> <span class="o">=</span> <span class="n">gravity</span><span class="o">.</span><span class="n">midplane_rot_curve</span><span class="p">(</span>
         <span class="n">grav_sim</span><span class="p">,</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
-    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">backcompat</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Rotation curve calculated in </span><span class="si">%5.3g</span><span class="s2"> s&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">rc</span></div>
 
@@ -802,13 +748,13 @@
 
     <span class="n">grav_sim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">sim</span>
     <span class="c1"># Go up to the halo level</span>
-    <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">grav_sim</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">grav_sim</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s2">&quot;halo_id&quot;</span><span class="p">):</span>
+    <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">grav_sim</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;halo_id&quot;</span> <span class="ow">in</span> <span class="n">grav_sim</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
         <span class="n">grav_sim</span> <span class="o">=</span> <span class="n">grav_sim</span><span class="o">.</span><span class="n">base</span>
 
-    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">backcompat</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
     <span class="n">pot</span> <span class="o">=</span> <span class="n">gravity</span><span class="o">.</span><span class="n">midplane_potential</span><span class="p">(</span>
         <span class="n">grav_sim</span><span class="p">,</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;rbins&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">backcompat</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Potential calculated in </span><span class="si">%5.3g</span><span class="s2"> s&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">pot</span></div>
 
@@ -831,7 +777,7 @@
 <div class="viewcode-block" id="beta"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.profile.beta">[docs]</a><span class="nd">@Profile</span><span class="o">.</span><span class="n">profile_property</span>
 <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;3D Anisotropy parameter as defined in Binney and Tremiane&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">is</span> <span class="mi">3</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span>
     <span class="k">return</span> <span class="mf">1.5</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;vx_disp&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vy_disp&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vz_disp&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vr_disp&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mf">2.</span></div>
 
 
@@ -840,7 +786,7 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate magnitudes in each bin</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">luminosity</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">luminosity</span>
 
     <span class="n">magnitudes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
@@ -949,7 +895,7 @@
         <span class="c1"># calculate an ellipsoidal radius</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">)))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="n">angle</span>
 
         <span class="n">Profile</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -987,7 +933,7 @@
     <span class="k">def</span> <span class="nf">_calculate_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]),</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">rmin</span><span class="p">,</span> <span class="n">rmax</span><span class="p">,</span> <span class="n">zmax</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">rmin</span><span class="p">,</span> <span class="n">rmax</span><span class="p">,</span> <span class="n">zmax</span><span class="p">,</span> <span class="n">load_from_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rmin</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">rmin</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">rmin</span><span class="p">)</span>
@@ -1058,7 +1004,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="p">(</span><span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.50</span><span class="p">,</span> <span class="mf">0.84</span><span class="p">),</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_from_file</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="p">(</span><span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.50</span><span class="p">,</span> <span class="mf">0.84</span><span class="p">),</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_from_file</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="c1"># create a snapshot that only includes the section of disk we&#39;re</span>
         <span class="c1"># interested in</span>
@@ -1074,13 +1020,13 @@
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">():</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">all_keys</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_profile</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not a valid QuantileProfile&quot;</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; is not a valid QuantileProfile&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_auto_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dispersion</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">median</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">quantiles</span><span class="p">)))</span>
@@ -1130,13 +1076,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../../index.html">
-              <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../../index.html">Documentation overview</a><ul>
@@ -1146,25 +1112,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

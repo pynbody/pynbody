@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Subviews and Filters &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subviews and Filters &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Tracing Particles between Snapshots" href="bridge.html" />
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="subviews-and-filters">
@@ -63,7 +57,7 @@ groups of particles or sections of the simulated volume. Therefore a
 generic task in analysis routines is to search for indices of
 particles (or cells) corresponding to some interesting property, so
 analysis code often looks something like this:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;group&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">group_id</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;group&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">group_id</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">][</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -75,14 +69,14 @@ simulations. Subviews behave exactly like a full simulation, but they
 reference only a subset of the data of that full simulation.</p>
 <p>This makes writing code which processes individual halos trivial; for
 instance</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">sim</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>will find the centre of mass of whatever you throw at it. So if we had
 some way of defining a <em>sub-view</em> of the whole simulation that refers
 to just the halo that we want, called <cite>halo</cite>, then we could do
 something like</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">halo</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">halo</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">halo</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">halo</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The indexing is taken care of under the hood and all the boilerplate
@@ -92,7 +86,7 @@ that subviews and filters can be used in <cite>pynbody</cite>.</p>
 <h2>How do I create a simple subview?<a class="headerlink" href="#how-do-i-create-a-simple-subview" title="Permalink to this headline">¶</a></h2>
 <p>Quite simply, indexing or slicing operations commute with array-fetch
 operations, i.e.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; new SimSnap object</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; new SimSnap object</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sim</span><span class="p">[</span><span class="nb">slice</span><span class="p">][</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="nb">slice</span><span class="p">]</span> <span class="c1"># -&gt; True</span>
 </pre></div>
@@ -108,23 +102,23 @@ second particle). It can also be a list of particle indices.</p>
 it as a _pointer_ into, not a copy of, the original data.</p>
 <p>Thus changing anything in the arrays of your sub-view makes the
 corresponding change in the full data.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">22</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">subsim</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">22</span>
 </pre></div>
 </div>
 <p>You can verify that the corresponding element of <cite>sim[‘x’]</cite> has now changed</p>
 </div>
 <div class="section" id="filters">
 <h2>Filters<a class="headerlink" href="#filters" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal"><span class="pre">pynbody.filt</span></code></a> defines abstract filters which can be used in place of
+<p><a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pynbody.filt</span></code></a> defines abstract filters which can be used in place of
 index lists. For instance,</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">radius</span> <span class="o">=</span> <span class="s2">&quot;1 kpc&quot;</span> <span class="c1"># or might be a float if you already know your units</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">radius</span> <span class="o">=</span> <span class="s2">&quot;1 kpc&quot;</span> <span class="c1"># or might be a float if you already know your units</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">centre</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># Take the origin for now</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">centre</span><span class="p">)]</span>
 </pre></div>
 </div>
 <p><cite>sphere</cite> is now a standard subsim, as though you’d generated it with
 your own index list.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="c1"># -&gt; total mass in sphere</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s2">&quot;mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="c1"># -&gt; total mass in sphere</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]</span> <span class="c1"># etc</span>
 </pre></div>
 </div>
@@ -137,43 +131,43 @@ as though you’d passed that index list in.</p>
 <p>The benefits that this brings are:</p>
 <blockquote>
 <div><ul class="simple">
-<li>Code clarity</li>
-<li>Code factorization (guaranteed that the ‘sphere’ filter works,
+<li><p>Code clarity</p></li>
+<li><p>Code factorization (guaranteed that the ‘sphere’ filter works,
 rather than having to recode a sphere index-list operation each
-time)</li>
-<li>Future extensibility (e.g. we can just start having Sphere’s
+time)</p></li>
+<li><p>Future extensibility (e.g. we can just start having Sphere’s
 accept quantities with units, rather than having to reimplement to
-include units in all code which pulls out spheres)</li>
-<li>Parallelizability (the ‘filter’ objects can be trivially sent to
-another node, whereas an index list is irrelevant on another node)</li>
+include units in all code which pulls out spheres)</p></li>
+<li><p>Parallelizability (the ‘filter’ objects can be trivially sent to
+another node, whereas an index list is irrelevant on another node)</p></li>
 </ul>
 </div></blockquote>
 <p>Filters can be combined using the following operators, which can of course be chained together:</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="22%" />
-<col width="78%" />
+<col style="width: 22%" />
+<col style="width: 78%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head"><strong>Operator</strong></th>
-<th class="head"><strong>Particle included if</strong></th>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Operator</strong></p></th>
+<th class="head"><p><strong>Particle included if</strong></p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><cite>f1 &amp; f2</cite></td>
-<td>Filters <cite>f1</cite> and <cite>f2</cite> both include particle</td>
+<tbody>
+<tr class="row-even"><td><p><cite>f1 &amp; f2</cite></p></td>
+<td><p>Filters <cite>f1</cite> and <cite>f2</cite> both include particle</p></td>
 </tr>
-<tr class="row-odd"><td><cite>f1 | f2</cite></td>
-<td>Filter <cite>f1</cite> OR <cite>f2</cite> includes particle</td>
+<tr class="row-odd"><td><p><cite>f1 | f2</cite></p></td>
+<td><p>Filter <cite>f1</cite> OR <cite>f2</cite> includes particle</p></td>
 </tr>
-<tr class="row-even"><td><cite>~f</cite></td>
-<td>Filter <cite>f</cite> does NOT include particle</td>
+<tr class="row-even"><td><p><cite>~f</cite></p></td>
+<td><p>Filter <cite>f</cite> does NOT include particle</p></td>
 </tr>
 </tbody>
 </table>
 <p>There are several filter classes currently implemented. Generic filter
 classes work like band-pass filters and are conveniently named so. For example,</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">young</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;1 Gyr&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">young</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">LowPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;1 Gyr&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">old</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">HighPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;10 Gyr&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">intermediate</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">BandPass</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="s1">&#39;3 Gyr&#39;</span><span class="p">,</span> <span class="s1">&#39;7 Gyr&#39;</span><span class="p">)</span>
 </pre></div>
@@ -181,31 +175,41 @@ classes work like band-pass filters and are conveniently named so. For example,<
 <p>would create three filters that each select particles with different
 value ranges for the <cite>age</cite> array.</p>
 <p>Additionaly, several “geometric” filter classes are available. We
-already saw <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Sphere" title="pynbody.filt.Sphere"><code class="xref py py-class docutils literal"><span class="pre">Sphere</span></code></a> used above, but
-<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Disc" title="pynbody.filt.Disc"><code class="xref py py-class docutils literal"><span class="pre">Disc</span></code></a>, <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Cuboid" title="pynbody.filt.Cuboid"><code class="xref py py-class docutils literal"><span class="pre">Cuboid</span></code></a>, and two
-convenience functions <a class="reference internal" href="../reference/convenience.html#pynbody.filt.SolarNeighborhood" title="pynbody.filt.SolarNeighborhood"><code class="xref py py-func docutils literal"><span class="pre">SolarNeighborhood()</span></code></a> and
-<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Annulus" title="pynbody.filt.Annulus"><code class="xref py py-func docutils literal"><span class="pre">Annulus()</span></code></a> are also available.</p>
+already saw <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Sphere" title="pynbody.filt.Sphere"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sphere</span></code></a> used above, but
+<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Disc" title="pynbody.filt.Disc"><code class="xref py py-class docutils literal notranslate"><span class="pre">Disc</span></code></a>, <a class="reference internal" href="../reference/convenience.html#pynbody.filt.Cuboid" title="pynbody.filt.Cuboid"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cuboid</span></code></a>, and two
+convenience functions <a class="reference internal" href="../reference/convenience.html#pynbody.filt.SolarNeighborhood" title="pynbody.filt.SolarNeighborhood"><code class="xref py py-func docutils literal notranslate"><span class="pre">SolarNeighborhood()</span></code></a> and
+<a class="reference internal" href="../reference/convenience.html#pynbody.filt.Annulus" title="pynbody.filt.Annulus"><code class="xref py py-func docutils literal notranslate"><span class="pre">Annulus()</span></code></a> are also available.</p>
 </div>
 </div>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Subviews and Filters</a><ul>
-<li><a class="reference internal" href="#how-do-i-create-a-simple-subview">How do I create a simple subview?</a></li>
-<li><a class="reference internal" href="#conceptually-everything-is-a-pointer">Conceptually, everything is a pointer</a></li>
-<li><a class="reference internal" href="#filters">Filters</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -217,33 +221,34 @@ convenience functions <a class="reference internal" href="../reference/convenien
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/filters.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/filters.rst.txt"

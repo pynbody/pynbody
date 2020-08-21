@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Pynbody Documentation &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pynbody Documentation &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Pynbody Installation" href="installation.html" />
@@ -46,20 +39,22 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="pynbody-documentation">
 <h1>Pynbody Documentation<a class="headerlink" href="#pynbody-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Welcome to the documentation for <a class="reference external" href="http://pynbody.github.io">pynbody</a> – an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
-simulations, supporting python 2.6+ and 3.3+.</p>
+simulations, supporting Python 3.5+. (Old versions are
+available, prior to 1.0, that support Python 2.5, 2.6 and 2.7).</p>
 <p>We recommend you get started by reading about
 <a class="reference internal" href="installation.html#pynbody-installation"><span class="std std-ref">Pynbody Installation</span></a> and trying the <a class="reference internal" href="tutorials/tutorials.html#tutorials"><span class="std std-ref">Pynbody Tutorials</span></a>. We are
 happy to provide further assistance via our
@@ -81,9 +76,9 @@ access walkthrough</span></a>.</p>
 </ul>
 </div>
 <p>All of the information in the reference guide is also available
-through the interactive python help system. In ipython, this is as
+through the interactive python help system. In ipython or Jupyter, this is as
 easy as putting a <cite>?</cite> at the end of a command:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
 <span class="gp">In [2]: </span>pynbody.load<span class="o">?</span>
 <span class="go">Signature: pynbody.load(filename, *args, **kwargs)</span>
@@ -110,6 +105,8 @@ encounter a problem, feel free to create an issue there.
 We greatly value feedback from users, especially when things are not
 working correctly because this is the best way for us to correct
 bugs.  This includes any problems you encounter with documentation.</p>
+<p>Please note that we adhere to a  <a class="reference external" href="https://github.com/pynbody/pynbody/blob/master/CODE_OF_CONDUCT.md">community code of conduct</a>,
+which you should read and understand before posting to the users list or in a github issue.</p>
 <p>If you use the code regularly for your projects, please consider contributing
 your code back using a <a class="reference external" href="https://help.github.com/articles/using-pull-requests">pull request</a>.</p>
 </div>
@@ -121,7 +118,7 @@ is only possible by spreading the word. We ask that if you use pynbody
 in preparing a scientific publication, you cite it via its
 <a class="reference external" href="http://ascl.net/1305.002">Astrophysics Source Code Library</a> entry
 using the following BibTex:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">pynbody</span><span class="p">,</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">pynbody</span><span class="p">,</span>
   <span class="n">author</span> <span class="o">=</span> <span class="p">{{</span><span class="n">Pontzen</span><span class="p">},</span> <span class="n">A</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Ro</span><span class="p">{</span>\<span class="n">v</span> <span class="n">s</span><span class="p">}</span><span class="n">kar</span><span class="p">},</span> <span class="n">R</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Stinson</span><span class="p">},</span> <span class="n">G</span><span class="o">.~</span><span class="n">S</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Woods</span><span class="p">},</span>
      <span class="n">R</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Reed</span><span class="p">},</span> <span class="n">D</span><span class="o">.~</span><span class="n">M</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Coles</span><span class="p">},</span> <span class="n">J</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Quinn</span><span class="p">},</span> <span class="n">T</span><span class="o">.~</span><span class="n">R</span><span class="o">.</span><span class="p">},</span>
   <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;{pynbody: Astrophysics Simulation Analysis for Python}&quot;</span><span class="p">,</span>
@@ -135,22 +132,32 @@ using the following BibTex:</p>
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="#">
-              <img class="logo" src="_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="#">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Pynbody Documentation</a><ul>
-<li><a class="reference internal" href="#where-next">Where next?</a></li>
-<li><a class="reference internal" href="#seeking-further-assistance">Seeking Further Assistance</a></li>
-<li><a class="reference internal" href="#acknowledging-pynbody-in-scientific-publications">Acknowledging Pynbody in Scientific Publications</a></li>
+<p class="logo">
+  <a href="#">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -159,33 +166,34 @@ using the following BibTex:</p>
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/index.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="_sources/index.rst.txt"

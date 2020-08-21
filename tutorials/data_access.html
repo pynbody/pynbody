@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>A walk through pynbody’s low-level facilities &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A walk through pynbody’s low-level facilities &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Subviews and Filters" href="filters.html" />
@@ -47,13 +40,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="a-walk-through-pynbody-s-low-level-facilities">
@@ -63,22 +57,10 @@ attributes, access some data and make use of unit information.</p>
 <p>If you’re more interested in making pretty pictures and plots straight
 away, you may wish to read the <a class="reference internal" href="snapshot_manipulation.html#snapshot-manipulation"><span class="std std-ref">basic facilities tutorial</span></a> first.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This tutorial discusses an
-interactive session rather than a script. This is only cosmetically
-different; the commands discussed here can of course all be used in
-a script too. We will use the <cite>ipython</cite> interpreter which offers a
-much richer interactive environment over the vanilla <cite>python</cite>
-interpreter. However, you can type exactly the same commands into
-vanilla <cite>python</cite>; only the formatting will look slightly
-different. For instance, the <cite>ipython</cite> prompt looks like <code class="docutils literal"><span class="pre">In</span> <span class="pre">[1]:</span></code>
-while the <cite>python</cite> prompt looks like <code class="docutils literal"><span class="pre">&gt;&gt;&gt;</span></code>.</p>
-</div>
-<div class="section" id="first-steps">
-<h2>First steps<a class="headerlink" href="#first-steps" title="Permalink to this headline">¶</a></h2>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Before you start make sure <cite>pynbody</cite> is properly
+<p class="admonition-title">Note</p>
+<p>This tutorial assumes basic familiarity with python and is
+written as a series of <cite>ipython</cite> cells, like a <cite>Jupyter</cite> notebook.
+Before you start make sure <cite>pynbody</cite> is properly
 installed. See <a class="reference internal" href="../installation.html#pynbody-installation"><span class="std std-ref">Pynbody Installation</span></a>
 for more information. You will also need the standard <cite>pynbody</cite> test
 files if you want to follow the tutorial.
@@ -86,24 +68,27 @@ These files are available separately here:
 &lt;<a class="reference external" href="https://github.com/pynbody/pynbody/releases">https://github.com/pynbody/pynbody/releases</a>&gt;
 (<cite>testdata.tar.gz</cite>).</p>
 </div>
-<p>After you have extracted the testdata folder (e.g. with <code class="docutils literal"><span class="pre">tar</span> <span class="pre">-xzf</span>
-<span class="pre">testdata.tar.gz</span></code>), launch <cite>ipython</cite>. At the prompt, type <code class="docutils literal"><span class="pre">import</span>
-<span class="pre">pynbody</span></code>. If all is installed correctly, this should silently
-succeed, and you are ready to use <cite>pynbody</cite> commands. Here’s an
-example. We’ll also load the <cite>numpy</cite> module as it provides some
+<p>After you have extracted the testdata folder (e.g. with <code class="docutils literal notranslate"><span class="pre">tar</span> <span class="pre">-xzf</span>
+<span class="pre">testdata.tar.gz</span></code>), launch <cite>ipython</cite> or <cite>Jupyter</cite>. At the prompt or in
+a cell, type <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">pynbody</span></code>. If all is installed correctly, this should silently
+succeed, and you are ready to use <cite>pynbody</cite>.</p>
+<div class="section" id="first-steps">
+<h2>First steps<a class="headerlink" href="#first-steps" title="Permalink to this headline">¶</a></h2>
+<p>We will start by loading one of the test files.
+We’ll also load the <cite>numpy</cite> module as it provides some
 functions we’ll make use of later.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
 
-<span class="gp">In [2]: </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="gp">In [2]: </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="gp">In [3]: </span><span class="n">f</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;testdata/test_g2_snap&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Here we’ve loaded a sample gadget file. Not much seems to have
-happened when you called <code class="xref py py-func docutils literal"><span class="pre">pynbody.load()</span></code>, but the variable <code class="docutils literal"><span class="pre">f</span></code>
+happened when you called <code class="xref py py-func docutils literal notranslate"><span class="pre">pynbody.load()</span></code>, but the variable <code class="docutils literal notranslate"><span class="pre">f</span></code>
 is now your calling point for accessing data.</p>
-<p>In fact <code class="docutils literal"><span class="pre">f</span></code> is an object known as a <cite>SimSnap</cite> (see
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">pynbody.snapshot.SimSnap</span></code></a>).</p>
+<p>In fact <code class="docutils literal notranslate"><span class="pre">f</span></code> is an object known as a <cite>SimSnap</cite> (see
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">pynbody.snapshot.SimSnap</span></code></a>).</p>
 <p>Behind the scenes, the function inspects the provided path and decides
 what file format it is. At the time of writing, supported file formats
 include tipsy, nchilada, gadget-1, gadget-2, gadget-HDF and
@@ -111,12 +96,12 @@ ramses. For most purposes you should never need to know what type of
 file you are dealing with – that’s the whole point of the <cite>pynbody</cite>
 framework.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If you look inside the <cite>testdata</cite> folder, you’ll notice that
+<p class="admonition-title">Note</p>
+<p>If you look inside the <cite>testdata</cite> folder, you’ll notice that
 our test snapshot is actually an example of a <cite>spanned</cite> gadget
-snapshot. There is not actually a file called <code class="docutils literal"><span class="pre">test_g2_snap</span></code>, but
-rather two files from two CPUs, <code class="docutils literal"><span class="pre">test_g2_snap.0</span></code> and
-<code class="docutils literal"><span class="pre">test_g2_snap.1</span></code>. <cite>pynbody</cite> knows to load both of these if you ask
+snapshot. There is not actually a file called <code class="docutils literal notranslate"><span class="pre">test_g2_snap</span></code>, but
+rather two files from two CPUs, <code class="docutils literal notranslate"><span class="pre">test_g2_snap.0</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_g2_snap.1</span></code>. <cite>pynbody</cite> knows to load both of these if you ask
 for <cite>test_g2_snap</cite>; if you ask for <cite>test_g2_snap.1</cite> (for instance),
 it’ll load only that particular file.</p>
 </div>
@@ -126,23 +111,23 @@ request it.</p>
 </div>
 <div class="section" id="finding-out-something-about-the-file">
 <h2>Finding out something about the file<a class="headerlink" href="#finding-out-something-about-the-file" title="Permalink to this headline">¶</a></h2>
-<p>Let’s start to inspect the file we’ve opened. The standard python operator <code class="docutils literal"><span class="pre">len</span></code> can be used to query the number
+<p>Let’s start to inspect the file we’ve opened. The standard python operator <code class="docutils literal notranslate"><span class="pre">len</span></code> can be used to query the number
 of particles in the file:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 <span class="gh">Out[4]: </span><span class="go">8192</span>
 </pre></div>
 </div>
 <p>We can also find out about particles of a particular type or <cite>family</cite>
 as it is known within pynbody. To find out which families are present
-in the file, use <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.families" title="pynbody.snapshot.SimSnap.families"><code class="xref py py-func docutils literal"><span class="pre">families()</span></code></a>:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">f</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
+in the file, use <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.families" title="pynbody.snapshot.SimSnap.families"><code class="xref py py-func docutils literal notranslate"><span class="pre">families()</span></code></a>:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">f</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>
 <span class="gh">Out[5]: </span><span class="go">[&lt;Family gas&gt;, &lt;Family dm&gt;, &lt;Family star&gt;]</span>
 </pre></div>
 </div>
 <p>You can pick out just the particles belonging to a family by using the
-syntax <code class="docutils literal"><span class="pre">f.family</span></code>. So, for example, we can see how many particles of
+syntax <code class="docutils literal notranslate"><span class="pre">f.family</span></code>. So, for example, we can see how many particles of
 each type are present:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
 <span class="gh">Out[6]: </span><span class="go">4096</span>
 
 <span class="gp">In [7]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">)</span>
@@ -154,19 +139,19 @@ each type are present:</p>
 </div>
 <p>Useful information about the file is stored in a python dictionary
 called <cite>properties</cite>:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="n">f</span><span class="o">.</span><span class="n">properties</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="n">f</span><span class="o">.</span><span class="n">properties</span>
 <span class="gh">Out[9]: </span><span class="go"></span>
-<span class="go">{&#39;a&#39;: 0.2777777798158637,</span>
-<span class="go"> &#39;boxsize&#39;: Unit(&quot;3.00e+03 kpc a h**-1&quot;),</span>
-<span class="go"> &#39;h&#39;: 0.71,</span>
+<span class="go">{&#39;omegaM0&#39;: 0.2669,</span>
 <span class="go"> &#39;omegaL0&#39;: 0.7331,</span>
-<span class="go"> &#39;omegaM0&#39;: 0.2669,</span>
+<span class="go"> &#39;boxsize&#39;: Unit(&quot;3.00e+03 kpc a h**-1&quot;),</span>
+<span class="go"> &#39;a&#39;: 0.2777777798158637,</span>
+<span class="go"> &#39;h&#39;: 0.71,</span>
 <span class="go"> &#39;time&#39;: Unit(&quot;3.55e+00 s kpc a**1/2 km**-1 h**-1&quot;)}</span>
 </pre></div>
 </div>
 <p>Like any python dictionary, specific properties can be accessed by
 name:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">f</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">f</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
 <span class="gh">Out[10]: </span><span class="go">0.2777777798158637</span>
 </pre></div>
 </div>
@@ -174,51 +159,51 @@ name:</p>
 means redshift, <cite>a</cite> means the cosmological scalefactor, <cite>h</cite> indicates
 the Hubble constant in standard units (100 km/s/Mpc).</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Actually <code class="docutils literal"><span class="pre">f.properties</span></code> has some behaviour which is
+<p class="admonition-title">Note</p>
+<p>Actually <code class="docutils literal notranslate"><span class="pre">f.properties</span></code> has some behaviour which is
 very slightly different from a normal python dictionary. For further
-information see <code class="xref py py-class docutils literal"><span class="pre">SimDict</span></code>.</p>
+information see <a class="reference internal" href="../reference/essentials.html#pynbody.simdict.SimDict" title="pynbody.simdict.SimDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimDict</span></code></a>.</p>
 </div>
 </div>
 <div class="section" id="retrieving-data">
 <h2>Retrieving data<a class="headerlink" href="#retrieving-data" title="Permalink to this headline">¶</a></h2>
-<p>Like <code class="docutils literal"><span class="pre">f.properties</span></code>, <code class="docutils literal"><span class="pre">f</span></code> itself also behaves like a python
+<p>Like <code class="docutils literal notranslate"><span class="pre">f.properties</span></code>, <code class="docutils literal notranslate"><span class="pre">f</span></code> itself also behaves like a python
 dictionary. The standard python method
-<code class="docutils literal"><span class="pre">f.</span></code><a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.keys" title="pynbody.snapshot.SimSnap.keys"><code class="xref py py-func docutils literal"><span class="pre">keys()</span></code></a> returns a list of arrays
+<code class="docutils literal notranslate"><span class="pre">f.</span></code><a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.keys" title="pynbody.snapshot.SimSnap.keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">keys()</span></code></a> returns a list of arrays
 that are currently in memory.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 <span class="gh">Out[11]: </span><span class="go">[]</span>
 </pre></div>
 </div>
 <p>Right now it’s empty! That’s actually correct because data is only
 retrieved when you first access it. To find out what <cite>could</cite> be loaded,
 use the <cite>pynbody</cite>-specific method
-<code class="docutils literal"><span class="pre">f.</span></code><a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.loadable_keys" title="pynbody.snapshot.SimSnap.loadable_keys"><code class="xref py py-func docutils literal"><span class="pre">loadable_keys()</span></code></a>.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">f</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
-<span class="gh">Out[12]: </span><span class="go">[&#39;pos&#39;, &#39;vel&#39;, &#39;iord&#39;, &#39;mass&#39;]</span>
+<code class="docutils literal notranslate"><span class="pre">f.</span></code><a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.loadable_keys" title="pynbody.snapshot.SimSnap.loadable_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">loadable_keys()</span></code></a>.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">f</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
+<span class="gh">Out[12]: </span><span class="go">[&#39;iord&#39;, &#39;pos&#39;, &#39;vel&#39;, &#39;mass&#39;]</span>
 </pre></div>
 </div>
 <p>This looks a bit more promising.
 To access data, simply use the normal dictionary syntax. For example
-<code class="docutils literal"><span class="pre">f['pos']</span></code> returns an array containing the 3D-coordinates of all the
+<code class="docutils literal notranslate"><span class="pre">f['pos']</span></code> returns an array containing the 3D-coordinates of all the
 particles.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span>
 <span class="gh">Out[13]: </span><span class="go"></span>
-<span class="go">SimArray([[   53.31897354,   177.84364319,   128.22311401],</span>
-<span class="go">          [  306.75045776,   140.44454956,   215.37149048],</span>
-<span class="go">          [  310.99908447,    64.1344986 ,   210.53594971],</span>
-<span class="go">          ..., </span>
-<span class="go">          [ 2870.90161133,  2940.17114258,  1978.79492188],</span>
-<span class="go">          [ 2872.41137695,  2939.21972656,  1983.91601562],</span>
-<span class="go">          [ 2863.65112305,  2938.05444336,  1980.06152344]], dtype=float32, &#39;kpc a h**-1&#39;)</span>
+<span class="go">SimArray([[  53.318974,  177.84364 ,  128.22311 ],</span>
+<span class="go">          [ 306.75046 ,  140.44455 ,  215.37149 ],</span>
+<span class="go">          [ 310.99908 ,   64.1345  ,  210.53595 ],</span>
+<span class="go">          ...,</span>
+<span class="go">          [2870.9016  , 2940.1711  , 1978.7949  ],</span>
+<span class="go">          [2872.4114  , 2939.2197  , 1983.916   ],</span>
+<span class="go">          [2863.6511  , 2938.0544  , 1980.0615  ]], dtype=float32, &#39;kpc a h**-1&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Array names are standardized across all file
+<p class="admonition-title">Note</p>
+<p>Array names are standardized across all file
 formats. For instance, even if you load a Gadget-HDF file – which
 internally refers to the position array as <cite>coordinates</cite> – you
-still access that array from pynbody by the name <code class="docutils literal"><span class="pre">pos</span></code>. The
+still access that array from pynbody by the name <code class="docutils literal notranslate"><span class="pre">pos</span></code>. The
 intention is that code never needs to be adapted simply because you
 have switched file format. However the name mapping is fully
 <a class="reference internal" href="configuration.html#configuration"><span class="std std-ref">configurable</span></a> should you wish to adopt
@@ -226,52 +211,52 @@ different conventions.</p>
 </div>
 <p>Some arrays are stored only for certain families. For example,
 densities are stored only for gas particles and are accessed as
-<code class="docutils literal"><span class="pre">f.gas['rho']</span></code>.  To find out what arrays are available for the gas
+<code class="docutils literal notranslate"><span class="pre">f.gas['rho']</span></code>.  To find out what arrays are available for the gas
 family, use
-<code class="docutils literal"><span class="pre">f.gas.</span></code><a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.loadable_keys" title="pynbody.snapshot.SimSnap.loadable_keys"><code class="xref py py-func docutils literal"><span class="pre">loadable_keys()</span></code></a>:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
+<code class="docutils literal notranslate"><span class="pre">f.gas.</span></code><a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap.loadable_keys" title="pynbody.snapshot.SimSnap.loadable_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">loadable_keys()</span></code></a>:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="o">.</span><span class="n">loadable_keys</span><span class="p">()</span>
 <span class="gh">Out[14]: </span><span class="go"></span>
-<span class="go">[&#39;nhp&#39;,</span>
-<span class="go"> &#39;smooth&#39;,</span>
+<span class="go">[&#39;nheq&#39;,</span>
 <span class="go"> &#39;nhe&#39;,</span>
-<span class="go"> &#39;u&#39;,</span>
+<span class="go"> &#39;iord&#39;,</span>
+<span class="go"> &#39;nhp&#39;,</span>
 <span class="go"> &#39;sfr&#39;,</span>
 <span class="go"> &#39;pos&#39;,</span>
-<span class="go"> &#39;vel&#39;,</span>
-<span class="go"> &#39;iord&#39;,</span>
-<span class="go"> &#39;mass&#39;,</span>
+<span class="go"> &#39;u&#39;,</span>
 <span class="go"> &#39;nh&#39;,</span>
-<span class="go"> &#39;rho&#39;,</span>
-<span class="go"> &#39;nheq&#39;,</span>
-<span class="go"> &#39;nhep&#39;]</span>
+<span class="go"> &#39;smooth&#39;,</span>
+<span class="go"> &#39;vel&#39;,</span>
+<span class="go"> &#39;nhep&#39;,</span>
+<span class="go"> &#39;mass&#39;,</span>
+<span class="go"> &#39;rho&#39;]</span>
 </pre></div>
 </div>
 <p>So, we can get the density of the gas particles like this:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span>
 <span class="gh">Out[15]: </span><span class="go"></span>
-<span class="go">SimArray([  1.38886092e-09,   3.36176842e-09,   4.52736737e-09, ...,</span>
-<span class="go">            8.53409521e-09,   7.41017736e-09,   1.40517520e-09], dtype=float32, &#39;1.00e+10 h**2 Msol kpc**-3 a**-3&#39;)</span>
+<span class="go">SimArray([1.3888609e-09, 3.3617684e-09, 4.5273674e-09, ..., 8.5340952e-09,</span>
+<span class="go">          7.4101774e-09, 1.4051752e-09], dtype=float32, &#39;1.00e+10 h**2 Msol kpc**-3 a**-3&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">The <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray" title="pynbody.array.SimArray"><code class="xref py py-class docutils literal"><span class="pre">SimArray</span></code></a> objects are actually
+<p class="admonition-title">Note</p>
+<p>The <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray" title="pynbody.array.SimArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimArray</span></code></a> objects are actually
 <cite>numpy</cite> arrays with some added functionality (such as unit tracking,
 discussed below). Numerical operations are very nearly as fast as
 their numpy equivalents. However, if you want to squeeze the
 performance of your code, you can always get a vanilla numpy array by
 using the <cite>numpy</cite> view mechanism,
-e.g. <code class="docutils literal"><span class="pre">f.gas['rho'].view(type=numpy.ndarray)</span></code></p>
+e.g. <code class="docutils literal notranslate"><span class="pre">f.gas['rho'].view(type=numpy.ndarray)</span></code></p>
 </div>
 </div>
 <div class="section" id="creating-your-own-arrays">
 <span id="create-arrays"></span><h2>Creating your own arrays<a class="headerlink" href="#creating-your-own-arrays" title="Permalink to this headline">¶</a></h2>
 <p>You can create arrays using the obvious assignment syntax:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [16]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;twicethemass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [16]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;twicethemass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span>
 </pre></div>
 </div>
 <p>You can also define new arrays for one family of particles:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;myarray&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;myarray&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
 </pre></div>
 </div>
 <p>An array created in this way exists <em>only</em> for the gas
@@ -279,7 +264,7 @@ particles; trying to access it for other particles raises an
 exception.</p>
 <p>Alternatively, you can define <em>derived arrays</em> which are calculated (and
 re-calculated) on demand. For example,</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="nd">@pynbody.derived_array</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="nd">@pynbody</span><span class="o">.</span><span class="n">derived_array</span>
 <span class="gp">   ....: </span><span class="k">def</span> <span class="nf">thricethemass</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span> <span class="p">:</span>
 <span class="gp">   ....: </span>    <span class="k">return</span> <span class="n">sim</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
 <span class="gp">   ....: </span>
@@ -287,20 +272,20 @@ re-calculated) on demand. For example,</p>
 </div>
 <p>At this point, nothing has been calculated. However, when you ask for
 the array, the values are calculated and stored</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;thricethemass&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;thricethemass&#39;</span><span class="p">]</span>
 <span class="gh">Out[19]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.02464408,  0.02464408,  0.02464408, ...,  0.02464408,</span>
-<span class="go">           0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
+<span class="go">SimArray([0.02464408, 0.02464408, 0.02464408, ..., 0.02464408, 0.02464408,</span>
+<span class="go">          0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
 </pre></div>
 </div>
 <p>This has the advantage that your new <cite>thricethemass</cite> array is
 automatically updated when you change the <cite>mass</cite> array:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
 <span class="gp">In [21]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;thricethemass&#39;</span><span class="p">]</span>
 <span class="gh">Out[21]: </span><span class="go"></span>
-<span class="go">SimArray([ 3.        ,  0.02464408,  0.02464408, ...,  0.02464408,</span>
-<span class="go">           0.02464408,  0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
+<span class="go">SimArray([3.        , 0.02464408, 0.02464408, ..., 0.02464408, 0.02464408,</span>
+<span class="go">          0.02464408], dtype=float32, &#39;1.00e+10 Msol h**-1&#39;)</span>
 </pre></div>
 </div>
 <p>Note, however, that the array is not re-calculated every time you
@@ -313,84 +298,90 @@ the reference documentation for <a class="reference internal" href="../reference
 <p>You might have noticed in the output from the above experiments that
 <cite>pynbody</cite> keeps track of unit information whenever it can.</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">It’s worth understanding exactly where pynbody gets this
+<p class="admonition-title">Warning</p>
+<p>It’s worth understanding exactly where pynbody gets this
 information from, in case anything goes wrong. In the case
 of <cite>Ramses</cite>, and <cite>Gadget-HDF</cite> files the unit information is stored
 within your snapshot, and pynbody takes advantage of this. For
 old-style <cite>Gadget</cite> snapshots, the default cosmological gadget setup is
 assumed. For <cite>nchilada</cite> and <cite>tipsy</cite>, an nchilada or gasoline
-<code class="docutils literal"><span class="pre">.param</span></code> file is sought in the directory from which you are loading
+<code class="docutils literal notranslate"><span class="pre">.param</span></code> file is sought in the directory from which you are loading
 the snapshot and its immediate parent. You can also create a text file
-with the same name as your snapshot but the extension <code class="docutils literal"><span class="pre">.units</span></code> to override
-the units at load time. For further information see
-<code class="xref py py-func docutils literal"><span class="pre">_override_units_system()</span></code>.</p>
+with the same name as your snapshot but the extension <code class="docutils literal notranslate"><span class="pre">.units</span></code> to override
+the units at load time. For example, such a file can contain</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pos</span><span class="p">:</span> <span class="n">kpc</span> <span class="n">a</span>
+<span class="n">vel</span><span class="p">:</span> <span class="n">km</span> <span class="n">s</span><span class="o">^-</span><span class="mi">1</span>
+<span class="n">mass</span><span class="p">:</span> <span class="n">Msol</span>
+</pre></div>
+</div>
+<p>to specify distance units are comoving kiloparsecs, velocity units are
+kilometers per second, and mass is in solar masses.</p>
 </div>
 <p>You can print out the units of any given array by accessing the
-<code class="docutils literal"><span class="pre">units</span></code> property:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+<code class="docutils literal notranslate"><span class="pre">units</span></code> property:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
 <span class="gh">Out[22]: </span><span class="go">Unit(&quot;1.00e+10 Msol h**-1&quot;)</span>
 </pre></div>
 </div>
 <p>However, it’s usually more helpful to simply convert your arrays into
 something more managable than the internal units. <cite>Pynbody</cite> arrays can
-be converted using the <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray.in_units" title="pynbody.array.SimArray.in_units"><code class="xref py py-func docutils literal"><span class="pre">in_units()</span></code></a>
+be converted using the <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray.in_units" title="pynbody.array.SimArray.in_units"><code class="xref py py-func docutils literal notranslate"><span class="pre">in_units()</span></code></a>
 function; just pass in a string representing the units you want.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [23]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;Mpc&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [23]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;Mpc&#39;</span><span class="p">)</span>
 <span class="gh">Out[23]: </span><span class="go"></span>
-<span class="go">SimArray([[ 0.02086032,  0.06957889,  0.05016554],</span>
-<span class="go">          [ 0.12001192,  0.05494701,  0.08426115],</span>
-<span class="go">          [ 0.12167414,  0.02509174,  0.08236931],</span>
-<span class="go">          ..., </span>
-<span class="go">          [ 1.12320089,  1.15030169,  0.77417642],</span>
-<span class="go">          [ 1.12379158,  1.1499294 ,  0.77617997],</span>
-<span class="go">          [ 1.12036431,  1.14947355,  0.77467197]], dtype=float32, &#39;Mpc&#39;)</span>
+<span class="go">SimArray([[0.02086032, 0.06957889, 0.05016554],</span>
+<span class="go">          [0.12001192, 0.05494701, 0.08426115],</span>
+<span class="go">          [0.12167414, 0.02509174, 0.08236931],</span>
+<span class="go">          ...,</span>
+<span class="go">          [1.1232009 , 1.1503017 , 0.7741764 ],</span>
+<span class="go">          [1.1237916 , 1.1499294 , 0.77617997],</span>
+<span class="go">          [1.1203643 , 1.1494735 , 0.774672  ]], dtype=float32, &#39;Mpc&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">The function <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray.in_units" title="pynbody.array.SimArray.in_units"><code class="xref py py-func docutils literal"><span class="pre">in_units()</span></code></a> returns a copy of
-your array in new units. Next time you access <code class="docutils literal"><span class="pre">f['pos']</span></code> it will be
+<p class="admonition-title">Note</p>
+<p>The function <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray.in_units" title="pynbody.array.SimArray.in_units"><code class="xref py py-func docutils literal notranslate"><span class="pre">in_units()</span></code></a> returns a copy of
+your array in new units. Next time you access <code class="docutils literal notranslate"><span class="pre">f['pos']</span></code> it will be
 back in its original units. If you want to permanently convert the array in-place
-use <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray.convert_units" title="pynbody.array.SimArray.convert_units"><code class="xref py py-func docutils literal"><span class="pre">convert_units()</span></code></a> or see below.</p>
+use <a class="reference internal" href="../reference/essentials.html#pynbody.array.SimArray.convert_units" title="pynbody.array.SimArray.convert_units"><code class="xref py py-func docutils literal notranslate"><span class="pre">convert_units()</span></code></a> or see below.</p>
 </div>
 <p>Another option is to request that <cite>pynbody</cite> converts all your arrays
 into something sensible, using
-<code class="xref py py-func docutils literal"><span class="pre">physical_units()</span></code>,</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span><span class="n">f</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
+<code class="xref py py-func docutils literal notranslate"><span class="pre">physical_units()</span></code>,</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span><span class="n">f</span><span class="o">.</span><span class="n">physical_units</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Take a look at what’s happened to the density:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">f</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">]</span>
 <span class="gh">Out[25]: </span><span class="go"></span>
-<span class="go">SimArray([  326.65020752,   790.6640625 ,  1064.8046875 , ...,</span>
-<span class="go">           2007.15856934,  1742.82104492,   330.48721313], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
+<span class="go">SimArray([ 326.6502 ,  790.66406, 1064.8047 , ..., 2007.1586 , 1742.821  ,</span>
+<span class="go">           330.4872 ], dtype=float32, &#39;Msol kpc**-3&#39;)</span>
 </pre></div>
 </div>
 <p>Note that the conversion will also be made when loading any arrays in
 future; for example:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span>
 <span class="gh">Out[26]: </span><span class="go"></span>
-<span class="go">SimArray([[ 27.93829346,   4.98370504, -10.00886631],</span>
-<span class="go">          [ 15.36156368,   5.7859726 ,   4.36315632],</span>
-<span class="go">          [ -8.35731888,  -2.88852572,  22.8099041 ],</span>
-<span class="go">          ..., </span>
-<span class="go">          [ 27.74917603,  85.60175323,  15.53243732],</span>
-<span class="go">          [ 40.75585556,  59.44286728,  44.24484634],</span>
-<span class="go">          [ 38.38396454,  68.63973236,  46.01428986]], dtype=float32, &#39;km s**-1&#39;)</span>
+<span class="go">SimArray([[ 27.938293 ,   4.983705 , -10.008866 ],</span>
+<span class="go">          [ 15.361564 ,   5.7859726,   4.3631563],</span>
+<span class="go">          [ -8.357319 ,  -2.8885257,  22.809904 ],</span>
+<span class="go">          ...,</span>
+<span class="go">          [ 27.749176 ,  85.60175  ,  15.532437 ],</span>
+<span class="go">          [ 40.755856 ,  59.442867 ,  44.244846 ],</span>
+<span class="go">          [ 38.383965 ,  68.63973  ,  46.01429  ]], dtype=float32, &#39;km s**-1&#39;)</span>
 </pre></div>
 </div>
 <p>A new array generated from a unary or binary operation will inherit
 the correct units. For example</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="mi">5</span><span class="o">*</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="mi">5</span><span class="o">*</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span>
 <span class="gh">Out[27]: </span><span class="go"></span>
-<span class="go">SimArray([[ 139.69146729,   24.9185257 ,  -50.0443306 ],</span>
-<span class="go">          [  76.80781555,   28.92986298,   21.81578064],</span>
-<span class="go">          [ -41.78659439,  -14.44262886,  114.0495224 ],</span>
-<span class="go">          ..., </span>
-<span class="go">          [ 138.74588013,  428.00875854,   77.66218567],</span>
-<span class="go">          [ 203.77928162,  297.21432495,  221.22422791],</span>
-<span class="go">          [ 191.91983032,  343.19866943,  230.07144165]], dtype=float32, &#39;km s**-1&#39;)</span>
+<span class="go">SimArray([[139.69147 ,  24.918526, -50.04433 ],</span>
+<span class="go">          [ 76.807816,  28.929863,  21.81578 ],</span>
+<span class="go">          [-41.786594, -14.442629, 114.04952 ],</span>
+<span class="go">          ...,</span>
+<span class="go">          [138.74588 , 428.00876 ,  77.662186],</span>
+<span class="go">          [203.77928 , 297.21432 , 221.22423 ],</span>
+<span class="go">          [191.91983 , 343.19867 , 230.07144 ]], dtype=float32, &#39;km s**-1&#39;)</span>
 
 <span class="gp">In [28]: </span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">units</span>
 <span class="gh">Out[28]: </span><span class="go">Unit(&quot;km**2 s**-2&quot;)</span>
@@ -400,12 +391,12 @@ the correct units. For example</p>
 </pre></div>
 </div>
 <p>You can even associate arrays with the loaded
-<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">SimSnap</span></code></a> unit system even when you create
-them <em>outside</em> the <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">SimSnap</span></code></a>. This is useful
+<a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimSnap</span></code></a> unit system even when you create
+them <em>outside</em> the <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimSnap</span></code></a>. This is useful
 for keeping things tidy with your unit conversions if you are
 calculating quantities that don’t apply to all of the particles. For
 instance:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="n">array</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span> <span class="c1"># make the newly-formed numpy array a pynbody array</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [30]: </span><span class="n">array</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">SimArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span> <span class="c1"># make the newly-formed numpy array a pynbody array</span>
 
 <span class="gp">In [31]: </span><span class="n">array</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">f</span> <span class="c1"># this links the array to the simulation</span>
 
@@ -413,33 +404,33 @@ instance:</p>
 
 <span class="gp">In [33]: </span><span class="n">array</span>
 <span class="gh">Out[33]: </span><span class="go"></span>
-<span class="go">SimArray([ 0.77194414,  0.87013158,  0.81147107,  0.48322257,  0.16337398,</span>
-<span class="go">           0.34175776,  0.71703765,  0.16286818,  0.58489472,  0.0705787 ], &#39;Mpc a&#39;)</span>
+<span class="go">SimArray([0.85226331, 0.23154282, 0.47172   , 0.00602858, 0.45068116,</span>
+<span class="go">          0.27028286, 0.23957908, 0.33810041, 0.79071016, 0.27698084], &#39;Mpc a&#39;)</span>
 
 <span class="gp">In [34]: </span><span class="n">array</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;kpc&#39;</span><span class="p">)</span>
 <span class="gh">Out[34]: </span><span class="go"></span>
-<span class="go">SimArray([ 214.42893064,  241.7032191 ,  225.40863084,  134.22849161,</span>
-<span class="go">            45.38166112,   94.93271318,  199.1771267 ,   45.2411606 ,</span>
-<span class="go">           162.47075607,   19.60519326], &#39;kpc&#39;)</span>
+<span class="go">SimArray([236.73980995,  64.31744957, 131.03333337,   1.67460631,</span>
+<span class="go">          125.18921295,  75.07857348,  66.54974572,  93.91678135,</span>
+<span class="go">          219.64171327,  76.93912349], &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>Note that the units were correctly converted into physical units in
 the last step.</p>
 <p>For more information see the reference documentation for
-<a class="reference internal" href="../reference/essentials.html#module-pynbody.units" title="pynbody.units"><code class="xref py py-class docutils literal"><span class="pre">pynbody.units</span></code></a>.</p>
+<a class="reference internal" href="../reference/essentials.html#module-pynbody.units" title="pynbody.units"><code class="xref py py-class docutils literal notranslate"><span class="pre">pynbody.units</span></code></a>.</p>
 </div>
 <div class="section" id="subsnaps">
 <span id="id1"></span><h2>Subsnaps<a class="headerlink" href="#subsnaps" title="Permalink to this headline">¶</a></h2>
 <p>An important concept within <cite>pynbody</cite> is that of a subsnap. These are
-objects that look just like a <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal"><span class="pre">SimSnap</span></code></a> but actually only point
+objects that look just like a <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SimSnap" title="pynbody.snapshot.SimSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimSnap</span></code></a> but actually only point
 at a subset of the particles within a <cite>parent</cite>. Subsnaps are always
-instances of the <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal"><span class="pre">SubSnap</span></code></a> class.</p>
+instances of the <a class="reference internal" href="../reference/essentials.html#pynbody.snapshot.SubSnap" title="pynbody.snapshot.SubSnap"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubSnap</span></code></a> class.</p>
 <p>You’ve already seen some examples of subsnaps, actually. When you
-accessed <code class="docutils literal"><span class="pre">f.gas</span></code> or <code class="docutils literal"><span class="pre">f.dm</span></code>, you’re given back a subsnap pointing
+accessed <code class="docutils literal notranslate"><span class="pre">f.gas</span></code> or <code class="docutils literal notranslate"><span class="pre">f.dm</span></code>, you’re given back a subsnap pointing
 at only those particles. However, subsnaps can be used in a much more
 general way. For example, you can use python’s normal array slicing
 operations. Here we take every tenth particle:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [35]: </span><span class="n">every_tenth</span> <span class="o">=</span> <span class="n">f</span><span class="p">[::</span><span class="mi">10</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [35]: </span><span class="n">every_tenth</span> <span class="o">=</span> <span class="n">f</span><span class="p">[::</span><span class="mi">10</span><span class="p">]</span>
 
 <span class="gp">In [36]: </span><span class="nb">len</span><span class="p">(</span><span class="n">every_tenth</span><span class="p">)</span>
 <span class="gh">Out[36]: </span><span class="go">820</span>
@@ -449,54 +440,54 @@ operations. Here we take every tenth particle:</p>
 data, it merely creates another pointer into the existing data. As an
 example, let’s modify the position of one of our particles in the
 new view:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-<span class="gh">Out[37]: </span><span class="go">SimArray([ 140.2888031 ,  122.21797943,   75.80529022], dtype=float32, &#39;kpc&#39;)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="gh">Out[37]: </span><span class="go">SimArray([140.2888 , 122.21798,  75.80529], dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [38]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
 
 <span class="gp">In [39]: </span><span class="n">every_tenth</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-<span class="gh">Out[39]: </span><span class="go">SimArray([ 1.,  2.,  3.], dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[39]: </span><span class="go">SimArray([1., 2., 3.], dtype=float32, &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>This change is reflected in the main snapshot.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [40]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">10</span><span class="p">]</span>
-<span class="gh">Out[40]: </span><span class="go">SimArray([ 1.,  2.,  3.], dtype=float32, &#39;kpc&#39;)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [40]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">][</span><span class="mi">10</span><span class="p">]</span>
+<span class="gh">Out[40]: </span><span class="go">SimArray([1., 2., 3.], dtype=float32, &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If you’re used to numpy’s flexible indexing abilities, you
-might like to note that, typically, <code class="docutils literal"><span class="pre">f[array_name][index]</span> <span class="pre">==</span>
+<p class="admonition-title">Note</p>
+<p>If you’re used to numpy’s flexible indexing abilities, you
+might like to note that, typically, <code class="docutils literal notranslate"><span class="pre">f[array_name][index]</span> <span class="pre">==</span>
 <span class="pre">f[index][array_name]</span></code>. The difference is that applying the index to
 the whole snapshot is more flexible and can lead to simpler code. In
-particular, <code class="docutils literal"><span class="pre">numpy_array[index]</span></code> may involve copying data whereas
-<code class="docutils literal"><span class="pre">f[index]</span></code> never does; it always returns a new object pointing back at
+particular, <code class="docutils literal notranslate"><span class="pre">numpy_array[index]</span></code> may involve copying data whereas
+<code class="docutils literal notranslate"><span class="pre">f[index]</span></code> never does; it always returns a new object pointing back at
 the old one.</p>
 </div>
 <p>You can pass in an array of boolean values representing
 whether each successive particle should be included (<cite>True</cite>) or not
 (<cite>False</cite>).  This allows the use of <cite>numpy</cite>’s comparison
 operators. For example:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [41]: </span><span class="n">f_slab</span> <span class="o">=</span> <span class="n">f</span><span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1000</span><span class="p">)</span><span class="o">&amp;</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">2000</span><span class="p">)]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [41]: </span><span class="n">f_slab</span> <span class="o">=</span> <span class="n">f</span><span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1000</span><span class="p">)</span><span class="o">&amp;</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">2000</span><span class="p">)]</span>
 
 <span class="gp">In [42]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-<span class="gh">Out[42]: </span><span class="go">SimArray(1000.1197509765625, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[42]: </span><span class="go">SimArray(1000.11975, dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [43]: </span><span class="n">f_slab</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-<span class="gh">Out[43]: </span><span class="go">SimArray(1173.692626953125, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[43]: </span><span class="go">SimArray(1173.6926, dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [44]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-<span class="gh">Out[44]: </span><span class="go">SimArray(0.045043524354696274, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[44]: </span><span class="go">SimArray(0.04504352, dtype=float32, &#39;kpc&#39;)</span>
 
 <span class="gp">In [45]: </span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-<span class="gh">Out[45]: </span><span class="go">SimArray(1173.692626953125, dtype=float32, &#39;kpc&#39;)</span>
+<span class="gh">Out[45]: </span><span class="go">SimArray(1173.6926, dtype=float32, &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <p>Here <cite>f_slab</cite> is pointing at only those particles which have
 x-coordinates between 1000 and 2000.</p>
 <p>Note that subsnaps really do behave exactly like snapshots. So, for
 instance, you can pick out sub-subsnaps or sub-sub-subsnaps.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [46]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [46]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">)</span>
 <span class="gh">Out[46]: </span><span class="go">1236</span>
 
 <span class="gp">In [47]: </span><span class="nb">len</span><span class="p">(</span><span class="n">f_slab</span><span class="o">.</span><span class="n">dm</span><span class="p">[::</span><span class="mi">10</span><span class="p">])</span>
@@ -504,14 +495,14 @@ instance, you can pick out sub-subsnaps or sub-sub-subsnaps.</p>
 
 <span class="gp">In [48]: </span><span class="n">f_slab</span><span class="p">[[</span><span class="mi">100</span><span class="p">,</span><span class="mi">105</span><span class="p">,</span><span class="mi">252</span><span class="p">]]</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span>
 <span class="gh">Out[48]: </span><span class="go"></span>
-<span class="go">SimArray([[ 1029.64428711,   421.70736694,   169.25817871],</span>
-<span class="go">          [ 1097.24865723,   377.86810303,   149.81082153],</span>
-<span class="go">          [ 1059.92614746,   374.74459839,   192.37200928]], dtype=float32, &#39;kpc&#39;)</span>
+<span class="go">SimArray([[1029.6443 ,  421.70737,  169.25818],</span>
+<span class="go">          [1097.2487 ,  377.8681 ,  149.81082],</span>
+<span class="go">          [1059.9261 ,  374.7446 ,  192.37201]], dtype=float32, &#39;kpc&#39;)</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Under most circumstances there is very little performance
+<p class="admonition-title">Note</p>
+<p>Under most circumstances there is very little performance
 penalty to using a <cite>SubSnap</cite>. However in performance-critical code it
 is worth understanding a little more about what’s going on under the
 hood. See <a class="reference internal" href="performance.html#performance"><span class="std std-ref">Performance optimisation in pynbody</span></a>.</p>
@@ -523,12 +514,12 @@ hood. See <a class="reference internal" href="performance.html#performance"><spa
 <cite>filter</cite>. This can lead to more readable code than the equivalent
 explicitly written condition. For example, to pick out a sphere
 centered on the origin, you can use:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [49]: </span><span class="kn">from</span> <span class="nn">pynbody.filt</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [49]: </span><span class="kn">from</span> <span class="nn">pynbody.filt</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="gp">In [50]: </span><span class="n">f_sphere</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">Sphere</span><span class="p">(</span><span class="s1">&#39;10 kpc&#39;</span><span class="p">)]</span>
 </pre></div>
 </div>
-<p>For a list of filters, see  <a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal"><span class="pre">pynbody.filt</span></code></a>.</p>
+<p>For a list of filters, see  <a class="reference internal" href="../reference/convenience.html#module-pynbody.filt" title="pynbody.filt"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pynbody.filt</span></code></a>.</p>
 </div>
 <div class="section" id="where-next">
 <h2>Where next?<a class="headerlink" href="#where-next" title="Permalink to this headline">¶</a></h2>
@@ -541,27 +532,32 @@ happy to provide further assistance via our
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/logo.svg" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">A walk through pynbody’s low-level facilities</a><ul>
-<li><a class="reference internal" href="#first-steps">First steps</a></li>
-<li><a class="reference internal" href="#finding-out-something-about-the-file">Finding out something about the file</a></li>
-<li><a class="reference internal" href="#retrieving-data">Retrieving data</a></li>
-<li><a class="reference internal" href="#creating-your-own-arrays">Creating your own arrays</a></li>
-<li><a class="reference internal" href="#keeping-on-top-of-units">Keeping on top of units</a></li>
-<li><a class="reference internal" href="#subsnaps">Subsnaps</a></li>
-<li><a class="reference internal" href="#filters">Filters</a></li>
-<li><a class="reference internal" href="#where-next">Where next?</a></li>
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
 </ul>
-</li>
-</ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -573,33 +569,34 @@ happy to provide further assistance via our
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="../_sources/tutorials/data_access.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/tutorials/data_access.rst.txt"

@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.analysis.ramses_util &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.analysis.ramses_util &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.analysis.ramses_util</h1><div class="highlight"><pre>
@@ -64,13 +58,6 @@
 <span class="sd">demo on how to use RAMSES outputs with pynbody, have a look at the</span>
 <span class="sd">`ipython notebook demo</span>
 <span class="sd">&lt;http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb&gt;`_</span>
-
-
-<span class="sd">Loading and centering</span>
-<span class="sd">---------------------</span>
-
-<span class="sd">&gt;&gt;&gt; s = pynbody.analysis.ramses_util.load_center(&#39;output_00101&#39;, align=False) # centered on halo 0 </span>
-<span class="sd">&gt;&gt;&gt; pynbody.analysis.ramses_util.hop_center(s,10) # centered on the halo 10</span>
 
 <span class="sd">File Conversion</span>
 <span class="sd">---------------</span>
@@ -125,112 +112,14 @@
 <span class="kn">import</span> <span class="nn">pynbody</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="n">units</span> <span class="kn">import</span> <span class="nn">Unit</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">config_parser</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">config_parser</span>
 
 <span class="n">ramses_utils</span> <span class="o">=</span> <span class="n">config_parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ramses&#39;</span><span class="p">,</span> <span class="s1">&#39;ramses_utils&#39;</span><span class="p">)</span>
 
-<span class="n">hop_script_path</span> <span class="o">=</span> <span class="n">ramses_utils</span> <span class="o">+</span> <span class="s1">&#39;scripts/script_hop.sh&#39;</span>
 <span class="n">part2birth_path</span> <span class="o">=</span> <span class="n">ramses_utils</span> <span class="o">+</span> <span class="s1">&#39;f90/part2birth&#39;</span>
-
-
-<div class="viewcode-block" id="load_hop"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.load_hop">[docs]</a><span class="k">def</span> <span class="nf">load_hop</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">hop</span><span class="o">=</span><span class="n">hop_script_path</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Loads the hop catalog for the given RAMSES snapshot. If the</span>
-<span class="sd">    catalog doesn&#39;t exist, it tries to run hop to create one via the</span>
-<span class="sd">    &#39;script_hop.sh&#39; script found in the RAMSES distribution. The hop</span>
-<span class="sd">    output should be in a &#39;hop&#39; directory in the base directory of the</span>
-<span class="sd">    simulation.</span>
-
-<span class="sd">    **Input**:</span>
-
-<span class="sd">    *s* : loaded RAMSES snapshot</span>
-
-<span class="sd">    **Optional Keywords**:</span>
-
-<span class="sd">    *hop* : path to `script_hop.sh`</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">13</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;hop/grp</span><span class="si">%s</span><span class="s1">.pos&#39;</span> <span class="o">%</span> <span class="n">name</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;hop/grp</span><span class="si">%s</span><span class="s1">.pos&#39;</span> <span class="o">%</span> <span class="n">name</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">os</span>
-        <span class="nb">dir</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">])</span> <span class="k">else</span> <span class="s1">&#39;./&#39;</span>
-
-        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
-            <span class="s1">&#39;cd </span><span class="si">%s</span><span class="s1">;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1">;cd ..&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">hop_script_path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">data</span></div>
-
-
-<div class="viewcode-block" id="hop_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.hop_center">[docs]</a><span class="k">def</span> <span class="nf">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Center the simulation snapshot on the specified halo using the halo data from hop. </span>
-
-<span class="sd">    **Input**: </span>
-
-<span class="sd">    *s* : RAMSES snapshot</span>
-
-<span class="sd">    **Optional Keywords**:</span>
-
-<span class="sd">    *halo* : halo ID to use for centering (default = 0)</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">data</span> <span class="o">=</span> <span class="n">load_hop</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-
-    <span class="n">cen</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">halo</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
-    <span class="n">vcen</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">halo</span><span class="p">][</span><span class="mi">7</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
-
-    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen</span>
-    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">vcen</span></div>
-
-
-<div class="viewcode-block" id="load_center"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.load_center">[docs]</a><span class="k">def</span> <span class="nf">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Loads a RAMSES output and centers it on the desired halo. The hop</span>
-<span class="sd">    center is used for an initial estimate, but for more precise</span>
-<span class="sd">    centering, a shrinking-sphere center is calculated.</span>
-
-<span class="sd">    **Inputs**:    </span>
-
-<span class="sd">    *output* : path to RAMSES output directory</span>
-
-<span class="sd">    **Optional Keywords**: </span>
-
-<span class="sd">    *align* : whether to align the snapshot based on the angular momentum in the central region (default = True)</span>
-
-<span class="sd">    *halo* : halo to center on (default = 0)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
-    <span class="n">hop_center</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">halo</span><span class="p">)</span>
-
-    <span class="n">st</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">pynbody</span><span class="o">.</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="s1">&#39;100 kpc&#39;</span><span class="p">)]</span>
-
-    <span class="n">cen</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span>
-        <span class="n">st</span><span class="p">,</span> <span class="n">retcen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;ssc&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">align</span><span class="p">:</span>
-        <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">angmom</span><span class="o">.</span><span class="n">faceon</span><span class="p">(</span>
-            <span class="n">st</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">disk_size</span><span class="o">=</span><span class="s1">&#39;10 kpc&#39;</span><span class="p">,</span> <span class="n">cen</span><span class="o">=</span><span class="n">cen</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;ssc&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cen</span>
-
-    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;kpc&#39;</span><span class="p">)</span>
-    <span class="n">s</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">convert_units</span><span class="p">(</span><span class="s1">&#39;km s^-1&#39;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">s</span></div>
 
 
 <div class="viewcode-block" id="convert_to_tipsy_simple"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.convert_to_tipsy_simple">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tipsy_simple</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -258,7 +147,8 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">s</span> <span class="o">=</span> <span class="n">load_center</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">halo</span><span class="o">=</span><span class="n">halo</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">halos</span><span class="p">()[</span><span class="n">halo</span><span class="p">]</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">pynbody</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">halo</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="s1">&#39;vel&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;iord&#39;</span><span class="p">,</span> <span class="s1">&#39;metal&#39;</span><span class="p">]:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -455,7 +345,7 @@
     <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="get_tform"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tform">[docs]</a><span class="k">def</span> <span class="nf">get_tform</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="o">=</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="n">cpu_range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="get_tform"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.ramses_util.get_tform">[docs]</a><span class="k">def</span> <span class="nf">get_tform</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="o">=</span><span class="n">part2birth_path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Use `part2birth` to calculate the formation time of stars in</span>
 <span class="sd">    Gyr and **replaces** the original `tform` array.</span>
 
@@ -471,57 +361,44 @@
 <span class="sd">     override this like so -- make a file called &quot;.pynbodyrc&quot; in your</span>
 <span class="sd">     home directory, and include</span>
 
-<span class="sd">     *cpu_range*: a list of cpus to process tform for. If specified, birth time</span>
-<span class="sd">      will only be processed for cpus in the list. - RS</span>
-
 <span class="sd">    [ramses]</span>
 
 <span class="sd">    ramses_utils = /path/to/your/ramses/utils/directory</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">from</span> <span class="nn">scipy.io</span> <span class="k">import</span> <span class="n">FortranFile</span>
+    <span class="kn">from</span> <span class="nn">scipy.io</span> <span class="kn">import</span> <span class="n">FortranFile</span>
 
-    <span class="n">top</span> <span class="o">=</span> <span class="n">sim</span>
-    <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">):</span>
         <span class="n">top</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">base</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">sim</span>
 
-    <span class="n">ncpu</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">_info</span><span class="p">[</span><span class="s1">&#39;ncpu&#39;</span><span class="p">]</span>
+    <span class="n">cpu_range</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">_cpus</span>
 
     <span class="n">top</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;tform&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
     <span class="n">done</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">filename</span>
-    <span class="k">if</span> <span class="n">parent_dir</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span><span class="p">:</span>
-        <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">parent_dir</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">cpu_id</span> <span class="ow">in</span> <span class="n">cpu_range</span><span class="p">:</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent_dir</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">12</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">parent_dir</span> <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
-
-    <span class="c1"># RS - If we only load a subset of cpus,</span>
-    <span class="c1"># we need to ensure we dont&#39; try to load</span>
-    <span class="c1"># them all...</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_range</span><span class="p">:</span> <span class="c1"># means user hasn&#39;t specified a range: use all</span>
-        <span class="n">cpu_range</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cpu_range</span><span class="p">:</span>
-            <span class="k">continue</span>
+        <span class="c1"># Birth files are located inside the output directory.</span>
+        <span class="n">birthfile_name</span> <span class="o">=</span> <span class="s2">&quot;birth_</span><span class="si">%s</span><span class="s2">.out</span><span class="si">%05d</span><span class="s2">&quot;</span> <span class="o">%</span><span class="p">(</span><span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">cpu_id</span><span class="p">)</span>
+        <span class="n">birthfile_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">top</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">birthfile_name</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">birth_file</span> <span class="o">=</span> <span class="n">FortranFile</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/output_</span><span class="si">%s</span><span class="s1">/birth_</span><span class="si">%s</span><span class="s1">.out</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span>
-                                     <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">os</span>
-
-            <span class="c1"># birth_xxx doesn&#39;t exist, create it with ramses part2birth util</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
-                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="s1">&#39;-inp&#39;</span><span class="p">,</span> <span class="s1">&#39;output_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">],</span>
-                                <span class="n">stdout</span><span class="o">=</span><span class="n">fnull</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">fnull</span><span class="p">)</span>
-            <span class="c1"># part2birth put the files in output_&lt;top._timestep_id&gt;</span>
-            <span class="n">birth_file</span> <span class="o">=</span> <span class="n">FortranFile</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/output_</span><span class="si">%s</span><span class="s1">/birth_</span><span class="si">%s</span><span class="s1">.out</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span>
-                                     <span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">birth_file</span> <span class="o">=</span> <span class="n">FortranFile</span><span class="p">(</span><span class="n">birthfile_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">IOError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>      <span class="c1"># Both are necessary as python 2 throws OSError, while python 3 throws IOError</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># birth_xxx doesn&#39;t exist, create it with ramses part2birth util</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
+                    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="n">part2birth_path</span><span class="p">,</span> <span class="s1">&#39;-inp&#39;</span><span class="p">,</span> <span class="s1">&#39;output_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">top</span><span class="o">.</span><span class="n">_timestep_id</span><span class="p">],</span>
+                                    <span class="n">stdout</span><span class="o">=</span><span class="n">fnull</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">fnull</span><span class="p">)</span>
+                <span class="n">birth_file</span> <span class="o">=</span> <span class="n">FortranFile</span><span class="p">(</span><span class="n">birthfile_path</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">IOError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="kn">import</span> <span class="nn">warnings</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Failed to read &#39;tform&#39; from birth files at </span><span class="si">%s</span><span class="s2"> and to generate them with utility at </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="s2">&quot;Formation times in Ramses code units can be accessed through the &#39;tform_raw&#39; array.&quot;</span>
+                              <span class="o">%</span> <span class="p">(</span><span class="n">birthfile_path</span><span class="p">,</span> <span class="n">part2birth_path</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">IOError</span>
 
         <span class="n">ages</span> <span class="o">=</span> <span class="n">birth_file</span><span class="o">.</span><span class="n">read_reals</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -535,13 +412,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../../index.html">
-              <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../../index.html">Documentation overview</a><ul>
@@ -551,25 +448,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

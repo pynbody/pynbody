@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.analysis.luminosity &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.analysis.luminosity &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.analysis.luminosity</h1><div class="highlight"><pre>
@@ -67,12 +61,53 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">..array</span> <span class="k">import</span> <span class="n">SimArray</span>
+<span class="kn">from</span> <span class="nn">..array</span> <span class="kn">import</span> <span class="n">SimArray</span>
 
-<span class="kn">from</span> <span class="nn">interpolate</span> <span class="k">import</span> <span class="n">interpolate2d</span>
+<span class="kn">from</span> <span class="nn">.interpolate</span> <span class="kn">import</span> <span class="n">interpolate2d</span>
 
+<span class="n">_cmd_lum_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;cmdlum.npz&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="calc_mags"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.luminosity.calc_mags">[docs]</a><span class="k">def</span> <span class="nf">calc_mags</span><span class="p">(</span><span class="n">simstars</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="s1">&#39;v&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="use_custom_cmd"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.luminosity.use_custom_cmd">[docs]</a><span class="k">def</span> <span class="nf">use_custom_cmd</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Use a custom set of stellar populations to calculate magnitudes.</span>
+
+<span class="sd">    The path is to a numpy archive with a suitable grid of ages/metallicities and corresponding magnitudes.</span>
+
+<span class="sd">    The following script from Stephanie De Beer should help you make a suitable file starting</span>
+<span class="sd">    from ugriz SSPs downloaded from http://stev.oapd.inaf.it/cgi-bin/cmd.</span>
+
+<span class="sd">    import numpy as np</span>
+
+<span class="sd">    metals = np.linspace(0.002, 0.05, 25)</span>
+<span class="sd">    ages = np.logspace(5.67, 10.13, 25)</span>
+
+<span class="sd">    mags_bol = np.zeros((len(metals),len(ages)))</span>
+<span class="sd">    mags_u = np.zeros((len(metals),len(ages)))</span>
+<span class="sd">    mags_g = np.zeros((len(metals),len(ages)))</span>
+<span class="sd">    mags_r = np.zeros((len(metals),len(ages)))</span>
+<span class="sd">    mags_i = np.zeros((len(metals),len(ages)))</span>
+<span class="sd">    mags_z = np.zeros((len(metals),len(ages)))</span>
+
+<span class="sd">    bands = [&#39;bol&#39;, &#39;u&#39;, &#39;g&#39;, &#39;r&#39;, &#39;i&#39;, &#39;z&#39;]</span>
+<span class="sd">    k=2</span>
+<span class="sd">    for b in bands:</span>
+<span class="sd">        for x in range(1,26):</span>
+<span class="sd">            with open(&#39;/users/sdebeer/render_stuff/PGSP_files/&#39;+str(x)+&#39;_output.txt&#39;, &#39;r&#39;) as f:</span>
+<span class="sd">                output = f.readlines()</span>
+<span class="sd">            i = 0</span>
+<span class="sd">            for line in output:</span>
+<span class="sd">                magnitudes = line.split()</span>
+<span class="sd">                if magnitudes[0]==&#39;#&#39;:</span>
+<span class="sd">                    continue</span>
+<span class="sd">                vars()[&#39;mags_&#39;+b][i,x-1]=magnitudes[k]</span>
+<span class="sd">                i +=1</span>
+<span class="sd">        k+=1</span>
+
+<span class="sd">    np.savez(&#39;my_cmd.npz&#39;, ages=ages, metals=metals, bol=mags_bol, u=mags_u, g=mags_g, r=mags_r, i=mags_i, z=mags_z)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_cmd_lum_file</span>
+    <span class="n">_cmd_lum_file</span> <span class="o">=</span> <span class="n">path</span></div>
+
+<div class="viewcode-block" id="calc_mags"><a class="viewcode-back" href="../../../reference/analysis.html#pynbody.analysis.luminosity.calc_mags">[docs]</a><span class="k">def</span> <span class="nf">calc_mags</span><span class="p">(</span><span class="n">simstars</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">cmd_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculating visible magnitudes</span>
 
 <span class="sd">    Using Padova Simple stellar populations (SSPs) from Girardi</span>
@@ -93,17 +128,21 @@
 <span class="sd">       *band* (default=&#39;v&#39;): Which observed bandpass magnitude in which </span>
 <span class="sd">            magnitude should be calculated</span>
 
+<span class="sd">       *path* (default=None): Path to the CMD grid. If None, use the</span>
+<span class="sd">            default or a path specified by use_custom_cmd. For more information</span>
+<span class="sd">            about generating a custom CMD grid, see use_custom_cmd.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># find data file in PYTHONPATH</span>
     <span class="c1"># data is from http://stev.oapd.inaf.it/cgi-bin/cmd</span>
     <span class="c1"># Padova group stellar populations Marigo et al (2008), Girardi et al</span>
     <span class="c1"># (2010)</span>
-    <span class="n">lumfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;cmdlum.npz&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">lumfile</span><span class="p">):</span>
-        <span class="n">lums</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">lumfile</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cmd_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lums</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cmd_path</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">,</span> <span class="s2">&quot;cmdlum.npz (magnitude table) not found&quot;</span>
+        <span class="n">lums</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">_cmd_lum_file</span><span class="p">)</span>
+
 
     <span class="n">age_star</span> <span class="o">=</span> <span class="n">simstars</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;yr&#39;</span><span class="p">)</span>
     <span class="c1"># allocate temporary metals that we can play with</span>
@@ -124,7 +163,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">vals</span> <span class="o">=</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span> <span class="o">*</span> \
             <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s1">&#39;massform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;Msol&#39;</span><span class="p">))</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="ne">ValueError</span><span class="p">:</span>
         <span class="n">vals</span> <span class="o">=</span> <span class="n">output_mags</span> <span class="o">-</span> <span class="mf">2.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">simstars</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">in_units</span><span class="p">(</span><span class="s1">&#39;Msol&#39;</span><span class="p">))</span>
 
     <span class="n">vals</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="kc">None</span>
@@ -222,13 +261,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../../index.html">
-              <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../../index.html">Documentation overview</a><ul>
@@ -238,25 +297,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

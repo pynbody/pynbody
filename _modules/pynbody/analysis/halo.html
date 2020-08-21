@@ -1,26 +1,19 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>pynbody.analysis.halo &#8212; pynbody 0.46 documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.analysis.halo &#8212; pynbody 1.0.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.46',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 
@@ -45,13 +38,14 @@
   })();
 </script>
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pynbody.analysis.halo</h1><div class="highlight"><pre>
@@ -65,8 +59,8 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">transformation</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">_com</span><span class="p">,</span> <span class="n">profile</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">filt</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">transformation</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">_com</span><span class="p">,</span> <span class="n">profile</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -301,7 +295,7 @@
         <span class="n">cen</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">gas</span><span class="p">[</span><span class="n">filt</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">cen_size</span><span class="p">)]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cen</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
         <span class="c1"># very weird snapshot, or mis-centering!</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s2">&quot;Insufficient particles around center to get velocity&quot;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Insufficient particles around center to get velocity&quot;</span><span class="p">)</span>
 
     <span class="n">vcen</span> <span class="o">=</span> <span class="p">(</span><span class="n">cen</span><span class="p">[</span><span class="s1">&#39;vel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span> <span class="o">*</span> <span class="n">cen</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> \
         <span class="n">cen</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
@@ -411,8 +405,9 @@
 <span class="sd">    particle distribution.</span>
 
 <span class="sd">    *bins* (equal): The spacing scheme for the homeoidal shell bins.</span>
-<span class="sd">    ``equal`` initialises bins with equal numbers of particles. This</span>
-<span class="sd">    number is not necessarily maintained during fitting.</span>
+<span class="sd">    ``equal`` initialises radial bins with equal numbers of particles,</span>
+<span class="sd">    with the exception of the final bin which will accomodate remainders.</span>
+<span class="sd">    This number is not necessarily maintained during fitting.</span>
 <span class="sd">    ``log`` and ``lin`` initialise bins with logarithmic and linear</span>
 <span class="sd">    radial spacing.</span>
 
@@ -424,15 +419,16 @@
     <span class="c1">#-----------------------------FUNCTIONS-----------------------------</span>
     <span class="c1"># Define an ellipsoid shell with lengths a,b,c and orientation E:</span>
     <span class="k">def</span> <span class="nf">Ellipsoid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
-        <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,[</span><span class="n">r</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">r</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">r</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]])</span>
+        <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">E</span><span class="p">),[</span><span class="n">r</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">r</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">r</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]])</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">a</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span><span class="o">/</span><span class="n">b</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span><span class="o">/</span><span class="n">c</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
 
     <span class="c1"># Define moment of inertia tensor:</span>
     <span class="n">MoI</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">m</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">m</span><span class="o">*</span><span class="n">r</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">r</span><span class="p">[:,</span><span class="n">j</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>\
                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)])</span>
 
-    <span class="c1"># Splits data into number of steps N:</span>
-    <span class="n">sn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">N</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="n">N</span><span class="p">:(</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="n">N</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>\
+    <span class="c1"># Splits &#39;r&#39; array into N groups containing equal numbers of particles.</span>
+    <span class="c1"># An array is returned with the radial bins that contain these groups.</span>
+    <span class="n">sn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">N</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="n">N</span><span class="p">):(</span><span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">/</span><span class="n">N</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span>\
                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)],</span><span class="n">r</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="c1"># Retrieves alignment angle:</span>
@@ -457,11 +453,11 @@
         <span class="n">mid</span> <span class="o">=</span> <span class="n">mid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 
     <span class="k">elif</span> <span class="p">(</span><span class="n">bins</span> <span class="o">==</span> <span class="s1">&#39;log&#39;</span><span class="p">):</span> <span class="c1"># Bins are logarithmically spaced</span>
-        <span class="n">mid</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">rin</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">rout</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;rbins&#39;</span><span class="p">]</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">rmin</span><span class="o">=</span><span class="n">rin</span><span class="p">,</span> <span class="n">rmax</span><span class="o">=</span><span class="n">rout</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;rbins&#39;</span><span class="p">]</span>
         <span class="n">rbin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span><span class="o">*</span><span class="n">mid</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">elif</span> <span class="p">(</span><span class="n">bins</span> <span class="o">==</span> <span class="s1">&#39;lin&#39;</span><span class="p">):</span> <span class="c1"># Bins are linearly spaced</span>
-        <span class="n">mid</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">rin</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">rout</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;rbins&#39;</span><span class="p">]</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">Profile</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">dm</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;lin&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">rmin</span><span class="o">=</span><span class="n">rin</span><span class="p">,</span> <span class="n">rmax</span><span class="o">=</span><span class="n">rout</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;rbins&#39;</span><span class="p">]</span>
         <span class="n">rbin</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">mid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span><span class="o">+</span><span class="n">mid</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="c1"># Define b/a and c/a ratios and angle arrays:</span>
@@ -509,13 +505,12 @@
             <span class="n">anew</span><span class="p">,</span><span class="n">bnew</span><span class="p">,</span><span class="n">cnew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="mf">3.0</span><span class="p">)</span>
 
             <span class="c1"># The rotation matrix must be reoriented:</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">anew</span> <span class="o">&gt;</span> <span class="n">bnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bnew</span> <span class="o">&gt;=</span> <span class="n">cnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">bnew</span> <span class="o">&gt;</span> <span class="n">anew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">anew</span> <span class="o">&gt;=</span> <span class="n">cnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">rz</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">cnew</span> <span class="o">&gt;</span> <span class="n">anew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">anew</span> <span class="o">&gt;=</span> <span class="n">bnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">ry</span><span class="p">),</span><span class="n">rx</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">bnew</span> <span class="o">&gt;</span> <span class="n">cnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cnew</span> <span class="o">&gt;=</span> <span class="n">anew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">rz</span><span class="p">),</span><span class="n">rx</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">anew</span> <span class="o">&gt;</span> <span class="n">cnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cnew</span> <span class="o">&gt;=</span> <span class="n">bnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">rx</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">cnew</span> <span class="o">&gt;</span> <span class="n">bnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bnew</span> <span class="o">&gt;=</span> <span class="n">anew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">ry</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">almnt</span><span class="p">(</span><span class="o">-</span><span class="n">E</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">almnt</span><span class="p">(</span><span class="n">E</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="o">-</span><span class="n">E</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">bnew</span> <span class="o">&gt;</span> <span class="n">anew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">anew</span> <span class="o">&gt;=</span> <span class="n">cnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span><span class="n">rz</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">cnew</span> <span class="o">&gt;</span> <span class="n">anew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">anew</span> <span class="o">&gt;=</span> <span class="n">bnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span><span class="n">ry</span><span class="p">),</span><span class="n">rx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">bnew</span> <span class="o">&gt;</span> <span class="n">cnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cnew</span> <span class="o">&gt;=</span> <span class="n">anew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span><span class="n">rz</span><span class="p">),</span><span class="n">rx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">anew</span> <span class="o">&gt;</span> <span class="n">cnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cnew</span> <span class="o">&gt;=</span> <span class="n">bnew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span><span class="n">rx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">cnew</span> <span class="o">&gt;</span> <span class="n">bnew</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bnew</span> <span class="o">&gt;=</span> <span class="n">anew</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span><span class="n">ry</span><span class="p">)</span>
             <span class="n">cnew</span><span class="p">,</span><span class="n">bnew</span><span class="p">,</span><span class="n">anew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="mf">3.0</span><span class="p">))</span>
 
             <span class="c1"># Keep a as semi-major axis and distort b,c by b/a and c/a:</span>
@@ -526,6 +521,7 @@
 
             <span class="c1"># Convergence criterion:</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b</span><span class="o">/</span><span class="n">a</span><span class="o">-</span><span class="n">bnew</span><span class="o">/</span><span class="n">anew</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">c</span><span class="o">/</span><span class="n">a</span><span class="o">-</span><span class="n">cnew</span><span class="o">/</span><span class="n">anew</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">almnt</span><span class="p">(</span><span class="o">-</span><span class="n">E</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">almnt</span><span class="p">(</span><span class="n">E</span><span class="p">)):</span> <span class="n">E</span> <span class="o">=</span> <span class="o">-</span><span class="n">E</span>
                 <span class="n">ba</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">ca</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">angle</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">Es</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bnew</span><span class="o">/</span><span class="n">anew</span><span class="p">,</span><span class="n">cnew</span><span class="o">/</span><span class="n">anew</span><span class="p">,</span><span class="n">almnt</span><span class="p">(</span><span class="n">E</span><span class="p">),</span><span class="n">E</span>
                 <span class="k">break</span>
 
@@ -539,13 +535,33 @@
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="../../../index.html">
-              <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
-            </a></p><div class="relations">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../../index.html">Documentation overview</a><ul>
@@ -555,25 +571,33 @@
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-18, pynbody team.
+      &copy;2011-20, pynbody team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 
