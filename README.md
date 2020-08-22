@@ -24,7 +24,7 @@ $ pip install pynbody
 
 If this fails, you may need some more detailed [installation
 instructions](http://pynbody.github.io/pynbody/installation.html). Once
-you have the package instlaled, try the introductory
+you have the package installed, try the introductory
 [tutorials](http://pynbody.github.io/pynbody/tutorials/tutorials.html).
 The full documentation can be found
 [here](http://pynbody.github.io/pynbody/).
