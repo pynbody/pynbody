@@ -9,7 +9,7 @@ Gadget, N-Chilada, and RAMSES AMR outputs.
 
 Written in Python, the core tools are accompanied by a library of
 publication-level analysis routines. For a quick tour of some of 
-the features, have a look at this [IPython notebook](http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo.ipynb).
+the features, have a look at this [IPython notebook](http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/pynbody_demo.ipynb).
 
 *Since August 2020, pynbody supports only Python 3.5 or later*. To reflect this change, we are moving to a new semantic version numbering scheme, starting with 1.0.0.  Earlier versions of pynbody (prior to 1.0) can be installed for users who are still transitioning away from Python 2, support for which ended in January 2020.
 
