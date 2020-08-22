@@ -19,7 +19,7 @@ of https://pynbody.github.io/tangos/first_steps_gadget+subfind.html .
 
   In [1]: import pynbody;
 
-  In [1]: s = pynbody.load('testdata/tutorial_gadget/snapshot_020'); s.physical_units()
+  In [1]: s = pynbody.load('tutorial_gadget/snapshot_020'); s.physical_units()
 
 
 To define the expected halo mass function, we need to make sure that the cosmology is well set. Some cosmological

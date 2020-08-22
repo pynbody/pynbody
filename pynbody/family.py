@@ -111,4 +111,4 @@ if sys.version_info[0] >= 3:
 g = globals()
 for f in config_parser.options('families'):
     aliases = config_parser.get('families', f)
-    g[f] = Family(f, map(str.strip, aliases.split(",")))
+    g[f] = Family(f, list(map(str.strip, aliases.split(","))))

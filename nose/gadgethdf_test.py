@@ -34,7 +34,7 @@ def test_standard_arrays() :
 
 def _h5py_copy_with_key_rename(src,dest):
     shutil.copy(src,dest)
-    f = h5py.File(dest)
+    f = h5py.File(dest, 'r+')
     for tp in f:
         if "Mass" in tp:
             tp.move("Mass","Masses")

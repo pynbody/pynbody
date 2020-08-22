@@ -49,7 +49,7 @@ def _lingrowthfac(red, omegam0, omegal0, return_norm=False):
     import scipy.integrate
 
     if (abs(omegam0 + omegal0 - 1.) > 1.e-4):
-        raise RuntimeError, "Linear growth factors can only be calculated for flat cosmologies"
+        raise RuntimeError("Linear growth factors can only be calculated for flat cosmologies")
 
     a = 1 / (1. + red)
 
@@ -179,7 +179,7 @@ def age(f, z=None, unit='Gyr'):
             log_a_input = np.log(1./(1.+z))
             results = np.exp(interp(log_a_input))
         else:
-            results = np.array(map(get_age, z))
+            results = np.array(list(map(get_age, z)))
         results = results.view(SimArray)
         results.units = unit
         return results
@@ -221,7 +221,7 @@ def redshift(f, time):
             i = interp1d(ages, zs)
             return i(time)
         else:
-            return np.array(map(lambda x: newton(func, 1, args=(f, x)), time))
+            return np.array([newton(func, 1, args=(f, x)) for x in time])
     else:
         return newton(func, 1, args=(f, time))
 

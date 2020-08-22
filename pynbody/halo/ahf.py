@@ -225,10 +225,10 @@ class AHFCatalogue(HaloCatalogue):
         fails for some reason.
         """
 
-        for i in xrange(self._nhalos):
+        for i in range(self._nhalos):
             self._halos[i + 1].properties['children'] = []
 
-        for i in xrange(self._nhalos):
+        for i in range(self._nhalos):
             host = self._halos[i + 1].properties.get('hostHalo', -2)
             if host > -1:
                 try:
@@ -281,11 +281,11 @@ class AHFCatalogue(HaloCatalogue):
             f.close()
         else:
             f = util.open_(filename)
-            for h in xrange(self._nhalos):
+            for h in range(self._nhalos):
                 if len((f.readline().split())) == 1:
                     f.readline()
                 self._halos[h+1].properties['fstart'] = f.tell()
-                for i in xrange(self._halos[h+1].properties['npart']):
+                for i in range(self._halos[h+1].properties['npart']):
                     f.readline()
             f.close()
 
@@ -311,7 +311,7 @@ class AHFCatalogue(HaloCatalogue):
                 # unfortunately with gzipped files there does not
                 # seem to be an efficient way to load nparts lines
                 data = np.zeros(nparts, dtype=int)
-                for i in xrange(nparts):
+                for i in range(nparts):
                     data[i] = int(f.readline().split()[0])
 
             if self._use_iord:
@@ -332,7 +332,7 @@ class AHFCatalogue(HaloCatalogue):
             else:
                 # see comment above on gzipped files
                 data = np.zeros(nparts, dtype=int)
-                for i in xrange(nparts):
+                for i in range(nparts):
                     data[i] = int(f.readline())
         data.sort()
         return data
@@ -343,18 +343,18 @@ class AHFCatalogue(HaloCatalogue):
             self._iord_to_fpos[self.base['iord']] = np.arange(len(self._base()))
 
         f = util.open_(filename)
-        if filename.split("z")[-2][-1] is ".":
+        if filename.split("z")[-2][-1] == ".":
             self.isnew = True
         else:
             self.isnew = False
 
         if self._all_parts is not None:
-            for h in xrange(self._nhalos):
+            for h in range(self._nhalos):
                 self._halos[h + 1] = Halo(
                     h + 1, self, self.base, self._load_ahf_particle_block(f))
                 self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
         else:
-            for h in xrange(self._nhalos):
+            for h in range(self._nhalos):
                 self._halos[h + 1] = DummyHalo()
 
         f.close()
@@ -404,7 +404,7 @@ class AHFCatalogue(HaloCatalogue):
         f = util.open_(filename)
         # nhalos = int(f.readline())  # number of halos?  no, some crazy number
         # that we will ignore
-        for i in xrange(len(self._halos)):
+        for i in range(len(self._halos)):
             try:
                 haloid, nsubhalos = [int(x) for x in f.readline().split()]
                 self._halos[haloid + 1].properties['children'] = [
@@ -432,7 +432,7 @@ class AHFCatalogue(HaloCatalogue):
             grpoutfile = snapshot.filename + '.grp'
         logger.info("Writing grp file to %s" % grpoutfile)
         fpout = open(grpoutfile, "w")
-        print >> fpout, len(snapshot['grp'])
+        print(len(snapshot['grp']), file=fpout)
 
         # writing 1st to a string sacrifices memory for speed.
         # but this is much faster than numpy.savetxt (could make an option).
@@ -441,7 +441,7 @@ class AHFCatalogue(HaloCatalogue):
         stringarray = snapshot['grp'].astype(
             '|S' + str(len(str(self._nhalos))))
         outstring = "\n".join(stringarray)
-        print >> fpout, outstring
+        print(outstring, file=fpout)
         fpout.close()
 
     def writestat(self, snapshot, halos, statoutfile, hubble=None):
@@ -466,9 +466,9 @@ class AHFCatalogue(HaloCatalogue):
         logger.info("Writing stat file to %s" % statoutfile)
         fpout = open(outfile, "w")
         header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
-        print >> fpout, header
+        print(header, file=fpout)
         nhalos = halos._nhalos
-        for ii in xrange(nhalos):
+        for ii in range(nhalos):
             h = halos[ii + 1].properties  # halo index starts with 1 not 0
             # 'Contaminated'? means multiple dark matter particle masses in halo)"
             icontam = np.where(halos[ii + 1].dark['mass'] > mindarkmass)
@@ -502,7 +502,7 @@ class AHFCatalogue(HaloCatalogue):
             outstring += "unknown" + \
                 ss  # unknown means sat. test not implemented.
             outstring += "unknown" + ss  # false central breakup.
-            print >> fpout, outstring
+            print(outstring, file=fpout)
         fpout.close()
         return 1
 
@@ -538,7 +538,7 @@ class AHFCatalogue(HaloCatalogue):
         tipsyvunitkms = lboxmpch * 100. / (math.pi * 8. / 3.) ** .5
         tipsymunitmsun = rhocrithhco * lboxmpch ** 3 / sout.properties['h']
 
-        for ii in xrange(nhalos):
+        for ii in range(nhalos):
             h = halos[ii + 1].properties
             sout.star[ii]['mass'] = h['mass'] / hubble / tipsymunitmsun
             # tipsy units: box centered at 0. (assume 0<=x<=1)
@@ -639,20 +639,20 @@ class AHFCatalogue(HaloCatalogue):
                 1.0 / np.min(sim['eps'])))), 131072])
             # hardcoded maximum 131072 might not be necessary
 
-            print >>f, config_parser.get('AHFCatalogue', 'Config', vars={
+            print(config_parser.get('AHFCatalogue', 'Config', vars={
                 'filename': sim._filename,
                 'typecode': typecode,
                 'gridmax': lgmax
-            })
+            }), file=f)
 
-            print >>f, config_parser.get('AHFCatalogue', 'ConfigTipsy', vars={
+            print(config_parser.get('AHFCatalogue', 'ConfigTipsy', vars={
                 'omega0': sim.properties['omegaM0'],
                 'lambda0': sim.properties['omegaL0'],
                 'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
                 'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
                 'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
                 'eunit': 0.03  # surely this can't be right?
-            })
+            }), file=f)
 
             f.close()
 

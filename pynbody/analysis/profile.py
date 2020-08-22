@@ -13,6 +13,7 @@ import pynbody
 from .. import family, units, array, util, backcompat
 import math
 import logging
+import warnings
 logger = logging.getLogger('pynbody.analysis.profile')
 
 
@@ -41,14 +42,14 @@ class Profile:
                             logarithmically ('log') or contain equal numbers of
                             particles ('equaln')
 
-    *min* (default = min(x)): minimum value to consider
+    *rmin* (default = min(x)): minimum radial value to consider
 
-    *max* (default = max(x)): maximum value to consider
+    *rmax* (default = max(x)): maximum radial value to consider
 
     *nbins* (default = 100): number of bins
 
     *bins* : array like - predefined bin edges in units of binning quantity. If this
-             keyword is set, the values of the keywords *type*, *nbins*, *min* and *max*
+             keyword is set, the values of the keywords *type*, *nbins*, *rmin* and *rmax*
              will be ignored
 
     *calc_x* (default = None): function to use to calculate the value
@@ -138,61 +139,6 @@ class Profile:
     profile.
 
 
-    **Examples:**
-
-    Density profile of the entire simulation: 
-
-    >>> s = pynbody.load('mysim')
-    >>> import pynbody.profile as profile
-    >>> p = profile.Profile(s) # 2D profile of the whole simulation - note
-                               # that this only makes the bins etc. but
-                               # doesn't generate the density
-    >>> p['density'] # now we have a density profile
-    >>> p.keys()
-    ['mass', 'n', 'density']
-    >>> p.families()
-    [<Family dm>, <Family star>, <Family gas>]
-
-
-    Density profile of the stars:
-
-    >>> ps = profile.Profile(s.s) # xy profile of the stars
-    >>> ps = profile.Profile(s.s, type='log') # same, but with log bins
-    >>> ps.families()
-    [<Family star>]
-    >>> import matplotlib.pyplot as plt
-    >>> plt.plot(ps['rbins'], ps['density'], 'o')
-    >>> plt.semilogy()
-
-    Metallicity profile of the gas in spherical shells (requires appropriate auxilliary files):
-
-    >>> pg = profile.Profile(s.g, ndim=3)
-    >>> pg['feh']
-    SimSnap: deriving array feh
-    TipsySnap: attempting to load auxiliary array 10/12M_hr.01000.FeMassFrac
-    SimSnap: deriving array hydrogen
-    SimSnap: deriving array hetot
-    SimArray([  1.83251940e-01,   1.48439968e-02,  -4.09390892e-01,
-    -1.82734736e+01])
-
-    Radial velocity dispersion profile and its gradient:
-
-    >>> ps = profile.Profile(s.s, max=15)
-    >>> ps['vr_disp']
-    SimSnap: deriving array vr
-    SimSnap: deriving array r
-    SimArray([ 118.80420996,  122.06102431,  131.13872886,  144.74447697,
-    35.89904165,   37.59565128,   35.21608633,   35.03373379], '1.01e+00 km s**-1')
-
-    >>> p['d_vr_disp']
-    SimArray([  21.71365764,   41.11802081,   75.61694836,  105.28110255,
-    2.664999  ,   -2.27668148,   -8.54033931,   -1.21577105], '1.01e+00 km s**-1 kpc**-1')
-
-
-    Using another quantity for binning:
-
-    >>> ps = profile.Profile(s.s, calc_x = lambda x: x.s['rform'])
-
     """
 
     _profile_registry = {}
@@ -239,31 +185,38 @@ class Profile:
             # The profile object is initialized given some array of values
             # and optional keyword parameters
 
-            if kwargs.has_key('max'):
-                if isinstance(kwargs['max'], str):
-                    self.max = units.Unit(kwargs['max']).ratio(x.units,
+            if 'max' in kwargs:
+                kwargs['rmax'] = kwargs.pop('max')
+                warnings.warn("Use of max as a keyword argument is deprecated. Use rmax instead.", DeprecationWarning)
+            if 'min' in kwargs:
+                kwargs['rmin'] = kwargs.pop('min')
+                warnings.warn("Use of min as a keyword argument is deprecated. Use rmin instead.", DeprecationWarning)
+
+            if 'rmax' in kwargs:
+                if isinstance(kwargs['rmax'], str):
+                    self.max = units.Unit(kwargs['rmax']).ratio(x.units,
                                                                **sim.conversion_context())
                 else:
-                    self.max = kwargs['max']
+                    self.max = kwargs['rmax']
             else:
                 self.max = np.max(x)
-            if kwargs.has_key('bins'):
+            if 'bins' in kwargs:
                 self.nbins = len(kwargs['bins']) - 1
-            elif kwargs.has_key('nbins'):
+            elif 'nbins' in kwargs:
                 self.nbins = kwargs['nbins']
             else:
                 self.nbins = 100
 
-            if kwargs.has_key('min'):
-                if isinstance(kwargs['min'], str):
-                    self.min = units.Unit(kwargs['min']).ratio(x.units,
+            if 'rmin' in kwargs:
+                if isinstance(kwargs['rmin'], str):
+                    self.min = units.Unit(kwargs['rmin']).ratio(x.units,
                                                                **sim.conversion_context())
                 else:
-                    self.min = kwargs['min']
+                    self.min = kwargs['rmin']
             else:
                 self.min = np.min(x[x > 0])
 
-            if kwargs.has_key('bins'):
+            if 'bins' in kwargs:
                 self._properties['bin_edges'] = kwargs['bins']
                 self.min = kwargs['bins'].min()
                 self.max = kwargs['bins'].max()
@@ -277,7 +230,7 @@ class Profile:
                 self._properties['bin_edges'] = util.equipartition(
                     x, self.nbins, self.min, self.max)
             else:
-                raise RuntimeError, "Bin type must be one of: lin, log, equaln"
+                raise RuntimeError("Bin type must be one of: lin, log, equaln")
 
             self['bin_edges'] = array.SimArray(self['bin_edges'], x.units)
             self['bin_edges'].sim = self.sim
@@ -350,31 +303,31 @@ class Profile:
                 pass
             return self._profiles[name]
 
-        elif name in self.sim.keys() or name in self.sim.all_keys():
+        elif name in list(self.sim.keys()) or name in self.sim.all_keys():
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-5:] == "_disp" and (name[:-5] in self.sim.keys() or name[:-5] in self.sim.all_keys()):
+        elif name[-5:] == "_disp" and (name[:-5] in list(self.sim.keys()) or name[:-5] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(
                 name[:-5], dispersion=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_rms" and (name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys()):
+        elif name[-4:] == "_rms" and (name[:-4] in list(self.sim.keys()) or name[:-4] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(name[:-4], rms=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_med" and (name[:-4] in self.sim.keys() or name[:-4] in self.sim.all_keys()):
+        elif name[-4:] == "_med" and (name[:-4] in list(self.sim.keys()) or name[:-4] in self.sim.all_keys()):
             logger.info("Auto-deriving %s" % name)
             self._profiles[name] = self._auto_profile(name[:-4], median=True)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[0:2] == "d_" and (name[2:] in self.keys() or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys()):
+        elif name[0:2] == "d_" and (name[2:] in list(self.keys()) or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys()):
             #            if np.diff(self['dr']).all() < 1e-13 :
             logger.info("Auto-deriving %s/dR" % name)
             self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
@@ -384,7 +337,7 @@ class Profile:
             #    raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
 
         else:
-            raise KeyError, name + " is not a valid profile"
+            raise KeyError(name + " is not a valid profile")
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros(self.nbins)
@@ -439,7 +392,7 @@ class Profile:
         elif name in self._profiles:
             self._profiles[name] = item
         else:
-            raise KeyError, name + " is not a valid profile or property"
+            raise KeyError(name + " is not a valid profile or property")
 
     def __delitem__(self, name):
         del self._profiles[name]
@@ -448,15 +401,15 @@ class Profile:
         return ("<Profile: " +
                 str(self.families()) + " ; " +
                 str(self.ndim) + "D ; " +
-                self.type) + " ; " + str(self.keys()) + ">"
+                self.type) + " ; " + str(list(self.keys())) + ">"
 
     def keys(self):
         """Returns a listing of available profile types"""
-        return self._profiles.keys()
+        return list(self._profiles.keys())
 
     def derivable_keys(self):
         """Returns a list of possible profiles"""
-        return self._profile_registry.keys()
+        return list(self._profile_registry.keys())
 
     def families(self):
         """Returns the family of particles used"""
@@ -744,7 +697,7 @@ def pot(p):
 
     grav_sim = p.sim
     # Go up to the halo level
-    while hasattr(grav_sim, 'base') and grav_sim.base.properties.has_key("halo_id"):
+    while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
     start = backcompat.clock()
@@ -773,7 +726,7 @@ def kappa(p):
 @Profile.profile_property
 def beta(p):
     """3D Anisotropy parameter as defined in Binney and Tremiane"""
-    assert p.ndim is 3
+    assert p.ndim == 3
     return 1.5 - (p['vx_disp'] ** 2 + p['vy_disp'] ** 2 + p['vz_disp'] ** 2) / p['vr_disp'] ** 2 / 2.
 
 
@@ -1016,13 +969,13 @@ class QuantileProfile(Profile):
         if name in self._profiles:
             return self._profiles[name]
 
-        elif name in self.sim.keys() or name in self.sim.all_keys():
+        elif name in list(self.sim.keys()) or name in self.sim.all_keys():
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
         else:
-            raise KeyError, name + " is not a valid QuantileProfile"
+            raise KeyError(name + " is not a valid QuantileProfile")
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros((self.nbins, len(self.quantiles)))

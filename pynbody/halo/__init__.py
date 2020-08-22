@@ -43,7 +43,7 @@ class Halo(snapshot.IndexedSubSnap):
         self.properties = copy.copy(self.properties)
         self.properties['halo_id'] = halo_id
         if halo_id in halo_catalogue._halos:
-            for key in halo_catalogue._halos[halo_id].properties.keys():
+            for key in list(halo_catalogue._halos[halo_id].properties.keys()):
                 self.properties[key] = halo_catalogue._halos[halo_id].properties[key]
 
 
@@ -260,7 +260,7 @@ class GrpCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
-        if (arr_name in sim.loadable_keys()) or (arr_name in sim.keys()) :
+        if (arr_name in sim.loadable_keys()) or (arr_name in list(sim.keys())) :
             return True
         else:
             return False

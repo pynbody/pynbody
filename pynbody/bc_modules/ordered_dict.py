@@ -111,7 +111,7 @@ class OrderedDict(dict, MutableMapping):
     def clear(self):
         'od.clear() -> None.  Remove all items from od.'
         try:
-            for node in self.__map.itervalues():
+            for node in self.__map.values():
                 del node[:]
             self.__root[:] = [self.__root, self.__root, None]
             self.__map.clear()
@@ -158,7 +158,7 @@ class OrderedDict(dict, MutableMapping):
         'od.__repr__() <==> repr(od)'
         if not self:
             return '%s()' % (self.__class__.__name__,)
-        return '%s(%r)' % (self.__class__.__name__, self.items())
+        return '%s(%r)' % (self.__class__.__name__, list(self.items()))
 
     def copy(self):
         'od.copy() -> a shallow copy of od'
@@ -182,5 +182,5 @@ class OrderedDict(dict, MutableMapping):
         '''
         if isinstance(other, OrderedDict):
             return len(self) == len(other) and \
-                all(_imap(_eq, self.iteritems(), other.iteritems()))
+                all(_imap(_eq, iter(self.items()), iter(other.items())))
         return dict.__eq__(self, other)

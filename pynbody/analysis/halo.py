@@ -244,7 +244,7 @@ def vel_center(sim, mode=None, cen_size="1 kpc", retcen=False, move_all=True, **
         cen = sim.gas[filt.Sphere(cen_size)]
     if len(cen) < 5:
         # very weird snapshot, or mis-centering!
-        raise ValueError, "Insufficient particles around center to get velocity"
+        raise ValueError("Insufficient particles around center to get velocity")
 
     vcen = (cen['vel'].transpose() * cen['mass']).sum(axis=1) / \
         cen['mass'].sum()
@@ -402,11 +402,11 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
         mid = mid[0:N*2+1:2]
 
     elif (bins == 'log'): # Bins are logarithmically spaced
-        mid = profile.Profile(sim.dm, type='log', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
+        mid = profile.Profile(sim.dm, type='log', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
         rbin = np.sqrt(mid[0:N]*mid[1:N+1])
 
     elif (bins == 'lin'): # Bins are linearly spaced
-        mid = profile.Profile(sim.dm, type='lin', ndim=3, min=rin, max=rout, nbins=N+1)['rbins']
+        mid = profile.Profile(sim.dm, type='lin', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
         rbin = 0.5*(mid[0:N]+mid[1:N+1])
 
     # Define b/a and c/a ratios and angle arrays:

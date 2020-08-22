@@ -140,11 +140,11 @@ Have a look at the following timings:
 
 .. ipython ::
 
- In [22]: %time for i in xrange(10000) : d+=1
+ In [22]: %time for i in range(10000) : d+=1
  CPU times: user 0.25 s, sys: 0.03 s, total: 0.28 s
  Wall time: 0.26 s
 
- In [23]: %time for i in xrange(10000) : a+=1
+ In [23]: %time for i in range(10000) : a+=1
  CPU times: user 0.04 s, sys: 0.00 s, total: 0.04 s
  Wall time: 0.04 s
 

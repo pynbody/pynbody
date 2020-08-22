@@ -13,7 +13,7 @@ class DependencyContext(object):
         self.tracker._calculation_lock.__enter__()
         if self.name in self.tracker._current_calculation_stack:
             self.tracker._calculation_lock.__exit__(None, None, None)
-            raise DependencyError, "Circular dependency"
+            raise DependencyError("Circular dependency")
         self.tracker._push(self.name)
 
     def __exit__(self, exc_type, exc_val, exc_tb):

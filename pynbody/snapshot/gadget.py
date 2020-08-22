@@ -19,7 +19,7 @@ from .. import backcompat
 from . import SimSnap
 from . import namemapper
 
-import ConfigParser
+import configparser
 import numpy as np
 import struct
 import sys
@@ -44,7 +44,7 @@ for name, gtypes in config_parser.items('gadget-type-mapping'):
             raise ValueError(
                 "Type specified for family " + name + " is out of bounds (" + gtypes + ").")
         _type_map[family.get_family(name)] = gtypes
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
         pass
 
 _name_map, _rev_name_map = namemapper.setup_name_maps(
@@ -273,8 +273,7 @@ class GadgetFile(object):
                 'gadget-1-blocks', "blocks").split(",")
             self.block_names = [q.upper().ljust(4) for q in self.block_names]
             if sys.version_info[0] > 2:
-                self.block_names = map(
-                    lambda x: str.encode(x, 'utf-8'), self.block_names)
+                self.block_names = [str.encode(x, 'utf-8') for x in self.block_names]
             # This is a counter for the fallback
             self.extra = 0
         while True:
@@ -390,7 +389,7 @@ class GadgetFile(object):
         for blocknpart in [1, 2, 3, 4, 5]:
             # iterate of differeent possible combinations of particles in the bloc
             # we stop when we can we match the length of the block
-            for perm in itertools.permutations(range(0, N_TYPE), blocknpart):
+            for perm in itertools.permutations(list(range(0, N_TYPE)), blocknpart):
                 # the 64-bit calculation is important here
                 if block.length == (npart[list(perm)]).astype(np.int64).sum() * block.partlen:
                     p_types[list(perm)] = True
@@ -508,7 +507,7 @@ class GadgetFile(object):
             if name not in self.blocks:
                 return 0
             cur_block = self.blocks[name]
-            return (cur_block.p_types * self.header.npart)[0:p_type].sum().astype(long)
+            return (cur_block.p_types * self.header.npart)[0:p_type].sum().astype(int)
 
     def get_block_dims(self, name):
         """Get the dimensionality of the block, eg, 3 for POS, 1 for most other things"""
@@ -582,9 +581,9 @@ class GadgetFile(object):
                 "Block " + name + " already present in file. Not adding")
 
         # Get last block
-        lb = max(self.blocks.values(), key=lambda val: val.start)
+        lb = max(list(self.blocks.values()), key=lambda val: val.start)
 
-        if np.issubdtype(dtype, float):
+        if np.issubdtype(dtype, np.floating):
             dtype = np.float32  # coerce to single precision
 
         # Make new block
@@ -630,7 +629,10 @@ class GadgetFile(object):
         # a mode will ignore the file position, and w truncates the file.
         try:
             fd = open(filename, "r+b")
-        except IOError as (err, strerror):
+        except IOError as xxx_todo_changeme:
+            # If we couldn't open it because it doesn't exist open it for
+            # writing.
+            (err, strerror) = xxx_todo_changeme.args
             # If we couldn't open it because it doesn't exist open it for
             # writing.
             if err == errno.ENOENT:
@@ -685,9 +687,9 @@ class WriteBlock:
 
     def __init__(self, partlen=4, dtype=np.float32, types=np.zeros(N_TYPE, bool), name="    "):
 
-        if np.issubdtype(dtype, float):
+        if np.issubdtype(dtype, np.floating):
             dtype = np.float32
-        if np.issubdtype(dtype, int):
+        if np.issubdtype(dtype, np.signedinteger):
             dtype = np.int32
 
         self.partlen = partlen * np.dtype(dtype).itemsize
@@ -826,7 +828,7 @@ class GadgetSnap(SimSnap):
         """Get list of unique blocks in snapshot, with the types they refer to"""
         b_list = {}
         for f in self._files:
-            for (n, b) in f.blocks.iteritems():
+            for (n, b) in f.blocks.items():
                 if n in b_list:
                     b_list[n] += b.p_types
                 else:
@@ -836,7 +838,7 @@ class GadgetSnap(SimSnap):
             b_list[b"MASS"] += np.array(self.header.mass, dtype=bool)
         # Translate this array into families and external names
         out_list = {}
-        for k, b in b_list.iteritems():
+        for k, b in b_list.items():
             b_name = _translate_array_name(k, reverse=True)
             # Make this be only if there are actually particles of that type in
             # the snap
@@ -985,7 +987,7 @@ class GadgetSnap(SimSnap):
             # If caller is not a GadgetSnap, construct the GadgetFiles,
             # so that format conversion works.
             all_keys = set(self.loadable_keys()).union(
-                self.keys()).union(self.family_keys())
+                list(self.keys())).union(self.family_keys())
             all_keys = [
                 k for k in all_keys if not k in ["x", "y", "z", "vx", "vy", "vz"]]
             # This code supports (limited) format conversions
@@ -1006,7 +1008,7 @@ class GadgetSnap(SimSnap):
                         "Data too large to fit into a single gadget file, and splitting not implemented. Cannot write.")
                 # Make npart
                 npart = np.zeros(N_TYPE, int)
-                arr_name = (self.keys() + self.loadable_keys())[0]
+                arr_name = (list(self.keys()) + self.loadable_keys())[0]
                 for f in self.families():
                     # Note that if we have more than one type per family, we cannot
                     # determine which type each individual particle is, so
@@ -1158,7 +1160,7 @@ class GadgetSnap(SimSnap):
                                     self.header, filename=ffile)
                         else:
                             # Write data
-                            if np.issubdtype(data.dtype, float):
+                            if np.issubdtype(data.dtype, np.floating):
                                 data = np.asanyarray(data, dtype=np.float32)
                             self._files[i].write_block(g_name, gfam, data[
                                                        s:(s + f_parts[i])], filename=ffile)

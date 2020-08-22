@@ -4,9 +4,9 @@ try:
 	pp.sbprofile(h[i],filename=simname+'.sbprof.png',center=False)
 	pp.sfh(h[i],filename=simname+'.sfh.png',nbins=500)
 	pp.rotation_curve(h[i],filename=simname+'.rc.png',quick=True,
-					  max='40 kpc',center=False)
+					  rmax ='40 kpc',center=False)
 	pp.rotation_curve(h[i],filename=simname+'.rcparts.png',quick=True,
-                          parts=True, legend=True, max='40 kpc',center=False)
+                          parts=True, legend=True, rmax ='40 kpc',center=False)
 	pp.rho_T(h[i],filename=simname+'.phase.png')
 	pp.ofefeh(h[i].stars, filename=simname+'.ofefeh.png',
                   weights=h[i].stars['mass'].in_units('Msol'), scalemin=1e3,
