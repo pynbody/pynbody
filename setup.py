@@ -321,7 +321,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '1.0.1',
+             version = '1.0.2',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://github.com/pynbody/pynbody/releases',
              package_dir = {'pynbody/': ''},
