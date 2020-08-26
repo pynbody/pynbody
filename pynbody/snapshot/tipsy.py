@@ -1153,7 +1153,7 @@ def ljeans_turb(self):
 
 class StarLog(SimSnap):
 
-    def __init__(self, filename, sort=True, paramfile=None):
+    def __init__(self, filename, sort=True, paramfile=None, use_log=True):
         import os
         super(StarLog, self).__init__()
         self._filename = filename
@@ -1161,18 +1161,6 @@ class StarLog(SimSnap):
 
         f = util.open_(filename, "rb")
         self.properties = {}
-        bigstarlog = False
-        molecH = False
-        bigIOrds = False
-
-        file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
-                                             "x", "y", "z",
-                                             "vx", "vy", "vz",
-                                             "massform", "rhoform", "tempform"),
-                                   'formats': ('i4', 'i4', 'f8',
-                                               'f8', 'f8', 'f8',
-                                               'f8', 'f8', 'f8',
-                                               'f8', 'f8', 'f8')})
 
         size = struct.unpack("i", f.read(4))
         if (size[0] > 1000 or size[0] < 10):
@@ -1181,61 +1169,115 @@ class StarLog(SimSnap):
             size = struct.unpack(">i", f.read(4))
         iSize = size[0]
 
-        if (iSize > file_structure.itemsize):
-            file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
-                                             "x", "y", "z",
-                                             "vx", "vy", "vz",
-                                             "massform", "rhoform", "tempform","h2form"),
-                                   'formats': ('i4', 'i4', 'f8',
-                                               'f8', 'f8', 'f8',
-                                               'f8', 'f8', 'f8',
-                                               'f8', 'f8', 'f8','f8')})
-            molecH = True
-            # Unfortunately molecularH with small iOrders has the same as
-            # no moleculuarH with big iOrders.  Attempt to distinguish here
-            if(iSize == file_structure.itemsize):
-                if(self._byteswap):
-                    testread = np.fromstring(
-                        f.read(iSize), dtype=file_structure).byteswap()
-                else:
-                    testread = np.fromstring(f.read(iSize), dtype=file_structure)
-                # All star iorders are greater than any gas iorder
-                # so this indicates a bad format. (N.B. there is the
-                # possibility of a false negative)
-                if(testread['iord'][0] < testread['iorderGas'][0]): 
-                    file_structure = np.dtype({'names': ("iord", "iorderGas",
-                                             "tform",
-                                             "x", "y", "z",
-                                             "vx", "vy", "vz",
-                                             "massform", "rhoform", "tempform"),
-                                       'formats': ('i8', 'i8', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8')})
-                    f.seek(4)
-                    logger.info("Using 64 bit iOrders")
-                    molecH = False
-                    bigIOrds = True
-        if (iSize != file_structure.itemsize):
+        bigstarlog = False
+        molecH = False
+        bigIOrds = False
+
+
+        if use_log:
+            # assumes log file would be in the same location as starlog file
+            logger.info('Attempting to load starlog metadata from log file')
+            self._logfile = filename.replace('starlog', 'log')
+            try:
+                with open(self._logfile, 'r') as g: 
+                    read_metadata = False 
+                    structure_names = []
+                    structure_formats = []
+                    for line in g: 
+                        if line.startswith('# end starlog data'): 
+                            read_metadata = False 
+                        if read_metadata: 
+                            meta_name, meta_type = line.strip('#').split() 
+                            meta_name = self._infer_name_from_tipsy_log(meta_name) 
+                            structure_names.append(meta_name) 
+                            structure_formats.append(meta_type) 
+                        if line.startswith('# starlog data:'): 
+                            read_metadata = True
+                file_structure = np.dtype({'names': structure_names,
+                                           'formats': structure_formats})
+                if file_structure.itemsize != iSize:
+                    raise ValueError('Starlog metadata size does not match with starlog file size')
+                if file_structure['iord'] == 'f8':
+                	bigIOrds = True
+                if 'h2form' in file_structure.names:
+                	molecH = True
+            except FileNotFoundError:
+                warnings.warn('No log file found; reverting to guess-and-check')
+                use_log = False
+            except ValueError:
+                warnings.warn('log file found, but there was a problem with the starlog metadata. '
+                              'Reverting to guess-and-check')
+                use_log = False
+
+
+
+
+        if use_log is False:
             file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                  "x", "y", "z",
                                                  "vx", "vy", "vz",
-                                                 "massform", "rhoform", "tempform",
-                                                 "phiform", "nsmooth"),
+                                                 "massform", "rhoform", "tempform"),
                                        'formats': ('i4', 'i4', 'f8',
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'i4')})
-            molecH = False
+                                                   'f8', 'f8', 'f8')})
 
-            if (iSize != file_structure.itemsize and iSize != 104):
-                raise IOError("Unknown starlog structure iSize:" + \
-                    str(iSize) + ", file_structure itemsize:" + \
-                    str(file_structure.itemsize))
-            else:
-                bigstarlog = True
-        if molecH == True: print("h2 information found in StarLog!")
+            if (iSize > file_structure.itemsize):
+                file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                 "x", "y", "z",
+                                                 "vx", "vy", "vz",
+                                                 "massform", "rhoform", "tempform","h2form"),
+                                       'formats': ('i4', 'i4', 'f8',
+                                                   'f8', 'f8', 'f8',
+                                                   'f8', 'f8', 'f8',
+                                                   'f8', 'f8', 'f8','f8')})
+                molecH = True
+                # Unfortunately molecularH with small iOrders has the same as
+                # no moleculuarH with big iOrders.  Attempt to distinguish here
+                if(iSize == file_structure.itemsize):
+                    if(self._byteswap):
+                        testread = np.fromstring(
+                            f.read(iSize), dtype=file_structure).byteswap()
+                    else:
+                        testread = np.fromstring(f.read(iSize), dtype=file_structure)
+                    # All star iorders are greater than any gas iorder
+                    # so this indicates a bad format. (N.B. there is the
+                    # possibility of a false negative)
+                    if(testread['iord'][0] < testread['iorderGas'][0]): 
+                        file_structure = np.dtype({'names': ("iord", "iorderGas",
+                                                 "tform",
+                                                 "x", "y", "z",
+                                                 "vx", "vy", "vz",
+                                                 "massform", "rhoform", "tempform"),
+                                           'formats': ('i8', 'i8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8')})
+                        f.seek(4)
+                        logger.info("Using 64 bit iOrders")
+                        molecH = False
+                        bigIOrds = True
+            if (iSize != file_structure.itemsize):
+                file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                     "x", "y", "z",
+                                                     "vx", "vy", "vz",
+                                                     "massform", "rhoform", "tempform",
+                                                     "phiform", "nsmooth"),
+                                           'formats': ('i4', 'i4', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'i4')})
+                molecH = False
+
+                if (iSize != file_structure.itemsize and iSize != 104):
+                    raise IOError("Unknown starlog structure iSize:" + \
+                        str(iSize) + ", file_structure itemsize:" + \
+                        str(file_structure.itemsize))
+                else:
+                    bigstarlog = True
+            if molecH == True: print("h2 information found in StarLog!")
+
         datasize = os.path.getsize(filename) - f.tell()
 
         # check whether datasize is a multiple of iSize. If it is not,
@@ -1355,6 +1397,24 @@ class StarLog(SimSnap):
                 n_done += n_block
 
         f.close()
+
+    def _infer_name_from_tipsy_log(self, meta_name):
+        """Convert starlog metadata name to pynbody array name
+
+        In the future, it may be necessary to expand this or make
+        it more flexible. For now, a dictionary should do.
+        """
+        conversion_dict = {'iOrdStar': 'iord', 'iOrdGas': 'iorderGas',
+                           'timeForm': 'tform',
+                           'rForm[0]': 'x', 'rForm[1]': 'y', 'rForm[2]': 'z',
+                           'vForm[0]': 'vx', 'vForm[1]': 'vy', 'vForm[2]': 'vz',
+                           'massForm': 'massform', 'rhoForm': 'rhoform',
+                           'TForm': 'tempform', 'tCoolForm': 'tcoolform',
+                           'H2FracForm': 'h2form'}
+        if meta_name in conversion_dict.keys():
+            return conversion_dict[meta_name]
+        else:  # this is where cleverness will be needed in the future
+            raise ValueError(f'Unknown starlog entry: {meta_name}')
 
 
 @TipsySnap.decorator
