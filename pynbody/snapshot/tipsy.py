@@ -1414,7 +1414,7 @@ class StarLog(SimSnap):
         if meta_name in conversion_dict.keys():
             return conversion_dict[meta_name]
         else:  # this is where cleverness will be needed in the future
-            raise ValueError(f'Unknown starlog entry: {meta_name}')
+            raise ValueError('Unknown starlog entry: ' + meta_name)
 
 
 @TipsySnap.decorator
