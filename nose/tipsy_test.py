@@ -3,7 +3,6 @@ import numpy as np
 import glob
 import os
 from nose.tools import assert_raises
-import warnings
 
 
 def setup():
