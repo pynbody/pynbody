@@ -1173,11 +1173,12 @@ class StarLog(SimSnap):
         molecH = False
         bigIOrds = False
 
+        # replace only the .starlog suffix with .log
+        self._logfile = '.'.join([x for x in filename.split('.')[:-1]]) + '.log'
 
         if use_log:
             # assumes log file would be in the same location as starlog file
             logger.info('Attempting to load starlog metadata from log file')
-            self._logfile = filename.replace('starlog', 'log')
             try:
                 with open(self._logfile, 'r') as g: 
                     read_metadata = False 
