@@ -285,7 +285,8 @@ def to_3d_grid(int nx, int ny, int nz,
                  np.ndarray[fused_input_type_4,ndim=1] mass,
                  np.ndarray[fused_input_type_5,ndim=1] rho,
                  fixed_input_type smooth_lo, fixed_input_type smooth_hi,
-                 kernel) :
+                 kernel,
+                 wrap_offsets_x=[0], wrap_offsets_y=[0],wrap_offsets_z=[0]) :
 
 
 
@@ -318,6 +319,8 @@ def to_3d_grid(int nx, int ny, int nz,
 
     cdef int use_z = 1 if kernel_dim>=3 else 0
 
+    cdef float wrap_offset_x, wrap_offset_y, wrap_offset_z
+
     if kernel_dim<3:
         raise ValueError, \
           "Cannot render to 3D grid without 3-dimensional kernel or greater"
@@ -326,69 +329,73 @@ def to_3d_grid(int nx, int ny, int nz,
             len(qty) == len(mass) == len(rho), \
             "Inconsistent array lengths passed to render_image_core"
 
-    with nogil:
-        for i in range(n_part) :
-            # load particle details
-            x_i = x[i]; y_i=y[i]; z_i=z[i]; sm_i = sm[i];
-            qty_i = qty[i]*mass[i]/rho[i]
+    for wrap_offset_x in wrap_offsets_x :
+        for wrap_offset_y in wrap_offsets_y :
+            for wrap_offset_z in wrap_offsets_z :
+                with nogil:
+                    for i in range(n_part) :
+                        # load particle details
+                        x_i = x[i]+wrap_offset_x; y_i=y[i]+wrap_offset_y; z_i=z[i]+wrap_offset_z
+                        sm_i = sm[i]
+                        qty_i = qty[i]*mass[i]/rho[i]
 
-            # check particle smoothing is within specified range
-            if sm_i<pixel_dx*smooth_lo or sm_i>pixel_dx*smooth_hi : continue
+                        # check particle smoothing is within specified range
+                        if sm_i<pixel_dx*smooth_lo or sm_i>pixel_dx*smooth_hi : continue
 
-            total_ptcls+=1
+                        total_ptcls+=1
 
-            # check particle is within bounds
-            if not (z_i>z1-2*sm_i and z_i<z2+2*sm_i \
-                    and x_i>x1-2*sm_i and x_i<x2+2*sm_i \
-                    and y_i>y1-2*sm_i and y_i<y2+2*sm_i) :
-                continue
+                        # check particle is within bounds
+                        if not (z_i>z1-2*sm_i and z_i<z2+2*sm_i \
+                                and x_i>x1-2*sm_i and x_i<x2+2*sm_i \
+                                and y_i>y1-2*sm_i and y_i<y2+2*sm_i) :
+                            continue
 
-            # pre-cache sm^kdim and (sm*max_d_over_h)**2; tests showed massive speedups when doing this
-            if kernel_dim==2 :
-                sm_to_kdim = sm_i*sm_i
-            else :
-                sm_to_kdim = sm_i*sm_i*sm_i
-                # only 2, 3 supported
+                        # pre-cache sm^kdim and (sm*max_d_over_h)**2; tests showed massive speedups when doing this
+                        if kernel_dim==2 :
+                            sm_to_kdim = sm_i*sm_i
+                        else :
+                            sm_to_kdim = sm_i*sm_i*sm_i
+                            # only 2, 3 supported
 
-            kernel_max_2 = (sm_i*sm_i)*(max_d_over_h*max_d_over_h)
+                        kernel_max_2 = (sm_i*sm_i)*(max_d_over_h*max_d_over_h)
 
-            # decide whether this is a single pixel or a multi-pixel particle
-            if (max_d_over_h*sm_i/pixel_dx<1 and max_d_over_h*sm_i/pixel_dy<1) :
-                # single pixel, get pixel location
-                x_pos = int((x_i-x1)/pixel_dx)
-                y_pos = int((y_i-y1)/pixel_dy)
-                z_pos = int((z_i-z1)/pixel_dz)
+                        # decide whether this is a single pixel or a multi-pixel particle
+                        if (max_d_over_h*sm_i/pixel_dx<1 and max_d_over_h*sm_i/pixel_dy<1) :
+                            # single pixel, get pixel location
+                            x_pos = int((x_i-x1)/pixel_dx)
+                            y_pos = int((y_i-y1)/pixel_dy)
+                            z_pos = int((z_i-z1)/pixel_dz)
 
-                # work out pixel centre
-                x_pixel = (pixel_dx*<fixed_input_type>(x_pos)+x_start)
-                y_pixel = (pixel_dy*<fixed_input_type>(y_pos)+y_start)
-                z_pixel = (pixel_dz*<fixed_input_type>(z_pos)+z_start)
+                            # work out pixel centre
+                            x_pixel = (pixel_dx*<fixed_input_type>(x_pos)+x_start)
+                            y_pixel = (pixel_dy*<fixed_input_type>(y_pos)+y_start)
+                            z_pixel = (pixel_dz*<fixed_input_type>(z_pos)+z_start)
 
-                # final bounds check
-                if x_pos>=0 and x_pos<nx and y_pos>=0 and y_pos<ny \
-                   and z_pos>=0 and z_pos<nz :
-                    result[x_pos,y_pos,z_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
-            else :
-                # multi-pixel
-                x_pix_start = int((x_i-max_d_over_h*sm_i-x1)/pixel_dx)
-                x_pix_stop =  int((x_i+max_d_over_h*sm_i-x1)/pixel_dx)
-                y_pix_start = int((y_i-max_d_over_h*sm_i-y1)/pixel_dy)
-                y_pix_stop =  int((y_i+max_d_over_h*sm_i-y1)/pixel_dy)
-                z_pix_start = int((z_i-max_d_over_h*sm_i-z1)/pixel_dz)
-                z_pix_stop =  int((z_i+max_d_over_h*sm_i-z1)/pixel_dz)
-                if x_pix_start<0 : x_pix_start = 0
-                if x_pix_stop>nx : x_pix_stop = nx
-                if y_pix_start<0 : y_pix_start = 0
-                if y_pix_stop>ny : y_pix_stop = ny
-                if z_pix_start<0 : z_pix_start = 0
-                if z_pix_stop>nz : z_pix_stop = nz
-                for x_pos in range(x_pix_start, x_pix_stop) :
-                    x_pixel = pixel_dx*<fixed_input_type>(x_pos)+x_start
-                    for y_pos in range(y_pix_start, y_pix_stop) :
-                        y_pixel = pixel_dy*<fixed_input_type>(y_pos)+y_start
+                            # final bounds check
+                            if x_pos>=0 and x_pos<nx and y_pos>=0 and y_pos<ny \
+                               and z_pos>=0 and z_pos<nz :
+                                result[x_pos,y_pos,z_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                        else :
+                            # multi-pixel
+                            x_pix_start = int((x_i-max_d_over_h*sm_i-x1)/pixel_dx)
+                            x_pix_stop =  int((x_i+max_d_over_h*sm_i-x1)/pixel_dx)
+                            y_pix_start = int((y_i-max_d_over_h*sm_i-y1)/pixel_dy)
+                            y_pix_stop =  int((y_i+max_d_over_h*sm_i-y1)/pixel_dy)
+                            z_pix_start = int((z_i-max_d_over_h*sm_i-z1)/pixel_dz)
+                            z_pix_stop =  int((z_i+max_d_over_h*sm_i-z1)/pixel_dz)
+                            if x_pix_start<0 : x_pix_start = 0
+                            if x_pix_stop>nx : x_pix_stop = nx
+                            if y_pix_start<0 : y_pix_start = 0
+                            if y_pix_stop>ny : y_pix_stop = ny
+                            if z_pix_start<0 : z_pix_start = 0
+                            if z_pix_stop>nz : z_pix_stop = nz
+                            for x_pos in range(x_pix_start, x_pix_stop) :
+                                x_pixel = pixel_dx*<fixed_input_type>(x_pos)+x_start
+                                for y_pos in range(y_pix_start, y_pix_stop) :
+                                    y_pixel = pixel_dy*<fixed_input_type>(y_pos)+y_start
 
-                        for z_pos in range(z_pix_start,z_pix_stop) :
-                            z_pixel = pixel_dz*<fixed_input_type>(z_pos)+z_start
-                            result[x_pos,y_pos,z_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel), kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                                    for z_pos in range(z_pix_start,z_pix_stop) :
+                                        z_pixel = pixel_dz*<fixed_input_type>(z_pos)+z_start
+                                        result[x_pos,y_pos,z_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel), kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
 
     return result

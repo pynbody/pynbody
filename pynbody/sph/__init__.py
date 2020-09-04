@@ -573,10 +573,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         if snap_slice is not None:
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
 
-    if 'boxsize' in snap.properties:
-        boxsize = snap.properties['boxsize'].in_units(snap_proxy['x'].units,**snap.conversion_context())
-    else:
-        boxsize = None
+
 
     in_time = time.time()
 
@@ -653,15 +650,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     if z_camera is None:
         z_camera = 0.0
 
-    if boxsize:
-        # work out the tile offsets required to make the image wrap
-        num_repeats = int(round(x2/boxsize))+1
-        repeat_array = np.linspace(-num_repeats*boxsize,num_repeats*boxsize,num_repeats*2+1)
-    else:
-        repeat_array = [0.0]
-
     result = _render.render_image(nx, ny, x, y, z, sm, x1, x2, y1, y2, z_camera, 0.0, qty, mass, rho,
-                                  smooth_lo, smooth_hi, kernel, repeat_array, repeat_array)
+                                  smooth_lo, smooth_hi, kernel,
+                                  _calculate_wrapping_repeat_array(snap, x1, x2, xy_units),
+                                  _calculate_wrapping_repeat_array(snap, y1, y2, xy_units))
 
     result = result.view(array.SimArray)
 
@@ -683,6 +675,20 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     result.sim = snap
     return result
+
+
+def _calculate_wrapping_repeat_array(snap, x1, x2, xy_units):
+    if 'boxsize' in snap.properties:
+        boxsize = snap.properties['boxsize'].in_units(xy_units, **snap.conversion_context())
+    else:
+        boxsize = None
+    if boxsize:
+        # work out the tile offsets required to make the image wrap
+        num_repeats = int(round((x2 - x1) / (2 * boxsize))) + 1
+        repeat_array = np.linspace(-num_repeats * boxsize, num_repeats * boxsize, num_repeats * 2 + 1)
+    else:
+        repeat_array = [0.0]
+    return repeat_array
 
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
@@ -856,7 +862,10 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
     logger.info("Gridding particles")
 
     result = _render.to_3d_grid(nx,ny,nz,x,y,z,sm,x1,x2,y1,y2,z1,z2,
-                                qty,mass,rho,smooth_lo,smooth_hi,kernel)
+                                qty,mass,rho,smooth_lo,smooth_hi,kernel,
+                                _calculate_wrapping_repeat_array(snap, x1, x2, xy_units),
+                                _calculate_wrapping_repeat_array(snap, y1, y2, xy_units),
+                                _calculate_wrapping_repeat_array(snap, z1, z2, xy_units))
     result = result.view(array.SimArray)
 
     # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
