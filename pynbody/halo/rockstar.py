@@ -289,28 +289,6 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         for halo in list(self._halos.values()):
             ar[halo.get_index_list(self.base)] = halo._halo_id
 
-    def _setup_children(self):
-        """
-        Creates a 'children' array inside each halo's 'properties'
-        listing the halo IDs of its children. Used in case the reading
-        of substructure data from the AHF-supplied _substructure file
-        fails for some reason.
-        """
-
-        for i in range(self._nhalos):
-            self._halos[i+1].properties['children'] = []
-
-        for i in range(self._nhalos):
-            host = self._halos[i+1].properties.get('hostHalo', -2)
-            if host > -1:
-                try:
-                    self._halos[host+1].properties['children'].append(i+1)
-                except KeyError:
-                    pass
-
-
-
-
 
     def _load_rs_halo_if_required(self, i):
         if i not in self._halos:
@@ -380,22 +358,6 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
     def _load_rs_particles_for_halo_if_required(self, num):
         if isinstance(self._halos[num], DummyHalo) and not self._dummy:
             self._load_rs_particles_for_halo(num)
-
-
-
-    def _load_ahf_substructure(self, filename):
-        f = util.open_(filename)
-
-        for i in range(len(self._halos)):
-
-            haloid, nsubhalos = [int(x) for x in f.readline().split()]
-            self._halos[haloid+1].properties['children'] = [
-                int(x)+1 for x in f.readline().split()]
-
-        f.close()
-
-
-
 
     def writestat(self, outfile=None, hubble=None):
         """
