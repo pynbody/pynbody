@@ -18,6 +18,7 @@ import numpy as np
 import weakref
 import copy
 import logging
+import warnings
 
 from .. import snapshot, util
 
@@ -129,8 +130,18 @@ class HaloCatalogue(object):
 
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
-            self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
-            self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
+            if 'iord' in self.base.loadable_keys():
+                self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
+                self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
+            else:
+                warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
+                              RuntimeWarning)
+
+                class OneToOneIndex:
+                    def __getitem__(self, i):
+                        return i
+
+                self._iord_to_fpos = OneToOneIndex()
 
     def is_subhalo(self, childid, parentid):
         """Checks whether the specified 'childid' halo is a subhalo
