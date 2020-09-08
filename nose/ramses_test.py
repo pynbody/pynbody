@@ -111,6 +111,12 @@ def test_forcegas_dmo():
     assert len(f_dmo.dm)==274004
     assert len(f_dmo.g)==907818
 
+    assert len(f_dmo.dm["cpu"]) == 274004
+    assert len(f_dmo.g["cpu"]) == 907818
+
+    assert np.all(f_dmo.dm["cpu"] == 1)
+    assert np.all(f_dmo.g["cpu"] == 1)
+
     np.testing.assert_allclose(f_dmo.g['mass'][::5000], np.ones((182,), dtype=np.float64), rtol = 1e-5)
     np.testing.assert_allclose(f_dmo.g['rho'][::10000],[  2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
             2.09715200e+06,   2.09715200e+06,   2.09715200e+06,
