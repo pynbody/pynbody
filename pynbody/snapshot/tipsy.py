@@ -945,7 +945,6 @@ class TipsySnap(SimSnap):
             b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
         if 'tcoolform' in sl.star.keys():
             b(b(b(sl))).star['tcoolform'] = b(b(sl)).star['tcoolform']
-        else: print "No H2 data found in StarLog file"
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
         for i, x in enumerate(['vx', 'vy', 'vz']):
@@ -1217,17 +1216,17 @@ class StarLog(SimSnap):
                 # so this indicates a bad format. (N.B. there is the
                 # possibility of a false negative)
                 if(testread['iord'][0] < testread['iorderGas'][0]):
-                    if tcool == True:
+                    if tcool == True and molecH == True:
                         file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                              "x", "y", "z",
                                                              "vx", "vy", "vz",
                                                              "massform", "rhoform", "tempform", "h2form"),
-                                                   'formats': ('i4', 'i4', 'f8',
+                                                   'formats': ('i8', 'i8', 'f8',
                                                                'f8', 'f8', 'f8',
                                                                'f8', 'f8', 'f8',
                                                                'f8', 'f8', 'f8', 'f8')})
                         tcool=False
-                    else:
+                    if tcool == True and molecH == False:
                         file_structure = np.dtype({'names': ("iord", "iorderGas",
                                              "tform",
                                              "x", "y", "z",
@@ -1237,10 +1236,22 @@ class StarLog(SimSnap):
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8')})
-                        molecH = False
+                        tcool=False
                     f.seek(4)
                     logger.info("Using 64 bit iOrders")
                     bigIOrds = True
+            else:
+                if(iSize > file_structure.itemsize):
+                    file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                     "x", "y", "z",
+                                                     "vx", "vy", "vz",
+                                                     "massform", "rhoform", "tempform", "tcoolform","h2form"),
+                                           'formats': ('i8', 'i8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8', 'f8', 'f8')})
+                    bigIOrds=True
+                    logger.info("Using 64 bit iOrders")
         if (iSize != file_structure.itemsize):
             file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                  "x", "y", "z",
@@ -1260,7 +1271,6 @@ class StarLog(SimSnap):
                     str(file_structure.itemsize)
             else:
                 bigstarlog = True
-        if molecH == True: print "h2 information found in StarLog!"
         datasize = os.path.getsize(filename) - f.tell()
 
         # check whether datasize is a multiple of iSize. If it is not,
