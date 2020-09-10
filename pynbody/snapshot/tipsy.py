@@ -1237,7 +1237,7 @@ class StarLog(SimSnap):
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8',
                                                    'f8', 'f8', 'f8')})
-                        moledH = False
+                        molecH = False
                     f.seek(4)
                     logger.info("Using 64 bit iOrders")
                     bigIOrds = True
