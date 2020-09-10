@@ -35,8 +35,8 @@ class Halo(snapshot.IndexedSubSnap):
     Generic class representing a halo.
     """
 
-    def __init__(self, halo_id, halo_catalogue, *args):
-        super(Halo, self).__init__(*args)
+    def __init__(self, halo_id, halo_catalogue, *args, **kwa):
+        super(Halo, self).__init__(*args, **kwa)
         self._halo_catalogue = halo_catalogue
         self._halo_id = halo_id
         self._descriptor = "halo_" + str(halo_id)
@@ -125,7 +125,7 @@ class HaloCatalogue(object):
                 if i!=i_stop and len(self[i]) == 0: continue
             except RuntimeError:
                 break
-            if i == i_stop: raise StopIteration
+            if i == i_stop: return
 
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
@@ -277,6 +277,7 @@ class AmigaGrpCatalogue(GrpCatalogue):
 
 from pynbody.halo.ahf import AHFCatalogue
 from pynbody.halo.hop import HOPCatalogue
+from pynbody.halo.adaptahop import AdaptaHOPCatalogue
 from pynbody.halo.legacy import RockstarIntermediateCatalogue
 from pynbody.halo.rockstar import RockstarCatalogue
 from pynbody.halo.subfind import SubfindCatalogue
@@ -287,6 +288,6 @@ def _get_halo_classes():
     # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
                      RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-                     RockstarIntermediateCatalogue, HOPCatalogue]
+                     RockstarIntermediateCatalogue, HOPCatalogue, AdaptaHOPCatalogue]
 
     return _halo_classes

@@ -904,7 +904,10 @@ class IndexedSimArray(object):
 
     @property
     def sim(self):
-        return self.base.sim[self._ptr]
+        if self.base.sim is not None:
+            return self.base.sim[self._ptr]
+        else:
+            return None
 
     @sim.setter
     def sim(self, s):
@@ -1018,7 +1021,7 @@ def _array_factory(dims, dtype, zeros, shared):
                 remaining-=len(zeros)
 
         except OSError, exc :
-            if not (exc.errno == 45 and os.uname()[0] == "Darwin"):
+            if not ((exc.errno == 45 or exc.errno == 6) and os.uname()[0] == "Darwin"):
                 _shared_array_unlink(fname)
                 raise MemoryError, "Unable to create shared memory region"
 

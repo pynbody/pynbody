@@ -2,6 +2,7 @@ import pynbody
 import numpy as np
 import os
 import warnings
+import glob
 
 sink_filename = "testdata/ramses_new_format_partial_output_00001/sink_00001.csv"
 sink_filename_moved = sink_filename+".temporarily_moved"
@@ -106,3 +107,18 @@ def test_load_iord():
                             [1001684, 1006393, 1039350, 1099620, 1035230, 1086365, 1000185,
                              1000429, 1077059, 1011855, 1096842, 1013422, 1020021])
 
+def _make_virtual_output_with_no_ptcls():
+    if os.path.exists("testdata/ramses_new_format_partial_no_ptcls_output_00001"):
+        return
+
+    os.mkdir("testdata/ramses_new_format_partial_no_ptcls_output_00001")
+    for i in glob.glob("testdata/ramses_new_format_partial_output_00001/*"):
+        if "part_00001" not in i and '.csv' not in i:
+            os.symlink("../../"+i, i.replace("ramses_new_format_partial_output","ramses_new_format_partial_no_ptcls_output"))
+
+def test_load_no_ptcls():
+    _make_virtual_output_with_no_ptcls()
+    f = pynbody.load("testdata/ramses_new_format_partial_no_ptcls_output_00001")
+    assert len(f.dm)==0
+    assert len(f.star)==0
+    assert len(f.gas) == 196232

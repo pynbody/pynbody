@@ -16,6 +16,7 @@ import time
 import functools
 import logging
 import math
+import sys
 
 import numpy as np
 import scipy
@@ -626,55 +627,7 @@ def threadsafe_inline(*args, **kwargs):
     return scipy.weave.inline(*args, **kwargs)
 
 
-
-#############################################
-# fortran reading facilities for ramses etc
-#############################################
-
 _head_type = np.dtype('i4')
-
-
-def read_fortran(f, dtype, n=1):
-    if not isinstance(dtype, np.dtype):
-        dtype = np.dtype(dtype)
-
-    length = n * dtype.itemsize
-    alen = np.fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length %d!=%d" % (
-            alen, length)
-
-    data = np.fromfile(f, dtype, n)
-
-    alen = np.fromfile(f, _head_type, 1)
-    if alen != length:
-        raise IOError, "Unexpected FORTRAN block length (tail) %d!=%d" % (
-            alen, length)
-
-    return data
-
-
-def skip_fortran(f, n=1):
-    for i in xrange(n):
-        alen = np.fromfile(f, _head_type, 1)
-        f.seek(alen[0], 1)
-        alen2 = np.fromfile(f, _head_type, 1)
-        assert alen == alen2
-
-
-def read_fortran_series(f, dtype):
-    q = np.empty(1, dtype=dtype)
-    for i in xrange(len(dtype.fields)):
-        data = read_fortran(f, dtype[i], 1)
-
-        # I really don't understand why the following acrobatic should
-        # be necessary, but q[0][i] = data[0] doesn't copy arrays properly
-        if hasattr(data[0], "__len__"):
-            q[0][i][:] = data[0]
-        else:
-            q[0][i] = data[0]
-
-    return q[0]
 
 
 def _thread_map(func, *args):
@@ -706,48 +659,3 @@ def _thread_map(func, *args):
         return rets
     raise excp  # Note this is a re-raised exception from within a thread
 
-
-def parallel(p_args=[0],
-             threads=config['number_of_threads'], reduce='interleave'):
-    """Return a function decorator which makes a function execute in parallel.
-
-    *p_args*: a list of integers specifying which arguments will be
-    array-like. These will be sliced up and processed over the number
-    of threads specified.
-
-    *reduce*: specifies how to reduce the output, and can take one of
-    three values:
-
-    'none': return None
-
-    'interleave': return an array of the size of the input arrays,
-     with the elements returned to their correct place
-
-    'sum': sum over the outputs
-
-    """
-    def decorator(fn):
-        def new_fn(*args):
-            threaded_args = []
-            for i in xrange(len(args)):
-                if i in p_args:
-                    threaded_args.append(
-                        [args[i][n::threads] for n in range(threads)])
-                else:
-                    threaded_args.append([args[i]] * threads)
-
-            ret = _thread_map(fn, *threaded_args)
-
-            if reduce == 'interleave':
-                out_len = list(getattr(ret[0], 'shape', [0]))
-                out_len[0] = sum(map(len, ret))
-                output = np.empty(out_len, dtype=ret[0].dtype)
-                for n in range(threads):
-                    output[n::threads] = ret[n]
-            elif reduce == 'sum':
-                output = sum(ret)
-            else:
-                output = None
-            return output
-        return functools.wraps(fn)(new_fn)
-    return decorator

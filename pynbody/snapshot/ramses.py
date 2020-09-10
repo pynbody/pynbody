@@ -23,8 +23,8 @@ from .. import units
 from .. import config, config_parser
 from .. import analysis
 from . import SimSnap
-from ..util import read_fortran, read_fortran_series, skip_fortran
 from . import namemapper
+from ..extern.cython_fortran_utils import FortranFile
 
 import os
 import numpy as np
@@ -64,8 +64,8 @@ if not multiprocess:
         return map(*args[1:], **kwargs)
 
 
-_float_type = np.dtype('f8')
-_int_type = np.dtype('i4')
+_float_type = 'd'
+_int_type = 'i'
 
 
 def _timestep_id(basename):
@@ -82,14 +82,18 @@ def _cpu_id(i):
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
 
-    with open(filename, "rb") as f:
-        header = read_fortran_series(f, ramses_particle_header)
+    with FortranFile(filename) as f:
+        f.seek(0, 2)
+        eof_fpos = f.tell()
+        f.seek(0, 0)
+        header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
-        try:
-            skip_fortran(f, distinguisher_field)
-            data = read_fortran(f, distinguisher_type, header['npart'])
-        except TypeError:
-            data = []
+        f.skip(distinguisher_field)
+        # Avoid end-of-file issues
+        if f.tell() == eof_fpos:
+            data = np.array([])
+        else:
+            data = f.read_vector(distinguisher_type)
 
         if len(data)>0:
             my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
@@ -102,12 +106,12 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
 def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
     assert np.issubdtype(family_type, np.int8)
     counts_array = np.zeros(256,dtype=np.int64)
-    with open(filename, "rb") as f:
-        header = read_fortran_series(f, ramses_particle_header)
+    with FortranFile(filename) as f:
+        header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
 
-        skip_fortran(f, family_field)
-        my_mask = read_fortran(f, family_type, header['npart'])
+        f.skip(family_field)
+        my_mask = f.read_vector(family_type)
 
         unique_mask_ids, counts = np.unique(my_mask, return_counts=True)
         counts_array[unique_mask_ids]=counts
@@ -118,10 +122,10 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
 
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
-    with open(filename,"rb") as f:
-        header = read_fortran_series(f, ramses_particle_header)
-        skip_fortran(f, offset)
-        data = read_fortran(f, type_, header['npart'])
+    with FortranFile(filename) as f:
+        header = f.read_attrs(ramses_particle_header)
+        f.skip(offset)
+        data = f.read_vector(type_)
         for fam_id, ar in enumerate(arrays):
             data_this_family = data[family_mask == fam_id]
             ind0 = first_index[fam_id]
@@ -130,78 +134,76 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
 
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
-    f = open(amr_filename, 'rb')
-    header = read_fortran_series(f, ramses_amr_header)
-    skip_fortran(f, 13)
+    with FortranFile(amr_filename) as f:
+        header = f.read_attrs(ramses_amr_header)
+        f.skip(13)
 
-    n_per_level = read_fortran(f, _int_type, header[
-                               'nlevelmax'] * header['ncpu']).reshape((header['nlevelmax'], header['ncpu']))
-    skip_fortran(f, 1)
-    if header['nboundary'] > 0:
-        skip_fortran(f, 2)
-        n_per_level_boundary = read_fortran(f, _int_type, header[
-                                            'nlevelmax'] * header['nboundary']).reshape((header['nlevelmax'], header['nboundary']))
-
-    skip_fortran(f, 2)
-    if bisection_order:
-        skip_fortran(f, 5)
-    else:
-        skip_fortran(f, 1)
-    skip_fortran(f, 3)
-
-    offset = np.array(header['ng'], dtype='f8') / 2
-    offset -= 0.5
-
-    coords = np.zeros(3, dtype=_float_type)
-
-    for level in xrange(maxlevel or header['nlevelmax']):
-
-        # loop through those CPUs with grid data (includes ghost regions)
-        for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
-            # print "CPU=",cpu,"CPU on
-            # disk=",cpuf,"npl=",n_per_level[level,cpuf-1]
-
-            if cpuf == cpu:
-
-                # this is the data we want
-                skip_fortran(f, 3)  # grid, next, prev index
-
-                # store the coordinates in temporary arrays. We only want
-                # to copy it if the cell is not refined
-                coords = [
-                    read_fortran(f, _float_type, n_per_level[level, cpu - 1]) for ar in range(ndim)]
-
-                # stick on zeros if we're in less than 3D
-                coords += [np.zeros_like(coords[0]) for ar in range(3 - ndim)]
-
-                skip_fortran(f, 1  # father index
-                             + 2 * ndim  # nbor index
-                             # son index,cpumap,refinement map
-                             + 2 * (2 ** ndim)
-                             )
-
-                refine = np.array(
-                    [read_fortran(f, _int_type, n_per_level[level, cpu - 1]) for i in xrange(2 ** ndim)])
-
-                if(level+1 == maxlevel or level+1==header['nlevelmax']):
-                    refine[:] = 0
-
-                coords[0] -= offset[0]
-                coords[1] -= offset[1]
-                coords[2] -= offset[2]
-                # x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
-
-                yield coords, refine, cpuf, level
-
-            else:
-
-                # skip ghost regions from other CPUs
-                skip_fortran(f, 3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
-
+        n_per_level = f.read_vector(_int_type).reshape((header['nlevelmax'], header['ncpu']))
+        f.skip(1)
         if header['nboundary'] > 0:
-            for boundaryf in np.where(n_per_level_boundary[level, :] != 0)[0]:
+            f.skip(2)
+            n_per_level_boundary = f.read_vector(_int_type).reshape((header['nlevelmax'], header['nboundary']))
 
-                skip_fortran(f, 3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
+        f.skip(2)
+        if bisection_order:
+            f.skip(5)
+        else:
+            f.skip(1)
+        f.skip(3)
+
+        offset = np.array(header['ng'], dtype=_float_type) / 2
+        offset -= 0.5
+
+        coords = np.zeros(3, dtype=_float_type)
+
+        for level in xrange(maxlevel or header['nlevelmax']):
+
+            # loop through those CPUs with grid data (includes ghost regions)
+            for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
+                # print "CPU=",cpu,"CPU on
+                # disk=",cpuf,"npl=",n_per_level[level,cpuf-1]
+
+                if cpuf == cpu:
+
+                    # this is the data we want
+                    f.skip(3)  # grid, next, prev index
+
+                    # store the coordinates in temporary arrays. We only want
+                    # to copy it if the cell is not refined
+                    coords = [
+                        f.read_vector(_float_type) for ar in range(ndim)]
+
+                    # stick on zeros if we're in less than 3D
+                    coords += [np.zeros_like(coords[0]) for ar in range(3 - ndim)]
+
+                    f.skip(1  # father index
+                                 + 2 * ndim  # nbor index
+                                 # son index,cpumap,refinement map
+                                 + 2 * (2 ** ndim)
+                                 )
+
+                    refine = np.array(
+                        [f.read_vector(_int_type) for i in xrange(2 ** ndim)])
+
+                    if(level+1 == maxlevel or level+1==header['nlevelmax']):
+                        refine[:] = 0
+
+                    coords[0] -= offset[0]
+                    coords[1] -= offset[1]
+                    coords[2] -= offset[2]
+                    # x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
+
+                    yield coords, refine, cpuf, level
+
+                else:
+
+                    # skip ghost regions from other CPUs
+                    f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
+
+            if header['nboundary'] > 0:
+                for boundaryf in np.where(n_per_level_boundary[level, :] != 0)[0]:
+
+                    f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
 
 
 @remote_exec
@@ -253,94 +255,124 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
     nvar = len(dims)
     grid_info_iter = _cpui_level_iterator(*lia)
 
-    f = open(filename, "rb")
-
-    exact_nvar = False
-
-    if mode is _gv_load_hydro:
-        header = read_fortran_series(f, ramses_hydro_header)
-
-        nvar_file = header['nvarh']
-    elif mode is _gv_load_gravity:
-        header = read_fortran_series(f, ramses_grav_header)
-        nvar_file = 4
-    elif mode is _gv_load_rt:
-        header = read_fortran_series(f, ramses_rt_header)
-        nvar_file = header['nrtvar']
-        exact_nvar = True
-    else:
-        raise ValueError, "Unknown RAMSES load mode"
-
-    if nvar_file != nvar and exact_nvar:
-        raise ValueError, "Wrong number of variables in RAMSES dump"
-    elif nvar_file < nvar:
-        warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
-            nvar, nvar_file), RuntimeWarning)
-        nvar = nvar_file
-        dims = dims[:nvar]
-    elif nvar_file > nvar:
-        warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
-            nvar_file, nvar), RuntimeWarning)
-
-    for level in xrange(maxlevel or header['nlevelmax']):
-
-        for cpuf in xrange(1, header['ncpu'] + 1):
-            flevel = read_fortran(f, 'i4')[0]
-            ncache = read_fortran(f, 'i4')[0]
-            assert flevel - 1 == level
-
-            if ncache > 0:
-                if cpuf == cpu:
-
-                    coords, refine, gi_cpu, gi_level = grid_info_iter.next()
-                    mark = np.where(refine == 0)
-
-                    assert gi_level == level
-                    assert gi_cpu == cpu
-
-                if cpuf == cpu and len(mark[0]) > 0:
-                    for icel in xrange(2 ** ndim):
-                        i0 = i1
-                        i1 = i0 + (refine[icel] == 0).sum()
-                        for ar in dims:
-                            ar[i0:i1] = read_fortran(
-                                f, _float_type, ncache)[(refine[icel] == 0)]
-
-                        skip_fortran(f, (nvar_file - nvar))
-
-                else:
-                    skip_fortran(f, (2 ** ndim) * nvar_file)
-
-        for boundary in xrange(header['nboundary']):
-            flevel = read_fortran(f, 'i4')[0]
-            ncache = read_fortran(f, 'i4')[0]
-            if ncache > 0:
-                skip_fortran(f, (2 ** ndim) * nvar_file)
+    with FortranFile(filename) as f:
+        exact_nvar = False
+        if mode is _gv_load_hydro:
+            header = f.read_attrs(ramses_hydro_header)
+            nvar_file = header['nvarh']
+        elif mode is _gv_load_gravity:
+            header = f.read_attrs(ramses_grav_header)
+            nvar_file = 4
+        elif mode is _gv_load_rt:
+            header = f.read_attrs(ramses_rt_header)
+            nvar_file = header['nrtvar']
+            exact_nvar = True
+        else:
+            raise ValueError, "Unknown RAMSES load mode"
+    
+        if nvar_file != nvar and exact_nvar:
+            raise ValueError, "Wrong number of variables in RAMSES dump"
+        elif nvar_file < nvar:
+            warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
+                nvar, nvar_file), RuntimeWarning)
+            nvar = nvar_file
+            dims = dims[:nvar]
+        elif nvar_file > nvar:
+            warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
+                nvar_file, nvar), RuntimeWarning)
+    
+        for level in xrange(maxlevel or header['nlevelmax']):
+    
+            for cpuf in xrange(1, header['ncpu'] + 1):
+                flevel = f.read_int()
+                ncache = f.read_int()
+                assert flevel - 1 == level
+    
+                if ncache > 0:
+                    if cpuf == cpu:
+    
+                        coords, refine, gi_cpu, gi_level = grid_info_iter.next()
+                        mark = np.where(refine == 0)
+    
+                        assert gi_level == level
+                        assert gi_cpu == cpu
+    
+                    if cpuf == cpu and len(mark[0]) > 0:
+                        for icel in xrange(2 ** ndim):
+                            i0 = i1
+                            i1 = i0 + (refine[icel] == 0).sum()
+                            for ar in dims:
+                                ar[i0:i1] = f.read_vector(
+                                    _float_type)[(refine[icel] == 0)]
+    
+                            f.skip((nvar_file - nvar))
+    
+                    else:
+                        f.skip((2 ** ndim) * nvar_file)
+    
+            for boundary in xrange(header['nboundary']):
+                flevel = f.read_int()
+                ncache = f.read_int()
+                if ncache > 0:
+                    f.skip((2 ** ndim) * nvar_file)
 
 
-ramses_particle_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('npart', 'i4'),
-                                   ('randseed', 'i4', (4,)), ('nstar',
-                                                              'i4'), ('mstar', 'f8'),
-                                   ('mstar_lost', 'f8'), ('nsink', 'i4')])
+ramses_particle_header = (
+    ('ncpu', 1, 'i'),
+    ('ndim', 1, 'i'),
+    ('npart', 1, 'i'),
+    ('randseed', 4, 'i'),
+    ('nstar', 1, 'i'),
+    ('mstar', 1, 'd'),
+    ('mstar_lost', 1, 'd'),
+    ('nsink', 1, 'i')
+)
 
-ramses_amr_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('ng', 'i4', (3,)),
-                              ('nlevelmax', 'i4'), ('ngridmax',
-                                                    'i4'), ('nboundary', 'i4'),
-                              ('ngrid', 'i4'), ('boxlen', 'f8')])
+ramses_amr_header = (
+    ('ncpu', 1, 'i'),
+    ('ndim', 1, 'i'),
+    ('ng', 3, 'i'),
+    ('nlevelmax', 1, 'i'),
+    ('ngridmax', 1, 'i'),
+    ('nboundary', 1, 'i'),
+    ('ngrid', 1, 'i'),
+    ('boxlen', 1, 'd')
+)
 
-ramses_hydro_header = np.dtype([('ncpu', 'i4'), ('nvarh', 'i4'), ('ndim', 'i4'), ('nlevelmax', 'i4'),
-                                ('nboundary', 'i4'), ('gamma', 'f8')])
+ramses_hydro_header = (
+    ('ncpu', 1, 'i'),
+    ('nvarh', 1, 'i'),
+    ('ndim', 1, 'i'),
+    ('nlevelmax', 1, 'i'),
+    ('nboundary', 1, 'i'),
+    ('gamma', 1, 'd')
+)
 
-ramses_grav_header = np.dtype([('ncpu', 'i4'), ('ndim', 'i4'), ('nlevelmax', 'i4'),
-                               ('nboundary', 'i4')])
+ramses_grav_header = (
+    ('ncpu', 1, 'i'),
+    ('ndim', 1, 'i'),
+    ('nlevelmax', 1, 'i'),
+    ('nboundary', 1, 'i')
+)
 
-ramses_rt_header = np.dtype([('ncpu','i4'), ('nrtvar', 'i4'), ('ndim', 'i4'),
-                             ('nlevelmax', 'i4'), ('nboundary', 'i4'), ('gamma', 'f8')])
+ramses_rt_header = (
+    ('ncpu', 1, 'i'),
+    ('nrtvar', 1, 'i'),
+    ('ndim', 1, 'i'),
+    ('nlevelmax', 1, 'i'),
+    ('nboundary', 1, 'i'),
+    ('gamma', 1, 'd')
+)
 
+TYPE_MAP = {'i4': 'i',
+            'i8': 'l',
+            'f4': 'f',
+            'f8': 'd'}
 particle_blocks = map(
     str.strip, config_parser.get('ramses', "particle-blocks").split(","))
 particle_format = map(
-    str.strip, config_parser.get('ramses', "particle-format").split(","))
+    lambda e: TYPE_MAP[str.strip(e)],
+    config_parser.get('ramses', "particle-format").split(","))
 
 hydro_blocks = map(
     str.strip, config_parser.get('ramses', "hydro-blocks").split(","))
@@ -495,7 +527,7 @@ class RamsesSnap(SimSnap):
                 if not l.startswith("#"):
                     ivar, name, dtype = map(str.strip,l.split(","))
                     self._particle_blocks.append(self._translate_array_name(name, reverse=True))
-                    self._particle_types.append(np.dtype(dtype))
+                    self._particle_types.append(dtype)
             self._particle_blocks_are_explictly_known = True
 
 
@@ -504,7 +536,7 @@ class RamsesSnap(SimSnap):
         # what particle blocks are present
         self._particle_blocks_are_explictly_known = False
 
-        self._particle_types = [np.dtype(pf) for pf in particle_format]
+        self._particle_types = particle_format
         if 'particle-blocks' in self._info:
             self._particle_blocks_are_explictly_known = True
             self._particle_blocks = self._info['particle-blocks']
@@ -514,7 +546,7 @@ class RamsesSnap(SimSnap):
 
         if len(self._particle_types) < len(self._particle_blocks):
             warnings.warn("Some fields do not have format configured - assuming they are doubles", RuntimeWarning)
-            type_ = np.dtype('f8')
+            type_ = 'd'
             self._particle_types += [type_] * (len(self._particle_blocks) - len(self._particle_types))
 
     def _particle_filename(self, cpu_id):
@@ -542,8 +574,17 @@ class RamsesSnap(SimSnap):
             ndm, nstar = self._count_particles_using_implicit_families()
             return OrderedDict([(family.dm, ndm), (family.star, nstar)])
 
+    def _has_particle_file(self):
+        """Check whether the output has a particle file available"""
+        if len(self._cpus)>0 :
+            return os.path.exists(self._particle_filename(self._cpus[0]))
+        else:
+            return False
+
     def _count_particles_using_explicit_families(self):
         """Returns an ordered dictionary of family types based on the new explicit RAMSES particle file format"""
+        if not self._has_particle_file():
+            return OrderedDict()
         family_block = self._particle_blocks.index('family')
         family_dtype = self._particle_types[family_block]
         self._particle_family_ids_on_disk = []
@@ -706,7 +747,7 @@ class RamsesSnap(SimSnap):
 
         if not self._particle_blocks_are_explictly_known:
             distinguisher_field = int(particle_distinguisher[0])
-            distinguisher_type = np.dtype(particle_distinguisher[1])
+            distinguisher_type = TYPE_MAP[particle_distinguisher[1]]
         else:
             # be more cunning about finding the distinguisher field (likely 'age') -
             # as it may have moved around in some patches of ramses
@@ -840,6 +881,7 @@ class RamsesSnap(SimSnap):
                 for f in self._iter_particle_families():
                     self[f]._create_array(name, dtype=type_)
 
+
     def _load_particle_block(self, blockname):
         offset = self._particle_blocks.index(blockname)
         _type = self._particle_types[offset]
@@ -851,15 +893,20 @@ class RamsesSnap(SimSnap):
             arrays.append(self[f][blockname])
 
 
-        remote_map(self.reader_pool,
-                   _cpui_load_particle_block,
-                   [self._particle_filename(i) for i in self._cpus],
-                   [arrays] * len(self._cpus),
-                   [offset] * len(self._cpus),
-                   self._particle_file_start_indices,
-                   [_type] * len(self._cpus),
-                   self._particle_family_ids_on_disk
-                   )
+        try:
+            remote_map(self.reader_pool,
+                       _cpui_load_particle_block,
+                       [self._particle_filename(i) for i in self._cpus],
+                       [arrays] * len(self._cpus),
+                       [offset] * len(self._cpus),
+                       self._particle_file_start_indices,
+                       [_type] * len(self._cpus),
+                       self._particle_family_ids_on_disk
+                       )
+        except:
+            warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
+            del self[blockname]
+            raise
 
         # The potential is awkwardly not in physical units, but in
         # physical units divided by the box size. This was different
@@ -876,9 +923,8 @@ class RamsesSnap(SimSnap):
         ind0_dm = 0
         ind0_star = 0
         for i, star_mask, nstar in zip(self._cpus, self._particle_family_ids_on_disk, self._nstar):
-            f = open(self._particle_filename(i), "rb")
-            header = read_fortran_series(f, ramses_particle_header)
-            f.close()
+            with FortranFile(self._particle_filename(i)) as f:
+                header = f.read_attrs(ramses_particle_header)
             ind1_dm = ind0_dm + header['npart'] - nstar
             ind1_star = ind0_star + nstar
             self.dm['cpu'][ind0_dm:ind1_dm] = i
@@ -922,6 +968,19 @@ class RamsesSnap(SimSnap):
         # could potentially be improved with reference to stored namelist.txt, if present
         return self._info['omega_k'] == self._info['omega_l'] == 0
 
+    def _convert_tform(self):
+        from ..analysis import ramses_util
+        # Copy the existing array in weird Ramses format into a hidden raw array
+        self.star['tform_raw'] = self.star['tform']
+        self.star['tform_raw'].units = self._file_units_system[1]
+        # Replace the tform array by its usual meaning using the birth files
+        ramses_util.get_tform(self)
+
+    def _convert_metal_name(self):
+        # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
+        # Correcting this prevents analysis routines relying on 'metals' field from breaking.
+        self.star['metals'] = self.star['metal']
+
     def _load_array(self, array_name, fam=None):
         # Framework always calls with 3D name. Ramses particle blocks are
         # stored as 1D slices.
@@ -933,7 +992,15 @@ class RamsesSnap(SimSnap):
 
         elif fam is not family.gas and fam is not None:
 
-            if array_name in self._split_arrays:
+            if array_name == 'tform' or array_name == 'tform_raw' :
+                self._load_particle_block('tform')
+                self._convert_tform()
+
+            elif array_name == 'metals' or array_name == 'metal':
+                self._load_particle_block('metal')
+                self._convert_metal_name()
+
+            elif array_name in self._split_arrays:
                 for array_1D in self._array_name_ND_to_1D(array_name):
                     self._load_particle_block(array_1D)
 
@@ -941,6 +1008,7 @@ class RamsesSnap(SimSnap):
                 self._load_particle_block(array_name)
             else:
                 raise IOError, "No such array on disk"
+
         elif fam is family.gas:
 
             if array_name == 'pos' or array_name == 'smooth':
@@ -1026,11 +1094,6 @@ def translate_info(sim):
 @RamsesSnap.derived_quantity
 def mass(sim):
     return sim['rho'] * sim['smooth'] ** 3
-
-
-@RamsesSnap.derived_quantity
-def tform(sim):
-    return sim.properties['time'] - sim['age']
 
 
 @RamsesSnap.derived_quantity

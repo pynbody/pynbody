@@ -387,7 +387,7 @@ class TipsySnap(SimSnap):
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None, double_pos=None, double_vel=None, binary_aux_arrays=None):
+    def _write(self, filename=None, double_pos=None, double_vel=None, binary_aux_arrays=None, cosmological=True):
         """
 
         Write a TIPSY (standard) formatted file.
@@ -413,6 +413,9 @@ class TipsySnap(SimSnap):
                                     arrays in binary format; if left 'None', the preference is
                                     taken from the param file
 
+        *cosmological* (True): if True (default), the header will store the self.properties['a'];
+                               otherwise it will store self.properties['time']
+
         """
 
         global config
@@ -424,9 +427,12 @@ class TipsySnap(SimSnap):
 
         f = util.open_(filename, 'wb')
 
-        t = 0
+        t = 0.0
         try:
-            t = self.properties['a']
+            if cosmological:
+                t = self.properties['a']
+            else:
+                t = self.properties['time']
         except KeyError:
             warnings.warn(
                 "Time is unknown: writing zero in header", RuntimeWarning)
@@ -983,7 +989,10 @@ def _abundance_estimator(metal):
 def HII(sim):
     """Number of HII ions per proton mass"""
     Y_H, Y_He = _abundance_estimator(sim["metals"])
-    return Y_H - sim["HI"]
+    try:
+        return Y_H - sim["HI"] - 2 * sim["H2"]
+    except KeyError:
+        return Y_H - sim["HI"]
 
 
 @TipsySnap.derived_quantity
