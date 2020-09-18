@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pynbody.simdict &#8212; pynbody 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+<link href="https://fonts.googleapis.com/css?family=Quicksand" rel="stylesheet">
+<link href="_static/customise.css" rel="stylesheet">
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38063425-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pynbody.simdict</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">simdict</span>
+<span class="sd">=======</span>
+
+<span class="sd">This submodule defines an augmented dictionary class</span>
+<span class="sd">(:class:`SimDict`) for :class:`~pynbody.snapshot.SimSnap` properties</span>
+<span class="sd">where entries need to be managed e.g.  for defining default entries,</span>
+<span class="sd">or for ensuring consistency between equivalent properties like</span>
+<span class="sd">redshift and scalefactor.</span>
+
+<span class="sd">By default, a :class:`SimDict` automatically converts between</span>
+<span class="sd">redshift (&#39;z&#39;) and scalefactor (&#39;a&#39;) and implements default entries</span>
+<span class="sd">for cosmological values listed in the [default-cosmology] section of</span>
+<span class="sd">the `pynbody` configuration files.</span>
+
+<span class="sd">Adding further properties</span>
+<span class="sd">-------------------------</span>
+
+<span class="sd">To add further properties use the SimDict.getter and SimDict.setter decorators.</span>
+<span class="sd">For instance, to add a property &#39;X_copy&#39; which just reflects the value of the</span>
+<span class="sd">property &#39;X&#39;, you would use the following code:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd"> @SimDict.getter</span>
+<span class="sd"> def X_copy(d) :</span>
+<span class="sd">     return d[&#39;X&#39;]</span>
+
+<span class="sd"> @SimDict.setter</span>
+<span class="sd"> def X_copy(d, value) :</span>
+<span class="sd">     d[&#39;X&#39;] = value</span>
+<span class="sd">   </span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SimDict&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="SimDict"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.simdict.SimDict">[docs]</a><span class="k">class</span> <span class="nc">SimDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="n">_getters</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">_setters</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="SimDict.getter"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.simdict.SimDict.getter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define a getter function for all SimDicts&quot;&quot;&quot;</span>
+        <span class="n">SimDict</span><span class="o">.</span><span class="n">_getters</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span></div>
+
+<div class="viewcode-block" id="SimDict.setter"><a class="viewcode-back" href="../../reference/essentials.html#pynbody.simdict.SimDict.setter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define a setter function for all SimDicts&quot;&quot;&quot;</span>
+        <span class="n">SimDict</span><span class="o">.</span><span class="n">_setters</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">SimDict</span><span class="o">.</span><span class="n">_getters</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">SimDict</span><span class="o">.</span><span class="n">_getters</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">SimDict</span><span class="o">.</span><span class="n">_setters</span><span class="p">:</span>
+            <span class="n">SimDict</span><span class="o">.</span><span class="n">_setters</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">dict</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+
+
+<span class="nd">@SimDict</span><span class="o">.</span><span class="n">getter</span>
+<span class="k">def</span> <span class="nf">z</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span>
+    <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="nd">@SimDict</span><span class="o">.</span><span class="n">setter</span>
+<span class="k">def</span> <span class="nf">z</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">z</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">default_fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a getter function for the default name/value pair&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Assuming default value for property &#39;</span><span class="si">%s</span><span class="s2">&#39;=</span><span class="si">%.2e</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="n">f</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">return</span> <span class="n">f</span>
+
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;default-cosmology&#39;</span><span class="p">]:</span>
+    <span class="n">SimDict</span><span class="o">.</span><span class="n">getter</span><span class="p">(</span><span class="n">default_fn</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;default-cosmology&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]))</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2011-20, pynbody team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
