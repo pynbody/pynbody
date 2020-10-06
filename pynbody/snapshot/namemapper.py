@@ -1,4 +1,4 @@
-import ConfigParser
+import configparser
 import sys
 from .. import config_parser
 
@@ -19,7 +19,7 @@ def setup_name_maps(config_name, gadget_blocks=False, with_alternates=False):
                 alternates[name_map[b]] = b
             rev_name_map[a] = b
             name_map[b] = a
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
         pass
 
     if with_alternates:
@@ -50,7 +50,7 @@ class AdaptiveNameMapper(object):
         self._rev_name_map[name]=self._alternates[name]
 
     def _select_alternate_target_if_required(self,name):
-        if name not in self._name_map.values() and name in self._alternates:
+        if name not in list(self._name_map.values()) and name in self._alternates:
             self._select_alternate_target(name)
 
     def __call__(self, name, reverse=False):

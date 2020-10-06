@@ -985,7 +985,7 @@ def sbprofile(sim, band='v', diskheight='3 kpc', rmax='20 kpc', binning='equaln'
 							np.array(ps['sb,' + band][exp_inds]), 1)
 
 		# 1.0857 is how many magnitudes a 1/e decrease is
-		print("h: ", 1.0857 / expfit[0], "  u_0:", expfit[1])
+		print(("h: ", 1.0857 / expfit[0], "  u_0:", expfit[1]))
 
 		fit = np.poly1d(expfit)
 		if 'label' in kwargs:
@@ -998,7 +998,7 @@ def sbprofile(sim, band='v', diskheight='3 kpc', rmax='20 kpc', binning='equaln'
 		sersicfit = np.polyfit(np.log10(np.array(r[sersic_inds])),
 							   np.array(ps['sb,' + band][sersic_inds]), 1)
 		fit = np.poly1d(sersicfit)
-		print("n: ", sersicfit[0], "  other: ", sersicfit[1])
+		print(("n: ", sersicfit[0], "  other: ", sersicfit[1]))
 		if 'label' in kwargs:
 			del kwargs['label']
 		if 'linestyle' in kwargs:

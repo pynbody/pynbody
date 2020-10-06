@@ -12,10 +12,10 @@ pynbody.analysis.angmom.faceon(h[1])
 
 # create a profile object for the stars
 s.physical_units()
-p = pynbody.analysis.profile.Profile(h[1],min=.01,max=250,type='log',ndim=3)
-pg = pynbody.analysis.profile.Profile(h[1].g,min=.01,max=250,type='log',ndim=3)
-ps = pynbody.analysis.profile.Profile(h[1].s,min=.01,max=250,type='log',ndim=3)
-pd = pynbody.analysis.profile.Profile(h[1].d,min=.01,max=250,type='log',ndim=3)
+p = pynbody.analysis.profile.Profile(h[1],rmin=.01,rmax =250,type='log',ndim=3)
+pg = pynbody.analysis.profile.Profile(h[1].g,rmin=.01,rmax =250,type='log',ndim=3)
+ps = pynbody.analysis.profile.Profile(h[1].s,rmin=.01,rmax =250,type='log',ndim=3)
+pd = pynbody.analysis.profile.Profile(h[1].d,rmin=.01,rmax =250,type='log',ndim=3)
 
 # make the plot
 plt.plot(p['rbins'],p['v_circ'],label='total')

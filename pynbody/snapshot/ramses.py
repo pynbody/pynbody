@@ -14,8 +14,8 @@ the `ipython notebook demo
 
 """
 
-from __future__ import with_statement  # for py2.5
-from __future__ import division
+  # for py2.5
+
 
 from .. import array, util
 from .. import family
@@ -61,7 +61,7 @@ if not multiprocess:
         return q
 
     def remote_map(*args, **kwargs):
-        return map(*args[1:], **kwargs)
+        return list(map(*args[1:], **kwargs))
 
 
 _float_type = 'd'
@@ -156,7 +156,7 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
 
         coords = np.zeros(3, dtype=_float_type)
 
-        for level in xrange(maxlevel or header['nlevelmax']):
+        for level in range(maxlevel or header['nlevelmax']):
 
             # loop through those CPUs with grid data (includes ghost regions)
             for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
@@ -183,7 +183,7 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
                                  )
 
                     refine = np.array(
-                        [f.read_vector(_int_type) for i in xrange(2 ** ndim)])
+                        [f.read_vector(_int_type) for i in range(2 ** ndim)])
 
                     if(level+1 == maxlevel or level+1==header['nlevelmax']):
                         refine[:] = 0
@@ -268,10 +268,10 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
             nvar_file = header['nrtvar']
             exact_nvar = True
         else:
-            raise ValueError, "Unknown RAMSES load mode"
+            raise ValueError("Unknown RAMSES load mode")
     
         if nvar_file != nvar and exact_nvar:
-            raise ValueError, "Wrong number of variables in RAMSES dump"
+            raise ValueError("Wrong number of variables in RAMSES dump")
         elif nvar_file < nvar:
             warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
                 nvar, nvar_file), RuntimeWarning)
@@ -281,9 +281,9 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
             warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
                 nvar_file, nvar), RuntimeWarning)
     
-        for level in xrange(maxlevel or header['nlevelmax']):
+        for level in range(maxlevel or header['nlevelmax']):
     
-            for cpuf in xrange(1, header['ncpu'] + 1):
+            for cpuf in range(1, header['ncpu'] + 1):
                 flevel = f.read_int()
                 ncache = f.read_int()
                 assert flevel - 1 == level
@@ -291,14 +291,14 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                 if ncache > 0:
                     if cpuf == cpu:
     
-                        coords, refine, gi_cpu, gi_level = grid_info_iter.next()
+                        coords, refine, gi_cpu, gi_level = next(grid_info_iter)
                         mark = np.where(refine == 0)
     
                         assert gi_level == level
                         assert gi_cpu == cpu
     
                     if cpuf == cpu and len(mark[0]) > 0:
-                        for icel in xrange(2 ** ndim):
+                        for icel in range(2 ** ndim):
                             i0 = i1
                             i1 = i0 + (refine[icel] == 0).sum()
                             for ar in dims:
@@ -310,7 +310,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                     else:
                         f.skip((2 ** ndim) * nvar_file)
     
-            for boundary in xrange(header['nboundary']):
+            for boundary in range(header['nboundary']):
                 flevel = f.read_int()
                 ncache = f.read_int()
                 if ncache > 0:
@@ -368,29 +368,25 @@ TYPE_MAP = {'i4': 'i',
             'i8': 'l',
             'f4': 'f',
             'f8': 'd'}
-particle_blocks = map(
-    str.strip, config_parser.get('ramses', "particle-blocks").split(","))
-particle_format = map(
-    lambda e: TYPE_MAP[str.strip(e)],
-    config_parser.get('ramses', "particle-format").split(","))
+particle_blocks = list(map(
+    str.strip, config_parser.get('ramses', "particle-blocks").split(",")))
+particle_format = [TYPE_MAP[str.strip(e)] for e in config_parser.get('ramses', "particle-format").split(",")]
 
-hydro_blocks = map(
-    str.strip, config_parser.get('ramses', "hydro-blocks").split(","))
-grav_blocks = map(
-    str.strip, config_parser.get('ramses', "gravity-blocks").split(","))
+hydro_blocks = list(map(
+    str.strip, config_parser.get('ramses', "hydro-blocks").split(",")))
+grav_blocks = list(map(
+    str.strip, config_parser.get('ramses', "gravity-blocks").split(",")))
 
-rt_blocks = map(
+rt_blocks = list(map(
     str.strip, config_parser.get('ramses', 'rt-blocks', raw=True).split(",")
-)
+))
 
-particle_distinguisher = map(
-    str.strip, config_parser.get('ramses', 'particle-distinguisher').split(","))
+particle_distinguisher = list(map(
+    str.strip, config_parser.get('ramses', 'particle-distinguisher').split(",")))
 
-positive_typemap = map(lambda x: family.get_family(str.strip(x)),
-                     config_parser.get('ramses', 'type-mapping-positive').split(","))
+positive_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-positive').split(",")]
 
-negative_typemap = map(lambda x: family.get_family(str.strip(x)),
-                     config_parser.get('ramses', 'type-mapping-negative').split(","))
+negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-negative').split(",")]
 
 
 class RamsesSnap(SimSnap):
@@ -414,6 +410,7 @@ class RamsesSnap(SimSnap):
         self._filename = dirname
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
+        self._load_namelistfile()
         self._setup_particle_descriptor()
 
         assert self._info['ndim'] <= 3
@@ -426,7 +423,7 @@ class RamsesSnap(SimSnap):
         if 'cpus' in kwargs:
             self._cpus = kwargs['cpus']
         else:
-            self._cpus = range(1, self.ncpu + 1)
+            self._cpus = list(range(1, self.ncpu + 1))
         self._maxlevel = kwargs.get('maxlevel', None)
 
         type_map = self._count_particles()
@@ -472,7 +469,7 @@ class RamsesSnap(SimSnap):
 
         self._load_info_from_specified_file(f)
 
-        for group in xrange(self._info['nGroups']):
+        for group in range(self._info['nGroups']):
             for block in rt_blocks:
                 self._rt_blocks.append(block%group)
 
@@ -484,7 +481,7 @@ class RamsesSnap(SimSnap):
     def _load_info_from_specified_file(self, f):
         for l in f:
             if '=' in l:
-                name, val = map(str.strip, l.split('='))
+                name, val = list(map(str.strip, l.split('=')))
                 try:
                     if '.' in val:
                         self._info[name] = float(val)
@@ -511,6 +508,37 @@ class RamsesSnap(SimSnap):
             warnings.warn(
                 "No header file found -- no particle block information available")
 
+    def _load_namelist_from_specified_file(self, f):
+        for l in f:
+            l = l.split("!")[0]  # remove fortran comments
+            if '=' in l:
+                name, val = map(str.strip, l.split('='))
+                if val == ".true.":
+                    self._namelist[name] = True
+                elif val == ".false.":
+                    self._namelist[name] = False
+                else:
+                    try:
+                        if '.' in val:
+                            self._namelist[name] = float(val)
+                        else:
+                            self._namelist[name] = int(val)
+                    except ValueError:
+                        self._namelist[name] = val
+
+    def _load_namelistfile(self):
+        self._namelist = {}
+
+        if os.path.exists(self._filename + "/namelist.txt"):
+            f = open(self._filename + "/namelist.txt", "r")
+            try:
+                self._load_namelist_from_specified_file(f)
+            except ValueError:
+                warnings.warn("Namelist found but unable to read.")
+
+        else:
+            warnings.warn("No namelist file found.")
+
     def _setup_particle_descriptor(self):
         try:
             self._load_particle_descriptor()
@@ -525,7 +553,7 @@ class RamsesSnap(SimSnap):
             self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
             for l in f:
                 if not l.startswith("#"):
-                    ivar, name, dtype = map(str.strip,l.split(","))
+                    ivar, name, dtype = list(map(str.strip,l.split(",")))
                     self._particle_blocks.append(self._translate_array_name(name, reverse=True))
                     self._particle_types.append(dtype)
             self._particle_blocks_are_explictly_known = True
@@ -636,7 +664,7 @@ class RamsesSnap(SimSnap):
 
         return_d = OrderedDict()
         self._particle_file_start_indices = [ [] for x in results]
-        for internal_family_id in xrange(256):
+        for internal_family_id in range(256):
             if aggregate_counts_remapped[internal_family_id]>0:
                 fam = internal_id_to_family[internal_family_id]
                 count = aggregate_counts_remapped[internal_family_id]
@@ -698,7 +726,7 @@ class RamsesSnap(SimSnap):
     @staticmethod
     def _fix_fortran_missing_exponent(data_array):
         flattened_data = data_array.flat
-        for i in xrange(len(flattened_data)):
+        for i in range(len(flattened_data)):
             d = flattened_data[i]
             if "-" in d and "E" not in d:
                 flattened_data[i] = "E-".join(d.split("-"))
@@ -877,7 +905,7 @@ class RamsesSnap(SimSnap):
 
     def _create_array_for_particles(self, name, type_):
         for f in self._iter_particle_families():
-            if name not in self[f].keys():
+            if name not in list(self[f].keys()):
                 for f in self._iter_particle_families():
                     self[f]._create_array(name, dtype=type_)
 
@@ -914,19 +942,20 @@ class RamsesSnap(SimSnap):
         # with the AMR phi output. So, we need to make a correction here
         # IF we are dealing with the latest ramses format.
 
-        if self._particle_blocks_are_explictly_known and blockname is 'phi':
+        if self._particle_blocks_are_explictly_known and blockname == 'phi':
             for f in self._iter_particle_families():
                 self[f]['phi'] *= self._info['boxlen']
 
     def _load_particle_cpuid(self):
-        raise NotImplementedError, "The particle CPU data cannot currently be loaded" # TODO: re-implement
         ind0_dm = 0
         ind0_star = 0
-        for i, star_mask, nstar in zip(self._cpus, self._particle_family_ids_on_disk, self._nstar):
-            with FortranFile(self._particle_filename(i)) as f:
-                header = f.read_attrs(ramses_particle_header)
-            ind1_dm = ind0_dm + header['npart'] - nstar
-            ind1_star = ind0_star + nstar
+        for i, fam_mask in zip(self._cpus, self._particle_family_ids_on_disk):
+            mask_dm = fam_mask == 0
+            mask_st = fam_mask == 1
+
+            ind1_dm = ind0_dm + mask_dm.sum()
+            ind1_star = ind0_star + mask_st.sum()
+
             self.dm['cpu'][ind0_dm:ind1_dm] = i
             self.star['cpu'][ind0_star:ind1_star] = i
             ind0_dm, ind0_star = ind1_dm, ind1_star
@@ -935,7 +964,7 @@ class RamsesSnap(SimSnap):
         gas_cpu_ar = self.gas['cpu']
         i1 = 0
         for coords, refine, cpu, level in self._level_iterator():
-            for cell in xrange(2 ** self._ndim):
+            for cell in range(2 ** self._ndim):
                 i0 = i1
                 i1 = i0 + (refine[cell] == 0).sum()
                 gas_cpu_ar[i0:i1] = cpu
@@ -965,8 +994,10 @@ class RamsesSnap(SimSnap):
         return list(keys_ND)
 
     def _not_cosmological(self):
-        # could potentially be improved with reference to stored namelist.txt, if present
-        return self._info['omega_k'] == self._info['omega_l'] == 0
+        if "cosmo" in self._namelist and self._namelist["cosmo"]:
+            return False
+        else:
+            return True
 
     def _convert_tform(self):
         # Copy the existing array in weird Ramses format into a hidden raw array
@@ -1021,7 +1052,7 @@ class RamsesSnap(SimSnap):
             elif array_name in self._particle_blocks:
                 self._load_particle_block(array_name)
             else:
-                raise IOError, "No such array on disk"
+                raise IOError("No such array on disk")
 
         elif fam is family.gas:
 
@@ -1040,7 +1071,7 @@ class RamsesSnap(SimSnap):
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
             else:
-                raise IOError, "No such array on disk"
+                raise IOError("No such array on disk")
         elif fam is None and array_name in ['pos', 'vel']:
             # synchronized loading of pos/vel information
             if 'pos' not in self:
@@ -1058,7 +1089,7 @@ class RamsesSnap(SimSnap):
             for name in 'x','y','z','vx','vy','vz':
                 self._load_particle_block(name)
 
-        elif fam is None and array_name is 'mass':
+        elif fam is None and array_name == 'mass':
             self._create_array('mass')
             self._load_particle_block('mass')
             self['mass'].set_default_units()
@@ -1067,7 +1098,7 @@ class RamsesSnap(SimSnap):
                 gasmass.convert_units(self['mass'].units)
                 self.gas['mass'] = gasmass
         else:
-            raise IOError, "No such array on disk"
+            raise IOError("No such array on disk")
 
 
 

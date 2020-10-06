@@ -7,11 +7,10 @@ sudo: false # temporary while gfortran package is required for conda problems
 
 # specify different versions of python and numpy
 env:
-  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython=3"
-  - PYTHON=2.7  NUMPY="numpy>=1.9.2" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.5  NUMPY="numpy>=1.10.4" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.6  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
-  - PYTHON=3.7  NUMPY="numpy>=1.13.1" CYTHON="cython>=0.20" IPYTHON="ipython>=3"
+  - PYTHON=3.5  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
+  - PYTHON=3.6  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
+  - PYTHON=3.7  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
+  - PYTHON=3.8  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
 
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -31,7 +30,13 @@ install:
   - conda create --yes -n ${PYTHON} -q python=$PYTHON $NUMPY scipy matplotlib nose h5py pip pygments pandas $IPYTHON $CYTHON
   - source activate ${PYTHON}
   - python --version
-  - python setup.py install
+  # Note when installing, we can't let pip install the dependencies in the pyproject.toml file. This is because
+  # it then creates an isolated build environment with the latest version of numpy, which may be binary incompatible with
+  # the one provided by conda.  Confusingly, the latest version of numpy then disappears after installation, leaving
+  # you with a mystery about how a binary-incompatible numpy header was used during setup. It seems this isn't
+  # a bug in pip, but actually intentional, however strange that may seem.
+  # See: https://www.python.org/dev/peps/pep-0517/#in-tree-build-backends
+  - pip install . --no-build-isolation
   # Limit the number of ramses readers to 2; otherwise Travis builds have been known to run out of memory
   - echo "[ramses]" >> ~/.pynbodyrc
   - echo "parallel-read=2" >> ~/.pynbodyrc

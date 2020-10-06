@@ -18,6 +18,8 @@ def setup():
 def teardown():
     global f
     del f
+    if os.path.exists("testdata/g15784.lr.log"):
+        os.remove("testdata/g15784.lr.log")
 
 
 def test_get():
@@ -372,3 +374,36 @@ def test_issue_313():
 
 def test_issue_315():
     assert np.allclose(f.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
+
+def test_read_starlog_no_log():
+    rhoform = f.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
+    correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,
+            16312128.27530325,  2514281.61028265, 14384682.79060703,
+             3334026.53876033, 30041215.63578063, 24977741.02041524,
+            10758492.68887316])
+    assert np.all(np.abs(rhoform - correct) < 1e-7)
+    # h2form should not be in the available starlog keys
+    with assert_raises(Exception):
+        h2form = s.s['h2form']
+
+def test_read_starlog_with_log():
+    # the last key is incorrectly labeled in order to ensure
+    # that the log file is being read
+    with open('testdata/g15784.lr.log', 'w') as logf:
+        logf.write('# ilbDumpIteration: 0\n# bDoSimulateLB: 0\n# starlog data:\n'
+                   '# iOrdStar i4\n# iOrdGas i4\n# timeForm f8\n# rForm[0] f8\n'
+                   '# rForm[1] f8\n# rForm[2] f8\n# vForm[0] f8\n# vForm[1] f8\n#'
+                   ' vForm[2] f8\n# massForm f8\n# rhoForm f8\n# H2FracForm f8\n# end'
+                   ' starlog data\n# TimeOut: none\n\n')
+    rhoform = f.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
+    correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,
+            16312128.27530325,  2514281.61028265, 14384682.79060703,
+             3334026.53876033, 30041215.63578063, 24977741.02041524,
+            10758492.68887316])
+    assert np.all(np.abs(rhoform - correct) < 1e-7)
+
+    correct = np.array([11696.64846193, 11010.78848271, 11035.32739625, 10133.30674776,
+          10795.18204699, 10549.8055167 , 10365.82267086, 10389.80826619,
+          10766.11592458, 10514.57288485])
+    h2form = f.s['h2form'][:1000:100]
+    assert np.all(np.abs(h2form - correct) < 1e-7)

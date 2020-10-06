@@ -25,12 +25,12 @@ import time
 logger = logging.getLogger('pynbody.sph')
 
 from . import _render
-from .. import snapshot, array, config, units, util, config_parser
+from .. import snapshot, array, config, units, util, config_parser, backcompat
 
 try:
     from . import kdtree
 except ImportError:
-    raise ImportError, "Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python"
+    raise ImportError("Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python")
 import os
 
 
@@ -45,7 +45,7 @@ _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 def _exception_catcher(call_fn, exception_list, *args):
     try:
         call_fn(*args)
-    except Exception, e:
+    except Exception as e:
         exception_list.append(sys.exc_info())
 
 def _thread_map(func, *args):
@@ -64,7 +64,7 @@ def _thread_map(func, *args):
     if len(exceptions)>0:
         # Here we re-raise the exception that was actually generated in a thread
         t,obj,trace= exceptions[0]
-        raise t,obj,trace
+        raise t(obj).with_traceback(trace)
 
 def _kernel_suitable_for_denoise(kernel):
     if type(kernel) is not Kernel:
@@ -105,7 +105,7 @@ def _tree_decomposition(obj):
 
 
 def _get_tree_objects(sim):
-    return map(getattr, _tree_decomposition(sim), ['kdtree'] * _get_threaded_smooth())
+    return list(map(getattr, _tree_decomposition(sim), ['kdtree'] * _get_threaded_smooth()))
 
 
 def build_tree_or_trees(sim):
@@ -115,9 +115,9 @@ def build_tree_or_trees(sim):
 
     logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
 
-    start = time.clock()
+    start = backcompat.clock()
     build_tree(sim)
-    end = time.clock()
+    end = backcompat.clock()
 
     logger.info('Tree build done in %5.3g s' % (end - start))
 
@@ -274,7 +274,7 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
         denoise = _auto_denoise(snap, kernel)
 
     if denoise and not _kernel_suitable_for_denoise(kernel):
-        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
+        raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
 
     renderer = _render_spherical_image
 
@@ -299,7 +299,7 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
         denoise = _auto_denoise(snap, kernel)
 
     if denoise and not _kernel_suitable_for_denoise(kernel):
-        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
+        raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
 
     if out_units is not None:
         conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * snap['smooth'].units ** kernel.h_power)).ratio(out_units,
@@ -309,7 +309,7 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
         snap_slice = slice(len(snap))
     with snap.immediate_mode:
         D, h, pos, mass, rho, qtyar = [snap[x].view(
-            np.ndarray)[snap_slice] for x in 'r', 'smooth', 'pos', 'mass', 'rho', qty]
+            np.ndarray)[snap_slice] for x in ('r', 'smooth', 'pos', 'mass', 'rho', qty)]
 
     ds = np.arange(kstep, kernel.max_d + kstep / 2, kstep)
     weights = np.zeros_like(ds)
@@ -319,7 +319,7 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
         # work out int_d0^d1 x K(x), then set our discretized kernel to
         # match that
         dvals = np.arange(d0, d1, 0.05)
-        ivals = map(kernel.get_value, dvals)
+        ivals = list(map(kernel.get_value, dvals))
         ivals *= dvals
         integ = ivals.sum() * 0.05
         weights[i] = 2 * integ / (d1 ** 2 - d0 ** 2)
@@ -341,7 +341,7 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
         rad = np.arctan(
             h[ind, np.newaxis] * ds[np.newaxis, :] / D[ind, np.newaxis])
     else:
-        raise ValueError, "render_spherical_image doesn't know how to handle this kernel"
+        raise ValueError("render_spherical_image doesn't know how to handle this kernel")
 
     im, im2 = _render.render_spherical_image_core(
         rho, mass, qtyar, pos, D, h, ind, ds, weights, nside)
@@ -390,7 +390,7 @@ def _threaded_render_image(fn, s, *args, **kwargs):
         if verbose:
             logger.info("Rendering image on %d threads..." % num_threads)
 
-        for i in xrange(num_threads):
+        for i in range(num_threads):
             kwargs_local = copy.copy(kwargs)
             kwargs_local['snap_slice'] = slice(i, None, num_threads)
             args_local = [outputs[i], s] + list(args)
@@ -421,7 +421,7 @@ def _interpolated_renderer(fn, levels):
         sub = 1
         base = fn(*args, **kwargs)
         kwargs['smooth_range'] = (1, 2)
-        for i in xrange(1, levels):
+        for i in range(1, levels):
             sub *= 2
             if i == levels - 1:
                 kwargs['smooth_range'] = (1, 100000)
@@ -514,7 +514,7 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
         denoise = _auto_denoise(snap, kernel)
 
     if denoise and not _kernel_suitable_for_denoise(kernel):
-        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
+        raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
 
 
     if approximate_fast:
@@ -573,10 +573,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         if snap_slice is not None:
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
 
-    if 'boxsize' in snap.properties:
-        boxsize = snap.properties['boxsize'].in_units(snap_proxy['x'].units,**snap.conversion_context())
-    else:
-        boxsize = None
+
 
     in_time = time.time()
 
@@ -611,7 +608,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         x2 += sx
         y2 += sy
 
-    x1, x2, y1, y2, z1 = [float(q) for q in x1, x2, y1, y2, z_plane]
+    x1, x2, y1, y2, z1 = [float(q) for q in (x1, x2, y1, y2, z_plane)]
 
     if smooth_range is not None:
         smooth_lo = float(smooth_range[0])
@@ -653,15 +650,10 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     if z_camera is None:
         z_camera = 0.0
 
-    if boxsize:
-        # work out the tile offsets required to make the image wrap
-        num_repeats = int(round(x2/boxsize))+1
-        repeat_array = np.linspace(-num_repeats*boxsize,num_repeats*boxsize,num_repeats*2+1)
-    else:
-        repeat_array = [0.0]
-
     result = _render.render_image(nx, ny, x, y, z, sm, x1, x2, y1, y2, z_camera, 0.0, qty, mass, rho,
-                                  smooth_lo, smooth_hi, kernel, repeat_array, repeat_array)
+                                  smooth_lo, smooth_hi, kernel,
+                                  _calculate_wrapping_repeat_array(snap, x1, x2, xy_units),
+                                  _calculate_wrapping_repeat_array(snap, y1, y2, xy_units))
 
     result = result.view(array.SimArray)
 
@@ -683,6 +675,20 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     result.sim = snap
     return result
+
+
+def _calculate_wrapping_repeat_array(snap, x1, x2, xy_units):
+    if 'boxsize' in snap.properties:
+        boxsize = snap.properties['boxsize'].in_units(xy_units, **snap.conversion_context())
+    else:
+        boxsize = None
+    if boxsize:
+        # work out the tile offsets required to make the image wrap
+        num_repeats = int(round((x2 - x1) / (2 * boxsize))) + 1
+        repeat_array = np.linspace(-num_repeats * boxsize, num_repeats * boxsize, num_repeats * 2 + 1)
+    else:
+        repeat_array = [0.0]
+    return repeat_array
 
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
@@ -727,7 +733,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
         denoise = _auto_denoise(snap, kernel)
 
     if denoise and not _kernel_suitable_for_denoise(kernel):
-        raise ValueError, "Denoising not supported with this kernel type. Re-run with denoise=False"
+        raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
 
     in_time = time.time()
 
@@ -752,8 +758,8 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     if nz is None:
         nz = nx
 
-    x1, x2, y1, y2, z1, z2 = [float(q) for q in x1, x2, y1, y2, z1, z2]
-    nx, ny, nz = [int(q) for q in nx, ny, nz]
+    x1, x2, y1, y2, z1, z2 = [float(q) for q in (x1, x2, y1, y2, z1, z2)]
+    nx, ny, nz = [int(q) for q in (nx, ny, nz)]
 
     if approximate_fast:
         renderer = _interpolated_renderer(
@@ -856,7 +862,10 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
     logger.info("Gridding particles")
 
     result = _render.to_3d_grid(nx,ny,nz,x,y,z,sm,x1,x2,y1,y2,z1,z2,
-                                qty,mass,rho,smooth_lo,smooth_hi,kernel)
+                                qty,mass,rho,smooth_lo,smooth_hi,kernel,
+                                _calculate_wrapping_repeat_array(snap, x1, x2, xy_units),
+                                _calculate_wrapping_repeat_array(snap, y1, y2, xy_units),
+                                _calculate_wrapping_repeat_array(snap, z1, z2, xy_units))
     result = result.view(array.SimArray)
 
     # The weighting works such that there is a factor of (M_u/rho_u)h_u^3
@@ -922,7 +931,7 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     if v1 is None:
         v1 = -v2
     dvel = (v2 - v1) / nvel
-    v1, v2, dvel, nvel = [float(q) for q in v1,v2,dvel,nvel]
+    v1, v2, dvel, nvel = [float(q) for q in (v1,v2,dvel,nvel)]
     vels = np.arange(v1+0.5*dvel, v2, dvel)
 
     tau = np.zeros((nvel),dtype=np.float32)
@@ -968,18 +977,18 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
 
     # before inlining, the views on the arrays must be standard np.ndarray
     # otherwise the normal numpy macros are not generated
-    x,y,vz,temp,sm,qty, mass, rho = [q.view(np.ndarray) for q in x,y,vz,temp,sm,qty, mass, rho]
+    x,y,vz,temp,sm,qty, mass, rho = [q.view(np.ndarray) for q in (x,y,vz,temp,sm,qty, mass, rho)]
 
-    if config['verbose']: print>>sys.stderr, "Constructing SPH spectrum"
+    if config['verbose']: print("Constructing SPH spectrum", file=sys.stderr)
 
     if config["tracktime"] :
-        print>>sys.stderr, "Beginning SPH render at %.2f s"%(time.time()-in_time)
+        print("Beginning SPH render at %.2f s"%(time.time()-in_time), file=sys.stderr)
     #import pdb; pdb.set_trace()
     util.threadsafe_inline( code, ['tau', 'nvel', 'x', 'y', 'vz', 'temp', 'sm', 'v1', 'v2',
                    'nnucleons','qty', 'mass', 'rho'],verbose=2)
 
     if config["tracktime"] :
-        print>>sys.stderr, "Render done at %.2f s"%(time.time()-in_time)
+        print("Render done at %.2f s"%(time.time()-in_time), file=sys.stderr)
 
     mass_e = 9.10938188e-28
     e = 4.803206e-10
@@ -989,10 +998,10 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     oscwav0 = 1031.9261*0.13250*1e-8
     tau = tauconst*oscwav0*tau*conv_ratio
     #tau = tau*conv_ratio
-    print "tauconst: %g oscwav0: %g"%(tauconst,oscwav0)
-    print "tauconst*oscwav0: %g"%(tauconst*oscwav0)
-    print "conv_ratio: %g"%conv_ratio
-    print "max(N): %g"%(np.max(tau))
+    print("tauconst: %g oscwav0: %g"%(tauconst,oscwav0))
+    print("tauconst*oscwav0: %g"%(tauconst*oscwav0))
+    print("conv_ratio: %g"%conv_ratio)
+    print("max(N): %g"%(np.max(tau)))
     tau = tau.view(array.SimArray)
 
     tau.sim = snap

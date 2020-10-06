@@ -106,7 +106,7 @@ def temp_profile(sim, center=True, r_units='kpc', bin_spacing='equaln',
     else:
         max_r = sim['r'].max()
 
-    pro = profile.Profile(sim.gas, type=bin_spacing, min=min_r, max=max_r)
+    pro = profile.Profile(sim.gas, type=bin_spacing, rmin =min_r, rmax =max_r)
 
     r = pro['rbins'].in_units(r_units)
     tempprof = pro['temp']

@@ -18,6 +18,7 @@ import numpy as np
 import weakref
 import copy
 import logging
+import warnings
 
 from .. import snapshot, util
 
@@ -43,7 +44,7 @@ class Halo(snapshot.IndexedSubSnap):
         self.properties = copy.copy(self.properties)
         self.properties['halo_id'] = halo_id
         if halo_id in halo_catalogue._halos:
-            for key in halo_catalogue._halos[halo_id].properties.keys():
+            for key in list(halo_catalogue._halos[halo_id].properties.keys()):
                 self.properties[key] = halo_catalogue._halos[halo_id].properties[key]
 
 
@@ -129,8 +130,18 @@ class HaloCatalogue(object):
 
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
-            self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
-            self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
+            if 'iord' in self.base.loadable_keys():
+                self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
+                self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
+            else:
+                warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
+                              RuntimeWarning)
+
+                class OneToOneIndex:
+                    def __getitem__(self, i):
+                        return i
+
+                self._iord_to_fpos = OneToOneIndex()
 
     def is_subhalo(self, childid, parentid):
         """Checks whether the specified 'childid' halo is a subhalo
@@ -260,7 +271,7 @@ class GrpCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
-        if (arr_name in sim.loadable_keys()) or (arr_name in sim.keys()) :
+        if (arr_name in sim.loadable_keys()) or (arr_name in list(sim.keys())) :
             return True
         else:
             return False

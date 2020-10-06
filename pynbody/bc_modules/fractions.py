@@ -3,9 +3,9 @@
 
 """Rational, infinite-precision, real numbers."""
 
-from __future__ import division
+
 import math
-import numbers
+from . import numbers
 import operator
 import re
 
@@ -65,8 +65,8 @@ class Fraction(Rational):
         """
         self = super(Fraction, cls).__new__(cls)
 
-        if type(numerator) not in (int, long) and denominator == 1:
-            if isinstance(numerator, basestring):
+        if type(numerator) not in (int, int) and denominator == 1:
+            if isinstance(numerator, str):
                 # Handle construction from strings.
                 input = numerator
                 m = _RATIONAL_FORMAT.match(input)
@@ -298,7 +298,7 @@ class Fraction(Rational):
 
         """
         def forward(a, b):
-            if isinstance(b, (int, long, Fraction)):
+            if isinstance(b, (int, Fraction)):
                 # update by AP for python 2.5
                 return monomorphic_operator(a, Fraction(b))
             elif isinstance(b, float):
@@ -311,7 +311,7 @@ class Fraction(Rational):
         forward.__doc__ = monomorphic_operator.__doc__
 
         def reverse(b, a):
-            if isinstance(a, (int, long, Fraction)):
+            if isinstance(a, (int, Fraction)):
                 # update by AP for python 2.5
                 return monomorphic_operator(Fraction(a), b)
             elif isinstance(a, numbers.Real):
@@ -522,7 +522,7 @@ class Fraction(Rational):
         """a >= b"""
         return a._subtractAndCompareToZero(b, operator.ge)
 
-    def __nonzero__(a):
+    def __bool__(a):
         """a != 0"""
         return a._numerator != 0
 

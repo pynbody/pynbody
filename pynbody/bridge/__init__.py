@@ -50,13 +50,13 @@ class Bridge(object):
         elif s.is_descendant(end):
             return start[s.get_index_list(end)]
         else:
-            raise RuntimeError, "Not a subview of either end of the bridge"
+            raise RuntimeError("Not a subview of either end of the bridge")
 
     def _get_ends(self):
         start = self._start()
         end = self._end()
         if start is None or end is None:
-            raise RuntimeError, "Stale reference to start or endpoint"
+            raise RuntimeError("Stale reference to start or endpoint")
         return start, end
 
     def match_catalog(self, min_index=1, max_index=30, threshold=0.5,
@@ -228,7 +228,7 @@ class OrderBridge(Bridge):
             to_ = start
 
         else:
-            raise RuntimeError, "Not a subview of either end of the bridge"
+            raise RuntimeError("Not a subview of either end of the bridge")
 
         iord_to = np.asarray(to_[self._order_array]).view(np.ndarray)
         iord_from = np.asarray(s[self._order_array]).view(np.ndarray)
@@ -264,7 +264,7 @@ def bridge_factory(a, b):
     b_top = b.ancestor
 
     if type(a_top) is not type(b_top):
-        raise RuntimeError, "Don't know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately."
+        raise RuntimeError("Don't know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately.")
 
     if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NchiladaSnap)):
         if "iord" in a_top.loadable_keys():
@@ -275,7 +275,7 @@ def bridge_factory(a, b):
         return OrderBridge(a_top, b_top, monotonic=False, allow_family_change=True)
     elif isinstance(a_top, ramses.RamsesSnap):
         if len(a.gas) > 0 or len(b.gas) > 0:
-            raise RuntimeError, "Cannot bridge AMR gas cells"
+            raise RuntimeError("Cannot bridge AMR gas cells")
         return OrderBridge(a_top, b_top, monotonic=False)
     else:
-        raise RuntimeError, "Don't know how to automatically bridge between these simulations. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately."
+        raise RuntimeError("Don't know how to automatically bridge between these simulations. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately.")

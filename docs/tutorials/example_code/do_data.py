@@ -7,7 +7,7 @@ rvir=pynbody.array.SimArray(np.max(h[i]['r'].in_units('kpc')),'kpc')
 # 3D density profile
 rhoprof = profile.Profile(h[i],dim=3,type='log')
 # Rotation curve
-rcpro = profile.Profile(h[i], type='equaln', nbins = 50, max = '40 kpc')
+rcpro = profile.Profile(h[i], type='equaln', nbins = 50, rmax = '40 kpc')
 # surface brightness profile
 diskstars = h[i].star[filt.Disc('20 kpc','3 kpc')]
 sbprof = profile.Profile(diskstars,type='equaln')

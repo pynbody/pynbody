@@ -4,7 +4,7 @@ from .. import config
 from ..util import get_eps, eps_as_simarray
 
 import math
-import tree
+from . import tree
 import numpy as np
 
 import warnings

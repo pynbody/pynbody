@@ -313,10 +313,15 @@ extras_require['all'] = []
 for name, reqs in extras_require.items():
     extras_require['all'].extend(reqs)
 
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '0.48',
+             version = '1.0.2',
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://github.com/pynbody/pynbody/releases',
              package_dir = {'pynbody/': ''},
@@ -336,13 +341,15 @@ dist = setup(name = 'pynbody',
                             "Intended Audience :: Developers",
                             "Intended Audience :: Science/Research",
                             "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-                            "Programming Language :: Python :: 2",
                             "Programming Language :: Python :: 3",
                             "Topic :: Scientific/Engineering :: Astronomy",
                             "Topic :: Scientific/Engineering :: Visualization"],
              install_requires=install_requires,
              tests_require=tests_require,
              extras_require=extras_require,
+             python_requires='>=3.5',
+             long_description=long_description,
+             long_description_content_type='text/markdown'
       )
 
 #if dist.have_run.get('install'):

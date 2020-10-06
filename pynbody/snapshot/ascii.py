@@ -7,8 +7,8 @@ A simple ascii file reader for pynbody
 
 """
 
-from __future__ import with_statement  # for py2.5
-from __future__ import division
+  # for py2.5
+
 
 from .. import array, util
 from .. import family
@@ -81,7 +81,7 @@ class AsciiSnap(SimSnap):
     def _load_array(self, array_name, fam=None):
 
         if fam is not None:
-            raise IOError, "Arrays only loadable at snapshot, not family level"
+            raise IOError("Arrays only loadable at snapshot, not family level")
 
         ars = [array_name]
 
@@ -89,7 +89,7 @@ class AsciiSnap(SimSnap):
             ars =  self._array_name_ND_to_1D(array_name)
             for array_name_i in ars:
                 if array_name_i not in self._loadable_keys:
-                    raise IOError, "No such array on disk"
+                    raise IOError("No such array on disk")
 
         self._load_arrays(ars)
 

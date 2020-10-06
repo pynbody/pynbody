@@ -116,10 +116,10 @@ class AbstractBaseProfile(ABC):
         raise KeyError('Cannot delete a parameter from the profile once set')
 
     def __repr__(self):
-        return "<" + self.__class__.__name__ + str(self.keys()) + ">"
+        return "<" + self.__class__.__name__ + str(list(self.keys())) + ">"
 
     def keys(self):
-        return self._parameters.keys()
+        return list(self._parameters.keys())
 
 
 class NFWprofile(AbstractBaseProfile):

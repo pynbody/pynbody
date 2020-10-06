@@ -12,21 +12,11 @@ If you're more interested in making pretty pictures and plots straight
 away, you may wish to read the :ref:`basic facilities tutorial
 <snapshot_manipulation>` first.
 
-.. note:: This tutorial discusses an
-  interactive session rather than a script. This is only cosmetically
-  different; the commands discussed here can of course all be used in
-  a script too. We will use the `ipython` interpreter which offers a
-  much richer interactive environment over the vanilla `python`
-  interpreter. However, you can type exactly the same commands into
-  vanilla `python`; only the formatting will look slightly
-  different. For instance, the `ipython` prompt looks like ``In [1]:``
-  while the `python` prompt looks like ``>>>``.
+.. note::
 
-
-First steps
------------
-
-.. note:: Before you start make sure `pynbody` is properly
+ This tutorial assumes basic familiarity with python and is
+ written as a series of `ipython` cells, like a `Jupyter` notebook.
+ Before you start make sure `pynbody` is properly
  installed. See :ref:`pynbody-installation`
  for more information. You will also need the standard `pynbody` test
  files if you want to follow the tutorial.
@@ -35,10 +25,15 @@ First steps
  (`testdata.tar.gz`).
 
 After you have extracted the testdata folder (e.g. with ``tar -xzf
-testdata.tar.gz``), launch `ipython`. At the prompt, type ``import
-pynbody``. If all is installed correctly, this should silently
-succeed, and you are ready to use `pynbody` commands. Here's an
-example. We'll also load the `numpy` module as it provides some
+testdata.tar.gz``), launch `ipython` or `Jupyter`. At the prompt or in
+a cell, type ``import pynbody``. If all is installed correctly, this should silently
+succeed, and you are ready to use `pynbody`.
+
+First steps
+-----------
+
+We will start by loading one of the test files.
+We'll also load the `numpy` module as it provides some
 functions we'll make use of later.
 
 .. ipython::
@@ -303,8 +298,14 @@ You might have noticed in the output from the above experiments that
  ``.param`` file is sought in the directory from which you are loading
  the snapshot and its immediate parent. You can also create a text file
  with the same name as your snapshot but the extension ``.units`` to override
- the units at load time. For further information see
- :func:`~pynbody.snapshot.SimSnap._override_units_system`.
+ the units at load time. For example, such a file can contain ::
+
+   pos: kpc a
+   vel: km s^-1
+   mass: Msol
+
+ to specify distance units are comoving kiloparsecs, velocity units are
+ kilometers per second, and mass is in solar masses.
 
 You can print out the units of any given array by accessing the
 ``units`` property:
