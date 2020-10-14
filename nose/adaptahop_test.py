@@ -31,8 +31,10 @@ def test_get_group():
         # - read from halo (h[halo_id]['iord'])
         # - obtained from get_group_array masking
         # are the same (in term of sets)
-        assert len(np.setdiff1d(iord[mask], h[halo_id]["iord"])) == 0
-        assert len(np.setdiff1d(h[halo_id]["iord"]), iord[mask]) == 0
+        iord_1 = np.sort(iord[mask])
+        iord_2 = np.sort(h[halo_id]["iord"])
+
+        np.testing.assert_equal(iord_1, iord_2)
 
 
 def test_halo_particle_ids():
