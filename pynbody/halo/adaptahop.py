@@ -156,7 +156,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     # Store dtype for next time
                     self.base._iord_dtype = dtype
 
-                    if not util.is_sorted(iord_array):
+                    if not util.is_sorted(iord_array) == 1:
                         return np.sort(iord_array)
                     else:
                         return iord_array
