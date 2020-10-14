@@ -132,7 +132,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         halo = self._halos[halo_id]
         halo_dummy = self._halos[halo_id]
-        halo = self._read_halo_data(halo_id, halo.properties['file_offset'])
+        halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
         halo.dummy = halo_dummy
 
         return halo
@@ -194,7 +194,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # /!\: AdaptaHOP assumes that 1Mpc == 3.08e24 (exactly)
         boxsize = self.base.properties["boxsize"]
         Mpc2boxsize = boxsize.in_units("cm") / 3.08e24  # Hard-coded in AdaptaHOP...
-        for k in 'xyz':
+        for k in "xyz":
             props[k] = boxsize.in_units("Mpc") * (props[k] / Mpc2boxsize + 0.5)
 
         # Add units for known fields
@@ -207,18 +207,20 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         props["members"] = iord_array
 
         # Create halo object and fill properties
-        if hasattr(self, '_group_to_indices'):
+        if hasattr(self, "_group_to_indices"):
             index_array = self._group_to_indices[halo_id]
             iord_array = None
         else:
             index_array = None
             iord_array = iord_array
-        halo = Halo(halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array)
+        halo = Halo(
+            halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
+        )
         halo.properties.update(props)
 
         return halo
 
-    def get_group_array(self, family='dm', group_to_indices=False):
+    def get_group_array(self, family="dm", group_to_indices=False):
         """Return an array with an integer for each particle in the simulation
         indicating which halo that particle is associated with. If there are multiple
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
@@ -236,14 +238,14 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         igrp : int array
             An array that contains the index of the group that contains each particle.
         """
-        logger.debug('Get_group_array')
+        logger.debug("Get_group_array")
         if family is None:
             family == self.base.families()[0]
         elif isinstance(family, str):
             families = self.base.families()
             matched_families = [f for f in families if f.name == family]
             if len(matched_families) != 1:
-                raise Exception('Could not find family %s' % family)
+                raise Exception("Could not find family %s" % family)
             family = matched_families[0]
         try:
             data = self.base[family]
@@ -252,8 +254,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             logger.error((type(family)))
             raise
 
-        iord = data['iord']
-        iord_argsort = data['iord_argsort']
+        iord = data["iord"]
+        iord_argsort = data["iord_argsort"]
 
         igrp = np.zeros(len(data), dtype=int) - 1
 
@@ -261,9 +263,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             grp2indices = {}
         with FortranFile(self._fname) as fpu:
             for halo_id, halo in self._halos.items():
-                fpu.seek(halo.properties['file_offset'])
+                fpu.seek(halo.properties["file_offset"])
                 fpu.skip(1)  # number of particles
-                particle_ids = fpu.read_vector('i')
+                particle_ids = fpu.read_vector("i")
 
                 indices = util.binary_search(particle_ids, iord, iord_argsort)
                 assert all(indices < len(iord))
