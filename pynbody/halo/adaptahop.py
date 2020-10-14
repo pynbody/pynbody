@@ -137,6 +137,38 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         return halo
 
+    def _read_member_helper(self, fpu, expected_size):
+        """Read the member array from file, and return it *sorted*.
+
+        The function automatically find whether the particle ids are stored in
+        32 or 64 bits.
+        """
+        default_dtype = getattr(self.base, "_iord_dtype", "i")
+        possible_dtypes = list({"i", "q"} - {default_dtype})
+
+        dtypes = [default_dtype] + possible_dtypes
+        ipos = fpu.tell()
+
+        for dtype in dtypes:
+            try:
+                iord_array = fpu.read_vector(dtype)
+                if iord_array.size == expected_size:
+                    # Store dtype for next time
+                    self.base._iord_dtype = dtype
+
+                    if not util.is_sorted(iord_array):
+                        return np.sort(iord_array)
+                    else:
+                        return iord_array
+
+            except ValueError:
+                pass
+            # Rewind
+            fpu.seek(ipos)
+
+        # Could not read, throw an error
+        raise RuntimeError("Could not read iord!")
+
     def _read_halo_data(self, halo_id, offset):
         """
         Reads the halo data from file -- AdaptaHOP specific.
@@ -153,35 +185,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         halo : Halo object
             The halo object, filled with the data read from file.
         """
-
-        default_dtype = getattr(self.base, "_iord_dtype", "i")
-        possible_dtypes = list({"i", "q"} - {default_dtype})
-
-        dtypes = [default_dtype] + possible_dtypes
-
-        def _helper(fpu, expected_size):
-            ipos = fpu.tell()
-
-            for dtype in dtypes:
-                try:
-                    iord_array = fpu.read_vector(dtype)
-                    if iord_array.size == expected_size:
-                        # Store dtype for next time
-                        self.base._iord_dtype = dtype
-                        return iord_array
-
-                except ValueError:
-                    pass
-                # Rewind
-                fpu.seek(ipos)
-
-            # Could not read, throw an error
-            raise RuntimeError("Could not read iord for halo %s!", halo_id)
-
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
             npart = fpu.read_int()
-            iord_array = _helper(fpu, npart)
+            iord_array = self._read_member_helper(fpu, npart)
             halo_id_read = fpu.read_int()
             assert halo_id == halo_id_read
             if self._read_contamination:
@@ -264,8 +271,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         with FortranFile(self._fname) as fpu:
             for halo_id, halo in self._halos.items():
                 fpu.seek(halo.properties["file_offset"])
-                fpu.skip(1)  # number of particles
-                particle_ids = fpu.read_vector("i")
+                npart = fpu.read_int()
+                particle_ids = self._read_member_helper(fpu, npart)
 
                 indices = util.binary_search(particle_ids, iord, iord_argsort)
                 assert all(indices < len(iord))
