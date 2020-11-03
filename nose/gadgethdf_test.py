@@ -180,3 +180,15 @@ def test_hdf_ordering():
     assert snap._family_slice[pynbody.family.gas] == slice(0, 2076907, None)
     assert snap._family_slice[pynbody.family.dm] == slice(2076907, 4174059, None)
     assert snap._family_slice[pynbody.family.star] == slice(4174059, 4194304, None)
+
+
+def test_mass_in_header():
+    f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
+    f.physical_units()
+    f['mass'] # load all masses
+    assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+
+    f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
+    f.physical_units()
+    # don't load all masses, allow it to be loaded for DM only
+    assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
