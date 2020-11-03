@@ -353,7 +353,7 @@ class GadgetHDFSnap(SimSnap):
     @staticmethod
     def _get_cosmo_factors(hdf, arr_name) :
         """Return the cosmological factors for a given array"""
-        match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((arr_name in s) & ('PartType' in s))]
+        match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((s.endswith("/"+arr_name)) & ('PartType' in s))]
         if len(match) > 0 : 
             aexp = hdf[match[0]].attrs['aexp-scale-exponent']
             hexp = hdf[match[0]].attrs['h-scale-exponent']
