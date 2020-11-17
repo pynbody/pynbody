@@ -789,7 +789,7 @@ class TipsySnap(SimSnap):
                          'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform',
                          'posform', 'velform','h2form']
         # if massform available as auxiliary array, faster to load it instead
-        if 'massform' not in self.loadable_keys():
+        if array_name == 'massform' and 'massform' not in self.loadable_keys():
             starlog_keys += ['massform']
 
         if filename is None and array_name in starlog_keys:
