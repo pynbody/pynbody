@@ -785,9 +785,14 @@ class TipsySnap(SimSnap):
         specified name. If fam is not None, read only the particles of
         the specified family."""
 
-        if filename is None and array_name in ['massform', 'rhoform', 'tempform', 'phiform', 'nsmooth',
-                                               'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform',
-                                               'posform', 'velform','h2form']:
+        starlog_keys = ['rhoform', 'tempform', 'phiform', 'nsmooth',
+                         'xform', 'yform', 'zform', 'vxform', 'vyform', 'vzform',
+                         'posform', 'velform','h2form']
+        # if massform available as auxiliary array, faster to load it instead
+        if 'massform' not in self.loadable_keys():
+            starlog_keys += ['massform']
+
+        if filename is None and array_name in starlog_keys:
 
             try:
                 self.read_starlog()
