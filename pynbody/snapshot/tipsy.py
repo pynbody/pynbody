@@ -1186,9 +1186,9 @@ class StarLog(SimSnap):
                     structure_formats = []
                     for line in g: 
                         if line.startswith('# end starlog data'): 
-                            read_metadata = False 
+                            break
                         if read_metadata: 
-                            meta_name, meta_type = line.strip('#').split() 
+                            meta_name, meta_type = line.strip().strip('#').split() 
                             meta_name = self._infer_name_from_tipsy_log(meta_name) 
                             structure_names.append(meta_name) 
                             structure_formats.append(meta_type) 
