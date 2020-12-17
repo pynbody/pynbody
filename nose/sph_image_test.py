@@ -82,7 +82,7 @@ def test_render_stars():
     global f
     im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
 
-    compare= np.load("test_stars_2d.npy")
+    compare = np.load("test_stars_2d.npy")
 
     npt.assert_allclose(compare,im[40:60],atol=0.01)
 
