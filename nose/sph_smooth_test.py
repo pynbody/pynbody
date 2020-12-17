@@ -15,9 +15,15 @@ def setup():
 def teardown():
     global f
     del f
-    
+
 def test_smooth():
     global f
+    """
+    np.save('test_smooth.npy', f.dm['smooth'][::100])
+    np.save('test_rho.npy', f.dm['rho'][::100])
+    np.save('test_v_mean.npy',f.dm['v_mean'][::100])
+    np.save('test_v_disp.npy',f.dm['v_disp'][::100])
+    """
 
     npt.assert_allclose(f.dm['smooth'][::100],
                          np.load('test_smooth.npy'),rtol=1e-5)
@@ -99,7 +105,12 @@ def test_float_kd():
 def test_periodic_smoothing():
     f = pynbody.load("testdata/g15784.lr.01024")
 
-
+    """
+    np.save('test_rho_periodic.npy', f.dm['rho'][::100])
+    np.save('test_smooth_periodic.npy', f.dm['smooth'][::100])
+    """
+    npt.assert_allclose(f.dm['rho'][::100],
+                         np.load('test_rho_periodic.npy'),rtol=1e-5)
     npt.assert_allclose(f.dm['smooth'][::100],
                          np.load('test_smooth_periodic.npy'),rtol=1e-5)
 
