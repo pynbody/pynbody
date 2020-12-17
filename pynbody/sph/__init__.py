@@ -226,7 +226,7 @@ class Kernel2D(Kernel):
     def get_value(self, d, h=1):
         import scipy.integrate as integrate
         import numpy as np
-        return 2 * integrate.quad(lambda z: self.k_orig.get_value(np.sqrt(z ** 2 + d ** 2), h), 0, h)[0]
+        return 2 * integrate.quad(lambda z: self.k_orig.get_value(np.sqrt(z ** 2 + d ** 2), h), 0, 2*h)[0]
 
 
 class TopHatKernel(object):
