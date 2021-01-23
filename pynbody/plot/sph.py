@@ -458,10 +458,10 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
         if ret_im:
             return p.imshow(im[::-1, :].view(np.ndarray), extent=(-width / 2, width / 2, -width / 2, width / 2),
-                            vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
+                            cmap=cmap, norm = norm)
 
         ims = p.imshow(im[::-1, :].view(np.ndarray), extent=(-width / 2, width / 2, -width / 2, width / 2),
-                       vmin=vmin, vmax=vmax, cmap=cmap, norm = norm)
+                       cmap=cmap, norm = norm)
 
         u_st = sim['pos'].units.latex()
         if not subplot:
