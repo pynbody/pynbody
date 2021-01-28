@@ -122,10 +122,12 @@ def test_openmp_summations():
 
     start = time.time()
     sum_a = np.dot(a,(b>1.0))
+    print(sum_a)
     np_timing = time.time()-start
 
     start = time.time()
     sum_a_ne = pynbody.util.sum_if_gt(a,b,1.0)
+    print(sum_a_ne)
     ne_timing = time.time()-start
 
 
