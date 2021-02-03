@@ -11,6 +11,7 @@ env:
   - PYTHON=3.6  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
   - PYTHON=3.7  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
   - PYTHON=3.8  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
+  - PYTHON=3.9  NUMPY="numpy" CYTHON="cython" IPYTHON="ipython"
 
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
