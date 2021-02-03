@@ -213,8 +213,8 @@ class GrpCatalogue(HaloCatalogue):
         getting a single halo, however."""
         self._sorted = np.argsort(
             self.base[self._array], kind='mergesort')  # mergesort for stability
-        self._boundaries = util.find_boundaries(
-            self.base[self._array][self._sorted])
+        self._unique_i = np.unique(self.base[self._array])
+        self._boundaries = np.searchsorted(self.base[self._array][self._sorted],self._unique_i)
 
     def get_group_array(self, family=None):
         if family is not None:
@@ -234,20 +234,18 @@ class GrpCatalogue(HaloCatalogue):
             return index
         else:
             # pre-calculated
-            if i >= len(self._boundaries) or i < 0:
-                raise no_exist
-            if self._boundaries[i] < 0:
+            if not np.isin(i,self._unique_i):
                 raise no_exist
 
-            start = self._boundaries[i]
-            if start is None:
-                raise no_exist
+            match = np.where(self._unique_i==i)[0]
 
-            end = None
-            j = i + 1
-            while j < len(self._boundaries) and end is None:
-                end = self._boundaries[j]
-                j += 1
+            start = self._boundaries[match][0]
+            
+            if start == self._boundaries[-1]:
+                # This is the final halo
+                end = None
+            else:
+                end = self._boundaries[match+1][0]
 
             return self._sorted[start:end]
 
