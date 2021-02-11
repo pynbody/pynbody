@@ -12,6 +12,7 @@ class HOPCatalogue(GrpCatalogue):
     or specified by fname"""
     def __init__(self, sim, fname=None):
         self._halos = {}
+        self._num_groups = 0.
 
         if fname is None:
             for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
@@ -21,25 +22,28 @@ class HOPCatalogue(GrpCatalogue):
             if not os.path.exists(fname):
                 raise RuntimeError("Unable to find HOP .tag file in simulation directory")
 
-
         sim._create_array('hop_grp', dtype=np.int32)
-        sim['hop_grp']=-1
+        sim['hop_grp'] -= 1
         with open(fname, "rb") as f:
             num_part, = struct.unpack('i', f.read(4))
-            if num_part==8:
+            if num_part == 8:
                 # fortran-formatted output
                 num_part, num_grps, _, _ = struct.unpack('iiii', f.read(16))
             else:
                 # plain binary output
                 num_grps, = struct.unpack('i', f.read(4))
 
-            if num_part!=len(sim.dm):
-                raise RuntimeError("Mismatching number of particles between snapshot %s and HOP file %s"%(sim.filename, fname))
+            if num_part != len(sim.dm):
+                raise RuntimeError("Mismatching number of particles between "
+                                   "snapshot %s and HOP file %s. Check your pynbody configuration for any missing"
+                                   " particle fields or partial loading" % (sim.filename, fname))
+
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
         GrpCatalogue.__init__(self,sim,array="hop_grp")
+        self._num_groups = num_grps
 
     def __len__(self):
-        return len(self._halos)
+        return self._num_groups
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
