@@ -1007,19 +1007,23 @@ class RamsesSnap(SimSnap):
         return not_cosmological
 
     def _convert_tform(self):
-        # Copy the existing array in weird Ramses format into a hidden raw array
-        self.star['tform_raw'] = self.star['tform']
-        self.star['tform_raw'].units = self._file_units_system[1]
+        # Only convert tform for cosmological runs. The built0in tforms for isolated runs
+        # are actually meaningful (issue 554)
+        if not self._not_cosmological():
+            
+            # Copy the existing array in weird Ramses format into a hidden raw array
+            self.star['tform_raw'] = self.star['tform']
+            self.star['tform_raw'].units = self._file_units_system[1]
 
-        if self._is_using_proper_time:
-            t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
-            birth_time[birth_time > t0] = t0 - 1e-7
-            self.star['tform'] = birth_time
-        else:
-            from ..analysis import ramses_util
-            # Replace the tform array by its usual meaning using the birth files
-            ramses_util.get_tform(self)
+            if self._is_using_proper_time:
+                t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
+                birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
+                birth_time[birth_time > t0] = t0 - 1e-7
+                self.star['tform'] = birth_time
+            else:
+                from ..analysis import ramses_util
+                # Replace the tform array by its usual meaning using the birth files
+                ramses_util.get_tform(self)
 
     def _read_proper_time(self):
         try:
