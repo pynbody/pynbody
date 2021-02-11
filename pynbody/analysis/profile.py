@@ -161,10 +161,10 @@ class Profile:
         if load_from_file:
             import pickle
 
-            filename = self._generate_hash_filename()
+            filename = self._get_unique_filepath_from_particle_list()
 
             try:
-                data = pickle.load(open(filename, 'r'))
+                data = pickle.load(open(filename, 'rb'))
                 self._properties = data['properties']
                 self.max = data['max']
                 self.min = data['min']
@@ -176,7 +176,7 @@ class Profile:
 
                 generate_new = False
 
-            except IOError:
+            except FileNotFoundError:
                 logger.warning(
                     "Existing profile not found -- generating one from scratch instead")
 
@@ -465,16 +465,27 @@ class Profile:
 
         out_sim[particle_name].units = self[profile_name].units
 
-    def _generate_hash_filename(self):
+    def _generate_hash_filename_from_particles(self):
         """Create a filename for the saved profile from a hash using the binning data"""
+
         import hashlib
+        # Changing to the new() method, which will not fail if usedforsecurity is unsupported
+        # in a given system configuration (issue 581)
+        h = hashlib.new('md5', usedforsecurity=False)
+        # Reproduce old behaviour, given byte-like data to create the hash.
+        h.update(self._x)
+        return h.hexdigest()
+
+    def _get_unique_filepath_from_particle_list(self):
 
         try:
-            filename = self.sim.base.filename + '.profile.' + \
-                (hashlib.md5(self._x, usedforsecurity=False)).hexdigest()
+            folder_path = self.sim.base.filename
         except AttributeError:
-            filename = self.sim.filename + '.profile.' + \
-                (hashlib.md5(self._x, usedforsecurity=False)).hexdigest()
+            folder_path = self.sim.filename
+
+        unique_hash = self._generate_hash_filename_from_particles()
+        print(type(unique_hash))
+        filename = folder_path + '.profile.' + unique_hash
 
         return filename
 
@@ -500,7 +511,7 @@ class Profile:
         # use the hash generated from the particle list for the file name
         # suffix
 
-        filename = self._generate_hash_filename()
+        filename = self._get_unique_filepath_from_particle_list()
 
         logger.info("Writing profile to %s", filename)
 
@@ -510,7 +521,7 @@ class Profile:
                      'nbins': self.nbins,
                      'profiles': self._profiles,
                      'binind': self.binind},
-                    open(filename, 'w'))
+                    open(filename, 'wb'))   # Open file in binary mode to allow python 3.X writing
 
     @staticmethod
     def profile_property(fn):
