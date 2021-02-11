@@ -484,9 +484,7 @@ class Profile:
             folder_path = self.sim.filename
 
         unique_hash = self._generate_hash_filename_from_particles()
-        print(type(unique_hash))
         filename = folder_path + '.profile.' + unique_hash
-
         return filename
 
     def write(self):
