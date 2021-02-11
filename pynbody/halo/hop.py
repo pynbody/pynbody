@@ -38,6 +38,9 @@ class HOPCatalogue(GrpCatalogue):
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
         GrpCatalogue.__init__(self,sim,array="hop_grp")
 
+    def __len__(self):
+        return len(self._halos)
+
     @staticmethod
     def _can_load(sim, arr_name='grp'):
         # Hop output must be in output directory or in output_*/hop directory
