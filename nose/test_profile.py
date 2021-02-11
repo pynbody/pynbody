@@ -1,5 +1,6 @@
 import pynbody
 import numpy as np
+import numpy.testing as npt
 
 np.random.seed(1)
 
@@ -58,3 +59,36 @@ def test_potential_profile_fp32():
     f['mass'] = np.ones(100,dtype=np.float32)
     p = pynbody.analysis.profile.Profile(f, nbins=50)
     p['pot']
+
+
+def test_unique_hash_generation():
+    f1 = pynbody.load("testdata/g15784.lr.01024")
+    p1 = pynbody.analysis.profile.Profile(f1, nbins=50)
+    p2 = pynbody.analysis.profile.Profile(f1[:1000], nbins=50)
+
+    hash1 = p1._generate_hash_filename_from_particles()
+    hash2 = p2._generate_hash_filename_from_particles()
+
+    assert(hash1 != hash2)
+    assert(type(hash1) is str)
+    assert(type(hash2) is str)
+    assert(hash1 == '5cba652ab20d82c3c47e6983e3ccf9d1')
+    assert(hash2 == 'e74e8c119a5038f15c47b71554fa9438')
+
+
+def test_write_profile():
+    f1 = pynbody.load("testdata/g15784.lr.01024")
+
+    p = pynbody.analysis.profile.Profile(f1[:1000], nbins=50)
+    p['rbins'], p['density']
+
+    # Write profile and read again
+    p.write()
+    read_profile = pynbody.analysis.profile.Profile(f1[:1000], load_from_file=True)
+
+    npt.assert_allclose(read_profile.min, p.min)
+    npt.assert_allclose(read_profile.max, p.max)
+    npt.assert_allclose(read_profile.nbins, p.nbins)
+    assert(read_profile.type, p.type)
+    npt.assert_allclose(read_profile['rbins'], p['rbins'])
+    npt.assert_allclose(read_profile['density'], p['density'])
