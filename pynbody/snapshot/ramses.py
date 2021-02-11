@@ -994,10 +994,17 @@ class RamsesSnap(SimSnap):
         return list(keys_ND)
 
     def _not_cosmological(self):
+        not_cosmological = True
+
         if "cosmo" in self._namelist and self._namelist["cosmo"]:
-            return False
-        else:
-            return True
+            not_cosmological = False
+
+        if not self._namelist:
+            warnings.warn("Namelist file either not found or unable to read" +
+                          "guessing whether run is cosmological from cosmological parameters")
+            not_cosmological = (self._info['omega_k'] == self._info['omega_l'] == 0)
+
+        return not_cosmological
 
     def _convert_tform(self):
         # Copy the existing array in weird Ramses format into a hidden raw array
@@ -1006,7 +1013,7 @@ class RamsesSnap(SimSnap):
 
         if self._is_using_proper_time:
             t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/self.properties["a"]**2
+            birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
             birth_time[birth_time > t0] = t0 - 1e-7
             self.star['tform'] = birth_time
         else:
