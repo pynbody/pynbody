@@ -1010,7 +1010,7 @@ class RamsesSnap(SimSnap):
         # Only convert tform for cosmological runs. The built0in tforms for isolated runs
         # are actually meaningful (issue 554)
         if not self._not_cosmological():
-            
+
             # Copy the existing array in weird Ramses format into a hidden raw array
             self.star['tform_raw'] = self.star['tform']
             self.star['tform_raw'].units = self._file_units_system[1]
@@ -1154,4 +1154,4 @@ def mass(sim):
 
 @RamsesSnap.derived_quantity
 def temp(sim):
-    return ((sim['p'] / sim['rho']) * (1.22 * units.m_p / units.k)).in_units("K")
+    return ((sim['p'] / sim['rho']) * (sim['mu'] * units.m_p / units.k)).in_units("K")
