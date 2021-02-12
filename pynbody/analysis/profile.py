@@ -471,7 +471,7 @@ class Profile:
         import hashlib
         # Changing to the new() method, which will not fail if usedforsecurity is unsupported
         # in a given system configuration (issue 581)
-        h = hashlib.new('md5', usedforsecurity=False)
+        h = hashlib.new('md5')
         # Reproduce old behaviour, given byte-like data to create the hash.
         h.update(self._x)
         return h.hexdigest()
