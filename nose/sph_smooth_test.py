@@ -114,8 +114,36 @@ def test_periodic_smoothing():
     npt.assert_allclose(f.dm['smooth'][::100],
                          np.load('test_smooth_periodic.npy'),rtol=1e-5)
 
-    npt.assert_allclose(f.dm['rho'][::100],
-                         np.load('test_rho_periodic.npy'),rtol=1e-5)
+def test_neighbour_list():
+    f = pynbody.load("testdata/test_g2_snap")
+    pynbody.sph._get_smooth_array_ensuring_compatibility(f.g)  # actual smoothing
+    t = f.g.kdtree
+    n_neigh = 32
+
+    generator_nn = t.nn(n_neigh)
+    n = next(generator_nn)
+    # print(n)
+
+    p_idx = n[0]       # particle index in snapshot arrays
+    hsml = n[1]        # smoothing length
+    neigh_list = n[2]  # neighbours list
+    dist2 = n[3]       # squared distances from neighbours
+    assert p_idx == 9
+    assert hsml == f.g['smooth'][p_idx]
+    npt.assert_allclose(hsml,np.sqrt(np.max(dist2))/2, rtol=1e-6)
+    assert hsml == 128.19053649902344
+    assert neigh_list == [0, 1, 2, 37, 4, 5, 70, 38, 8, 9, 10, 69, 12, 71, 14, 15, 16,
+                          17, 67, 33, 109, 76, 96, 64, 74, 39, 65, 40, 28, 97, 30, 31]
+    assert dist2 == [0.0, 39369.51953125, 24460.677734375, 31658.59375, 58536.9765625, 57026.3984375, 51718.3515625,
+                     47861.25390625, 59311.27734375, 34860.97265625, 36082.15234375, 65731.2578125, 16879.42578125,
+                     52811.79296875, 16521.751953125, 17574.501953125, 24489.19140625, 29066.84765625, 36883.796875,
+                     41815.23046875, 60706.04296875, 31192.068359375, 58157.92578125, 60277.04296875, 61944.99609375,
+                     45676.2578125, 54654.58984375, 59870.70703125, 20319.2890625, 35900.76953125, 30422.66796875, 56239.8828125]
+
+    neighbour_list_all = t.all_nn(n_neigh)
+    assert n == neighbour_list_all[0]
+    for nl in neighbour_list_all:
+        assert len(nl[2]) == n_neigh
 
 
 if __name__=="__main__":
