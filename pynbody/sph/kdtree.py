@@ -39,6 +39,7 @@ class KDTree(object):
             nn = 64
 
         smx = kdmain.nn_start(self.kdtree, int(nn), 1, self.boxsize)
+        kdmain.domain_decomposition(self.kdtree,1)
 
         while True:
             nbr_list = kdmain.nn_next(self.kdtree, smx)
@@ -115,7 +116,7 @@ class KDTree(object):
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
+        smx = kdmain.nn_start(self.kdtree, int(nn), n_proc, self.boxsize)
 
         propid = self.smooth_operation_to_id(mode)
 

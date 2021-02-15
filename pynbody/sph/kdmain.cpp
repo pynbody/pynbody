@@ -239,7 +239,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     float hsm;
     float period = BIGFLOAT;
 
-    PyArg_ParseTuple(args, "Oi|f", &kdobj, &nSmooth, &period);
+    PyArg_ParseTuple(args, "Oii|f", &kdobj, &nSmooth, &nProcs, &period);
     kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
     if(period<=0)
@@ -302,7 +302,7 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
     Py_END_ALLOW_THREADS
 
-    if (nCnt != 0)
+    if (nCnt > 0)
     {
         nnList = PyList_New(nCnt); // Py_INCREF(nnList);
         nnDist = PyList_New(nCnt); // Py_INCREF(nnDist);
