@@ -132,8 +132,8 @@ def test_neighbour_list():
     assert hsml == f.g['smooth'][p_idx]
     npt.assert_allclose(hsml,np.sqrt(np.max(dist2))/2, rtol=1e-6)
     assert hsml == 128.19053649902344
-    assert neigh_list == [0, 1, 2, 37, 4, 5, 70, 38, 8, 9, 10, 69, 12, 71, 14, 15, 16,
-                          17, 67, 33, 109, 76, 96, 64, 74, 39, 65, 40, 28, 97, 30, 31]
+    assert neigh_list == [9, 11, 35, 1998, 7, 12, 22, 36, 5, 20, 34, 31, 8, 19, 37, 10, 2018,
+                          2017, 38, 52, 39, 41, 42, 33, 23, 1997, 43, 1996, 24, 40, 25, 21]
     assert dist2 == [0.0, 39369.51953125, 24460.677734375, 31658.59375, 58536.9765625, 57026.3984375, 51718.3515625,
                      47861.25390625, 59311.27734375, 34860.97265625, 36082.15234375, 65731.2578125, 16879.42578125,
                      52811.79296875, 16521.751953125, 17574.501953125, 24489.19140625, 29066.84765625, 36883.796875,
@@ -143,7 +143,9 @@ def test_neighbour_list():
     neighbour_list_all = t.all_nn(n_neigh)
     assert n == neighbour_list_all[0]
     for nl in neighbour_list_all:
-        assert len(nl[2]) == n_neigh
+        assert len(nl[2]) == n_neigh   # always find n_neigh neighbours
+        idx_self = nl[2].index(nl[0])  # index of self in the neighbour list (not necessarily the first element)
+        assert nl[3][idx_self] == 0.0  # distance to self
 
 
 if __name__=="__main__":

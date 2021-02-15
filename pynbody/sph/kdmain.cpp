@@ -279,7 +279,7 @@ PyObject *nn_start(PyObject *self, PyObject *args)
 /*==========================================================================*/
 PyObject *nn_next(PyObject *self, PyObject *args)
 {
-    long nCnt, i;
+    long nCnt, i, pj;
 
     KD kd;
     SMX smx;
@@ -310,7 +310,8 @@ PyObject *nn_next(PyObject *self, PyObject *args)
 
         for (i=0; i < nCnt; i++)
         {
-            PyList_SetItem(nnList, i, PyLong_FromLong(smx->pList[i]));
+            pj = smx->pList[i];
+            PyList_SetItem(nnList, i, PyLong_FromLong(smx->kd->p[pj].iOrder));
             PyList_SetItem(nnDist, i, PyFloat_FromDouble(smx->fList[i]));
         }
 
