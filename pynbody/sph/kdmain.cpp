@@ -314,7 +314,7 @@ PyObject *nn_next(PyObject *self, PyObject *args)
             PyList_SetItem(nnDist, i, PyFloat_FromDouble(smx->fList[i]));
         }
 
-        PyList_SetItem(retList, 0, PyLong_FromLong(smx->pi));
+        PyList_SetItem(retList, 0, PyLong_FromLong(smx->kd->p[smx->pi].iOrder));
         if(kd->nBitDepth==32)
             PyList_SetItem(retList, 1, PyFloat_FromDouble(
                         (double)GET<float>(smx->kd->pNumpySmooth, smx->kd->p[smx->pi].iOrder)));
