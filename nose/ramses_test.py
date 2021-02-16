@@ -187,8 +187,10 @@ def test_proper_time_loading():
 
 
 def test_is_cosmological_without_namelist():
-    # Load a cosmo run, but without the namelist.txt file
+    # Load a cosmo run, but without the namelist.txt file and checks that cosmo detection works with a warning
     f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
     f_without_namelist.physical_units()
 
-    assert(not f_without_namelist._not_cosmological())
+    with np.testing.assert_warns(UserWarning):
+        assert (not f_without_namelist._not_cosmological())
+
