@@ -87,6 +87,17 @@ def test_rt_arrays():
          1.59989054e-09,   7.61815782e-07,   7.09372161e-08,
          7.76265288e-09,   4.32642383e-09])
 
+
+def test_rt_unit_warning_for_photon_rho():
+    # Issue 542 about photon density unit.
+    # Check that warning informing user about the missing "reduced speed of light" factor is generated
+    # at load time
+    f1 = pynbody.load("testdata/ramses_rt_partial_output_00002", cpus=[1, 2, 3])
+
+    with np.testing.assert_warns(UserWarning):
+        f1.gas['rad_0_rho']
+
+
 def test_all_dm():
     f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
     assert len(f1.families())==1
