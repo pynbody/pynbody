@@ -184,3 +184,11 @@ def test_proper_time_loading():
         2.38078038, 4.3666123, 2.68693346, 3.37377901, 3.27283305,
         3.03470615, 2.4334257, 2.65158796, 2.90785361, 2.56396249],
         rtol=1e-5)
+
+
+def test_is_cosmological_without_namelist():
+    # Load a cosmo run, but without the namelist.txt file
+    f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    f_without_namelist.physical_units()
+
+    assert(not f_without_namelist._not_cosmological())
