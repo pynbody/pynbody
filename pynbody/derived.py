@@ -113,65 +113,60 @@ def vtheta(self):
             np.sin(self['theta']) * self['vy'])
 
 
-@SimSnap.derived_quantity
-def v_mean(self):
-    """SPH-smoothed mean velocity"""
+_op_dict = {"mean": "mean velocity",
+            "disp": "velocity dispersion",
+            "curl": "velocity curl",
+            "div": "velocity divergence",
+            }
+
+
+def _v_sph_operation(self, op):
+    """SPH-smoothed velocity operations"""
     from . import sph
 
     sph.build_tree(self)
 
     nsmooth = config['sph']['smooth-particles']
 
-    logger.info(
-        'Calculating mean velocity with %d nearest neighbours' % nsmooth)
+    logger.info(f'Calculating {_op_dict[op]} with %d nearest neighbours' % nsmooth)
 
-    sm = array.SimArray(np.empty_like(self['vel']),
-                        self['vel'].units)
+    sm = array.SimArray(np.empty_like(self['vel']), self['vel'].units)
 
-    self.kdtree.set_array_ref('rho',self['rho'])
-    self.kdtree.set_array_ref('smooth',self['smooth'])
-    self.kdtree.set_array_ref('mass',self['mass'])
-    self.kdtree.set_array_ref('qty',self['vel'])
-    self.kdtree.set_array_ref('qty_sm',sm)
+    self.kdtree.set_array_ref('rho', self['rho'])
+    self.kdtree.set_array_ref('smooth', self['smooth'])
+    self.kdtree.set_array_ref('mass', self['mass'])
+    self.kdtree.set_array_ref('qty', self['vel'])
+    self.kdtree.set_array_ref('qty_sm', sm)
 
     start = time.time()
-    self.kdtree.populate('qty_mean',nsmooth)
+    self.kdtree.populate(f'qty_{op}', nsmooth)
     end = time.time()
 
-    logger.info('Mean velocity done in %5.3g s' % (end - start))
+    logger.info(f'{_op_dict[op]} done in %5.3g s' % (end - start))
 
     return sm
+
+
+@SimSnap.derived_quantity
+def v_mean(self):
+    """SPH-smoothed mean velocity"""
+    return _v_sph_operation(self, "mean")
 
 
 @SimSnap.derived_quantity
 def v_disp(self):
-    """SPH-smoothed local velocity dispersion"""
-    from . import sph
+    """SPH-smoothed velocity dispersion"""
+    return _v_sph_operation(self, "disp")
 
-    sph.build_tree(self)
-    nsmooth = config['sph']['smooth-particles']
-    self['rho']
+@SimSnap.derived_quantity
+def v_curl(self):
+    """SPH-smoothed curl of velocity"""
+    return _v_sph_operation(self, "curl")
 
-    logger.info(
-        'Calculating velocity dispersion with %d nearest neighbours' % nsmooth)
-
-    sm = array.SimArray(np.empty(len(self['vel']),dtype=self['vel'].dtype),
-                        self['vel'].units)
-
-    self.kdtree.set_array_ref('rho',self['rho'])
-    self.kdtree.set_array_ref('smooth',self['smooth'])
-    self.kdtree.set_array_ref('mass',self['mass'])
-    self.kdtree.set_array_ref('qty',self['vel'])
-    self.kdtree.set_array_ref('qty_sm',sm)
-
-    start = time.time()
-    self.kdtree.populate('qty_disp',nsmooth)
-    end = time.time()
-
-    logger.info('Velocity dispersion done in %5.3g s' % (end - start))
-
-    return sm
-
+@SimSnap.derived_quantity
+def v_div(self):
+    """SPH-smoothed divergence of velocity"""
+    return _v_sph_operation(self, "div")
 
 @SimSnap.derived_quantity
 def age(self):
