@@ -465,9 +465,9 @@ int smSmoothStep(SMX smx, int procid)
 		// suitable candidate. Preferably a long way away from other
 		// threads, if this is threaded.
 
-                if(pNext>=smx->kd->nActive) 
-		  pNext=0;
-		
+		if(pNext>=smx->kd->nActive)
+			pNext=0;
+
 		while (GETSMOOTH(T,pNext) != proc_signal) {
 		 		++pNext;
 				++nScanned;
@@ -729,6 +729,106 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
+void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
+{
+	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, qty_j[3];
+	int j,k,pj,pi_iord;
+	KD kd = smx->kd;
+	Tf curl[3], x,y,z,dx,dy,dz;
+
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET<Tf>(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih2*ih2;
+
+	for(k=0;k<3;++k)
+		SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
+
+	x = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,0);
+	y = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,1);
+	z = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,2);
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		dx = x - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,0);
+		dy = y - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,1);
+		dz = z - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,2);
+
+		r2 = fList[j]*ih2;
+		r = sqrt(r2);
+		rs = 2.0 - r;
+		// Kernel gradient
+		if (r2 < 1.0) rs = -3.0 + 2.25*r;
+		else rs = -0.75*rs*rs/r;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+
+		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
+
+		for(k=0;k<3;++k)
+			qty_j[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k);
+
+		curl[0] = dy * qty_j[2] - dz * qty_j[1];
+		curl[1] = dz * qty_j[0] - dx * qty_j[2];
+		curl[2] = dx * qty_j[1] - dy * qty_j[0];
+
+		for(k=0;k<3;++k) {
+			ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, rs*curl[k]*mass/rho);
+		}
+	}
+}
+
+template<typename Tf, typename Tq>
+void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
+{
+	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, div, qty_j[3];
+	int j,k,pj,pi_iord;
+	KD kd = smx->kd;
+	Tf x,y,z,dx,dy,dz;
+
+	pi_iord = kd->p[pi].iOrder;
+	ih = 1.0/GET<Tf>(kd->pNumpySmooth, pi_iord);
+	ih2 = ih*ih;
+	fNorm = M_1_PI*ih2*ih2;
+
+	for(k=0;k<3;++k)
+		SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
+
+	x = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,0);
+	y = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,1);
+	z = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,2);
+
+	for (j=0;j<nSmooth;++j) {
+		pj = pList[j];
+		dx = x - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,0);
+		dy = y - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,1);
+		dz = z - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,2);
+
+		r2 = fList[j]*ih2;
+		r = sqrt(r2);
+		rs = 2.0 - r;
+		// Kernel gradient
+		if (r2 < 1.0) rs = -3.0 + 2.25*r;
+		else rs = -0.75*rs*rs/r;
+		if(rs<0) rs=0;
+		rs *= fNorm;
+
+		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
+		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
+
+		for(k=0;k<3;++k)
+			qty_j[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k);
+
+		div = dx * qty_j[0] + dy * qty_j[1] + dz * qty_j[2];
+
+		for(k=0;k<3;++k) {
+			ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, rs*div*mass/rho);
+		}
+	}
+}
+
+template<typename Tf, typename Tq>
 void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
@@ -904,6 +1004,12 @@ void smDispQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fL
 template
 void smDispQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
+template
+void smCurlQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDivQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
 
 template
 void smMeanQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
@@ -916,6 +1022,12 @@ void smDispQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fLi
 
 template
 void smDispQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smCurlQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDivQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
 
 template
@@ -930,6 +1042,12 @@ void smDispQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fLi
 template
 void smDispQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
+template
+void smCurlQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDivQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
 
 template
 void smMeanQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
@@ -942,6 +1060,13 @@ void smDispQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fLis
 
 template
 void smDispQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smCurlQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
+template
+void smDivQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+
 
 
 /*

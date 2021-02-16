@@ -68,6 +68,8 @@ int getBitDepth(PyObject *check);
 #define PROPID_QTYMEAN_ND    4
 #define PROPID_QTYDISP_1D    5
 #define PROPID_QTYDISP_ND    6
+#define PROPID_QTYDIV        7
+#define PROPID_QTYCURL       8
 /*==========================================================================*/
 
 static PyMethodDef kdmain_methods[] =
@@ -614,6 +616,12 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
             break;
         case PROPID_QTYDISP_1D:
             pSmFn = &smDispQty1D<Tf,Tq>;
+            break;
+        case PROPID_QTYDIV:
+            pSmFn = &smDivQty<Tf,Tq>;
+            break;
+        case PROPID_QTYCURL:
+            pSmFn = &smCurlQty<Tf,Tq>;
             break;
     }
 
