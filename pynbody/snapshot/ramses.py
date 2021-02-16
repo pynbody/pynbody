@@ -1076,6 +1076,9 @@ class RamsesSnap(SimSnap):
             elif array_name in grav_blocks:
                 self._load_gas_vars(1)
             elif array_name in self._rt_blocks_3d:
+                warnings.warn("Loading RT data from disk. Photon densities are stored in flux units by Ramses and need "
+                              "to be multiplied by the reduced speed of light of the run to obtain a physical number. "
+                              "This is currently left to the user, see issue 542 for more discussion.")
                 self._load_gas_vars(_gv_load_rt)
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
