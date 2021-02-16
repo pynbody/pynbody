@@ -156,14 +156,22 @@ def test_metals_field_correctly_copied_from_metal():
 
 
 def test_tform_and_tform_raw():
-    # Tform is not available for test data, so test warning generation and that the array is full of -1
-    with np.testing.assert_warns(UserWarning):
-        assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
-        np.testing.assert_allclose(f.st['tform'], - np.ones((2655,), dtype=np.float64), rtol=1e-5)
+    # Standard test output is a non-cosmological run, for which tform should be read from disk,
+    # rather than transformed. Tform raw and transformed are therefore the same
+    assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
+    np.testing.assert_allclose(f.st['tform_raw'], f.st['tform'])
 
-    np.testing.assert_allclose(f.st['tform_raw'][:10], [4.58574701, 4.58100771, 4.58284129, 3.18777836, 4.55801122,
-                                                        4.50733498, 4.5100136,  4.57288808, 4.55926183, 4.52128465],
-                               rtol=1e-5)
+    # Now loads a cosmological run, for which tforms have a weird format
+    # Birth files are however not generated for this output, hence tform is filled with -1
+    # Raw tform still carry the original weird units
+    fcosmo = pynbody.load("testdata/output_00080")
+    with np.testing.assert_warns(UserWarning):
+        np.testing.assert_allclose(fcosmo.st['tform'], - np.ones((31990,), dtype=np.float64), rtol=1e-5)
+        np.testing.assert_allclose(fcosmo.st['tform_raw'][:10],
+                                   [-2.72826591, -1.8400868,  -2.35988485, -3.81799766, -2.67772371, -3.22276503,
+                                    -2.5208477,  -2.67845014, -3.17295132, -2.43044642],
+                                   rtol=1e-5)
+
 
 def test_proper_time_loading():
     f_pt = pynbody.load(
