@@ -72,7 +72,7 @@ class KDTree(object):
                 nbr_list[3] : list[float]
                     list of distances squared of each neighbouring particles.
 
-            The lists of particle and of the relative distance squared not sorted.
+            The lists of particle and of the relative distance squared are not sorted.
 
         """
         if nn is None:
@@ -146,14 +146,14 @@ class KDTree(object):
             raise ValueError("Unknown smoothing request %s" % name)
 
     def populate(self, mode, nn):
-        """Create the KDTree and and perform operation as specified by `mode`.
+        """Create the KDTree and perform the operation specified by `mode`.
 
         Parameters
         ----------
         mode : str (see `kdtree.smooth_operation_to_id`)
             Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
         nn : int
-            Number of neighbors to be considered when smoothing.
+            Number of neighbours to be considered when smoothing.
         """
         from . import _thread_map
 
@@ -210,6 +210,7 @@ class KDTree(object):
         Returns
         -------
         output : pynbody.array.SimArray
+            The SPH mean of the input array.
         """
         output = np.empty_like(array)
 
@@ -254,6 +255,7 @@ class KDTree(object):
         Returns
         -------
         output : pynbody.array.SimArray
+            The dispersion of the input array.
         """
         output = np.empty_like(array)
         if hasattr(array, "units"):
