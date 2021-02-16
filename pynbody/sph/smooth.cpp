@@ -760,7 +760,6 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		// Kernel gradient
 		if (r2 < 1.0) rs = -3.0 + 2.25*r;
 		else rs = -0.75*rs*rs/r;
-		if(rs<0) rs=0;
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
@@ -811,7 +810,6 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		// Kernel gradient
 		if (r2 < 1.0) rs = -3.0 + 2.25*r;
 		else rs = -0.75*rs*rs/r;
-		if(rs<0) rs=0;
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
