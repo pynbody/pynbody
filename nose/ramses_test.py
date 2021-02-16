@@ -213,3 +213,15 @@ def test_is_cosmological_without_namelist():
     with np.testing.assert_warns(UserWarning):
         assert (not f_without_namelist._not_cosmological())
 
+
+def test_temperature_derivation():
+    f.g['mu']
+    f.g['temp']
+
+    assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
+    np.testing.assert_allclose(f.g['mu'][:10], 0.59 * np.ones(10))
+    np.testing.assert_allclose(f.g['mu'].max(), 1.3)
+
+    np.testing.assert_allclose(f.g['temp'][:10], [25988.332966, 27995.231272, 27995.19821, 30516.467776,
+                                                  26931.794949, 29073.739294, 29177.197614, 31917.91444,
+                                                  26931.790284, 29177.242923])

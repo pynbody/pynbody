@@ -1155,4 +1155,13 @@ def mass(sim):
 
 @RamsesSnap.derived_quantity
 def temp(sim):
-    return ((sim['p'] / sim['rho']) * (sim['mu'] * units.m_p / units.k)).in_units("K")
+    """ Gas temperature derived from pressure and density """
+    # Has to be redefined and rederived here from Ramses native variables
+    # to avoid running into circular dependencies with the traditional derived definition
+    # Now uses the self-consistent molecular weight field from pynbody (issue 598)
+    from ..derived import mu
+    mu_est = array.SimArray(np.ones(len(sim)), units="1")
+    for i in range(5):
+        temp = ((sim['p'] / sim['rho']) * (mu_est * units.m_p / units.k)).in_units("K")
+        mu_est = mu(sim, t0=temp)
+    return temp
