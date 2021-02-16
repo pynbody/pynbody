@@ -138,6 +138,10 @@ template<typename Tf, typename Tq>
 void smMeanQty1D(SMX,int,int,int *,float *);
 template<typename Tf, typename Tq>
 void smDispQty1D(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
+void smDivQty(SMX,int,int,int *,float *);
+template<typename Tf, typename Tq>
+void smCurlQty(SMX,int,int,int *,float *);
 
 bool smCheckFits(KD kd, float *fPeriod);
 

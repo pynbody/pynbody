@@ -27,6 +27,8 @@ class KDTree(object):
     PROPID_QTYMEAN_ND = 4
     PROPID_QTYDISP_1D = 5
     PROPID_QTYDISP_ND = 6
+    PROPID_QTYDIV  = 7
+    PROPID_QTYCURL = 8
 
     def __init__(self, pos, mass, leafsize=32, boxsize=None):
         """
@@ -142,6 +144,16 @@ class KDTree(object):
                 if input_array.shape[1] != 3:
                     raise ValueError("Currently only able to smooth 3D or 1D arrays")
                 return self.PROPID_QTYDISP_ND
+        elif name == "qty_div":
+            input_array = self.get_array_ref("qty")
+            if len(input_array.shape) != 2 and input_array.shape[1] != 3:
+                raise ValueError("Can only compute divergence of 3D arrays")
+            return self.PROPID_QTYDIV
+        elif name == "qty_curl":
+            input_array = self.get_array_ref("qty")
+            if len(input_array.shape) != 2 and input_array.shape[1] != 3:
+                raise ValueError("Can only compute curl of 3D arrays")
+            return self.PROPID_QTYCURL
         else:
             raise ValueError("Unknown smoothing request %s" % name)
 
@@ -273,6 +285,32 @@ class KDTree(object):
         logger.info("SPH dispersion done in %5.3g s" % (end - start))
 
         return output
+
+    def _sph_differential_operator(self, array, op, nsmooth=64):
+        output = np.empty_like(array)
+        if hasattr(array, "units"):
+            output = output.view(ar.SimArray)
+            output.units = array.units
+
+        self.set_array_ref("qty", array)
+        self.set_array_ref("qty_sm", output)
+
+        op_label = op if op != "div" else "divergence"
+
+        logger.info(f"Getting {op_label} of array with {nsmooth} nearest neighbours")
+        start = time.time()
+        self.populate(f"qty_{op}", nsmooth)
+        end = time.time()
+
+        logger.info(f"SPH {op_label} done in %5.3g s" % (end - start))
+
+        return output
+
+    def sph_curl(self, array, nsmooth=64):
+        return self._sph_differential_operator(array, "curl", nsmooth)
+
+    def sph_divergence(self, array, nsmooth=64):
+        return self._sph_differential_operator(array, "div", nsmooth)
 
     def __del__(self):
         if hasattr(self, "kdtree"):
