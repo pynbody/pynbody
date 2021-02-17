@@ -167,6 +167,11 @@ def v_curl(self):
     return _v_sph_operation(self, "curl")
 
 @SimSnap.derived_quantity
+def vorticity(self):
+    """SPH-smoothed vorticity"""
+    return _v_sph_operation(self, "curl")
+
+@SimSnap.derived_quantity
 def v_div(self):
     """SPH-smoothed divergence of velocity"""
     return _v_sph_operation(self, "div")
