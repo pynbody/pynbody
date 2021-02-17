@@ -731,7 +731,7 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 template<typename Tf, typename Tq>
 void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 {
-	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, qty_j[3];
+	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord;
 	KD kd = smx->kd;
 	Tf curl[3], x,y,z,dx,dy,dz;
@@ -741,8 +741,10 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 	ih2 = ih*ih;
 	fNorm = M_1_PI*ih2*ih2;
 
-	for(k=0;k<3;++k)
+	for(k=0;k<3;++k) {
 		SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
+		qty_i[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pi].iOrder, k);
+	}
 
 	x = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,0);
 	y = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,1);
@@ -766,11 +768,11 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
 
 		for(k=0;k<3;++k)
-			qty_j[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k);
+			dqty[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k) - qty_i[k];
 
-		curl[0] = dy * qty_j[2] - dz * qty_j[1];
-		curl[1] = dz * qty_j[0] - dx * qty_j[2];
-		curl[2] = dx * qty_j[1] - dy * qty_j[0];
+		curl[0] = dy * dqty[2] - dz * dqty[1];
+		curl[1] = dz * dqty[0] - dx * dqty[2];
+		curl[2] = dx * dqty[1] - dy * dqty[0];
 
 		for(k=0;k<3;++k) {
 			ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, rs*curl[k]*mass/rho);
@@ -781,7 +783,7 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 template<typename Tf, typename Tq>
 void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 {
-	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, div, qty_j[3];
+	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, div, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord;
 	KD kd = smx->kd;
 	Tf x,y,z,dx,dy,dz;
@@ -797,6 +799,9 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 	y = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,1);
 	z = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,2);
 
+	for(k=0;k<3;++k)
+		qty_i[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pi].iOrder, k);
+
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		dx = x - GET2<Tf>(kd->pNumpyPos,kd->p[pj].iOrder,0);
@@ -815,9 +820,9 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
 
 		for(k=0;k<3;++k)
-			qty_j[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k);
+			dqty[k] = GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k) - qty_i[k];
 
-		div = dx * qty_j[0] + dy * qty_j[1] + dz * qty_j[2];
+		div = dx * dqty[0] + dy * dqty[1] + dz * dqty[2];
 
 		ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs*div*mass/rho);
 	}
