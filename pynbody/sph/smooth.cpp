@@ -30,7 +30,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 {
 	SMX smx;
 	KDN *root;
-	int pi,j;
+	int j;
 	int bError=0;
 
 	root = &kd->kdNodes[ROOT];
@@ -407,11 +407,10 @@ void smInitPriorityQueue(SMX smx) {
 
 	PARTICLE *p;
 	PQ *pq,*pqLast;
-	int pi,pin,pj,pNext,nSmooth;
+	int pin,pj,pNext;
 	float ax,ay,az;
 
 	pqLast = &smx->pq[smx->nSmooth-1];
-	nSmooth = smx->nSmooth;
 	pin = 0;
 	pNext = 1;
 	ax = 0.0;

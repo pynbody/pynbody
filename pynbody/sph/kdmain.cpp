@@ -234,11 +234,8 @@ PyObject *nn_start(PyObject *self, PyObject *args)
     /* Nx1 Numpy arrays for smoothing length and density for calls that pass
        in those values from existing arrays
     */
-    PyObject *smooth = NULL, *rho=NULL, *mass=NULL;
 
     int nSmooth, nProcs;
-    long i;
-    float hsm;
     float period = BIGFLOAT;
 
     PyArg_ParseTuple(args, "Oii|f", &kdobj, &nSmooth, &nProcs, &period);
@@ -558,16 +555,13 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
     long procid;
     KD kd;
     SMX smx_global, smx_local;
-    int propid, j;
+    int propid;
     float ri[3];
     float hsm;
 
     void (*pSmFn)(SMX ,int ,int ,int *,float *)=NULL;
 
     PyObject *kdobj, *smxobj;
-    PyObject *dest; // Nx1 Numpy array for the property
-
-
 
     PyArg_ParseTuple(args, "OOii", &kdobj, &smxobj, &propid, &procid);
     kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
