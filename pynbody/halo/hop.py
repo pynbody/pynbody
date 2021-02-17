@@ -23,7 +23,7 @@ class HOPCatalogue(GrpCatalogue):
                 raise RuntimeError("Unable to find HOP .tag file in simulation directory")
 
         sim._create_array('hop_grp', dtype=np.int32)
-        sim['hop_grp'] -= 1
+        sim['hop_grp'] = -1
         with open(fname, "rb") as f:
             num_part, = struct.unpack('i', f.read(4))
             if num_part == 8:
