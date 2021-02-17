@@ -135,7 +135,7 @@ void kdUpPass(KD kd,int iCell)
 template <typename T>
 void kdBuildTree(KD kd)
 {
-	int l,n,i,d,j;
+	int l,n,i,j;
 	T rj;
 	BND bnd;
 
