@@ -148,5 +148,18 @@ def test_neighbour_list():
         assert nl[3][idx_self] == 0.0  # distance to self
 
 
+def test_div_curl_smoothing():
+    f = pynbody.load("testdata/g15784.lr.01024")
+
+    """
+    np.savez('test_div_curl', curl=f.g['v_curl'][::100], div=f.g['v_div'][::100])
+    """
+    arr = np.load('test_div_curl.npz')
+    curl, div = arr['curl'], arr['div']
+    npt.assert_allclose(f.g['v_curl'][::100], curl, atol=1e-8, rtol=1e-5)
+    npt.assert_allclose(f.g['v_div'][::100],  div,  atol=1e-8, rtol=1e-5)
+    npt.assert_equal(f.g['vorticity'], f.g['v_curl'])
+
+
 if __name__=="__main__":
     test_float_kd()
