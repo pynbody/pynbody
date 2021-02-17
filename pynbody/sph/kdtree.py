@@ -299,7 +299,7 @@ class KDTree(object):
 
         logger.info("Getting %s of array with %d nearest neighbours" % (op_label, nsmooth))
         start = time.time()
-        self.populate(f"qty_{op}", nsmooth)
+        self.populate("qty_%s" % op, nsmooth)
         end = time.time()
 
         logger.info("SPH %s done in %5.3g s" % (op_label, end - start))
