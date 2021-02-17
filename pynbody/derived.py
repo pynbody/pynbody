@@ -130,7 +130,10 @@ def _v_sph_operation(self, op):
 
     logger.info('Calculating %s with %d nearest neighbours' % (_op_dict[op], nsmooth))
 
-    sm = array.SimArray(np.empty_like(self['vel']), self['vel'].units)
+    if op in ['mean', 'curl']:
+        sm = array.SimArray(np.empty_like(self['vel']), self['vel'].units)
+    else:
+        sm = array.SimArray(np.empty(len(self['vel']), dtype=self['vel'].dtype), self['vel'].units)
 
     self.kdtree.set_array_ref('rho', self['rho'])
     self.kdtree.set_array_ref('smooth', self['smooth'])
