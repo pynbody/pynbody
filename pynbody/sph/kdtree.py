@@ -233,12 +233,12 @@ class KDTree(object):
         self.set_array_ref("qty", array)
         self.set_array_ref("qty_sm", output)
 
-        logger.info("Smoothing array with %d nearest neighbours" % nsmooth)
+        logger.info(f"Smoothing array with {nsmooth} nearest neighbours")
         start = time.time()
         self.populate("qty_mean", nsmooth)
         end = time.time()
 
-        logger.info("SPH smooth done in %5.3g s" % (end - start))
+        logger.info(f"SPH smooth done in {end-start:5.3g} s")
 
         return output
 
@@ -277,12 +277,12 @@ class KDTree(object):
         self.set_array_ref("qty", array)
         self.set_array_ref("qty_sm", output)
 
-        logger.info("Getting dispersion of array with %d nearest neighbours" % nsmooth)
+        logger.info(f"Getting dispersion of array with {nsmooth} nearest neighbours")
         start = time.time()
         self.populate("qty_disp", nsmooth)
         end = time.time()
 
-        logger.info("SPH dispersion done in %5.3g s" % (end - start))
+        logger.info(f"SPH dispersion done in {end-start:5.3g} s")
 
         return output
 
@@ -302,7 +302,7 @@ class KDTree(object):
         self.populate(f"qty_{op}", nsmooth)
         end = time.time()
 
-        logger.info(f"SPH {op_label} done in %5.3g s" % (end - start))
+        logger.info(f"SPH {op_label} done in {end-start:5.3g} s")
 
         return output
 
