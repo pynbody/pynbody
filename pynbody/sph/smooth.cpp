@@ -791,8 +791,7 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 	ih2 = ih*ih;
 	fNorm = M_1_PI*ih2*ih2;
 
-	for(k=0;k<3;++k)
-		SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
+	SET<Tq>(kd->pNumpyQtySmoothed, pi_iord, 0.0);
 
 	x = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,0);
 	y = GET2<Tf>(kd->pNumpyPos,kd->p[pi].iOrder,1);
@@ -820,9 +819,7 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 
 		div = dx * qty_j[0] + dy * qty_j[1] + dz * qty_j[2];
 
-		for(k=0;k<3;++k) {
-			ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, rs*div*mass/rho);
-		}
+		ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs*div*mass/rho);
 	}
 }
 
