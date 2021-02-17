@@ -287,15 +287,21 @@ class KDTree(object):
         return output
 
     def _sph_differential_operator(self, array, op, nsmooth=64):
-        output = np.empty_like(array)
+        if op == "div":
+            op_label = "divergence"
+            output = np.empty(len(array))
+        elif op == "curl":
+            op_label = "curl"
+            output = np.empty_like(array)
+        else:
+            raise ValueError("Can only compute curl or divergence")
+
         if hasattr(array, "units"):
             output = output.view(ar.SimArray)
             output.units = array.units
 
         self.set_array_ref("qty", array)
         self.set_array_ref("qty_sm", output)
-
-        op_label = op if op != "div" else "divergence"
 
         logger.info("Getting %s of array with %d nearest neighbours" % (op_label, nsmooth))
         start = time.time()
