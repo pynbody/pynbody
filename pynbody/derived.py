@@ -128,7 +128,7 @@ def _v_sph_operation(self, op):
 
     nsmooth = config['sph']['smooth-particles']
 
-    logger.info(f'Calculating {_op_dict[op]} with {nsmooth} nearest neighbours')
+    logger.info('Calculating %s with %d nearest neighbours' % (_op_dict[op], nsmooth))
 
     sm = array.SimArray(np.empty_like(self['vel']), self['vel'].units)
 
@@ -142,7 +142,7 @@ def _v_sph_operation(self, op):
     self.kdtree.populate(f'qty_{op}', nsmooth)
     end = time.time()
 
-    logger.info(f'{_op_dict[op]} done in {end-start:5.3g} s')
+    logger.info('%s done in %5.3g s' % (_op_dict[op], end - start))
 
     return sm
 
