@@ -289,7 +289,7 @@ class KDTree(object):
     def _sph_differential_operator(self, array, op, nsmooth=64):
         if op == "div":
             op_label = "divergence"
-            output = np.empty(len(array))
+            output = np.empty(len(array), dtype=array.dtype)
         elif op == "curl":
             op_label = "curl"
             output = np.empty_like(array)
