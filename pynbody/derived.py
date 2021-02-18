@@ -135,6 +135,9 @@ def _v_sph_operation(self, op):
     else:
         sm = array.SimArray(np.empty(len(self['vel']), dtype=self['vel'].dtype), self['vel'].units)
 
+    if op in ['div', 'curl']:
+        sm.units /= self['pos'].units
+
     self.kdtree.set_array_ref('rho', self['rho'])
     self.kdtree.set_array_ref('smooth', self['smooth'])
     self.kdtree.set_array_ref('mass', self['mass'])

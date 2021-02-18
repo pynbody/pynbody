@@ -298,7 +298,7 @@ class KDTree(object):
 
         if hasattr(array, "units"):
             output = output.view(ar.SimArray)
-            output.units = array.units
+            output.units = array.units/self._pos.units
 
         self.set_array_ref("qty", array)
         self.set_array_ref("qty_sm", output)
