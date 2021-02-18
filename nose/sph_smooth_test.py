@@ -155,11 +155,12 @@ def test_div_curl_smoothing():
     np.savez('test_div_curl', curl=f.g['v_curl'][::100], div=f.g['v_div'][::100])
     """
     arr = np.load('test_div_curl.npz')
+    # print(f.g['v_curl'][::100], f.g['v_div'][::100])
     curl, div = arr['curl'], arr['div']
     npt.assert_allclose(f.g['v_curl'][::100], curl, atol=1e-8, rtol=1e-5)
     npt.assert_allclose(f.g['v_div'][::100],  div,  atol=1e-8, rtol=1e-5)
     npt.assert_equal(f.g['vorticity'], f.g['v_curl'])
-
+    assert f.g['vorticity'].units == f.g['vel'].units/f.g['pos'].units
 
 if __name__=="__main__":
     test_float_kd()
