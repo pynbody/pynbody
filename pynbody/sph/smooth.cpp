@@ -730,7 +730,7 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 template<typename Tf, typename Tq>
 void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 {
-	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, dqty[3], qty_i[3];
+	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord, pj_iord;
 	KD kd = smx->kd;
 	Tf curl[3], x,y,z,dx,dy,dz;
@@ -756,12 +756,13 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
 		dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
 
-		r2 = fList[j]*ih2;
+		r2 = fList[j];
+		q2 = r2*ih2;
 		r = sqrt(r2);
-		rs = 2.0 - r;
+		q = sqrt(q2);
 		// Kernel gradient
-		if (r2 < 1.0) rs = -3.0 + 2.25*r;
-		else rs = -0.75*rs*rs/r;
+		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
+		else rs = -0.75*(2-q)*(2-q)/r;
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
@@ -783,7 +784,7 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 template<typename Tf, typename Tq>
 void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 {
-	Tf fNorm,ih2,r2,r,rs,ih,mass,rho, div, dqty[3], qty_i[3];
+	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, div, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord, pj_iord;
 	KD kd = smx->kd;
 	Tf x,y,z,dx,dy,dz;
@@ -809,12 +810,13 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
 		dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
 
-		r2 = fList[j]*ih2;
+		r2 = fList[j];
+		q2 = r2*ih2;
 		r = sqrt(r2);
-		rs = 2.0 - r;
+		q = sqrt(q2);
 		// Kernel gradient
-		if (r2 < 1.0) rs = -3.0 + 2.25*r;
-		else rs = -0.75*rs*rs/r;
+		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
+		else rs = -0.75*(2-q)*(2-q)/r;
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
