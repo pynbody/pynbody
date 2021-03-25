@@ -116,6 +116,14 @@ class GadgetHdfMultiFileManager(object) :
     def get_header_attrs(self):
         return self[0].parent['Header'].attrs
 
+    def get_parameter_attrs(self):
+        attrs = self[0].parent['Parameters'].attrs
+        if len(attrs) == 0:
+            return self.get_header_attrs()
+        else:
+            return attrs
+
+
     def get_unit_attrs(self):
         return self[0].parent['Units'].attrs
 
@@ -166,6 +174,9 @@ class GadgetHDFSnap(SimSnap):
 
     def _get_hdf_header_attrs(self):
         return self._hdf_files.get_header_attrs()
+
+    def _get_hdf_parameter_attrs(self):
+        return self._hdf_files.get_parameter_attrs()
 
     def _get_hdf_unit_attrs(self):
         return self._hdf_files.get_unit_attrs()
@@ -354,9 +365,20 @@ class GadgetHDFSnap(SimSnap):
     def _get_cosmo_factors(hdf, arr_name) :
         """Return the cosmological factors for a given array"""
         match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((s.endswith("/"+arr_name)) & ('PartType' in s))]
-        if len(match) > 0 : 
-            aexp = hdf[match[0]].attrs['aexp-scale-exponent']
-            hexp = hdf[match[0]].attrs['h-scale-exponent']
+        if arr_name == 'Mass' and len(match) == 0:
+            # mass stored in header. We're out in the cold on our own.
+            return units.Unit('1.0'), units.h**-1
+        if len(match) > 0 :
+            try:
+                aexp = hdf[match[0]].attrs['aexp-scale-exponent']
+            except KeyError:
+                # gadget4 <sigh>
+                aexp = hdf[match[0]].attrs['a_scaling']
+            try:
+                hexp = hdf[match[0]].attrs['h-scale-exponent']
+            except KeyError:
+                # gadget4 <sigh>
+                hexp = hdf[match[0]].attrs['h_scaling']
             return units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator(), units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
         else : 
             return units.Unit('1.0'), units.Unit('1.0')
@@ -505,14 +527,22 @@ class GadgetHDFSnap(SimSnap):
         try:
             atr = self._hdf_files.get_unit_attrs()
         except KeyError:
-            warnings.warn("No unit information found!", RuntimeWarning)
-            return {},{}
+            # Gadget 4 stores unit information in Parameters attr <sigh>
+            atr = self._hdf_files.get_parameter_attrs()
+            if 'UnitVelocity_in_cm_per_s' not in atr.keys():
+                warnings.warn("No unit information found in GadgetHDF file", RuntimeWarning)
+                return {},{}
 
         # Define the SubFind units, we will parse the attribute VarDescriptions for these
         vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
         dist_unit = atr['UnitLength_in_cm'] * units.cm
         mass_unit = atr['UnitMass_in_g'] * units.g
-        time_unit = atr['UnitTime_in_s'] * units.s
+        try:
+            time_unit = atr['UnitTime_in_s'] * units.s
+        except KeyError:
+            # Gadget 4 seems not to store time units explicitly <sigh>
+            time_unit = dist_unit/vel_unit
+
         # Create a dictionary for the units, this will come in handy later
         unitvar = {'U_V': vel_unit, 'U_L': dist_unit, 'U_M': mass_unit,
                    'U_T': time_unit, '[K]': units.K,
@@ -524,6 +554,15 @@ class GadgetHDFSnap(SimSnap):
 
         self._hdf_cgsvar = cgsvar
         self._hdf_unitvar = unitvar
+
+        cosmo = 'HubbleParam' in list(self._get_hdf_parameter_attrs().keys())
+        if cosmo:
+            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Coordinates'): dist_unit *= fac
+            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Velocities'): vel_unit *= fac
+            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
+
+        self._file_units_system = [units.Unit(x) for x in [
+            vel_unit, dist_unit, mass_unit, "K"]]
 
     @classmethod
     def _test_for_hdf5_key(cls, f):
@@ -558,37 +597,6 @@ class GadgetHDFSnap(SimSnap):
 
 
 @GadgetHDFSnap.decorator
-def do_units(sim):
-
-    cosmo = 'HubbleParam' in list(sim._get_hdf_header_attrs().keys())
-
-    try:
-        atr = sim._get_hdf_unit_attrs()
-    except KeyError:
-        # Use default values, from default_config.ini if necessary
-        vel_unit = config_parser.get('gadget-units', 'vel')
-        dist_unit = config_parser.get('gadget-units', 'pos')
-        mass_unit = config_parser.get('gadget-units', 'mass')
-        warnings.warn(
-            "No unit information found: using gadget-units.", RuntimeWarning)
-        sim._file_units_system = [units.Unit(x) for x in [
-                vel_unit, dist_unit, mass_unit, "K"]]
-        return
-
-    vel_unit = atr['UnitVelocity_in_cm_per_s']*units.cm/units.s
-    dist_unit = atr['UnitLength_in_cm']*units.cm
-    mass_unit = atr['UnitMass_in_g']*units.g
-
-    if cosmo:
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Coordinates') : dist_unit *= fac
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Velocity') : vel_unit *= fac
-        for fac in GadgetHDFSnap._get_cosmo_factors(sim._hdf_files[0],'Mass') : mass_unit *= fac
-
-    sim._file_units_system = [units.Unit(x) for x in [
-                              vel_unit, dist_unit, mass_unit, "K"]]
-
-
-@GadgetHDFSnap.decorator
 def do_properties(sim):
     atr = sim._get_hdf_header_attrs()
 
@@ -598,6 +606,9 @@ def do_properties(sim):
     except KeyError:
         sim.properties['a'] = 1. / (1 + atr['Redshift'])
 
+    # Gadget 4 stores parameters in a separate dictionary <sigh>. For older formats, this will point back to the same
+    # as the header attributes.
+    atr = sim._get_hdf_parameter_attrs()
 
     # not all omegas need to be specified in the attributes
     try:
