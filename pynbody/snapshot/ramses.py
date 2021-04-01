@@ -639,12 +639,12 @@ class RamsesSnap(SimSnap):
         aggregate_counts_remapped = np.zeros(256, dtype=np.int64)
 
         for ramses_family_id in nonzero_families:
-            if ramses_family_id>128:
-                neg_offset = 256 - ramses_family_id
+            if ramses_family_id>128 or ramses_family_id == 0:
+                neg_offset = (256 - ramses_family_id) % 256
                 if neg_offset>len(negative_typemap):
                     pynbody_family = negative_typemap[-1]
                 else:
-                    pynbody_family = negative_typemap[neg_offset-1]
+                    pynbody_family = negative_typemap[neg_offset]
             else:
                 if ramses_family_id>len(positive_typemap):
                     pynbody_family = positive_typemap[-1]
