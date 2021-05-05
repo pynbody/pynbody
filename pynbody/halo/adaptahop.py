@@ -76,6 +76,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._read_contamination = read_contamination
         self._longint = longint
 
+        self._header_attributes = self.convert_i8b(self._header_attributes, longint)
+        self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
+        self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
+
         # Call parent class
         super(BaseAdaptaHOPCatalogue, self).__init__(sim)
 
@@ -92,6 +96,18 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
 
+    @staticmethod
+    def convert_i8b(original_headers, longint):
+        headers = []
+        for key, count, dtype in original_headers:
+            if dtype == "i8b":
+                if longint:
+                    dtype = "l"
+                else:
+                    dtype = "i"
+            headers.append((key, count, dtype))
+        return tuple(headers)
+
     def precalculate(self):
         """Speed up future operations by precalculating the indices
         for all halos in one operation. This is slow compared to
@@ -104,6 +120,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         """
         Compute the offset in the brick file of each halo.
         """
+
         with FortranFile(self._fname) as fpu:
             self._headers = fpu.read_attrs(self._header_attributes)
 
@@ -303,10 +320,11 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         if len(valid_candidates) == 0:
             return False
 
+        longint = kwa.pop("longint", False)
         for fname in valid_candidates:
             with FortranFile(fname) as fpu:
                 try:
-                    fpu.read_attrs(cls._header_attributes)
+                    fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint))
                     return True
                 except (ValueError, IOError):
                     pass
@@ -343,7 +361,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
 class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     _header_attributes = (
-        ("npart", 1, "l"),
+        ("npart", 1, "i8b"),
         ("massp", 1, "d"),
         ("aexp", 1, "d"),
         ("omega_t", 1, "d"),
@@ -361,7 +379,7 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
             "i",
         ),
         ("m", 1, "d"),
-        ("ntot", 1, "l"),
+        ("ntot", 1, "i8b"),
         ("mtot", 1, "d"),
         (("x", "y", "z"), 3, "d"),
         (("vx", "vy", "vz"), 3, "d"),
@@ -383,7 +401,7 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     _halo_attributes_contam = (
         ("contaminated", 1, "i"),
         (("m_contam", "mtot_contam"), 2, "d"),
-        (("n_contam", "ntot_contam"), 2, "l"),
+        (("n_contam", "ntot_contam"), 2, "i8b"),
     )
 
 
