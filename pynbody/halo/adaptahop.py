@@ -56,7 +56,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=False):
+    def __init__(self, sim, fname=None, read_contamination=False, longint=False):
 
         if FortranFile is None:
             raise RuntimeError(
@@ -73,6 +73,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
 
+        self._read_contamination = read_contamination
+        self._longint = longint
+
         # Call parent class
         super(BaseAdaptaHOPCatalogue, self).__init__(sim)
 
@@ -82,7 +85,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._halos = {}
         self._fname = fname
         self._AdaptaHOP_fname = fname
-        self._read_contamination = read_contamination
 
         logger.debug("AdaptaHOPCatalogue loading offsets")
 
@@ -187,7 +189,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         """
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
-            npart = fpu.read_int()
+            if self._longint:
+                npart = fpu.read_int64()
+            else:
+                npart = fpu.read_int()
             iord_array = self._read_member_helper(fpu, npart)
             halo_id_read = fpu.read_int()
             assert halo_id == halo_id_read
@@ -271,7 +276,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         with FortranFile(self._fname) as fpu:
             for halo_id, halo in self._halos.items():
                 fpu.seek(halo.properties["file_offset"])
-                npart = fpu.read_int()
+                if self._longint:
+                    npart = fpu.read_int64()
+                else:
+                    npart = fpu.read_int()
                 particle_ids = self._read_member_helper(fpu, npart)
 
                 indices = util.binary_search(particle_ids, iord, iord_argsort)
@@ -327,7 +335,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
 class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     _header_attributes = (
-        ("npart", 1, "i"),
+        ("npart", 1, "l"),
         ("massp", 1, "d"),
         ("aexp", 1, "d"),
         ("omega_t", 1, "d"),
@@ -345,7 +353,7 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
             "i",
         ),
         ("m", 1, "d"),
-        ("ntot", 1, "i"),
+        ("ntot", 1, "l"),
         ("mtot", 1, "d"),
         (("x", "y", "z"), 3, "d"),
         (("vx", "vy", "vz"), 3, "d"),
@@ -367,7 +375,7 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
     _halo_attributes_contam = (
         ("contaminated", 1, "i"),
         (("m_contam", "mtot_contam"), 2, "d"),
-        (("n_contam", "ntot_contam"), 2, "i"),
+        (("n_contam", "ntot_contam"), 2, "l"),
     )
 
 
