@@ -293,17 +293,25 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             self._group_to_indices = grp2indices
         return igrp
 
-    @staticmethod
-    def _can_load(sim, arr_name="grp", *args, **kwa):
-        exists = any(
-            [
-                os.path.exists(fname)
-                for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(
-                    sim
-                )
-            ]
-        )
-        return exists
+    @classmethod
+    def _can_load(cls, sim, arr_name="grp", *args, **kwa):
+        candidates = [
+            fname
+            for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
+        ]
+        valid_candidates = [fname for fname in candidates if os.path.exists(fname)]
+        if len(valid_candidates) == 0:
+            return False
+
+        for fname in valid_candidates:
+            with FortranFile(fname) as fpu:
+                try:
+                    fpu.read_attrs(cls._header_attributes)
+                    return True
+                except (ValueError, IOError):
+                    pass
+
+        return False
 
     @staticmethod
     def _enumerate_hop_tag_locations_from_sim(sim):
