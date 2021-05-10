@@ -1,8 +1,7 @@
-import pynbody
-from pynbody.halo.adaptahop import AdaptaHOPCatalogue
-
-from scipy.io import FortranFile as FF
 import numpy as np
+from scipy.io import FortranFile as FF
+
+import pynbody
 
 
 def test_load_adaptahop_catalogue():
@@ -12,9 +11,17 @@ def test_load_adaptahop_catalogue():
 
 
 def test_load_one_halo():
-    f = pynbody.load("testdata/output_00080")
-    h = f.halos()
-    np.testing.assert_allclose(h[1].properties["members"], h[1]["iord"])
+    def helper(path, nhalos):
+        f = pynbody.load(path)
+        h = f.halos()
+        np.testing.assert_allclose(h[1].properties["members"], h[1]["iord"])
+        assert len(h) == nhalos
+
+    for path, nhalos in (
+        ("testdata/output_00080", 170),
+        ("testdata/new_adaptahop_output_00080", 2),
+    ):
+        yield helper, path, nhalos
 
 
 def test_get_group():
