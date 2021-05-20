@@ -8,10 +8,10 @@ import h5py
 
 def setup():
     global snap, halos, subhalos, htest
-    snap = pynbody.load('/Users/luisals/Simulations/testL10N64/snapshot_000.hdf5')
+    snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
     halos = snap.halos()
     subhalos = snap.halos(subs=True)
-    htest = Halos('/Users/luisals/Simulations/testL10N64/', 0)
+    htest = Halos('testdata/testL10N64/', 0)
 
 
 def teardown():
