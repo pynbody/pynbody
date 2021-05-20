@@ -341,7 +341,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         self._halos = {}
         HaloCatalogue.__init__(self, sim)
         self.dtype_int = sim['iord'].dtype
-        self.dtype_flt = 'float64'
+        self.dtype_flt = sim['mass'].dtype
         self.halofilename = self._name_of_catalogue(sim)
         self.header = self._readheader()
         self.params = self._readparams()
@@ -358,6 +358,8 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         """Creates a 'grp' array which labels each particle according to its parent halo.
         v=True prints out 'progress' in terms of total number of groups.
         """
+        if self._subs is True:
+            name = 'subgrp'
         self.base[name] = self.get_group_array()
 
     def get_group_array(self):
@@ -373,19 +375,26 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
             ar[offs[i]:offs[i] + ls[i]] = i
         return ar
 
-    def get_halo_properties(self, i, with_unit=True):
-        if with_unit:
-            extract = units.get_item_with_unit
+    def extract_prop_w_units(self, simarray, elem):
+        if type(simarray) == array.SimArray:
+            if len(simarray.shape) > 1:
+                return simarray[elem]
+            else:
+                simarray_i = array.SimArray([simarray[elem]], simarray.units)
+                simarray_i.sim = simarray.sim
+                return simarray_i
         else:
-            extract = lambda array, element: array[element]
+            return simarray[elem]
+
+    def get_halo_properties(self, i):
         properties = {}
         if self._subs is False:
             for key in self._keys:
-                properties[key] = extract(self._halodat[key], i)
+                properties[key] = self.extract_prop_w_units(self._halodat[key], i)
                 properties['children'] = np.where(self._subhalodat['SubhaloGroupNr'] == i)[0]
         else:
             for key in self._keys:
-                properties[key] = extract(self._subhalodat[key], i)
+                properties[key] = self.extract_prop_w_units(self._subhalodat[key], i)
         return properties
 
     def _get_halo(self,i):
@@ -471,12 +480,10 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
     @staticmethod
     def _name_of_catalogue(sim):
         # Missing case for multiple snapshot files
-        name = sim.filename
-        snapNum = int(name[name.rfind('snapshot_') + 9: name.rfind('.hdf5')])
-        basepath = os.path.dirname(os.path.realpath(name)) + '/'
-
-        filePath = basepath + 'fof_subhalo_tab_%03d.hdf5' % snapNum
-        return filePath
+        snapnum = os.path.basename(sim.filename).split("_")[-1]
+        parent_dir = os.path.dirname(os.path.abspath(sim.filename)) + '/'
+        file = os.path.join(parent_dir, "fof_subhalo_tab_" + snapnum)
+        return file
 
     @property
     def base(self):
@@ -484,7 +491,9 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, **kwargs):
-        if os.path.exists(Gadget4SubfindHDFCatalogue._name_of_catalogue(sim)):
+        # only supports one file
+        file = Gadget4SubfindHDFCatalogue._name_of_catalogue(sim)
+        if os.path.exists(file):
             return True
         else:
             return False
