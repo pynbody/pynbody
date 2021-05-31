@@ -123,12 +123,10 @@ def test_openmp_summations():
     start = time.time()
     sum_a = np.dot(a,(b>1.0))
     np_timing = time.time()-start
-    print(sum_a)
 
     start = time.time()
     sum_a_ne = pynbody.util.sum_if_gt(a,b,1.0)
     ne_timing = time.time()-start
-    print(sum_a_ne)
 
 
     print ("NP: %.1f NE: %.1f"%(np_timing*1e3,ne_timing*1e3))
