@@ -330,7 +330,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         """Initialise a SubFind catalogue from Gadget-4.
 
         *subs*: if True, load the subhalos; otherwise, load FoF groups (default)
-        *make_grp*: if True, create a 'grp' array with the halo id to which each particle is assigned
+        *grp_array*: if True, create a 'grp' array with the halo id to which each particle is assigned
         """
 
         self.ptype = config_parser.get('gadgethdf-type-mapping', particle_type)
@@ -355,9 +355,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
             self.make_grp()
 
     def make_grp(self, name='grp'):
-        """Creates a 'grp' array which labels each particle according to its parent halo.
-        v=True prints out 'progress' in terms of total number of groups.
-        """
+        """ Creates a 'grp' array which labels each particle according to its parent halo. """
         if self._subs is True:
             name = 'subgrp'
         self.base[name] = self.get_group_array()
@@ -375,29 +373,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
             ar[offs[i]:offs[i] + ls[i]] = i
         return ar
 
-    def extract_prop_w_units(self, simarray, elem):
-        if type(simarray) == array.SimArray:
-            if len(simarray.shape) > 1:
-                return simarray[elem]
-            else:
-                simarray_i = array.SimArray([simarray[elem]], simarray.units)
-                simarray_i.sim = simarray.sim
-                return simarray_i
-        else:
-            return simarray[elem]
-
-    def get_halo_properties(self, i):
-        properties = {}
-        if self._subs is False:
-            for key in self._keys:
-                properties[key] = self.extract_prop_w_units(self._halodat[key], i)
-                properties['children'] = np.where(self._subhalodat['SubhaloGroupNr'] == i)[0]
-        else:
-            for key in self._keys:
-                properties[key] = self.extract_prop_w_units(self._subhalodat[key], i)
-        return properties
-
-    def _get_halo(self,i):
+    def _get_halo(self, i):
         if self._subs is True:
             offset = self._subhalodat['SubhaloOffsetType'][i, self.ptypenum]
             length = self._subhalodat['SubhaloLenType'][i, self.ptypenum]
@@ -410,6 +386,28 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         x.properties.update(self.get_halo_properties(i))
         return x
 
+    def get_halo_properties(self, i):
+        properties = {}
+        if self._subs is False:
+            for key in self._keys:
+                properties[key] = self.extract_property_w_units(self._halodat[key], i)
+                properties['children'] = np.where(self._subhalodat['SubhaloGroupNr'] == i)[0]
+        else:
+            for key in self._keys:
+                properties[key] = self.extract_property_w_units(self._subhalodat[key], i)
+        return properties
+
+    def extract_property_w_units(self, simarray, elem):
+        if type(simarray) == array.SimArray:
+            if len(simarray.shape) > 1:
+                return simarray[elem]
+            else:
+                simarray_i = array.SimArray([simarray[elem]], simarray.units)
+                simarray_i.sim = simarray.sim
+                return simarray_i
+        else:
+            return simarray[elem]
+
     def _readheader(self):
         """ Load the group catalog header. """
         with h5py.File(self.halofilename, 'r') as f:
@@ -417,7 +415,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         return header
 
     def _readparams(self):
-        """ Load the group catalog header. """
+        """ Load the group catalog parameters. """
         with h5py.File(self.halofilename, 'r') as f:
             header = dict(f['Parameters'].attrs.items())
         return header
@@ -430,22 +428,44 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         return data_ids
 
     def _read_groups(self):
+        """ Read all halos/subhalos information from the group catalog. """
         halodat = {}
         subhalodat = {}
         with h5py.File(self.halofilename, 'r') as f:
-            for key in list(f['Group'].keys()):
-                halodat[key] = f['Group'][key][:]
-            for key in list(f['Subhalo'].keys()):
-                subhalodat[key] = f['Subhalo'][key][:]
+            self._read_group_properties(halodat, f, 'Group')
+            self._read_group_properties(subhalodat, f, 'Subhalo')
 
         self._keys = list(halodat.keys())
         if self._subs is True:
             self._keys = list(subhalodat.keys())
 
+        self.add_units_to_properties(halodat, subhalodat)
+        return halodat, subhalodat
+
+    @staticmethod
+    def _read_group_properties(groupdat, file, gname):
+        """ Copy `file[gname]` dictionary into groupdat dictionary. """
+        for key in list(file[gname].keys()):
+            groupdat[key] = file[gname][key][:]
+        return groupdat
+
+    def add_units_to_properties(self, halodat, subhalodat):
         allkeys = list(halodat.keys()) + list(subhalodat.keys())
+        keyname, keydim = self._get_property_dimensions(allkeys)
+
+        for name, dimension in zip(keyname, keydim):
+            if name in halodat:
+                halodat[name] = array.SimArray(halodat[name], self.base.infer_original_units(dimension))
+                halodat[name].sim = self.base
+            if name in subhalodat:
+                subhalodat[name] = array.SimArray(subhalodat[name], self.base.infer_original_units(dimension))
+                subhalodat[name].sim = self.base
+
+    @staticmethod
+    def _get_property_dimensions(property_names):
         ar_names = []
         ar_dimensions = []
-        for key in allkeys:
+        for key in property_names:
             if 'Mass' in key or '_M_' in key:
                 ar_names.append(key)
                 ar_dimensions.append('kg')
@@ -460,16 +480,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
         ar_names.append('SubhaloVmax'); ar_dimensions.append('m s^-1')
         ar_names.append('SubhaloVmaxRad'); ar_dimensions.append('m')
-
-        for name, dimension in zip(ar_names, ar_dimensions):
-            if name in halodat:
-                halodat[name] = array.SimArray(halodat[name], self.base.infer_original_units(dimension))
-                halodat[name].sim = self.base
-            if name in subhalodat:
-                subhalodat[name] = array.SimArray(subhalodat[name], self.base.infer_original_units(dimension))
-                subhalodat[name].sim = self.base
-
-        return halodat, subhalodat
+        return ar_names, ar_dimensions
 
     def __len__(self):
         if self._subs:
@@ -479,7 +490,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
     @staticmethod
     def _name_of_catalogue(sim):
-        # Missing case for multiple snapshot files
+        """ Note: This only supports single-file snapshots. """
         snapnum = os.path.basename(sim.filename).split("_")[-1]
         parent_dir = os.path.dirname(os.path.abspath(sim.filename)) + '/'
         file = os.path.join(parent_dir, "fof_subhalo_tab_" + snapnum)
@@ -491,7 +502,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, **kwargs):
-        # only supports one file
+        """ Check if Subfind HDF file exists. """
         file = Gadget4SubfindHDFCatalogue._name_of_catalogue(sim)
         if os.path.exists(file):
             return True

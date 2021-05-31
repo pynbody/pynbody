@@ -1,9 +1,4 @@
 import pynbody
-import numpy as np
-from itertools import chain
-import shutil
-from nose.tools import assert_equals, assert_almost_equal
-import h5py
 
 
 def setup():
@@ -73,6 +68,14 @@ import h5py
 
 
 class Halos:
+    """
+    This class extracts halo/subhalo information directly from the group catalog HDF5 file. It is used here to
+    test that the group catalogue properties match those obtained via the pynbody interface.
+
+    It can load all halo/subhalo information from the entire group catalog for one snapshot or
+    return group catalog information for one halo/subhalo.
+
+    """
     def __init__(self, basePath, snapNum):
         self.basePath = basePath
         self.snapNum = snapNum
