@@ -328,7 +328,7 @@ class GadgetFile(object):
             # At least the record sizes at either end should be consistently wrong.
             # Better hope this only happens for blocks where all particles are
             # present.
-            extra_len = t_part * block.partlen
+            extra_len = int(t_part) * block.partlen
             if extra_len >= 2 ** 32:
                 fd.seek(extra_len, 1)
             else:
