@@ -42,7 +42,7 @@ jobs:
     - name: Fetch and unpack test data
       working-directory: nose
       run: |
-        wget http://star.ucl.ac.uk/~app/testdata.tar.gz
+        wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz
         tar --exclude="._*" -xzvf testdata.tar.gz
     - name: Run all tests
       working-directory: nose
