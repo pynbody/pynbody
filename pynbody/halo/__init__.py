@@ -301,7 +301,7 @@ def _get_halo_classes():
         GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
         RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
         RockstarIntermediateCatalogue, HOPCatalogue,
-        NewAdaptaHOPCatalogue, AdaptaHOPCatalogue,
+        NewAdaptaHOPCatalogue, AdaptaHOPCatalogue, Gadget4SubfindHDFCatalogue
     ]
 
     return _halo_classes
