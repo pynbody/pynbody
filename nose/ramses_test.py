@@ -87,6 +87,17 @@ def test_rt_arrays():
          1.59989054e-09,   7.61815782e-07,   7.09372161e-08,
          7.76265288e-09,   4.32642383e-09])
 
+
+def test_rt_unit_warning_for_photon_rho():
+    # Issue 542 about photon density unit.
+    # Check that warning informing user about the missing "reduced speed of light" factor is generated
+    # at load time
+    f1 = pynbody.load("testdata/ramses_rt_partial_output_00002", cpus=[1, 2, 3])
+
+    with np.testing.assert_warns(UserWarning):
+        f1.gas['rad_0_rho']
+
+
 def test_all_dm():
     f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
     assert len(f1.families())==1
@@ -156,14 +167,22 @@ def test_metals_field_correctly_copied_from_metal():
 
 
 def test_tform_and_tform_raw():
-    # Tform is not available for test data, so test warning generation and that the array is full of -1
-    with np.testing.assert_warns(UserWarning):
-        assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
-        np.testing.assert_allclose(f.st['tform'], - np.ones((2655,), dtype=np.float64), rtol=1e-5)
+    # Standard test output is a non-cosmological run, for which tform should be read from disk,
+    # rather than transformed. Tform raw and transformed are therefore the same
+    assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
+    np.testing.assert_allclose(f.st['tform_raw'], f.st['tform'])
 
-    np.testing.assert_allclose(f.st['tform_raw'][:10], [4.58574701, 4.58100771, 4.58284129, 3.18777836, 4.55801122,
-                                                        4.50733498, 4.5100136,  4.57288808, 4.55926183, 4.52128465],
-                               rtol=1e-5)
+    # Now loads a cosmological run, for which tforms have a weird format
+    # Birth files are however not generated for this output, hence tform is filled with -1
+    # Raw tform still carry the original weird units
+    fcosmo = pynbody.load("testdata/output_00080")
+    with np.testing.assert_warns(UserWarning):
+        np.testing.assert_allclose(fcosmo.st['tform'], - np.ones((31990,), dtype=np.float64), rtol=1e-5)
+        np.testing.assert_allclose(fcosmo.st['tform_raw'][:10],
+                                   [-2.72826591, -1.8400868,  -2.35988485, -3.81799766, -2.67772371, -3.22276503,
+                                    -2.5208477,  -2.67845014, -3.17295132, -2.43044642],
+                                   rtol=1e-5)
+
 
 def test_proper_time_loading():
     f_pt = pynbody.load(
@@ -184,3 +203,25 @@ def test_proper_time_loading():
         2.38078038, 4.3666123, 2.68693346, 3.37377901, 3.27283305,
         3.03470615, 2.4334257, 2.65158796, 2.90785361, 2.56396249],
         rtol=1e-5)
+
+
+def test_is_cosmological_without_namelist():
+    # Load a cosmo run, but without the namelist.txt file and checks that cosmo detection works with a warning
+    f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    f_without_namelist.physical_units()
+
+    with np.testing.assert_warns(UserWarning):
+        assert (not f_without_namelist._not_cosmological())
+
+
+def test_temperature_derivation():
+    f.g['mu']
+    f.g['temp']
+
+    assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
+    np.testing.assert_allclose(f.g['mu'][:10], 0.59 * np.ones(10))
+    np.testing.assert_allclose(f.g['mu'].max(), 1.3)
+
+    np.testing.assert_allclose(f.g['temp'][:10], [25988.332966, 27995.231272, 27995.19821, 30516.467776,
+                                                  26931.794949, 29073.739294, 29177.197614, 31917.91444,
+                                                  26931.790284, 29177.242923])

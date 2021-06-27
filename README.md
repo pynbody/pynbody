@@ -1,6 +1,6 @@
 pynbody
 =======
-[![Build Status](https://travis-ci.org/pynbody/pynbody.svg?branch=master)](https://travis-ci.org/pynbody/pynbody)
+[![Build Status](https://github.com/pynbody/pynbody/actions/workflows/build-test.yaml/badge.svg?branch=master)](https://github.com/pynbody/pynbody/actions)
 
 [Pynbody](https://github.com/pynbody/pynbody) is a light-weight,
 portable, format-transparent analysis framework for N-body and

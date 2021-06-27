@@ -321,7 +321,7 @@ ramses_particle_header = (
     ('ncpu', 1, 'i'),
     ('ndim', 1, 'i'),
     ('npart', 1, 'i'),
-    ('randseed', 4, 'i'),
+    ('randseed', -1, 'i'),
     ('nstar', 1, 'i'),
     ('mstar', 1, 'd'),
     ('mstar_lost', 1, 'd'),
@@ -639,12 +639,12 @@ class RamsesSnap(SimSnap):
         aggregate_counts_remapped = np.zeros(256, dtype=np.int64)
 
         for ramses_family_id in nonzero_families:
-            if ramses_family_id>128:
-                neg_offset = 256 - ramses_family_id
+            if ramses_family_id>128 or ramses_family_id == 0:
+                neg_offset = (256 - ramses_family_id) % 256
                 if neg_offset>len(negative_typemap):
                     pynbody_family = negative_typemap[-1]
                 else:
-                    pynbody_family = negative_typemap[neg_offset-1]
+                    pynbody_family = negative_typemap[neg_offset]
             else:
                 if ramses_family_id>len(positive_typemap):
                     pynbody_family = positive_typemap[-1]
@@ -994,22 +994,31 @@ class RamsesSnap(SimSnap):
         return list(keys_ND)
 
     def _not_cosmological(self):
+        not_cosmological = True
+
         if "cosmo" in self._namelist and self._namelist["cosmo"]:
-            return False
-        else:
-            return True
+            not_cosmological = False
+
+        if not self._namelist:
+            warnings.warn("Namelist file either not found or unable to read. " +
+                          "Guessing whether run is cosmological from cosmological parameters assuming flat LCDM.")
+            not_cosmological = (self._info['omega_k'] == self._info['omega_l'] == 0)
+
+        return not_cosmological
 
     def _convert_tform(self):
-        # Copy the existing array in weird Ramses format into a hidden raw array
+        # Copy the existing t array in weird Ramses format into a hidden raw array
         self.star['tform_raw'] = self.star['tform']
         self.star['tform_raw'].units = self._file_units_system[1]
 
         if self._is_using_proper_time:
             t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            birth_time = t0 + self.s["tform_raw"].in_units("Gyr")/self.properties["a"]**2
+            birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
             birth_time[birth_time > t0] = t0 - 1e-7
             self.star['tform'] = birth_time
-        else:
+        elif not self._not_cosmological():
+            # Only attempt tform conversion for cosmological runs. The built-in tforms for isolated runs
+            # are actually meaningful (issue 554)
             from ..analysis import ramses_util
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self)
@@ -1067,6 +1076,9 @@ class RamsesSnap(SimSnap):
             elif array_name in grav_blocks:
                 self._load_gas_vars(1)
             elif array_name in self._rt_blocks_3d:
+                warnings.warn("Loading RT data from disk. Photon densities are stored in flux units by Ramses and need "
+                              "to be multiplied by the reduced speed of light of the run to obtain a physical number. "
+                              "This is currently left to the user, see issue 542 for more discussion.")
                 self._load_gas_vars(_gv_load_rt)
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
@@ -1143,4 +1155,13 @@ def mass(sim):
 
 @RamsesSnap.derived_quantity
 def temp(sim):
-    return ((sim['p'] / sim['rho']) * (1.22 * units.m_p / units.k)).in_units("K")
+    """ Gas temperature derived from pressure and density """
+    # Has to be redefined and rederived here from Ramses native variables
+    # to avoid running into circular dependencies with the traditional derived definition
+    # Now uses the self-consistent molecular weight field from pynbody (issue 598)
+    from ..derived import mu
+    mu_est = array.SimArray(np.ones(len(sim)), units="1")
+    for i in range(5):
+        temp = ((sim['p'] / sim['rho']) * (mu_est * units.m_p / units.k)).in_units("K")
+        mu_est = mu(sim, t0=temp)
+    return temp

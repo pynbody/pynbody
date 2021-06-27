@@ -151,3 +151,48 @@ def test_find_boundaries():
     our_numbers = np.array([-1,-1,0,0,0,1,2,2,3,3,5,5,5], dtype=np.int32)
     boundaries = pynbody.util.find_boundaries(our_numbers)
     assert (boundaries==[2,5,6,8,-1,10]).all()
+
+def test_binary_search():
+    """Unit test for binary search algorithm"""
+    seed = 16091992
+    np.random.seed(seed)
+    b = np.random.choice(10000, size=10000, replace=False)
+    a = np.sort(np.random.choice(b, size=100))
+
+    b_argsort = np.argsort(b)
+
+    # Test that algorithm works with different number of threads
+    # for nthreads in range(10, 1, -1):
+    for nthreads in range(1, 10):
+        indices = pynbody.util.binary_search(a, b, b_argsort, num_threads=nthreads)
+        np.testing.assert_array_equal(a, b[indices])
+
+    # Test that algorithm works for missing elements in b
+    b = np.random.choice(np.arange(100), size=100, replace=False)
+    b_argsort = np.argsort(b)
+
+    a = np.array([0, 10, 100, 1000])
+    for nthreads in range(1, 10):
+        indices = pynbody.util.binary_search(a, b, b_argsort, num_threads=nthreads)
+        mask = (indices != len(b))
+        np.testing.assert_array_equal(a[mask], b[indices[mask]])
+
+def test_is_sorted():
+    """Unit test for is_sorted function"""
+    # Pathological cases
+    assert pynbody.util.is_sorted(np.array([])) == 1
+    assert pynbody.util.is_sorted(np.array([1])) == 1
+    arr = np.zeros(100)
+    assert pynbody.util.is_sorted(arr) == 1
+
+    # Constant to begin with, then increasing/decreasing
+    arr = np.zeros(100)
+    arr[-1] = 1
+    assert pynbody.util.is_sorted(arr) == 1
+    arr[-1] = -1
+    assert pynbody.util.is_sorted(arr) == -1
+
+    # Simple cases
+    assert pynbody.util.is_sorted(np.array([1, 2, 3])) == 1
+    assert pynbody.util.is_sorted(np.array([1, 2, 1])) == 0
+    assert pynbody.util.is_sorted(np.array([3, 2, 1])) == -1

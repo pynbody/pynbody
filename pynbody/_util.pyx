@@ -5,6 +5,7 @@ cimport libc.math as cmath
 from libc.math cimport atan, pow
 from libc.stdlib cimport malloc, free
 from cython.parallel cimport prange
+cimport openmp
 
 ctypedef fused fused_float:
     np.float32_t
@@ -19,6 +20,20 @@ ctypedef fused fused_float_3:
     np.float64_t
 
 ctypedef fused fused_int:
+    np.int32_t
+    np.int64_t
+
+ctypedef fused fused_int_2:
+    np.int32_t
+    np.int64_t
+
+ctypedef fused fused_int_3:
+    np.int32_t
+    np.int64_t
+
+ctypedef fused int_or_float:
+    np.float32_t
+    np.float64_t
     np.int32_t
     np.int64_t
 
@@ -201,9 +216,168 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
             if z<-wrap_by_two:
                 z=z+wrap
         output[i]=(x*x+y*y+z*z)<r_max_2
-    
+
     return output
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.int64_t search(fused_int a, fused_int_2[:] B,
+                       fused_int_3[:] sorter,
+                       fused_int_3 ileft, fused_int_3 iright) nogil:
+    cdef fused_int_2 b
+    cdef fused_int_3 imid
+    while ileft <= iright:
+        imid = (ileft + iright) // 2
+        b = B[sorter[imid]]
+        if b < a:
+            ileft = imid + 1
+        elif b > a:
+            iright = imid - 1
+        else:
+            return imid
+    return -1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
+        fused_int[:] a, fused_int_2[:] b,
+        np.ndarray[fused_int_3, ndim=1] sorter, int num_threads=-1):
+    """Search elements of a in b, assuming a, b[sorter] are sorted in increasing order.
+
+    Parameters
+    ----------
+    a : int array (N, )
+    b : int array (M, )
+    sorter : int array(M, )
+        The input arrays
+
+    num_threads : int, optional
+        If greater than zero, use that many parallel threads.
+
+
+    Returns
+    -------
+    indices : array(N, )
+        An array such that b[indices] == a, for elements found in b.
+        Elements of a that cannot be found have the index M.
+
+    Notes
+    -----
+    The code does *not* check that a and b[sorted] are effectively sorted in increasing order.
+
+    This functions can be used in place of np.searchsorted (note however that the order of the argument differ).
+    The algorithm performs particularly well when a is much smaller than b and can be found at close locations in b.
+
+    Algorithm
+    ---------
+    The algorithm implemented is a binary search algorithm of the elements of a into b. The algorithm consumes elements
+    of a from both ends. Since a is sorted, the index of a[0] and a[-1] give boundaries to look for the next elements
+    of a in b, resulting in the next binary search being faster.
+    If the elements of a are almost contiguous in b, the algorithm scales as N log(N), with N = len(a) instead of
+    N log(M) with M = len(b).
+
+    Note that the algorithm performs similarly to np.searchsorted when N~M.
+    """
+
+    cdef int Na = len(a), Nb = len(b)
+
+    cdef int ileft=0, iright=Nb - 1
+    cdef int i, ii, j, pivot
+    cdef int index
+
+    cdef fused_int_3[:] indices = np.empty(Na, dtype=sorter.dtype)
+
+    # HACK: prevent cython from complaining about "buffer source array is read-only"
+    cdef bint write_flag = sorter.flags['WRITEABLE']
+    sorter.setflags(write=True)
+
+    cdef fused_int_3[:] sorter_mview = sorter
+
+    cdef int ichunk, chunk_size, Nchunk = openmp.omp_get_num_threads(), this_chunk
+
+    if num_threads > 0:
+        Nchunk = num_threads
+    openmp.omp_set_num_threads(Nchunk)
+
+    if Na % Nchunk == 0:
+        chunk_size = Na // Nchunk
+    else:
+        chunk_size = Na // Nchunk + 1
+
+    for ichunk in prange(Nchunk, nogil=True, chunksize=1, schedule='static', num_threads=Nchunk):
+        ileft = 0
+        iright = Nb - 1
+        this_chunk = min(chunk_size, Na-ichunk*chunk_size)
+        pivot = (this_chunk + 1) // 2
+
+        for ii in range(pivot):
+            i = ichunk * chunk_size + ii
+            j = ichunk * chunk_size + this_chunk - 1 - ii
+
+            index = search(a[i], b, sorter_mview, ileft, iright)
+            if index > -1:
+                ileft = index
+                indices[i] = sorter_mview[index]
+            else:
+                indices[i] = Nb
+
+
+            if j > i:
+                index = search(a[j], b, sorter_mview, ileft, iright)
+                if index > -1:
+                    iright = index
+                    indices[j] = sorter_mview[index]
+                else:
+                    indices[j] = Nb
+
+    # Restore write flag on sorter array
+    sorter.setflags(write=write_flag)
+    return np.asarray(indices)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef int is_sorted(int_or_float[:] A):
+    """Check whether input is sorted in ascending order.
+
+    Arguments
+    ---------
+    A : array
+
+    Returns
+    -------
+    ret : int
+        +1 if A is in ascending order
+        -1 if A is in descending order
+        0 otherwise
+    """
+    cdef int Na = len(A), i, i0
+    cdef int ret = 0
+
+    # Special case for single-valued arrays
+    if Na <= 1:
+        return 1
+
+    # Iterate until finding two consecutive non-null elements
+    i0 = 1
+    while i0 < Na:
+        if A[i0] != A[0]:
+            break
+        i0 += 1
+
+    # Special case if array is constant
+    if i0 == Na:
+        return 1
+
+    if A[i0] >= A[0]:
+        for i in range(i0, Na):
+            if A[i] < A[i-1]:
+                return 0
+        return 1
+    else:
+        for i in range(i0, Na):
+            if A[i] > A[i-1]:
+                return 0
+        return -1
 
 __all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
-           '_sphere_selection']
+           '_sphere_selection', 'binary_search', 'is_sorted']
