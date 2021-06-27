@@ -299,6 +299,6 @@ def _get_halo_classes():
     # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
                      RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-                     RockstarIntermediateCatalogue, HOPCatalogue, AdaptaHOPCatalogue, Gadget4SubfindHDFCatalogue]
+                     RockstarIntermediateCatalogue, HOPCatalogue, AdaptaHOPCatalogue]
 
     return _halo_classes
