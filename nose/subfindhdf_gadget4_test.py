@@ -68,11 +68,10 @@ def test_halo_loading() :
     assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == htest_arepo.load()['halos']['GroupLenType'][0, 1])
 
 
-def test_particle_data() :
-    for htest_file, halocatalogue in [(htest, halos), (htest_arepo, halos_arepo)]:
-        hids = np.random.choice(range(len(halocatalogue)), 5)
-        for hid in hids:
-            assert(np.allclose(halocatalogue[hid].dm['iord'], htest_file[hid]['iord']))
+def test_particle_data():
+    hids = np.random.choice(range(len(halos)), 5)
+    for hid in hids:
+        assert(np.allclose(halos[hid].dm['iord'], htest[hid]['iord']))
 
 
 import six
