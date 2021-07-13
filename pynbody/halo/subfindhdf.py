@@ -319,7 +319,7 @@ class SubFindFOFGroup(Halo) :
 
 class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
-    """Class to handle catalogues produced by the SubFind halo finder in Gadget-4.
+    """Class to handle catalogues produced by the SubFind halo finder from Gadget-4 and Arepo.
 
     By default, the FoF groups are imported, but the subhalos can also be imported by setting subs=True
     when constructing.
@@ -327,7 +327,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
     """
 
     def __init__(self, sim, subs=False, grp_array=None, particle_type="dm", **kwargs):
-        """Initialise a SubFind catalogue from Gadget-4.
+        """Initialise a SubFind catalogue from Gadget-4/Arepo.
 
         *subs*: if True, load the subhalos; otherwise, load FoF groups (default)
         *grp_array*: if True, create a 'grp' array with the halo id to which each particle is assigned
@@ -337,17 +337,18 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         self.ptypenum = int(self.ptype[-1])
         self._base = weakref.ref(sim)
         self._subs = subs
+        self._num_files = sim.properties['NumFilesPerSnapshot']
 
         self._halos = {}
         HaloCatalogue.__init__(self, sim)
         self.dtype_int = sim['iord'].dtype
         self.dtype_flt = sim['mass'].dtype
         self.halofilename = self._name_of_catalogue(sim)
+        self._get_hdf_files_names()
         self.header = self._readheader()
         self.params = self._readparams()
-        self._tasks = self.header['NumFiles']
         self.ids = self._read_ids()
-        assert np.allclose(self.ids, self.base['iord']), \
+        assert np.allclose(self.ids, self.base[[fi for fi in self.base.families() if fi.name == particle_type][0]]['iord']), \
             "Particle IDs in snapshot are not ordered by their haloID (i.e. first IDs should be those in halo 0, etc.)."
         self._keys = {}
         self._halodat, self._subhalodat = self._read_groups()
@@ -360,13 +361,56 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
             name = 'subgrp'
         self.base[name] = self.get_group_array()
 
+    def get_subhalo_offsets(self, halo_id=None):
+        try:
+            # gagdet-4
+            if halo_id is not None:
+                offs = self._subhalodat['SubhaloOffsetType'][halo_id, self.ptypenum]
+            else:
+                offs = self._subhalodat['SubhaloOffsetType'][:, self.ptypenum]
+
+        except:
+            # Arepo does not directly output offsets so we have to compute them here
+            if halo_id is not None:
+                parent_halo = self._subhalodat['SubhaloGrNr'][halo_id]
+                offset_parent = self.get_halo_offsets(parent_halo)
+                subhalos_in_parent = np.where(self._subhalodat['SubhaloGrNr'][:] == parent_halo)[0]
+                length_subhalos = self._subhalodat['SubhaloLenType'][subhalos_in_parent]
+                offs = offset_parent + np.sum(length_subhalos[subhalos_in_parent < halo_id, self.ptypenum])
+            else:
+                offs = np.zeros(len(self._subhalodat['SubhaloGrNr']), dtype="int")
+                unique_groups = np.unique(self._subhalodat['SubhaloGrNr'])
+                for parent_halo in unique_groups:
+                    offset_parent = self.get_halo_offsets(parent_halo)
+                    subhalos_in_parent = np.where(self._subhalodat['SubhaloGrNr'][:] == parent_halo)[0]
+                    off = offset_parent + np.append(np.zeros(1, dtype="int"),
+                                                    np.cumsum(self._subhalodat['SubhaloLenType'][subhalos_in_parent[:-1], self.ptypenum]))
+                    offs[subhalos_in_parent] = off
+        return offs
+
+    def get_halo_offsets(self, halo_id=None):
+        try:
+            # gagdet-4
+            if halo_id is not None:
+                offs = self._halodat['GroupOffsetType'][halo_id, self.ptypenum]
+            else:
+                offs = self._halodat['GroupOffsetType'][:, self.ptypenum]
+        except:
+            # Arepo does not directly output offsets so we have to compute them here
+            if halo_id is not None:
+                offs = np.sum(self._halodat['GroupLenType'][:halo_id, self.ptypenum])
+            else:
+                offs = np.append(np.zeros(1, dtype=self.dtype_int),
+                                 np.cumsum(self._halodat['GroupLenType'][:-1, self.ptypenum]))
+        return offs
+
     def get_group_array(self):
         ar = np.zeros(len(self.base), dtype=int) - 1
         if self._subs is True:
-            offs = self._subhalodat['SubhaloOffsetType'][:, self.ptypenum]
+            offs = self.get_subhalo_offsets()
             ls = self._subhalodat['SubhaloLenType'][:, self.ptypenum]
         else:
-            offs = self._halodat['GroupOffsetType'][:, self.ptypenum]
+            offs = self.get_halo_offsets()
             ls = self._halodat['GroupLenType'][:, self.ptypenum]
 
         for i in range(len(offs)):
@@ -375,11 +419,11 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
     def _get_halo(self, i):
         if self._subs is True:
-            offset = self._subhalodat['SubhaloOffsetType'][i, self.ptypenum]
             length = self._subhalodat['SubhaloLenType'][i, self.ptypenum]
+            offset = self.get_subhalo_offsets(halo_id=i)
         else:
-            offset = self._halodat['GroupOffsetType'][i, self.ptypenum]
             length = self._halodat['GroupLenType'][i, self.ptypenum]
+            offset = self.get_halo_offsets(halo_id=i)
 
         x = Halo(i, self, self.base, np.where(np.in1d(self.base['iord'], self.ids[offset: offset + length]))[0])
         x._descriptor = "halo_" + str(i)
@@ -391,13 +435,20 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         if self._subs is False:
             for key in self._keys:
                 properties[key] = self.extract_property_w_units(self._halodat[key], i)
-                properties['children'] = np.where(self._subhalodat['SubhaloGroupNr'] == i)[0]
+                try:
+                    # gadget-4
+                    properties['children'] = np.where(self._subhalodat['SubhaloGroupNr'] == i)[0]
+                except:
+                    # arepo
+                    properties['children'] = np.where(self._subhalodat['SubhaloGrNr'] == i)[0]
+
         else:
             for key in self._keys:
                 properties[key] = self.extract_property_w_units(self._subhalodat[key], i)
         return properties
 
-    def extract_property_w_units(self, simarray, elem):
+    @staticmethod
+    def extract_property_w_units(simarray, elem):
         if type(simarray) == array.SimArray:
             if len(simarray.shape) > 1:
                 return simarray[elem]
@@ -410,19 +461,19 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
 
     def _readheader(self):
         """ Load the group catalog header. """
-        with h5py.File(self.halofilename, 'r') as f:
+        with h5py.File(self._hdf_files[0], 'r') as f:
             header = dict(f['Header'].attrs.items())
         return header
 
     def _readparams(self):
         """ Load the group catalog parameters. """
-        with h5py.File(self.halofilename, 'r') as f:
+        with h5py.File(self._hdf_files[0], 'r') as f:
             header = dict(f['Parameters'].attrs.items())
         return header
 
     def _read_ids(self):
         data_ids = np.array([], dtype=self.dtype_int)
-        for n in range(self._tasks):
+        for n in range(self._num_files):
             ids = self.base._hdf_files[n][self.ptype]['ParticleIDs']
             data_ids = np.append(data_ids, ids)
         return data_ids
@@ -431,9 +482,10 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         """ Read all halos/subhalos information from the group catalog. """
         halodat = {}
         subhalodat = {}
-        with h5py.File(self.halofilename, 'r') as f:
-            self._read_group_properties(halodat, f, 'Group')
-            self._read_group_properties(subhalodat, f, 'Subhalo')
+        for n in range(self._num_files):
+            with h5py.File(self._hdf_files[n], 'r') as f:
+                self._read_group_properties(halodat, f, 'Group')
+                self._read_group_properties(subhalodat, f, 'Subhalo')
 
         self._keys = list(halodat.keys())
         if self._subs is True:
@@ -445,8 +497,12 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
     @staticmethod
     def _read_group_properties(groupdat, file, gname):
         """ Copy `file[gname]` dictionary into groupdat dictionary. """
-        for key in list(file[gname].keys()):
-            groupdat[key] = file[gname][key][:]
+        if groupdat:
+            for key in list(groupdat.keys()):
+                groupdat[key] = np.append(groupdat[key], file[gname][key][:])
+        else:
+            for key in list(file[gname].keys()):
+                groupdat[key] = file[gname][key][:]
         return groupdat
 
     def add_units_to_properties(self, halodat, subhalodat):
@@ -488,13 +544,27 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         else:
             return len(self._halodat['GroupMass'])
 
+    def _get_hdf_files_names(self):
+        if self._num_files == 1:
+            self._hdf_files = [self.halofilename]
+        else:
+            snapnum = self.halofilename.split("_")[-1]
+            self._hdf_files = [self.halofilename + "/fof_subhalo_tab_" + snapnum + "." + str(n) + ".hdf5"
+                               for n in range(self._num_files)]
+
     @staticmethod
     def _name_of_catalogue(sim):
-        """ Note: This only supports single-file snapshots. """
-        snapnum = os.path.basename(sim.filename).split("_")[-1]
-        parent_dir = os.path.dirname(os.path.abspath(sim.filename)) + '/'
-        file = os.path.join(parent_dir, "fof_subhalo_tab_" + snapnum)
-        return file
+        # multiple snapshot files
+        snapnum = os.path.basename(os.path.dirname(sim.filename)).split("_")[-1]
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(sim.filename)))
+        dir_path = os.path.join(parent_dir, "groups_" + snapnum)
+        if os.path.exists(dir_path):
+            return dir_path
+        else:
+            # single snapshot file
+            snapnum = os.path.basename(sim.filename).split("_")[-1]
+            parent_dir = os.path.dirname(os.path.abspath(sim.filename))
+            return os.path.join(parent_dir, "fof_subhalo_tab_" + snapnum)
 
     @property
     def base(self):
