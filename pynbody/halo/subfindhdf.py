@@ -575,6 +575,11 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         """ Check if Subfind HDF file exists. """
         file = Gadget4SubfindHDFCatalogue._name_of_catalogue(sim)
         if os.path.exists(file):
-            return True
+            if file.endswith(".hdf5"):
+                return True
+            elif os.listdir(file)[0].endswith(".hdf5"):
+                return True
+            else:
+                return False
         else:
             return False

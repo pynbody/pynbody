@@ -260,7 +260,14 @@ class SubfindCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, **kwargs):
-        if os.path.exists(SubfindCatalogue._name_of_catalogue(sim)):
-            return True
+        file = SubfindCatalogue._name_of_catalogue(sim)
+        if os.path.exists(file):
+            if os.path.exists(file):
+                if file.endswith(".hdf5"):
+                    return False
+                elif os.listdir(file)[0].endswith(".hdf5"):
+                    return False
+                else:
+                    return True
         else:
             return False
