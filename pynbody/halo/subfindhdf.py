@@ -499,7 +499,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
         """ Copy `file[gname]` dictionary into groupdat dictionary. """
         if groupdat:
             for key in list(groupdat.keys()):
-                groupdat[key] = np.append(groupdat[key], file[gname][key][:])
+                groupdat[key] = np.append(groupdat[key], file[gname][key][:], axis=0)
         else:
             for key in list(file[gname].keys()):
                 groupdat[key] = file[gname][key][:]
