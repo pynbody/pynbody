@@ -425,7 +425,7 @@ class Gadget4SubfindHDFCatalogue(HaloCatalogue):
             length = self._halodat['GroupLenType'][i, self.ptypenum]
             offset = self.get_halo_offsets(halo_id=i)
 
-        x = Halo(i, self, self.base, np.where(np.in1d(self.base['iord'], self.ids[offset: offset + length]))[0])
+        x = Halo(i, self, self.base, np.arange(offset, offset + length))
         x._descriptor = "halo_" + str(i)
         x.properties.update(self.get_halo_properties(i))
         return x
