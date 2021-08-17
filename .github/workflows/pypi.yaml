@@ -76,17 +76,22 @@ jobs:
               exit 1;
           fi
           
-      - name: Install twine
-        run: source pyvenv/bin/activate; pip3 install twine
+      - name: Install twine, setuptools, pip, wheel
+        run: | 
+          source pyvenv/bin/activate
+          pip3 install -U twine setuptools pip wheel
+          
           
       - name: Build source distribution
         run: source pyvenv/bin/activate; python3 setup.py sdist
         
       - name: Build binary distribution
-        run: source pyvenv/bin/activate; python3 setup.py bdist
+        run: source pyvenv/bin/activate; python3 setup.py bdist_wheel
         
       - name: Twine upload
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: source pyvenv/bin/activate; twine check dist/* # when ready, we'll use upload --repository testpypi
+        run: | 
+          source pyvenv/bin/activate
+          twine check dist/* # when ready, we'll use upload --repository testpypi
