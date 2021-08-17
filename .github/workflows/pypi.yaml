@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           brew install gcc@10 python@${{ matrix.python }}
-          python${{ matrix.python }} -m venv pyvenv/
+          /usr/local/opt/python@${{ matrix.python }}/bin/python3 -m venv pyvenv/
           
       - name: Verify python installation
         run: |
