@@ -11,12 +11,33 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: [3.7]
+        
+    runs-on: ${{ matrix.os }}
+    
     environment: PyPI
     steps:
       - uses: actions/checkout@v2
         with:
           ref: refs/tags/v1.0.1 # temporary
+      
+      - name: Install GCC10 (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+          sudo apt-get update -qq
+          sudo apt install gcc-10 g++-10
+          sudo apt install python{{ matrix.python }}
+
+      - name: Install GCC10 (MacOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          brew install gcc@10 python@{{ matrix.python }}
           
       - name: Install numpy and cython
         run: pip3 install numpy cython
@@ -50,4 +71,4 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine check dist/*.tar.gz dist/*.egg # when ready, we'll use upload --repository testpypi
+        run: twine check dist/* # when ready, we'll use upload --repository testpypi
