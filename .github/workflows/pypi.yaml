@@ -24,7 +24,7 @@ jobs:
         with:
           ref: refs/tags/v1.0.1 # temporary
       
-      - name: Install GCC10 (Ubuntu)
+      - name: Install GCC and Python (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
@@ -34,11 +34,17 @@ jobs:
           sudo apt install gcc-10 g++-10
           sudo apt install python${{ matrix.python }}
 
-      - name: Install GCC10 (MacOS)
+      - name: Install GCC and Python (MacOS)
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
           brew install gcc@10 python@${{ matrix.python }}
+          
+      - name: Verify python installation
+        run: |
+          which python
+          python --version
+          python -c "import sys; sys.exit(not sys.version.startswith('${{ matrix.python }}'))"
           
       - name: Install numpy and cython
         run: pip3 install numpy cython
