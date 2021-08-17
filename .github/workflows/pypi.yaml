@@ -95,4 +95,4 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: | 
           source pyvenv/bin/activate
-          twine check dist/* # when ready, we'll use upload --repository testpypi
+          twine upload --repository testpypi dist/*
