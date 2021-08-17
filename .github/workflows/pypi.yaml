@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: refs/tags/v1.0.3 # temporary
+          ref: refs/tags/v1.0.1 # temporary
           
       - name: Install numpy and cython
         run: pip3 install numpy cython
