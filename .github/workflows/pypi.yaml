@@ -83,7 +83,7 @@ jobs:
           
           
       - name: Build source distribution
-        if: matrix.os == "ubuntu-latest" && python == "3.9"
+        if: matrix.os == 'ubuntu-latest' && python == '3.9'
         run: source pyvenv/bin/activate; python3 setup.py sdist
         
       - name: Build binary distribution
