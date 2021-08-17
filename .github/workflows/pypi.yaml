@@ -32,7 +32,8 @@ jobs:
           sudo add-apt-repository ppa:deadsnakes/ppa
           sudo apt-get update -qq
           sudo apt install gcc-10 g++-10
-          sudo apt install python${{ matrix.python }}
+          sudo apt install python${{ matrix.python }} virtualenvwrapper
+          mkvirtualenv -p `which python${{ matrix.python }}` mypy
 
       - name: Install GCC and Python (MacOS)
         if: matrix.os == 'macos-latest'
