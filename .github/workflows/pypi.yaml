@@ -38,6 +38,7 @@ jobs:
           curl https://bootstrap.pypa.io/get-pip.py | sudo python${{ matrix.python }}
           python${{ matrix.python }} -m venv pyvenv/
           source pyvenv/bin/activate
+          which python3
 
       - name: Install GCC and Python (MacOS)
         if: matrix.os == 'macos-latest'
