@@ -31,13 +31,13 @@ jobs:
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test
           sudo apt-get update -qq
           sudo apt install gcc-10 g++-10
-          sudo apt install python{{ matrix.python }}
+          sudo apt install python${{ matrix.python }}
 
       - name: Install GCC10 (MacOS)
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
-          brew install gcc@10 python@{{ matrix.python }}
+          brew install gcc@10 python@${{ matrix.python }}
           
       - name: Install numpy and cython
         run: pip3 install numpy cython
