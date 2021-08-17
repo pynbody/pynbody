@@ -42,16 +42,16 @@ jobs:
           
       - name: Verify python installation
         run: |
-          which python
-          python --version
-          python -c "import sys; sys.exit(not sys.version.startswith('${{ matrix.python }}'))"
+          which python3
+          python3 --version
+          python3 -c "import sys; sys.exit(not sys.version.startswith('${{ matrix.python }}'))"
           
       - name: Install numpy and cython
         run: pip3 install numpy cython
       
       - name: Determine version tag
         run: |
-          echo "SETUP_VERSION=`python setup.py --version`" >> $GITHUB_ENV
+          echo "SETUP_VERSION=`python3 setup.py --version`" >> $GITHUB_ENV
           echo "VERSION_TAG=`git describe --tags | cut -c 2-`" >> $GITHUB_ENV
         
       - name: Verify version naming is consistent
