@@ -18,8 +18,8 @@ jobs:
         with:
           ref: refs/tags/v1.0.3 # temporary
           
-      - name: Install numpy
-        run: pip3 install numpy
+      - name: Install numpy and cython
+        run: pip3 install numpy cython
       
       - name: Determine version tag
         run: |
