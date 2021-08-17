@@ -34,10 +34,10 @@ jobs:
           sudo add-apt-repository ppa:deadsnakes/ppa
           sudo apt-get update -qq
           sudo apt install gcc-10 g++-10
-          sudo apt remove python3
-          sudo apt install python${{ matrix.python }}-dev 
+          sudo apt install python${{ matrix.python }}-dev python${{ matrix.python }}-venv 
           curl https://bootstrap.pypa.io/get-pip.py | sudo python${{ matrix.python }}
-          sudo ln -s /usr/bin/python3.7 /usr/bin/python3
+          python${{ matrix.python }} -m venv pyvenv/
+          source /pyvenv/bin/activate
 
       - name: Install GCC and Python (MacOS)
         if: matrix.os == 'macos-latest'
