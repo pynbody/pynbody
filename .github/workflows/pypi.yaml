@@ -1,0 +1,50 @@
+name: Push to PyPI
+
+on:
+  push:
+    tags: v*
+    branches: pypi-deploy
+
+  workflow_dispatch:
+
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: PyPI
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: refs/tags/v1.0.3 # temporary
+      
+      - name: Determine version tag
+        run: |
+          echo "SETUP_VERSION=`python setup.py --version`" >> $GITHUB_ENV
+          echo "VERSION_TAG=`git describe --tags | cut -c 2-`" >> $GITHUB_ENV
+        
+      - name: Verify version naming is consistent
+        run: |
+          if [ "${{ env.VERSION_TAG }}" == "${{ env.SETUP_VERSION }}" ]; then
+              echo Git tag and python setup.py versions match: ${{ env.VERSION_TAG }}
+          else
+              echo Version label mismatch
+              echo Git tag-derived version is ${{ env.VERSION_TAG }}
+              echo setup.py-derived version is ${{ env.SETUP_VERSION }}
+              exit 1;
+          fi
+          
+      - name: Install twine
+        run: pip3 install twine
+          
+      - name: Build source distribution
+        run: python3 setup.py sdist
+        
+      - name: Build binary distribution
+        run: python3 setup.py bdist
+        
+      - name: Twine upload
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine check dist/*.tar.gz dist/*.egg # when ready, we'll use upload --repository testpypi
