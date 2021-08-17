@@ -28,7 +28,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test 
+          sudo add-apt-repository ppa:deadsnakes/ppa
           sudo apt-get update -qq
           sudo apt install gcc-10 g++-10
           sudo apt install python${{ matrix.python }}
