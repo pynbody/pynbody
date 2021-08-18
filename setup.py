@@ -303,13 +303,12 @@ install_requires = [
     'h5py',
     'matplotlib',
     'numpy>=1.16.5',
-    'pandas',
     'posix_ipc',
     'scipy'
 ]
 
 tests_require = [
-    'nose'
+    'nose','pandas'
 ]
 
 docs_require = [
