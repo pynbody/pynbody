@@ -318,7 +318,7 @@ docs_require = [
 ],
 
 extras_require = {
-    'tests': tests_require
+    'tests': tests_require,
     'docs': docs_require,
 }
 
