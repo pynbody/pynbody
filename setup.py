@@ -302,7 +302,7 @@ install_requires = [
     'cython>=0.20',
     'h5py>=2.10.0',
     'matplotlib>=3.0.0',
-    'numpy>=1.16.5',
+    'numpy>=1.14.0',
     'posix_ipc>=0.8',
     'scipy>=1.0.0'
 ]
