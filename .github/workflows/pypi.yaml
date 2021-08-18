@@ -3,7 +3,6 @@ name: Push to PyPI
 on:
   push:
     tags: v*
-    branches: pypi-deploy
 
   workflow_dispatch:
 
@@ -21,9 +20,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: refs/tags/v1.0.1 # temporary
-          
+
       - uses: actions/setup-python@v2
         name: Install Python
         with:
@@ -73,8 +70,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: refs/tags/v1.0.1 # temporary
 
       - uses: actions/setup-python@v2
         name: Install Python
@@ -105,6 +100,5 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
           
           
