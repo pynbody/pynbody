@@ -1,0 +1,104 @@
+name: Push to PyPI
+
+on:
+  push:
+    tags: v*
+
+  workflow_dispatch:
+
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: gcc-10
+      CXX: g++-10
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-10.15]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Install numpy and cython
+        run: python -m "pip" install numpy cython
+        
+      - name: Install GCC (Ubuntu)
+        if: matrix.os == 'ubuntu-20.04'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt install gcc-10 g++-10
+          
+      - name: Install GCC (MacOS)
+        if: matrix.os == 'macos-10.15'
+        shell: bash
+        run: |
+          brew install gcc@10 
+      
+      - name: Determine version tag
+        run: |
+          echo "SETUP_VERSION=`python setup.py --version`" >> $GITHUB_ENV
+          echo "VERSION_TAG=`git describe --tags | cut -c 2-`" >> $GITHUB_ENV
+          
+      - name: Verify version naming is consistent
+        run: |
+          if [ "${{ env.VERSION_TAG }}" == "${{ env.SETUP_VERSION }}" ]; then
+              echo Git tag and python setup.py versions match: ${{ env.VERSION_TAG }}
+          else
+              echo Version label mismatch
+              echo Git tag-derived version is ${{ env.VERSION_TAG }}
+              echo setup.py-derived version is ${{ env.SETUP_VERSION }}
+              exit 1;
+          fi
+          
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.1
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+          
+      - name: Install numpy and cython
+        run: python -m "pip" install numpy cython
+
+      - name: Build sdist
+        run: python setup.py sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    environment: PyPI
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+          
+          

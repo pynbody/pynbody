@@ -36,7 +36,7 @@ jobs:
         python -m pip install numpy scipy cython nose
     - name: Build and install pynbody
       run: |
-        python -m pip install --no-build-isolation -e .
+        python -m pip install -e .[tests]
         echo "[ramses]" >> ~/.pynbodyrc
         echo "parallel-read=2" >> ~/.pynbodyrc
     - name: Fetch and unpack test data

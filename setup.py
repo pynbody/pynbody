@@ -1,6 +1,6 @@
 import os
 from setuptools import setup, Extension
-
+import codecs
 import numpy
 import numpy.distutils.misc_util
 import glob
@@ -139,6 +139,20 @@ python setup.py build
             print ("""Continuing your build without OpenMP...\n""")
 
         return False
+
+def read(rel_path):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+        return fp.read()
+
+def get_version(rel_path):
+    for line in read(rel_path).splitlines():
+        if line.startswith('__version__'):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        raise RuntimeError("Unable to find version string.")
+
 
 cython_version = None
 try :
@@ -286,16 +300,15 @@ and the detected cython version is {1}.
 
 install_requires = [
     'cython>=0.20',
-    'h5py',
-    'matplotlib',
-    'numpy>=1.9.2',
-    'pandas',
-    'posix_ipc',
-    'scipy'
+    'h5py>=2.10.0',
+    'matplotlib>=3.0.0',
+    'numpy>=1.14.0',
+    'posix_ipc>=0.8',
+    'scipy>=1.0.0'
 ]
 
 tests_require = [
-    'nose'
+    'nose','pandas'
 ]
 
 docs_require = [
@@ -305,8 +318,8 @@ docs_require = [
 ],
 
 extras_require = {
+    'tests': tests_require,
     'docs': docs_require,
-    'tests': tests_require
 }
 
 extras_require['all'] = []
@@ -321,7 +334,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 dist = setup(name = 'pynbody',
              author = 'The pynbody team',
              author_email = 'pynbody@googlegroups.com',
-             version = '1.0.2',
+             version = get_version("pynbody/__init__.py"),
              description = 'Light-weight astronomical N-body/SPH analysis for python',
              url = 'https://github.com/pynbody/pynbody/releases',
              package_dir = {'pynbody/': ''},
