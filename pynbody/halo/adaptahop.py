@@ -147,7 +147,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
     def _get_halo(self, halo_id):
         if halo_id not in self._halos:
-            raise Exception()
+            raise KeyError(f"Halo id {halo_id} does not seem to exist.")
 
         halo = self._halos[halo_id]
         halo_dummy = self._halos[halo_id]
