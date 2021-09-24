@@ -81,6 +81,13 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
         self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
 
+        self._read_contamination = read_contamination
+        self._longint = longint
+
+        self._header_attributes = self.convert_i8b(self._header_attributes, longint)
+        self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
+        self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
+
         # Call parent class
         super(BaseAdaptaHOPCatalogue, self).__init__(sim)
 
