@@ -57,7 +57,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _header_attributes = tuple()
 
     def __init__(self, sim, fname=None, read_contamination=None, longint=None):
-
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
@@ -109,7 +108,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         Detect if the file is in the old format or the new format.
         """
         with FortranFile(fname) as fpu:
-            for longint_flag in (True, False):
+            for longint_flag in (False, True):
                 try:
                     fpu.seek(0)
                     fpu.read_attrs(self.convert_i8b(self._header_attributes, longint_flag))
