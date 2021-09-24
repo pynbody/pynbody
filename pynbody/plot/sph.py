@@ -111,11 +111,11 @@ def velocity_image(sim, width="10 kpc", vector_color='black', edgecolor='black',
             width = _units.Unit(width)
         width = width.in_units(sim['pos'].units, **sim.conversion_context())
 
-    width = float(width)
+    width = np.float32(width)
 
-    pixel_size = width / vector_resolution
-    X, Y = np.meshgrid(np.arange(-width / 2 + pixel_size/2, width / 2 + pixel_size/2, pixel_size ),
-                       np.arange(-width / 2 + pixel_size/2, width / 2 + pixel_size/2, pixel_size))
+    pixel_size = width / np.float32(vector_resolution)
+    X, Y = np.meshgrid(np.linspace(-width / 2 + pixel_size/2, width / 2 - pixel_size/2, vector_resolution ),
+                       np.linspace(-width / 2 + pixel_size/2, width / 2 - pixel_size/2, vector_resolution))
 
     im = image(sim, width=width, **kwargs)
 
