@@ -56,7 +56,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=False, longint=False):
+    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
 
         if FortranFile is None:
             raise RuntimeError(
@@ -72,7 +72,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 raise RuntimeError(
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
-
+        if read_contamination is None or longint is None:
+            read_contamination, longint = self._detect_file_format(fname)
         self._read_contamination = read_contamination
         self._longint = longint
 
@@ -95,6 +96,31 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Compute offsets
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
+
+    def _detect_file_format(self, fname):
+        """
+        Detect if the file is in the old format or the new format.
+        """
+        with FortranFile(fname) as fpu:
+            for longint_flag in (True, False):
+                try:
+                    fpu.seek(0)
+                    fpu.read_attrs(self.convert_i8b(self._header_attributes, longint_flag))
+                    break
+                except (ValueError, IOError):
+                    pass
+            
+            # Now attemps reading the first halo data
+            attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
+            fpu.skip(3) # number + ids of parts + halo_ID
+            fpu.read_attrs(attrs)
+            try:
+                fpu.read_attrs(attrs_contam)
+                read_contamination = True
+            except (ValueError, IOError):
+                read_contamination = False
+            
+        return read_contamination, longint_flag
 
     @staticmethod
     def convert_i8b(original_headers, longint):
@@ -147,7 +173,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
     def _get_halo(self, halo_id):
         if halo_id not in self._halos:
-            raise KeyError(f"Halo id {halo_id} does not seem to exist.")
+            raise KeyError(f"Halo with id '{halo_id}' does not seem to exist in the catalog.")
 
         halo = self._halos[halo_id]
         halo_dummy = self._halos[halo_id]
@@ -320,14 +346,23 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         if len(valid_candidates) == 0:
             return False
 
-        longint = kwa.pop("longint", False)
+        # Logic is as follows:
+        # - If `longint` is provided, try loading with it.
+        # - Otherwise, try loading with and without it
+        use_longint = kwa.pop("longint", None)
+        if use_longint is None:
+            longint_flags = [True, False]
+        else:
+            longint_flags = use_longint
         for fname in valid_candidates:
             with FortranFile(fname) as fpu:
-                try:
-                    fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint))
-                    return True
-                except (ValueError, IOError):
-                    pass
+                for longint_flag in longint_flags:
+                    try:
+                        fpu.seek(0)
+                        fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint_flag))
+                        return True
+                    except (ValueError, IOError):
+                        pass
 
         return False
 
