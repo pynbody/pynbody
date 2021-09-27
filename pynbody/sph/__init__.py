@@ -181,7 +181,7 @@ def rho(self):
 
 class Kernel(object):
 
-    def __init__(self):
+    def __init__(self,type='spline'):
         self.h_power = 3
         # Return the power of the smoothing length which appears in
         # the denominator of the expression for the general kernel.
@@ -190,6 +190,8 @@ class Kernel(object):
         self.max_d = 2
         # The maximum value of the displacement over the smoothing for
         # which the kernel is non-zero
+
+        self.type = type
 
         self.safe = threading.Lock()
 
@@ -204,7 +206,23 @@ class Kernel(object):
 
     def get_value(self, d, h=1):
         """Get the value of the kernel for a given smoothing length."""
-        # Default : spline kernel
+
+        if self.type == 'spline':
+            # Default : spline kernel
+            return self.spline(d,h)
+
+        elif self.type == 'wendlandC2':
+            # Wendland C2 kernel, as used in EAGLE/ANARCHY SPH
+            return self.wendlandC2(d,h)
+
+        else:
+            raise ValueError('Invalid kernel chosen. Options are "spline" or "wendlandC2".')
+
+
+
+    @staticmethod
+    def spline(d,h):
+
         if d < 1:
             f = 1. - (3. / 2) * d ** 2 + (3. / 4.) * d ** 3
         elif d < 2:
@@ -214,13 +232,23 @@ class Kernel(object):
 
         return f / (math.pi * h ** 3)
 
+    @staticmethod
+    def wendlandC2(d,h):
+
+        if d < 2:
+            f = (1. - (d / 2.))**4 * (2. * d + 1)
+        else:
+            f = 0
+
+        return (21. * f) / (16. * math.pi * h ** 3)
+
 
 class Kernel2D(Kernel):
 
-    def __init__(self, k_orig=Kernel()):
+    def __init__(self, type='spline'):
         self.h_power = 2
-        self.max_d = k_orig.max_d
-        self.k_orig = k_orig
+        self.k_orig = Kernel(type=type)
+        self.max_d = self.k_orig.max_d
         self.safe = threading.Lock()
 
     def get_value(self, d, h=1):
