@@ -2,6 +2,7 @@ import os.path
 import re
 import struct
 from itertools import repeat
+from typing import Sequence
 from scipy.io import FortranFile as FF
 import weakref
 
@@ -108,14 +109,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         Detect if the file is in the old format or the new format.
         """
         with FortranFile(fname) as fpu:
-            for longint_flag in (False, True):
-                try:
-                    fpu.seek(0)
-                    fpu.read_attrs(self.convert_i8b(self._header_attributes, longint_flag))
-                    break
-                except (ValueError, IOError):
-                    pass
-            
+            longint_flag = self._detect_longint(fpu, (False, True))
+
             # Now attemps reading the first halo data
             attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
             fpu.skip(3) # number + ids of parts + halo_ID
@@ -343,6 +338,18 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         return igrp
 
     @classmethod
+    def _detect_longint(cls, fpu: FortranFile, longint_flags: Sequence) -> bool:
+        for longint_flag in longint_flags:
+            try:
+                fpu.seek(0)
+                fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint_flag))
+                return longint_flag
+            except (ValueError, IOError):
+                pass
+
+        raise ValueError("Could not detect longint")
+
+    @classmethod
     def _can_load(cls, sim, arr_name="grp", *args, **kwa):
         candidates = [
             fname
@@ -362,14 +369,11 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             longint_flags = use_longint
         for fname in valid_candidates:
             with FortranFile(fname) as fpu:
-                for longint_flag in longint_flags:
-                    try:
-                        fpu.seek(0)
-                        fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint_flag))
-                        return True
-                    except (ValueError, IOError):
-                        pass
-
+                try:
+                    cls._detect_longint(fpu, longint_flags)
+                    return True
+                except ValueError:
+                    pass
         return False
 
     @staticmethod
