@@ -225,3 +225,9 @@ def test_temperature_derivation():
     np.testing.assert_allclose(f.g['temp'][:10], [25988.332966, 27995.231272, 27995.19821, 30516.467776,
                                                   26931.794949, 29073.739294, 29177.197614, 31917.91444,
                                                   26931.790284, 29177.242923])
+
+
+def test_family_array():
+    f.dm['mass']
+    assert "mass" in f.family_keys()
+    assert f.dm['mass'].sim == f.dm

@@ -293,12 +293,17 @@ class SimArray(np.ndarray):
 
     @property
     def sim(self):
+
         if hasattr(self.base, 'sim'):
-            if self.family and self.base.sim:
-                return self.base.sim[self.family]
-            else:
-                return self.base.sim
-        return self._sim()
+            base_sim = self.base.sim
+        else:
+            base_sim = self._sim()
+
+        if self.family is not None and base_sim is not None:
+            return base_sim[self.family]
+        else:
+            return base_sim
+
 
     @sim.setter
     def sim(self, s):
