@@ -23,3 +23,10 @@ def test_family_array_null_slice():
     assert len(test[1:9:2].star['TestFamilyArray'])==0 # this always succeeded
     assert len(test[[1, 3, 5, 11,13]].star['TestFamilyArray']) == 2  # this always succeeded
     assert len(test[[1,3,5,7]].star['TestFamilyArray'])==0 # this would fail
+
+def test_family_array_sim():
+    """Test that the simulation of a family array is a family slice"""
+
+    test = pynbody.new(dm=10, star=10)
+    test.dm._create_array('mass')
+    assert test.dm['mass'].sim == test.dm
