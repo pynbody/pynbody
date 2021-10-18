@@ -85,7 +85,10 @@ def test_longint_contamination_autodetection():
         ),
     }
 
-    for (fname, Halo_T), ans in answers.items():
+    def tester(fname, Halo_T, ans):
         h = Halo_T(f, fname=fname)
         assert h._longint == ans["_longint"]
         assert h._read_contamination == ans["_read_contamination"]
+
+    for (fname, Halo_T), ans in answers.items():
+        yield tester, fname, Halo_T, ans
