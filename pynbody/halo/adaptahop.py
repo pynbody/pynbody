@@ -151,7 +151,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             nsubs = self._headers["nsubs"]
 
             Nskip = len(self._halo_attributes)
-            if self._read_halo_data:
+            if self._read_contamination:
                 Nskip += len(self._halo_attributes_contam)
 
             for _ in range(nhalos + nsubs):
