@@ -73,7 +73,7 @@ def test_longint_contamination_autodetection():
         ),
         ("testdata/new_adaptahop_output_00080/Halos/tree_bricks080", NewAdaptaHOPCatalogue): dict(
             _longint=False,
-            _read_contamination=False,
+            _read_contamination=True,
         ),
         ("testdata/EDGE_adaptahop_output/tree_bricks047_contam", NewAdaptaHOPCatalogue): dict(
             _longint=True,
