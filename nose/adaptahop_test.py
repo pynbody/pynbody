@@ -67,11 +67,11 @@ def test_longint_contamination_autodetection():
     f = pynbody.load("testdata/output_00080")
 
     answers = {
-        ("testdata/output_00080/tree_bricks080", AdaptaHOPCatalogue): dict(
+        ("testdata/output_00080/Halos/tree_bricks080", AdaptaHOPCatalogue): dict(
             _longint=False,
             _read_contamination=False,
         ),
-        ("testdata/new_adaptahop_output_00080/tree_bricks080", NewAdaptaHOPCatalogue): dict(
+        ("testdata/new_adaptahop_output_00080/Halos/tree_bricks080", NewAdaptaHOPCatalogue): dict(
             _longint=False,
             _read_contamination=False,
         ),
