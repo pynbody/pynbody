@@ -2,6 +2,7 @@ import numpy as np
 from scipy.io import FortranFile as FF
 
 import pynbody
+from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
 
 
 def test_load_adaptahop_catalogue():
@@ -57,3 +58,34 @@ def test_halo_particle_ids():
             expected_members = f.read_ints("i")  # halo members
 
             np.testing.assert_equal(expected_members, h[halo_id].properties["members"])
+
+
+def test_longint_contamination_autodetection():
+    # Note: we hack things a little bit here because
+    # we just want to make sure the longint/contamination
+    # flags are properly detected.
+    f = pynbody.load("testdata/output_00080")
+
+    answers = {
+        ("testdata/output_00080/tree_bricks080", AdaptaHOPCatalogue): dict(
+            _longint=False,
+            _read_contamination=False,
+        ),
+        ("testdata/new_adaptahop_output_00080/tree_bricks080", NewAdaptaHOPCatalogue): dict(
+            _longint=False,
+            _read_contamination=False,
+        ),
+        ("testdata/EDGE_adaptahop_output/tree_bricks047_contam", NewAdaptaHOPCatalogue): dict(
+            _longint=True,
+            _read_contamination=True,
+        ),
+        ("testdata/EDGE_adaptahop_output/tree_bricks047_nocontam", NewAdaptaHOPCatalogue): dict(
+            _longint=True,
+            _read_contamination=False,
+        ),
+    }
+
+    for (fname, Halo_T), ans in answers.items():
+        h = Halo_T(f, fname=fname)
+        assert h._longint == ans["_longint"]
+        assert h._read_contamination == ans["_read_contamination"]
