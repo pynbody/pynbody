@@ -77,9 +77,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
         self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
 
-        self._read_contamination = read_contamination
-        self._longint = longint
-
         self._header_attributes = self.convert_i8b(self._header_attributes, longint)
         self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
         self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
@@ -107,15 +104,19 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         with FortranFile(fname) as fpu:
             longint_flag = self._detect_longint(fpu, (False, True))
 
-            # Now attemps reading the first halo data
+            # Now attempts reading the first halo data
             attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
-            fpu.skip(3) # number + ids of parts + halo_ID
-            fpu.read_attrs(attrs)
-            try:
-                fpu.read_attrs(attrs_contam)
-                read_contamination = True
-            except (ValueError, IOError):
+
+            if len(attrs_contam) == 0:
                 read_contamination = False
+            else:
+                fpu.skip(3) # number + ids of parts + halo_ID
+                fpu.read_attrs(attrs)
+                try:
+                    fpu.read_attrs(attrs_contam)
+                    read_contamination = True
+                except (ValueError, IOError):
+                    read_contamination = False
             
         return read_contamination, longint_flag
 
