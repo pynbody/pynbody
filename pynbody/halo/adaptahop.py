@@ -1,16 +1,12 @@
 import os.path
 import re
-import struct
 from itertools import repeat
 from typing import Sequence
-from scipy.io import FortranFile as FF
-import weakref
 
 import numpy as np
 
 from . import HaloCatalogue, Halo, logger
 from .. import util, units
-from ..snapshot.ramses import RamsesSnap
 
 from ..extern.cython_fortran_utils import FortranFile
 
@@ -29,13 +25,13 @@ unit_temperature = units.K
 unit_density = unit_mass / unit_length ** 3
 
 MAPPING = (
-    ("x y z a b c R_c r rvir", unit_length),
-    ("vx vy vz vvir", unit_vel),
+    ("x y z a b c R_c r r200 r50 r90 rmax rr3d rvir", unit_length),
+    ("sigma vx vy vz vmax vvir", unit_vel),
     ("lx ly lz", unit_angular_momentum),
-    ("m mvir", unit_mass),
+    ("m m200 m_contam mtot mtot_contam mvir", unit_mass),
     ("ek ep etot", unit_energy),
     ("Tvir", unit_temperature),
-    ("rho0", unit_density),
+    ("rho0 rho3d", unit_density),
 )
 UNITS = {}
 for k, u in MAPPING:
