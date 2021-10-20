@@ -1,15 +1,12 @@
 import os.path
 import re
-import struct
 from itertools import repeat
-from scipy.io import FortranFile as FF
-import weakref
+from typing import Sequence
 
 import numpy as np
 
 from . import HaloCatalogue, Halo, logger
 from .. import util, units
-from ..snapshot.ramses import RamsesSnap
 
 from ..extern.cython_fortran_utils import FortranFile
 
@@ -28,13 +25,13 @@ unit_temperature = units.K
 unit_density = unit_mass / unit_length ** 3
 
 MAPPING = (
-    ("x y z a b c R_c r rvir", unit_length),
-    ("vx vy vz vvir", unit_vel),
+    ("x y z a b c R_c r r200 r50 r90 rmax rr3d rvir", unit_length),
+    ("sigma vx vy vz vmax vvir", unit_vel),
     ("lx ly lz", unit_angular_momentum),
-    ("m mvir", unit_mass),
+    ("m m200 m_contam mtot mtot_contam mvir", unit_mass),
     ("ek ep etot", unit_energy),
     ("Tvir", unit_temperature),
-    ("rho0", unit_density),
+    ("rho0 rho3d", unit_density),
 )
 UNITS = {}
 for k, u in MAPPING:
@@ -56,8 +53,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=False, longint=False):
-
+    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
@@ -72,9 +68,14 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 raise RuntimeError(
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
-
+        if read_contamination is None or longint is None:
+            read_contamination, longint = self._detect_file_format(fname)
         self._read_contamination = read_contamination
         self._longint = longint
+
+        self._header_attributes = self.convert_i8b(self._header_attributes, longint)
+        self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
+        self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
 
         self._header_attributes = self.convert_i8b(self._header_attributes, longint)
         self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
@@ -95,6 +96,29 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Compute offsets
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
+
+    def _detect_file_format(self, fname):
+        """
+        Detect if the file is in the old format or the new format.
+        """
+        with FortranFile(fname) as fpu:
+            longint_flag = self._detect_longint(fpu, (False, True))
+
+            # Now attempts reading the first halo data
+            attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
+
+            if len(attrs_contam) == 0:
+                read_contamination = False
+            else:
+                fpu.skip(3) # number + ids of parts + halo_ID
+                fpu.read_attrs(attrs)
+                try:
+                    fpu.read_attrs(attrs_contam)
+                    read_contamination = True
+                except (ValueError, IOError):
+                    read_contamination = False
+            
+        return read_contamination, longint_flag
 
     @staticmethod
     def convert_i8b(original_headers, longint):
@@ -128,7 +152,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             nsubs = self._headers["nsubs"]
 
             Nskip = len(self._halo_attributes)
-            if self._read_halo_data:
+            if self._read_contamination:
                 Nskip += len(self._halo_attributes_contam)
 
             for _ in range(nhalos + nsubs):
@@ -147,7 +171,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
     def _get_halo(self, halo_id):
         if halo_id not in self._halos:
-            raise Exception()
+            raise KeyError(f"Halo with id '{halo_id}' does not seem to exist in the catalog.")
 
         halo = self._halos[halo_id]
         halo_dummy = self._halos[halo_id]
@@ -311,6 +335,18 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         return igrp
 
     @classmethod
+    def _detect_longint(cls, fpu: FortranFile, longint_flags: Sequence) -> bool:
+        for longint_flag in longint_flags:
+            try:
+                fpu.seek(0)
+                fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint_flag))
+                return longint_flag
+            except (ValueError, IOError):
+                pass
+
+        raise ValueError("Could not detect longint")
+
+    @classmethod
     def _can_load(cls, sim, arr_name="grp", *args, **kwa):
         candidates = [
             fname
@@ -320,15 +356,21 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         if len(valid_candidates) == 0:
             return False
 
-        longint = kwa.pop("longint", False)
+        # Logic is as follows:
+        # - If `longint` is provided, try loading with it.
+        # - Otherwise, try loading with and without it
+        use_longint = kwa.pop("longint", None)
+        if use_longint is None:
+            longint_flags = [True, False]
+        else:
+            longint_flags = use_longint
         for fname in valid_candidates:
             with FortranFile(fname) as fpu:
                 try:
-                    fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint))
+                    cls._detect_longint(fpu, longint_flags)
                     return True
-                except (ValueError, IOError):
+                except ValueError:
                     pass
-
         return False
 
     @staticmethod

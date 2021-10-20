@@ -292,7 +292,7 @@ from pynbody.halo.adaptahop import NewAdaptaHOPCatalogue, AdaptaHOPCatalogue
 from pynbody.halo.legacy import RockstarIntermediateCatalogue
 from pynbody.halo.rockstar import RockstarCatalogue
 from pynbody.halo.subfind import SubfindCatalogue
-from pynbody.halo.subfindhdf import SubFindHDFSubhaloCatalogue, SubFindHDFHaloCatalogue, Gadget4SubfindHDFCatalogue
+from pynbody.halo.subfindhdf import SubFindHDFHaloCatalogue, Gadget4SubfindHDFCatalogue
 
 def _get_halo_classes():
     # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
@@ -300,8 +300,8 @@ def _get_halo_classes():
     _halo_classes = [
         GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
         RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-        RockstarIntermediateCatalogue, HOPCatalogue,
-        NewAdaptaHOPCatalogue, AdaptaHOPCatalogue, Gadget4SubfindHDFCatalogue
+        NewAdaptaHOPCatalogue, AdaptaHOPCatalogue,
+        RockstarIntermediateCatalogue, HOPCatalogue, Gadget4SubfindHDFCatalogue
     ]
 
     return _halo_classes
