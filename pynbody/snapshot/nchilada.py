@@ -82,15 +82,30 @@ class NchiladaSnap(SimSnap):
         self._family_slice = self._load_control.mem_family_slice
         self._num_particles = self._load_control.mem_num_particles
 
-    def __init__(self, filename, take=None, paramfile=None):
+    def __init__(self, filename, **kwargs):
         super(NchiladaSnap, self).__init__()
+
+        must_have_paramfile = kwargs.get('must_have_paramfile', False)
+        take = kwargs.get('take', None)
+
         self._dom_sim = xml.dom.minidom.parse(
             os.path.join(filename, "description.xml")).getElementsByTagName('simulation')[0]
         self._filename = filename
         self._update_loadable_keys()
         self._setup_slices(take=take)
-        self._paramfilename = paramfile
+        self._paramfilename = kwargs.get('paramfile', None)
+
         self._decorate()
+
+        if 'dKpcUnit' not in self._paramfile:
+            if must_have_paramfile:
+                raise RuntimeError("Could not find .param file for this run. Place it in the run's directory or parent directory.")
+            else:
+                warnings.warn(
+                    "No readable param file in the run directory or parent directory: using defaults.", RuntimeWarning)
+                self._file_units_system = [
+                    units.Unit(x) for x in ('G', '1 kpc', '1e10 Msol')]
+
 
     def loadable_keys(self, fam=None):
         if fam is not None:
