@@ -1,8 +1,6 @@
 
 import pynbody, numpy as np
 import numpy.testing as npt
-import pylab as p
-import nose.tools
 
 def setup():
     global f
@@ -63,8 +61,8 @@ def test_kd_issue_88() :
     # number of particles less than number of smoothing neighbours
     f = pynbody.new(gas=16)
     f['pos'] = np.random.uniform(size=(16,3))
-    trigger_fn = lambda : f['smooth']
-    nose.tools.assert_raises(ValueError, trigger_fn)
+    with pytest.raises(ValueError):
+        f["smooth"]
 
 def test_float_kd():
     f = pynbody.load("testdata/test_g2_snap")
