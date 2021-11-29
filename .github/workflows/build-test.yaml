@@ -40,16 +40,13 @@ jobs:
         echo "[ramses]" >> ~/.pynbodyrc
         echo "parallel-read=2" >> ~/.pynbodyrc
     - name: Fetch and unpack test data
-      working-directory: nose
       run: |
         wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz
         tar --exclude="._*" -xzvf testdata.tar.gz
     - name: Run all tests
-      working-directory: tests
       run: python -m pytest
     - name: Uninstall posix_ipc
       run: python -m pip uninstall -y posix_ipc
     - name: Run ramses tests without shared memory support
-      working-directory: tests
-      run: python -m pytest ramses_new_ptcl_format_test.py ramses_test.py
+      run: python -m pytest tests/ramses_new_ptcl_format_test.py tests/ramses_test.py
 
