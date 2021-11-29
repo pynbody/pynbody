@@ -1,3 +1,4 @@
+import pytest
 import pynbody
 import numpy as np
 
@@ -29,7 +30,7 @@ def test_load_copy():
     f_subview['x'][0]=1
     assert subview['x'][0]==0
 
-    with np.testing.assert_raises(NotImplementedError):
+    with pytest.raises(NotImplementedError):
         f_subview[:5].load_copy()
 
 def test_grp_load_copy():

@@ -93,5 +93,5 @@ def test_hashing():
     X[pynbody.filt.FamilyFilter(pynbody.family.gas)] = 10
     assert X.get(pynbody.filt.Sphere('100 kpc'), None) == 5
     assert X.get(pynbody.filt.FamilyFilter(pynbody.family.gas),None)==10
-    with npt.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         X[pynbody.filt.FamilyFilter(pynbody.family.dm)]

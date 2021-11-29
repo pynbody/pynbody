@@ -6,6 +6,12 @@ import pickle
 
 
 import pytest
+from pathlib import Path
+
+import pynbody
+
+test_folder = Path(__file__).parent
+
 def setup_module():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
@@ -22,7 +28,23 @@ def setup_module():
     f.gas['smooth']=(f.gas['mass']/f.gas['rho'])**(1,3)
     f.physical_units()
 
-def test_images():
+@pytest.fixture
+def compare2d():
+    yield np.load(test_folder / "test_im_2d.npy")
+
+@pytest.fixture
+def compare3d():
+    yield np.load(test_folder / "test_im_3d.npy")
+
+@pytest.fixture
+def compare_grid():
+    yield np.load(test_folder / "test_im_grid.npy")
+
+@pytest.fixture
+def stars_2d():
+    yield np.load(test_folder / "test_stars_2d.npy")
+
+def test_images(compare2d, compare3d, compare_grid):
 
     global f
 
@@ -40,9 +62,6 @@ def test_images():
     np.save("test_im_grid.npy",im_grid)
     """
 
-    compare2d, compare3d = np.load("test_im_2d.npy"), np.load("test_im_3d.npy")
-    compare_grid = np.load("test_im_grid.npy")
-
     npt.assert_allclose(im2d,compare2d,rtol=1e-4)
     npt.assert_allclose(im3d,compare3d,rtol=1e-4)
     npt.assert_allclose(im_grid,compare_grid,rtol=1e-4)
@@ -54,19 +73,16 @@ def test_images():
     compare_rect = compare3d[125:-125]
     npt.assert_allclose(im_rect,compare_rect,rtol=1e-4)
 
-def test_approximate_images():
+def test_approximate_images(compare2d, compare3d):
     global f
     im3d = pynbody.plot.sph.image(
         f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True)
     im2d = pynbody.plot.sph.image(
         f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True )
 
-    compare2d, compare3d = np.load("test_im_2d.npy"), np.load("test_im_3d.npy")
-
     # approximate interpolated images are only close in a mean sense
-
-    assert abs(np.log10(im2d/compare2d)).mean()<0.03
-    assert abs(np.log10(im3d/compare3d)).mean()<0.03
+    npt.assert_allclose(im2d, compare2d, rtol=1e-4)
+    npt.assert_allclose(im3d, compare3d, rtol=1e-4)
 
 
 def test_denoise_projected_image_throws():
@@ -74,20 +90,18 @@ def test_denoise_projected_image_throws():
     # this should be fine:
     pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, denoise=True)
 
-    with npt.assert_raises(ValueError):
+    with pytest.raises(ValueError):
         # this should not:
         pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
 
 
-def test_render_stars():
+def test_render_stars(stars_2d):
     global f
     im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
 
     # np.save("test_stars_2d.npy", im[40:60])
 
-    compare = np.load("test_stars_2d.npy")
-
-    npt.assert_allclose(compare,im[40:60],atol=0.01)
+    npt.assert_allclose(stars_2d,im[40:60],atol=0.01)
 
 
 @pynbody.derived_array
@@ -95,5 +109,5 @@ def intentional_circular_reference(sim):
     return sim['intentional_circular_reference']
 
 def test_exception_propagation():
-    with npt.assert_raises(RuntimeError):
+    with pytest.raises(RuntimeError):
         pynbody.plot.sph.image(f.gas, qty='intentional_circular_reference')
