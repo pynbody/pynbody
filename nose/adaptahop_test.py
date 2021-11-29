@@ -69,6 +69,14 @@ def test_properties_are_simarrays():
         v.in_units(unit)
 
 
+def test_physical_conversion():
+    f = pynbody.load("testdata/output_00080")
+    halo = f.halos()[1]
+
+    assert halo.properties["m"].units != "Msol"
+    halo.physical_units()
+    assert halo.properties["m"].units == "Msol"
+
 
 def test_get_group():
     f = pynbody.load("testdata/output_00080")
