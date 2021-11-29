@@ -481,7 +481,7 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
         (("max_velocity_radius", "max_velocity"), 2, "d"),
         ("nfw_concentration", 1, "d"),
         (("r200", "m200"), 2, "d"),
-        (("r_half_mass", "r_90%_mass"), 2, "d"),
+        (("r_half_mass", "r_90percent_mass"), 2, "d"),
         ("radius_profile", -1, "d"),
         ("density_profile", -1, "d"),
         (("nfw_rho0", "nfw_R_c"), 2, "d"),
