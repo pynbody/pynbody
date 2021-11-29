@@ -33,7 +33,7 @@ jobs:
     - name: Install python dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install numpy scipy cython nose
+        python -m pip install numpy scipy cython
     - name: Build and install pynbody
       run: |
         python -m pip install -e .[tests]
@@ -45,11 +45,11 @@ jobs:
         wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz
         tar --exclude="._*" -xzvf testdata.tar.gz
     - name: Run all tests
-      working-directory: nose
-      run: python -m nose
+      working-directory: tests
+      run: python -m pytest
     - name: Uninstall posix_ipc
       run: python -m pip uninstall -y posix_ipc
     - name: Run ramses tests without shared memory support
-      working-directory: nose
-      run: python -m nose ramses_new_ptcl_format_test.py ramses_test.py
+      working-directory: tests
+      run: python -m pytest ramses_new_ptcl_format_test.py ramses_test.py
 
