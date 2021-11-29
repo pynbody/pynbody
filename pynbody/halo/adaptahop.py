@@ -6,7 +6,7 @@ from typing import Sequence
 import numpy as np
 
 from . import HaloCatalogue, Halo, logger
-from .. import util, units
+from .. import util, units, array
 
 from ..extern.cython_fortran_utils import FortranFile
 
@@ -243,17 +243,27 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 attrs = self._halo_attributes
             props = fpu.read_attrs(attrs)
 
-        # Convert positions between [-Lbox/2, Lbox/2] to [0, Lbox].
         # /!\: AdaptaHOP assumes that 1Mpc == 3.08e24 (exactly)
         boxsize = self.base.properties["boxsize"]
         Mpc2boxsize = boxsize.in_units("cm") / 3.08e24  # Hard-coded in AdaptaHOP...
-        for k in "xyz":
-            props[k] = boxsize.in_units("Mpc") * (props[k] / Mpc2boxsize + 0.5)
 
         # Add units for known fields
+        # NOTE: we need to list the items, as the dictionary is updated in place
         for k, v in list(props.items()):
-            if k in UNITS:
-                props[k] = v * UNITS[k]
+            if k in ("pos_x", "pos_y", "pos_z"):
+                # convert positions between [-Lbox/2, Lbox/2] to [0, Lbox].
+                v = v / Mpc2boxsize + 0.5
+                unit = boxsize
+            elif k in UNITS:
+                unit = UNITS[k]
+            else:
+                unit = "1"
+            props[k] = array.SimArray(
+                v,
+                sim=self.base,
+                units=unit,
+                dtype=v.dtype,
+            )
 
         props["file_offset"] = offset
         props["npart"] = npart
@@ -423,7 +433,8 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
         ("m", 1, "d"),
         ("ntot", 1, "i8b"),
         ("mtot", 1, "d"),
-        (("x", "y", "z"), 3, "d"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "d"),
         (("vx", "vy", "vz"), 3, "d"),
         (("lx", "ly", "lz"), 3, "d"),
         (("r", "a", "b", "c"), 4, "d"),
@@ -466,7 +477,8 @@ class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
             "i",
         ),
         ("m", 1, "f"),
-        (("x", "y", "z"), 3, "f"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "f"),
         (("vx", "vy", "vz"), 3, "f"),
         (("lx", "ly", "lz"), 3, "f"),
         (("r", "a", "b", "c"), 4, "f"),
