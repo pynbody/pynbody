@@ -4,7 +4,8 @@ import numpy as np
 import numpy.testing as npt
 
 
-def setup():
+import pytest
+def setup_module():
     global halo_boundary, rs, rhos, mass, c, NFW1, NFW2
 
     halo_boundary = SimArray(347., units="kpc")

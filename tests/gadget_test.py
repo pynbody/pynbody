@@ -1,12 +1,13 @@
 import pynbody
 import numpy as np
 
-def setup():
+import pytest
+def setup_module():
     global snap
     snap = pynbody.load("testdata/test_g2_snap")
 
 
-def teardown():
+def teardown_module():
     global snap
     del snap
 

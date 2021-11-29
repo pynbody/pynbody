@@ -5,7 +5,8 @@ import pylab as p
 import pickle
 
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
     h = f.halos()

@@ -3,7 +3,8 @@ import numpy as np
 import weakref
 
 
-def setup():
+import pytest
+def setup_module():
     global f, h
     f = pynbody.new(dm=1000, star=500, gas=500, order='gas,dm,star')
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
@@ -12,7 +13,7 @@ def setup():
     f.gas['rho'] = np.ones(500, dtype=float)
 
 
-def teardown():
+def teardown_module():
     global f
     del f
 
@@ -25,17 +26,11 @@ def test_array_promotion():
     assert 'tx' in f.family_keys()
     assert 'tx' not in f.keys()
 
-    try:
+    with pytest.raises(KeyError):
         f.star['tx']
-        assert False  # should have raised KeyError
-    except KeyError:
-        pass
 
-    try:
+    with pytest.raises(KeyError):
         f['tx']
-        assert False  # should have raised KeyError
-    except KeyError:
-        pass
 
     f.star['tx'] = np.arange(0, 500)
 
@@ -68,13 +63,8 @@ def test_subscript():
 
 def test_noarray():
     def check(z, x):
-        try:
+        with pytest.raises(KeyError):
             z[x]
-        except KeyError:
-            return
-
-        # We have not got the right exception back
-        assert False
 
     check(f, 'thisarraydoesnotexist')
     check(f.gas, 'thisarraydoesnotexist')
@@ -103,12 +93,8 @@ def test_derived_array():
     f['vr']
     assert 'vr' in f.keys()
 
-    try:
+    with pytest.raises((RuntimeError, ValueError, TypeError)):
         f['r'][22] += 3
-        # Array should not be writable
-        assert False
-    except (RuntimeError, ValueError, TypeError):
-        pass
 
     f['r'].derived = False
     # Now we should be able to write to it

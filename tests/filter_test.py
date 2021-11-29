@@ -2,7 +2,8 @@ import pynbody
 import numpy as np
 import numpy.testing as npt
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.new(1000)
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
@@ -13,7 +14,7 @@ def setup():
     f['mass'].units = 'Msol'
 
 
-def teardown():
+def teardown_module():
     global f
     del f
 

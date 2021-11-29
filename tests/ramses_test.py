@@ -2,7 +2,8 @@ import pynbody
 import numpy as np
 
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.load("testdata/ramses_partial_output_00250")
 

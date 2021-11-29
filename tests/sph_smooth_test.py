@@ -2,7 +2,8 @@
 import pynbody, numpy as np
 import numpy.testing as npt
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
 
@@ -10,7 +11,7 @@ def setup():
     # is not periodic
     del f.properties['boxsize']
 
-def teardown():
+def teardown_module():
     global f
     del f
 
