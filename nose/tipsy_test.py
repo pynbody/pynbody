@@ -2,7 +2,7 @@ import pynbody
 import numpy as np
 import glob
 import os
-from nose.tools import assert_raises
+import pytest
 
 
 def setup():
@@ -363,7 +363,7 @@ def test_3d_interpolation():
 
 def test_alternative_cmd():
     """A very basic test that the alternative cmd path is respected"""
-    with assert_raises(IOError):
+    with pytest.raises(IOError):
         pynbody.analysis.luminosity.calc_mags(f.s, cmd_path="/nonexistent/path")
 
 def test_issue_313():
@@ -383,7 +383,7 @@ def test_read_starlog_no_log():
             10758492.68887316])
     assert np.all(np.abs(rhoform - correct) < 1e-7)
     # h2form should not be in the available starlog keys
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         h2form = s.s['h2form']
 
 def test_read_starlog_with_log():
