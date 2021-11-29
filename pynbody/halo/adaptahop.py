@@ -175,8 +175,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         halo = self._halos[halo_id]
         halo_dummy = self._halos[halo_id]
-        halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
-        halo.dummy = halo_dummy
+        if isinstance(halo, DummyHalo):
+            halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
+            halo.dummy = halo_dummy
+            self._halos[halo_id] = halo
 
         return halo
 
