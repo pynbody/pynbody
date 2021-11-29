@@ -3,6 +3,7 @@ from scipy.io import FortranFile as FF
 
 import pynbody
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
+from pynbody.array import SimArray
 
 
 def test_load_adaptahop_catalogue():
@@ -23,6 +24,14 @@ def test_load_one_halo():
         ("testdata/new_adaptahop_output_00080", 2),
     ):
         yield helper, path, nhalos
+
+def test_position():
+    f = pynbody.load("testdata/output_00080")
+    h = f.halos()
+
+    for key in ("pos_x", "pos_y", "pos_z"):
+        assert isinstance(h[1].properties[key], SimArray)
+
 
 
 def test_get_group():

@@ -268,6 +268,17 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         props["file_offset"] = offset
         props["npart"] = npart
         props["members"] = iord_array
+        # Create position and velocity
+        props["pos"] = array.SimArray(
+            [props["pos_x"], props["pos_y"], props["pos_z"]],
+            units=props["pos_x"].units,
+            sim=self.base,
+        )
+        props["vel"] = array.SimArray(
+            [props["vx"], props["vy"], props["vz"]],
+            units=props["vx"].units,
+            sim=self.base,
+        )
 
         # Create halo object and fill properties
         if hasattr(self, "_group_to_indices"):
