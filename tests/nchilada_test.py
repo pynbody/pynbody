@@ -216,10 +216,10 @@ def test_partial_loading():
 
 def test_HI_not_present_for_non_gas_particles():
     fresh_f = pynbody.load("testdata/nchilada_test/12M.00001")
-    with npt.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         fresh_f['HI']
 
-    with npt.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         fresh_f.dm['HI']
 
     # correct value of f.gas['HI'] is tested above

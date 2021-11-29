@@ -34,5 +34,5 @@ def test_rockstar_particles():
 def test_reject_unsuitable_rockstar_files():
     fwrong = pynbody.new(dm=2097152)
     fwrong.properties['z']=0
-    with npt.assert_raises(RuntimeError):
+    with pytest.raises(RuntimeError):
         hwrong = fwrong.halos()

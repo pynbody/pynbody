@@ -3,6 +3,9 @@ import pynbody, numpy as np
 import numpy.testing as npt
 
 import pytest
+from pathlib import Path
+
+
 def setup_module():
     global f
     f = pynbody.load("testdata/g15784.lr.01024")
@@ -15,7 +18,36 @@ def teardown_module():
     global f
     del f
 
-def test_smooth():
+test_folder = Path(__file__).parent
+@pytest.fixture
+def v_mean():
+    yield np.load(test_folder / 'test_v_mean.npy')
+
+@pytest.fixture
+def v_disp():
+    yield np.load(test_folder / 'test_v_disp.npy')
+
+@pytest.fixture
+def smooth():
+    yield np.load(test_folder / 'test_smooth.npy')
+
+@pytest.fixture
+def rho():
+    yield np.load(test_folder / 'test_rho.npy')
+
+@pytest.fixture
+def rho_periodic():
+    yield np.load(test_folder / 'test_rho_periodic.npy')
+
+@pytest.fixture
+def smooth_periodic():
+    yield np.load(test_folder / 'test_smooth_periodic.npy')
+
+@pytest.fixture
+def div_curl():
+    yield np.load(test_folder / 'test_div_curl.npz')
+
+def test_smooth(v_mean, v_disp, rho, smooth):
     global f
     """
     np.save('test_smooth.npy', f.dm['smooth'][::100])
@@ -25,26 +57,26 @@ def test_smooth():
     """
 
     npt.assert_allclose(f.dm['smooth'][::100],
-                         np.load('test_smooth.npy'),rtol=1e-5)
+                        smooth,rtol=1e-5)
 
     npt.assert_allclose(f.dm['rho'][::100],
-                         np.load('test_rho.npy'),rtol=1e-5)
+                        rho,rtol=1e-5)
 
 
 
-    npt.assert_allclose(np.load('test_v_mean.npy'),f.dm['v_mean'][::100],rtol=1e-3)
-    npt.assert_allclose(np.load('test_v_disp.npy'),f.dm['v_disp'][::100],rtol=1e-3)
+    npt.assert_allclose(v_mean,f.dm['v_mean'][::100],rtol=1e-3)
+    npt.assert_allclose(v_disp,f.dm['v_disp'][::100],rtol=1e-3)
 
     # check 1D smooth works too
     vz_mean = f.dm.kdtree.sph_mean(f.dm['vz'],32)
-    npt.assert_allclose(np.load('test_v_mean.npy')[:,2],vz_mean[::100],rtol=1e-3)
+    npt.assert_allclose(v_mean[:,2],vz_mean[::100],rtol=1e-3)
 
     # check 1D dispersions
     v_disp = f.dm.kdtree.sph_dispersion(f.dm['vx'],32)**2+ \
              f.dm.kdtree.sph_dispersion(f.dm['vy'],32)**2+ \
              f.dm.kdtree.sph_dispersion(f.dm['vz'],32)**2
 
-    npt.assert_allclose(np.load('test_v_disp.npy')**2,v_disp[::100],rtol=1e-3)
+    npt.assert_allclose(v_disp**2,v_disp[::100],rtol=1e-3)
 
 def test_kd_delete():
     global f
@@ -101,7 +133,7 @@ def test_float_kd():
     npt.assert_allclose(double_double,float_double,rtol=1e-4)
     npt.assert_allclose(double_double,float_float,rtol=1e-4)
 
-def test_periodic_smoothing():
+def test_periodic_smoothing(rho_periodic, smooth_periodic):
     f = pynbody.load("testdata/g15784.lr.01024")
 
     """
@@ -109,9 +141,9 @@ def test_periodic_smoothing():
     np.save('test_smooth_periodic.npy', f.dm['smooth'][::100])
     """
     npt.assert_allclose(f.dm['rho'][::100],
-                         np.load('test_rho_periodic.npy'),rtol=1e-5)
+                         rho_periodic,rtol=1e-5)
     npt.assert_allclose(f.dm['smooth'][::100],
-                         np.load('test_smooth_periodic.npy'),rtol=1e-5)
+                         smooth_periodic,rtol=1e-5)
 
 def test_neighbour_list():
     f = pynbody.load("testdata/test_g2_snap")
@@ -146,14 +178,13 @@ def test_neighbour_list():
         idx_self = nl[2].index(nl[0])  # index of self in the neighbour list (not necessarily the first element)
         assert nl[3][idx_self] == 0.0  # distance to self
 
-
-def test_div_curl_smoothing():
+def test_div_curl_smoothing(div_curl):
     f = pynbody.load("testdata/g15784.lr.01024")
 
     """
     np.savez('test_div_curl', curl=f.g['v_curl'][::100], div=f.g['v_div'][::100])
     """
-    arr = np.load('test_div_curl.npz')
+    arr = div_curl
     # print(f.g['v_curl'][::100], f.g['v_div'][::100])
     curl, div = arr['curl'], arr['div']
     npt.assert_allclose(f.g['v_curl'][::100], curl, rtol=2e-4)
