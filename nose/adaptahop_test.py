@@ -25,12 +25,48 @@ def test_load_one_halo():
     ):
         yield helper, path, nhalos
 
-def test_position():
+def test_properties_are_simarrays():
     f = pynbody.load("testdata/output_00080")
-    h = f.halos()
+    halo = f.halos()[1]
 
-    for key in ("pos_x", "pos_y", "pos_z"):
-        assert isinstance(h[1].properties[key], SimArray)
+    # Test these properties exist and have the right dimensions
+    # NOTE: we don't check that the units are the same, only
+    #       that we can convert to the units below.
+    properties = [
+        ("m", "Msol"),
+        ("pos_x", "kpc"),
+        ("pos_y", "kpc"),
+        ("pos_z", "kpc"),
+        ("vx", "km s**-1"),
+        ("vy", "km s**-1"),
+        ("vz", "km s**-1"),
+        ("lx", "km s**-1 kpc"),
+        ("ly", "km s**-1 kpc"),
+        ("lz", "km s**-1 kpc"),
+        ("r", "kpc"),
+        ("a", "kpc"),
+        ("b", "kpc"),
+        ("c", "kpc"),
+        ("ek", "km**2 Msol s**-2"),
+        ("ep", "km**2 Msol s**-2"),
+        ("etot", "km**2 Msol s**-2"),
+        ("spin", "1"),
+        ("rvir", "kpc"),
+        ("mvir", "Msol"),
+        ("Tvir", "K"),
+        ("vvir", "km s**-1"),
+        ("rho0", "Msol kpc**-3"),
+        ("R_c", "kpc"),
+        ("pos", "kpc"),
+        ("vel", "km s**-1"),
+    ]
+
+    for prop, unit in properties:
+        v = halo.properties[prop]
+        assert isinstance(v, SimArray)
+        assert v.sim is f
+        # Verify that they are convertible
+        v.in_units(unit)
 
 
 
