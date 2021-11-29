@@ -363,7 +363,7 @@ class AHFCatalogue(HaloCatalogue):
         f = util.open_(filename,"rt")
         # get all the property names from the first, commented line
         # remove (#)
-        keys = [re.sub('\([0-9]*\)', '', field)
+        keys = [re.sub(r'\([0-9]*\)', '', field)
                 for field in f.readline().split()]
         # provide translations
         for i, key in enumerate(keys):

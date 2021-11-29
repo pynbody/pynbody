@@ -100,7 +100,7 @@ def move_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
 
     logger.info("Initial rough COM=%s",com_x)
 
-    ocen=np.zeros((3))
+    ocen=np.zeros(3)
     while np.sqrt(((com_x-ocen)**2).sum())<=tol: ocen+=1.0
 
     while np.sqrt(((com_x-ocen)**2).sum())>tol :
