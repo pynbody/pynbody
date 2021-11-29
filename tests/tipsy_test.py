@@ -5,7 +5,8 @@ import os
 import pytest
 
 
-def setup():
+import pytest
+def setup_module():
     X = glob.glob("testdata/test_out.*")
     for z in X:
         os.unlink(z)
@@ -15,7 +16,7 @@ def setup():
     h = f.halos()
 
 
-def teardown():
+def teardown_module():
     global f
     del f
     if os.path.exists("testdata/g15784.lr.log"):
@@ -177,11 +178,8 @@ def test_array_metadata():
     assert "banana" in f1.gas.loadable_keys()
     assert "zog" in f1.gas.loadable_keys()
 
-    try:
+    with pytest.raises(KeyError):
         f1.star["zog"]  # -> KeyError
-        assert False  # Shouldn't have been able to load gas-only array zog
-    except KeyError:
-        pass
 
     f1.gas['zog']
     assert f1.gas['zog'][0] == 1.0
@@ -210,11 +208,8 @@ def test_array_update():
 
     # test the case where bla is a snapshot-level array
 
-    try:
+    with pytest.raises(IOError):
         f1.g['bla'].write()
-        assert False  # should not be allowed to overwrite here
-    except IOError:
-        pass
 
     f1.write_array(
         'bla', [pynbody.family.gas, pynbody.family.dm], overwrite=True)

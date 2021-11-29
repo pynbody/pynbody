@@ -1,7 +1,7 @@
 import pynbody
 SA = pynbody.array.SimArray
 import numpy as np
-
+import pytest
 
 def test_pickle():
     import pickle
@@ -70,11 +70,8 @@ def test_iop_units():
     print(repr(x))
     assert repr(x) == "SimArray([1, 2, 3, 4], 'kpc')"
 
-    try:
+    with pytest.raises(ValueError):
         x += y
-        assert False  # above operation is invalid
-    except ValueError:
-        pass
 
     x *= pynbody.units.Unit('K')
 
@@ -129,18 +126,12 @@ def test_dimensionful_comparison():
     assert (a2 <= a2).all()
 
     a2 = SA(np.ones(2), 'Msol')
-    try:
+    with pytest.raises(pynbody.units.UnitsException):
         a2 < a1
-        assert False, "Comparison should have failed - incompatible units"
-    except pynbody.units.UnitsException:
-        pass
 
     a2 = SA(np.ones(2))
-    try:
+    with pytest.raises(pynbody.units.UnitsException):
         a2 < a1
-        assert False, "Comparison should have failed - incompatible units"
-    except pynbody.units.UnitsException:
-        pass
 
     assert (a1 < pynbody.units.Unit("0.5 Mpc")).all()
     assert (a1 > pynbody.units.Unit("400 pc")).all()

@@ -1,7 +1,8 @@
 import pynbody
 import numpy as np, numpy.testing as npt
 
-def setup():
+import pytest
+def setup_module():
     # create a dummy gadget file
     global f
     f = pynbody.new(dm=2097152)
