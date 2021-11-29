@@ -1,6 +1,5 @@
 import os.path
 import re
-from itertools import repeat
 from typing import Sequence
 
 import numpy as np
@@ -24,19 +23,43 @@ unit_energy = unit_mass * unit_vel ** 2
 unit_temperature = units.Unit("K")
 unit_density = unit_mass / unit_length ** 3
 
-MAPPING = (
-    ("x y z a b c R_c r r200 r50 r90 rmax rr3d rvir", unit_length),
-    ("sigma vx vy vz vmax vvir", unit_vel),
-    ("lx ly lz", unit_angular_momentum),
-    ("m m200 m_contam mtot mtot_contam mvir", unit_mass),
-    ("ek ep etot", unit_energy),
-    ("Tvir", unit_temperature),
-    ("rho0 rho3d", unit_density),
-)
-UNITS = {}
-for k, u in MAPPING:
-    for key, unit in zip(k.split(), repeat(u)):
-        UNITS[key] = unit
+UNITS = {
+    'pos_x': unit_length,
+    'pos_y': unit_length,
+    'pos_z': unit_length,
+    'shape_a': unit_length,
+    'shape_b': unit_length,
+    'shape_c': unit_length,
+    'nfw_R_c': unit_length,
+    'max_distance': unit_length,
+    'r200': unit_length,
+    'r_half_mass': unit_length,
+    'r_90%_mass': unit_length,
+    'max_velocity_radius': unit_length,
+    'radius_profile': unit_length,
+    'virial_radius': unit_length,
+    'velocity_dispersion': unit_vel,
+    'vel_x': unit_vel,
+    'vel_y': unit_vel,
+    'vel_z': unit_vel,
+    'max_velocity': unit_vel,
+    'virial_velocity': unit_vel,
+    'angular_momentum_x': unit_angular_momentum,
+    'angular_momentum_y': unit_angular_momentum,
+    'angular_momentum_z': unit_angular_momentum,
+    'm': unit_mass,
+    'm200': unit_mass,
+    'm_contam': unit_mass,
+    'mtot': unit_mass,
+    'mtot_contam': unit_mass,
+    'virial_mass': unit_mass,
+    'kinetic_energy': unit_energy,
+    'potential_energy': unit_energy,
+    'total_energy': unit_energy,
+    'virial_temperature': unit_temperature,
+    'nfw_rho0': unit_density,
+    'density_profile': unit_density,
+}
 
 
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
@@ -277,8 +300,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             sim=self.base,
         )
         props["vel"] = array.SimArray(
-            [props["vx"], props["vy"], props["vz"]],
-            units=props["vx"].units,
+            [props["vel_x"], props["vel_y"], props["vel_z"]],
+            units=props["vel_x"].units,
             sim=self.base,
         )
 
@@ -448,20 +471,20 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
         ("mtot", 1, "d"),
         # Note: we use pos_z instead of z to prevent confusion with redshift
         (("pos_x", "pos_y", "pos_z"), 3, "d"),
-        (("vx", "vy", "vz"), 3, "d"),
-        (("lx", "ly", "lz"), 3, "d"),
-        (("r", "a", "b", "c"), 4, "d"),
-        (("ek", "ep", "etot"), 3, "d"),
+        (("vel_x", "vel_y", "vel_z"), 3, "d"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "d"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "d"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "d"),
         ("spin", 1, "d"),
-        ("sigma", 1, "d"),
-        (("rvir", "mvir", "Tvir", "vvir"), 4, "d"),
-        (("rmax", "vmax"), 2, "d"),
-        ("c", 1, "d"),
+        ("velocity_dispersion", 1, "d"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "d"),
+        (("max_velocity_radius", "max_velocity"), 2, "d"),
+        ("nfw_concentration", 1, "d"),
         (("r200", "m200"), 2, "d"),
-        (("r50", "r90"), 2, "d"),
-        ("rr3D", -1, "d"),
-        ("rho3d", -1, "d"),
-        (("rho0", "R_c"), 2, "d"),
+        (("r_half_mass", "r_90%_mass"), 2, "d"),
+        ("radius_profile", -1, "d"),
+        ("density_profile", -1, "d"),
+        (("nfw_rho0", "nfw_R_c"), 2, "d"),
     )
 
     _halo_attributes_contam = (
@@ -492,13 +515,13 @@ class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
         ("m", 1, "f"),
         # Note: we use pos_z instead of z to prevent confusion with redshift
         (("pos_x", "pos_y", "pos_z"), 3, "f"),
-        (("vx", "vy", "vz"), 3, "f"),
-        (("lx", "ly", "lz"), 3, "f"),
-        (("r", "a", "b", "c"), 4, "f"),
-        (("ek", "ep", "etot"), 3, "f"),
+        (("vel_x", "vel_y", "vel_z"), 3, "f"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "f"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "f"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "f"),
         ("spin", 1, "f"),
-        (("rvir", "mvir", "Tvir", "vvir"), 4, "f"),
-        (("rho0", "R_c"), 2, "f"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "f"),
+        (("nfw_rho0", "nfw_R_c"), 2, "f"),
     )
 
     _halo_attributes_contam = tuple()
