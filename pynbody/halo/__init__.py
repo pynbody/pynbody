@@ -19,8 +19,9 @@ import weakref
 import copy
 import logging
 import warnings
+from functools import reduce
 
-from .. import snapshot, util
+from .. import snapshot, util, units, array
 
 logger = logging.getLogger("pynbody.halo")
 
@@ -55,6 +56,24 @@ class Halo(snapshot.IndexedSubSnap):
         """
 
         return self._halo_catalogue.is_subhalo(self._halo_id, otherhalo._halo_id)
+
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
+        dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
+        for k in list(self.properties.keys()):
+            v = self.properties[k]
+            if isinstance(v, array.SimArray):
+                try:
+                    new_unit = v.units.dimensional_project(dims)
+                    new_unit = reduce(
+                        lambda x, y: x * y,
+                        [a ** b for a, b in zip(dims, new_unit[:3])]
+                    )
+                except units.UnitsException:
+                    continue
+                self.properties[k] = v.in_units(new_unit)
+
+        return super().physical_units(distance, velocity, mass, persistent)
+
 
 
 # ----------------------------#

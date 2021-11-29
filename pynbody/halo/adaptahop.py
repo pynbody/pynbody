@@ -16,12 +16,12 @@ class DummyHalo(object):
         self.properties = {}
 
 
-unit_length = units.Mpc
-unit_vel = units.km / units.s
-unit_mass = 1e11 * units.Msol
+unit_length = units.Unit("Mpc")
+unit_vel = units.Unit("km s**-1")
+unit_mass = 1e11 * units.Unit("Msol")
 unit_angular_momentum = unit_mass * unit_vel * unit_length
 unit_energy = unit_mass * unit_vel ** 2
-unit_temperature = units.K
+unit_temperature = units.Unit("K")
 unit_density = unit_mass / unit_length ** 3
 
 MAPPING = (
@@ -257,7 +257,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             elif k in UNITS:
                 unit = UNITS[k]
             else:
-                unit = "1"
+                continue
             props[k] = array.SimArray(
                 v,
                 sim=self.base,
