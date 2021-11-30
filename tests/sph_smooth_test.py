@@ -72,11 +72,13 @@ def test_smooth(v_mean, v_disp, rho, smooth):
     npt.assert_allclose(v_mean[:,2],vz_mean[::100],rtol=1e-3)
 
     # check 1D dispersions
-    v_disp = f.dm.kdtree.sph_dispersion(f.dm['vx'],32)**2+ \
-             f.dm.kdtree.sph_dispersion(f.dm['vy'],32)**2+ \
-             f.dm.kdtree.sph_dispersion(f.dm['vz'],32)**2
+    v_disp_squared = (
+        f.dm.kdtree.sph_dispersion(f.dm['vx'], 32)**2+
+        f.dm.kdtree.sph_dispersion(f.dm['vy'], 32)**2+
+        f.dm.kdtree.sph_dispersion(f.dm['vz'], 32)**2
+    )
 
-    npt.assert_allclose(v_disp**2,v_disp[::100],rtol=1e-3)
+    npt.assert_allclose(v_disp**2, v_disp_squared[::100], rtol=1e-3)
 
 def test_kd_delete():
     global f

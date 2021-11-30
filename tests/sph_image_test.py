@@ -81,8 +81,8 @@ def test_approximate_images(compare2d, compare3d):
         f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True )
 
     # approximate interpolated images are only close in a mean sense
-    npt.assert_allclose(im2d, compare2d, rtol=1e-4)
-    npt.assert_allclose(im3d, compare3d, rtol=1e-4)
+    assert abs(np.log10(im2d/compare2d)).mean()<0.03
+    assert abs(np.log10(im3d/compare3d)).mean()<0.03
 
 
 def test_denoise_projected_image_throws():
