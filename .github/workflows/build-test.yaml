@@ -20,6 +20,12 @@ jobs:
       C: gcc-10
       CXX: g++-10
     steps:
+    - name: Cache test data
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{ github.workspace }}/testdata.tar.gz
+        key: testdata.tar.gz
     - name: Install Python
       uses: actions/setup-python@v2
       with:
@@ -42,7 +48,7 @@ jobs:
     - name: Fetch and unpack test data
       working-directory: nose
       run: |
-        wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz
+        wget -qN http://star.ucl.ac.uk/~app/testdata.tar.gz
         tar --exclude="._*" -xzvf testdata.tar.gz
     - name: Run all tests
       working-directory: nose
