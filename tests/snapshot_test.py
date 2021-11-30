@@ -93,7 +93,7 @@ def test_derived_array():
     f['vr']
     assert 'vr' in f.keys()
 
-    with pytest.raises((RuntimeError, ValueError, TypeError)):
+    with pytest.raises(ValueError):
         f['r'][22] += 3
 
     f['r'].derived = False
