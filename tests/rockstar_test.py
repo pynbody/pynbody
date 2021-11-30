@@ -4,16 +4,16 @@ import numpy as np, numpy.testing as npt
 import pytest
 def setup_module():
     # create a dummy gadget file
-    global f
+    global f, h
     f = pynbody.new(dm=2097152)
     f['iord'] = np.arange(2097152)
     f.properties['z']=1.6591479493605812
     f._filename = "testdata/rockstar/snapshot_015"
+    h = f.halos()
 
 
 def test_load_rockstar():
     global f, h
-    h = f.halos()
     assert len(h)==5851
     assert isinstance(h, pynbody.halo.RockstarCatalogue)
 
