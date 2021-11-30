@@ -103,6 +103,13 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         return npart_this, nstar_this, my_mask
 
 @remote_exec
+def _cpui_count_particles(filename):
+    with FortranFile(filename) as f:
+        header = f.read_attrs(ramses_particle_header)
+        npart_this = header['npart']
+        return npart_this
+
+@remote_exec
 def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
     assert np.issubdtype(family_type, np.int8)
     counts_array = np.zeros(256,dtype=np.int64)
@@ -132,6 +139,61 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
             ind1 = ind0 + len(data_this_family)
             ar[ind0:ind1] = data_this_family
 
+
+def _cpui_cell_counter(cpu, amr_filename, bisection_order, maxlevel, ndim):
+    with FortranFile(amr_filename) as f:
+        header = f.read_attrs(ramses_amr_header)
+        f.skip(13)
+
+        n_per_level = f.read_vector(_int_type).reshape((header['nlevelmax'], header['ncpu']))
+        f.skip(1)
+        if header['nboundary'] > 0:
+            f.skip(2)
+            n_per_level_boundary = f.read_vector(_int_type).reshape((header['nlevelmax'], header['nboundary']))
+
+        f.skip(2)
+        if bisection_order:
+            f.skip(5)
+        else:
+            f.skip(1)
+        f.skip(3)
+
+        offset = np.array(header['ng'], dtype=_float_type) / 2
+        offset -= 0.5
+
+        NSKIP = (
+            3 + # grid, next, prev
+            3 + # x, y, z
+            1 + # father index
+            2 * ndim + # nbor index
+            2 * (2 ** ndim) # son index, cpumap, refmap
+        )
+
+        for level in range(maxlevel or header['nlevelmax']):
+
+            # loop through those CPUs with grid data (includes ghost regions)
+            for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
+                # print "CPU=",cpu,"CPU on
+                # disk=",cpuf,"npl=",n_per_level[level,cpuf-1]
+
+                if cpuf == cpu:
+                    # this is the data we want
+                    f.skip(NSKIP)
+
+                    refine = np.array(
+                        [f.read_vector(_int_type) for i in range(2 ** ndim)])
+
+                    if(level+1 == maxlevel or level+1==header['nlevelmax']):
+                        refine[:] = 0
+
+                    yield refine, cpuf, level
+                else:
+                    # skip ghost regions from other CPUs
+                    f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
+
+            if header['nboundary'] > 0:
+                for _boundaryf in np.where(n_per_level_boundary[level, :] != 0)[0]:
+                    f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
     with FortranFile(amr_filename) as f:
@@ -209,7 +271,7 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
 @remote_exec
 def _cpui_count_gas_cells(level_iterator_args):
     ncell = 0
-    for coords, refine, cpu, level in _cpui_level_iterator(*level_iterator_args):
+    for refine, _cpu, _level in _cpui_cell_counter(*level_iterator_args):
         ncell += (refine == 0).sum()
     return ncell
 
@@ -594,6 +656,16 @@ class RamsesSnap(SimSnap):
 
     def _sink_filename(self):
         return self._filename + "/sink_" + self._timestep_id + ".csv"
+
+    def _count_total_particles(self):
+        """Count the number of particles without counting each family"""
+        if not self._has_particle_file():
+            return OrderedDict()
+        return sum(remote_map(
+            self.reader_pool,
+            _cpui_count_particles,
+            [self._particle_filename(i) for i in self._cpus],
+        ))
 
     def _count_particles(self):
         if self._has_explicit_particle_families:
