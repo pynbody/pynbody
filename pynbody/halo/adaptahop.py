@@ -79,6 +79,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Call parent class
         super(BaseAdaptaHOPCatalogue, self).__init__(sim)
 
+        self._sim = sim  # prevent garbage collection
         self._halos = {}
         self._fname = fname
         self._AdaptaHOP_fname = fname
