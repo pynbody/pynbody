@@ -33,7 +33,11 @@ class SimpleHalo:
         if base is None:
             import pdb; pdb.set_trace()
         self.properties = {}
-        self.base = base
+        self._base = weakref.ref(base)
+
+    @property
+    def base(self):
+        return self._base()
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
         dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
@@ -50,17 +54,14 @@ class SimpleHalo:
                     continue
                 self.properties[k] = v.in_units(new_unit)
 
-class Halo(snapshot.IndexedSubSnap, SimpleHalo):
+class Halo(snapshot.IndexedSubSnap):
 
     """
     Generic class representing a halo.
     """
 
-    def __init__(self, halo_id, halo_catalogue, *args, index_parent=True, **kwa):
-        if index_parent:
-            super(Halo, self).__init__(*args, **kwa)
-        else:
-            self.properties = {}
+    def __init__(self, halo_id, halo_catalogue, *args, **kwa):
+        super(Halo, self).__init__(*args, **kwa)
         self._halo_catalogue = halo_catalogue
         self._halo_id = halo_id
         self._descriptor = "halo_" + str(halo_id)
@@ -70,6 +71,22 @@ class Halo(snapshot.IndexedSubSnap, SimpleHalo):
             for key in list(halo_catalogue._halos[halo_id].properties.keys()):
                 self.properties[key] = halo_catalogue._halos[halo_id].properties[key]
 
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
+        dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
+        for k in list(self.properties.keys()):
+            v = self.properties[k]
+            if isinstance(v, array.SimArray):
+                try:
+                    new_unit = v.units.dimensional_project(dims)
+                    new_unit = reduce(
+                        lambda x, y: x * y,
+                        [a ** b for a, b in zip(dims, new_unit[:3])]
+                    )
+                except units.UnitsException:
+                    continue
+                self.properties[k] = v.in_units(new_unit)
+
+        return super().physical_units(distance, velocity, mass, persistent)
 
     def is_subhalo(self, otherhalo):
         """

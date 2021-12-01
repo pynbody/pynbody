@@ -261,7 +261,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         if self._index_parent:
             halo = Halo(
-                halo_id, self, self.base.dm, index_array=index_array, iord_array=iord_array, index_parent=self._index_parent
+                halo_id, self, self.base.dm, index_array=index_array, iord_array=iord_array
             )
         else:
             halo = SimpleHalo(self.base)
