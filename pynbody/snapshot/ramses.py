@@ -78,6 +78,105 @@ def _timestep_id(basename):
 def _cpu_id(i):
     return str(i).rjust(5, "0")
 
+class RamsesLazyFamilySlice(dict):
+    """
+    Mimic a dictionary whose entries are only loaded
+    when accessed. This allows to initialize the RAMSES
+    frontend faster, as the number of particles of each
+    type doesn't have to be read until requested.
+    """
+    __slots__ = "_initialized", "parent", "ngas", "__dict__"
+
+    def __init__(self, parent, ngas):
+        self._initialized = False
+        self.parent = parent
+        self.ngas = ngas
+
+    def _initialize(self):
+        if self._initialized:
+            return
+        type_map = self.parent._count_particles()
+
+        if self.ngas > 0 :
+            type_map[family.gas] = self.ngas
+
+        count_tot = 0
+        for fam, count in type_map.items():
+            self.__dict__[fam] = slice(count_tot, count_tot + count)
+            count_tot += count
+
+        self._initialized = True
+
+    def __getitem__(self, key):
+        self._initialize()
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self._initialize()
+        self.__dict__[key] = value
+
+    def __delitem__(self, key):
+        self._initialize()
+        del self.__dict__[key]
+
+    def __iter__(self):
+        self._initialize()
+        return iter(self.__dict__)
+
+    def __repr__(self):
+        self._initialize()
+        return repr(self.__dict__)
+
+    def __len__(self):
+        self._initialize()
+        return len(self.__dict__)
+
+    def clear(self):
+        return self.__dict__.clear()
+
+    def copy(self):
+        self._initialize()
+        return self.__dict__.copy()
+
+    def has_key(self, k):
+        self._initialize()
+        return k in self.__dict__
+
+    def update(self, *args, **kwargs):
+        self._initialize()
+        return self.__dict__.update(*args, **kwargs)
+
+    def keys(self):
+        self._initialize()
+        return self.__dict__.keys()
+
+    def values(self):
+        self._initialize()
+        return self.__dict__.values()
+
+    def items(self):
+        self._initialize()
+        return self.__dict__.items()
+
+    def pop(self, *args):
+        self._initialize()
+        return self.__dict__.pop(*args)
+
+    def __cmp__(self, dict_):
+        self._initialize()
+        return self.__cmp__(self.__dict__, dict_)
+
+    def __contains__(self, item):
+        self._initialize()
+        return item in self.__dict__
+
+    def __iter__(self):
+        self._initialize()
+        return iter(self.__dict__)
+
+    def __unicode__(self):
+        self._initialize()
+        return unicode(repr(self.__dict__))
 
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
@@ -488,8 +587,6 @@ class RamsesSnap(SimSnap):
             self._cpus = list(range(1, self.ncpu + 1))
         self._maxlevel = kwargs.get('maxlevel', None)
 
-        type_map = self._count_particles()
-
         has_gas = os.path.exists(
             self._hydro_filename(1)) or kwargs.get('force_gas', False)
 
@@ -498,14 +595,10 @@ class RamsesSnap(SimSnap):
 
         ngas = self._count_gas_cells() if has_gas else 0
 
-        if ngas>0:
-            type_map[family.gas] = ngas
+        npart = self._count_total_particles()
+        count = npart + ngas
 
-        count = 0
-        for fam in type_map:
-            self._family_slice[fam] = slice(count, count+type_map[fam])
-            count+=type_map[fam]
-
+        self._family_slice = RamsesLazyFamilySlice(self, ngas)
         self._num_particles = count
         self._load_rt_infofile()
         self._decorate()
@@ -660,7 +753,7 @@ class RamsesSnap(SimSnap):
     def _count_total_particles(self):
         """Count the number of particles without counting each family"""
         if not self._has_particle_file():
-            return OrderedDict()
+            return 0
         return sum(remote_map(
             self.reader_pool,
             _cpui_count_particles,
