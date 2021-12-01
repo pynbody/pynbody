@@ -24,8 +24,11 @@ from .. import snapshot, util, units, array
 
 logger = logging.getLogger("pynbody.halo")
 
-class SimpleHalo:
+class DummyHalo:
+    def __init__(self):
+        self.properties = {}
 
+class SimpleHalo:
     def __init__(self, base):
         if base is None:
             import pdb; pdb.set_trace()
@@ -46,9 +49,6 @@ class SimpleHalo:
                 except units.UnitsException:
                     continue
                 self.properties[k] = v.in_units(new_unit)
-
-class DummyHalo(SimpleHalo):
-    pass
 
 class Halo(snapshot.IndexedSubSnap, SimpleHalo):
 
