@@ -97,7 +97,9 @@ class RamsesLazyFamilySlice(dict):
             return
         type_map = self.parent._count_particles()
 
-        if self.ngas > 0 :
+        if self.ngas > 0:
+            # Read number of cell exactly
+            self.ngas = self.parent._count_gas_cells()
             type_map[family.gas] = self.ngas
 
         count_tot = 0
@@ -106,6 +108,7 @@ class RamsesLazyFamilySlice(dict):
             count_tot += count
 
         self._initialized = True
+        self.parent._num_particles = count_tot
 
     def __getitem__(self, key):
         self._initialize()
@@ -239,12 +242,22 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
             ar[ind0:ind1] = data_this_family
 
 
-def _cpui_cell_counter(cpu, amr_filename, bisection_order, maxlevel, ndim):
+def _cpui_cell_counter(cpu, amr_filename, bisection_order, maxlevel, ndim, fast_count):
     with FortranFile(amr_filename) as f:
         header = f.read_attrs(ramses_amr_header)
         f.skip(13)
 
         n_per_level = f.read_vector(_int_type).reshape((header['nlevelmax'], header['ncpu']))
+
+        if fast_count:
+            ncell = 0
+            ngrid_prev = 0
+            for ngrid in n_per_level[::-1, cpu-1]:
+                ncell += ngrid*8 - ngrid_prev
+                ngrid_prev = ngrid
+            yield np.zeros(ncell, dtype=bool), cpu, -1
+            return
+
         f.skip(1)
         if header['nboundary'] > 0:
             f.skip(2)
@@ -593,7 +606,7 @@ class RamsesSnap(SimSnap):
         if not kwargs.get('with_gas',True):
             has_gas = False
 
-        ngas = self._count_gas_cells() if has_gas else 0
+        ngas = self._count_gas_cells_fast() if has_gas else 0
 
         npart = self._count_total_particles()
         count = npart + ngas
@@ -976,16 +989,24 @@ class RamsesSnap(SimSnap):
         return npart - nstar, nstar
 
     def _count_gas_cells(self):
+        fast_count = False
         ncells = remote_map(self.reader_pool, _cpui_count_gas_cells,
-                            [self._cpui_level_iterator_args(xcpu) for xcpu in self._cpus])
+                            [self._cpui_level_iterator_args(cpu=xcpu) + [fast_count] for xcpu in self._cpus])
         self._gas_i0 = np.cumsum([0] + ncells)[:-1]
         return np.sum(ncells)
 
+    def _count_gas_cells_fast(self):
+        fast_count = True
+        ncells = remote_map(self.reader_pool, _cpui_count_gas_cells,
+                            [self._cpui_level_iterator_args(cpu=xcpu) + [fast_count] for xcpu in self._cpus])
+        return np.sum(ncells)
+
+
     def _cpui_level_iterator_args(self, cpu=None):
         if cpu:
-            return cpu, self._amr_filename(cpu), self._info['ordering type'] == 'bisection', self._maxlevel, self._ndim
+            return [cpu, self._amr_filename(cpu), self._info['ordering type'] == 'bisection', self._maxlevel, self._ndim]
         else:
-            return [self._cpui_level_iterator_args(x) for x in self._cpus]
+            return [self._cpui_level_iterator_args(cpu=x) for x in self._cpus]
 
     def _level_iterator(self):
         """Walks the AMR grid levels on disk, yielding a tuplet of coordinates and
@@ -996,7 +1017,6 @@ class RamsesSnap(SimSnap):
                 yield x
 
     def _load_gas_pos(self):
-        i0 = 0
         self.gas['pos'].set_default_units()
         smooth = self.gas['smooth']
         smooth.set_default_units()
@@ -1202,6 +1222,11 @@ class RamsesSnap(SimSnap):
     def _load_array(self, array_name, fam=None):
         # Framework always calls with 3D name. Ramses particle blocks are
         # stored as 1D slices.
+
+        # We need to make sure the family slices are properly initialized
+        # before reading from disk
+
+        self._family_slice._initialize()
 
         if array_name == 'cpu':
             self['cpu'] = np.zeros(len(self), dtype=int)
