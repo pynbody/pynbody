@@ -53,7 +53,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
+    def __init__(self, sim, fname=None, read_contamination=None, longint=None, index_parent=True):
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
@@ -72,6 +72,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             read_contamination, longint = self._detect_file_format(fname)
         self._read_contamination = read_contamination
         self._longint = longint
+        self._index_parent = index_parent
 
         self._header_attributes = self.convert_i8b(self._header_attributes, longint)
         self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
@@ -83,9 +84,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         # Call parent class
         super(BaseAdaptaHOPCatalogue, self).__init__(sim)
-
-        # Initialize internal data
-        self._base_dm = sim.dm
 
         self._halos = {}
         self._fname = fname
@@ -137,7 +135,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         for all halos in one operation. This is slow compared to
         getting a single halo, however."""
         # Get the mapping from particle to halo
-        self._base_dm._family_index()  # filling the cache
+        self.base.dm._family_index()  # filling the cache
         self._group_array = self.get_group_array(group_to_indices=True)
 
     def _ahop_compute_offset(self):
@@ -266,8 +264,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         else:
             index_array = None
             iord_array = iord_array
+        base = self.base.dm if self._index_parent else self.base
         halo = Halo(
-            halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
+            halo_id, self, base, index_array=index_array, iord_array=iord_array, index_parent=self._index_parent
         )
         halo.properties.update(props)
 
