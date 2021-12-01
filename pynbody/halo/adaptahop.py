@@ -160,7 +160,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 fpu.skip(Nskip)
 
                 # Fill-in data
-                dummy = DummyHalo()
+                dummy = DummyHalo(self.base)
                 dummy.properties["file_offset"] = ipos
                 self._halos[halo_ID] = dummy
 
@@ -264,10 +264,14 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         else:
             index_array = None
             iord_array = iord_array
-        base = self.base.dm if self._index_parent else self.base
-        halo = Halo(
-            halo_id, self, base, index_array=index_array, iord_array=iord_array, index_parent=self._index_parent
-        )
+
+        if self._index_parent:
+            halo = Halo(
+                halo_id, self, self.base.dm, index_array=index_array, iord_array=iord_array, index_parent=self._index_parent
+            )
+        else:
+            halo = SimpleHalo(self.base)
+
         halo.properties.update(props)
 
         return halo
