@@ -315,7 +315,12 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         halo = Halo(
             halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
         )
-        halo.properties.update(props)
+        for k, v in props.items():
+            halo.properties[k] = v
+
+        # Need to convert the units of the halo object as we
+        # just updated them
+        halo._autoconvert_properties()
 
         return halo
 
