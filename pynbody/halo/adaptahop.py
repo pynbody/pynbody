@@ -4,15 +4,10 @@ from typing import Sequence
 
 import numpy as np
 
-from . import HaloCatalogue, Halo, logger
+from . import HaloCatalogue, Halo, DummyHalo, logger
 from .. import util, units, array
 
 from ..extern.cython_fortran_utils import FortranFile
-
-
-class DummyHalo(object):
-    def __init__(self):
-        self.properties = {}
 
 
 unit_length = units.Unit("Mpc")
